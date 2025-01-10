@@ -35,7 +35,7 @@ textarea,
 .ui.selection.dropdown {
   background: var(--color-input-background);
   border-color: var(--color-input-border);
-  color: var(--color-input-text);
+  color: var(--color-search-button-text);
 }
 
 /* fix fomantic small dropdown having inconsistent padding with input */
@@ -62,8 +62,8 @@ textarea:hover,
 .ui.form input[type="url"]:hover,
 .ui.selection.dropdown:hover {
   background: var(--color-input-background);
-  border-color: var(--color-input-border-hover);
-  color: var(--color-input-text);
+  border-color: var(--color-search-button-border-hover);
+  color: var(--color-search-button-text);
 }
 
 input:focus,
@@ -86,7 +86,7 @@ textarea:focus,
 .ui.selection.dropdown:focus {
   background: var(--color-input-background);
   border-color: var(--color-primary);
-  color: var(--color-input-text);
+  color: var(--color-search-button-text);
 }
 
 .ui.form .field > label,
@@ -106,7 +106,7 @@ textarea:focus,
 }
 
 .ui.input {
-  color: var(--color-input-text);
+  color: var(--color-search-button-text);
 }
 
 /* match <select> padding to <input> */

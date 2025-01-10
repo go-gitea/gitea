@@ -194,11 +194,11 @@
   --color-text-light-3: #788797;
   --color-footer: var(--color-nav-bg);
   --color-timeline: #343c44;
-  --color-input-text: var(--color-text-dark);
+  --color-search-button-text: var(--color-text-dark);
   --color-input-background: #171a1e;
   --color-input-toggle-background: #2e353c;
   --color-input-border: var(--color-secondary);
-  --color-input-border-hover: var(--color-secondary-dark-1);
+  --color-search-button-border-hover: var(--color-secondary-dark-1);
   --color-light: #00001728;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #e8f3ff28;
@@ -238,6 +238,17 @@
   --color-highlight-fg: #87651e;
   --color-highlight-bg: #352c1c;
   --color-overlay-backdrop: #080808c0;
+    /* search */
+    --color-search-bar-background: #4d5156;
+    --color-search-bar-background-hover: #5f6368;
+    --color-search-bar-border: transparent;
+    --color-search-button-background: #303134;
+    --color-search-button-border-hover: #5f6368;
+    --color-search-button-focus-border: #5f6368;
+    --color-search-button-text: #e8eaed;
+    --shadow-search-box: none;
+    --shadow-search-box-hover: none;
+    --shadow-search-button: 0 1px 3px rgba(23,23,23,0.24);
   accent-color: var(--color-accent);
   color-scheme: dark;
 }

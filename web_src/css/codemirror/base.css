@@ -3,7 +3,7 @@
 }
 
 .EasyMDEContainer .CodeMirror {
-  color: var(--color-input-text);
+  color: var(--color-search-button-text);
   background-color: var(--color-input-background);
   border-color: var(--color-secondary);
   font: 14px var(--fonts-monospace);

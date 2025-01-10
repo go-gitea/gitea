@@ -7,6 +7,8 @@ export function initSearch() {
   if (!clearIcon) return;
   const textArea = document.querySelector<HTMLTextAreaElement>('.search-input-area textarea.search-input');
   if (!textArea) return;
+  const elForm = document.querySelector<HTMLFormElement>('.search-form form');
+  if (!elForm) return;
 
   function onSearchTextAreaFocus(this: HTMLTextAreaElement, _ev: FocusEvent) {
     belowSearchContainer.style.display = 'block';
@@ -17,7 +19,7 @@ export function initSearch() {
   function onSearchTextChange() {
     // adjust the height
     textArea.style.height = 'auto';
-    textArea.style.height = `${textArea.scrollHeight}px`;
+    textArea.style.height = `${textArea.scrollHeight+8}px`;
     // display clear icon
     if (textArea.value !== '') {
       clearIcon.style.display = 'flex';
@@ -29,9 +31,14 @@ export function initSearch() {
   searchBar.addEventListener('click', () => {
     textArea.focus();
   });
-  // textArea.addEventListener('keyup', onSearchTextAreaKeyDown);
   textArea.addEventListener('focus', onSearchTextAreaFocus);
   textArea.addEventListener('blur', onSearchTextAreaBlur);
+  textArea.addEventListener('keydown', (ev: KeyboardEvent) => {
+    if (ev.code === 'Enter' && !ev.shiftKey) {
+      elForm.submit();
+      ev.preventDefault(); // Prevents the addition of a new line in the text field
+    }
+  })
   clearIcon.addEventListener('click', () => {
     textArea.value = '';
     textArea.focus();

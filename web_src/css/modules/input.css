@@ -5,7 +5,7 @@
   position: relative;
   font-weight: var(--font-weight-normal);
   display: inline-flex;
-  color: var(--color-input-text);
+  color: var(--color-search-button-text);
 }
 .ui.input > input {
   margin: 0;
@@ -15,7 +15,7 @@
   font-family: var(--fonts-regular);
   padding: 0.67857143em 1em;
   border: 1px solid var(--color-input-border);
-  color: var(--color-input-text);
+  color: var(--color-search-button-text);
   border-radius: 0.28571429rem;
   line-height: var(--line-height-default);
   text-align: start;
