@@ -87,6 +87,7 @@ import {
   initGlobalEnterQuickSubmit,
   initGlobalFormDirtyLeaveConfirm,
 } from './features/common-form.ts';
+import {initSearch} from './search.ts';
 
 initGiteaFomantic();
 initDirAuto();
@@ -217,5 +218,7 @@ onDomReady(() => {
     initColorPickers,
 
     initOAuth2SettingsDisableCheckbox,
+
+    initSearch,
   ]);
 });
