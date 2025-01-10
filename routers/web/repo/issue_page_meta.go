@@ -193,6 +193,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 	var posterID int64
 	var isClosed bool
 	var reviews issues_model.ReviewList
+	var err error
 
 	if d.Issue == nil {
 		if ctx.Doer != nil {
@@ -206,14 +207,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 
 		isClosed = d.Issue.IsClosed || d.Issue.PullRequest.HasMerged
 
-		originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, d.Issue.ID)
-		if err != nil {
-			ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
-			return
-		}
-		data.OriginalReviews = originalAuthorReviews
-
-		reviews, err = issues_model.GetReviewsByIssueID(ctx, d.Issue.ID)
+		reviews, data.OriginalReviews, err = issues_model.GetReviewsByIssueID(ctx, d.Issue.ID)
 		if err != nil {
 			ctx.ServerError("GetReviewersByIssueID", err)
 			return
