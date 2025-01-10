@@ -67,6 +67,45 @@ type MarkdownHandleListNumbersResult = {
   valueSelection?: TextareaValueSelection;
 }
 
+type TextLinesBuffer = {
+  lines: string[];
+  lengthBeforePosLine: number;
+  posLineIndex: number;
+  inlinePos: number
+}
+
+export function textareaSplitLines(value: string, pos: number): TextLinesBuffer {
+  const lines = value.split('\n');
+  let lengthBeforePosLine = 0, inlinePos = 0, posLineIndex = 0;
+  for (; posLineIndex < lines.length; posLineIndex++) {
+    const lineLength = lines[posLineIndex].length + 1;
+    if (lengthBeforePosLine + lineLength > pos) {
+      inlinePos = pos - lengthBeforePosLine;
+      break;
+    }
+    lengthBeforePosLine += lineLength;
+  }
+  return {lines, lengthBeforePosLine, posLineIndex, inlinePos};
+}
+
+function markdownReformatListNumbers(linesBuf: TextLinesBuffer, indention: string) {
+  const re = new RegExp(`^${indention}([0-9]+)\\.`);
+  let firstLineIdx = 0;
+  for (firstLineIdx = linesBuf.posLineIndex - 1; firstLineIdx >= 0; firstLineIdx--) {
+    if (!re.test(linesBuf.lines[firstLineIdx])) break;
+  }
+  firstLineIdx++;
+  for (let i = firstLineIdx; i < linesBuf.lines.length; i++) {
+    if (!re.test(linesBuf.lines[i])) break;
+    linesBuf.lines[i] = `${indention}${i - firstLineIdx + 1}.${linesBuf.lines[i].replace(re, '')}`;
+  }
+  linesBuf.lengthBeforePosLine = 0;
+  for (let i = 0; i < linesBuf.posLineIndex; i++) {
+    linesBuf.lengthBeforePosLine += linesBuf.lines[i].length + 1;
+  }
+  linesBuf.posLineIndex = linesBuf.lines[linesBuf.posLineIndex].length;
+}
+
 export function markdownHandleListNumbers(tvs: TextareaValueSelection): MarkdownHandleListNumbersResult {
   const ret: MarkdownHandleListNumbersResult = {handled: false};
   if (tvs.selEnd !== tvs.selStart) return ret; // do not process when there is a selection
@@ -97,32 +136,26 @@ export function markdownHandleListNumbers(tvs: TextareaValueSelection): Markdown
   line = line.slice(prefix.length);
   if (!indention && !prefix) return ret; // if no indention and no prefix, do nothing, let the browser handle it
 
-  ret.handled = true;
+  const linesBuf = textareaSplitLines(value, tvs.selStart);
   if (!line) {
     // clear current line if we only have i.e. '1. ' and the user presses enter again to finish creating a list
-    ret.valueSelection = {
-      value: value.slice(0, lineStart) + value.slice(lineEnd),
-      selStart: tvs.selStart - prefix.length,
-      selEnd: tvs.selStart - prefix.length,
-    };
+    linesBuf.lines[linesBuf.posLineIndex] = '';
+    linesBuf.inlinePos = 0;
   } else {
-    // start a new line with the same indention and prefix
+    // start a new line with the same indention
     let newPrefix = prefix;
-    const digitMatch = /^\d+/.exec(prefix);
-    if (digitMatch) {
-      const number = parseInt(digitMatch[0]);
-      const incremented = number + 1;
-      newPrefix = `${incremented}. ${newPrefix.slice(newPrefix.indexOf('.') + 2)}`;
-    }
+    if (/^\d+\./.test(prefix)) newPrefix = `1. ${newPrefix.slice(newPrefix.indexOf('.') + 2)}`;
     newPrefix = newPrefix.replace('[x]', '[ ]');
-    const newLine = `\n${indention}${newPrefix}`;
-    ret.valueSelection = {
-      value: value.slice(0, tvs.selStart) + newLine + value.slice(tvs.selEnd),
-      selStart: tvs.selStart + newLine.length,
-      selEnd: tvs.selStart + newLine.length,
-    };
+
+    const newLine = `${indention}${newPrefix}`;
+    linesBuf.lengthBeforePosLine += linesBuf.lines[linesBuf.posLineIndex].length;
+    linesBuf.lines.splice(linesBuf.posLineIndex + 1, 0, newLine);
+    linesBuf.posLineIndex++;
+    linesBuf.inlinePos = newLine.length;
   }
-  return ret;
+  markdownReformatListNumbers(linesBuf, indention);
+  const newPos = linesBuf.lengthBeforePosLine + linesBuf.inlinePos;
+  return {handled: true, valueSelection: {value: linesBuf.lines.join('\n'), selStart: newPos, selEnd: newPos}};
 }
 
 function handleNewline(textarea: HTMLTextAreaElement, e: Event) {

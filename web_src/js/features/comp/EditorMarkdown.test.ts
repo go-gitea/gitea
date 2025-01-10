@@ -1,4 +1,67 @@
-import {initTextareaMarkdown, markdownHandleListNumbers} from './EditorMarkdown.ts';
+import {initTextareaMarkdown, markdownHandleListNumbers, textareaSplitLines} from './EditorMarkdown.ts';
+
+test('textareaSplitLines', () => {
+  let ret = textareaSplitLines('a\nbc\nd', 0);
+  expect(ret).toEqual({lines: ['a', 'bc', 'd'], lengthBeforePosLine: 0, posLineIndex: 0, inlinePos: 0});
+
+  ret = textareaSplitLines('a\nbc\nd', 1);
+  expect(ret).toEqual({lines: ['a', 'bc', 'd'], lengthBeforePosLine: 0, posLineIndex: 0, inlinePos: 1});
+
+  ret = textareaSplitLines('a\nbc\nd', 2);
+  expect(ret).toEqual({lines: ['a', 'bc', 'd'], lengthBeforePosLine: 2, posLineIndex: 1, inlinePos: 0});
+
+  ret = textareaSplitLines('a\nbc\nd', 3);
+  expect(ret).toEqual({lines: ['a', 'bc', 'd'], lengthBeforePosLine: 2, posLineIndex: 1, inlinePos: 1});
+
+  ret = textareaSplitLines('a\nbc\nd', 4);
+  expect(ret).toEqual({lines: ['a', 'bc', 'd'], lengthBeforePosLine: 2, posLineIndex: 1, inlinePos: 2});
+
+  ret = textareaSplitLines('a\nbc\nd', 5);
+  expect(ret).toEqual({lines: ['a', 'bc', 'd'], lengthBeforePosLine: 5, posLineIndex: 2, inlinePos: 0});
+
+  ret = textareaSplitLines('a\nbc\nd', 6);
+  expect(ret).toEqual({lines: ['a', 'bc', 'd'], lengthBeforePosLine: 5, posLineIndex: 2, inlinePos: 1});
+});
+
+test('markdownHandleListNumbers', () => {
+  const testInput = (input: string, expected: string) => {
+    const inputPos = input.indexOf('|');
+    input = input.replace('|', '');
+    const ret = markdownHandleListNumbers({value: input, selStart: inputPos, selEnd: inputPos});
+
+    const expectedPos = expected.indexOf('|');
+    expected = expected.replace('|', '');
+    expect(ret).toEqual({handled: true, valueSelection: {value: expected, selStart: expectedPos, selEnd: expectedPos}});
+  };
+
+  testInput(`
+1. a
+2. |
+`, `
+1. a
+|
+`);
+
+  testInput(`
+1. a
+1. b|
+`, `
+1. a
+2. b
+3. |
+`);
+
+  testInput(`
+1. a
+2. b|
+3. c
+`, `
+1. a
+2. b
+3. |
+4. c
+`);
+});
 
 test('EditorMarkdown', () => {
   const textarea = document.createElement('textarea');
@@ -38,7 +101,4 @@ test('EditorMarkdown', () => {
   testInput('- [ ] foo', '- [ ] foo\n- [ ] ');
   testInput('* [x] foo', '* [x] foo\n* [ ] ');
   testInput('1. [x] foo', '1. [x] foo\n2. [ ] ');
-
-  // TODO: test separately
-  markdownHandleListNumbers({value: '1.', selStart: 1, selEnd: 2});
 });
