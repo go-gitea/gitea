@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/tests"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setDefaultBranch(t *testing.T, session *TestSession, user, repo, branch string) {
@@ -199,14 +199,10 @@ func TestNonAsciiBranches(t *testing.T) {
 		t.Run(test.from, func(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/src/%s", user, repo, test.from))
 			resp := session.MakeRequest(t, req, http.StatusSeeOther)
-			if resp.Code != http.StatusSeeOther {
-				return
-			}
+			require.Equal(t, http.StatusSeeOther, resp.Code)
 
 			redirectLocation := resp.Header().Get("Location")
-			if !assert.Equal(t, fmt.Sprintf("/%s/%s/src/%s", user, repo, test.to), redirectLocation) {
-				return
-			}
+			require.Equal(t, fmt.Sprintf("/%s/%s/src/%s", user, repo, test.to), redirectLocation)
 
 			req = NewRequest(t, "GET", redirectLocation)
 			session.MakeRequest(t, req, test.status)

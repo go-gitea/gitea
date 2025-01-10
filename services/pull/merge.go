@@ -17,6 +17,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -632,14 +633,8 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return fmt.Errorf("Wrong commit ID")
 		}
 
-		pr.MergedCommitID = commitID
-		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
-		pr.Status = issues_model.PullRequestStatusManuallyMerged
-		pr.Merger = doer
-		pr.MergerID = doer.ID
-
 		var merged bool
-		if merged, err = SetMerged(ctx, pr); err != nil {
+		if merged, err = SetMerged(ctx, pr, commitID, timeutil.TimeStamp(commit.Author.When.Unix()), doer, issues_model.PullRequestStatusManuallyMerged); err != nil {
 			return err
 		} else if !merged {
 			return fmt.Errorf("SetMerged failed")
@@ -658,39 +653,33 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 }
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
-func SetMerged(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
+func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID string, mergedTimeStamp timeutil.TimeStamp, merger *user_model.User, mergeStatus issues_model.PullRequestStatus) (bool, error) {
 	if pr.HasMerged {
 		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
+
+	pr.HasMerged = true
+	pr.MergedCommitID = mergedCommitID
+	pr.MergedUnix = mergedTimeStamp
+	pr.Merger = merger
+	pr.MergerID = merger.ID
+	pr.Status = mergeStatus
+	// reset the conflicted files as there cannot be any if we're merged
+	pr.ConflictedFiles = []string{}
+
 	if pr.MergedCommitID == "" || pr.MergedUnix == 0 || pr.Merger == nil {
 		return false, fmt.Errorf("unable to merge PullRequest[%d], some required fields are empty", pr.Index)
 	}
 
-	pr.HasMerged = true
-	sess := db.GetEngine(ctx)
-
-	if _, err := sess.Exec("UPDATE `issue` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
 		return false, err
 	}
-
-	if _, err := sess.Exec("UPDATE `pull_request` SET `issue_id` = `issue_id` WHERE `id` = ?", pr.ID); err != nil {
-		return false, err
-	}
+	defer committer.Close()
 
 	pr.Issue = nil
 	if err := pr.LoadIssue(ctx); err != nil {
 		return false, err
-	}
-
-	if tmpPr, err := issues_model.GetPullRequestByID(ctx, pr.ID); err != nil {
-		return false, err
-	} else if tmpPr.HasMerged {
-		if pr.Issue.IsClosed {
-			return false, nil
-		}
-		return false, fmt.Errorf("PullRequest[%d] already merged but it's associated issue [%d] is not closed", pr.Index, pr.IssueID)
-	} else if pr.Issue.IsClosed {
-		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
 
 	if err := pr.Issue.LoadRepo(ctx); err != nil {
@@ -701,16 +690,28 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest) (bool, error) 
 		return false, err
 	}
 
-	if _, err := issues_model.ChangeIssueStatus(ctx, pr.Issue, pr.Merger, true, true); err != nil {
+	// Removing an auto merge pull and ignore if not exist
+	if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
+		return false, fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
+	}
+
+	// Set issue as closed
+	if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, true); err != nil {
 		return false, fmt.Errorf("ChangeIssueStatus: %w", err)
 	}
 
-	// reset the conflicted files as there cannot be any if we're merged
-	pr.ConflictedFiles = []string{}
-
 	// We need to save all of the data used to compute this merge as it may have already been changed by TestPatch. FIXME: need to set some state to prevent TestPatch from running whilst we are merging.
-	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").Update(pr); err != nil {
+	if cnt, err := db.GetEngine(ctx).Where("id = ?", pr.ID).
+		And("has_merged = ?", false).
+		Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").
+		Update(pr); err != nil {
 		return false, fmt.Errorf("failed to update pr[%d]: %w", pr.ID, err)
+	} else if cnt != 1 {
+		return false, issues_model.ErrIssueAlreadyChanged
+	}
+
+	if err := committer.Commit(); err != nil {
+		return false, err
 	}
 
 	return true, nil

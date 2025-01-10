@@ -309,7 +309,6 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	}
 
 	ctx.Data["TreeLink"] = treeLink
-	ctx.Data["SSHDomain"] = setting.SSH.Domain
 
 	return allEntries
 }

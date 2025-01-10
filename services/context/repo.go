@@ -325,9 +325,9 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(username, reponame)
+		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame)
 	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(username, reponame)
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame)
 	}
 	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
@@ -564,7 +564,7 @@ func RepoAssignment(ctx *Context) {
 	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
 	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
 
-	ctx.Data["RepoCloneLink"] = repo.CloneLink()
+	ctx.Data["RepoCloneLink"] = repo.CloneLink(ctx, ctx.Doer)
 
 	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
 	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)
@@ -765,35 +765,30 @@ func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool
 	return ""
 }
 
-func getRefNameLegacy(ctx *Base, repo *Repository, optionalExtraRef ...string) (string, RepoRefType) {
-	extraRef := util.OptionalArg(optionalExtraRef)
-	reqPath := ctx.PathParam("*")
-	reqPath = path.Join(extraRef, reqPath)
-
-	if refName := getRefName(ctx, repo, RepoRefBranch); refName != "" {
+func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (string, RepoRefType) {
+	reqRefPath := path.Join(extraRef, reqPath)
+	reqRefPathParts := strings.Split(reqRefPath, "/")
+	if refName := getRefName(ctx, repo, reqRefPath, RepoRefBranch); refName != "" {
 		return refName, RepoRefBranch
 	}
-	if refName := getRefName(ctx, repo, RepoRefTag); refName != "" {
+	if refName := getRefName(ctx, repo, reqRefPath, RepoRefTag); refName != "" {
 		return refName, RepoRefTag
 	}
-
-	// For legacy support only full commit sha
-	parts := strings.Split(reqPath, "/")
-	if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), parts[0]) {
+	if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), reqRefPathParts[0]) {
 		// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
-		repo.TreePath = strings.Join(parts[1:], "/")
-		return parts[0], RepoRefCommit
+		repo.TreePath = strings.Join(reqRefPathParts[1:], "/")
+		return reqRefPathParts[0], RepoRefCommit
 	}
-
-	if refName := getRefName(ctx, repo, RepoRefBlob); len(refName) > 0 {
+	if refName := getRefName(ctx, repo, reqPath, RepoRefBlob); refName != "" {
 		return refName, RepoRefBlob
 	}
+	// FIXME: the old code falls back to default branch if "ref" doesn't exist, there could be an edge case:
+	// "README?ref=no-such" would read the README file from the default branch, but the user might expect a 404
 	repo.TreePath = reqPath
 	return repo.Repository.DefaultBranch, RepoRefBranch
 }
 
-func getRefName(ctx *Base, repo *Repository, pathType RepoRefType) string {
-	path := ctx.PathParam("*")
+func getRefName(ctx *Base, repo *Repository, path string, pathType RepoRefType) string {
 	switch pathType {
 	case RepoRefBranch:
 		ref := getRefNameFromPath(repo, path, repo.GitRepo.IsBranchExist)
@@ -889,7 +884,8 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 		}
 
 		// Get default branch.
-		if len(ctx.PathParam("*")) == 0 {
+		reqPath := ctx.PathParam("*")
+		if reqPath == "" {
 			refName = ctx.Repo.Repository.DefaultBranch
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
 				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
@@ -914,12 +910,12 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 				return
 			}
 			ctx.Repo.IsViewBranch = true
-		} else {
+		} else { // there is a path in request
 			guessLegacyPath := refType == RepoRefUnknown
 			if guessLegacyPath {
-				refName, refType = getRefNameLegacy(ctx.Base, ctx.Repo)
+				refName, refType = getRefNameLegacy(ctx.Base, ctx.Repo, reqPath, "")
 			} else {
-				refName = getRefName(ctx.Base, ctx.Repo, refType)
+				refName = getRefName(ctx.Base, ctx.Repo, reqPath, refType)
 			}
 			ctx.Repo.RefName = refName
 			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
