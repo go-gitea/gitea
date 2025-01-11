@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -150,7 +151,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		}
 	}
 
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
+	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, nil); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.NotFound(err)
@@ -1185,4 +1186,48 @@ func UpdateBranchProtectionPriories(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func MergeUpstream(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/merge-upstream repository repoMergeUpstream
+	// ---
+	// summary: Merge a branch from upstream
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/MergeUpstreamRequest"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/MergeUpstreamResponse"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	form := web.GetForm(ctx).(*api.MergeUpstreamRequest)
+	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch)
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.Error(http.StatusBadRequest, "MergeUpstream", err)
+			return
+		} else if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "MergeUpstream", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "MergeUpstream", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, &api.MergeUpstreamResponse{MergeStyle: mergeStyle})
 }
