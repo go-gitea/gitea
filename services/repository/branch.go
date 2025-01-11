@@ -651,8 +651,8 @@ type BranchDivergingInfo struct {
 }
 
 // getBranchDivergingInfo returns the information about the divergence of a patch branch to the base branch.
-func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo, headRepo *repo_model.Repository, baseBranch, headbranch string) (*BranchDivergingInfo, error) {
-	headGitBranch, err := git_model.GetBranch(ctx, headRepo.ID, headbranch)
+func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo, headRepo *repo_model.Repository, baseBranch, headBranch string) (*BranchDivergingInfo, error) {
+	headGitBranch, err := git_model.GetBranch(ctx, headRepo.ID, headBranch)
 	if err != nil {
 		return nil, err
 	}
