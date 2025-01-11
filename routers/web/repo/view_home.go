@@ -221,24 +221,16 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 				log.Error("FindRecentlyPushedNewBranches failed: %v", err)
 			}
 
-			log.Info("Branches %v", branches)
-
 			for _, branch := range branches {
-				log.Info("Info %v %v %v %v", opts.Repo, opts.BaseRepo, branch.BranchName, opts.BaseRepo.DefaultBranch)
-
-				divergingInfo, err := repo_service.GetBranchDivergingInfo(ctx, opts.Repo, opts.BaseRepo, branch.BranchName, opts.BaseRepo.DefaultBranch)
+				divergingInfo, err := repo_service.GetBranchDivergingInfo(ctx, branch.BranchRepo, opts.BaseRepo, branch.BranchName, opts.BaseRepo.DefaultBranch)
 				if err != nil {
 					continue
 				}
-				log.Info("divergingInfo %v", divergingInfo)
 				// Base is the pushed branch (for fork branch or local pushed branch perspective)
 				if divergingInfo.BaseIsNewer || divergingInfo.CommitsAhead > 0 {
 					finalBranches = append(finalBranches, branch)
 				}
 			}
-
-			log.Info("FinalBranches %v", finalBranches)
-
 			ctx.Data["RecentlyPushedNewBranches"] = finalBranches
 		}
 	}
