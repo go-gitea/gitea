@@ -356,10 +356,6 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			return nil, err
 		}
 
-		if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-			return nil, err
-		}
-
 		// keep download count on overwrite
 		_pv.DownloadCount = pv.DownloadCount
 
@@ -418,12 +414,10 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 	var err error
 	if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
-		if errors.Is(err, packages_model.ErrDuplicatePackageFile) {
-			// Skip this blob because the manifest contains the same filesystem layer multiple times.
-			return nil
+		if !errors.Is(err, packages_model.ErrDuplicatePackageFile) {
+			log.Error("Error inserting package file: %v", err)
+			return err
 		}
-		log.Error("Error inserting package file: %v", err)
-		return err
 	}
 
 	props := map[string]string{
@@ -433,13 +427,6 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	for name, value := range props {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeFile, pf.ID, name, value); err != nil {
 			log.Error("Error setting package file property: %v", err)
-			return err
-		}
-	}
-
-	// Remove the file from the blob upload version
-	if uploadVersion != nil && ref.File.File != nil && uploadVersion.ID == ref.File.File.VersionID {
-		if err := packages_service.DeletePackageFile(ctx, ref.File.File); err != nil {
 			return err
 		}
 	}
