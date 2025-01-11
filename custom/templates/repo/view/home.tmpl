@@ -5,7 +5,7 @@
         <div class="search-title">{{.Title}}</div>
     </div>
     <div class="search-form">
-        <form action="/search" method="GET" role="search">
+        <form action="{{.CurrentURL}}/search" method="GET" role="search">
             <div class="search-container">
                 <!-- TODO: Create search bar and dropdown with 10 items.
                      Populate the items with the last search results if there is no text,
@@ -16,7 +16,7 @@
                             {{svg "octicon-search"}}
                         </div>
                         <div class="search-input-area">
-                            <textarea aria-activedescendant class="search-input" maxlength="2048" role="combobox" rows="1" spellcheck="false" autocomplete="off"></textarea>
+                            <textarea aria-activedescendant class="search-input" name="q" maxlength="2048" rows="1" role="search" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" required></textarea>
                         </div>
                         <div class="search-icons-right">
                             <div class="search-icon-clear">

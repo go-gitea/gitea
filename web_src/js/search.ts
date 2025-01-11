@@ -1,10 +1,12 @@
 export function initSearch() {
-  const searchBar = document.querySelector<HTMLTextAreaElement>('.search-bar');
+  const searchBar = document.querySelector<HTMLElement>('.search-bar');
   if (!searchBar) return;
-  const belowSearchContainer = document.querySelector<HTMLTextAreaElement>('.search-predict-show');
+  const belowSearchContainer = document.querySelector<HTMLElement>('.search-predict-show');
   if (!belowSearchContainer) return;
-  const clearIcon = document.querySelector<HTMLTextAreaElement>('.search-icon-clear');
+  const clearIcon = document.querySelector<HTMLElement>('.search-icon-clear');
   if (!clearIcon) return;
+  const searchInputArea = document.querySelector<HTMLElement>('.search-input-area');
+  if (!searchInputArea) return;
   const textArea = document.querySelector<HTMLTextAreaElement>('.search-input-area textarea.search-input');
   if (!textArea) return;
   const elForm = document.querySelector<HTMLFormElement>('.search-form form');
@@ -12,14 +14,18 @@ export function initSearch() {
 
   function onSearchTextAreaFocus(this: HTMLTextAreaElement, _ev: FocusEvent) {
     belowSearchContainer.style.display = 'block';
+    searchBar.style.borderRadius = '24px 24px 0 0';
   }
   function onSearchTextAreaBlur(this: HTMLTextAreaElement, _ev: FocusEvent) {
     belowSearchContainer.style.display = 'none';
+    searchBar.style.borderRadius = '24px';
   }
   function onSearchTextChange() {
     // adjust the height
+    // const origH = textArea.style.height;
     textArea.style.height = 'auto';
-    textArea.style.height = `${textArea.scrollHeight+8}px`;
+    const h = textArea.scrollHeight + 6;
+    textArea.style.height = `${h}px`;
     // display clear icon
     if (textArea.value !== '') {
       clearIcon.style.display = 'flex';
@@ -38,7 +44,7 @@ export function initSearch() {
       elForm.submit();
       ev.preventDefault(); // Prevents the addition of a new line in the text field
     }
-  })
+  });
   clearIcon.addEventListener('click', () => {
     textArea.value = '';
     textArea.focus();
@@ -57,3 +63,7 @@ export function initSearch() {
     });
   }
 }
+
+window.addEventListener('beforeunload', function (event) {
+  event.stopImmediatePropagation();
+});
