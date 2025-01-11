@@ -26,6 +26,17 @@ func TestRefName(t *testing.T) {
 	assert.Equal(t, "main", RefName("refs/for/main").ForBranchName())
 	assert.Equal(t, "my/branch", RefName("refs/for/my/branch").ForBranchName())
 
+	// Test for review name
+	assert.Equal(t, false, RefName("refs/for-review/-1").IsForReview())
+	assert.Equal(t, false, RefName("refs/for-review/0").IsForReview())
+	assert.Equal(t, false, RefName("refs/for-review/01").IsForReview())
+	assert.Equal(t, true, RefName("refs/for-review/1").IsForReview())
+	assert.Equal(t, true, RefName("refs/for-review/10").IsForReview())
+	assert.Equal(t, true, RefName("refs/for-review/10999").IsForReview())
+	assert.Equal(t, false, RefName("refs/for-review/a10").IsForReview())
+	assert.Equal(t, false, RefName("refs/for-review/10a").IsForReview())
+	assert.Equal(t, false, RefName("refs/for-review/abc").IsForReview())
+
 	// Test commit hashes.
 	assert.Equal(t, "c0ffee", RefName("c0ffee").ShortName())
 }

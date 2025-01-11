@@ -105,7 +105,7 @@ func (ref RefName) IsFor() bool {
 	return strings.HasPrefix(string(ref), ForPrefix)
 }
 
-var forReviewPattern = regexp.MustCompile(ForReviewPrefix + `^[1-9][0-9]\d*$`)
+var forReviewPattern = regexp.MustCompile(ForReviewPrefix + `[1-9]\d*$`)
 
 func (ref RefName) IsForReview() bool {
 	return forReviewPattern.MatchString(string(ref))
