@@ -322,9 +322,17 @@ func Action(ctx *context.Context) {
 	case "unstar":
 		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	case "accept_transfer":
-		err = acceptOrRejectRepoTransfer(ctx, true)
+		err = repo_service.AcceptTransferOwnership(ctx, ctx.Repo.Repository, ctx.Doer)
+		if err == nil {
+			ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
+		}
+		ctx.Redirect(ctx.Repo.Repository.Link())
 	case "reject_transfer":
-		err = acceptOrRejectRepoTransfer(ctx, false)
+		err = repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
+		if err == nil {
+			ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
+		}
+		ctx.Redirect(ctx.Repo.Repository.Link())
 	case "desc": // FIXME: this is not used
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(http.StatusNotFound)
@@ -339,6 +347,9 @@ func Action(ctx *context.Context) {
 	if err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.Error(http.StatusNotFound)
+			return
 		} else {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 			return
@@ -375,41 +386,6 @@ func Action(ctx *context.Context) {
 	}
 
 	ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
-}
-
-func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
-	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
-	if err != nil {
-		return err
-	}
-
-	if err := repoTransfer.LoadAttributes(ctx); err != nil {
-		return err
-	}
-
-	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
-		return errors.New("user does not have enough permissions")
-	}
-
-	if accept {
-		if ctx.Repo.GitRepo != nil {
-			ctx.Repo.GitRepo.Close()
-			ctx.Repo.GitRepo = nil
-		}
-
-		if err := repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
-			return err
-		}
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
-	} else {
-		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
-			return err
-		}
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
-	}
-
-	ctx.Redirect(ctx.Repo.Repository.Link())
-	return nil
 }
 
 // RedirectDownload return a file based on the following infos:

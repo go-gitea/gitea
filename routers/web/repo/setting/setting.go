@@ -830,7 +830,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
+		if err := repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer); err != nil {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}

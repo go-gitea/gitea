@@ -37,7 +37,7 @@ func TestTransferOwnership(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	assert.NoError(t, TransferOwnership(db.DefaultContext, doer, doer, repo, nil))
+	assert.NoError(t, AcceptTransferOwnership(db.DefaultContext, repo, doer))
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 2, transferredRepo.OwnerID)
@@ -90,7 +90,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.NotNil(t, transfer)
 
 	// Cancel transfer
-	assert.NoError(t, CancelRepositoryTransfer(db.DefaultContext, repo))
+	assert.NoError(t, RejectRepositoryTransfer(db.DefaultContext, repo, doer))
 
 	transfer, err = repo_model.GetPendingRepositoryTransfer(db.DefaultContext, repo)
 	assert.Error(t, err)
@@ -118,5 +118,5 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.Error(t, err)
 
 	// Cancel transfer
-	assert.NoError(t, CancelRepositoryTransfer(db.DefaultContext, repo))
+	assert.NoError(t, RejectRepositoryTransfer(db.DefaultContext, repo, doer))
 }

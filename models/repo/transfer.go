@@ -117,10 +117,10 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-// CanUserAcceptTransfer checks if the user has the rights to accept/decline a repo transfer.
+// CanUserAcceptOrRejectTransfer checks if the user has the rights to accept/decline a repo transfer.
 // For user, it checks if it's himself
 // For organizations, it checks if the user is able to create repos
-func (r *RepoTransfer) CanUserAcceptTransfer(ctx context.Context, u *user_model.User) bool {
+func (r *RepoTransfer) CanUserAcceptOrRejectTransfer(ctx context.Context, u *user_model.User) bool {
 	if err := r.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return false
