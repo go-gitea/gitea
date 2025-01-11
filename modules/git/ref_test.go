@@ -27,6 +27,7 @@ func TestRefName(t *testing.T) {
 	assert.Equal(t, "my/branch", RefName("refs/for/my/branch").ForBranchName())
 
 	// Test for review name
+	assert.Equal(t, false, RefName("refs/for-review/").IsForReview())
 	assert.Equal(t, false, RefName("refs/for-review/-1").IsForReview())
 	assert.Equal(t, false, RefName("refs/for-review/0").IsForReview())
 	assert.Equal(t, false, RefName("refs/for-review/01").IsForReview())
