@@ -237,7 +237,7 @@ func runServ(c *cli.Context) error {
 			// for AGit Flow
 			if cmd == "ssh_info" {
 				data := private.GetSSHInfo(ctx)
-				fmt.Print(data)
+				fmt.Println(data)
 				return nil
 			}
 		}
