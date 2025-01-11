@@ -1,38 +1,56 @@
 {{template "repo/view/head" .}}
 <div class="search-page">
-    <div class="search-header"></div>
-    <div class="search-title-container">
-        <div class="search-title">{{.Title}}</div>
-    </div>
-    <div class="search-form">
-        <form action="{{.CurrentURL}}/search" method="GET" role="search">
-            <div class="search-container">
-                <!-- TODO: Create search bar and dropdown with 10 items.
+  <div class="search-header"></div>
+  <div class="search-title-container">
+    <div class="search-title">{{.Title}}</div>
+  </div>
+  <div class="search-form">
+    <form action="{{.CurrentURL}}/search" method="GET" role="search">
+      <div class="search-container">
+        <!-- TODO: Create search bar and dropdown with 10 items.
                      Populate the items with the last search results if there is no text,
                      otherwise populate the items with relevant searchs. -->
-                <div class="search-bar">
-                    <div class="search-flex">
-                        <div class="search-icon">
-                            {{svg "octicon-search"}}
-                        </div>
-                        <div class="search-input-area">
-                            <textarea aria-activedescendant class="search-input" name="q" maxlength="2048" rows="1" role="search" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" required></textarea>
-                        </div>
-                        <div class="search-icons-right">
-                            <div class="search-icon-clear">
-                                {{svg "octicon-x" 22}}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="search-predict-show"></div>
-                <div class="search-buttons">
-                    <div class="search-center">
-                        <input value="Search" class="search-button" type="submit" role="button" tabindex="0">
-                    </div>
-                </div>
+        <div class="search-bar">
+          <div class="search-flex">
+            <div class="search-icon">
+              {{svg "octicon-search"}}
             </div>
-        </form>
-    </div>
+            <div class="search-input-area">
+              <textarea aria-activedescendant class="search-input" name="q" maxlength="2048" rows="1" role="search"
+                spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" required></textarea>
+            </div>
+            <div class="search-icons-right">
+              <div class="search-icon-clear tw-hidden">
+                {{svg "octicon-x" 22}}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="search-predict-show tw-hidden">
+          <div class="search-predictions">
+            <div class="search-spacer"></div>
+            <div class="search-predictions-flex" role="presentation">
+              <div class="bottom-pad">
+                <div class="zero" role="presentation">
+                  <ul class="flex-column" role="listbox"></ul>
+                </div>
+              </div>
+            </div>
+            <div style="height: 70px;">
+              <div class="search-center">
+                <input value="Search" class="search-button" type="submit" role="button" tabindex="0"
+                  onmousedown="event.preventDefault()">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="search-buttons">
+          <div class="search-center">
+            <input value="Search" class="search-button" type="submit" role="button" tabindex="0">
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 {{template "repo/view/footer" .}}

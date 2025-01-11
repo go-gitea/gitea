@@ -1,3 +1,5 @@
+import {hideElem, showElem} from './utils/dom.ts';
+
 export function initSearch() {
   const searchBar = document.querySelector<HTMLElement>('.search-bar');
   if (!searchBar) return;
@@ -13,24 +15,30 @@ export function initSearch() {
   if (!elForm) return;
 
   function onSearchTextAreaFocus(this: HTMLTextAreaElement, _ev: FocusEvent) {
-    belowSearchContainer.style.display = 'block';
+    showElem(belowSearchContainer);
     searchBar.style.borderRadius = '24px 24px 0 0';
+    searchBar.style.background = 'var(--color-search-bar-background-hover)';
+    searchBar.style.boxShadow = 'var(--shadow-search-box-hover)';
+    searchBar.style.borderColor = 'transparent';
+    //TODO: add dark mode focus darkening
   }
   function onSearchTextAreaBlur(this: HTMLTextAreaElement, _ev: FocusEvent) {
-    belowSearchContainer.style.display = 'none';
+    hideElem(belowSearchContainer);
+    searchBar.style.background = 'var(--color-search-bar-background)';
+    searchBar.style.border = '1px solid var(--color-search-bar-border)';
+    searchBar.style.boxShadow = 'var(--shadow-search-box)';
     searchBar.style.borderRadius = '24px';
   }
   function onSearchTextChange() {
     // adjust the height
-    // const origH = textArea.style.height;
     textArea.style.height = 'auto';
     const h = textArea.scrollHeight + 6;
     textArea.style.height = `${h}px`;
     // display clear icon
     if (textArea.value !== '') {
-      clearIcon.style.display = 'flex';
+      showElem(clearIcon);
     } else {
-      clearIcon.style.display = 'none';
+      hideElem(clearIcon);
     }
   }
 
@@ -48,7 +56,7 @@ export function initSearch() {
   clearIcon.addEventListener('click', () => {
     textArea.value = '';
     textArea.focus();
-    clearIcon.style.display = 'none';
+    hideElem(clearIcon);
     textArea.style.height = '46px';
   });
   if (textArea.addEventListener) {
@@ -64,6 +72,6 @@ export function initSearch() {
   }
 }
 
-window.addEventListener('beforeunload', function (event) {
+window.addEventListener('beforeunload', (event) => {
   event.stopImmediatePropagation();
 });
