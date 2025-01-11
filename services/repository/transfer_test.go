@@ -64,10 +64,10 @@ func TestTransferOwnership(t *testing.T) {
 func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	recipient := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
 
 	hasAccess, err := access_model.HasAnyUnitAccess(db.DefaultContext, recipient.ID, repo)
 	assert.NoError(t, err)
@@ -85,7 +85,7 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 func TestRepositoryTransfer(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
 	transfer, err := repo_model.GetPendingRepositoryTransfer(db.DefaultContext, repo)
@@ -116,10 +116,12 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, repo_model.IsErrRepoTransferInProgress(err))
 
-	// Unknown user
-	err = repo_model.CreatePendingRepositoryTransfer(db.DefaultContext, doer, &user_model.User{ID: 1000, LowerName: "user1000"}, repo.ID, nil)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	// Unknown user, transfer non-existent transfer repo id = 2
+	err = repo_model.CreatePendingRepositoryTransfer(db.DefaultContext, doer, &user_model.User{ID: 1000, LowerName: "user1000"}, repo2.ID, nil)
 	assert.Error(t, err)
 
 	// Cancel transfer
-	assert.NoError(t, RejectRepositoryTransfer(db.DefaultContext, repo, doer))
+	err = RejectRepositoryTransfer(db.DefaultContext, repo2, doer)
+	assert.True(t, repo_model.IsErrNoPendingTransfer(err))
 }

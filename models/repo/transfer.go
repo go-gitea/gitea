@@ -206,8 +206,22 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 			return err
 		}
 
+		if _, err := user_model.GetUserByID(ctx, newOwner.ID); err != nil {
+			return err
+		}
+
 		// Make sure repo is ready to transfer
 		if err := TestRepositoryReadyForTransfer(repo.Status); err != nil {
+			return err
+		}
+
+		_, err = GetPendingRepositoryTransfer(ctx, repo)
+		if err == nil {
+			return ErrRepoTransferInProgress{
+				Uname: repo.Owner.LowerName,
+				Name:  repo.Name,
+			}
+		} else if !IsErrNoPendingTransfer(err) {
 			return err
 		}
 
