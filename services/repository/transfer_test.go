@@ -34,23 +34,26 @@ func TestTransferOwnership(t *testing.T) {
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
+	repoTransfer := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoTransfer{ID: 1})
+	assert.NoError(t, repoTransfer.LoadAttributes(db.DefaultContext))
 	assert.NoError(t, AcceptTransferOwnership(db.DefaultContext, repo, doer))
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	assert.EqualValues(t, 2, transferredRepo.OwnerID)
+	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
+	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
 
 	exist, err := util.IsExist(repo_model.RepoPath("org3", "repo3"))
 	assert.NoError(t, err)
 	assert.False(t, exist)
-	exist, err = util.IsExist(repo_model.RepoPath("user2", "repo3"))
+	exist, err = util.IsExist(repo_model.RepoPath("user1", "repo3"))
 	assert.NoError(t, err)
 	assert.True(t, exist)
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
 		OpType:    activities_model.ActionTransferRepo,
-		ActUserID: 2,
+		ActUserID: 1,
 		RepoID:    3,
 		Content:   "org3/repo3",
 	})

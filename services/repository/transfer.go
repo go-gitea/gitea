@@ -41,6 +41,8 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 		return err
 	}
 
+	oldOwnerName := repo.OwnerName
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			return err
@@ -65,7 +67,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	}
 	releaser()
 
-	notify_service.TransferRepository(ctx, doer, repo, repoTransfer.Recipient.Name)
+	notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
 
 	return nil
 }
@@ -397,6 +399,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	var isTransfer bool
+	oldOwnerName := repo.OwnerName
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Admin is always allowed to transfer || user transfer repo back to his account
@@ -440,7 +443,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	if isTransfer {
-		notify_service.TransferRepository(ctx, doer, repo, newOwner.Name)
+		notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
 	} else {
 		// notify users who are able to accept / reject transfer
 		notify_service.RepoPendingTransfer(ctx, doer, newOwner, repo)
