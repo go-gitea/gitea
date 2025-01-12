@@ -191,7 +191,7 @@ func SearchCommits(ctx *context.Context) {
 
 	query := ctx.FormTrim("q")
 	if len(query) == 0 {
-		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
+		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.RefTypeNameSubURL())
 		return
 	}
 
