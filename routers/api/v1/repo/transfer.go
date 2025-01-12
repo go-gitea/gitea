@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -162,11 +163,15 @@ func AcceptTransfer(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	err := repo_service.AcceptTransferOwnership(ctx, ctx.Repo.Repository, ctx.Doer)
-	if ctx.Written() {
-		return
-	}
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "acceptOrRejectRepoTransfer", err)
+		switch {
+		case repo_model.IsErrNoPendingTransfer(err):
+			ctx.Error(http.StatusNotFound, "AcceptTransferOwnership", err)
+		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.Error(http.StatusForbidden, "AcceptTransferOwnership", err)
+		default:
+			ctx.Error(http.StatusInternalServerError, "AcceptTransferOwnership", err)
+		}
 		return
 	}
 
@@ -199,9 +204,16 @@ func RejectTransfer(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
+	err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "acceptOrRejectRepoTransfer", err)
+		switch {
+		case repo_model.IsErrNoPendingTransfer(err):
+			ctx.Error(http.StatusNotFound, "CancelRepositoryTransfer", err)
+		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.Error(http.StatusForbidden, "CancelRepositoryTransfer", err)
+		default:
+			ctx.Error(http.StatusInternalServerError, "CancelRepositoryTransfer", err)
+		}
 		return
 	}
 

@@ -48,7 +48,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 			return err
 		}
 
-		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
+		if !repoTransfer.CanUserAcceptTransfer(ctx, doer) {
 			return util.ErrPermissionDenied
 		}
 
@@ -452,9 +452,10 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	return nil
 }
 
-// RejectRepositoryTransfer marks the repository as ready and remove pending transfer entry,
+// CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
 // thus cancel the transfer process.
-func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
+// Both the sender and the accepter can cancel the transfer.
+func CancelRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, repo)
 		if err != nil {
@@ -465,7 +466,7 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 			return err
 		}
 
-		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
+		if !repoTransfer.CanUserCancelTransfer(ctx, doer) {
 			return util.ErrPermissionDenied
 		}
 

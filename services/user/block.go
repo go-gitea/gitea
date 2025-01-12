@@ -207,7 +207,7 @@ func cancelRepositoryTransfers(ctx context.Context, doer, sender, recipient *use
 			return err
 		}
 
-		if err := repo_service.RejectRepositoryTransfer(ctx, repo, doer); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, repo, doer); err != nil {
 			return err
 		}
 	}
