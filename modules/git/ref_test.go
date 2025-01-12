@@ -20,6 +20,8 @@ func TestRefName(t *testing.T) {
 
 	// Test pull names
 	assert.Equal(t, "1", RefName("refs/pull/1/head").PullName())
+	assert.True(t, RefName("refs/pull/1/head").IsPull())
+	assert.True(t, RefName("refs/pull/1/merge").IsPull())
 	assert.Equal(t, "my/pull", RefName("refs/pull/my/pull/head").PullName())
 
 	// Test for branch names
