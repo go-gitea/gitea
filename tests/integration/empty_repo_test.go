@@ -60,7 +60,9 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	session := loginUser(t, "user30")
 	req := NewRequest(t, "GET", "/user30/empty")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), "empty-repo-guide")
+	bodyString := resp.Body.String()
+	assert.Contains(t, bodyString, "empty-repo-guide")
+	assert.True(t, test.IsNormalPageCompleted(bodyString))
 
 	req = NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
 	resp = session.MakeRequest(t, req, http.StatusOK)
