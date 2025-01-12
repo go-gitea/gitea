@@ -435,19 +435,19 @@ func NewReleasePost(ctx *context.Context) {
 				if release_service.IsErrTagAlreadyExists(err) {
 					e := err.(release_service.ErrTagAlreadyExists)
 					ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
-					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 					return
 				}
 
 				if release_service.IsErrInvalidTagName(err) {
 					ctx.Flash.Error(ctx.Tr("repo.release.tag_name_invalid"))
-					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 					return
 				}
 
 				if release_service.IsErrProtectedTagName(err) {
 					ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
-					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 					return
 				}
 
