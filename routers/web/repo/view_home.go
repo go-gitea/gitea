@@ -346,7 +346,7 @@ func Home(ctx *context.Context) {
 
 	// prepare the tree path
 	var treeNames, paths []string
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	treeLink := branchLink
 	if ctx.Repo.TreePath != "" {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)

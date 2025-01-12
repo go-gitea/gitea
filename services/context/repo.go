@@ -46,22 +46,27 @@ type PullRequest struct {
 // Repository contains information to operate a repository
 type Repository struct {
 	access_model.Permission
-	IsWatching   bool
+
+	Repository *repo_model.Repository
+	Owner      *user_model.User
+
+	RepoLink string
+	GitRepo  *git.Repository
+
+	// these fields indicate the current ref type, for example: ".../src/branch/master" means IsViewBranch=true
 	IsViewBranch bool
 	IsViewTag    bool
 	IsViewCommit bool
-	Repository   *repo_model.Repository
-	Owner        *user_model.User
-	Commit       *git.Commit
-	Tag          *git.Tag
-	GitRepo      *git.Repository
-	RefName      string
-	BranchName   string
-	TagName      string
-	TreePath     string
-	CommitID     string
-	RepoLink     string
-	CloneLink    repo_model.CloneLink
+
+	RefName    string
+	BranchName string
+	TagName    string
+	TreePath   string
+
+	// Commit it is always set to the commit for the branch or tag
+	Commit   *git.Commit
+	CommitID string
+
 	CommitsCount int64
 
 	PullRequest *PullRequest
@@ -149,7 +154,7 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 	}, err
 }
 
-// CanUseTimetracker returns whether or not a user can use the timetracker.
+// CanUseTimetracker returns whether a user can use the timetracker.
 func (r *Repository) CanUseTimetracker(ctx context.Context, issue *issues_model.Issue, user *user_model.User) bool {
 	// Checking for following:
 	// 1. Is timetracker enabled
@@ -199,8 +204,12 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 	})
 }
 
-// BranchNameSubURL sub-URL for the BranchName field
-func (r *Repository) BranchNameSubURL() string {
+// RefTypeNameSubURL makes a sub-url for the current ref (branch/tag/commit) field, for example:
+// * "branch/master"
+// * "tag/v1.0.0"
+// * "commit/123456"
+// It is usually used to construct a link like ".../src/{{RefTypeNameSubURL}}/{{PathEscapeSegments TreePath}}"
+func (r *Repository) RefTypeNameSubURL() string {
 	switch {
 	case r.IsViewBranch:
 		return "branch/" + util.PathEscapeSegments(r.BranchName)
@@ -211,21 +220,6 @@ func (r *Repository) BranchNameSubURL() string {
 	}
 	log.Error("Unknown view type for repo: %v", r)
 	return ""
-}
-
-// FileExists returns true if a file exists in the given repo branch
-func (r *Repository) FileExists(path, branch string) (bool, error) {
-	if branch == "" {
-		branch = r.Repository.DefaultBranch
-	}
-	commit, err := r.GitRepo.GetBranchCommit(branch)
-	if err != nil {
-		return false, err
-	}
-	if _, err := commit.GetTreeEntryByPath(path); err != nil {
-		return false, err
-	}
-	return true, nil
 }
 
 // GetEditorconfig returns the .editorconfig definition if found in the
@@ -450,7 +444,6 @@ func RepoAssignment(ctx *Context) {
 	ctx.Repo.Owner = owner
 	ctx.ContextUser = owner
 	ctx.Data["ContextUser"] = ctx.ContextUser
-	ctx.Data["Username"] = ctx.Repo.Owner.Name
 
 	// redirect link to wiki
 	if strings.HasSuffix(repoName, ".wiki") {
@@ -502,7 +495,6 @@ func RepoAssignment(ctx *Context) {
 
 	ctx.Repo.RepoLink = repo.Link()
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
-	ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
 
 	if setting.Other.EnableFeed {
 		ctx.Data["EnableFeed"] = true
@@ -537,9 +529,6 @@ func RepoAssignment(ctx *Context) {
 	ctx.Data["Title"] = owner.Name + "/" + repo.Name
 	ctx.Data["Repository"] = repo
 	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
-	ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
-	ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
-	ctx.Data["RepoOwnerIsOrganization"] = repo.Owner.IsOrganization()
 	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
@@ -979,7 +968,7 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 				redirect := path.Join(
 					ctx.Repo.RepoLink,
 					util.PathEscapeSegments(prefix),
-					ctx.Repo.BranchNameSubURL(),
+					ctx.Repo.RefTypeNameSubURL(),
 					util.PathEscapeSegments(ctx.Repo.TreePath))
 				ctx.Redirect(redirect)
 				return
@@ -988,7 +977,7 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["RefName"] = ctx.Repo.RefName
-		ctx.Data["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
+		ctx.Data["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
 		ctx.Data["TagName"] = ctx.Repo.TagName
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
 		ctx.Data["TreePath"] = ctx.Repo.TreePath
