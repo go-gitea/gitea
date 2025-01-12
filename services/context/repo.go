@@ -392,33 +392,25 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) {
-	if _, repoAssignmentOnce := ctx.Data["repoAssignmentExecuted"]; repoAssignmentOnce {
-		// FIXME: it should panic in dev/test modes to have a clear behavior
-		if !setting.IsProd || setting.IsInTesting {
-			panic("RepoAssignment should not be executed twice")
-		}
-		return
+	if ctx.Data["Repository"] != nil {
+		setting.PanicInDevOrTesting("RepoAssignment should not be executed twice")
 	}
-	ctx.Data["repoAssignmentExecuted"] = true
 
-	var (
-		owner *user_model.User
-		err   error
-	)
-
+	var err error
 	userName := ctx.PathParam("username")
 	repoName := ctx.PathParam("reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
 	if setting.Other.EnableFeed {
+		ctx.Data["EnableFeed"] = true
 		repoName = strings.TrimSuffix(repoName, ".rss")
 		repoName = strings.TrimSuffix(repoName, ".atom")
 	}
 
 	// Check if the user is the same as the repository owner
 	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
-		owner = ctx.Doer
+		ctx.Repo.Owner = ctx.Doer
 	} else {
-		owner, err = user_model.GetUserByName(ctx, userName)
+		ctx.Repo.Owner, err = user_model.GetUserByName(ctx, userName)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				// go-get does not support redirects
@@ -441,8 +433,7 @@ func RepoAssignment(ctx *Context) {
 			return
 		}
 	}
-	ctx.Repo.Owner = owner
-	ctx.ContextUser = owner
+	ctx.ContextUser = ctx.Repo.Owner
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	// redirect link to wiki
@@ -466,10 +457,10 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	// Get repository.
-	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
-			redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName)
+			redirectRepoID, err := repo_model.LookupRedirect(ctx, ctx.Repo.Owner.ID, repoName)
 			if err == nil {
 				RedirectToRepo(ctx.Base, redirectRepoID)
 			} else if repo_model.IsErrRedirectNotExist(err) {
@@ -486,7 +477,7 @@ func RepoAssignment(ctx *Context) {
 		}
 		return
 	}
-	repo.Owner = owner
+	repo.Owner = ctx.Repo.Owner
 
 	repoAssignment(ctx, repo)
 	if ctx.Written() {
@@ -495,11 +486,7 @@ func RepoAssignment(ctx *Context) {
 
 	ctx.Repo.RepoLink = repo.Link()
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
-
-	if setting.Other.EnableFeed {
-		ctx.Data["EnableFeed"] = true
-		ctx.Data["FeedURL"] = ctx.Repo.RepoLink
-	}
+	ctx.Data["FeedURL"] = ctx.Repo.RepoLink
 
 	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeExternalTracker)
 	if err == nil {
@@ -526,7 +513,7 @@ func RepoAssignment(ctx *Context) {
 		return
 	}
 
-	ctx.Data["Title"] = owner.Name + "/" + repo.Name
+	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
 	ctx.Data["Repository"] = repo
 	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
 	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
@@ -603,9 +590,7 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	if ctx.Repo.GitRepo != nil {
-		if !setting.IsProd || setting.IsInTesting {
-			panic("RepoAssignment: GitRepo should be nil")
-		}
+		setting.PanicInDevOrTesting("RepoAssignment: GitRepo should be nil")
 		_ = ctx.Repo.GitRepo.Close()
 		ctx.Repo.GitRepo = nil
 	}
@@ -694,7 +679,7 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	if ctx.FormString("go-get") == "1" {
-		ctx.Data["GoGetImport"] = ComposeGoGetImport(ctx, owner.Name, repo.Name)
+		ctx.Data["GoGetImport"] = ComposeGoGetImport(ctx, repo.Owner.Name, repo.Name)
 		fullURLPrefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
 		ctx.Data["GoDocDirectory"] = fullURLPrefix + "{/dir}"
 		ctx.Data["GoDocFile"] = fullURLPrefix + "{/dir}/{file}#L{line}"
