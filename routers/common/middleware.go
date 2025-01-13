@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/httplib"
@@ -18,7 +19,16 @@ import (
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+var responseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	Namespace: "http",
+	Subsystem: "request",
+	Name:      "duration_seconds",
+	Help:      "Gitea response time",
+}, []string{"route"})
 
 // ProtocolMiddlewares returns HTTP protocol related middlewares, and it provides a global panic recovery
 func ProtocolMiddlewares() (handlers []any) {
@@ -36,6 +46,9 @@ func ProtocolMiddlewares() (handlers []any) {
 
 	if setting.IsAccessLogEnabled() {
 		handlers = append(handlers, context.AccessLogger())
+	}
+	if setting.Metrics.Enabled {
+		handlers = append(handlers, RouteMetrics())
 	}
 
 	return handlers
@@ -92,6 +105,21 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 		}
 	}
 	return proxy.ForwardedHeaders(opt)
+}
+
+func RouteMetrics() func(h http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			start := time.Now()
+			next.ServeHTTP(resp, req)
+			elapsed := time.Since(start).Seconds()
+			route := "ui"
+			if strings.HasPrefix(req.URL.Path, "/api") {
+				route = "api"
+			}
+			responseLatency.WithLabelValues(route).Observe(elapsed)
+		})
+	}
 }
 
 func Sessioner() func(next http.Handler) http.Handler {
