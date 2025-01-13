@@ -133,7 +133,7 @@
 			{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
 				<div class="overflow-menu-items">
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
-					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.BranchNameSubURL}}{{end}}">
+					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
 						{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
 					</a>
 					{{end}}
