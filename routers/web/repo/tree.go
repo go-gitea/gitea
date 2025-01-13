@@ -59,7 +59,7 @@ func Tree(ctx *context.Context) {
 	refFullName := git.RefName("refs/" + ctx.FormTrim("ref"))
 	recursive := ctx.FormBool("recursive")
 
-	var results []*files_service.TreeEntry
+	var results []*files_service.TreeViewNode
 	var err error
 	if !recursive {
 		results, err = files_service.GetTreeList(ctx, ctx.Repo.Repository, treePath, refFullName, false)

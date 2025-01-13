@@ -68,7 +68,7 @@ func Test_GetTreeList(t *testing.T) {
 	assert.Len(t, treeList, 1)
 	assert.EqualValues(t, "README.md", treeList[0].Name)
 	assert.EqualValues(t, "README.md", treeList[0].Path)
-	assert.True(t, treeList[0].IsFile)
+	assert.EqualValues(t, "blob", treeList[0].Type)
 	assert.Empty(t, treeList[0].Children)
 
 	ctx2, _ := contexttest.MockContext(t, "org3/repo3")
@@ -86,17 +86,17 @@ func Test_GetTreeList(t *testing.T) {
 
 	assert.EqualValues(t, "doc", treeList[0].Name)
 	assert.EqualValues(t, "doc", treeList[0].Path)
-	assert.False(t, treeList[0].IsFile)
+	assert.EqualValues(t, "tree", treeList[0].Type)
 	assert.Len(t, treeList[0].Children, 1)
 
 	assert.EqualValues(t, "doc.md", treeList[0].Children[0].Name)
 	assert.EqualValues(t, "doc/doc.md", treeList[0].Children[0].Path)
-	assert.True(t, treeList[0].Children[0].IsFile)
+	assert.EqualValues(t, "blob", treeList[0].Children[0].Type)
 	assert.Empty(t, treeList[0].Children[0].Children)
 
 	assert.EqualValues(t, "README.md", treeList[1].Name)
 	assert.EqualValues(t, "README.md", treeList[1].Path)
-	assert.True(t, treeList[1].IsFile)
+	assert.EqualValues(t, "blob", treeList[1].Type)
 	assert.Empty(t, treeList[1].Children)
 }
 
@@ -116,7 +116,7 @@ func Test_GetTreeInformation(t *testing.T) {
 	assert.Len(t, treeList, 1)
 	assert.EqualValues(t, "README.md", treeList[0].Name)
 	assert.EqualValues(t, "README.md", treeList[0].Path)
-	assert.True(t, treeList[0].IsFile)
+	assert.EqualValues(t, "blob", treeList[0].Type)
 	assert.Empty(t, treeList[0].Children)
 
 	treeList, err = GetTreeInformation(ctx1, ctx1.Repo.Repository, "README.md", refName)
@@ -124,7 +124,7 @@ func Test_GetTreeInformation(t *testing.T) {
 	assert.Len(t, treeList, 1)
 	assert.EqualValues(t, "README.md", treeList[0].Name)
 	assert.EqualValues(t, "README.md", treeList[0].Path)
-	assert.True(t, treeList[0].IsFile)
+	assert.EqualValues(t, "blob", treeList[0].Type)
 	assert.Empty(t, treeList[0].Children)
 
 	ctx2, _ := contexttest.MockContext(t, "org3/repo3")
@@ -142,12 +142,12 @@ func Test_GetTreeInformation(t *testing.T) {
 
 	assert.EqualValues(t, "doc", treeList[0].Name)
 	assert.EqualValues(t, "doc", treeList[0].Path)
-	assert.False(t, treeList[0].IsFile)
+	assert.EqualValues(t, "tree", treeList[0].Type)
 	assert.Empty(t, treeList[0].Children)
 
 	assert.EqualValues(t, "README.md", treeList[1].Name)
 	assert.EqualValues(t, "README.md", treeList[1].Path)
-	assert.True(t, treeList[1].IsFile)
+	assert.EqualValues(t, "blob", treeList[1].Type)
 	assert.Empty(t, treeList[1].Children)
 
 	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, "doc", refName)
@@ -155,17 +155,17 @@ func Test_GetTreeInformation(t *testing.T) {
 	assert.Len(t, treeList, 2)
 	assert.EqualValues(t, "doc", treeList[0].Name)
 	assert.EqualValues(t, "doc", treeList[0].Path)
-	assert.False(t, treeList[0].IsFile)
+	assert.EqualValues(t, "tree", treeList[0].Type)
 	assert.Len(t, treeList[0].Children, 1)
 
 	assert.EqualValues(t, "doc.md", treeList[0].Children[0].Name)
 	assert.EqualValues(t, "doc/doc.md", treeList[0].Children[0].Path)
-	assert.True(t, treeList[0].Children[0].IsFile)
+	assert.EqualValues(t, "blob", treeList[0].Children[0].Type)
 	assert.Empty(t, treeList[0].Children[0].Children)
 
 	assert.EqualValues(t, "README.md", treeList[1].Name)
 	assert.EqualValues(t, "README.md", treeList[1].Path)
-	assert.True(t, treeList[1].IsFile)
+	assert.EqualValues(t, "blob", treeList[1].Type)
 	assert.Empty(t, treeList[1].Children)
 
 	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, "doc/doc.md", refName)
@@ -174,16 +174,16 @@ func Test_GetTreeInformation(t *testing.T) {
 
 	assert.EqualValues(t, "doc", treeList[0].Name)
 	assert.EqualValues(t, "doc", treeList[0].Path)
-	assert.False(t, treeList[0].IsFile)
+	assert.EqualValues(t, "tree", treeList[0].Type)
 	assert.Len(t, treeList[0].Children, 1)
 
 	assert.EqualValues(t, "doc.md", treeList[0].Children[0].Name)
 	assert.EqualValues(t, "doc/doc.md", treeList[0].Children[0].Path)
-	assert.True(t, treeList[0].Children[0].IsFile)
+	assert.EqualValues(t, "blob", treeList[0].Children[0].Type)
 	assert.Empty(t, treeList[0].Children[0].Children)
 
 	assert.EqualValues(t, "README.md", treeList[1].Name)
 	assert.EqualValues(t, "README.md", treeList[1].Path)
-	assert.True(t, treeList[1].IsFile)
+	assert.EqualValues(t, "blob", treeList[1].Type)
 	assert.Empty(t, treeList[1].Children)
 }

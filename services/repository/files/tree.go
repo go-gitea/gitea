@@ -123,11 +123,27 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	return tree, nil
 }
 
-type TreeEntry struct {
-	Name     string       `json:"name"`
-	IsFile   bool         `json:"isFile"`
-	Path     string       `json:"path"`
-	Children []*TreeEntry `json:"children,omitempty"`
+func entryModeString(entryMode git.EntryMode) string {
+	switch entryMode {
+	case git.EntryModeBlob:
+		return "blob"
+	case git.EntryModeExec:
+		return "exec"
+	case git.EntryModeSymlink:
+		return "symlink"
+	case git.EntryModeCommit:
+		return "commit" // submodule
+	case git.EntryModeTree:
+		return "tree"
+	}
+	return "unknown"
+}
+
+type TreeViewNode struct {
+	Name     string          `json:"name"`
+	Type     string          `json:"type"`
+	Path     string          `json:"path"`
+	Children []*TreeViewNode `json:"children,omitempty"`
 }
 
 /*
@@ -178,7 +194,7 @@ Example 3: (path: d3/d3d1)
 	    "path": "d3/d3d1/d3d1f2"
 	}]
 */
-func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName, recursive bool) ([]*TreeEntry, error) {
+func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName, recursive bool) ([]*TreeViewNode, error) {
 	if repo.IsEmpty {
 		return nil, nil
 	}
@@ -231,36 +247,36 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath stri
 		return nil, err
 	}
 
-	var treeList []*TreeEntry
-	mapTree := make(map[string][]*TreeEntry)
+	var treeViewNodes []*TreeViewNode
+	mapTree := make(map[string][]*TreeViewNode)
 	for _, e := range entries {
 		subTreePath := path.Join(treePath, e.Name())
 
 		if strings.Contains(e.Name(), "/") {
-			mapTree[path.Dir(e.Name())] = append(mapTree[path.Dir(e.Name())], &TreeEntry{
-				Name:   path.Base(e.Name()),
-				IsFile: e.Mode() != git.EntryModeTree,
-				Path:   subTreePath,
+			mapTree[path.Dir(e.Name())] = append(mapTree[path.Dir(e.Name())], &TreeViewNode{
+				Name: path.Base(e.Name()),
+				Type: entryModeString(e.Mode()),
+				Path: subTreePath,
 			})
 		} else {
-			treeList = append(treeList, &TreeEntry{
-				Name:   e.Name(),
-				IsFile: e.Mode() != git.EntryModeTree,
-				Path:   subTreePath,
+			treeViewNodes = append(treeViewNodes, &TreeViewNode{
+				Name: e.Name(),
+				Type: entryModeString(e.Mode()),
+				Path: subTreePath,
 			})
 		}
 	}
 
-	for _, tree := range treeList {
-		if !tree.IsFile {
-			tree.Children = mapTree[tree.Path]
-			sortTreeEntries(tree.Children)
+	for _, node := range treeViewNodes {
+		if node.Type == "tree" {
+			node.Children = mapTree[node.Path]
+			sortTreeViewNodes(node.Children)
 		}
 	}
 
-	sortTreeEntries(treeList)
+	sortTreeViewNodes(treeViewNodes)
 
-	return treeList, nil
+	return treeViewNodes, nil
 }
 
 // GetTreeInformation returns the first level directories and files and all the trees of the path to treePath.
@@ -374,7 +390,7 @@ Example 4: (path: d2/d2f1)
         "path": "f1"
     },]
 */
-func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName) ([]*TreeEntry, error) {
+func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName) ([]*TreeViewNode, error) {
 	if repo.IsEmpty {
 		return nil, nil
 	}
@@ -422,35 +438,35 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		}
 	}
 
-	treeList := make([]*TreeEntry, 0, len(rootEntries))
+	treeViewNodes := make([]*TreeViewNode, 0, len(rootEntries))
 	fields := strings.Split(dir, "/")
-	var parentEntry *TreeEntry
+	var parentNode *TreeViewNode
 	for _, entry := range rootEntries {
-		treeEntry := &TreeEntry{
-			Name:   entry.Name(),
-			IsFile: entry.Mode() != git.EntryModeTree,
-			Path:   entry.Name(),
+		node := &TreeViewNode{
+			Name: entry.Name(),
+			Type: entryModeString(entry.Mode()),
+			Path: entry.Name(),
 		}
-		treeList = append(treeList, treeEntry)
+		treeViewNodes = append(treeViewNodes, node)
 		if dir != "" && fields[0] == entry.Name() {
-			parentEntry = treeEntry
+			parentNode = node
 		}
 	}
 
-	sortTreeEntries(treeList)
-	if dir == "" || parentEntry == nil {
-		return treeList, nil
+	sortTreeViewNodes(treeViewNodes)
+	if dir == "" || parentNode == nil {
+		return treeViewNodes, nil
 	}
 
 	for i := 1; i < len(fields); i++ {
-		parentEntry.Children = []*TreeEntry{
+		parentNode.Children = []*TreeViewNode{
 			{
-				Name:   fields[i],
-				IsFile: false,
-				Path:   path.Join(fields[:i+1]...),
+				Name: fields[i],
+				Type: "tree",
+				Path: path.Join(fields[:i+1]...),
 			},
 		}
-		parentEntry = parentEntry.Children[0]
+		parentNode = parentNode.Children[0]
 	}
 
 	tree, err := commit.Tree.SubTree(dir)
@@ -463,22 +479,23 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 	}
 
 	for _, entry := range entries {
-		parentEntry.Children = append(parentEntry.Children, &TreeEntry{
-			Name:   entry.Name(),
-			IsFile: entry.Mode() != git.EntryModeTree,
-			Path:   path.Join(dir, entry.Name()),
+		parentNode.Children = append(parentNode.Children, &TreeViewNode{
+			Name: entry.Name(),
+			Type: entryModeString(entry.Mode()),
+			Path: path.Join(dir, entry.Name()),
 		})
 	}
-	sortTreeEntries(parentEntry.Children)
-	return treeList, nil
+	sortTreeViewNodes(parentNode.Children)
+	return treeViewNodes, nil
 }
 
-// sortTreeEntries list directory first and with alpha sequence
-func sortTreeEntries(entries []*TreeEntry) {
-	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].IsFile != entries[j].IsFile {
-			return !entries[i].IsFile
+// sortTreeViewNodes list directory first and with alpha sequence
+func sortTreeViewNodes(nodes []*TreeViewNode) {
+	sort.Slice(nodes, func(i, j int) bool {
+		if nodes[i].Type != nodes[j].Type {
+			// folder and submodule first
+			return nodes[i].Type == "tree" || nodes[i].Type == "commit"
 		}
-		return entries[i].Name < entries[j].Name
+		return nodes[i].Name < nodes[j].Name
 	})
 }
