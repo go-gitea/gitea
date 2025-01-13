@@ -7,6 +7,7 @@ import {initTargetDropdown} from './common-page.ts';
 import {initTargetRepoEllipsisButton} from './repo-commit.ts';
 import {initTargetPdfViewer} from '../render/pdf.ts';
 import {initTargetButtons} from './common-button.ts';
+import {initTargetCopyContent} from './copycontent.ts';
 
 async function toggleSidebar(visibility, isSigned) {
   const sidebarEl = document.querySelector('.repo-view-file-tree-sidebar');
@@ -62,6 +63,7 @@ function reloadContentScript(contentEl: Element) {
   initTargetPdfViewer(contentEl);
   initTargetRepoBranchTagSelector(contentEl);
   initTargetRepoEllipsisButton(contentEl);
+  initTargetCopyContent(contentEl);
 }
 
 export async function initViewFileTreeSidebar() {
