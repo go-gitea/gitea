@@ -698,21 +698,6 @@ const (
 	RepoRefBlob
 )
 
-func RefTypeName(refType RepoRefType) string {
-	switch refType {
-	case RepoRefBranch:
-		return "branch"
-	case RepoRefTag:
-		return "tag"
-	case RepoRefCommit:
-		return "commit"
-	case RepoRefBlob:
-		return "blob"
-	default:
-		return "unknown"
-	}
-}
-
 const headRefName = "HEAD"
 
 // RepoRef handles repository reference names when the ref name is not
