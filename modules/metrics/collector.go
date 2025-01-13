@@ -89,7 +89,7 @@ func NewCollector() Collector {
 		Issues: prometheus.NewDesc(
 			namespace+"issues",
 			"Number of Issues",
-			nil, nil,
+			[]string{"state"}, nil,
 		),
 		IssuesByLabel: prometheus.NewDesc(
 			namespace+"issues_by_label",
@@ -103,12 +103,12 @@ func NewCollector() Collector {
 		),
 		IssuesOpen: prometheus.NewDesc(
 			namespace+"issues_open",
-			"Number of open Issues",
+			"DEPRECATED: Use Issues with state: open",
 			nil, nil,
 		),
 		IssuesClosed: prometheus.NewDesc(
 			namespace+"issues_closed",
-			"Number of closed Issues",
+			"DEPRECATED: Use Issues with state: closed",
 			nil, nil,
 		),
 		Labels: prometheus.NewDesc(
@@ -272,8 +272,14 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(
 		c.Issues,
 		prometheus.GaugeValue,
-		float64(stats.Counter.Issue),
+		float64(stats.Counter.IssueOpen), "open",
 	)
+	ch <- prometheus.MustNewConstMetric(
+		c.Issues,
+		prometheus.GaugeValue,
+		float64(stats.Counter.IssueClosed), "closed",
+	)
+
 	for _, il := range stats.Counter.IssueByLabel {
 		ch <- prometheus.MustNewConstMetric(
 			c.IssuesByLabel,
