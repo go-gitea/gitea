@@ -414,6 +414,7 @@ func NewReleasePost(ctx *context.Context) {
 	// * input something, click other buttons but not "tag only"
 	// * error occurs, the "new release" page is rendered again, but the "tag only" button is gone
 	// Such cases are not able to be handled by current code, it needs frontend code to toggle the "tag-only" button if the input changes.
+	// Or another choice is "always show the tag-only button" if error occurs.
 	ctx.Data["ShowCreateTagOnlyButton"] = form.TagOnly || rel == nil
 
 	// do some form checks
