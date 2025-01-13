@@ -115,7 +115,7 @@
 								<button class="ui small primary button">{{ctx.Locale.Tr "repo.release.edit_release"}}</button>
 							{{end}}
 						{{else}}
-							{{if not .TagNameReleaseExists}}
+							{{if .ShowCreateTagOnlyButton}}
 								<button class="ui small button" name="tag_only" value="1">{{ctx.Locale.Tr "repo.release.add_tag"}}</button>
 							{{end}}
 							<button class="ui small button" name="draft" value="1">{{ctx.Locale.Tr "repo.release.save_draft"}}</button>

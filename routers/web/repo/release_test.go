@@ -34,9 +34,9 @@ func TestNewReleasePost(t *testing.T) {
 
 	t.Run("NewReleasePage", func(t *testing.T) {
 		ctx := get(t, "v1.1")
-		assert.NotEmpty(t, ctx.Data["TagNameReleaseExists"])
+		assert.Empty(t, ctx.Data["ShowCreateTagOnlyButton"])
 		ctx = get(t, "new-tag-name")
-		assert.Empty(t, ctx.Data["TagNameReleaseExists"])
+		assert.NotEmpty(t, ctx.Data["ShowCreateTagOnlyButton"])
 	})
 
 	post := func(t *testing.T, form forms.NewReleaseForm) *context.Context {

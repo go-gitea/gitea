@@ -360,6 +360,8 @@ func NewRelease(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["ShowCreateTagOnlyButton"] = true
+
 	// pre-fill the form with the tag name, target branch and the existing release (if exists)
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	if tagName := ctx.FormString("tag"); tagName != "" {
@@ -376,7 +378,7 @@ func NewRelease(ctx *context.Context) {
 				return
 			}
 
-			ctx.Data["TagNameReleaseExists"] = true
+			ctx.Data["ShowCreateTagOnlyButton"] = false
 			ctx.Data["tag_name"] = rel.TagName
 			ctx.Data["tag_target"] = rel.Target
 			ctx.Data["title"] = rel.Title
@@ -397,14 +399,17 @@ func NewReleasePost(ctx *context.Context) {
 
 	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 
-	// first, check whether the release exists,
-	// it should be done before the form error check, because the tmpl needs "TagNameReleaseExists" to show/hide the "tag only" button
+	// first, check whether the release exists, and prepare "ShowCreateTagOnlyButton"
+	// the logic should be done before the form error check to make the tmpl has correct variables
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.ServerError("GetRelease", err)
 		return
 	}
-	ctx.Data["TagNameReleaseExists"] = rel != nil
+
+	// we should still show the "tag only" button if the user clicks it, no matter the release exists or not.
+	// because if error occurs, end users need to have the chance to edit the name and submit the form with "tag-only" again.
+	ctx.Data["ShowCreateTagOnlyButton"] = form.TagOnly || rel == nil
 
 	// do some form checks
 	if ctx.HasError() {
