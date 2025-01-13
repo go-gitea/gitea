@@ -22,17 +22,30 @@ func TestNewReleasePost(t *testing.T) {
 		RepoID  int64
 		UserID  int64
 		TagName string
+		IsTag   bool
 		Form    forms.NewReleaseForm
 	}{
-		{
+		{ // pre-existing tag
 			RepoID:  1,
 			UserID:  2,
-			TagName: "v1.1", // pre-existing tag
+			TagName: "v1.1",
 			Form: forms.NewReleaseForm{
 				TagName: "newtag",
 				Target:  "master",
 				Title:   "title",
 				Content: "content",
+			},
+		},
+		{ // creating a new tag when there's already a pre-existing tag
+			RepoID:  1,
+			UserID:  2,
+			TagName: "delete-tag",
+			IsTag:   true,
+			Form: forms.NewReleaseForm{
+				TagName: "delete-tag",
+				Target:  "master",
+				Title:   "delete-tag",
+				TagOnly: "1",
 			},
 		},
 		{
@@ -62,6 +75,7 @@ func TestNewReleasePost(t *testing.T) {
 			Target:      testCase.Form.Target,
 			Title:       testCase.Form.Title,
 			Note:        testCase.Form.Content,
+			IsTag:       true,
 		}, unittest.Cond("is_draft=?", len(testCase.Form.Draft) > 0))
 		ctx.Repo.GitRepo.Close()
 	}

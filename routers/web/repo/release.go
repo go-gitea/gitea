@@ -489,7 +489,7 @@ func NewReleasePost(ctx *context.Context) {
 			return
 		}
 	} else {
-		if len(form.TagOnly) > 0 && rel.IsTag {
+		if form.TagOnly != "" && rel.IsTag {
 			ctx.Data["Err_TagName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
 			return
