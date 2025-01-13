@@ -21,7 +21,13 @@ import (
 
 // RenderFile renders a file by repos path
 func RenderFile(ctx *context.Context) {
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	var blob *git.Blob
+	var err error
+	if ctx.Repo.TreePath != "" {
+		blob, err = ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	} else {
+		blob, err = ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
+	}
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetBlobByPath", err)
