@@ -407,8 +407,13 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	// we should still show the "tag only" button if the user clicks it, no matter the release exists or not.
-	// because if error occurs, end users need to have the chance to edit the name and submit the form with "tag-only" again.
+	// We should still show the "tag only" button if the user clicks it, no matter the release exists or not.
+	// Because if error occurs, end users need to have the chance to edit the name and submit the form with "tag-only" again.
+	// It is still not completely right, because there could still be cases like this:
+	// * user visit "new release" page, see the "tag only" button
+	// * input something, click other buttons but not "tag only"
+	// * error occurs, the "new release" page is rendered again, but the "tag only" button is gone
+	// Such cases are not able to be handled by current code, it needs frontend code to toggle the "tag-only" button if the input changes.
 	ctx.Data["ShowCreateTagOnlyButton"] = form.TagOnly || rel == nil
 
 	// do some form checks
