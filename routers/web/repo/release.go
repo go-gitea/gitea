@@ -329,34 +329,17 @@ func LatestRelease(ctx *context.Context) {
 	ctx.Redirect(release.Link())
 }
 
-// NewRelease render creating or edit release page
-func NewRelease(ctx *context.Context) {
+func newReleaseCommon(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
-	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
-		rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
-		if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-			ctx.ServerError("GetRelease", err)
-			return
-		}
 
-		if rel != nil {
-			rel.Repo = ctx.Repo.Repository
-			if err := rel.LoadAttributes(ctx); err != nil {
-				ctx.ServerError("LoadAttributes", err)
-				return
-			}
-
-			ctx.Data["tag_name"] = rel.TagName
-			if rel.Target != "" {
-				ctx.Data["tag_target"] = rel.Target
-			}
-			ctx.Data["title"] = rel.Title
-			ctx.Data["content"] = rel.Note
-			ctx.Data["attachments"] = rel.Attachments
-		}
+	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetTagNamesByRepoID", err)
+		return
 	}
+	ctx.Data["Tags"] = tags
+
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	assigneeUsers, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
@@ -367,34 +350,59 @@ func NewRelease(ctx *context.Context) {
 
 	upload.AddUploadContext(ctx, "release")
 
-	// For New Release page
-	PrepareBranchList(ctx)
+	PrepareBranchList(ctx) // for New Release page
+}
+
+// NewRelease render creating or edit release page
+func NewRelease(ctx *context.Context) {
+	newReleaseCommon(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
-		return
+	// pre-fill the form with the tag name, target branch and the existing release (if exists)
+	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
+	if tagName := ctx.FormString("tag"); tagName != "" {
+		rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
+		if err != nil && !repo_model.IsErrReleaseNotExist(err) {
+			ctx.ServerError("GetRelease", err)
+			return
+		}
+
+		if rel != nil {
+			rel.Repo = ctx.Repo.Repository
+			if err = rel.LoadAttributes(ctx); err != nil {
+				ctx.ServerError("LoadAttributes", err)
+				return
+			}
+
+			ctx.Data["TagNameReleaseExists"] = true
+			ctx.Data["tag_name"] = rel.TagName
+			ctx.Data["tag_target"] = rel.Target
+			ctx.Data["title"] = rel.Title
+			ctx.Data["content"] = rel.Note
+			ctx.Data["attachments"] = rel.Attachments
+		}
 	}
-	ctx.Data["Tags"] = tags
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
 }
 
 // NewReleasePost response for creating a release
 func NewReleasePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewReleaseForm)
-	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
-	ctx.Data["PageIsReleaseList"] = true
-
-	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
+	newReleaseCommon(ctx)
+	if ctx.Written() {
 		return
 	}
-	ctx.Data["Tags"] = tags
+
+	form := web.GetForm(ctx).(*forms.NewReleaseForm)
+
+	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
+	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
+		ctx.ServerError("GetRelease", err)
+		return
+	}
+	ctx.Data["TagNameReleaseExists"] = rel != nil
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplReleaseNew)
@@ -426,12 +434,6 @@ func NewReleasePost(ctx *context.Context) {
 		default:
 			ctx.ServerError("handleTagReleaseError", err)
 		}
-	}
-
-	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
-	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
-		ctx.ServerError("GetRelease", err)
-		return
 	}
 
 	newTagMsg := ""
