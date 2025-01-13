@@ -62,7 +62,8 @@
 
 						<!-- Show go to file if on home page -->
 						{{if $isTreePathRoot}}
-							<a href="{{.Repository.Link}}/find/{{.TreePath}}?ref_type={{.RefFullName.RefType}}&ref_name={{.RefFullName.ShortName}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
+							{{/* FIXME: it should still use RefTypeNameSubURL, otherwise the link is ugly */}}
+							<a href="{{.Repository.Link}}/find/{{.TreePath}}?ref={{.RefFullName}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
 						{{end}}
 
 						{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}

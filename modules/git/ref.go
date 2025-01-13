@@ -5,9 +5,9 @@ package git
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -83,20 +83,6 @@ func RefNameFromTag(shortName string) RefName {
 
 func RefNameFromCommit(shortName string) RefName {
 	return RefName(shortName)
-}
-
-func RefNameFromTypeAndShortName(tp RefType, shortName string) RefName {
-	switch tp {
-	case RefTypeBranch:
-		return RefNameFromBranch(shortName)
-	case RefTypeTag:
-		return RefNameFromTag(shortName)
-	case RefTypeCommit:
-		return RefNameFromCommit(shortName)
-	default:
-		setting.PanicInDevOrTesting("Unknown RefType: %v", tp)
-		return ""
-	}
 }
 
 func (ref RefName) String() string {
@@ -234,4 +220,12 @@ func (ref RefName) RefWebLinkPath() string {
 		return ""
 	}
 	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
+}
+
+func RefNameFromUserInput(ref string, allowedTypes ...RefType) RefName {
+	refName := RefName(ref)
+	if !slices.Contains(allowedTypes, refName.RefType()) {
+		return ""
+	}
+	return refName
 }

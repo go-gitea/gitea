@@ -5,7 +5,9 @@ package repo
 
 import (
 	"net/http"
+	"net/url"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
@@ -18,8 +20,8 @@ const (
 // FindFiles render the page to find repository files
 func FindFiles(ctx *context.Context) {
 	path := ctx.PathParam("*")
-	ctx.Data["TreeLink"] = ctx.Repo.RepoLink + "/src/" + util.PathEscapeSegments(path)
-	ctx.Data["DataLink"] = ctx.Repo.RepoLink + "/tree-list/" + util.PathEscapeSegments(path) +
-		"?ref_type=" + ctx.FormTrim("ref_type") + "&ref_name=" + ctx.FormTrim("ref_name")
+	ref := git.RefNameFromUserInput(ctx.FormTrim("ref"), git.RefTypeBranch, git.RefTypeTag, git.RefTypeCommit)
+	ctx.Data["TreeLink"] = ctx.Repo.RepoLink + "/src/" + ref.RefWebLinkPath() + "/" + util.PathEscapeSegments(path)
+	ctx.Data["DataLink"] = ctx.Repo.RepoLink + "/tree-list/" + util.PathEscapeSegments(path) + "?ref=" + url.QueryEscape(ctx.FormTrim("ref"))
 	ctx.HTML(http.StatusOK, tplFindFiles)
 }
