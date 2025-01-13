@@ -1577,6 +1577,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/atom/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
 
 		m.Group("/src", func() {
+			m.Get("", func(ctx *context.Context) { ctx.Redirect(ctx.Repo.RepoLink) }) // there is no "{owner}/{repo}/src" page, so redirect to "{owner}/{repo}" to avoid 404
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
