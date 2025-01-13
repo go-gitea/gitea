@@ -202,12 +202,7 @@ func cancelRepositoryTransfers(ctx context.Context, doer, sender, recipient *use
 	}
 
 	for _, transfer := range transfers {
-		repo, err := repo_model.GetRepositoryByID(ctx, transfer.RepoID)
-		if err != nil {
-			return err
-		}
-
-		if err := repo_service.CancelRepositoryTransfer(ctx, repo, doer); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, transfer, doer); err != nil {
 			return err
 		}
 	}

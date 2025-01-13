@@ -135,10 +135,10 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-// CanUserAcceptTransfer checks if the user has the rights to accept/decline a repo transfer.
+// CanUserAcceptOrRejectTransfer checks if the user has the rights to accept/decline a repo transfer.
 // For user, it checks if it's himself
 // For organizations, it checks if the user is able to create repos
-func (r *RepoTransfer) CanUserAcceptTransfer(ctx context.Context, u *user_model.User) bool {
+func (r *RepoTransfer) CanUserAcceptOrRejectTransfer(ctx context.Context, u *user_model.User) bool {
 	if err := r.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return false
@@ -155,32 +155,6 @@ func (r *RepoTransfer) CanUserAcceptTransfer(ctx context.Context, u *user_model.
 	}
 
 	return allowed
-}
-
-func (r *RepoTransfer) CanUserCancelTransfer(ctx context.Context, u *user_model.User) bool {
-	if r.DoerID == u.ID { // sender can cancel the transfer
-		return true
-	}
-	if err := r.Repo.LoadOwner(ctx); err != nil {
-		log.Error("LoadOwner: %v", err)
-		return false
-	}
-	if !r.Repo.Owner.IsOrganization() {
-		if u.ID == r.Repo.OwnerID { // owner can cancel the transfer
-			return true
-		}
-	} else {
-		allowed, err := organization.CanCreateOrgRepo(ctx, r.Repo.OwnerID, u.ID)
-		if err != nil {
-			log.Error("CanCreateOrgRepo: %v", err)
-			return false
-		}
-		if allowed {
-			return true
-		}
-	}
-
-	return r.CanUserAcceptTransfer(ctx, u) // the user who can accept the transfer can also reject it
 }
 
 type PendingRepositoryTransferOptions struct {

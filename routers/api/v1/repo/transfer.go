@@ -204,7 +204,7 @@ func RejectTransfer(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
+	err := repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
 	if err != nil {
 		switch {
 		case repo_model.IsErrNoPendingTransfer(err):

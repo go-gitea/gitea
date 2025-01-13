@@ -93,7 +93,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.NotNil(t, transfer)
 
 	// Cancel transfer
-	assert.NoError(t, CancelRepositoryTransfer(db.DefaultContext, repo, doer))
+	assert.NoError(t, CancelRepositoryTransfer(db.DefaultContext, transfer, doer))
 
 	transfer, err = repo_model.GetPendingRepositoryTransfer(db.DefaultContext, repo)
 	assert.Error(t, err)
@@ -121,7 +121,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	err = repo_model.CreatePendingRepositoryTransfer(db.DefaultContext, doer, &user_model.User{ID: 1000, LowerName: "user1000"}, repo2.ID, nil)
 	assert.Error(t, err)
 
-	// Cancel transfer
-	err = CancelRepositoryTransfer(db.DefaultContext, repo2, doer)
+	// Reject transfer
+	err = RejectRepositoryTransfer(db.DefaultContext, repo2, doer)
 	assert.True(t, repo_model.IsErrNoPendingTransfer(err))
 }

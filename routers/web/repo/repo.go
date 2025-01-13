@@ -328,7 +328,7 @@ func Action(ctx *context.Context) {
 		}
 		ctx.Redirect(ctx.Repo.Repository.Link())
 	case "reject_transfer":
-		err = repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
+		err = repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
 		if err == nil {
 			ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
 		}

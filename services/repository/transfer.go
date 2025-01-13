@@ -48,7 +48,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 			return err
 		}
 
-		if !repoTransfer.CanUserAcceptTransfer(ctx, doer) {
+		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
 			return util.ErrPermissionDenied
 		}
 
@@ -452,10 +452,10 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	return nil
 }
 
-// CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
+// RejectRepositoryTransfer marks the repository as ready and remove pending transfer entry,
 // thus cancel the transfer process.
-// Both the sender and the accepter can cancel the transfer.
-func CancelRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
+// The accepter can reject the transfer.
+func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, repo)
 		if err != nil {
@@ -466,7 +466,7 @@ func CancelRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 			return err
 		}
 
-		if !repoTransfer.CanUserCancelTransfer(ctx, doer) {
+		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
 			return util.ErrPermissionDenied
 		}
 
@@ -476,5 +476,53 @@ func CancelRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 		}
 
 		return repo_model.DeleteRepositoryTransfer(ctx, repo.ID)
+	})
+}
+
+func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *user_model.User) bool {
+	if u.ID == r.DoerID {
+		return true
+	}
+
+	if err := r.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return false
+	}
+
+	if err := r.Repo.LoadOwner(ctx); err != nil {
+		log.Error("LoadOwner: %v", err)
+		return false
+	}
+
+	if !r.Repo.Owner.IsOrganization() {
+		return r.Repo.OwnerID == u.ID
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, r.Repo, u)
+	if err != nil {
+		log.Error("GetUserRepoPermission: %v", err)
+		return false
+	}
+	return perm.IsAdmin()
+}
+
+// CancelRepositoryTransfer cancels the repository transfer process. The sender or
+// the users who have admin permission of the original repository can cancel the transfer
+func CancelRepositoryTransfer(ctx context.Context, repoTransfer *repo_model.RepoTransfer, doer *user_model.User) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := repoTransfer.LoadAttributes(ctx); err != nil {
+			return err
+		}
+
+		if !canUserCancelTransfer(ctx, repoTransfer, doer) {
+			return util.ErrPermissionDenied
+		}
+
+		repoTransfer.Repo.Status = repo_model.RepositoryReady
+		if err := repo_model.UpdateRepositoryCols(ctx, repoTransfer.Repo, "status"); err != nil {
+			return err
+		}
+
+		return repo_model.DeleteRepositoryTransfer(ctx, repoTransfer.RepoID)
 	})
 }
