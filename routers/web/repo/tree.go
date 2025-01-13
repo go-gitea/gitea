@@ -56,16 +56,12 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 
 func Tree(ctx *context.Context) {
 	treePath := ctx.PathParam("*")
-	var refFullName git.RefName
-	switch ctx.FormTrim("ref_type") {
-	case "branch":
-		refFullName = git.RefNameFromBranch(ctx.FormTrim("ref_name"))
-	case "tag":
-		refFullName = git.RefNameFromTag(ctx.FormTrim("ref_name"))
-	default:
-		refFullName = git.RefName(ctx.FormTrim("ref_name"))
-	}
 	recursive := ctx.FormBool("recursive")
+	refFullName := git.RefNameFromTypeAndShortName(git.RefType(ctx.FormTrim("ref_type")), ctx.FormTrim("ref_name"))
+	if refFullName == "" {
+		ctx.Error(http.StatusBadRequest, "RefNameFromTypeAndShortName", "ref_type or ref_name is invalid")
+		return
+	}
 
 	var results []*files_service.TreeViewNode
 	var err error
