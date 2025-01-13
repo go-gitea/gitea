@@ -482,7 +482,7 @@ func NewReleasePost(ctx *context.Context) {
 	}
 
 	// release exists, try to update it (it can't do tag-only if the release is just a tag)
-	if form.TagOnly && rel.IsTag {
+	if form.TagOnly {
 		ctx.Data["Err_TagName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
 		return

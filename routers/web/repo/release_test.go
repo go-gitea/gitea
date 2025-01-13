@@ -11,73 +11,104 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewReleasePost(t *testing.T) {
-	for _, testCase := range []struct {
-		RepoID  int64
-		UserID  int64
-		TagName string
-		IsTag   bool
-		Form    forms.NewReleaseForm
-	}{
-		{ // pre-existing tag
-			RepoID:  1,
-			UserID:  2,
-			TagName: "v1.1",
-			Form: forms.NewReleaseForm{
-				TagName: "newtag",
-				Target:  "master",
-				Title:   "title",
-				Content: "content",
-			},
-		},
-		{ // creating a new tag when there's already a pre-existing tag
-			RepoID:  1,
-			UserID:  2,
-			TagName: "delete-tag",
-			IsTag:   true,
-			Form: forms.NewReleaseForm{
-				TagName: "delete-tag",
-				Target:  "master",
-				Title:   "delete-tag",
-				TagOnly: true,
-			},
-		},
-		{
-			RepoID:  1,
-			UserID:  2,
-			TagName: "newtag",
-			Form: forms.NewReleaseForm{
-				TagName: "newtag",
-				Target:  "master",
-				Title:   "title",
-				Content: "content",
-			},
-		},
-	} {
-		unittest.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
+	get := func(t *testing.T, tagName string) *context.Context {
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/releases/new?tag="+tagName)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+		NewRelease(ctx)
+		return ctx
+	}
+
+	t.Run("NewReleasePage", func(t *testing.T) {
+		ctx := get(t, "v1.1")
+		assert.NotEmpty(t, ctx.Data["TagNameReleaseExists"])
+		ctx = get(t, "new-tag-name")
+		assert.Empty(t, ctx.Data["TagNameReleaseExists"])
+	})
+
+	post := func(t *testing.T, form forms.NewReleaseForm) *context.Context {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1/releases/new")
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, 1)
 		contexttest.LoadGitRepo(t, ctx)
-		web.SetForm(ctx, &testCase.Form)
+		defer ctx.Repo.GitRepo.Close()
+		web.SetForm(ctx, &form)
 		NewReleasePost(ctx)
-		unittest.AssertExistsAndLoadBean(t, &repo_model.Release{
-			RepoID:      1,
-			PublisherID: 2,
-			TagName:     testCase.Form.TagName,
-			Target:      testCase.Form.Target,
-			Title:       testCase.Form.Title,
-			Note:        testCase.Form.Content,
-		}, unittest.Cond("is_tag=? AND is_draft=?", testCase.IsTag, testCase.Form.Draft))
-		_ = ctx.Repo.GitRepo.Close()
+		return ctx
 	}
+
+	loadRelease := func(t *testing.T, tagName string) *repo_model.Release {
+		return unittest.GetBean(t, &repo_model.Release{}, unittest.Cond("repo_id=1 AND tag_name=?", tagName))
+	}
+
+	t.Run("NewTagRelease", func(t *testing.T) {
+		post(t, forms.NewReleaseForm{
+			TagName: "newtag",
+			Target:  "master",
+			Title:   "title",
+			Content: "content",
+		})
+		rel := loadRelease(t, "newtag")
+		require.NotNil(t, rel)
+		assert.False(t, rel.IsTag)
+		assert.Equal(t, "master", rel.Target)
+		assert.Equal(t, "title", rel.Title)
+		assert.Equal(t, "content", rel.Note)
+	})
+
+	t.Run("ReleaseExistsDoUpdate", func(t *testing.T) {
+		post(t, forms.NewReleaseForm{
+			TagName: "v1.1",
+			Target:  "master",
+			Title:   "updated-title",
+			Content: "updated-content",
+		})
+		rel := loadRelease(t, "v1.1")
+		require.NotNil(t, rel)
+		assert.Equal(t, "updated-title", rel.Title)
+		assert.Equal(t, "updated-content", rel.Note)
+	})
+
+	t.Run("TagOnly", func(t *testing.T) {
+		ctx := post(t, forms.NewReleaseForm{
+			TagName: "new-tag-only",
+			Target:  "master",
+			Title:   "title",
+			Content: "content",
+			TagOnly: true,
+		})
+		rel := loadRelease(t, "new-tag-only")
+		require.NotNil(t, rel)
+		assert.True(t, rel.IsTag)
+		assert.Empty(t, ctx.Flash.ErrorMsg)
+	})
+
+	t.Run("TagOnlyConflict", func(t *testing.T) {
+		ctx := post(t, forms.NewReleaseForm{
+			TagName: "v1.1",
+			Target:  "master",
+			Title:   "title",
+			Content: "content",
+			TagOnly: true,
+		})
+		rel := loadRelease(t, "v1.1")
+		require.NotNil(t, rel)
+		assert.False(t, rel.IsTag)
+		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+	})
 }
 
 func TestCalReleaseNumCommitsBehind(t *testing.T) {
