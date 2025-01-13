@@ -7,17 +7,12 @@
 {{template "repo/sub_menu" .}}
 <div class="repo-button-row">
 	<div class="repo-button-row-left">
-		{{- template "repo/branch_dropdown" dict
-			"Repository" .Repository
-			"ShowTabBranches" true
-			"ShowTabTags" true
-			"CurrentRefType" .RefFullName.RefType
-			"CurrentRefShortName" .RefFullName.ShortName
-			"CurrentTreePath" .TreePath
-			"RefLinkTemplate" "{RepoLink}/src/{RefTypeNameSubURL}/{TreePath}"
-			"AllowCreateNewRef" .CanCreateBranch
-			"ShowViewAllRefsEntry" true
-		-}}
+		{{if $hasTreeSidebar}}
+			<button class="show-tree-sidebar-button ui compact basic button icon not-mobile {{if $showTreeSidebar}}tw-hidden{{end}}" title="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
+				{{svg "octicon-sidebar-collapse" 20 "icon"}}
+			</button>
+		{{end}}
+		{{template "repo/home_branch_dropdown" (dict "ctxData" .)}}
 		{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 			{{$cmpBranch := ""}}
 			{{if ne .Repository.ID .BaseRepo.ID}}
