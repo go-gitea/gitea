@@ -7,12 +7,17 @@
 {{template "repo/sub_menu" .}}
 <div class="repo-button-row">
 	<div class="repo-button-row-left">
-		{{if $hasTreeSidebar}}
-			<button class="show-tree-sidebar-button ui compact basic button icon not-mobile {{if $showTreeSidebar}}tw-hidden{{end}}" title="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
-				{{svg "octicon-sidebar-collapse" 20 "icon"}}
-			</button>
-		{{end}}
-		{{template "repo/home_branch_dropdown" (dict "ctxData" .)}}
+		{{- template "repo/branch_dropdown" dict
+			"Repository" .Repository
+			"ShowTabBranches" true
+			"ShowTabTags" true
+			"CurrentRefType" .RefFullName.RefType
+			"CurrentRefShortName" .RefFullName.ShortName
+			"CurrentTreePath" .TreePath
+			"RefLinkTemplate" "{RepoLink}/src/{RefTypeNameSubURL}/{TreePath}"
+			"AllowCreateNewRef" .CanCreateBranch
+			"ShowViewAllRefsEntry" true
+		-}}
 		{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 			{{$cmpBranch := ""}}
 			{{if ne .Repository.ID .BaseRepo.ID}}
@@ -28,11 +33,11 @@
 
 		<!-- Show go to file if on home page -->
 		{{if $isTreePathRoot}}
-			<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
+			<a href="{{.Repository.Link}}/find/{{.RefTypeNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
 		{{end}}
 
 		{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
-			<button class="add-file-dropdown ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
+			<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 				{{ctx.Locale.Tr "repo.editor.add_file"}}
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
@@ -60,7 +65,7 @@
 		{{if not $isTreePathRoot}}
 			{{$treeNameIdxLast := Eval $treeNamesLen "-" 1}}
 			<span class="breadcrumb repo-path tw-ml-1">
-				<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
+				<a class="section" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 				{{- range $i, $v := .TreeNames -}}
 					<span class="breadcrumb-divider">/</span>
 					{{- if eq $i $treeNameIdxLast -}}
@@ -80,16 +85,12 @@
 			{{template "repo/clone_panel" .}}
 		{{end}}
 		{{if and (not $isTreePathRoot) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
-			<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
+			<a class="ui button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
 				{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
 			</a>
 		{{end}}
 	</div>
 </div>
-
-{{$treeNamesLen := len .TreeNames}}
-{{$isTreePathRoot := eq $treeNamesLen 0}}
-
 {{if .IsViewFile}}
 	{{template "repo/view_file" .}}
 {{else if .IsBlame}}

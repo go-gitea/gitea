@@ -59,9 +59,9 @@ func RefBlame(ctx *context.Context) {
 		ShowFileViewTreeSidebar: showFileViewTreeSidebar,
 	}
 
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
+	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)

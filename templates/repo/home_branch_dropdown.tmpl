@@ -2,10 +2,10 @@
 	"Repository" .ctxData.Repository
 	"ShowTabBranches" true
 	"ShowTabTags" true
-	"CurrentRefType" .ctxData.RefType
-	"CurrentRefShortName" .ctxData.RefShortName
+	"CurrentRefType" .ctxData.RefFullName.RefType
+	"CurrentRefShortName" .ctxData.RefFullName.ShortName
 	"CurrentTreePath" .ctxData.TreePath
-	"RefLinkTemplate" "{RepoLink}/src/{RefType}/{RefShortName}/{TreePath}"
+	"RefLinkTemplate" "{RepoLink}/src/{RefTypeNameSubURL}/{TreePath}"
 	"AllowCreateNewRef" .ctxData.CanCreateBranch
 	"ShowViewAllRefsEntry" true
 	"ContainerClasses" .containerClasses

@@ -80,6 +80,10 @@ func RefNameFromTag(shortName string) RefName {
 	return RefName(TagPrefix + shortName)
 }
 
+func RefNameFromCommit(shortName string) RefName {
+	return RefName(shortName)
+}
+
 func (ref RefName) String() string {
 	return string(ref)
 }
