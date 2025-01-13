@@ -19,6 +19,9 @@ const (
 
 // View render repository view page
 func View(ctx *context.Context) {
+	// TODO: add search query parsing. Similar to routers/web/repo/search.go/Search().
+	// Use modules/indexer/code/search.go/PerformSearch().
+
 	// Check whether the repo is viewable: not in migration, and the code unit should be enabled
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {

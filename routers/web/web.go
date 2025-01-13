@@ -1158,6 +1158,7 @@ func registerRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}/view", func() {
 		m.Get("", repo.View) // user/org viewing home
+		// TODO: add a search query
 	}, optSignIn, context.RepoAssignment, context.RepoRef(), repo.MustBeNotEmpty)
 
 	// TODO: maybe it should relax the permission to allow "any access"
