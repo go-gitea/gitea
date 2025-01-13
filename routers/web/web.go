@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
@@ -1156,11 +1157,9 @@ func registerRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/find/*", repo.FindFiles)
-		m.Group("/tree-list", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.TreeList)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.TreeList)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.TreeList)
-		})
+		m.Get("/find", repo.FindFiles)
+		m.Get("/tree-list/*", context.RepoRefByQueries(), repo.TreeList)
+		m.Get("/tree-list", context.RepoRefByQueries(), repo.TreeList)
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
@@ -1313,9 +1312,9 @@ func registerRoutes(m *web.Router) {
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
-				m.Post("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CreateBranch)
-				m.Post("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.CreateBranch)
-				m.Post("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.CreateBranch)
+				m.Post("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.CreateBranch)
+				m.Post("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.CreateBranch)
+				m.Post("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.CreateBranch)
 			}, web.Bind(forms.NewBranchForm{}))
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
@@ -1334,7 +1333,7 @@ func registerRoutes(m *web.Router) {
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
-			repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag, context.RepoRefByTypeOptions{IgnoreNotExistErr: true}))
+			repo.MustBeNotEmpty, context.RepoRefByType(git.RefTypeTag, context.RepoRefByTypeOptions{IgnoreNotExistErr: true}))
 		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
 			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
 	}, optSignIn, context.RepoAssignment, reqRepoCodeReader)
@@ -1348,7 +1347,7 @@ func registerRoutes(m *web.Router) {
 			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
 			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
-			repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag, context.RepoRefByTypeOptions{IgnoreNotExistErr: true}))
+			repo.MustBeNotEmpty, context.RepoRefByType(git.RefTypeTag, context.RepoRefByTypeOptions{IgnoreNotExistErr: true}))
 		m.Get("/releases/attachments/{uuid}", repo.MustBeNotEmpty, repo.GetAttachment)
 		m.Get("/releases/download/{vTag}/{fileName}", repo.MustBeNotEmpty, repo.RedirectDownload)
 		m.Group("/releases", func() {
@@ -1521,42 +1520,42 @@ func registerRoutes(m *web.Router) {
 		}, repo.MustBeNotEmpty, context.RepoRef())
 
 		m.Group("/media", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownloadOrLFS)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownloadOrLFS)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownloadOrLFS)
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.SingleDownloadOrLFS)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.SingleDownloadOrLFS)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.SingleDownloadOrLFS)
 			m.Get("/blob/{sha}", repo.DownloadByIDOrLFS)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.SingleDownloadOrLFS)
+			m.Get("/*", context.RepoRefByType(""), repo.SingleDownloadOrLFS)
 		}, repo.MustBeNotEmpty)
 
 		m.Group("/raw", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownload)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownload)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownload)
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.SingleDownload)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.SingleDownload)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.SingleDownload)
 			m.Get("/blob/{sha}", repo.DownloadByID)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.SingleDownload)
+			m.Get("/*", context.RepoRefByType(""), repo.SingleDownload)
 		}, repo.MustBeNotEmpty)
 
 		m.Group("/render", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RenderFile)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RenderFile)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RenderFile)
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.RenderFile)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.RenderFile)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.RenderFile)
 			m.Get("/blob/{sha}", repo.RenderFile)
 		}, repo.MustBeNotEmpty)
 
 		m.Group("/commits", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefCommits)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefCommits)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefCommits)
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.RefCommits)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.RefCommits)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.RefCommits)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.RefCommits)
+			m.Get("/*", context.RepoRefByType(""), repo.RefCommits)
 		}, repo.MustBeNotEmpty)
 
 		m.Group("/blame", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefBlame)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefBlame)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefBlame)
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.RefBlame)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.RefBlame)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.RefBlame)
 		}, repo.MustBeNotEmpty)
 
 		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
@@ -1568,20 +1567,20 @@ func registerRoutes(m *web.Router) {
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef())
 
-		m.Get("/rss/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
-		m.Get("/atom/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
+		m.Get("/rss/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeed)
+		m.Get("/atom/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeed)
 
 		m.Group("/src", func() {
 			m.Get("", func(ctx *context.Context) { ctx.Redirect(ctx.Repo.RepoLink) }) // there is no "{owner}/{repo}/src" page, so redirect to "{owner}/{repo}" to avoid 404
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
-			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.Home)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.Home)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.Home)
+			m.Get("/*", context.RepoRefByType(""), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
-		m.Post("/lastcommit/*", context.RepoRefByType(context.RepoRefCommit), repo.LastCommit)
+		m.Post("/lastcommit/*", context.RepoRefByType(git.RefTypeCommit), repo.LastCommit)
 	}, optSignIn, context.RepoAssignment, reqRepoCodeReader)
 	// end "/{username}/{reponame}": repo code
 
