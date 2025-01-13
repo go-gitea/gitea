@@ -142,7 +142,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	repo.OwnerName = newOwner.Name
 
 	// Update repository.
-	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "owner_id", "owner_name"); err != nil {
 		return fmt.Errorf("update owner: %w", err)
 	}
 
@@ -178,15 +178,13 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		collaboration.UserID = 0
 	}
 
-	// Remove old team-repository relations.
 	if oldOwner.IsOrganization() {
+		// Remove old team-repository relations.
 		if err := organization.RemoveOrgRepo(ctx, oldOwner.ID, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %w", err)
 		}
-	}
 
-	// Remove project's issues that belong to old organization's projects
-	if oldOwner.IsOrganization() {
+		// Remove project's issues that belong to old organization's projects
 		projects, err := project_model.GetAllProjectsIDsByOwnerIDAndType(ctx, oldOwner.ID, project_model.TypeOrganization)
 		if err != nil {
 			return fmt.Errorf("Unable to find old org projects: %w", err)
@@ -229,15 +227,13 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("watchRepo: %w", err)
 	}
 
-	// Remove watch for organization.
 	if oldOwner.IsOrganization() {
+		// Remove watch for organization.
 		if err := repo_model.WatchRepo(ctx, oldOwner, repo, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %w", err)
 		}
-	}
 
-	// Delete labels that belong to the old organization and comments that added these labels
-	if oldOwner.IsOrganization() {
+		// Delete labels that belong to the old organization and comments that added these labels
 		if _, err := sess.Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
 			SELECT il_too.id FROM (
 				SELECT il_too_too.id
@@ -265,7 +261,6 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 
 	// Rename remote repository to new path and delete local copy.
 	dir := user_model.UserPath(newOwner.Name)
-
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %w", dir, err)
 	}
@@ -277,7 +272,6 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := repo_model.WikiPath(oldOwner.Name, repo.Name)
-
 	if isExist, err := util.IsExist(wikiPath); err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
 		return err
@@ -394,6 +388,13 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it make repository into pending transfer state, if doer can not create repo for new owner.
 func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
+	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
+
 	if err := repo_model.TestRepositoryReadyForTransfer(repo.Status); err != nil {
 		return err
 	}

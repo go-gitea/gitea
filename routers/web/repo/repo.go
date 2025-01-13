@@ -309,6 +309,40 @@ const (
 	tplStarUnstar   templates.TplName = "repo/star_unstar"
 )
 
+func acceptTransfer(ctx *context.Context) {
+	err := repo_service.AcceptTransferOwnership(ctx, ctx.Repo.Repository, ctx.Doer)
+	if err == nil {
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
+		ctx.Redirect(ctx.Repo.Repository.Link())
+		return
+	}
+	handleActionError(ctx, err)
+}
+
+func rejectTransfer(ctx *context.Context) {
+	err := repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
+	if err == nil {
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
+		ctx.Redirect(ctx.Repo.Repository.Link())
+		return
+	}
+	handleActionError(ctx, err)
+}
+
+func handleActionError(ctx *context.Context, err error) {
+	if err != nil {
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.Error(http.StatusNotFound)
+			return
+		} else {
+			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
+			return
+		}
+	}
+}
+
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
@@ -322,17 +356,11 @@ func Action(ctx *context.Context) {
 	case "unstar":
 		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	case "accept_transfer":
-		err = repo_service.AcceptTransferOwnership(ctx, ctx.Repo.Repository, ctx.Doer)
-		if err == nil {
-			ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
-		}
-		ctx.Redirect(ctx.Repo.Repository.Link())
+		acceptTransfer(ctx)
+		return
 	case "reject_transfer":
-		err = repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
-		if err == nil {
-			ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
-		}
-		ctx.Redirect(ctx.Repo.Repository.Link())
+		rejectTransfer(ctx)
+		return
 	case "desc": // FIXME: this is not used
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(http.StatusNotFound)
@@ -344,16 +372,9 @@ func Action(ctx *context.Context) {
 		err = repo_service.UpdateRepository(ctx, ctx.Repo.Repository, false)
 	}
 
-	if err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
-		} else if errors.Is(err, util.ErrPermissionDenied) {
-			ctx.Error(http.StatusNotFound)
-			return
-		} else {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
-			return
-		}
+	handleActionError(ctx, err)
+	if ctx.Written() {
+		return
 	}
 
 	switch ctx.PathParam("action") {
