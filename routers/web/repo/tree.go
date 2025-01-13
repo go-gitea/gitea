@@ -8,7 +8,6 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/services/context"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
@@ -57,22 +56,15 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 
 func Tree(ctx *context.Context) {
 	treePath := ctx.PathParam("*")
-	ref := ctx.FormTrim("ref")
+	refFullName := git.RefName("refs/" + ctx.FormTrim("ref"))
 	recursive := ctx.FormBool("recursive")
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("RepositoryFromContextOrOpen", err)
-		return
-	}
-	defer closer.Close()
-
-	refName := gitRepo.UnstableGuessRefByShortName(ref)
 	var results []*files_service.TreeEntry
+	var err error
 	if !recursive {
-		results, err = files_service.GetTreeList(ctx, ctx.Repo.Repository, treePath, refName, false)
+		results, err = files_service.GetTreeList(ctx, ctx.Repo.Repository, treePath, refFullName, false)
 	} else {
-		results, err = files_service.GetTreeInformation(ctx, ctx.Repo.Repository, treePath, refName)
+		results, err = files_service.GetTreeInformation(ctx, ctx.Repo.Repository, treePath, refFullName)
 	}
 	if err != nil {
 		ctx.ServerError("GetTreeInformation", err)
