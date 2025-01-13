@@ -24,7 +24,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 	}
 	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
-			Revision: ctx.Repo.RefName,
+			Revision: ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
 			File:     fileName,
 			Page:     1,
 		})
