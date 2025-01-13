@@ -22,7 +22,7 @@ on:
 
 jobs:
   detect:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     outputs:
       backend: ${{ steps.changes.outputs.backend }}

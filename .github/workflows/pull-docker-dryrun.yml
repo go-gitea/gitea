@@ -14,7 +14,7 @@ jobs:
   regular:
     if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
@@ -25,7 +25,7 @@ jobs:
   rootless:
     if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5

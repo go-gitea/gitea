@@ -14,7 +14,7 @@ jobs:
   test-pgsql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       pgsql:
         image: postgres:12
@@ -64,7 +64,7 @@ jobs:
   test-sqlite:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -89,7 +89,7 @@ jobs:
   test-unit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       elasticsearch:
         image: elasticsearch:7.5.0
@@ -151,7 +151,7 @@ jobs:
   test-mysql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
