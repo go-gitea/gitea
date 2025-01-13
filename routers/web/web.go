@@ -1524,7 +1524,7 @@ func registerRoutes(m *web.Router) {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownloadOrLFS)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownloadOrLFS)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownloadOrLFS)
-			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByIDOrLFS)
+			m.Get("/blob/{sha}", repo.DownloadByIDOrLFS)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.SingleDownloadOrLFS)
 		}, repo.MustBeNotEmpty)
@@ -1533,7 +1533,7 @@ func registerRoutes(m *web.Router) {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownload)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownload)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownload)
-			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByID)
+			m.Get("/blob/{sha}", repo.DownloadByID)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefUnknown), repo.SingleDownload)
 		}, repo.MustBeNotEmpty)
@@ -1542,7 +1542,7 @@ func registerRoutes(m *web.Router) {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RenderFile)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RenderFile)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RenderFile)
-			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.RenderFile)
+			m.Get("/blob/{sha}", repo.RenderFile)
 		}, repo.MustBeNotEmpty)
 
 		m.Group("/commits", func() {
@@ -1572,6 +1572,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/atom/branch/*", context.RepoRefByType(context.RepoRefBranch), feedEnabled, feed.RenderBranchFeed)
 
 		m.Group("/src", func() {
+			m.Get("", func(ctx *context.Context) { ctx.Redirect(ctx.Repo.RepoLink) }) // there is no "{owner}/{repo}/src" page, so redirect to "{owner}/{repo}" to avoid 404
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
