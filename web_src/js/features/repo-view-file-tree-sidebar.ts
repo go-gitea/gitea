@@ -84,6 +84,7 @@ export async function initViewFileTreeSidebar() {
   const treePath = fileTree.getAttribute('data-tree-path');
   const refType = fileTree.getAttribute('data-current-ref-type');
   const refName = fileTree.getAttribute('data-current-ref-short-name');
+  const refString = (refType ? (`/${refType}`) : '') + (refName ? (`/${refName}`) : '');
 
   const selectedItem = ref(treePath);
 
@@ -91,7 +92,7 @@ export async function initViewFileTreeSidebar() {
 
   fileTree.classList.remove('is-loading');
   const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (item) => {
-    window.history.pushState(null, null, `${baseUrl}/src/${refType}/${refName}/${item.path}`);
+    window.history.pushState(null, null, `${baseUrl}/src${refString}/${item.path}`);
     selectedItem.value = item.path;
     loadContent();
   }});
