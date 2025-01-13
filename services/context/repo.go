@@ -210,16 +210,7 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 // * "commit/123456"
 // It is usually used to construct a link like ".../src/{{RefTypeNameSubURL}}/{{PathEscapeSegments TreePath}}"
 func (r *Repository) RefTypeNameSubURL() string {
-	switch {
-	case r.IsViewBranch:
-		return "branch/" + util.PathEscapeSegments(r.BranchName)
-	case r.IsViewTag:
-		return "tag/" + util.PathEscapeSegments(r.TagName)
-	case r.IsViewCommit:
-		return "commit/" + util.PathEscapeSegments(r.CommitID)
-	}
-	log.Error("Unknown view type for repo: %v", r)
-	return ""
+	return r.RefFullName.RefWebLinkPath()
 }
 
 // GetEditorconfig returns the .editorconfig definition if found in the

@@ -84,9 +84,9 @@ func SlackLinkFormatter(url, text string) string {
 // SlackLinkToRef slack-formatter link to a repo ref
 func SlackLinkToRef(repoURL, ref string) string {
 	// FIXME: SHA1 hardcoded here
-	url := git.RefURL(repoURL, ref)
-	refName := git.RefName(ref).ShortName()
-	return SlackLinkFormatter(url, refName)
+	refName := git.RefName(ref)
+	url := repoURL + "/src/" + refName.RefWebLinkPath()
+	return SlackLinkFormatter(url, refName.ShortName())
 }
 
 // Create implements payloadConvertor Create method
