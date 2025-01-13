@@ -1,4 +1,5 @@
 <script lang="ts">
+import {defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import dayjs from 'dayjs';
 import {
@@ -56,7 +57,7 @@ Chart.register(
   customEventListener,
 );
 
-export default {
+export default defineComponent({
   components: {ChartLine, SvgIcon},
   props: {
     locale: {
@@ -320,7 +321,7 @@ export default {
       };
     },
   },
-};
+});
 </script>
 <template>
   <div>

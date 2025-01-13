@@ -216,7 +216,7 @@ export function initRepoIssueCodeCommentCancel() {
 
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
-  const pullUpdateButton = document.querySelector('.update-button > button');
+  const pullUpdateButton = document.querySelector<HTMLButtonElement>('.update-button > button');
   if (!pullUpdateButton) return;
 
   pullUpdateButton.addEventListener('click', async function (e) {
