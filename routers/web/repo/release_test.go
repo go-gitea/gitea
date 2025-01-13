@@ -69,8 +69,8 @@ func TestNewReleasePost(t *testing.T) {
 		assert.Equal(t, "content", rel.Note)
 	})
 
-	t.Run("ReleaseExistsDoUpdate", func(t *testing.T) {
-		post(t, forms.NewReleaseForm{
+	t.Run("ReleaseExistsDoUpdate(non-tag)", func(t *testing.T) {
+		ctx := post(t, forms.NewReleaseForm{
 			TagName: "v1.1",
 			Target:  "master",
 			Title:   "updated-title",
@@ -78,8 +78,38 @@ func TestNewReleasePost(t *testing.T) {
 		})
 		rel := loadRelease(t, "v1.1")
 		require.NotNil(t, rel)
+		assert.False(t, rel.IsTag)
+		assert.Equal(t, "testing-release", rel.Title)
+		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+	})
+
+	t.Run("ReleaseExistsDoUpdate(tag-only)", func(t *testing.T) {
+		ctx := post(t, forms.NewReleaseForm{
+			TagName: "delete-tag", // a strange name, but it is the only "is_tag=true" fixture
+			Target:  "master",
+			Title:   "updated-title",
+			Content: "updated-content",
+			TagOnly: true,
+		})
+		rel := loadRelease(t, "delete-tag")
+		require.NotNil(t, rel)
+		assert.True(t, rel.IsTag) // the record should not be updated because the request is "tag-only". TODO: need to improve the logic?
+		assert.Equal(t, "delete-tag", rel.Title)
+		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+	})
+
+	t.Run("ReleaseExistsDoUpdate(tag-release)", func(t *testing.T) {
+		ctx := post(t, forms.NewReleaseForm{
+			TagName: "delete-tag", // a strange name, but it is the only "is_tag=true" fixture
+			Target:  "master",
+			Title:   "updated-title",
+			Content: "updated-content",
+		})
+		rel := loadRelease(t, "delete-tag")
+		require.NotNil(t, rel)
+		assert.False(t, rel.IsTag) // the tag has been "updated" to be a real "release"
 		assert.Equal(t, "updated-title", rel.Title)
-		assert.Equal(t, "updated-content", rel.Note)
+		assert.Empty(t, ctx.Flash.ErrorMsg)
 	})
 
 	t.Run("TagOnly", func(t *testing.T) {

@@ -481,12 +481,16 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	// release exists, try to update it (it can't do tag-only if the release is just a tag)
-	if form.TagOnly {
+	// tag exists, try to convert it to a real release
+	// old logic: if the release is not a tag (it is a real release), do not update it on the "new release" page
+	// add new logic: if tag-only, do not convert the tag to a release
+	if form.TagOnly || !rel.IsTag {
 		ctx.Data["Err_TagName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
 		return
 	}
+
+	// convert a tag to a real release (set is_tag=false)
 	rel.Title = form.Title
 	rel.Note = form.Content
 	rel.Target = form.Target
