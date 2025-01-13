@@ -45,7 +45,7 @@ func TestNewReleasePost(t *testing.T) {
 				TagName: "delete-tag",
 				Target:  "master",
 				Title:   "delete-tag",
-				TagOnly: "1",
+				TagOnly: true,
 			},
 		},
 		{

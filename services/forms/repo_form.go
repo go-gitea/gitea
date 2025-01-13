@@ -647,16 +647,12 @@ type UpdateAllowEditsForm struct {
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {
-	TagName string `binding:"Required;GitRefName;MaxSize(255)"`
-	Target  string `form:"tag_target" binding:"Required;MaxSize(255)"`
-	Title   string `binding:"MaxSize(255)"`
-	Content string
-	Draft   string
-
-	// TODO: ideally it should be a bool. The "string" type here was used to accept the value of `<input type="submit" value="Tag Only">`.
-	// As now, the tmpl code had been refactor to `<button value="1">Tag Only</button>`, so the type could be safely refactored to "bool" in the future.
-	TagOnly string
-
+	TagName    string `binding:"Required;GitRefName;MaxSize(255)"`
+	Target     string `form:"tag_target" binding:"Required;MaxSize(255)"`
+	Title      string `binding:"MaxSize(255)"`
+	Content    string
+	Draft      bool
+	TagOnly    bool
 	Prerelease bool
 	AddTagMsg  bool
 	Files      []string
