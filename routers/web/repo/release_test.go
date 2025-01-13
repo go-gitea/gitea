@@ -75,7 +75,7 @@ func TestNewReleasePost(t *testing.T) {
 			Target:      testCase.Form.Target,
 			Title:       testCase.Form.Title,
 			Note:        testCase.Form.Content,
-			IsTag:       true,
+			IsTag:       testCase.IsTag,
 		}, unittest.Cond("is_draft=?", len(testCase.Form.Draft) > 0))
 		ctx.Repo.GitRepo.Close()
 	}
