@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,8 +13,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -37,6 +36,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			require.Equal(t, exp, resp.Body.String())
 		}
 
+		baseSession := loginUser(t, baseUser.Name)
 		session := loginUser(t, forkUser.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
@@ -60,7 +60,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 
 		t.Run("HeadBeforeBase", func(t *testing.T) {
 			// add a file in base repo
-			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "new-file.txt", "master", "test-content-1"))
+			testAPINewFile(t, baseSession, baseRepo.OwnerName, baseRepo.Name, "master", "new-file.txt", "test-content-1")
 
 			// the repo shows a prompt to "sync fork"
 			var mergeUpstreamLink string
@@ -83,14 +83,21 @@ func TestRepoMergeUpstream(t *testing.T) {
 
 		t.Run("BaseChangeAfterHeadChange", func(t *testing.T) {
 			// update the files: base first, head later, and check the prompt
-			require.NoError(t, createOrReplaceFileInBranch(baseUser, baseRepo, "new-file.txt", "master", "test-content-2"))
-			require.NoError(t, createOrReplaceFileInBranch(forkUser, forkRepo, "new-file-other.txt", "fork-branch", "test-content-other"))
-
-			// make sure the base branch's update time is before the fork, to make it test the complete logic
-			baseBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: baseRepo.ID, Name: "master"})
-			forkBranch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: forkRepo.ID, Name: "fork-branch"})
-			_, err := db.GetEngine(db.DefaultContext).ID(forkBranch.ID).Update(&git_model.Branch{UpdatedUnix: baseBranch.UpdatedUnix + 1})
-			require.NoError(t, err)
+			testAPINewFile(t, session, forkRepo.OwnerName, forkRepo.Name, "fork-branch", "new-file-other.txt", "test-content-other")
+			baseUserToken := getTokenForLoggedInUser(t, baseSession, auth_model.AccessTokenScopeWriteRepository)
+			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", baseRepo.OwnerName, baseRepo.Name, "new-file.txt"), &api.UpdateFileOptions{
+				DeleteFileOptions: api.DeleteFileOptions{
+					FileOptions: api.FileOptions{
+						BranchName:    "master",
+						NewBranchName: "master",
+						Message:       "Update new-file.txt",
+					},
+					SHA: "a4007b6679563f949751ed31bb371fdfb3194446",
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("test-content-2")),
+			}).
+				AddTokenAuth(baseUserToken)
+			MakeRequest(t, req, http.StatusOK)
 
 			// the repo shows a prompt to "sync fork"
 			require.Eventually(t, func() bool {
