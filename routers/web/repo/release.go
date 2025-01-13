@@ -397,6 +397,8 @@ func NewReleasePost(ctx *context.Context) {
 
 	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 
+	// first, check whether the release exists,
+	// it should be done before the form error check, because the tmpl needs "TagNameReleaseExists" to show/hide the "tag only" button
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, form.TagName)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.ServerError("GetRelease", err)
@@ -404,6 +406,7 @@ func NewReleasePost(ctx *context.Context) {
 	}
 	ctx.Data["TagNameReleaseExists"] = rel != nil
 
+	// do some form checks
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplReleaseNew)
 		return
@@ -414,8 +417,8 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	// Title of release cannot be empty
 	if !form.TagOnly && form.Title == "" {
+		// if not "tag only", then the title of the release cannot be empty
 		ctx.RenderWithErr(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
 		return
 	}
@@ -436,6 +439,7 @@ func NewReleasePost(ctx *context.Context) {
 		}
 	}
 
+	// prepare the git message for creating a new tag
 	newTagMsg := ""
 	if form.Title != "" && form.AddTagMsg {
 		newTagMsg = form.Title + "\n\n" + form.Content
@@ -452,12 +456,9 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	var attachmentUUIDs []string
-	if setting.Attachment.Enabled {
-		attachmentUUIDs = form.Files
-	}
+	attachmentUUIDs := util.Iif(setting.Attachment.Enabled, form.Files, nil)
 
-	// no release, create a new release
+	// no existing release, create a new release
 	if rel == nil {
 		rel = &repo_model.Release{
 			RepoID:       ctx.Repo.Repository.ID,
