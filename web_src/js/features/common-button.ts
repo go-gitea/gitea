@@ -162,7 +162,7 @@ export function initTargetButtons(target: ParentNode): void {
   // There are many "cancel button" elements in modal dialogs, Fomantic UI expects they are button-like elements but never submit a form.
   // However, Gitea misuses the modal dialog and put the cancel buttons inside forms, so we must prevent the form submission.
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
-  addDelegatedEventListener(target, 'click', 'form button.ui.cancel.button', (_ /* el */, e) => e.preventDefault());
+  queryElems(target, 'form button.ui.cancel.button', (el) => el.addEventListener('click', (e) => e.preventDefault()));
 
   queryElems(target, '.show-panel', (el) => el.addEventListener('click', onShowPanelClick));
   queryElems(target, '.hide-panel', (el) => el.addEventListener('click', onHidePanelClick));

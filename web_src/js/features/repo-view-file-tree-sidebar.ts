@@ -37,7 +37,7 @@ async function loadChildren(item, recursive?: boolean) {
   if (json instanceof Array) {
     return json.map((i) => ({
       name: i.name,
-      isFile: i.isFile,
+      type: i.type,
       path: i.path,
       children: i.children,
     }));

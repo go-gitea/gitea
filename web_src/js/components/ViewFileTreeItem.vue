@@ -6,7 +6,7 @@ type Item = {
   name: string;
   path: string;
   htmlUrl: string;
-  isFile: boolean;
+  type: string;
   children?: Item[];
 };
 
@@ -44,7 +44,7 @@ const doLoadFileContent = () => {
 <template>
   <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
   <div
-    v-if="item.isFile" class="item-file"
+    v-if="item.type !== 'tree'" class="item-file"
     :class="{'selected': selectedItem.value === item.path}"
     :title="item.name"
     @click.stop="doLoadFileContent"
