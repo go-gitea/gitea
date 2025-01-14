@@ -63,7 +63,7 @@ func Test_GetTreeList(t *testing.T) {
 
 	refName := git.RefNameFromBranch(ctx1.Repo.Repository.DefaultBranch)
 
-	treeList, err := GetTreeList(ctx1, ctx1.Repo.Repository, "", refName, true)
+	treeList, err := GetTreeList(ctx1, ctx1.Repo.Repository, ctx1.Repo.GitRepo, "", refName, true)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 1)
 	assert.EqualValues(t, "README.md", treeList[0].Name)
@@ -80,7 +80,7 @@ func Test_GetTreeList(t *testing.T) {
 
 	refName = git.RefNameFromBranch(ctx2.Repo.Repository.DefaultBranch)
 
-	treeList, err = GetTreeList(ctx2, ctx2.Repo.Repository, "", refName, true)
+	treeList, err = GetTreeList(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "", refName, true)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 2)
 
@@ -111,7 +111,7 @@ func Test_GetTreeInformation(t *testing.T) {
 
 	refName := git.RefNameFromBranch(ctx1.Repo.Repository.DefaultBranch)
 
-	treeList, err := GetTreeInformation(ctx1, ctx1.Repo.Repository, "", refName)
+	treeList, err := GetTreeInformation(ctx1, ctx1.Repo.Repository, ctx1.Repo.GitRepo, "", refName)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 1)
 	assert.EqualValues(t, "README.md", treeList[0].Name)
@@ -119,7 +119,7 @@ func Test_GetTreeInformation(t *testing.T) {
 	assert.EqualValues(t, "blob", treeList[0].Type)
 	assert.Empty(t, treeList[0].Children)
 
-	treeList, err = GetTreeInformation(ctx1, ctx1.Repo.Repository, "README.md", refName)
+	treeList, err = GetTreeInformation(ctx1, ctx1.Repo.Repository, ctx1.Repo.GitRepo, "README.md", refName)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 1)
 	assert.EqualValues(t, "README.md", treeList[0].Name)
@@ -136,7 +136,7 @@ func Test_GetTreeInformation(t *testing.T) {
 
 	refName = git.RefNameFromBranch(ctx2.Repo.Repository.DefaultBranch)
 
-	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, "", refName)
+	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "", refName)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 2)
 
@@ -150,7 +150,7 @@ func Test_GetTreeInformation(t *testing.T) {
 	assert.EqualValues(t, "blob", treeList[1].Type)
 	assert.Empty(t, treeList[1].Children)
 
-	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, "doc", refName)
+	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "doc", refName)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 2)
 	assert.EqualValues(t, "doc", treeList[0].Name)
@@ -168,7 +168,7 @@ func Test_GetTreeInformation(t *testing.T) {
 	assert.EqualValues(t, "blob", treeList[1].Type)
 	assert.Empty(t, treeList[1].Children)
 
-	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, "doc/doc.md", refName)
+	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "doc/doc.md", refName)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 2)
 

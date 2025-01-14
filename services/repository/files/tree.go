@@ -13,7 +13,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -194,7 +193,7 @@ Example 3: (path: d3/d3d1)
 	    "path": "d3/d3d1/d3d1f2"
 	}]
 */
-func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName, recursive bool) ([]*TreeViewNode, error) {
+func GetTreeList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, treePath string, ref git.RefName, recursive bool) ([]*TreeViewNode, error) {
 	if repo.IsEmpty {
 		return nil, nil
 	}
@@ -210,12 +209,6 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, treePath stri
 		}
 	}
 	treePath = cleanTreePath
-
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
-	defer closer.Close()
 
 	// Get the commit object for the ref
 	commit, err := gitRepo.GetCommit(ref.String())
@@ -390,7 +383,7 @@ Example 4: (path: d2/d2f1)
         "path": "f1"
     },]
 */
-func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePath string, ref git.RefName) ([]*TreeViewNode, error) {
+func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, treePath string, ref git.RefName) ([]*TreeViewNode, error) {
 	if repo.IsEmpty {
 		return nil, nil
 	}
@@ -406,12 +399,6 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, treePa
 		}
 	}
 	treePath = cleanTreePath
-
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
-	defer closer.Close()
 
 	// Get the commit object for the ref
 	commit, err := gitRepo.GetCommit(ref.String())
