@@ -416,6 +416,30 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "from_not_exist", nil
 	}
 
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	if err != nil {
+		return "", err
+	}
+
+	isDefault := from == repo.DefaultBranch
+	if isDefault && !perm.IsAdmin() {
+		return "", repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   doer.ID,
+			RepoName: repo.LowerName,
+		}
+	}
+
+	isProtected, err := git_model.IsBranchProtected(ctx, repo.ID, from)
+	if err != nil {
+		return "", err
+	}
+	if isProtected && !perm.IsAdmin() {
+		return "", repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   doer.ID,
+			RepoName: repo.LowerName,
+		}
+	}
+
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
