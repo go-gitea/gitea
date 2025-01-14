@@ -178,7 +178,7 @@ func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 }
 
 func prepareUpstreamDivergingInfo(ctx *context.Context) {
-	if !ctx.Repo.Repository.IsFork || !ctx.Repo.IsViewBranch || ctx.Repo.TreePath != "" {
+	if !ctx.Repo.Repository.IsFork || !ctx.Repo.RefFullName.IsBranch() || ctx.Repo.TreePath != "" {
 		return
 	}
 	upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Repo.Repository, ctx.Repo.BranchName)

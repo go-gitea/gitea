@@ -53,20 +53,15 @@ type Repository struct {
 	RepoLink string
 	GitRepo  *git.Repository
 
-	// these fields indicate the current ref type, for example: ".../src/branch/master" means IsViewBranch=true
-	IsViewBranch bool
-	IsViewTag    bool
-	IsViewCommit bool
-
+	// RefFullName is the full ref name that the user is viewing
 	RefFullName git.RefName
-	BranchName  string
-	TagName     string
+	BranchName  string // it is the RefFullName's short name if its type is "branch"
+	TagName     string // it is the RefFullName's short name if its type is "tag"
 	TreePath    string
 
-	// Commit it is always set to the commit for the branch or tag
-	Commit   *git.Commit
-	CommitID string
-
+	// Commit it is always set to the commit for the branch or tag, or just the commit that the user is viewing
+	Commit       *git.Commit
+	CommitID     string
 	CommitsCount int64
 
 	PullRequest *PullRequest
@@ -79,7 +74,7 @@ func (r *Repository) CanWriteToBranch(ctx context.Context, user *user_model.User
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor(ctx context.Context, user *user_model.User) bool {
-	return r.IsViewBranch && r.CanWriteToBranch(ctx, user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
+	return r.RefFullName.IsBranch() && r.CanWriteToBranch(ctx, user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
@@ -174,15 +169,9 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 	if r.Commit == nil {
 		return 0, nil
 	}
-	var contextName string
-	if r.IsViewBranch {
-		contextName = r.BranchName
-	} else if r.IsViewTag {
-		contextName = r.TagName
-	} else {
-		contextName = r.CommitID
-	}
-	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, r.IsViewBranch || r.IsViewTag), func() (int64, error) {
+	contextName := r.RefFullName.ShortName()
+	isRef := r.RefFullName.IsBranch() || r.RefFullName.IsTag()
+	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, isRef), func() (int64, error) {
 		return r.Commit.CommitsCount()
 	})
 }
@@ -798,7 +787,6 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
 			// assume the user is viewing the (non-existent) default branch
-			ctx.Repo.IsViewBranch = true
 			ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
 			ctx.Repo.RefFullName = git.RefNameFromBranch(ctx.Repo.BranchName)
 			// these variables are used by the template to "add/upload" new files
@@ -834,7 +822,6 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				ctx.ServerError("GetBranchCommit", err)
 				return
 			}
-			ctx.Repo.IsViewBranch = true
 		} else { // there is a path in request
 			guessLegacyPath := refType == ""
 			if guessLegacyPath {
@@ -853,7 +840,6 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			}
 
 			if refType == git.RefTypeBranch && ctx.Repo.GitRepo.IsBranchExist(refShortName) {
-				ctx.Repo.IsViewBranch = true
 				ctx.Repo.BranchName = refShortName
 				ctx.Repo.RefFullName = git.RefNameFromBranch(refShortName)
 
@@ -864,7 +850,6 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 			} else if refType == git.RefTypeTag && ctx.Repo.GitRepo.IsTagExist(refShortName) {
-				ctx.Repo.IsViewTag = true
 				ctx.Repo.RefFullName = git.RefNameFromTag(refShortName)
 				ctx.Repo.TagName = refShortName
 
@@ -879,7 +864,6 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 			} else if git.IsStringLikelyCommitID(ctx.Repo.GetObjectFormat(), refShortName, 7) {
-				ctx.Repo.IsViewCommit = true
 				ctx.Repo.RefFullName = git.RefNameFromCommit(refShortName)
 				ctx.Repo.CommitID = refShortName
 
@@ -915,13 +899,10 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		ctx.Data["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
 		ctx.Data["TreePath"] = ctx.Repo.TreePath
 
-		ctx.Data["IsViewBranch"] = ctx.Repo.IsViewBranch
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 
-		ctx.Data["IsViewTag"] = ctx.Repo.IsViewTag
 		ctx.Data["TagName"] = ctx.Repo.TagName
 
-		ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
 
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
