@@ -1,7 +1,7 @@
 <script lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {defineComponent} from 'vue';
+import {defineComponent, type PropType} from 'vue';
 import {createElementFromAttrs, toggleElem} from '../utils/dom.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {renderAnsi} from '../render/ansi.ts';
@@ -77,7 +77,7 @@ export default defineComponent({
       default: '',
     },
     locale: {
-      type: Object,
+      type: Object as PropType<Record<string, string>>,
       default: null,
     },
   },

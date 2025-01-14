@@ -1,4 +1,4 @@
-import {defineComponent, h} from 'vue';
+import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
@@ -197,13 +197,13 @@ export function svgParseOuterInner(name: SvgName) {
 export const SvgIcon = defineComponent({
   name: 'SvgIcon',
   props: {
-    name: {type: String, required: true},
+    name: {type: String as PropType<SvgName>, required: true},
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
     symbolId: {type: String},
   },
   render() {
-    let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name as SvgName);
+    let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
     // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
     // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
     const attrs = {};
@@ -215,7 +215,7 @@ export const SvgIcon = defineComponent({
     attrs[`^height`] = this.size;
 
     // make the <SvgIcon class="foo" class-name="bar"> classes work together
-    const classes = [];
+    const classes: Array<string> = [];
     for (const cls of svgOuter.classList) {
       classes.push(cls);
     }

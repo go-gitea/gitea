@@ -1,5 +1,5 @@
 <script lang="ts">
-import {defineComponent} from 'vue';
+import {defineComponent, type PropType} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import dayjs from 'dayjs';
 import {
@@ -61,7 +61,7 @@ export default defineComponent({
   components: {ChartLine, SvgIcon},
   props: {
     locale: {
-      type: Object,
+      type: Object as PropType<Record<string, any>>,
       required: true,
     },
     repoLink: {
@@ -89,7 +89,7 @@ export default defineComponent({
     this.fetchGraphData();
 
     fomanticQuery('#repo-contributors').dropdown({
-      onChange: (val) => {
+      onChange: (val: string) => {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
         this.type = val;
