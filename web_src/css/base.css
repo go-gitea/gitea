@@ -405,11 +405,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-.ui.form textarea:not([rows]) {
-  height: var(--min-height-textarea); /* override fomantic default 12em */
-  min-height: var(--min-height-textarea); /* override fomantic default 8em */
-}
-
 /* styles from removed fomantic transition module */
 .hidden.transition {
   visibility: hidden;
@@ -511,97 +506,6 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.ui.form .fields.error .field textarea,
-.ui.form .fields.error .field select,
-.ui.form .fields.error .field input:not([type]),
-.ui.form .fields.error .field input[type="date"],
-.ui.form .fields.error .field input[type="datetime-local"],
-.ui.form .fields.error .field input[type="email"],
-.ui.form .fields.error .field input[type="number"],
-.ui.form .fields.error .field input[type="password"],
-.ui.form .fields.error .field input[type="search"],
-.ui.form .fields.error .field input[type="tel"],
-.ui.form .fields.error .field input[type="time"],
-.ui.form .fields.error .field input[type="text"],
-.ui.form .fields.error .field input[type="file"],
-.ui.form .fields.error .field input[type="url"],
-.ui.form .fields.error .field .ui.dropdown,
-.ui.form .fields.error .field .ui.dropdown .item,
-.ui.form .field.error .ui.dropdown,
-.ui.form .field.error .ui.dropdown .text,
-.ui.form .field.error .ui.dropdown .item,
-.ui.form .field.error textarea,
-.ui.form .field.error select,
-.ui.form .field.error input:not([type]),
-.ui.form .field.error input[type="date"],
-.ui.form .field.error input[type="datetime-local"],
-.ui.form .field.error input[type="email"],
-.ui.form .field.error input[type="number"],
-.ui.form .field.error input[type="password"],
-.ui.form .field.error input[type="search"],
-.ui.form .field.error input[type="tel"],
-.ui.form .field.error input[type="time"],
-.ui.form .field.error input[type="text"],
-.ui.form .field.error input[type="file"],
-.ui.form .field.error input[type="url"],
-.ui.form .field.error select:focus,
-.ui.form .field.error input:not([type]):focus,
-.ui.form .field.error input[type="date"]:focus,
-.ui.form .field.error input[type="datetime-local"]:focus,
-.ui.form .field.error input[type="email"]:focus,
-.ui.form .field.error input[type="number"]:focus,
-.ui.form .field.error input[type="password"]:focus,
-.ui.form .field.error input[type="search"]:focus,
-.ui.form .field.error input[type="tel"]:focus,
-.ui.form .field.error input[type="time"]:focus,
-.ui.form .field.error input[type="text"]:focus,
-.ui.form .field.error input[type="file"]:focus,
-.ui.form .field.error input[type="url"]:focus {
-  background-color: var(--color-error-bg);
-  border-color: var(--color-error-border);
-  color: var(--color-error-text);
-}
-
-.ui.form .fields.error .field .ui.dropdown,
-.ui.form .field.error .ui.dropdown,
-.ui.form .fields.error .field .ui.dropdown:hover,
-.ui.form .field.error .ui.dropdown:hover {
-  border-color: var(--color-error-border) !important;
-}
-
-.ui.form .fields.error .field .ui.dropdown .menu .item:hover,
-.ui.form .field.error .ui.dropdown .menu .item:hover {
-  background-color: var(--color-error-bg-hover);
-}
-
-.ui.form .fields.error .field .ui.dropdown .menu .active.item,
-.ui.form .field.error .ui.dropdown .menu .active.item {
-  background-color: var(--color-error-bg-active) !important;
-}
-
-.ui.form .fields.error .dropdown .menu,
-.ui.form .field.error .dropdown .menu {
-  border-color: var(--color-error-border) !important;
-}
-
-input:-webkit-autofill,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:active,
-.ui.form .field.field input:-webkit-autofill,
-.ui.form .field.field input:-webkit-autofill:focus,
-.ui.form .field.field input:-webkit-autofill:hover,
-.ui.form .field.field input:-webkit-autofill:active {
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: var(--color-text);
-  box-shadow: 0 0 0 100px var(--color-primary-light-6) inset !important;
-  border-color: var(--color-primary-light-4) !important;
-}
-
-.ui.form .field.muted {
-  opacity: var(--opacity-disabled);
-}
-
 .text.primary {
   color: var(--color-primary) !important;
 }
@@ -618,36 +522,16 @@ input:-webkit-autofill:active,
   color: var(--color-yellow) !important;
 }
 
-.text.olive {
-  color: var(--color-olive) !important;
-}
-
 .text.green {
   color: var(--color-green) !important;
-}
-
-.text.teal {
-  color: var(--color-teal) !important;
 }
 
 .text.blue {
   color: var(--color-blue) !important;
 }
 
-.text.violet {
-  color: var(--color-violet) !important;
-}
-
 .text.purple {
   color: var(--color-purple) !important;
-}
-
-.text.pink {
-  color: var(--color-pink) !important;
-}
-
-.text.brown {
-  color: var(--color-brown) !important;
 }
 
 .text.black {
@@ -727,18 +611,6 @@ input:-webkit-autofill:active,
   vertical-align: middle;
 }
 
-.ui .form .autofill-dummy {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  z-index: -10000;
-}
-
-.ui .form .sub.field {
-  margin-left: 25px;
-}
-
 .ui .sha.label {
   font-family: var(--fonts-monospace);
   font-size: 13px;
@@ -766,46 +638,6 @@ input:-webkit-autofill:active,
   font-weight: var(--font-weight-normal);
 }
 
-.ui .background.red {
-  background-color: var(--color-red) !important;
-}
-
-.ui .background.blue {
-  background-color: var(--color-blue) !important;
-}
-
-.ui .background.black {
-  background-color: var(--color-black) !important;
-}
-
-.ui .background.grey {
-  background-color: var(--color-grey) !important;
-}
-
-.ui .background.light.grey {
-  background-color: var(--color-grey) !important;
-}
-
-.ui .background.green {
-  background-color: var(--color-green) !important;
-}
-
-.ui .background.purple {
-  background-color: var(--color-purple) !important;
-}
-
-.ui .background.yellow {
-  background-color: var(--color-yellow) !important;
-}
-
-.ui .background.orange {
-  background-color: var(--color-orange) !important;
-}
-
-.ui .background.gold {
-  background-color: var(--color-gold) !important;
-}
-
 .ui .migrate {
   color: var(--color-text-light-2) !important;
 }
@@ -820,46 +652,6 @@ input:-webkit-autofill:active,
 
 .ui .border {
   border: 1px solid;
-}
-
-.ui .border.red {
-  border-color: var(--color-red) !important;
-}
-
-.ui .border.blue {
-  border-color: var(--color-blue) !important;
-}
-
-.ui .border.black {
-  border-color: var(--color-black) !important;
-}
-
-.ui .border.grey {
-  border-color: var(--color-grey) !important;
-}
-
-.ui .border.light.grey {
-  border-color: var(--color-grey) !important;
-}
-
-.ui .border.green {
-  border-color: var(--color-green) !important;
-}
-
-.ui .border.purple {
-  border-color: var(--color-purple) !important;
-}
-
-.ui .border.yellow {
-  border-color: var(--color-yellow) !important;
-}
-
-.ui .border.orange {
-  border-color: var(--color-orange) !important;
-}
-
-.ui .border.gold {
-  border-color: var(--color-gold) !important;
 }
 
 .ui.floating.dropdown .overflow.menu .scrolling.menu.items {
