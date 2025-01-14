@@ -1335,8 +1335,7 @@ func registerRoutes(m *web.Router) {
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
 			repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag, context.RepoRefByTypeOptions{IgnoreNotExistErr: true}))
-		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
-			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
+		m.Post("/tags/delete", reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.DeleteTag)
 	}, optSignIn, context.RepoAssignment, reqRepoCodeReader)
 	// end "/{username}/{reponame}": repo tags
 
