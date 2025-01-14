@@ -96,6 +96,7 @@ func TestNewReleasePost(t *testing.T) {
 		assert.True(t, rel.IsTag) // the record should not be updated because the request is "tag-only". TODO: need to improve the logic?
 		assert.Equal(t, "delete-tag", rel.Title)
 		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		assert.NotEmpty(t, ctx.Data["ShowCreateTagOnlyButton"]) // still show the "tag-only" button
 	})
 
 	t.Run("ReleaseExistsDoUpdate(tag-release)", func(t *testing.T) {
