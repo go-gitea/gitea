@@ -1157,8 +1157,11 @@ func registerRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/find/*", repo.FindFiles)
-		m.Get("/find", repo.FindFiles)
-		m.Get("/tree-list", repo.TreeList)
+		m.Group("/tree-list", func() {
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.TreeList)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeList)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeList)
+		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).

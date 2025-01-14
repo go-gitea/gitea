@@ -15,12 +15,7 @@ import (
 
 // TreeList get all files' entries of a repository
 func TreeList(ctx *context.Context) {
-	_, commit, err := ctx.Repo.GetRefCommit(ctx.FormString("ref"), git.RefTypeBranch, git.RefTypeTag, git.RefTypeCommit)
-	if err != nil {
-		ctx.ServerError("GetRefCommit", err)
-		return
-	}
-	tree, err := commit.SubTree("/")
+	tree, err := ctx.Repo.Commit.SubTree("/")
 	if err != nil {
 		ctx.ServerError("Repo.Commit.SubTree", err)
 		return
