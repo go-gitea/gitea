@@ -39,6 +39,7 @@ async function loadChildren(item, recursive?: boolean) {
       name: i.name,
       type: i.type,
       path: i.path,
+      sub_module_url: i.sub_module_url,
       children: i.children,
     }));
   }

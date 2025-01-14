@@ -13,6 +13,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -139,10 +140,50 @@ func entryModeString(entryMode git.EntryMode) string {
 }
 
 type TreeViewNode struct {
-	Name     string          `json:"name"`
-	Type     string          `json:"type"`
-	Path     string          `json:"path"`
-	Children []*TreeViewNode `json:"children,omitempty"`
+	Name         string          `json:"name"`
+	Type         string          `json:"type"`
+	Path         string          `json:"path"`
+	SubModuleURL string          `json:"sub_module_url,omitempty"`
+	Children     []*TreeViewNode `json:"children,omitempty"`
+}
+
+func (node *TreeViewNode) sortLevel() int {
+	switch node.Type {
+	case "tree", "commit":
+		return 0
+	default:
+		return 1
+	}
+}
+
+func newTreeViewNodeFromEntry(ctx context.Context, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
+	node := &TreeViewNode{
+		Name: entry.Name(),
+		Type: entryModeString(entry.Mode()),
+		Path: path.Join(parentDir, entry.Name()),
+	}
+
+	if node.Type == "commit" {
+		if subModule, err := commit.GetSubModule(node.Path); err != nil {
+			log.Error("GetSubModule: %v", err)
+		} else if subModule != nil {
+			submoduleFile := git.NewCommitSubmoduleFile(subModule.URL, entry.ID.String())
+			webLink := submoduleFile.SubmoduleWebLink(ctx)
+			node.SubModuleURL = webLink.CommitWebLink
+		}
+	}
+
+	return node
+}
+
+// sortTreeViewNodes list directory first and with alpha sequence
+func sortTreeViewNodes(nodes []*TreeViewNode) {
+	sort.Slice(nodes, func(i, j int) bool {
+		if nodes[i].sortLevel() != nodes[j].sortLevel() {
+			return nodes[i].sortLevel() < nodes[j].sortLevel()
+		}
+		return nodes[i].Name < nodes[j].Name
+	})
 }
 
 /*
@@ -429,11 +470,7 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, gitRep
 	fields := strings.Split(dir, "/")
 	var parentNode *TreeViewNode
 	for _, entry := range rootEntries {
-		node := &TreeViewNode{
-			Name: entry.Name(),
-			Type: entryModeString(entry.Mode()),
-			Path: entry.Name(),
-		}
+		node := newTreeViewNodeFromEntry(ctx, commit, "", entry)
 		treeViewNodes = append(treeViewNodes, node)
 		if dir != "" && fields[0] == entry.Name() {
 			parentNode = node
@@ -466,23 +503,8 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, gitRep
 	}
 
 	for _, entry := range entries {
-		parentNode.Children = append(parentNode.Children, &TreeViewNode{
-			Name: entry.Name(),
-			Type: entryModeString(entry.Mode()),
-			Path: path.Join(dir, entry.Name()),
-		})
+		parentNode.Children = append(parentNode.Children, newTreeViewNodeFromEntry(ctx, commit, dir, entry))
 	}
 	sortTreeViewNodes(parentNode.Children)
 	return treeViewNodes, nil
-}
-
-// sortTreeViewNodes list directory first and with alpha sequence
-func sortTreeViewNodes(nodes []*TreeViewNode) {
-	sort.Slice(nodes, func(i, j int) bool {
-		if nodes[i].Type != nodes[j].Type {
-			// folder and submodule first
-			return nodes[i].Type == "tree" || nodes[i].Type == "commit"
-		}
-		return nodes[i].Name < nodes[j].Name
-	})
 }

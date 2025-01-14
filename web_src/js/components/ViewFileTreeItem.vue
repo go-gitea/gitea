@@ -6,6 +6,7 @@ type Item = {
   name: string;
   path: string;
   htmlUrl: string;
+  sub_module_url?: string;
   type: string;
   children?: Item[];
 };
@@ -41,7 +42,7 @@ const doLoadFileContent = () => {
 };
 
 const doGotoSubModule = () => {
-  // TOTO: redirect to submodule
+  location.href = props.item.sub_module_url;
 };
 </script>
 
