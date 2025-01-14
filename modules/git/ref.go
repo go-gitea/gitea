@@ -5,7 +5,6 @@ package git
 
 import (
 	"regexp"
-	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
@@ -220,12 +219,4 @@ func (ref RefName) RefWebLinkPath() string {
 		return ""
 	}
 	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
-}
-
-func RefNameFromUserInput(ref string, allowedTypes ...RefType) RefName {
-	refName := RefName(ref)
-	if !slices.Contains(allowedTypes, refName.RefType()) {
-		return ""
-	}
-	return refName
 }
