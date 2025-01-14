@@ -686,7 +686,6 @@ const (
 	RepoRefBranch
 	RepoRefTag
 	RepoRefCommit
-	RepoRefBlob
 )
 
 const headRefName = "HEAD"
@@ -724,9 +723,6 @@ func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (st
 		// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
 		repo.TreePath = strings.Join(reqRefPathParts[1:], "/")
 		return reqRefPathParts[0], RepoRefCommit
-	}
-	if refName := getRefName(ctx, repo, reqPath, RepoRefBlob); refName != "" {
-		return refName, RepoRefBlob
 	}
 	// FIXME: the old code falls back to default branch if "ref" doesn't exist, there could be an edge case:
 	// "README?ref=no-such" would read the README file from the default branch, but the user might expect a 404
@@ -785,12 +781,6 @@ func getRefName(ctx *Base, repo *Repository, path string, pathType RepoRefType) 
 			repo.TreePath = strings.Join(parts[1:], "/")
 			return commit.ID.String()
 		}
-	case RepoRefBlob:
-		_, err := repo.GitRepo.GetBlob(path)
-		if err != nil {
-			return ""
-		}
-		return path
 	default:
 		panic(fmt.Sprintf("Unrecognized path type: %v", pathType))
 	}
