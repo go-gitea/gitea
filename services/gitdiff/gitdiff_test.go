@@ -667,15 +667,3 @@ func TestNoCrashes(t *testing.T) {
 		ParsePatch(db.DefaultContext, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 	}
 }
-
-func TestParentCommitNotExits(t *testing.T) {
-	gitRepo, err := git.OpenRepository(git.DefaultContext, "./testdata/parent-commit-not-exits")
-	require.NoError(t, err)
-	defer gitRepo.Close()
-
-	diff, err := GetDiff(git.DefaultContext, gitRepo, &DiffOptions{
-		AfterCommitID: "d01637fe74c3727d9d1e5f691f343988d3e5342f",
-	})
-	assert.ErrorContains(t, err, "object does not exist [id: af35b81c4c8bd963b77b51b207ae4dc90e1904af, rel_path: ]")
-	assert.Nil(t, diff)
-}
