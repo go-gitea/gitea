@@ -818,7 +818,6 @@ func registerRoutes(m *web.Router) {
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireUnitWriter(unit.TypeCode)
-	canEnableEditor := context.CanEnableEditor()
 	reqRepoReleaseWriter := context.RequireUnitWriter(unit.TypeReleases)
 	reqRepoReleaseReader := context.RequireUnitReader(unit.TypeReleases)
 	reqRepoIssuesOrPullsWriter := context.RequireUnitWriter(unit.TypeIssues, unit.TypePullRequests)
@@ -1153,7 +1152,7 @@ func registerRoutes(m *web.Router) {
 	// end "/{username}/{reponame}/settings"
 
 	// user/org home, including rss feeds
-	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
+	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
 
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind(structs.MarkupOption{}), misc.Markup)
 
@@ -1307,12 +1306,12 @@ func registerRoutes(m *web.Router) {
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
 				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,64})}/*").Get(repo.CherryPick).
 					Post(web.Bind(forms.CherryPickForm{}), repo.CherryPickPost)
-			}, repo.MustBeEditable)
+			}, context.RepoRefByType(git.RefTypeBranch), context.CanWriteToBranch())
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
-			}, repo.MustBeEditable, repo.MustBeAbleToUpload)
-		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived())
+			}, repo.MustBeAbleToUpload, reqRepoCodeWriter)
+		}, repo.MustBeEditable, context.RepoMustNotBeArchived())
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
@@ -1333,39 +1332,36 @@ func registerRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}", func() { // repo tags
 		m.Group("/tags", func() {
 			m.Get("", repo.TagsList)
-			m.Get("/list", repo.GetTagList)
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
-		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
-			repo.MustBeNotEmpty, context.RepoRefByType(git.RefTypeTag, context.RepoRefByTypeOptions{IgnoreNotExistErr: true}))
-		m.Post("/tags/delete", repo.DeleteTag, reqSignIn,
-			repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoCodeWriter, context.RepoRef())
-	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
+			m.Get("/list", repo.GetTagList)
+		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed))
+		m.Post("/tags/delete", reqSignIn, reqRepoCodeWriter, context.RepoMustNotBeArchived(), repo.DeleteTag)
+	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo tags
 
 	m.Group("/{username}/{reponame}", func() { // repo releases
 		m.Group("/releases", func() {
 			m.Get("", repo.Releases)
-			m.Get("/tag/*", repo.SingleRelease)
-			m.Get("/latest", repo.LatestRelease)
 			m.Get(".rss", feedEnabled, repo.ReleasesFeedRSS)
 			m.Get(".atom", feedEnabled, repo.ReleasesFeedAtom)
-		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed),
-			repo.MustBeNotEmpty, context.RepoRefByType(git.RefTypeTag, context.RepoRefByTypeOptions{IgnoreNotExistErr: true}))
-		m.Get("/releases/attachments/{uuid}", repo.MustBeNotEmpty, repo.GetAttachment)
-		m.Get("/releases/download/{vTag}/{fileName}", repo.MustBeNotEmpty, repo.RedirectDownload)
+			m.Get("/tag/*", repo.SingleRelease)
+			m.Get("/latest", repo.LatestRelease)
+		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed))
+		m.Get("/releases/attachments/{uuid}", repo.GetAttachment)
+		m.Get("/releases/download/{vTag}/{fileName}", repo.RedirectDownload)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind(forms.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
 			m.Post("/attachments", repo.UploadReleaseAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
-		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
+		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
-		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, repo.CommitInfoCache)
-	}, optSignIn, context.RepoAssignment, reqRepoReleaseReader)
+		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, repo.CommitInfoCache)
+	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	// end "/{username}/{reponame}": repo releases
 
 	m.Group("/{username}/{reponame}", func() { // to maintain compatibility with old attachments
@@ -1529,21 +1525,19 @@ func registerRoutes(m *web.Router) {
 		}, repo.MustBeNotEmpty, context.RepoRef())
 
 		m.Group("/media", func() {
+			m.Get("/blob/{sha}", repo.DownloadByIDOrLFS)
 			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.SingleDownloadOrLFS)
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.SingleDownloadOrLFS)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.SingleDownloadOrLFS)
-			m.Get("/blob/{sha}", repo.DownloadByIDOrLFS)
-			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(""), repo.SingleDownloadOrLFS)
+			m.Get("/*", context.RepoRefByType(""), repo.SingleDownloadOrLFS) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.MustBeNotEmpty)
 
 		m.Group("/raw", func() {
+			m.Get("/blob/{sha}", repo.DownloadByID)
 			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.SingleDownload)
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.SingleDownload)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.SingleDownload)
-			m.Get("/blob/{sha}", repo.DownloadByID)
-			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(""), repo.SingleDownload)
+			m.Get("/*", context.RepoRefByType(""), repo.SingleDownload) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.MustBeNotEmpty)
 
 		m.Group("/render", func() {
@@ -1557,8 +1551,7 @@ func registerRoutes(m *web.Router) {
 			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.RefCommits)
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.RefCommits)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.RefCommits)
-			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(""), repo.RefCommits)
+			m.Get("/*", context.RepoRefByType(""), repo.RefCommits) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.MustBeNotEmpty)
 
 		m.Group("/blame", func() {

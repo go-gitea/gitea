@@ -679,10 +679,11 @@ func RepoAssignment(ctx *Context) {
 
 const headRefName = "HEAD"
 
-// RepoRef handles repository reference names when the ref name is not
-// explicitly given
 func RepoRef() func(*Context) {
-	// since no ref name is explicitly specified, ok to just use branch
+	if !setting.IsProd || setting.IsInTesting {
+		// RepoRef should not be used, the handler should explicit use the ref it needs
+		return nil
+	}
 	return RepoRefByType(git.RefTypeBranch)
 }
 
@@ -776,10 +777,6 @@ func getRefName(ctx *Base, repo *Repository, path string, refType git.RefType) s
 	return ""
 }
 
-type RepoRefByTypeOptions struct {
-	IgnoreNotExistErr bool
-}
-
 func repoRefFullName(typ git.RefType, shortName string) git.RefName {
 	switch typ {
 	case git.RefTypeBranch:
@@ -796,8 +793,7 @@ func repoRefFullName(typ git.RefType, shortName string) git.RefName {
 
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
-func RepoRefByType(detectRefType git.RefType, opts ...RepoRefByTypeOptions) func(*Context) {
-	opt := util.OptionalArg(opts)
+func RepoRefByType(detectRefType git.RefType) func(*Context) {
 	return func(ctx *Context) {
 		var err error
 		refType := detectRefType
@@ -811,14 +807,6 @@ func RepoRefByType(detectRefType git.RefType, opts ...RepoRefByTypeOptions) func
 			ctx.Data["BranchName"] = ctx.Repo.BranchName
 			ctx.Data["TreePath"] = ""
 			return
-		}
-
-		if ctx.Repo.GitRepo == nil {
-			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
-			if err != nil {
-				ctx.ServerError(fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
-				return
-			}
 		}
 
 		// Get default branch.
@@ -908,9 +896,6 @@ func RepoRefByType(detectRefType git.RefType, opts ...RepoRefByTypeOptions) func
 					ctx.RespHeader().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, canonicalURL))
 				}
 			} else {
-				if opt.IgnoreNotExistErr {
-					return
-				}
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refShortName))
 				return
 			}
