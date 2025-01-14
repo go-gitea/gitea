@@ -1246,6 +1246,8 @@ func registerRoutes(m *web.Router) {
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 
+			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
+			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
 			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
@@ -1262,7 +1264,6 @@ func registerRoutes(m *web.Router) {
 			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
 		}, reqRepoIssuesOrPullsReader) // edit issue/pull comment
 
-		m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), repo.UpdateLabel)
@@ -1270,7 +1271,6 @@ func registerRoutes(m *web.Router) {
 			m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), repo.InitializeLabels)
 		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
 
-		m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
 		m.Group("/milestones", func() {
 			m.Combo("/new").Get(repo.NewMilestone).
 				Post(web.Bind(forms.CreateMilestoneForm{}), repo.NewMilestonePost)
@@ -1280,12 +1280,13 @@ func registerRoutes(m *web.Router) {
 			m.Post("/delete", repo.DeleteMilestone)
 		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
 
-		m.Group("", func() {
+		// FIXME: need to move these routes to the proper place
+		m.Group("/issues", func() {
 			m.Post("/request_review", repo.UpdatePullReviewRequest)
 			m.Post("/dismiss_review", reqRepoAdmin, web.Bind(forms.DismissReviewForm{}), repo.DismissReview)
 			m.Post("/resolve_conversation", repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
-			m.Post("/pull/{index}/target_branch", repo.UpdatePullRequestTarget)
 		}, reqUnitPullsReader)
+		m.Post("/pull/{index}/target_branch", reqUnitPullsReader, repo.UpdatePullRequestTarget)
 	}, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived())
 	// end "/{username}/{reponame}": create or edit issues, pulls, labels, milestones
 
