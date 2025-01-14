@@ -37,10 +37,15 @@ func Init() error {
 }
 
 const (
-	testCacheKey       = "DefaultCache.TestKey"
-	SlowCacheThreshold = 100 * time.Microsecond
+	testCacheKey = "DefaultCache.TestKey"
+	// SlowCacheThreshold marks cache tests as slow
+	// set to 30ms per discussion: https://github.com/go-gitea/gitea/issues/33190
+	// TODO: Replace with metrics histogram
+	SlowCacheThreshold = 30 * time.Millisecond
 )
 
+// Test performs delete, put and get operations on a predefined key
+// returns
 func Test() (time.Duration, error) {
 	if defaultCache == nil {
 		return 0, fmt.Errorf("default cache not initialized")
