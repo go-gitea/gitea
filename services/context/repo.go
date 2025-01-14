@@ -91,22 +91,6 @@ func (r *Repository) GetObjectFormat() git.ObjectFormat {
 	return git.ObjectFormatFromName(r.Repository.ObjectFormatName)
 }
 
-func (r *Repository) GetRefCommit(ref string, allowedTypes ...git.RefType) (git.RefName, *git.Commit, error) {
-	refName := git.RefNameFromUserInput(ref, allowedTypes...)
-	if refName == "" {
-		return "", nil, errors.New("invalid ref")
-	}
-	commitID, err := r.GitRepo.GetRefCommitID(refName.String())
-	if err != nil {
-		return "", nil, err
-	}
-	commit, err := r.GitRepo.GetCommit(commitID)
-	if err != nil {
-		return "", nil, err
-	}
-	return refName, commit, nil
-}
-
 // RepoMustNotBeArchived checks if a repo is archived
 func RepoMustNotBeArchived() func(ctx *Context) {
 	return func(ctx *Context) {
