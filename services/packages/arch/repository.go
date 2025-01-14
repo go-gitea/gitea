@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -235,6 +236,30 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		return packages_service.DeletePackageFile(ctx, pf)
 	}
 
+	vpfs := make(map[string]*entryOptions)
+	for _, pf := range pfs {
+		current := &entryOptions{
+			File: pf,
+		}
+		current.Version, err = packages_model.GetVersionByID(ctx, pf.VersionID)
+		if err != nil {
+			return err
+		}
+
+		if setting.Packages.DefaultMetaArchLatestVersion {
+			old := vpfs[pf.Name]
+			if old != nil {
+				if compareVersions(old.Version.Version, current.Version.Version) == -1 {
+					vpfs[pf.Name] = current
+				}
+			} else {
+				vpfs[pf.Name] = current
+			}
+		} else {
+			vpfs[pf.Name] = current
+		}
+	}
+
 	indexContent, _ := packages_module.NewHashedBuffer()
 	defer indexContent.Close()
 
@@ -243,15 +268,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 
 	cache := make(map[int64]*packages_model.Package)
 
-	for _, pf := range pfs {
-		opts := &entryOptions{
-			File: pf,
-		}
-
-		opts.Version, err = packages_model.GetVersionByID(ctx, pf.VersionID)
-		if err != nil {
-			return err
-		}
+	for _, opts := range vpfs {
 		if err := json.Unmarshal([]byte(opts.Version.MetadataJSON), &opts.VersionMetadata); err != nil {
 			return err
 		}
@@ -263,12 +280,12 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 			}
 			cache[opts.Package.ID] = opts.Package
 		}
-		opts.Blob, err = packages_model.GetBlobByID(ctx, pf.BlobID)
+		opts.Blob, err = packages_model.GetBlobByID(ctx, opts.File.BlobID)
 		if err != nil {
 			return err
 		}
 
-		sig, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, pf.ID, arch_module.PropertySignature)
+		sig, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, opts.File.ID, arch_module.PropertySignature)
 		if err != nil {
 			return err
 		}
@@ -277,7 +294,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		}
 		opts.Signature = sig[0].Value
 
-		meta, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, pf.ID, arch_module.PropertyMetadata)
+		meta, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeFile, opts.File.ID, arch_module.PropertyMetadata)
 		if err != nil {
 			return err
 		}
