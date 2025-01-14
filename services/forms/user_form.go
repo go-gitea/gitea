@@ -335,6 +335,17 @@ func (f *AddSecretForm) Validate(req *http.Request, errs binding.Errors) binding
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// AddSecretForm for adding secrets
+type EditSecretForm struct {
+	Data string `binding:"Required;MaxSize(65535)"`
+}
+
+// Validate validates the fields
+func (f *EditSecretForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 type EditVariableForm struct {
 	Name string `binding:"Required;MaxSize(255)"`
 	Data string `binding:"Required;MaxSize(65535)"`

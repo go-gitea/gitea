@@ -4,6 +4,8 @@
 package secrets
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/log"
@@ -35,6 +37,37 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 	}
 
 	ctx.Flash.Success(ctx.Tr("secrets.creation.success", s.Name))
+	ctx.JSONRedirect(redirectURL)
+}
+
+func PerformSecretsEdit(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
+	form := web.GetForm(ctx).(*forms.EditSecretForm)
+	id := ctx.PathParamInt64("secret_id")
+
+	if id == 0 {
+		ctx.ServerError("PerformSecretsEdit", fmt.Errorf("id not found"))
+		return
+	}
+
+	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{OwnerID: ownerID, RepoID: repoID, SecretID: id})
+	if err != nil {
+		ctx.ServerError("FindSecrets", err)
+		return
+	}
+
+	if len(secrets) != 1 {
+		ctx.ServerError("FindSecrets", fmt.Errorf("secret not found"))
+		return
+	}
+
+	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, secrets[0].Name, util.ReserveLineBreakForTextarea(form.Data))
+	if err != nil {
+		log.Error("CreateOrUpdateSecret failed: %v", err)
+		ctx.JSONError(ctx.Tr("secrets.edit.failed"))
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("secrets.edit.success", s.Name))
 	ctx.JSONRedirect(redirectURL)
 }
 
