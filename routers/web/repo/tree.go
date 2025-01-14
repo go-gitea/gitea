@@ -55,20 +55,19 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 }
 
 func Tree(ctx *context.Context) {
-	treePath := ctx.PathParam("*")
 	recursive := ctx.FormBool("recursive")
-	refFullName := git.RefNameFromTypeAndShortName(git.RefType(ctx.FormTrim("ref_type")), ctx.FormTrim("ref_name"))
-	if refFullName == "" {
-		ctx.Error(http.StatusBadRequest, "RefNameFromTypeAndShortName", "ref_type or ref_name is invalid")
+
+	if ctx.Repo.RefFullName == "" {
+		ctx.Error(http.StatusBadRequest, "RefFullName", "ref_name is invalid")
 		return
 	}
 
 	var results []*files_service.TreeViewNode
 	var err error
 	if !recursive {
-		results, err = files_service.GetTreeList(ctx, ctx.Repo.Repository, treePath, refFullName, false)
+		results, err = files_service.GetTreeList(ctx, ctx.Repo.Repository, ctx.Repo.TreePath, ctx.Repo.RefFullName, false)
 	} else {
-		results, err = files_service.GetTreeInformation(ctx, ctx.Repo.Repository, treePath, refFullName)
+		results, err = files_service.GetTreeInformation(ctx, ctx.Repo.Repository, ctx.Repo.TreePath, ctx.Repo.RefFullName)
 	}
 	if err != nil {
 		ctx.ServerError("GetTreeInformation", err)

@@ -1163,8 +1163,9 @@ func registerRoutes(m *web.Router) {
 			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.TreeList)
 		})
 		m.Group("/tree", func() {
-			m.Get("", repo.Tree)
-			m.Get("/*", repo.Tree)
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Tree)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Tree)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Tree)
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).

@@ -31,9 +31,8 @@ async function toggleSidebar(visibility, isSigned) {
 async function loadChildren(item, recursive?: boolean) {
   const fileTree = document.querySelector('#view-file-tree');
   const apiBaseUrl = fileTree.getAttribute('data-api-base-url');
-  const refType = fileTree.getAttribute('data-current-ref-type');
-  const refName = fileTree.getAttribute('data-current-ref-short-name');
-  const response = await GET(`${apiBaseUrl}/tree/${item ? item.path : ''}?ref_type=${refType}&ref_name=${refName}&recursive=${recursive ?? false}`);
+  const refTypeNameSubURL = fileTree.getAttribute('data-current-ref-type-name-sub-url');
+  const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${item ? item.path : ''}?recursive=${recursive ?? false}`);
   const json = await response.json();
   if (json instanceof Array) {
     return json.map((i) => ({

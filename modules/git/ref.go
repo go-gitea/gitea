@@ -84,19 +84,6 @@ func RefNameFromCommit(shortName string) RefName {
 	return RefName(shortName)
 }
 
-func RefNameFromTypeAndShortName(tp RefType, shortName string) RefName {
-	switch tp {
-	case RefTypeBranch:
-		return RefNameFromBranch(shortName)
-	case RefTypeTag:
-		return RefNameFromTag(shortName)
-	case RefTypeCommit:
-		return RefNameFromCommit(shortName)
-	default:
-		return ""
-	}
-}
-
 func (ref RefName) String() string {
 	return string(ref)
 }
