@@ -96,4 +96,29 @@ export async function initViewFileTreeSidebar() {
     loadContent();
   }});
   fileTreeView.mount(fileTree);
+
+  window.addEventListener('popstate', () => {
+    selectedItem.value = extractPath(window.location.href);
+    loadContent();
+  });
+}
+
+function extractPath(url) {
+  // Create a URL object
+  const urlObj = new URL(url);
+
+  // Get the pathname part
+  const path = urlObj.pathname;
+
+  // Define a regular expression to match "/{param1}/{param2}/src/{branch}/{main}/"
+  const regex = /^\/[^\/]+\/[^\/]+\/src\/[^\/]+\/[^\/]+\//;
+
+  // Use RegExp#exec() method to match the path
+  const match = regex.exec(path);
+  if (match) {
+      return path.substring(match[0].length);
+  }
+
+  // If the path does not match, return the original path
+  return path;
 }
