@@ -94,8 +94,16 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	user30EmptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
 	user30EmptyRepo.IsEmpty = true
 	user30EmptyRepo.DefaultBranch = "no-such"
-	_, err := db.GetEngine(db.DefaultContext).ID(user30EmptyRepo.ID).Update(user30EmptyRepo)
+	_, err := db.GetEngine(db.DefaultContext).ID(user30EmptyRepo.ID).Cols("is_empty", "default_branch").Update(user30EmptyRepo)
 	require.NoError(t, err)
+	user30EmptyRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
+	assert.True(t, user30EmptyRepo.IsEmpty)
+
+	req = NewRequest(t, "GET", "/user30/empty")
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	redirect = test.RedirectURL(resp)
+	assert.Equal(t, "/user30/empty", redirect)
+
 	req = NewRequest(t, "GET", "/user30/empty")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "test-file.md")
