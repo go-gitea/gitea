@@ -10,7 +10,10 @@
 		{{end}}
 	</div>
 	{{if .CanWriteCode}}
-	<button class="ui compact primary button tw-m-0 link-action" data-url="{{.Repository.Link}}/branches/merge-upstream?branch={{.BranchName}}">
+	<button class="ui compact primary button tw-m-0 link-action"
+					data-modal-confirm-header="{{ctx.Locale.Tr "repo.pulls.upstream_diverging_merge"}}"
+					data-modal-confirm-content="{{ctx.Locale.Tr "repo.pulls.upstream_diverging_merge_confirm" .BranchName}}"
+					data-url="{{.Repository.Link}}/branches/merge-upstream?branch={{.BranchName}}">
 		{{ctx.Locale.Tr "repo.pulls.upstream_diverging_merge"}}
 	</button>
 	{{end}}

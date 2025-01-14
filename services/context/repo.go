@@ -677,24 +677,12 @@ func RepoAssignment(ctx *Context) {
 	}
 }
 
-// RepoRefType type of repo reference
-type RepoRefType int
-
-const (
-	// RepoRefUnknown is for legacy support, makes the code to "guess" the ref type
-	RepoRefUnknown RepoRefType = iota
-	RepoRefBranch
-	RepoRefTag
-	RepoRefCommit
-)
-
 const headRefName = "HEAD"
 
-// RepoRef handles repository reference names when the ref name is not
-// explicitly given
 func RepoRef() func(*Context) {
-	// since no ref name is explicitly specified, ok to just use branch
-	return RepoRefByType(RepoRefBranch)
+	// old code does: return RepoRefByType(git.RefTypeBranch)
+	// in most cases, it is an abuse, so we just disable it completely and fix the abuses one by one (if there is anything wrong)
+	return nil
 }
 
 func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
@@ -710,29 +698,29 @@ func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool
 	return ""
 }
 
-func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (string, RepoRefType) {
+func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (string, git.RefType) {
 	reqRefPath := path.Join(extraRef, reqPath)
 	reqRefPathParts := strings.Split(reqRefPath, "/")
-	if refName := getRefName(ctx, repo, reqRefPath, RepoRefBranch); refName != "" {
-		return refName, RepoRefBranch
+	if refName := getRefName(ctx, repo, reqRefPath, git.RefTypeBranch); refName != "" {
+		return refName, git.RefTypeBranch
 	}
-	if refName := getRefName(ctx, repo, reqRefPath, RepoRefTag); refName != "" {
-		return refName, RepoRefTag
+	if refName := getRefName(ctx, repo, reqRefPath, git.RefTypeTag); refName != "" {
+		return refName, git.RefTypeTag
 	}
 	if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), reqRefPathParts[0]) {
 		// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
 		repo.TreePath = strings.Join(reqRefPathParts[1:], "/")
-		return reqRefPathParts[0], RepoRefCommit
+		return reqRefPathParts[0], git.RefTypeCommit
 	}
 	// FIXME: the old code falls back to default branch if "ref" doesn't exist, there could be an edge case:
 	// "README?ref=no-such" would read the README file from the default branch, but the user might expect a 404
 	repo.TreePath = reqPath
-	return repo.Repository.DefaultBranch, RepoRefBranch
+	return repo.Repository.DefaultBranch, git.RefTypeBranch
 }
 
-func getRefName(ctx *Base, repo *Repository, path string, pathType RepoRefType) string {
-	switch pathType {
-	case RepoRefBranch:
+func getRefName(ctx *Base, repo *Repository, path string, refType git.RefType) string {
+	switch refType {
+	case git.RefTypeBranch:
 		ref := getRefNameFromPath(repo, path, repo.GitRepo.IsBranchExist)
 		if len(ref) == 0 {
 			// check if ref is HEAD
@@ -762,9 +750,9 @@ func getRefName(ctx *Base, repo *Repository, path string, pathType RepoRefType) 
 		}
 
 		return ref
-	case RepoRefTag:
+	case git.RefTypeTag:
 		return getRefNameFromPath(repo, path, repo.GitRepo.IsTagExist)
-	case RepoRefCommit:
+	case git.RefTypeCommit:
 		parts := strings.Split(path, "/")
 		if git.IsStringLikelyCommitID(repo.GetObjectFormat(), parts[0], 7) {
 			// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
@@ -782,22 +770,18 @@ func getRefName(ctx *Base, repo *Repository, path string, pathType RepoRefType) 
 			return commit.ID.String()
 		}
 	default:
-		panic(fmt.Sprintf("Unrecognized path type: %v", pathType))
+		panic(fmt.Sprintf("Unrecognized ref type: %v", refType))
 	}
 	return ""
 }
 
-type RepoRefByTypeOptions struct {
-	IgnoreNotExistErr bool
-}
-
-func repoRefFullName(shortName string, typ RepoRefType) git.RefName {
+func repoRefFullName(typ git.RefType, shortName string) git.RefName {
 	switch typ {
-	case RepoRefBranch:
+	case git.RefTypeBranch:
 		return git.RefNameFromBranch(shortName)
-	case RepoRefTag:
+	case git.RefTypeTag:
 		return git.RefNameFromTag(shortName)
-	case RepoRefCommit:
+	case git.RefTypeCommit:
 		return git.RefNameFromCommit(shortName)
 	default:
 		setting.PanicInDevOrTesting("Unknown RepoRefType: %v", typ)
@@ -807,8 +791,7 @@ func repoRefFullName(shortName string, typ RepoRefType) git.RefName {
 
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
-func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func(*Context) {
-	opt := util.OptionalArg(opts)
+func RepoRefByType(detectRefType git.RefType) func(*Context) {
 	return func(ctx *Context) {
 		var err error
 		refType := detectRefType
@@ -822,14 +805,6 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 			ctx.Data["BranchName"] = ctx.Repo.BranchName
 			ctx.Data["TreePath"] = ""
 			return
-		}
-
-		if ctx.Repo.GitRepo == nil {
-			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
-			if err != nil {
-				ctx.ServerError(fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
-				return
-			}
 		}
 
 		// Get default branch.
@@ -861,13 +836,13 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 			}
 			ctx.Repo.IsViewBranch = true
 		} else { // there is a path in request
-			guessLegacyPath := refType == RepoRefUnknown
+			guessLegacyPath := refType == ""
 			if guessLegacyPath {
 				refShortName, refType = getRefNameLegacy(ctx.Base, ctx.Repo, reqPath, "")
 			} else {
 				refShortName = getRefName(ctx.Base, ctx.Repo, reqPath, refType)
 			}
-			ctx.Repo.RefFullName = repoRefFullName(refShortName, refType)
+			ctx.Repo.RefFullName = repoRefFullName(refType, refShortName)
 			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
 			if isRenamedBranch && has {
 				renamedBranchName := ctx.Data["RenamedBranchName"].(string)
@@ -877,7 +852,7 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 				return
 			}
 
-			if refType == RepoRefBranch && ctx.Repo.GitRepo.IsBranchExist(refShortName) {
+			if refType == git.RefTypeBranch && ctx.Repo.GitRepo.IsBranchExist(refShortName) {
 				ctx.Repo.IsViewBranch = true
 				ctx.Repo.BranchName = refShortName
 				ctx.Repo.RefFullName = git.RefNameFromBranch(refShortName)
@@ -888,7 +863,7 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if refType == RepoRefTag && ctx.Repo.GitRepo.IsTagExist(refShortName) {
+			} else if refType == git.RefTypeTag && ctx.Repo.GitRepo.IsTagExist(refShortName) {
 				ctx.Repo.IsViewTag = true
 				ctx.Repo.RefFullName = git.RefNameFromTag(refShortName)
 				ctx.Repo.TagName = refShortName
@@ -919,9 +894,6 @@ func RepoRefByType(detectRefType RepoRefType, opts ...RepoRefByTypeOptions) func
 					ctx.RespHeader().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, canonicalURL))
 				}
 			} else {
-				if opt.IgnoreNotExistErr {
-					return
-				}
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refShortName))
 				return
 			}
