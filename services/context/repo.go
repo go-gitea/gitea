@@ -680,11 +680,9 @@ func RepoAssignment(ctx *Context) {
 const headRefName = "HEAD"
 
 func RepoRef() func(*Context) {
-	if !setting.IsProd || setting.IsInTesting {
-		// RepoRef should not be used, the handler should explicit use the ref it needs
-		return nil
-	}
-	return RepoRefByType(git.RefTypeBranch)
+	// old code does: return RepoRefByType(git.RefTypeBranch)
+	// in most cases, it is an abuse, so we just disable it completely and fix the abuses one by one (if there is anything wrong)
+	return nil
 }
 
 func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
