@@ -39,12 +39,35 @@ const doLoadDirContent = () => {
 const doLoadFileContent = () => {
   props.loadContent(props.item);
 };
+
+const doGotoSubModule = () => {
+  // TOTO: redirect to submodule
+};
 </script>
 
 <template>
   <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
   <div
-    v-if="item.type !== 'tree'" class="item-file"
+    v-if="item.type === 'commit'" class="item-submodule"
+    :title="item.name"
+    @click.stop="doGotoSubModule"
+  >
+    <!-- submodule -->
+    <SvgIcon class="text primary" name="octicon-file-submodule"/>
+    <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+  </div>
+  <div
+    v-else-if="item.type === 'symlink'" class="item-symlink"
+    :class="{'selected': selectedItem.value === item.path}"
+    :title="item.name"
+    @click.stop="doLoadFileContent"
+  >
+    <!-- symlink -->
+    <SvgIcon name="octicon-file-symlink-file"/>
+    <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+  </div>
+  <div
+    v-else-if="item.type !== 'tree'" class="item-file"
     :class="{'selected': selectedItem.value === item.path}"
     :title="item.name"
     @click.stop="doLoadFileContent"
@@ -79,18 +102,18 @@ const doLoadFileContent = () => {
   border-left: 1px solid var(--color-secondary);
 }
 
-.sub-items .item-file {
+.sub-items .item-file,
+.sub-items .item-symlink,
+.sub-items .item-submodule {
   padding-left: 18px;
 }
 
-.item-directory.selected, .item-file.selected {
+.item-directory.selected,
+.item-symlink.selected,
+.item-file.selected {
   color: var(--color-text);
   background: var(--color-active);
   border-radius: 4px;
-}
-
-.item-file.viewed {
-  color: var(--color-text-light-3);
 }
 
 .item-directory {
@@ -98,6 +121,8 @@ const doLoadFileContent = () => {
 }
 
 .item-file,
+.item-symlink,
+.item-submodule,
 .item-directory {
   display: flex;
   align-items: center;
@@ -106,6 +131,8 @@ const doLoadFileContent = () => {
 }
 
 .item-file:hover,
+.item-symlink:hover,
+.item-submodule:hover,
 .item-directory:hover {
   color: var(--color-text);
   background: var(--color-hover);
