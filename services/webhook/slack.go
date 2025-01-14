@@ -264,6 +264,12 @@ func (s slackConvertor) Repository(p *api.RepositoryPayload) (SlackPayload, erro
 	return s.createPayload(text, nil), nil
 }
 
+func (s slackConvertor) CommitStatus(p *api.CommitStatusPayload) (SlackPayload, error) {
+	text, _ := getCommitStatusPayloadInfo(p, noneLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 func (s slackConvertor) createPayload(text string, attachments []SlackAttachment) SlackPayload {
 	return SlackPayload{
 		Channel:     s.Channel,

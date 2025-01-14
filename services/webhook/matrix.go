@@ -240,6 +240,12 @@ func (m matrixConvertor) Package(p *api.PackagePayload) (MatrixPayload, error) {
 	return m.newPayload(text)
 }
 
+func (m matrixConvertor) CommitStatus(p *api.CommitStatusPayload) (MatrixPayload, error) {
+	text, _ := getCommitStatusPayloadInfo(p, noneLinkFormatter, true)
+
+	return m.newPayload(text)
+}
+
 var urlRegex = regexp.MustCompile(`<a [^>]*?href="([^">]*?)">(.*?)</a>`)
 
 func getMessageBody(htmlText string) string {

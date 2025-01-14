@@ -240,6 +240,7 @@ type WebhookForm struct {
 	Wiki                     bool
 	Repository               bool
 	Package                  bool
+	CommitStatus             bool
 	Active                   bool
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
