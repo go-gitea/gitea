@@ -29,6 +29,7 @@
             poetry
 
             # backend
+            go_1_23
             gofumpt
             sqlite
           ];
