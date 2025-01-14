@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/packages/swift"
+	"code.gitea.io/gitea/modules/packages/terraform"
 	"code.gitea.io/gitea/modules/packages/vagrant"
 	"code.gitea.io/gitea/modules/util"
 
@@ -191,6 +192,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &rubygems.Metadata{}
 	case TypeSwift:
 		metadata = &swift.Metadata{}
+	case TypeTerraform:
+		metadata = &terraform.Metadata{}
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:

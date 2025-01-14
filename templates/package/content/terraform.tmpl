@@ -1,0 +1,30 @@
+{{if eq .PackageDescriptor.Package.Type "terraform"}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.terraform.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>
+export GITEA_USER_PASSWORD=&lt;YOUR-USER-PASSWORD&gt;
+export TF_STATE_NAME=your-state.tfstate
+terraform init \
+    -backend-config="address=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/terraform/state/$TF_STATE_NAME"></origin-url> \
+    -backend-config="lock_address=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/terraform/state/$TF_STATE_NAME/lock"></origin-url> \
+    -backend-config="unlock_address=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/terraform/state/$TF_STATE_NAME/lock"></origin-url> \
+    -backend-config="username={{.PackageDescriptor.Owner.Name}}" \
+    -backend-config="password=$GITEA_USER_PASSWORD" \
+    -backend-config="lock_method=POST" \
+    -backend-config="unlock_method=DELETE" \
+    -backend-config="retry_wait_min=5"
+</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Terraform" "https://docs.gitea.com/usage/packages/terraform/"}}</label>
+			</div>
+		</div>
+	</div>
+	{{if .PackageDescriptor.Metadata.Description}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>
+	{{end}}
+{{end}}

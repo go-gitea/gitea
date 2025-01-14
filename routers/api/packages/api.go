@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/rpm"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
 	"code.gitea.io/gitea/routers/api/packages/swift"
+	"code.gitea.io/gitea/routers/api/packages/terraform"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
@@ -671,6 +672,26 @@ func CommonRoutes() *web.Router {
 				r.Group("/{version}/{provider}", func() {
 					r.Get("", vagrant.DownloadPackageFile)
 					r.Put("", reqPackageAccess(perm.AccessModeWrite), vagrant.UploadPackageFile)
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
+		// Define routes for Terraform HTTP backend API
+		r.Group("/terraform/state", func() {
+			// Routes for specific state identified by {statename}
+			r.Group("/{statename}", func() {
+				// Fetch the current state
+				r.Get("", reqPackageAccess(perm.AccessModeRead), terraform.GetState)
+				// Update the state (supports both POST and PUT methods)
+				r.Post("", reqPackageAccess(perm.AccessModeWrite), terraform.UpdateState)
+				r.Put("", reqPackageAccess(perm.AccessModeWrite), terraform.UpdateState)
+				// Delete the state
+				r.Delete("", reqPackageAccess(perm.AccessModeWrite), terraform.DeleteState)
+				// Lock and unlock operations for the state
+				r.Group("/lock", func() {
+					// Lock the state
+					r.Post("", reqPackageAccess(perm.AccessModeWrite), terraform.LockState)
+					// Unlock the state
+					r.Delete("", reqPackageAccess(perm.AccessModeWrite), terraform.UnlockState)
 				})
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
