@@ -39,7 +39,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 		postData["prerelease"] = "on"
 	}
 	if draft {
-		postData["draft"] = "Save Draft"
+		postData["draft"] = "1"
 	}
 	req = NewRequestWithValues(t, "POST", link, postData)
 
