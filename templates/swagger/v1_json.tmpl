@@ -234,6 +234,18 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "enum": [
+              "system",
+              "default",
+              "all"
+            ],
+            "type": "string",
+            "default": "system",
+            "description": "system, default or both kinds of webhooks",
+            "name": "type",
+            "in": "query"
           }
         ],
         "responses": {
