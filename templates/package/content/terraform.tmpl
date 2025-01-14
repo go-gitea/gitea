@@ -8,14 +8,14 @@
 export GITEA_USER_PASSWORD=&lt;YOUR-USER-PASSWORD&gt;
 export TF_STATE_NAME=your-state.tfstate
 terraform init \
-    -backend-config="address=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/terraform/state/$TF_STATE_NAME"></origin-url> \
-    -backend-config="lock_address=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/terraform/state/$TF_STATE_NAME/lock"></origin-url> \
-    -backend-config="unlock_address=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/terraform/state/$TF_STATE_NAME/lock"></origin-url> \
-    -backend-config="username={{.PackageDescriptor.Owner.Name}}" \
-    -backend-config="password=$GITEA_USER_PASSWORD" \
-    -backend-config="lock_method=POST" \
-    -backend-config="unlock_method=DELETE" \
-    -backend-config="retry_wait_min=5"
+&ensp;-backend-config="address=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/terraform/state/$TF_STATE_NAME"></origin-url> \
+&ensp;-backend-config="lock_address=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/terraform/state/$TF_STATE_NAME/lock"></origin-url> \
+&ensp;-backend-config="unlock_address=<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/terraform/state/$TF_STATE_NAME/lock"></origin-url> \
+&ensp;-backend-config="username={{.PackageDescriptor.Owner.Name}}" \
+&ensp;-backend-config="password=$GITEA_USER_PASSWORD" \
+&ensp;-backend-config="lock_method=POST" \
+&ensp;-backend-config="unlock_method=DELETE" \
+&ensp;-backend-config="retry_wait_min=5"
 </code></pre></div>
 			</div>
 			<div class="field">

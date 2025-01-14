@@ -331,11 +331,6 @@ func UnlockState(ctx *context.Context) {
 		_ = json.Unmarshal(body, &unlockRequest) // The error can be ignored, since the ID can also be in the query
 	}
 
-	// If the ID is not found in the body, look in the query parameters
-	if unlockRequest.ID == "" {
-		unlockRequest.ID = ctx.Query("ID").(string)
-	}
-
 	// Check for ID presence
 	if unlockRequest.ID == "" {
 		log.Error("Missing lock ID in both query and request body")
