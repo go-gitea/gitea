@@ -11,7 +11,7 @@
 				{{.CsrfTokenHtml}}
 
 				<input id="service_type" type="hidden" name="service" value="{{.service}}">
-				
+
 				<div class="inline required field {{if .Err_CloneAddr}}error{{end}}">
 					<label for="clone_addr">{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
 					<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
