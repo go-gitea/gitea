@@ -1592,7 +1592,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
 		m.Post("/action/{action}", reqSignIn, repo.Action)
-	}, optSignIn, context.RepoAssignment, context.RepoRef())
+	}, optSignIn, context.RepoAssignment)
 
 	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
 
