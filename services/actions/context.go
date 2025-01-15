@@ -83,8 +83,8 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 
 	if job != nil {
 		gitContext["job"] = job.JobID
-		gitContext["run_id"] = job.RunID
-		gitContext["run_attempt"] = job.Attempt
+		gitContext["run_id"] = fmt.Sprint(job.RunID)
+		gitContext["run_attempt"] = fmt.Sprint(job.Attempt)
 	}
 
 	return gitContext
