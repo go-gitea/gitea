@@ -236,7 +236,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		return packages_service.DeletePackageFile(ctx, pf)
 	}
 
-	vpfs := make(map[string]*entryOptions)
+	vpfs := make(map[int64]*entryOptions)
 	for _, pf := range pfs {
 		current := &entryOptions{
 			File: pf,
@@ -246,17 +246,17 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 			return err
 		}
 
-		if setting.Packages.DefaultMetaArchLatestVersion {
-			old := vpfs[pf.Name]
-			if old != nil {
+		if setting.Packages.RepoLatestVersionArch {
+			if old, ok := vpfs[current.Version.PackageID]; ok {
 				if compareVersions(old.Version.Version, current.Version.Version) == -1 {
-					vpfs[pf.Name] = current
+					vpfs[current.Version.PackageID] = current
 				}
 			} else {
-				vpfs[pf.Name] = current
+				vpfs[current.Version.PackageID] = current
 			}
 		} else {
-			vpfs[pf.Name] = current
+			// keep all files
+			vpfs[current.File.ID] = current
 		}
 	}
 

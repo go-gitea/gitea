@@ -46,9 +46,8 @@ func compareSegments(a, b []string) int {
 		return 0
 	} else if l == lenA {
 		return -1
-	} else {
-		return 1
 	}
+	return 1
 }
 
 func compare(a, b string) int {
