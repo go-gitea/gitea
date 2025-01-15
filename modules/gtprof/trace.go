@@ -83,7 +83,7 @@ func (t *Tracer) Start(ctx context.Context, spanName string) (context.Context, *
 		starters = globalTraceStarters
 	}
 	ts := &TraceSpan{name: spanName, startTime: time.Now()}
-	existingCtxSpan, _ := ctx.Value(ContextKeySpan).(*TraceSpan)
+	existingCtxSpan := GetContextSpan(ctx)
 	if existingCtxSpan != nil {
 		existingCtxSpan.mu.Lock()
 		existingCtxSpan.children = append(existingCtxSpan.children, ts)

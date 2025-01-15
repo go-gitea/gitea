@@ -6,22 +6,39 @@ package routing
 import (
 	"context"
 	"net/http"
+
+	"code.gitea.io/gitea/modules/gtprof"
+	"code.gitea.io/gitea/modules/reqctx"
 )
 
 type contextKeyType struct{}
 
 var contextKey contextKeyType
 
-// UpdateFuncInfo updates a context's func info
-func UpdateFuncInfo(ctx context.Context, funcInfo *FuncInfo) {
-	record, ok := ctx.Value(contextKey).(*requestRecord)
-	if !ok {
-		return
+func StartContextSpan(ctx reqctx.RequestContext, spanName string) (*gtprof.TraceSpan, func()) {
+	curTraceSpan := gtprof.GetContextSpan(ctx)
+	_, newTraceSpan := gtprof.GetTracer().Start(ctx, spanName)
+	ctx.SetContextValue(gtprof.ContextKeySpan, newTraceSpan)
+	return newTraceSpan, func() {
+		newTraceSpan.End()
+		ctx.SetContextValue(gtprof.ContextKeySpan, curTraceSpan)
 	}
+}
 
-	record.lock.Lock()
-	record.funcInfo = funcInfo
-	record.lock.Unlock()
+// RecordFuncInfo records a func info into context
+func RecordFuncInfo(ctx context.Context, funcInfo *FuncInfo) (end func()) {
+	end = func() {}
+	if reqCtx := reqctx.FromContext(ctx); reqCtx != nil {
+		var traceSpan *gtprof.TraceSpan
+		traceSpan, end = StartContextSpan(reqCtx, "http.func")
+		traceSpan.SetAttributeString("func", funcInfo.shortName)
+	}
+	if record, ok := ctx.Value(contextKey).(*requestRecord); ok {
+		record.lock.Lock()
+		record.funcInfo = funcInfo
+		record.lock.Unlock()
+	}
+	return end
 }
 
 // MarkLongPolling marks the request is a long-polling request, and the logger may output different message for it
