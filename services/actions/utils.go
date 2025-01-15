@@ -22,14 +22,6 @@ func GenerateGitContext(run *actions_model.ActionRun, job *actions_model.ActionR
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
-	// TriggerEvent is added in https://github.com/go-gitea/gitea/pull/25229
-	// This fallback is for the old ActionRun that doesn't have the TriggerEvent field
-	// and should be removed in 1.22
-	eventName := run.TriggerEvent
-	if eventName == "" {
-		eventName = run.Event.Event()
-	}
-
 	baseRef := ""
 	headRef := ""
 	ref := run.Ref
@@ -61,7 +53,7 @@ func GenerateGitContext(run *actions_model.ActionRun, job *actions_model.ActionR
 		"base_ref":          baseRef,                                  // string, The base_ref or target branch of the pull request in a workflow run. This property is only available when the event that triggers a workflow run is either pull_request or pull_request_target.
 		"env":               "",                                       // string, Path on the runner to the file that sets environment variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
 		"event":             event,                                    // object, The full event webhook payload. You can access individual properties of the event using this context. This object is identical to the webhook payload of the event that triggered the workflow run, and is different for each event. The webhooks for each GitHub Actions event is linked in "Events that trigger workflows." For example, for a workflow run triggered by the push event, this object contains the contents of the push webhook payload.
-		"event_name":        eventName,                                // string, The name of the event that triggered the workflow run.
+		"event_name":        run.TriggerEvent,                         // string, The name of the event that triggered the workflow run.
 		"event_path":        "",                                       // string, The path to the file on the runner that contains the full event webhook payload.
 		"graphql_url":       "",                                       // string, The URL of the GitHub GraphQL API.
 		"head_ref":          headRef,                                  // string, The head_ref or source branch of the pull request in a workflow run. This property is only available when the event that triggers a workflow run is either pull_request or pull_request_target.
