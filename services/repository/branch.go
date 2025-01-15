@@ -645,9 +645,9 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 }
 
 type BranchDivergingInfo struct {
-	BaseIsNewer   bool
-	CommitsBehind int
-	CommitsAhead  int
+	BaseHasNewCommits bool
+	CommitsBehind     int
+	CommitsAhead      int
 }
 
 // getBranchDivergingInfo returns the information about the divergence of a patch branch to the base branch.
@@ -672,8 +672,8 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo, headRepo *repo_
 	// so at the moment, we first check the update time, then check whether the fork branch has base's head
 	diff, err := git.GetDivergingCommits(ctx, baseRepo.RepoPath(), baseGitBranch.CommitID, headGitBranch.CommitID)
 	if err != nil {
-		info.BaseIsNewer = baseGitBranch.UpdatedUnix > headGitBranch.UpdatedUnix
-		if headRepo.IsFork && info.BaseIsNewer {
+		info.BaseHasNewCommits = baseGitBranch.UpdatedUnix > headGitBranch.UpdatedUnix
+		if headRepo.IsFork && info.BaseHasNewCommits {
 			return info, nil
 		}
 		// if the base's update time is before the fork, check whether the base's head is in the fork
@@ -694,7 +694,7 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo, headRepo *repo_
 			return nil, err
 		}
 		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseCommitID)
-		info.BaseIsNewer = !hasPreviousCommit
+		info.BaseHasNewCommits = !hasPreviousCommit
 		return info, nil
 	}
 

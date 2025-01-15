@@ -227,7 +227,7 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 					continue
 				}
 				// Base is the pushed branch (for fork branch or local pushed branch perspective)
-				if divergingInfo.BaseIsNewer || divergingInfo.CommitsBehind > 0 {
+				if divergingInfo.BaseHasNewCommits || divergingInfo.CommitsBehind > 0 {
 					finalBranches = append(finalBranches, branch)
 				}
 			}
