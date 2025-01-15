@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -357,6 +358,9 @@ func RenameBranchPost(ctx *context.Context) {
 			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		case git_model.IsErrBranchAlreadyExists(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.To))
+			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		case errors.Is(err, git_model.ErrBranchIsProtected):
+			ctx.Flash.Error(ctx.Tr("repo.branch.rename_protected_branch_failed"))
 			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		default:
 			ctx.ServerError("RenameBranch", err)

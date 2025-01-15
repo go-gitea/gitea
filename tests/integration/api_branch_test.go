@@ -219,7 +219,25 @@ func TestAPIUpdateBranch(t *testing.T) {
 			resp = testAPIUpdateBranch(t, "user40", "user2", "repo1", "protected-branch", "new-branch-name", http.StatusForbidden)
 			assert.Contains(t, resp.Body.String(), "User must be a repo or site admin to rename default or protected branches.")
 		})
-		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
+		t.Run("UpdateBranchWithGlobedBasedProtectionRulesAndAdminAccess", func(t *testing.T) {
+			// don't allow branch that falls under glob-based protection rules to be renamed
+			token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
+				RuleName:   "protected/**",
+				EnablePush: true,
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+
+			from := "protected/1"
+			req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branches", &api.CreateBranchRepoOption{
+				BranchName: from,
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+
+			resp := testAPIUpdateBranch(t, "user2", "user2", "repo1", from, "new-branch-name", http.StatusForbidden)
+			assert.Contains(t, resp.Body.String(), "Branch is protected by glob-based protection rules.")
+		})
+		t.Run("UpdateBranchNormalScenario", func(t *testing.T) {
 			testAPIUpdateBranch(t, "user2", "user2", "repo1", "branch2", "new-branch-name", http.StatusNoContent)
 		})
 	})

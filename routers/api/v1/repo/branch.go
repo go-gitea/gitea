@@ -447,6 +447,8 @@ func UpdateBranch(ctx *context.APIContext) {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
 			ctx.Error(http.StatusForbidden, "", "User must be a repo or site admin to rename default or protected branches.")
+		case errors.Is(err, git_model.ErrBranchIsProtected):
+			ctx.Error(http.StatusForbidden, "", "Branch is protected by glob-based protection rules.")
 		default:
 			ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
 		}
