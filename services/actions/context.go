@@ -95,6 +95,7 @@ type TaskNeed struct {
 	Outputs map[string]string
 }
 
+// FindTaskNeeds finds the `needs` for the task by the task's job
 func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, error) {
 	if len(job.Needs) == 0 {
 		return nil, nil
