@@ -312,6 +312,21 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 	return false
 }
 
+func prepareHomeTreeSideBarSwitch(ctx *context.Context) {
+	showFileViewTreeSidebar := true
+	if ctx.Doer != nil {
+		v, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowFileViewTreeSidebar, "true")
+		if err != nil {
+			log.Error("GetUserSetting: %v", err)
+		} else {
+			showFileViewTreeSidebar, _ = strconv.ParseBool(v)
+		}
+	}
+	ctx.Data["RepoPreferences"] = &preferencesForm{
+		ShowFileViewTreeSidebar: showFileViewTreeSidebar,
+	}
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if handleRepoHomeFeed(ctx) {
@@ -325,18 +340,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	showFileViewTreeSidebar := true
-	if ctx.Doer != nil {
-		v, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowFileViewTreeSidebar, "true")
-		if err != nil {
-			log.Error("GetUserSetting: %v", err)
-		} else {
-			showFileViewTreeSidebar, _ = strconv.ParseBool(v)
-		}
-	}
-	ctx.Data["RepoPreferences"] = &preferencesForm{
-		ShowFileViewTreeSidebar: showFileViewTreeSidebar,
-	}
+	prepareHomeTreeSideBarSwitch(ctx)
 
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
 	if len(ctx.Repo.Repository.Description) > 0 {

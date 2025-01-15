@@ -46,18 +46,7 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	showFileViewTreeSidebar := true
-	if ctx.Doer != nil {
-		v, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowFileViewTreeSidebar, "true")
-		if err != nil {
-			log.Error("GetUserSetting: %v", err)
-		} else {
-			showFileViewTreeSidebar, _ = strconv.ParseBool(v)
-		}
-	}
-	ctx.Data["RepoPreferences"] = &preferencesForm{
-		ShowFileViewTreeSidebar: showFileViewTreeSidebar,
-	}
+	prepareHomeTreeSideBarSwitch(ctx)
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	treeLink := branchLink
