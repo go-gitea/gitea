@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
@@ -351,8 +353,14 @@ func RenameBranchPost(ctx *context.Context) {
 	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
 	if err != nil {
 		switch {
+		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
+			ctx.Flash.Error(ctx.Tr("repo.branch.rename_default_or_protected_branch_error"))
+			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		case git_model.IsErrBranchAlreadyExists(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.To))
+			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		case errors.Is(err, git_model.ErrBranchIsProtected):
+			ctx.Flash.Error(ctx.Tr("repo.branch.rename_protected_branch_failed"))
 			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		default:
 			ctx.ServerError("RenameBranch", err)
