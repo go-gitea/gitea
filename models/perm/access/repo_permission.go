@@ -175,10 +175,14 @@ func (p *Permission) LogString() string {
 	return fmt.Sprintf(format, args...)
 }
 
-func applyEveryoneRepoPermission(user *user_model.User, perm *Permission) {
+func finalProcessRepoUnitPermission(user *user_model.User, perm *Permission) {
 	if user == nil || user.ID <= 0 {
+		// for anonymous access, it could be:
+		// AccessMode is None or Read, units has repo units, unitModes is nil
 		return
 	}
+
+	// apply everyone access permissions
 	for _, u := range perm.units {
 		if u.EveryoneAccessMode >= perm_model.AccessModeRead && u.EveryoneAccessMode > perm.everyoneAccessMode[u.Type] {
 			if perm.everyoneAccessMode == nil {
@@ -187,17 +191,40 @@ func applyEveryoneRepoPermission(user *user_model.User, perm *Permission) {
 			perm.everyoneAccessMode[u.Type] = u.EveryoneAccessMode
 		}
 	}
+
+	if perm.unitsMode == nil {
+		// if unitsMode is not set, then it means that the default p.AccessMode applies to all units
+		return
+	}
+
+	// remove no permission units
+	origPermUnits := perm.units
+	perm.units = make([]*repo_model.RepoUnit, 0, len(perm.units))
+	for _, u := range origPermUnits {
+		shouldKeep := false
+		for t := range perm.unitsMode {
+			if shouldKeep = u.Type == t; shouldKeep {
+				break
+			}
+		}
+		for t := range perm.everyoneAccessMode {
+			if shouldKeep = shouldKeep || u.Type == t; shouldKeep {
+				break
+			}
+		}
+		if shouldKeep {
+			perm.units = append(perm.units, u)
+		}
+	}
 }
 
 // GetUserRepoPermission returns the user permissions to the repository
 func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
 	defer func() {
 		if err == nil {
-			applyEveryoneRepoPermission(user, &perm)
+			finalProcessRepoUnitPermission(user, &perm)
 		}
-		if log.IsTrace() {
-			log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
-		}
+		log.Trace("Permission Loaded for user %-v in repo %-v, permissions: %-+v", user, repo, perm)
 	}()
 
 	if err = repo.LoadUnits(ctx); err != nil {
@@ -290,16 +317,6 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		if !found && !repo.IsPrivate && !user.IsRestricted {
 			if _, ok := perm.unitsMode[u.Type]; !ok {
 				perm.unitsMode[u.Type] = perm_model.AccessModeRead
-			}
-		}
-	}
-
-	// remove no permission units
-	perm.units = make([]*repo_model.RepoUnit, 0, len(repo.Units))
-	for t := range perm.unitsMode {
-		for _, u := range repo.Units {
-			if u.Type == t {
-				perm.units = append(perm.units, u)
 			}
 		}
 	}
