@@ -295,6 +295,7 @@ func SingleRelease(ctx *context.Context) {
 	}
 
 	ctx.Data["PageIsSingleTag"] = release.IsTag
+	ctx.Data["SingleReleaseTagName"] = release.TagName
 	if release.IsTag {
 		ctx.Data["Title"] = release.TagName
 	} else {
