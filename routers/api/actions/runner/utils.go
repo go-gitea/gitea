@@ -64,7 +64,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 		log.Error("actions.CreateAuthorizationToken failed: %v", err)
 	}
 
-	gitCtx := actions.GenerateGitContext(t.Job.Run, t.Job)
+	gitCtx := actions.GenerateGiteaContext(t.Job.Run, t.Job)
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
 

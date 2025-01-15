@@ -16,9 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// GenerateGitContext generate the git context without token and gitea_runtime_token
+// GenerateGiteaContext generate the gitea context without token and gitea_runtime_token
 // job can be nil when generating context for interpolating workflow-level expressions
-func GenerateGitContext(run *actions_model.ActionRun, job *actions_model.ActionRunJob) map[string]any {
+func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.ActionRunJob) map[string]any {
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
