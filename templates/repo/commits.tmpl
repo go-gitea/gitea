@@ -5,24 +5,13 @@
 		{{template "repo/sub_menu" .}}
 		<div class="repo-button-row">
 			<div class="repo-button-row-left">
-				{{- /* for /owner/repo/commits/branch/the-name */ -}}
-				{{- $branchDropdownCurrentRefType := "branch" -}}
-				{{- $branchDropdownCurrentRefShortName := .BranchName -}}
-				{{- if .IsViewTag -}}
-					{{- /* for /owner/repo/commits/tag/the-name */ -}}
-					{{- $branchDropdownCurrentRefType = "tag" -}}
-					{{- $branchDropdownCurrentRefShortName = .TagName -}}
-				{{- else if .IsViewCommit -}}
-					{{- /* for /owner/repo/commits/commit/000000 */ -}}
-					{{- $branchDropdownCurrentRefType = "commit" -}}
-					{{- $branchDropdownCurrentRefShortName = ShortSha .CommitID -}}
-				{{- end -}}
+				{{- /* for /owner/repo/commits/{RefType}/{RefShortName} */ -}}
 				{{- template "repo/branch_dropdown" dict
 					"Repository" .Repository
 					"ShowTabBranches" true
 					"ShowTabTags" true
-					"CurrentRefType" $branchDropdownCurrentRefType
-					"CurrentRefShortName" $branchDropdownCurrentRefShortName
+					"CurrentRefType" .RefFullName.RefType
+					"CurrentRefShortName" .RefFullName.ShortName
 					"CurrentTreePath" .TreePath
 					"RefLinkTemplate" "{RepoLink}/commits/{RefType}/{RefShortName}/{TreePath}"
 					"AllowCreateNewRef" .CanCreateBranch

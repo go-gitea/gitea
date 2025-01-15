@@ -232,7 +232,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 					ctx.Data["CanEditFile"] = true
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 				}
-			} else if !ctx.Repo.IsViewBranch {
+			} else if !ctx.Repo.RefFullName.IsBranch() {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 			} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
@@ -305,7 +305,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["CanDeleteFile"] = true
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 		}
-	} else if !ctx.Repo.IsViewBranch {
+	} else if !ctx.Repo.RefFullName.IsBranch() {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 	} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
