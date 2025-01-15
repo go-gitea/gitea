@@ -206,7 +206,7 @@ func TestAPIUpdateBranch(t *testing.T) {
 		})
 		t.Run("UpdateBranchWithNonAdminDoer", func(t *testing.T) {
 			// don't allow default branch renaming
-			resp := testAPIUpdateBranch(t, "user4", "user2", "repo1", "master", "new-branch-name", http.StatusForbidden)
+			resp := testAPIUpdateBranch(t, "user40", "user2", "repo1", "master", "new-branch-name", http.StatusForbidden)
 			assert.Contains(t, resp.Body.String(), "User must be a repo or site admin to rename default or protected branches.")
 
 			// don't allow protected branch renaming
@@ -216,7 +216,7 @@ func TestAPIUpdateBranch(t *testing.T) {
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusCreated)
 			testAPICreateBranchProtection(t, "protected-branch", 1, http.StatusCreated)
-			resp = testAPIUpdateBranch(t, "user4", "user2", "repo1", "protected-branch", "new-branch-name", http.StatusForbidden)
+			resp = testAPIUpdateBranch(t, "user40", "user2", "repo1", "protected-branch", "new-branch-name", http.StatusForbidden)
 			assert.Contains(t, resp.Body.String(), "User must be a repo or site admin to rename default or protected branches.")
 		})
 		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
