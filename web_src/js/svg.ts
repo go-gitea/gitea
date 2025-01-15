@@ -1,4 +1,4 @@
-import {h} from 'vue';
+import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
@@ -194,10 +194,10 @@ export function svgParseOuterInner(name: SvgName) {
   return {svgOuter, svgInnerHtml};
 }
 
-export const SvgIcon = {
+export const SvgIcon = defineComponent({
   name: 'SvgIcon',
   props: {
-    name: {type: String, required: true},
+    name: {type: String as PropType<SvgName>, required: true},
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
     symbolId: {type: String},
@@ -215,7 +215,7 @@ export const SvgIcon = {
     attrs[`^height`] = this.size;
 
     // make the <SvgIcon class="foo" class-name="bar"> classes work together
-    const classes = [];
+    const classes: Array<string> = [];
     for (const cls of svgOuter.classList) {
       classes.push(cls);
     }
@@ -234,4 +234,4 @@ export const SvgIcon = {
       innerHTML: svgInnerHtml,
     });
   },
-};
+});

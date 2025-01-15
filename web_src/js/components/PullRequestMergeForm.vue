@@ -68,7 +68,7 @@ function toggleActionForm(show: boolean) {
   mergeMessageFieldValue.value = mergeStyleDetail.value.mergeMessageFieldText;
 }
 
-function switchMergeStyle(name, autoMerge = false) {
+function switchMergeStyle(name: string, autoMerge = false) {
   mergeStyle.value = name;
   autoMergeWhenSucceed.value = autoMerge;
 }
