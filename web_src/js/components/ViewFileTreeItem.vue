@@ -54,8 +54,10 @@ const doGotoSubModule = () => {
     @click.stop="doGotoSubModule"
   >
     <!-- submodule -->
-    <SvgIcon class="text primary" name="octicon-file-submodule"/>
-    <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+    <div class="item-content">
+      <SvgIcon class="text primary" name="octicon-file-submodule"/>
+      <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+    </div>
   </div>
   <div
     v-else-if="item.type === 'symlink'" class="item-symlink"
@@ -64,8 +66,10 @@ const doGotoSubModule = () => {
     @click.stop="doLoadFileContent"
   >
     <!-- symlink -->
-    <SvgIcon name="octicon-file-symlink-file"/>
-    <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+    <div class="item-content">
+      <SvgIcon name="octicon-file-symlink-file"/>
+      <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+    </div>
   </div>
   <div
     v-else-if="item.type !== 'tree'" class="item-file"
@@ -74,8 +78,10 @@ const doGotoSubModule = () => {
     @click.stop="doLoadFileContent"
   >
     <!-- file -->
-    <SvgIcon name="octicon-file"/>
-    <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+    <div class="item-content">
+      <SvgIcon name="octicon-file"/>
+      <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+    </div>
   </div>
   <div
     v-else class="item-directory"
@@ -84,10 +90,14 @@ const doGotoSubModule = () => {
     @click.stop="doLoadDirContent"
   >
     <!-- directory -->
-    <SvgIcon v-if="isLoading" name="octicon-sync" class="job-status-rotate"/>
-    <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
-    <SvgIcon class="text primary" :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
-    <span class="gt-ellipsis">{{ item.name }}</span>
+    <div class="item-toggle">
+      <SvgIcon v-if="isLoading" name="octicon-sync" class="job-status-rotate"/>
+      <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
+    </div>
+    <div class="item-content">
+      <SvgIcon class="text primary" :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
+      <span class="gt-ellipsis">{{ item.name }}</span>
+    </div>
   </div>
 
   <div v-if="children?.length" v-show="!collapsed" class="sub-items">
@@ -99,14 +109,8 @@ const doGotoSubModule = () => {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  margin-left: 13px;
+  margin-left: 14px;
   border-left: 1px solid var(--color-secondary);
-}
-
-.sub-items .item-file,
-.sub-items .item-symlink,
-.sub-items .item-submodule {
-  padding-left: 18px;
 }
 
 .item-directory.selected,
@@ -125,8 +129,9 @@ const doGotoSubModule = () => {
 .item-symlink,
 .item-submodule,
 .item-directory {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  grid-template-areas: "toggle content";
   gap: 0.25em;
   padding: 6px;
 }
@@ -139,5 +144,18 @@ const doGotoSubModule = () => {
   background: var(--color-hover);
   border-radius: 4px;
   cursor: pointer;
+}
+
+.item-toggle {
+  grid-area: toggle;
+  display: flex;
+  align-items: center;
+}
+
+.item-content {
+  grid-area: content;
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
 }
 </style>
