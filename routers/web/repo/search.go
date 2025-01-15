@@ -70,7 +70,7 @@ func Search(ctx *context.Context) {
 		res, err := git.GrepSearch(ctx, ctx.Repo.GitRepo, prepareSearch.Keyword, git.GrepOptions{
 			ContextLineNumber: 1,
 			IsFuzzy:           prepareSearch.IsFuzzy,
-			RefName:           git.RefNameFromBranch(ctx.Repo.BranchName).String(), // BranchName should be default branch or the first existing branch
+			RefName:           git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch).String(), // BranchName should be default branch or the first existing branch
 			PathspecList:      indexSettingToGitGrepPathspecList(),
 		})
 		if err != nil {
