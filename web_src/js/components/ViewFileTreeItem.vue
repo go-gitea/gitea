@@ -5,7 +5,6 @@ import {ref} from 'vue';
 type Item = {
   name: string;
   path: string;
-  htmlUrl: string;
   sub_module_url?: string;
   type: string;
   children?: Item[];
