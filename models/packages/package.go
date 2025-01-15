@@ -126,6 +126,8 @@ func (pt Type) Name() string {
 		return "RubyGems"
 	case TypeSwift:
 		return "Swift"
+	case TypeTerraform:
+		return "Terraform"
 	case TypeVagrant:
 		return "Vagrant"
 	}
