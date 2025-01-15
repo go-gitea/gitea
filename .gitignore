@@ -9,6 +9,11 @@ _test
 
 # IntelliJ
 .idea
+.run
+
+# IntelliJ Gateway
+.uuid
+
 # Goland's output filename can not be set manually
 /go_build_*
 /gitea_*
@@ -28,6 +33,7 @@ _testmain.go
 *.exe
 *.test
 *.prof
+*.tsbuildinfo
 
 *coverage.out
 coverage.all

@@ -349,6 +349,17 @@ func GetLabelIDsInRepoByNames(ctx context.Context, repoID int64, labelNames []st
 		Find(&labelIDs)
 }
 
+// GetLabelIDsInOrgByNames returns a list of labelIDs by names in a given org.
+func GetLabelIDsInOrgByNames(ctx context.Context, orgID int64, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, db.GetEngine(ctx).Table("label").
+		Where("org_id = ?", orgID).
+		In("name", labelNames).
+		Asc("name").
+		Cols("id").
+		Find(&labelIDs)
+}
+
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
 func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 	return builder.Select("issue_label.issue_id").
@@ -390,7 +401,7 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 		sess.Asc("name")
 	}
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
@@ -462,7 +473,7 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 		sess.Asc("name")
 	}
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 

@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	tplConfig         base.TplName = "admin/config"
-	tplConfigSettings base.TplName = "admin/config_settings"
+	tplConfig         templates.TplName = "admin/config"
+	tplConfigSettings templates.TplName = "admin/config_settings"
 )
 
 // SendTestMail send test mail to confirm mail service is OK

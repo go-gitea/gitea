@@ -7,13 +7,19 @@ import (
 	"fmt"
 	"net/url"
 
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/yuin/goldmark/ast"
 )
 
-func createTOCNode(toc []markup.Header, lang string, detailsAttrs map[string]string) ast.Node {
+// Header holds the data about a header.
+type Header struct {
+	Level int
+	Text  string
+	ID    string
+}
+
+func createTOCNode(toc []Header, lang string, detailsAttrs map[string]string) ast.Node {
 	details := NewDetails()
 	summary := NewSummary()
 

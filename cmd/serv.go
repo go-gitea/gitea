@@ -111,12 +111,10 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error
 		if !setting.IsProd {
 			_, _ = fmt.Fprintln(os.Stderr, "Gitea:", logMsg)
 		}
-		if userMessage != "" {
-			if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
-				logMsg = userMessage + " " + logMsg
-			} else {
-				logMsg = userMessage + ". " + logMsg
-			}
+		if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
+			logMsg = userMessage + " " + logMsg
+		} else {
+			logMsg = userMessage + ". " + logMsg
 		}
 		_ = private.SSHLog(ctx, true, logMsg)
 	}
@@ -288,10 +286,10 @@ func runServ(c *cli.Context) error {
 	if allowedCommands.Contains(verb) {
 		if allowedCommandsLfs.Contains(verb) {
 			if !setting.LFS.StartServer {
-				return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
+				return fail(ctx, "LFS Server is not enabled", "")
 			}
 			if verb == verbLfsTransfer && !setting.LFS.AllowPureSSH {
-				return fail(ctx, "Unknown git command", "LFS SSH transfer connection denied, pure SSH protocol is disabled")
+				return fail(ctx, "LFS SSH transfer is not enabled", "")
 			}
 			if len(words) > 2 {
 				lfsVerb = words[2]

@@ -14,6 +14,7 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGiteaDownloadRepo(t *testing.T) {
@@ -29,12 +30,8 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	}
 
 	downloader, err := NewGiteaDownloader(context.Background(), "https://gitea.com", "gitea/test_repo", "", "", giteaToken)
-	if downloader == nil {
-		t.Fatal("NewGitlabDownloader is nil")
-	}
-	if !assert.NoError(t, err) {
-		t.Fatal("NewGitlabDownloader error occur")
-	}
+	require.NoError(t, err, "NewGiteaDownloader error occur")
+	require.NotNil(t, downloader, "NewGiteaDownloader is nil")
 
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)

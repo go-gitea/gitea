@@ -22,14 +22,13 @@
             gzip
 
             # frontend
-            nodejs_20
+            nodejs_22
 
             # linting
             python312
             poetry
 
             # backend
-            go_1_22
             gofumpt
             sqlite
           ];

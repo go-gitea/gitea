@@ -1,87 +1,83 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository new fork">
-	<div class="ui middle very relaxed page grid">
-		<div class="column">
-			<form class="ui form" action="{{.Link}}" method="post">
+	<div class="ui container medium-width">
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "new_fork"}}
+		</h3>
+		<div class="ui attached segment">
+			{{template "base/alert" .}}
+			<form class="ui form left-right-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<h3 class="ui top attached header">
-					{{ctx.Locale.Tr "new_fork"}}
-				</h3>
-				<div class="ui attached segment">
-					{{template "base/alert" .}}
-					<div class="inline required field {{if .Err_Owner}}error{{end}}">
-						<label>{{ctx.Locale.Tr "repo.owner"}}</label>
-						<div class="ui selection owner dropdown">
-							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
-								{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
-								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
-							</span>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
-								{{if .CanForkToUser}}
-									<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-										{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
-										<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
-									</div>
-								{{end}}
-								{{range .Orgs}}
-									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
-										{{ctx.AvatarUtils.Avatar . 28 "mini"}}
-										<span class="truncated-item-name">{{.ShortName 40}}</span>
-									</div>
-								{{end}}
-							</div>
-						</div>
-					</div>
-
-					<div class="inline field">
-						<label>{{ctx.Locale.Tr "repo.fork_from"}}</label>
-						<a href="{{.ForkRepo.Link}}" class="tw-inline-block">{{.ForkRepo.FullName}}</a>
-					</div>
-					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
-						<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-						<input id="repo_name" name="repo_name" value="{{.repo_name}}" required>
-					</div>
-					<div class="inline field">
-						<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
-						<div class="ui disabled checkbox">
-							<input type="checkbox" disabled {{if .IsPrivate}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
-						</div>
-						<span class="help">{{ctx.Locale.Tr "repo.fork_visibility_helper"}}</span>
-					</div>
-					<div class="inline field">
-						<label>{{ctx.Locale.Tr "repo.fork_branch"}}</label>
-						<div class="ui selection dropdown">
-							<input type="hidden" id="fork_single_branch" name="fork_single_branch" value="" required>
-							<span class="text truncated-item-container" data-value="" title="{{ctx.Locale.Tr "repo.all_branches"}}">
-								<span class="truncated-item-name">{{ctx.Locale.Tr "repo.all_branches"}}</span>
-							</span>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
-								<div class="item truncated-item-container" data-value="" title="{{ctx.Locale.Tr "repo.all_branches"}}">
-									<span class="truncated-item-name">{{ctx.Locale.Tr "repo.all_branches"}}</span>
+				<div class="inline required field {{if .Err_Owner}}error{{end}}">
+					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
+					<div class="ui selection owner dropdown">
+						<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
+						<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
+							{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
+							<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
+						</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							{{if .CanForkToUser}}
+								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
+									{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
+									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 								</div>
-								{{range .Branches}}
-									<div class="item truncated-item-container" data-value="{{.}}" title="{{.}}">
-										<span class="truncated-item-name">{{.}}</span>
-									</div>
-								{{end}}
-							</div>
+							{{end}}
+							{{range .Orgs}}
+								<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
+									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
+									<span class="truncated-item-name">{{.ShortName 40}}</span>
+								</div>
+							{{end}}
 						</div>
 					</div>
-					<div class="inline field {{if .Err_Description}}error{{end}}">
-						<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
-						<textarea id="description" name="description">{{.description}}</textarea>
-					</div>
+				</div>
 
-					<div class="inline field">
-						<label></label>
-						<button class="ui primary button{{if not .CanForkRepo}} disabled{{end}}">
-							{{ctx.Locale.Tr "repo.fork_repo"}}
-						</button>
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.fork_from"}}</label>
+					<a href="{{.ForkRepo.Link}}" class="tw-inline-block">{{.ForkRepo.FullName}}</a>
+				</div>
+				<div class="inline required field {{if .Err_RepoName}}error{{end}}">
+					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
+					<input id="repo_name" name="repo_name" value="{{.repo_name}}" required>
+				</div>
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
+					<div class="ui disabled checkbox">
+						<input type="checkbox" disabled {{if .IsPrivate}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.visibility_helper"}}</label>
 					</div>
+					<span class="help">{{ctx.Locale.Tr "repo.fork_visibility_helper"}}</span>
+				</div>
+				<div class="inline field">
+					<label>{{ctx.Locale.Tr "repo.fork_branch"}}</label>
+					<div class="ui selection dropdown ellipsis-items-nowrap">
+						<input type="hidden" id="fork_single_branch" name="fork_single_branch" value="" required>
+						<div class="text" title="{{ctx.Locale.Tr "repo.all_branches"}}">
+							<span class="truncated-item-name">{{ctx.Locale.Tr "repo.all_branches"}}</span>
+						</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="item" data-value="" title="{{ctx.Locale.Tr "repo.all_branches"}}">
+								{{ctx.Locale.Tr "repo.all_branches"}}
+							</div>
+							{{range .Branches}}
+								<div class="item" data-value="{{.}}" title="{{.}}">{{.}}</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+				<div class="inline field {{if .Err_Description}}error{{end}}">
+					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
+					<textarea id="description" name="description">{{.description}}</textarea>
+				</div>
+
+				<div class="inline field">
+					<label></label>
+					<button class="ui primary button{{if not .CanForkRepo}} disabled{{end}}">
+						{{ctx.Locale.Tr "repo.fork_repo"}}
+					</button>
 				</div>
 			</form>
 		</div>

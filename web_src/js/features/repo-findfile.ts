@@ -90,6 +90,7 @@ function filterRepoFiles(filter) {
       const span = document.createElement('span');
       // safely escape by using textContent
       span.textContent = part;
+      span.title = span.textContent;
       // if the target file path is "abc/xyz", to search "bx", then the matchResult is ['a', 'b', 'c/', 'x', 'yz']
       // the matchResult[odd] is matched and highlighted to red.
       if (index % 2 === 1) span.classList.add('ui', 'text', 'red');

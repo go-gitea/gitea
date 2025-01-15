@@ -4,10 +4,11 @@ try {
   new Intl.NumberFormat('en', {style: 'unit', unit: 'minute'}).format(1);
 } catch {
   const intlNumberFormat = Intl.NumberFormat;
-  Intl.NumberFormat = function(locales, options) {
+  // @ts-expect-error - polyfill is incomplete
+  Intl.NumberFormat = function(locales: string | string[], options: Intl.NumberFormatOptions) {
     if (options.style === 'unit') {
       return {
-        format(value) {
+        format(value: number | bigint | string) {
           return ` ${value} ${options.unit}`;
         },
       };

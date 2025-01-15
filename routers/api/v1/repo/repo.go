@@ -21,7 +21,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
@@ -35,6 +34,7 @@ import (
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	feed_service "code.gitea.io/gitea/services/feed"
 	"code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -202,7 +202,6 @@ func Search(ctx *context.APIContext) {
 		}
 	}
 
-	var err error
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
@@ -496,7 +495,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	org, err := organization.GetOrgByName(ctx, ctx.PathParam(":org"))
+	org, err := organization.GetOrgByName(ctx, ctx.PathParam("org"))
 	if err != nil {
 		if organization.IsErrOrgNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -576,7 +575,7 @@ func GetByID(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo, err := repo_model.GetRepositoryByID(ctx, ctx.PathParamInt64(":id"))
+	repo, err := repo_model.GetRepositoryByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()
@@ -727,12 +726,11 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.OpenRepository(ctx, repo)
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
 			return err
 		}
-		defer ctx.Repo.GitRepo.Close()
 	}
 
 	// Default branch only updated if changed and exist or the repository is empty
@@ -740,10 +738,8 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch)) {
 		if !repo.IsEmpty {
 			if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo.Repository, *opts.DefaultBranch); err != nil {
-				if !git.IsErrUnsupportedVersion(err) {
-					ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
-					return err
-				}
+				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+				return err
 			}
 			updateRepoLicense = true
 		}
@@ -1317,7 +1313,7 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 		ListOptions:    listOptions,
 	}
 
-	feeds, count, err := activities_model.GetFeeds(ctx, opts)
+	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
 		return

@@ -39,7 +39,7 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 			rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
 			rPath = util.PathJoinRelX(rPath)
 
-			u, err := objStore.URL(rPath, path.Base(rPath))
+			u, err := objStore.URL(rPath, path.Base(rPath), nil)
 			if err != nil {
 				if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 					log.Warn("Unable to find %s %s", prefix, rPath)

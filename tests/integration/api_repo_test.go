@@ -718,8 +718,8 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var reviewers []*api.User
 	DecodeJSON(t, resp, &reviewers)
-	if assert.Len(t, reviewers, 3) {
-		assert.ElementsMatch(t, []int64{1, 4, 11}, []int64{reviewers[0].ID, reviewers[1].ID, reviewers[2].ID})
+	if assert.Len(t, reviewers, 1) {
+		assert.ElementsMatch(t, []int64{2}, []int64{reviewers[0].ID})
 	}
 }
 

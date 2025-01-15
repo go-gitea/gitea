@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/routers/api/actions"
 	actions_service "code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -34,7 +33,7 @@ func toProtoJSON(m protoreflect.ProtoMessage) io.Reader {
 }
 
 func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
@@ -81,7 +80,7 @@ func TestActionsArtifactV4UploadSingleFile(t *testing.T) {
 }
 
 func TestActionsArtifactV4UploadSingleFileWrongChecksum(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
@@ -125,7 +124,7 @@ func TestActionsArtifactV4UploadSingleFileWrongChecksum(t *testing.T) {
 }
 
 func TestActionsArtifactV4UploadSingleFileWithRetentionDays(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
@@ -173,7 +172,7 @@ func TestActionsArtifactV4UploadSingleFileWithRetentionDays(t *testing.T) {
 }
 
 func TestActionsArtifactV4UploadSingleFileWithPotentialHarmfulBlockID(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
@@ -236,7 +235,7 @@ func TestActionsArtifactV4UploadSingleFileWithPotentialHarmfulBlockID(t *testing
 }
 
 func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
@@ -301,14 +300,14 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 }
 
 func TestActionsArtifactV4DownloadSingle(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
 
 	// acquire artifact upload url
 	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
-		NameFilter:              wrapperspb.String("artifact"),
+		NameFilter:              wrapperspb.String("artifact-v4-download"),
 		WorkflowRunBackendId:    "792",
 		WorkflowJobRunBackendId: "193",
 	})).AddTokenAuth(token)
@@ -319,7 +318,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 
 	// confirm artifact upload
 	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/GetSignedArtifactURL", toProtoJSON(&actions.GetSignedArtifactURLRequest{
-		Name:                    "artifact",
+		Name:                    "artifact-v4-download",
 		WorkflowRunBackendId:    "792",
 		WorkflowJobRunBackendId: "193",
 	})).
@@ -331,19 +330,19 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 
 	req = NewRequest(t, "GET", finalizeResp.SignedUrl)
 	resp = MakeRequest(t, req, http.StatusOK)
-	body := strings.Repeat("A", 1024)
-	assert.Equal(t, resp.Body.String(), body)
+	body := strings.Repeat("D", 1024)
+	assert.Equal(t, body, resp.Body.String())
 }
 
 func TestActionsArtifactV4Delete(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	defer prepareTestEnvActionsArtifacts(t)()
 
 	token, err := actions_service.CreateAuthorizationToken(48, 792, 193)
 	assert.NoError(t, err)
 
 	// delete artifact by name
 	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/DeleteArtifact", toProtoJSON(&actions.DeleteArtifactRequest{
-		Name:                    "artifact",
+		Name:                    "artifact-v4-download",
 		WorkflowRunBackendId:    "792",
 		WorkflowJobRunBackendId: "193",
 	})).AddTokenAuth(token)

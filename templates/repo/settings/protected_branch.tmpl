@@ -323,6 +323,13 @@
 						<p class="help">{{ctx.Locale.Tr "repo.settings.block_outdated_branch_desc"}}</p>
 					</div>
 				</div>
+				<div class="field">
+					<div class="ui checkbox">
+						<input name="block_admin_merge_override" type="checkbox" {{if .Rule.BlockAdminMergeOverride}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.block_admin_merge_override"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.block_admin_merge_override_desc"}}</p>
+					</div>
+				</div>
 				<div class="divider"></div>
 
 				<div class="field">

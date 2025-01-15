@@ -13,7 +13,7 @@
 				</div>
 				<div class="field tw-inline-block tw-mr-4">
 					<label>{{ctx.Locale.Tr "actions.runners.last_online"}}</label>
-					<span>{{if .Runner.LastOnline}}{{TimeSinceUnix .Runner.LastOnline ctx.Locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</span>
+					<span>{{if .Runner.LastOnline}}{{DateUtils.TimeSince .Runner.LastOnline}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</span>
 				</div>
 				<div class="field tw-inline-block tw-mr-4">
 					<label>{{ctx.Locale.Tr "actions.runners.labels"}}</label>
@@ -70,7 +70,7 @@
 						<strong><a href="{{.GetCommitLink}}" target="_blank">{{ShortSha .CommitSHA}}</a></strong>
 					</td>
 					<td>{{if .IsStopped}}
-						<span>{{TimeSinceUnix .Stopped ctx.Locale}}</span>
+						<span>{{DateUtils.TimeSince .Stopped}}</span>
 						{{else}}-{{end}}</td>
 				</tr>
 				{{end}}

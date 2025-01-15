@@ -1,0 +1,79 @@
+.repo-grid-filelist-sidebar {
+  display: grid;
+  grid-template-columns: auto 300px;
+  grid-template-rows: auto auto 1fr;
+}
+
+.repo-home-filelist {
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1 / 4;
+}
+
+.repo-home-sidebar-top {
+  grid-column: 2;
+  grid-row: 1;
+  padding-left: 1em;
+}
+
+.repo-home-sidebar-bottom {
+  grid-column: 2;
+  grid-row: 2;
+  padding-left: 1em;
+}
+
+.repo-home-sidebar-bottom .flex-list > :first-child {
+  border-top: 1px solid var(--color-secondary); /* same to .flex-list > .flex-item + .flex-item */
+}
+
+@media (max-width: 767.98px) {
+  .repo-grid-filelist-sidebar {
+    grid-template-columns: 100%;
+    grid-template-rows: auto auto auto;
+  }
+  .repo-home-filelist {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .repo-home-sidebar-top {
+    grid-column: 1;
+    grid-row: 1;
+    padding-left: 0;
+  }
+  .repo-home-sidebar-bottom {
+    grid-column: 1;
+    grid-row: 3;
+    padding-left: 0;
+  }
+  .repo-home-sidebar-bottom .flex-list > :first-child {
+    border-top: 0;
+  }
+}
+
+.language-stats {
+  display: flex;
+  gap: 2px;
+  padding: 0;
+  height: 10px;
+  white-space: nowrap;
+  border-radius: 5px;
+  overflow: hidden;
+  width: 100%;
+  margin-top: 1rem;
+  margin-bottom: 5px;
+}
+
+.language-stats-details {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.language-stats-details .item {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+  padding: 0 0.5em; /* make the UI look better for narrow (mobile) view */
+  text-decoration: none;
+}

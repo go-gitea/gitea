@@ -17,7 +17,7 @@ func TestGetLatestRunnerToken(t *testing.T) {
 	token := unittest.AssertExistsAndLoadBean(t, &ActionRunnerToken{ID: 3})
 	expectedToken, err := GetLatestRunnerToken(db.DefaultContext, 1, 0)
 	assert.NoError(t, err)
-	assert.EqualValues(t, token, expectedToken)
+	assert.EqualValues(t, expectedToken, token)
 }
 
 func TestNewRunnerToken(t *testing.T) {
@@ -26,7 +26,7 @@ func TestNewRunnerToken(t *testing.T) {
 	assert.NoError(t, err)
 	expectedToken, err := GetLatestRunnerToken(db.DefaultContext, 1, 0)
 	assert.NoError(t, err)
-	assert.EqualValues(t, token, expectedToken)
+	assert.EqualValues(t, expectedToken, token)
 }
 
 func TestUpdateRunnerToken(t *testing.T) {
@@ -36,5 +36,5 @@ func TestUpdateRunnerToken(t *testing.T) {
 	assert.NoError(t, UpdateRunnerToken(db.DefaultContext, token))
 	expectedToken, err := GetLatestRunnerToken(db.DefaultContext, 1, 0)
 	assert.NoError(t, err)
-	assert.EqualValues(t, token, expectedToken)
+	assert.EqualValues(t, expectedToken, token)
 }

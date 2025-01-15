@@ -216,7 +216,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -327,7 +327,7 @@ func UploadPackage(ctx *context.Context) {
 func DownloadPackage(ctx *context.Context) {
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, ctx.PathParam("name"), ctx.PathParam("version"))
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -368,7 +368,7 @@ func DeletePackageVersion(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)

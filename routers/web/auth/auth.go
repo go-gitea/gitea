@@ -15,13 +15,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -38,10 +38,10 @@ import (
 )
 
 const (
-	tplSignIn         base.TplName = "user/auth/signin"          // for sign in page
-	tplSignUp         base.TplName = "user/auth/signup"          // for sign up page
-	TplActivate       base.TplName = "user/auth/activate"        // for activate user
-	TplActivatePrompt base.TplName = "user/auth/activate_prompt" // for showing a message for user activation
+	tplSignIn         templates.TplName = "user/auth/signin"          // for sign in page
+	tplSignUp         templates.TplName = "user/auth/signup"          // for sign up page
+	TplActivate       templates.TplName = "user/auth/activate"        // for activate user
+	TplActivatePrompt templates.TplName = "user/auth/activate_prompt" // for showing a message for user activation
 )
 
 // autoSignIn reads cookie and try to auto-login.
@@ -160,54 +160,42 @@ func CheckAutoLogin(ctx *context.Context) bool {
 	return false
 }
 
-// SignIn render sign in page
-func SignIn(ctx *context.Context) {
+func prepareSignInPageData(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
-
-	if CheckAutoLogin(ctx) {
-		return
-	}
-
-	if ctx.IsSigned {
-		RedirectAfterLogin(ctx)
-		return
-	}
-
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
-	if err != nil {
-		ctx.ServerError("UserSignIn", err)
-		return
-	}
-	ctx.Data["OAuth2Providers"] = oauth2Providers
+	ctx.Data["OAuth2Providers"], _ = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
 		context.SetCaptchaData(ctx)
 	}
+}
 
+// SignIn render sign in page
+func SignIn(ctx *context.Context) {
+	if CheckAutoLogin(ctx) {
+		return
+	}
+	if ctx.IsSigned {
+		RedirectAfterLogin(ctx)
+		return
+	}
+	prepareSignInPageData(ctx)
 	ctx.HTML(http.StatusOK, tplSignIn)
 }
 
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("sign_in")
-
-	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
-	if err != nil {
-		ctx.ServerError("UserSignIn", err)
+	if !setting.Service.EnablePasswordSignInForm {
+		ctx.Error(http.StatusForbidden)
 		return
 	}
-	ctx.Data["OAuth2Providers"] = oauth2Providers
-	ctx.Data["Title"] = ctx.Tr("sign_in")
-	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
-	ctx.Data["PageIsSignIn"] = true
-	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 
+	prepareSignInPageData(ctx)
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSignIn)
 		return
@@ -216,8 +204,6 @@ func SignInPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SignInForm)
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
-		context.SetCaptchaData(ctx)
-
 		context.VerifyCaptcha(ctx, tplSignIn, form)
 		if ctx.Written() {
 			return
@@ -531,7 +517,7 @@ func SignUpPost(ctx *context.Context) {
 
 // createAndHandleCreatedUser calls createUserInContext and
 // then handleUserCreated.
-func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) bool {
+func createAndHandleCreatedUser(ctx *context.Context, tpl templates.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) bool {
 	if !createUserInContext(ctx, tpl, form, u, overwrites, gothUser, allowLink) {
 		return false
 	}
@@ -540,7 +526,7 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form any
 
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
-func createUserInContext(ctx *context.Context, tpl base.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
+func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
 	meta := &user_model.Meta{
 		InitialIP:        ctx.RemoteAddr(),
 		InitialUserAgent: ctx.Req.UserAgent(),
@@ -703,7 +689,7 @@ func Activate(ctx *context.Context) {
 	}
 
 	// TODO: ctx.Doer/ctx.Data["SignedUser"] could be nil or not the same user as the one being activated
-	user := user_model.VerifyUserActiveCode(ctx, code)
+	user := user_model.VerifyUserTimeLimitCode(ctx, &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, code)
 	if user == nil { // if code is wrong
 		renderActivationPromptMessage(ctx, ctx.Locale.Tr("auth.invalid_code"))
 		return
@@ -748,7 +734,7 @@ func ActivatePost(ctx *context.Context) {
 	}
 
 	// TODO: ctx.Doer/ctx.Data["SignedUser"] could be nil or not the same user as the one being activated
-	user := user_model.VerifyUserActiveCode(ctx, code)
+	user := user_model.VerifyUserTimeLimitCode(ctx, &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, code)
 	if user == nil { // if code is wrong
 		renderActivationPromptMessage(ctx, ctx.Locale.Tr("auth.invalid_code"))
 		return

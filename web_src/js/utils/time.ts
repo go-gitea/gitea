@@ -42,14 +42,18 @@ export function firstStartDateAfterDate(inputDate: Date): number {
   return resultDate.valueOf();
 }
 
-type DayData = {
+export type DayData = {
   week: number,
   additions: number,
   deletions: number,
   commits: number,
 }
 
-export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayData): DayData[] {
+export type DayDataObject = {
+  [timestamp: string]: DayData,
+}
+
+export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayDataObject): DayData[] {
   const result = {};
 
   for (const startDay of startDays) {

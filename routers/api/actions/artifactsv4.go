@@ -126,12 +126,9 @@ type artifactV4Routes struct {
 func ArtifactV4Contexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := context.NewBaseContext(resp, req)
-			defer baseCleanUp()
-
+			base := context.NewBaseContext(resp, req)
 			ctx := &ArtifactContext{Base: base}
-			ctx.AppendContextValue(artifactContextKey, ctx)
-
+			ctx.SetContextValue(artifactContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
@@ -517,7 +514,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	respData := GetSignedArtifactURLResponse{}
 
 	if setting.Actions.ArtifactStorage.ServeDirect() {
-		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath)
+		u, err := storage.ActionsArtifacts.URL(artifact.StoragePath, artifact.ArtifactPath, nil)
 		if u != nil && err == nil {
 			respData.SignedUrl = u.String()
 		}

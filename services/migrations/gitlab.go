@@ -21,7 +21,7 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 var (
@@ -722,6 +722,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			PatchURL:     pr.WebURL + ".patch",
 			ForeignIndex: int64(pr.IID),
 			Context:      gitlabIssueContext{IsMergeRequest: true},
+			IsDraft:      pr.Draft,
 		})
 
 		// SECURITY: Ensure that the PR is safe

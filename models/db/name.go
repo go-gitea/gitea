@@ -5,20 +5,13 @@ package db
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/util"
 )
 
-var (
-	// ErrNameEmpty name is empty error
-	ErrNameEmpty = util.SilentWrap{Message: "name is empty", Err: util.ErrInvalidArgument}
-
-	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
-	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
-)
+var ErrNameEmpty = util.SilentWrap{Message: "name is empty", Err: util.ErrInvalidArgument}
 
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
@@ -82,20 +75,20 @@ func (err ErrNameCharsNotAllowed) Unwrap() error {
 
 // IsUsableName checks if name is reserved or pattern of name is not allowed
 // based on given reserved names and patterns.
-// Names are exact match, patterns can be prefix or suffix match with placeholder '*'.
-func IsUsableName(names, patterns []string, name string) error {
+// Names are exact match, patterns can be a prefix or suffix match with placeholder '*'.
+func IsUsableName(reservedNames, reservedPatterns []string, name string) error {
 	name = strings.TrimSpace(strings.ToLower(name))
 	if utf8.RuneCountInString(name) == 0 {
 		return ErrNameEmpty
 	}
 
-	for i := range names {
-		if name == names[i] {
+	for i := range reservedNames {
+		if name == reservedNames[i] {
 			return ErrNameReserved{name}
 		}
 	}
 
-	for _, pat := range patterns {
+	for _, pat := range reservedPatterns {
 		if pat[0] == '*' && strings.HasSuffix(name, pat[1:]) ||
 			(pat[len(pat)-1] == '*' && strings.HasPrefix(name, pat[:len(pat)-1])) {
 			return ErrNamePatternNotAllowed{pat}

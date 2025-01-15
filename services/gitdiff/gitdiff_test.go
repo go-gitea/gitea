@@ -5,7 +5,6 @@
 package gitdiff
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -20,6 +19,7 @@ import (
 
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDiffToHTML(t *testing.T) {
@@ -629,9 +629,8 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	gitRepo, err := git.OpenRepository(git.DefaultContext, "./testdata/academic-module")
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
+
 	defer gitRepo.Close()
 	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
 		diffs, err := GetDiff(db.DefaultContext, gitRepo,
@@ -643,9 +642,9 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 				MaxFiles:           setting.Git.MaxGitDiffFiles,
 				WhitespaceBehavior: behavior,
 			})
-		assert.NoError(t, err, fmt.Sprintf("Error when diff with %s", behavior))
+		assert.NoError(t, err, "Error when diff with %s", behavior)
 		for _, f := range diffs.Files {
-			assert.True(t, len(f.Sections) > 0, fmt.Sprintf("%s should have sections", f.Name))
+			assert.NotEmpty(t, f.Sections, "%s should have sections", f.Name)
 		}
 	}
 }

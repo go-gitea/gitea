@@ -260,7 +260,7 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 	if m.IsClosed {
 		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
 	}
-	if m.DeadlineUnix.Year() < 9999 {
+	if m.DeadlineUnix > 0 {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // prAutoMergeQueue represents a queue to handle update pull request tests
@@ -63,9 +64,9 @@ func addToQueue(pr *issues_model.PullRequest, sha string) {
 }
 
 // ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
-func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
+func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string, deleteBranchAfterMerge bool) (scheduled bool, err error) {
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message); err != nil {
+		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
 		scheduled = true
@@ -302,5 +303,11 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 		// The resolution is add a new column on automerge table named `error_message` to store the error message and displayed
 		// on the pull request page. But this should not be finished in a bug fix PR which will be backport to release branch.
 		return
+	}
+
+	if pr.Flow == issues_model.PullRequestFlowGithub && scheduledPRM.DeleteBranchAfterMerge {
+		if err := repo_service.DeleteBranch(ctx, doer, pr.HeadRepo, headGitRepo, pr.HeadBranch, pr); err != nil {
+			log.Error("DeletePullRequestHeadBranch: %v", err)
+		}
 	}
 }

@@ -39,11 +39,11 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 
 			t.Run("Partial Clone", doPartialGitClone(dstPath2, u))
 
-			lfs, _ := lfsCommitAndPushTest(t, dstPath)
+			lfs := lfsCommitAndPushTest(t, dstPath, testFileSizeSmall)[0]
 
 			reqLFS := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/media/"+lfs)
 			respLFS := MakeRequestNilResponseRecorder(t, reqLFS, http.StatusOK)
-			assert.Equal(t, littleSize, respLFS.Length)
+			assert.Equal(t, testFileSizeSmall, respLFS.Length)
 
 			doAPIDeleteRepository(httpContext)
 		})

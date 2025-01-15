@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/git"
@@ -79,10 +80,10 @@ func GetGitHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	hookID := ctx.PathParam(":id")
+	hookID := ctx.PathParam("id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
-		if err == git.ErrNotValidHook {
+		if errors.Is(err, git.ErrNotValidHook) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetHook", err)
@@ -126,10 +127,10 @@ func EditGitHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	form := web.GetForm(ctx).(*api.EditGitHookOption)
-	hookID := ctx.PathParam(":id")
+	hookID := ctx.PathParam("id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
-		if err == git.ErrNotValidHook {
+		if errors.Is(err, git.ErrNotValidHook) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetHook", err)
@@ -175,10 +176,10 @@ func DeleteGitHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	hookID := ctx.PathParam(":id")
+	hookID := ctx.PathParam("id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
-		if err == git.ErrNotValidHook {
+		if errors.Is(err, git.ErrNotValidHook) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetHook", err)

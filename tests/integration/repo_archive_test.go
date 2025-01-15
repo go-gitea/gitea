@@ -29,5 +29,5 @@ func TestRepoDownloadArchive(t *testing.T) {
 	bs, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Empty(t, resp.Header().Get("Content-Encoding"))
-	assert.Equal(t, 320, len(bs))
+	assert.Len(t, bs, 320)
 }
