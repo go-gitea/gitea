@@ -26,6 +26,7 @@
 			</div>
 		</div>
 		{{end}}
+		{{template "base/paginate" .}}
 		<div class="ui bottom attached segment">
 			<form class="ui form" id="search-badge-user-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}

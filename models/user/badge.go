@@ -46,14 +46,25 @@ func GetUserBadges(ctx context.Context, u *User) ([]*Badge, int64, error) {
 	return badges, count, err
 }
 
-// GetBadgeUsers returns the users that have a specific badge.
-func GetBadgeUsers(ctx context.Context, b *Badge) ([]*User, int64, error) {
+// GetBadgeUsersOptions contains options for getting users with a specific badge
+type GetBadgeUsersOptions struct {
+	db.ListOptions
+	Badge *Badge
+}
+
+// GetBadgeUsers returns the users that have a specific badge with pagination support.
+func GetBadgeUsers(ctx context.Context, opts *GetBadgeUsersOptions) ([]*User, int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("`user`.*").
 		Join("INNER", "user_badge", "`user_badge`.user_id=user.id").
 		Join("INNER", "badge", "`user_badge`.badge_id=badge.id").
-		Where("badge.slug=?", b.Slug)
-	users := make([]*User, 0, 8)
+		Where("badge.slug=?", opts.Badge.Slug)
+
+	if opts.Page > 0 {
+		sess = db.SetSessionPagination(sess, opts)
+	}
+
+	users := make([]*User, 0, opts.PageSize)
 	count, err := sess.FindAndCount(&users)
 	return users, count, err
 }
@@ -82,10 +93,22 @@ func UpdateBadge(ctx context.Context, badge *Badge) error {
 	return err
 }
 
-// DeleteBadge deletes a badge.
+// DeleteBadge deletes a badge and all associated user_badge entries.
 func DeleteBadge(ctx context.Context, badge *Badge) error {
-	_, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Delete(badge)
-	return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// First delete all user_badge entries for this badge
+		if _, err := db.GetEngine(ctx).
+			Where("badge_id = (SELECT id FROM badge WHERE slug = ?)", badge.Slug).
+			Delete(&UserBadge{}); err != nil {
+			return err
+		}
+
+		// Then delete the badge itself
+		if _, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Delete(badge); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // AddUserBadge adds a badge to a user.
@@ -123,18 +146,18 @@ func RemoveUserBadge(ctx context.Context, u *User, badge *Badge) error {
 // RemoveUserBadges removes specific badges from a user.
 func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		for _, badge := range badges {
-			subQuery := builder.
-				Select("id").
-				From("badge").
-				Where(builder.Eq{"slug": badge.Slug})
+		slugs := make([]string, len(badges))
+		for i, badge := range badges {
+			slugs[i] = badge.Slug
+		}
 
-			if _, err := db.GetEngine(ctx).
-				Where("`user_badge`.user_id=?", u.ID).
-				And(builder.In("badge_id", subQuery)).
-				Delete(&UserBadge{}); err != nil {
-				return err
-			}
+		if _, err := db.GetEngine(ctx).
+			Table("user_badge").
+			Join("INNER", "badge", "`user_badge`.badge_id = badge.id").
+			Where("`user_badge`.user_id = ?", u.ID).
+			And(builder.In("badge.slug", slugs)).
+			Delete(&UserBadge{}); err != nil {
+			return err
 		}
 		return nil
 	})
@@ -155,8 +178,6 @@ type SearchBadgeOptions struct {
 	ID      int64
 	OrderBy db.SearchOrderBy
 	Actor   *User // The user doing the search
-
-	ExtraParamStrings map[string]string
 }
 
 func (opts *SearchBadgeOptions) ToConds() builder.Cond {
@@ -172,15 +193,6 @@ func (opts *SearchBadgeOptions) ToConds() builder.Cond {
 func (opts *SearchBadgeOptions) ToOrders() string {
 	orderBy := "badge.slug"
 	return orderBy
-}
-
-func (opts *SearchBadgeOptions) ToJoins() []db.JoinFunc {
-	return []db.JoinFunc{
-		func(e db.Engine) error {
-			e.Join("INNER", "badge", "`user_badge`.badge_id=badge.id")
-			return nil
-		},
-	}
 }
 
 func SearchBadges(ctx context.Context, opts *SearchBadgeOptions) (badges []*Badge, _ int64, _ error) {
@@ -232,4 +244,17 @@ func (opts *SearchBadgeOptions) toSearchQueryBase(ctx context.Context) *xorm.Ses
 	e := db.GetEngine(ctx)
 
 	return e.Where(cond)
+}
+
+// GetBadgeByID returns a specific badge by ID
+func GetBadgeByID(ctx context.Context, id int64) (*Badge, error) {
+	badge := new(Badge)
+	has, err := db.GetEngine(ctx).ID(id).Get(badge)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrBadgeNotExist{ID: id}
+	}
+	return badge, nil
 }

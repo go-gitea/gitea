@@ -131,16 +131,20 @@ func (err ErrBadgeAlreadyExist) Unwrap() error {
 // ErrBadgeNotExist represents a "BadgeNotExist" kind of error.
 type ErrBadgeNotExist struct {
 	Slug string
+	ID   int64
+}
+
+func (err ErrBadgeNotExist) Error() string {
+	if err.ID > 0 {
+		return fmt.Sprintf("badge does not exist [id: %d]", err.ID)
+	}
+	return fmt.Sprintf("badge does not exist [slug: %s]", err.Slug)
 }
 
 // IsErrBadgeNotExist checks if an error is a ErrBadgeNotExist.
 func IsErrBadgeNotExist(err error) bool {
 	_, ok := err.(ErrBadgeNotExist)
 	return ok
-}
-
-func (err ErrBadgeNotExist) Error() string {
-	return fmt.Sprintf("badge does not exist [slug: %s]", err.Slug)
 }
 
 // Unwrap unwraps this error as a ErrNotExist error

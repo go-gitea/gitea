@@ -8,12 +8,12 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
-func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions, tplName base.TplName) {
+func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions, tplName templates.TplName) {
 	// Sitemap index for sitemap paths
 	opts.Page = int(ctx.PathParamInt64("idx"))
 	if opts.Page <= 1 {
@@ -68,10 +68,7 @@ func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions
 	ctx.Data["Badges"] = badges
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
-	for paramKey, paramVal := range opts.ExtraParamStrings {
-		pager.AddParamString(paramKey, paramVal)
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplName)

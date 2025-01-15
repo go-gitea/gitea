@@ -7,14 +7,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/services/context"
@@ -23,11 +22,11 @@ import (
 )
 
 const (
-	tplBadges     base.TplName = "admin/badge/list"
-	tplBadgeNew   base.TplName = "admin/badge/new"
-	tplBadgeView  base.TplName = "admin/badge/view"
-	tplBadgeEdit  base.TplName = "admin/badge/edit"
-	tplBadgeUsers base.TplName = "admin/badge/users"
+	tplBadges     templates.TplName = "admin/badge/list"
+	tplBadgeNew   templates.TplName = "admin/badge/new"
+	tplBadgeView  templates.TplName = "admin/badge/view"
+	tplBadgeEdit  templates.TplName = "admin/badge/edit"
+	tplBadgeUsers templates.TplName = "admin/badge/users"
 )
 
 // BadgeSearchDefaultAdminSort is the default sort type for admin view
@@ -97,14 +96,14 @@ func NewBadgePost(ctx *context.Context) {
 	log.Trace("Badge created by admin (%s): %s", ctx.Doer.Name, b.Slug)
 
 	ctx.Flash.Success(ctx.Tr("admin.badges.new_success", b.Slug))
-	ctx.Redirect(setting.AppSubURL + "/admin/badges/" + strconv.FormatInt(b.ID, 10))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/badges/" + url.PathEscape(b.Slug))
 }
 
 func prepareBadgeInfo(ctx *context.Context) *user_model.Badge {
 	b, err := user_model.GetBadge(ctx, ctx.PathParam(":badge_slug"))
 	if err != nil {
 		if user_model.IsErrBadgeNotExist(err) {
-			ctx.Redirect(setting.AppSubURL + "/admin/badges")
+			ctx.Redirect(setting.AppSubURL + "/-/admin/badges")
 		} else {
 			ctx.ServerError("GetBadge", err)
 		}
@@ -112,10 +111,16 @@ func prepareBadgeInfo(ctx *context.Context) *user_model.Badge {
 	}
 	ctx.Data["Badge"] = b
 
-	users, count, err := user_model.GetBadgeUsers(ctx, b)
+	opts := &user_model.GetBadgeUsersOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.User.RepoPagingNum,
+		},
+		Badge: b,
+	}
+	users, count, err := user_model.GetBadgeUsers(ctx, opts)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Redirect(setting.AppSubURL + "/admin/badges")
+			ctx.Redirect(setting.AppSubURL + "/-/admin/badges")
 		} else {
 			ctx.ServerError("GetBadgeUsers", err)
 		}
@@ -187,7 +192,7 @@ func EditBadgePost(ctx *context.Context) {
 	log.Trace("Badge updated by admin (%s): %s", ctx.Doer.Name, b.Slug)
 
 	ctx.Flash.Success(ctx.Tr("admin.badges.update_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/badges/" + url.PathEscape(ctx.PathParam(":badge_slug")))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/badges/" + url.PathEscape(ctx.PathParam(":badge_slug")))
 }
 
 // DeleteBadge response for deleting a badge
@@ -206,20 +211,35 @@ func DeleteBadge(ctx *context.Context) {
 	log.Trace("Badge deleted by admin (%s): %s", ctx.Doer.Name, b.Slug)
 
 	ctx.Flash.Success(ctx.Tr("admin.badges.deletion_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/badges")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/badges")
 }
 
 func BadgeUsers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.badges.users_with_badge", ctx.PathParam(":badge_slug"))
 	ctx.Data["PageIsAdminBadges"] = true
 
-	users, _, err := user_model.GetBadgeUsers(ctx, &user_model.Badge{Slug: ctx.PathParam(":badge_slug")})
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
+
+	badge := &user_model.Badge{Slug: ctx.PathParam(":badge_slug")}
+	opts := &user_model.GetBadgeUsersOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.User.RepoPagingNum,
+		},
+		Badge: badge,
+	}
+	users, count, err := user_model.GetBadgeUsers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("GetBadgeUsers", err)
 		return
 	}
 
 	ctx.Data["Users"] = users
+	ctx.Data["Total"] = count
+	ctx.Data["Page"] = context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 
 	ctx.HTML(http.StatusOK, tplBadgeUsers)
 }
@@ -267,8 +287,41 @@ func DeleteBadgeUser(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("admin.badges.user_remove_success"))
 	} else {
 		ctx.Flash.Error("DeleteUser: " + err.Error())
+	}
+
+	ctx.JSONRedirect(fmt.Sprintf("%s/-/admin/badges/%s/users", setting.AppSubURL, ctx.PathParam(":badge_slug")))
+}
+
+// ViewBadgeUsers render badge's users page
+func ViewBadgeUsers(ctx *context.Context) {
+	badge, err := user_model.GetBadge(ctx, ctx.PathParam(":slug"))
+	if err != nil {
+		ctx.ServerError("GetBadge", err)
 		return
 	}
 
-	ctx.JSONRedirect(fmt.Sprintf("%s/admin/badges/%s/users", setting.AppSubURL, ctx.PathParam(":badge_slug")))
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
+
+	opts := &user_model.GetBadgeUsersOptions{
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.User.RepoPagingNum,
+		},
+		Badge: badge,
+	}
+	users, count, err := user_model.GetBadgeUsers(ctx, opts)
+	if err != nil {
+		ctx.ServerError("GetBadgeUsers", err)
+		return
+	}
+
+	ctx.Data["Title"] = badge.Description
+	ctx.Data["Badge"] = badge
+	ctx.Data["Users"] = users
+	ctx.Data["Total"] = count
+	ctx.Data["Pages"] = context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
+	ctx.HTML(http.StatusOK, tplBadgeUsers)
 }
