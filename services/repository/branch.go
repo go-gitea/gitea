@@ -432,12 +432,10 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	// If from == rule name, admins are allowed to modify them.
 	if protectedBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, from); err != nil {
 		return "", err
-	} else {
-		if protectedBranch != nil && !perm.IsAdmin() {
-			return "", repo_model.ErrUserDoesNotHaveAccessToRepo{
-				UserID:   doer.ID,
-				RepoName: repo.LowerName,
-			}
+	} else if protectedBranch != nil && !perm.IsAdmin() {
+		return "", repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   doer.ID,
+			RepoName: repo.LowerName,
 		}
 	}
 
