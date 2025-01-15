@@ -193,11 +193,11 @@ func CreateBranch(ctx *context.Context) {
 
 	if form.CreateTag {
 		target := ctx.Repo.CommitID
-		if ctx.Repo.IsViewBranch {
+		if ctx.Repo.RefFullName.IsBranch() {
 			target = ctx.Repo.BranchName
 		}
 		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
-	} else if ctx.Repo.IsViewBranch {
+	} else if ctx.Repo.RefFullName.IsBranch() {
 		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
 		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
