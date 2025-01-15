@@ -1,13 +1,8 @@
 {{template "base/head" .}}
-{{$treeNamesLen := len .TreeNames}}
-{{$isTreePathRoot := eq $treeNamesLen 0}}
-{{$showSidebar := and $isTreePathRoot (not .HideRepoInfo) (not .IsBlame)}}
-{{$hasTreeSidebar := not $isTreePathRoot}}
-{{$showTreeSidebar := .RepoPreferences.ShowFileViewTreeSidebar}}
-{{$hideTreeSidebar := not $showTreeSidebar}}
+{{$showSidebar := and (not .TreeNames) (not .HideRepoInfo) (not .IsBlame)}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
-	<div class="ui container {{if or $hasTreeSidebar .IsBlame}}fluid padded{{end}}">
+	<div class="ui container {{if or .TreeNames .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
 
 		{{if .Repository.IsArchived}}
@@ -22,9 +17,9 @@
 
 		{{template "repo/code/recently_pushed_new_branches" .}}
 
-		<div class="{{Iif $showSidebar "repo-grid-filelist-sidebar" (Iif $showTreeSidebar "repo-grid-tree-sidebar" "repo-grid-filelist-only")}}">
-			{{if $hasTreeSidebar}}
-				<div class="repo-view-file-tree-sidebar not-mobile {{if $hideTreeSidebar}}tw-hidden{{end}}" {{if .IsSigned}} data-is-signed {{end}}>{{template "repo/view_file_tree_sidebar" .}}</div>
+		<div class="{{Iif $showSidebar "repo-grid-filelist-sidebar" (Iif .RepoPreferences.ShowFileViewTreeSidebar "repo-grid-tree-sidebar" "repo-grid-filelist-only")}}">
+			{{if .TreeNames}}
+				<div class="repo-view-file-tree-sidebar not-mobile {{if not .RepoPreferences.ShowFileViewTreeSidebar}}tw-hidden{{end}}" {{if .IsSigned}} data-is-signed {{end}}>{{template "repo/view_file_tree_sidebar" .}}</div>
 			{{end}}
 
 			<div class="repo-home-filelist">

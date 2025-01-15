@@ -1,14 +1,11 @@
-{{$treeNamesLen := len .TreeNames}}
-{{$isTreePathRoot := eq $treeNamesLen 0}}
+{{$isTreePathRoot := not .TreeNames}}
 {{$showSidebar := and $isTreePathRoot (not .HideRepoInfo) (not .IsBlame)}}
-{{$hasTreeSidebar := not $isTreePathRoot}}
-{{$showTreeSidebar := .RepoPreferences.ShowFileViewTreeSidebar}}
 
 {{template "repo/sub_menu" .}}
 <div class="repo-button-row">
 	<div class="repo-button-row-left">
-		{{if $hasTreeSidebar}}
-			<button class="show-tree-sidebar-button ui compact basic button icon not-mobile {{if $showTreeSidebar}}tw-hidden{{end}}" title="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
+		{{if not $isTreePathRoot}}
+			<button class="show-tree-sidebar-button ui compact basic button icon not-mobile {{if .RepoPreferences.ShowFileViewTreeSidebar}}tw-hidden{{end}}" title="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
 				{{svg "octicon-sidebar-collapse" 20 "icon"}}
 			</button>
 		{{end}}
@@ -58,7 +55,7 @@
 	{{end}}
 
 	{{if not $isTreePathRoot}}
-		{{$treeNameIdxLast := Eval $treeNamesLen "-" 1}}
+		{{$treeNameIdxLast := Eval (len .TreeNames) "-" 1}}
 		<span class="breadcrumb repo-path tw-ml-1">
 			<a class="section" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 			{{- range $i, $v := .TreeNames -}}
