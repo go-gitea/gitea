@@ -18,7 +18,7 @@
 		<div class="file-header-right file-actions tw-flex tw-items-center tw-flex-wrap">
 			<div class="ui buttons">
 				<a class="ui tiny button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
-				{{if not .IsViewCommit}}
+				{{if or .RefFullName.IsBranch .RefFullName.IsTag}}
 					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID | PathEscape}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
 				{{end}}
 				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
