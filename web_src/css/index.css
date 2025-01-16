@@ -82,5 +82,6 @@
 @import "./review.css";
 @import "./actions.css";
 
-@tailwind utilities;
 @import "./helpers.css";
+
+@tailwind utilities;

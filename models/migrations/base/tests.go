@@ -76,7 +76,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 			t.Errorf("error whilst initializing fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}
-		if err := unittest.LoadFixtures(x); err != nil {
+		if err := unittest.LoadFixtures(); err != nil {
 			t.Errorf("error whilst loading fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}

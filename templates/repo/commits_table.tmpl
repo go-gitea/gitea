@@ -19,7 +19,7 @@
 
 {{if .PageIsCommits}}
 	<div class="ui attached segment">
-		<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
+		<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/search">
 			<div class="ui small fluid action input">
 				{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.commit_kind")}}
 				{{template "repo/commits_search_dropdown" .}}

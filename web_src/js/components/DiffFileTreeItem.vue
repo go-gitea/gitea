@@ -8,6 +8,7 @@ type File = {
   NameHash: string;
   Type: number;
   IsViewed: boolean;
+  IsSubmodule: boolean;
 }
 
 type Item = {
@@ -24,7 +25,7 @@ defineProps<{
 const store = diffTreeStore();
 const collapsed = ref(false);
 
-function getIconForDiffType(pType) {
+function getIconForDiffType(pType: number) {
   const diffTypes = {
     1: {name: 'octicon-diff-added', classes: ['text', 'green']},
     2: {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
@@ -33,6 +34,13 @@ function getIconForDiffType(pType) {
     5: {name: 'octicon-diff-renamed', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
   };
   return diffTypes[pType];
+}
+
+function fileIcon(file: File) {
+  if (file.IsSubmodule) {
+    return 'octicon-file-submodule';
+  }
+  return 'octicon-file';
 }
 </script>
 
@@ -44,7 +52,7 @@ function getIconForDiffType(pType) {
     :title="item.name" :href="'#diff-' + item.file.NameHash"
   >
     <!-- file -->
-    <SvgIcon name="octicon-file"/>
+    <SvgIcon :name="fileIcon(item.file)"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
     <SvgIcon :name="getIconForDiffType(item.file.Type).name" :class="getIconForDiffType(item.file.Type).classes"/>
   </a>

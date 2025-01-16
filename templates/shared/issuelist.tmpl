@@ -25,30 +25,10 @@
 							{{end}}
 						</span>
 					</div>
-					{{if or .TotalTrackedTime .Assignees .NumComments}}
-					<div class="flex-item-trailing">
-						{{if .TotalTrackedTime}}
-						<div class="text grey flex-text-block">
-								{{svg "octicon-clock" 16}}
-								{{.TotalTrackedTime | Sec2Time}}
-						</div>
-						{{end}}
-						{{if .Assignees}}
-						<div class="text grey">
-							{{range .Assignees}}
-								<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
-									{{ctx.AvatarUtils.Avatar . 20}}
-								</a>
-							{{end}}
-						</div>
-						{{end}}
-						{{if .NumComments}}
-						<div class="text grey">
-							<a class="tw-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-								{{svg "octicon-comment" 16}}{{.NumComments}}
-							</a>
-						</div>
-						{{end}}
+					{{if .TotalTrackedTime}}
+					<div class="text grey flex-text-block">
+							{{svg "octicon-clock" 16}}
+							{{.TotalTrackedTime | Sec2Time}}
 					</div>
 					{{end}}
 				</div>
@@ -152,6 +132,26 @@
 					{{end}}
 				</div>
 			</div>
+			{{if or .Assignees .NumComments}}
+			<div class="flex-item-trailing">
+				{{if .Assignees}}
+				<div class="text grey">
+					{{range .Assignees}}
+						<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
+							{{ctx.AvatarUtils.Avatar . 20}}
+						</a>
+					{{end}}
+				</div>
+				{{end}}
+				{{if .NumComments}}
+				<div class="text grey">
+					<a class="tw-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						{{svg "octicon-comment" 16}}{{.NumComments}}
+					</a>
+				</div>
+				{{end}}
+			</div>
+			{{end}}
 		</div>
 	{{end}}
 	{{if .IssueIndexerUnavailable}}

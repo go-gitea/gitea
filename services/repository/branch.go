@@ -416,6 +416,29 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "from_not_exist", nil
 	}
 
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	if err != nil {
+		return "", err
+	}
+
+	isDefault := from == repo.DefaultBranch
+	if isDefault && !perm.IsAdmin() {
+		return "", repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   doer.ID,
+			RepoName: repo.LowerName,
+		}
+	}
+
+	// If from == rule name, admins are allowed to modify them.
+	if protectedBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, from); err != nil {
+		return "", err
+	} else if protectedBranch != nil && !perm.IsAdmin() {
+		return "", repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   doer.ID,
+			RepoName: repo.LowerName,
+		}
+	}
+
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
@@ -489,7 +512,7 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 }
 
 // DeleteBranch delete branch
-func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string) error {
+func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branchName string, pr *issues_model.PullRequest) error {
 	err := repo.MustNotBeArchived()
 	if err != nil {
 		return err
@@ -516,6 +539,12 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		if !notExist {
 			if err := git_model.AddDeletedBranch(ctx, repo.ID, branchName, doer.ID); err != nil {
 				return err
+			}
+		}
+
+		if pr != nil {
+			if err := issues_model.AddDeletePRBranchComment(ctx, doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+				return fmt.Errorf("DeleteBranch: %v", err)
 			}
 		}
 

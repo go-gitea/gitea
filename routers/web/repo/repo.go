@@ -51,7 +51,7 @@ func MustBeNotEmpty(ctx *context.Context) {
 
 // MustBeEditable check that repo can be edited
 func MustBeEditable(ctx *context.Context) {
-	if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {
+	if !ctx.Repo.Repository.CanEnableEditor() {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -147,27 +147,33 @@ func getRepoPrivate(ctx *context.Context) bool {
 	}
 }
 
-// Create render creating repository page
-func Create(ctx *context.Context) {
+func createCommon(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
-
-	// Give default value for template to render.
 	ctx.Data["Gitignores"] = repo_module.Gitignores
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
-	ctx.Data["readme"] = "Default"
-	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
+	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	ctx.Data["SupportedObjectFormats"] = git.DefaultFeatures().SupportedObjectFormats
+	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
+}
 
+// Create render creating repository page
+func Create(ctx *context.Context) {
+	createCommon(ctx)
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
+	ctx.Data["readme"] = "Default"
+	ctx.Data["private"] = getRepoPrivate(ctx)
+	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
+
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := repo_model.GetRepositoryByID(ctx, templateID)
@@ -176,11 +182,6 @@ func Create(ctx *context.Context) {
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
 	}
-
-	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
-	ctx.Data["SupportedObjectFormats"] = git.DefaultFeatures().SupportedObjectFormats
-	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
 
 	ctx.HTML(http.StatusOK, tplCreate)
 }
@@ -219,22 +220,22 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 
 // CreatePost response for creating repository
 func CreatePost(ctx *context.Context) {
+	createCommon(ctx)
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
-	ctx.Data["Title"] = ctx.Tr("new_repo")
-
-	ctx.Data["Gitignores"] = repo_module.Gitignores
-	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
-	ctx.Data["Licenses"] = repo_module.Licenses
-	ctx.Data["Readmes"] = repo_module.Readmes
-
-	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
+
+	if form.RepoTemplate > 0 {
+		templateRepo, err := repo_model.GetRepositoryByID(ctx, form.RepoTemplate)
+		if err == nil && access_model.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
+			ctx.Data["repo_template"] = form.RepoTemplate
+			ctx.Data["repo_template_name"] = templateRepo.Name
+		}
+	}
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplCreate)
@@ -462,13 +463,7 @@ func RedirectDownload(ctx *context.Context) {
 
 // Download an archive of a repository
 func Download(ctx *context.Context) {
-	uri := ctx.PathParam("*")
-	ext, tp, err := archiver_service.ParseFileName(uri)
-	if err != nil {
-		ctx.ServerError("ParseFileName", err)
-		return
-	}
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, err.Error())
@@ -526,15 +521,9 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
-	uri := ctx.PathParam("*")
-	ext, tp, err := archiver_service.ParseFileName(uri)
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
-		ctx.ServerError("ParseFileName", err)
-		return
-	}
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
-	if err != nil {
-		ctx.ServerError("archiver_service.NewRequest", err)
+		ctx.Error(http.StatusBadRequest, "invalid archive request")
 		return
 	}
 	if aReq == nil {

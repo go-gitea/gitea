@@ -70,7 +70,7 @@
 					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
-					<div class="ui header">
+					<div class="header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
@@ -130,7 +130,7 @@
 				{{/* do not localize it, here it needs the fixed length (width) to make UI comfortable */}}
 				{{if .IsAdmin}}<span class="navbar-profile-admin">admin</span>{{end}}
 				<div class="menu user-menu">
-					<div class="ui header">
+					<div class="header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
@@ -192,7 +192,7 @@
 					<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
 				</a>
 				<div class="tw-flex tw-gap-1">
-					<form class="stopwatch-commit" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
+					<form class="stopwatch-commit form-fetch-action" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
 						{{.CsrfTokenHtml}}
 						<button
 							type="submit"
@@ -200,7 +200,7 @@
 							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
-					<form class="stopwatch-cancel" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
+					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
 						{{.CsrfTokenHtml}}
 						<button
 							type="submit"

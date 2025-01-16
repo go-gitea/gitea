@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -93,8 +92,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
-	pager.AddParamString("q", keyword)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestone)

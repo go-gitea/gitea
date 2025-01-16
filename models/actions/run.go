@@ -88,7 +88,7 @@ func (run *ActionRun) RefLink() string {
 	if refName.IsPull() {
 		return run.Repo.Link() + "/pulls/" + refName.ShortName()
 	}
-	return git.RefURL(run.Repo.Link(), run.Ref)
+	return run.Repo.Link() + "/src/" + refName.RefWebLinkPath()
 }
 
 // PrettyRef return #id for pull ref or ShortName for others
@@ -154,7 +154,7 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 }
 
 func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
-	if run.Event == webhook_module.HookEventPullRequest || run.Event == webhook_module.HookEventPullRequestSync {
+	if run.Event.IsPullRequest() {
 		var payload api.PullRequestPayload
 		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 			return nil, err
