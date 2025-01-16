@@ -79,21 +79,21 @@ function initRepoSettingsGitHook() {
 function initRepoSettingsBranches() {
   if (!document.querySelector('.repository.settings.branches')) return;
 
-  for (const el of document.querySelectorAll('.toggle-target-enabled')) {
+  for (const el of document.querySelectorAll<HTMLInputElement>('.toggle-target-enabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target'));
       target?.classList.toggle('disabled', !this.checked);
     });
   }
 
-  for (const el of document.querySelectorAll('.toggle-target-disabled')) {
+  for (const el of document.querySelectorAll<HTMLInputElement>('.toggle-target-disabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target'));
       if (this.checked) target?.classList.add('disabled'); // only disable, do not auto enable
     });
   }
 
-  document.querySelector('#dismiss_stale_approvals')?.addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#dismiss_stale_approvals')?.addEventListener('change', function () {
     document.querySelector('#ignore_stale_approvals_box')?.classList.toggle('disabled', this.checked);
   });
 

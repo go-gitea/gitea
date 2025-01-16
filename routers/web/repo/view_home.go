@@ -178,7 +178,7 @@ func prepareHomeSidebarLatestRelease(ctx *context.Context) {
 }
 
 func prepareUpstreamDivergingInfo(ctx *context.Context) {
-	if !ctx.Repo.Repository.IsFork || !ctx.Repo.IsViewBranch || ctx.Repo.TreePath != "" {
+	if !ctx.Repo.Repository.IsFork || !ctx.Repo.RefFullName.IsBranch() || ctx.Repo.TreePath != "" {
 		return
 	}
 	upstreamDivergingInfo, err := repo_service.GetUpstreamDivergingInfo(ctx, ctx.Repo.Repository, ctx.Repo.BranchName)
@@ -249,7 +249,7 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 		} else if reallyEmpty {
 			showEmpty = true // the repo is really empty
 			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryReady)
-		} else if ctx.Repo.Commit == nil {
+		} else if branches, _, _ := ctx.Repo.GitRepo.GetBranches(0, 1); len(branches) == 0 {
 			showEmpty = true // it is not really empty, but there is no branch
 			// at the moment, other repo units like "actions" are not able to handle such case,
 			// so we just mark the repo as empty to prevent from displaying these units.
