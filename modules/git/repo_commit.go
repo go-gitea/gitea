@@ -533,7 +533,6 @@ func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID s
 
 	parts := bytes.Split(bytes.TrimSpace(stdout), []byte{'\n'})
 
-	var startCommitID string
 	for _, commitID := range parts {
 		branches, err := repo.getBranches(env, string(commitID), 2)
 		if err != nil {
@@ -541,11 +540,10 @@ func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID s
 		}
 		for _, b := range branches {
 			if b != branch {
-				return startCommitID, nil
+				return string(commitID), nil
 			}
 		}
 
-		startCommitID = string(commitID)
 	}
 
 	return "", nil

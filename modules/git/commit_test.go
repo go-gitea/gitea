@@ -357,5 +357,14 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	startCommitID, err := repo.GetCommitBranchStart(os.Environ(), "branch1", commit.ID.String())
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
-	assert.EqualValues(t, "9c9aef8dd84e02bc7ec12641deb4c930a7c30185", startCommitID)
+	assert.EqualValues(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
+
+	commit, err = repo.GetBranchCommit("branch3")
+	assert.NoError(t, err)
+	assert.EqualValues(t, "ce064814f4a0d337b333e646ece456cd39fab612", commit.ID.String())
+
+	startCommitID, err = repo.GetCommitBranchStart(os.Environ(), "branch3", commit.ID.String())
+	assert.NoError(t, err)
+	assert.NotEmpty(t, startCommitID)
+	assert.EqualValues(t, "ce064814f4a0d337b333e646ece456cd39fab612", startCommitID)
 }
