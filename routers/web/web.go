@@ -1332,7 +1332,7 @@ func registerRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}", func() { // repo tags
 		m.Group("/tags", func() {
-			m.Get("", context.RepoRefByDefaultBranch(), repo.TagsList)
+			m.Get("", context.RepoRefByDefaultBranch() /* for the "commits" tab */, repo.TagsList)
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 			m.Get("/list", repo.GetTagList)
@@ -1522,7 +1522,7 @@ func registerRoutes(m *web.Router) {
 
 		m.Group("/branches", func() {
 			m.Get("/list", repo.GetBranchesList)
-			m.Get("", context.RepoRefByDefaultBranch(), repo.Branches)
+			m.Get("", context.RepoRefByDefaultBranch() /* for the "commits" tab */, repo.Branches)
 		}, repo.MustBeNotEmpty)
 
 		m.Group("/media", func() {

@@ -783,10 +783,9 @@ func RepoRefByDefaultBranch() func(*Context) {
 		ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
 		ctx.Repo.Commit, _ = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
 		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount()
+		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
-		ctx.Data["TreePath"] = ""
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-		ctx.Data["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
 	}
 }
 
