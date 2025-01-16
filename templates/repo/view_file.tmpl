@@ -42,7 +42,7 @@
 			{{if not .ReadmeInList}}
 				<div class="ui buttons tw-mr-1">
 					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
-					{{if not .IsViewCommit}}
+					{{if or .RefFullName.IsBranch .RefFullName.IsTag}}
 						<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
 					{{end}}
 					{{if .IsRepresentableAsText}}
