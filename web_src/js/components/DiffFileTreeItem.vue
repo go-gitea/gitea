@@ -25,7 +25,7 @@ defineProps<{
 const store = diffTreeStore();
 const collapsed = ref(false);
 
-function getIconForDiffType(pType) {
+function getIconForDiffType(pType: number) {
   const diffTypes = {
     1: {name: 'octicon-diff-added', classes: ['text', 'green']},
     2: {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
@@ -36,7 +36,7 @@ function getIconForDiffType(pType) {
   return diffTypes[pType];
 }
 
-function fileIcon(file) {
+function fileIcon(file: File) {
   if (file.IsSubmodule) {
     return 'octicon-file-submodule';
   }
