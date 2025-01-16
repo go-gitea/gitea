@@ -1,5 +1,5 @@
 <script lang="ts">
-import {createApp, nextTick} from 'vue';
+import {nextTick, defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -24,7 +24,7 @@ const commitStatus: CommitStatusMap = {
   warning: {name: 'gitea-exclamation', color: 'yellow'},
 };
 
-const sfc = {
+export default defineComponent({
   components: {SvgIcon},
   data() {
     const params = new URLSearchParams(window.location.search);
@@ -335,16 +335,8 @@ const sfc = {
       }
     },
   },
-};
+});
 
-export function initDashboardRepoList() {
-  const el = document.querySelector('#dashboard-repo-list');
-  if (el) {
-    createApp(sfc).mount(el);
-  }
-}
-
-export default sfc; // activate the IDE's Vue plugin
 </script>
 <template>
   <div>

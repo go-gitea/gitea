@@ -784,7 +784,7 @@ td .commit-summary {
   box-shadow: none;
 }
 
-.repository.view.issue .ui.depending .item.is-closed .title {
+.repository.view.issue .ui.depending .item.is-closed .issue-dependency-title {
   text-decoration: line-through;
 }
 

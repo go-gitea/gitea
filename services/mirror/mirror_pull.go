@@ -87,6 +87,7 @@ type mirrorSyncResult struct {
 /*
 // * [new tag]         v0.1.8     -> v0.1.8
 // * [new branch]      master     -> origin/master
+// * [new ref]         refs/pull/2/head  -> refs/pull/2/head"
 // - [deleted]         (none)     -> origin/test // delete a branch
 // - [deleted]         (none)     -> 1 // delete a tag
 //   957a993..a87ba5f  test       -> origin/test
@@ -115,6 +116,11 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 			refName = strings.TrimPrefix(refName, remoteName+"/")
 			results = append(results, &mirrorSyncResult{
 				refName:     git.RefNameFromBranch(refName),
+				oldCommitID: gitShortEmptySha,
+			})
+		case strings.HasPrefix(lines[i], " * [new ref]"): // new reference
+			results = append(results, &mirrorSyncResult{
+				refName:     git.RefName(refName),
 				oldCommitID: gitShortEmptySha,
 			})
 		case strings.HasPrefix(lines[i], " - "): // Delete reference
@@ -159,8 +165,15 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				log.Error("Expect two SHAs but not what found: %q", lines[i])
 				continue
 			}
+			var refFullName git.RefName
+			if strings.HasPrefix(refName, "refs/") {
+				refFullName = git.RefName(refName)
+			} else {
+				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
+			}
+
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/")),
+				refName:     refFullName,
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
