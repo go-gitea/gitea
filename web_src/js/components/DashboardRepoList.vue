@@ -361,18 +361,8 @@ export default defineComponent({
       </h4>
       <div v-if="isLoading && !reposTotalCount" class="ui attached segment" :class="{'is-loading': isLoading}"/>
       <div v-if="isRepoEmpty" class="ui attached segment empty-placeholder">
-        <svg-icon name="octicon-no-entry" :size="48" class-name="repo-list-icon"/>
-        <h2>{{ textNoRepo }}</h2>
-        <p>
-          <a :href="subUrl + '/repo/create'">
-            <svg-icon name="octicon-plus" :size="16" class-name="repo-list-icon"/> {{ textNewRepo }}
-          </a>
-        </p>
-        <p v-if="canCreateMigrations">
-          <a :href="subUrl + '/repo/migrate'">
-            <svg-icon name="octicon-repo-push" :size="16" class-name="repo-list-icon"/> {{ textNewMigrate }}
-          </a>
-        </p>
+        <svg-icon name="octicon-no-entry" :size="24" class-name="repo-list-icon"/>
+        <p>{{ textNoRepo }}</p>
       </div>
       <div v-if="reposTotalCount" class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
@@ -489,13 +479,8 @@ export default defineComponent({
       </h4>
       <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
       <div v-if="isOrgEmpty" class="ui attached segment empty-placeholder">
-        <svg-icon name="octicon-no-entry" :size="48" class-name="repo-list-icon"/>
-        <h2>{{ textNoOrg }}</h2>
-        <p v-if="canCreateOrganization">
-          <a :href="subUrl + '/org/create'">
-            <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/> {{ textNewOrg }}
-          </a>
-        </p>
+        <svg-icon name="octicon-no-entry" :size="24" class-name="repo-list-icon"/>
+        <p>{{ textNoOrg }}</p>
       </div>
       <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
@@ -575,5 +560,13 @@ ul li:not(:last-child) {
 
 .repo-owner-name-list li.active {
   background: var(--color-hover);
+}
+
+.empty-placeholder > svg, p {
+  color: var(--color-placeholder-text);
+}
+
+.empty-placeholder p {
+  margin: 1rem auto !important;
 }
 </style>
