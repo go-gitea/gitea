@@ -543,7 +543,6 @@ func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID s
 				return string(commitID), nil
 			}
 		}
-
 	}
 
 	return "", nil
