@@ -341,17 +341,7 @@ export default defineComponent({
       }
     },
   },
-
 });
-
-export function initDashboardRepoList() {
-  const el = document.querySelector('#dashboard-repo-list');
-  if (el) {
-    el.classList.remove('is-loading');
-    createApp(sfc).mount(el);
-  }
-}
-
 </script>
 <template>
   <div>
