@@ -70,18 +70,18 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 }
 
 // GetUpstreamDivergingInfo returns the information about the divergence between the fork repository's branch and the base repository's default branch.
-func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, repo *repo_model.Repository, branch string) (*BranchDivergingInfo, error) {
-	if !repo.IsFork {
+func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, forkRepo *repo_model.Repository, forkBranch string) (*BranchDivergingInfo, error) {
+	if !forkRepo.IsFork {
 		return nil, util.NewInvalidArgumentErrorf("repo is not a fork")
 	}
 
-	if repo.IsArchived {
+	if forkRepo.IsArchived {
 		return nil, util.NewInvalidArgumentErrorf("repo is archived")
 	}
 
-	if err := repo.GetBaseRepo(ctx); err != nil {
+	if err := forkRepo.GetBaseRepo(ctx); err != nil {
 		return nil, err
 	}
 
-	return GetBranchDivergingInfo(ctx, repo.BaseRepo, repo, repo.BaseRepo.DefaultBranch, branch)
+	return GetBranchDivergingInfo(ctx, forkRepo.BaseRepo, forkRepo.BaseRepo.DefaultBranch, forkRepo, forkBranch)
 }

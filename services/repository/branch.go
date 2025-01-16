@@ -667,14 +667,16 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 	return nil
 }
 
+// BranchDivergingInfo contains the information about the divergence of a head branch to the base branch.
+// This struct is also used in templates, so it needs to search for all references before changing it.
 type BranchDivergingInfo struct {
 	BaseHasNewCommits bool
-	CommitsBehind     int
-	CommitsAhead      int
+	HeadCommitsBehind int
+	HeadCommitsAhead  int
 }
 
-// getBranchDivergingInfo returns the information about the divergence of a patch branch to the base branch.
-func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo, headRepo *repo_model.Repository, baseBranch, headBranch string) (*BranchDivergingInfo, error) {
+// GetBranchDivergingInfo returns the information about the divergence of a patch branch to the base branch.
+func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repository, baseBranch string, headRepo *repo_model.Repository, headBranch string) (*BranchDivergingInfo, error) {
 	headGitBranch, err := git_model.GetBranch(ctx, headRepo.ID, headBranch)
 	if err != nil {
 		return nil, err
@@ -717,6 +719,6 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo, headRepo *repo_
 		return info, nil
 	}
 
-	info.CommitsBehind, info.CommitsAhead = diff.Behind, diff.Ahead
+	info.HeadCommitsBehind, info.HeadCommitsAhead = diff.Behind, diff.Ahead
 	return info, nil
 }
