@@ -11,8 +11,7 @@ import (
 )
 
 func PerfTrace(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdminMonitorTrace"] = true
+	monitorTraceCommon(ctx)
 	ctx.Data["PageIsAdminMonitorPerfTrace"] = true
 	ctx.Data["PerfTraceRecords"] = tailmsg.GetManager().GetTraceRecorder().GetRecords()
 	ctx.HTML(http.StatusOK, tplPerfTrace)

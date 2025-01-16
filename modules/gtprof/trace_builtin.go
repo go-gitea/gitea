@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/tailmsg"
@@ -29,16 +30,28 @@ func (t *traceBuiltinSpan) toString(out *strings.Builder, indent int) {
 	if t.ts.endTime.IsZero() {
 		out.WriteString(" duration: (not ended)")
 	} else {
-		out.WriteString(fmt.Sprintf(" duration: %.4fs", t.ts.endTime.Sub(t.ts.startTime).Seconds()))
+		out.WriteString(fmt.Sprintf(" duration=%.4fs", t.ts.endTime.Sub(t.ts.startTime).Seconds()))
+	}
+	for _, a := range t.ts.attributes {
+		out.WriteString(" ")
+		out.WriteString(a.Key)
+		out.WriteString("=")
+		value := a.Value.AsString()
+		if strings.ContainsAny(value, " \t\r\n") {
+			quoted := false
+			for _, c := range "\"'`" {
+				if quoted = !strings.Contains(value, string(c)); quoted {
+					value = string(c) + value + string(c)
+					break
+				}
+			}
+			if !quoted {
+				value = fmt.Sprintf("%q", value)
+			}
+		}
+		out.WriteString(value)
 	}
 	out.WriteString("\n")
-	for _, a := range t.ts.attributes {
-		out.WriteString(strings.Repeat(" ", indent+2))
-		out.WriteString(a.Key)
-		out.WriteString(": ")
-		out.WriteString(a.Value.AsString())
-		out.WriteString("\n")
-	}
 	for _, c := range t.ts.children {
 		span := c.internalSpans[t.internalSpanIdx].(*traceBuiltinSpan)
 		span.toString(out, indent+2)
@@ -47,9 +60,10 @@ func (t *traceBuiltinSpan) toString(out *strings.Builder, indent int) {
 
 func (t *traceBuiltinSpan) end() {
 	if t.ts.parent == nil {
-		// FIXME: debug purpose only
-		// FIXME: it should distinguish between http response network lag and actual processing time
-		if len(t.ts.children) > 3 || t.ts.endTime.Sub(t.ts.startTime) > 100*time.Millisecond {
+		// TODO: debug purpose only
+		// TODO: it should distinguish between http response network lag and actual processing time
+		threshold := time.Duration(traceBuiltinThreshold.Load())
+		if threshold != 0 && t.ts.endTime.Sub(t.ts.startTime) > threshold {
 			sb := &strings.Builder{}
 			t.toString(sb, 0)
 			tailmsg.GetManager().GetTraceRecorder().Record(sb.String())
@@ -63,4 +77,10 @@ func (t *traceBuiltinStarter) start(ctx context.Context, traceSpan *TraceSpan, i
 
 func init() {
 	globalTraceStarters = append(globalTraceStarters, &traceBuiltinStarter{})
+}
+
+var traceBuiltinThreshold atomic.Int64
+
+func EnableBuiltinTracer(threshold time.Duration) {
+	traceBuiltinThreshold.Store(int64(threshold))
 }
