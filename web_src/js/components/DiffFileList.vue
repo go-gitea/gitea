@@ -17,7 +17,7 @@ function toggleFileList() {
   store.fileListIsVisible = !store.fileListIsVisible;
 }
 
-function diffTypeToString(pType) {
+function diffTypeToString(pType: number) {
   const diffTypes = {
     1: 'add',
     2: 'modify',
@@ -28,7 +28,7 @@ function diffTypeToString(pType) {
   return diffTypes[pType];
 }
 
-function diffStatsWidth(adds, dels) {
+function diffStatsWidth(adds: number, dels: number) {
   return `${adds / (adds + dels) * 100}%`;
 }
 

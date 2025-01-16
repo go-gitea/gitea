@@ -1598,7 +1598,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
 		m.Post("/action/{action}", reqSignIn, repo.Action)
-	}, optSignIn, context.RepoAssignment, context.RepoRef())
+	}, optSignIn, context.RepoAssignment)
 
 	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
 
@@ -1628,7 +1628,7 @@ func registerRoutes(m *web.Router) {
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req)
-		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))
+		defer routing.RecordFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))()
 		ctx.NotFound("", nil)
 	})
 }

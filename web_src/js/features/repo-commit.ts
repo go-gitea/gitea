@@ -6,7 +6,7 @@ export function initRepoEllipsisButton() {
 }
 
 export function initTargetRepoEllipsisButton(target: ParentNode) {
-  for (const button of target.querySelectorAll('.js-toggle-commit-body')) {
+  for (const button of target.querySelectorAll<HTMLButtonElement>('.js-toggle-commit-body')) {
     button.addEventListener('click', function (e) {
       e.preventDefault();
       const expanded = this.getAttribute('aria-expanded') === 'true';
