@@ -25,6 +25,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+const (
+	httpRequestMethod      = "http_request_method"
+	httpResponseStatusCode = "http_response_status_code"
+	httpRoute              = "http_route"
+)
+
 var (
 	// reqInflightGauge tracks the amount of currently handled requests
 	reqInflightGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -32,28 +38,28 @@ var (
 		Subsystem: "server",
 		Name:      "active_requests",
 		Help:      "Number of active HTTP server requests.",
-	}, []string{"http.request.method"})
+	}, []string{httpRequestMethod})
 	// reqDurationHistogram tracks the time taken by http request
 	reqDurationHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "http",
 		Subsystem: "server",
 		Name:      "request_duration",
 		Help:      "Measures the latency of HTTP requests processed by the server",
-	}, []string{"http.request.method", "http.response.status_code", "http.route"})
+	}, []string{httpRequestMethod, httpResponseStatusCode, httpRoute})
 	// reqSizeHistogram tracks the size of request
 	reqSizeHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "http",
 		Subsystem: "server_request",
 		Name:      "body_size",
 		Help:      "Size of HTTP server request bodies.",
-	}, []string{"http.request.method", "http.response.status_code", "http.route"})
+	}, []string{httpRequestMethod, httpResponseStatusCode, httpRoute})
 	// respSizeHistogram tracks the size of the response
 	respSizeHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "http",
 		Subsystem: "server_response",
 		Name:      "body_size",
 		Help:      "Size of HTTP server response bodies.",
-	}, []string{"http.request.method", "http.response.status_code", "http.route"})
+	}, []string{httpRequestMethod, httpResponseStatusCode, httpRoute})
 )
 
 // ProtocolMiddlewares returns HTTP protocol related middlewares, and it provides a global panic recovery
