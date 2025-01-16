@@ -685,7 +685,11 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo, headRepo *repo_
 		if err != nil {
 			return nil, err
 		}
-		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseGitBranch.CommitID)
+		baseCommitID, err := git.NewIDFromString(baseGitBranch.CommitID)
+		if err != nil {
+			return nil, err
+		}
+		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseCommitID)
 		info.BaseHasNewCommits = !hasPreviousCommit
 		return info, nil
 	}
