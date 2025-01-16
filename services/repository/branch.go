@@ -677,11 +677,11 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo, headRepo *repo_
 			return info, nil
 		}
 		// if the base's update time is before the fork, check whether the base's head is in the fork
-		baseGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, baseRepo)
+		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
 		if err != nil {
 			return nil, err
 		}
-		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
+		headCommit, err := headGitRepo.GetCommit(headGitBranch.CommitID)
 		if err != nil {
 			return nil, err
 		}
