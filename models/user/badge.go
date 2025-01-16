@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // Badge represents a user badge
@@ -27,6 +27,50 @@ type UserBadge struct { //nolint:revive
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64
 	UserID  int64 `xorm:"INDEX"`
+}
+
+// ErrBadgeAlreadyExist represents a "badge already exists" error.
+type ErrBadgeAlreadyExist struct {
+	Slug string
+}
+
+// IsErrBadgeAlreadyExist checks if an error is a ErrBadgeAlreadyExist.
+func IsErrBadgeAlreadyExist(err error) bool {
+	_, ok := err.(ErrBadgeAlreadyExist)
+	return ok
+}
+
+func (err ErrBadgeAlreadyExist) Error() string {
+	return fmt.Sprintf("badge already exists [slug: %s]", err.Slug)
+}
+
+// Unwrap unwraps this error as a ErrExist error
+func (err ErrBadgeAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
+// ErrBadgeNotExist represents a "BadgeNotExist" kind of error.
+type ErrBadgeNotExist struct {
+	Slug string
+	ID   int64
+}
+
+func (err ErrBadgeNotExist) Error() string {
+	if err.ID > 0 {
+		return fmt.Sprintf("badge does not exist [id: %d]", err.ID)
+	}
+	return fmt.Sprintf("badge does not exist [slug: %s]", err.Slug)
+}
+
+// IsErrBadgeNotExist checks if an error is a ErrBadgeNotExist.
+func IsErrBadgeNotExist(err error) bool {
+	_, ok := err.(ErrBadgeNotExist)
+	return ok
+}
+
+// Unwrap unwraps this error as a ErrNotExist error
+func (err ErrBadgeNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 func init() {
@@ -73,7 +117,6 @@ func GetBadgeUsers(ctx context.Context, opts *GetBadgeUsersOptions) ([]*User, in
 func CreateBadge(ctx context.Context, badge *Badge) error {
 	// this will fail if the badge already exists due to the UNIQUE constraint
 	_, err := db.GetEngine(ctx).Insert(badge)
-
 	return err
 }
 
@@ -151,11 +194,14 @@ func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 			slugs[i] = badge.Slug
 		}
 
+		var badgeIDs []int64
+		if err := db.GetEngine(ctx).Table("badge").In("slug", slugs).Cols("id").Find(&badgeIDs); err != nil {
+			return err
+		}
+
 		if _, err := db.GetEngine(ctx).
-			Table("user_badge").
-			Join("INNER", "badge", "`user_badge`.badge_id = badge.id").
-			Where("`user_badge`.user_id = ?", u.ID).
-			And(builder.In("badge.slug", slugs)).
+			Where("user_id = ?", u.ID).
+			In("badge_id", badgeIDs).
 			Delete(&UserBadge{}); err != nil {
 			return err
 		}
@@ -184,66 +230,29 @@ func (opts *SearchBadgeOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 
 	if opts.Keyword != "" {
-		cond = cond.And(builder.Like{"badge.slug", opts.Keyword})
-	}
-
-	return cond
-}
-
-func (opts *SearchBadgeOptions) ToOrders() string {
-	orderBy := "badge.slug"
-	return orderBy
-}
-
-func SearchBadges(ctx context.Context, opts *SearchBadgeOptions) (badges []*Badge, _ int64, _ error) {
-	sessCount := opts.toSearchQueryBase(ctx)
-	count, err := sessCount.Count(new(Badge))
-	if err != nil {
-		return nil, 0, fmt.Errorf("count: %w", err)
-	}
-	sessCount.Close()
-
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = db.SearchOrderByID
-	}
-
-	sessQuery := opts.toSearchQueryBase(ctx).OrderBy(opts.OrderBy.String())
-	defer sessQuery.Close()
-	if opts.Page != 0 {
-		sessQuery = db.SetSessionPagination(sessQuery, opts)
-	}
-
-	// the sql may contain JOIN, so we must only select Badge related columns
-	sessQuery = sessQuery.Select("`badge`.*")
-	badges = make([]*Badge, 0, opts.PageSize)
-	return badges, count, sessQuery.Find(&badges)
-}
-
-func (opts *SearchBadgeOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
-	var cond builder.Cond
-	cond = builder.Neq{"id": -1}
-
-	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
-			builder.Like{"slug", lowerKeyword},
-			builder.Like{"description", lowerKeyword},
-			builder.Like{"id", lowerKeyword},
+			builder.Like{"badge.slug", lowerKeyword},
+			builder.Like{"badge.description", lowerKeyword},
+			builder.Like{"badge.id", lowerKeyword},
 		)
 		cond = cond.And(keywordCond)
 	}
 
 	if opts.ID > 0 {
-		cond = cond.And(builder.Eq{"id": opts.ID})
+		cond = cond.And(builder.Eq{"badge.id": opts.ID})
 	}
 
 	if len(opts.Slug) > 0 {
-		cond = cond.And(builder.Eq{"slug": opts.Slug})
+		cond = cond.And(builder.Eq{"badge.slug": opts.Slug})
 	}
 
-	e := db.GetEngine(ctx)
+	return cond
+}
 
-	return e.Where(cond)
+// SearchBadges returns badges based on the provided SearchBadgeOptions options
+func SearchBadges(ctx context.Context, opts *SearchBadgeOptions) ([]*Badge, int64, error) {
+	return db.FindAndCount[Badge](ctx, opts)
 }
 
 // GetBadgeByID returns a specific badge by ID

@@ -286,7 +286,7 @@ func DeleteBadgeUser(ctx *context.Context) {
 	if err := user_model.RemoveUserBadge(ctx, user, &user_model.Badge{Slug: ctx.PathParam(":badge_slug")}); err == nil {
 		ctx.Flash.Success(ctx.Tr("admin.badges.user_remove_success"))
 	} else {
-		ctx.Flash.Error("DeleteUser: " + err.Error())
+		ctx.Flash.Error("DeleteBadgeUser: " + err.Error())
 	}
 
 	ctx.JSONRedirect(fmt.Sprintf("%s/-/admin/badges/%s/users", setting.AppSubURL, ctx.PathParam(":badge_slug")))
