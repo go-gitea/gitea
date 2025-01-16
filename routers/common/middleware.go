@@ -6,8 +6,8 @@ package common
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gtprof"
@@ -19,17 +19,42 @@ import (
 
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
+	"github.com/felixge/httpsnoop"
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var responseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
-	Namespace: "http",
-	Subsystem: "request",
-	Name:      "duration_seconds",
-	Help:      "Gitea response time",
-}, []string{"route"})
+var (
+	// reqInflightGauge tracks the amount of currently handled requests
+	reqInflightGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "http",
+		Subsystem: "server",
+		Name:      "active_requests",
+		Help:      "Number of active HTTP server requests.",
+	}, []string{"http.request.method"})
+	// reqDurationHistogram tracks the time taken by http request
+	reqDurationHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "http",
+		Subsystem: "server",
+		Name:      "request_duration",
+		Help:      "Measures the latency of HTTP requests processed by the server",
+	}, []string{"http.request.method", "http.response.status_code", "http.route"})
+	// reqSizeHistogram tracks the size of request
+	reqSizeHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "http",
+		Subsystem: "server_request",
+		Name:      "body_size",
+		Help:      "Size of HTTP server request bodies.",
+	}, []string{"http.request.method", "http.response.status_code", "http.route"})
+	// respSizeHistogram tracks the size of the response
+	respSizeHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "http",
+		Subsystem: "server_response",
+		Name:      "body_size",
+		Help:      "Size of HTTP server response bodies.",
+	}, []string{"http.request.method", "http.response.status_code", "http.route"})
+)
 
 // ProtocolMiddlewares returns HTTP protocol related middlewares, and it provides a global panic recovery
 func ProtocolMiddlewares() (handlers []any) {
@@ -120,17 +145,25 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 	return proxy.ForwardedHeaders(opt)
 }
 
+// RouteMetrics instruments http requests and responses
 func RouteMetrics() func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			start := time.Now()
+			inflight := reqInflightGauge.WithLabelValues(req.Method)
+			inflight.Inc()
+			defer inflight.Dec()
+
+			m := httpsnoop.CaptureMetrics(next, resp, req)
 			next.ServeHTTP(resp, req)
-			elapsed := time.Since(start).Seconds()
-			route := "ui"
-			if strings.HasPrefix(req.URL.Path, "/api") {
-				route = "api"
+			route := chi.RouteContext(req.Context()).RoutePattern()
+			code := strconv.Itoa(m.Code)
+			reqDurationHistogram.WithLabelValues(req.Method, code, route).Observe(m.Duration.Seconds())
+			respSizeHistogram.WithLabelValues(req.Method, code, route).Observe(float64(m.Written))
+			size := req.ContentLength
+			if size < 0 {
+				size = 0
 			}
-			responseLatency.WithLabelValues(route).Observe(elapsed)
+			reqSizeHistogram.WithLabelValues(req.Method, code, route).Observe(float64(size))
 		})
 	}
 }
