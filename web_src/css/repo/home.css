@@ -73,6 +73,9 @@
   gap: 8px;
   max-height: 100vh;
   overflow: hidden;
+  position: sticky;
+  top: 14px;
+  z-index: 8;
 }
 
 .repo-grid-tree-sidebar .view-file-tree-sidebar-top {

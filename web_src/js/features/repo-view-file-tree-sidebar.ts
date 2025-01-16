@@ -2,6 +2,7 @@ import {createApp, ref} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {GET, PUT} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
+import {initMarkupContent} from '../markup/content.ts';
 import {initTargetRepoBranchTagSelector} from './repo-legacy.ts';
 import {initTargetDropdown} from './common-page.ts';
 import {initTargetRepoEllipsisButton} from './repo-commit.ts';
@@ -58,6 +59,7 @@ function reloadContentScript(contentEl: Element) {
   contentEl.querySelector('.show-tree-sidebar-button').addEventListener('click', () => {
     toggleSidebar(true, document.querySelector('.repo-view-file-tree-sidebar').hasAttribute('data-is-signed'));
   });
+  initMarkupContent();
   initTargetButtons(contentEl);
   initTargetDropdown(contentEl);
   initTargetPdfViewer(contentEl);
