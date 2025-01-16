@@ -57,5 +57,5 @@ func TestGetBadgeUsers(t *testing.T) {
 	users, count, err = user_model.GetBadgeUsers(db.DefaultContext, opts)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
-	assert.Len(t, users, 0)
+	assert.Empty(t, users)
 }
