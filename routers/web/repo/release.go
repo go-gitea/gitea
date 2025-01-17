@@ -330,9 +330,9 @@ func newReleaseCommon(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 
-	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
+	tags, err := repo_model.GetTagMappingsByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
+		ctx.ServerError("GetTagMappingsByRepoID", err)
 		return
 	}
 	ctx.Data["Tags"] = tags

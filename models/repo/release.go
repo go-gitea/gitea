@@ -298,6 +298,26 @@ func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
 	return tags, sess.Find(&tags)
 }
 
+// GetTagMappingsByRepoID returns a mapping from tag name to commit SHA by repo id
+func GetTagMappingsByRepoID(ctx context.Context, repoID int64) (map[string]string, error) {
+	mapping := make(map[string]string)
+	rels := make([]*Release, 0)
+	if err := db.GetEngine(ctx).
+		Desc("created_unix").
+		Find(&rels, Release{RepoID: repoID}); err != nil {
+		return mapping, err
+	}
+	for _, r := range rels {
+		mapping[r.TagName] = r.Sha1
+	}
+	return mapping, nil
+}
+
+// CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.
+func CountReleasesByRepoID(ctx context.Context, repoID int64, opts FindReleasesOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.ToConds()).Count(new(Release))
+}
+
 // GetLatestReleaseByRepoID returns the latest release for a repository
 func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, error) {
 	cond := builder.NewCond().
