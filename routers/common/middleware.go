@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/gtprof"
@@ -19,7 +20,6 @@ import (
 
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
-	"github.com/felixge/httpsnoop"
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -158,13 +158,14 @@ func RouteMetrics() func(h http.Handler) http.Handler {
 			inflight := reqInflightGauge.WithLabelValues(req.Method)
 			inflight.Inc()
 			defer inflight.Dec()
+			start := time.Now()
 
-			m := httpsnoop.CaptureMetrics(next, resp, req)
 			next.ServeHTTP(resp, req)
+			m := context.WrapResponseWriter(resp)
 			route := chi.RouteContext(req.Context()).RoutePattern()
-			code := strconv.Itoa(m.Code)
-			reqDurationHistogram.WithLabelValues(req.Method, code, route).Observe(m.Duration.Seconds())
-			respSizeHistogram.WithLabelValues(req.Method, code, route).Observe(float64(m.Written))
+			code := strconv.Itoa(m.WrittenStatus())
+			reqDurationHistogram.WithLabelValues(req.Method, code, route).Observe(time.Since(start).Seconds())
+			respSizeHistogram.WithLabelValues(req.Method, code, route).Observe(float64(m.Size()))
 			size := req.ContentLength
 			if size < 0 {
 				size = 0
