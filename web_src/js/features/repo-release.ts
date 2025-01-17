@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {hideElem, showElem, type DOMEvent} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
@@ -23,7 +24,7 @@ function initTagNameEditor() {
   if (!el) return;
 
   const tagWarning = document.querySelector('#tag-warning');
-  const tagWarningDetailLinks = Array.from(document.getElementsByClassName('tag-warning-detail'));
+  const tagWarningDetailLinks = Array.from(document.querySelectorAll('.tag-warning-detail'));
   const existingTags = JSON.parse(el.getAttribute('data-existing-tags'));
 
   const defaultTagHelperText = el.getAttribute('data-tag-helper');
@@ -38,23 +39,24 @@ function initTagNameEditor() {
   $('.tag-confirm').on('click', (event) => {
     if (requiresConfirmation) {
       event.preventDefault();
-      if ($(event.target).hasClass('tag-draft')) {
+      const form = event.target.closest('form');
+      if (event.target.classList.contains('tag-draft')) {
         fomanticQuery(tagConfirmDraftModal).modal({
           onApprove() {
             // need to add hidden input with draft form value
             // (triggering form submission doesn't include the button data)
-            $('<input>').attr({
-              type: 'hidden',
-              name: 'draft',
-              value: '1'
-            }).appendTo(event.target.form);
-            $(event.target.form).trigger('submit');
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'draft';
+            input.value = '1';
+            form.append(input);
+            $(form).trigger('submit');
           },
         }).modal('show');
       } else {
         fomanticQuery(tagConfirmModal).modal({
           onApprove() {
-            $(event.target.form).trigger('submit');
+            $(form).trigger('submit');
           },
         }).modal('show');
       }
@@ -71,8 +73,9 @@ function initTagNameEditor() {
       tagHelper.textContent = existingTagHelperText;
       showElem('#tag-warning');
       for (const detail of tagWarningDetailLinks) {
-        detail.href = `${tagURLStub}/${existingTags[value]}`;
-        detail.textContent = existingTags[value].substring(0, 10);
+        const anchor = detail as HTMLAnchorElement;
+        anchor.href = `${tagURLStub}/${existingTags[value]}`;
+        anchor.textContent = existingTags[value].substring(0, 10);
       }
       requiresConfirmation = true;
     } else {
