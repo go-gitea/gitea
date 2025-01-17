@@ -4,151 +4,127 @@
 package integration
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
-	terraform_module "code.gitea.io/gitea/modules/packages/terraform"
 	"code.gitea.io/gitea/tests"
 
+	gouuid "github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageTerraform(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	token := "Bearer " + getUserToken(t, user.Name, auth_model.AccessTokenScopeWritePackage)
+	// Get token for the user
+	token := "Bearer " + getUserToken(t, user.Name, auth.AccessTokenScopeWritePackage)
 
-	packageName := "test_module"
-	packageVersion := "1.0.1"
-	packageDescription := "Test Terraform Module"
+	// Define important values
+	lineage := "bca3c5f6-01dc-cdad-5310-d1b12e02e430"
+	terraformVersion := "1.10.4"
+	serial := float64(1)
+	resourceName := "hello"
+	resourceType := "null_resource"
+	id := gouuid.New().String() // Generate a unique ID
 
-	filename := "terraform_module.tar.gz"
+	// Build the state JSON
+	buildState := func() string {
+		return `{
+			"version": 4,
+			"terraform_version": "` + terraformVersion + `",
+			"serial": ` + fmt.Sprintf("%.0f", serial) + `,
+			"lineage": "` + lineage + `",
+			"outputs": {},
+			"resources": [{
+				"mode": "managed",
+				"type": "` + resourceType + `",
+				"name": "` + resourceName + `",
+				"provider": "provider[\"registry.terraform.io/hashicorp/null\"]",
+				"instances": [{
+					"schema_version": 0,
+					"attributes": {
+						"id": "3832416504545530133",
+						"triggers": null
+					},
+					"sensitive_attributes": []
+				}]
+			}],
+			"check_results": null
+		}`
+	}
+	state := buildState()
+	content := []byte(state)
+	root := fmt.Sprintf("/api/packages/%s/terraform/state", user.Name)
+	stateURL := fmt.Sprintf("%s/providers-gitea.tfstate", root)
 
-	infoContent, _ := json.Marshal(map[string]string{
-		"description": packageDescription,
-	})
-
-	var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
-	archive := tar.NewWriter(zw)
-	archive.WriteHeader(&tar.Header{
-		Name: "info.json",
-		Mode: 0o600,
-		Size: int64(len(infoContent)),
-	})
-	archive.Write(infoContent)
-	archive.Close()
-	zw.Close()
-	content := buf.Bytes()
-
-	root := fmt.Sprintf("/api/packages/%s/terraform", user.Name)
-
-	t.Run("Authenticate", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		authenticateURL := fmt.Sprintf("%s/authenticate", root)
-
-		req := NewRequest(t, "GET", authenticateURL)
-		MakeRequest(t, req, http.StatusUnauthorized)
-
-		req = NewRequest(t, "GET", authenticateURL).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-	})
-
-	moduleURL := fmt.Sprintf("%s/%s", root, packageName)
-
+	// Upload test
 	t.Run("Upload", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+		uploadURL := fmt.Sprintf("%s?ID=%s", stateURL, id)
+		req := NewRequestWithBody(t, "POST", uploadURL, bytes.NewReader(content)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK) // Expecting 200 OK
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Contains(t, resp.Header().Get("Content-Type"), "application/json")
+		bodyBytes, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.NotEmpty(t, bodyBytes)
+	})
 
-		req := NewRequest(t, "HEAD", moduleURL)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		uploadURL := fmt.Sprintf("%s/%s/%s", moduleURL, packageVersion, filename)
-
-		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
-		MakeRequest(t, req, http.StatusUnauthorized)
-
-		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content)).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		req = NewRequest(t, "HEAD", moduleURL)
+	// Download test
+	t.Run("Download", func(t *testing.T) {
+		downloadURL := fmt.Sprintf("%s?ID=%s", stateURL, id)
+		req := NewRequest(t, "GET", downloadURL)
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.True(t, strings.HasPrefix(resp.Header().Get("Content-Type"), "application/json"))
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeTerraform)
-		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
+		bodyBytes, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.NotEmpty(t, bodyBytes)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
-		assert.NoError(t, err)
-		assert.NotNil(t, pd.SemVer)
-		assert.IsType(t, &terraform_module.Metadata{}, pd.Metadata)
-		assert.Equal(t, packageName, pd.Package.Name)
-		assert.Equal(t, packageVersion, pd.Version.Version)
+		var jsonResponse map[string]any
+		err = json.Unmarshal(bodyBytes, &jsonResponse)
+		require.NoError(t, err)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
-		assert.NoError(t, err)
-		assert.Len(t, pfs, 1)
-		assert.Equal(t, filename, pfs[0].Name)
-		assert.True(t, pfs[0].IsLead)
-
-		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(len(content)), pb.Size)
-
-		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content)).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusConflict)
+		// Validate the response
+		assert.Equal(t, lineage, jsonResponse["lineage"])
+		assert.Equal(t, terraformVersion, jsonResponse["terraform_version"])
+		assert.Equal(t, serial, jsonResponse["serial"])
+		resource := jsonResponse["resources"].([]any)[0].(map[string]any)
+		assert.Equal(t, resourceName, resource["name"])
+		assert.Equal(t, resourceType, resource["type"])
+		assert.NotContains(t, resource, "sensitive_attributes")
 	})
 
-	t.Run("Download", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s", moduleURL, packageVersion, filename))
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, content, resp.Body.Bytes())
+	// Lock state test
+	t.Run("LockState", func(t *testing.T) {
+		lockURL := fmt.Sprintf("%s/lock?ID=%s", stateURL, id)
+		req := NewRequestWithBody(t, "POST", lockURL, bytes.NewReader(content)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK) // Expecting 200 OK
+		assert.Equal(t, http.StatusOK, resp.Code)
 	})
 
-	t.Run("EnumeratePackageVersions", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
+	// Unlock state test
+	t.Run("UnlockState", func(t *testing.T) {
+		unlockURL := fmt.Sprintf("%s/lock?ID=%s", stateURL, id)
+		req := NewRequestWithBody(t, "DELETE", unlockURL, bytes.NewReader(content)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK) // Expecting 200 OK
+		assert.Equal(t, http.StatusOK, resp.Code)
+	})
 
-		req := NewRequest(t, "GET", moduleURL)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		type versionMetadata struct {
-			Version string `json:"version"`
-			Status  string `json:"status"`
-		}
-
-		type packageMetadata struct {
-			Name        string             `json:"name"`
-			Description string             `json:"description,omitempty"`
-			Versions    []*versionMetadata `json:"versions"`
-		}
-
-		var result packageMetadata
-		DecodeJSON(t, resp, &result)
-
-		assert.Equal(t, packageName, result.Name)
-		assert.Equal(t, packageDescription, result.Description)
-		assert.Len(t, result.Versions, 1)
-		version := result.Versions[0]
-		assert.Equal(t, packageVersion, version.Version)
-		assert.Equal(t, "active", version.Status)
+	// Download not found test
+	t.Run("DownloadNotFound", func(t *testing.T) {
+		invalidStateURL := fmt.Sprintf("%s/invalid-state.tfstate?ID=%s", root, id)
+		req := NewRequest(t, "GET", invalidStateURL)
+		resp := MakeRequest(t, req, http.StatusNoContent) // Expecting 204 No Content
+		assert.Equal(t, http.StatusNoContent, resp.Code)
 	})
 }
