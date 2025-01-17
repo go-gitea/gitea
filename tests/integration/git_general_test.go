@@ -347,7 +347,7 @@ func doCreateProtectedBranch(baseCtx *APITestContext, dstPath string) func(t *te
 		t.Run("PushProtectedBranch-UnprotectedFile", doGitPushTestRepository(dstPath, "origin", "release-v2.0"))
 		t.Run("CheckoutMaster-UnprotectedFile", doGitCheckoutBranch(dstPath, "master"))
 
-		//push a new branch with a new protected file
+		// push a new branch with a new protected file
 		t.Run("CreateProtectedBranch-ProtectedFile", doGitCreateBranch(dstPath, "release-v3.0"))
 		_, err = generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "config")
 		assert.NoError(t, err)
