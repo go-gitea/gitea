@@ -10,16 +10,15 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"sync"
+	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
-	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
+	"code.gitea.io/gitea/services/packages"
 
 	"github.com/google/uuid"
 )
@@ -46,157 +45,105 @@ type InstanceState struct {
 	Attributes    map[string]any `json:"attributes"`
 }
 
-var (
-	stateStorage = make(map[string]*TFState)
-	stateLocks   = make(map[string]string)
-	storeMutex   sync.Mutex
-)
+type LockInfo struct {
+	ID      string `json:"id"`
+	Created string `json:"created"`
+}
 
-func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		type Error struct {
-			Status  int    `json:"status"`
-			Message string `json:"message"`
+var stateLocks = make(map[string]LockInfo)
+
+func apiError(ctx *context.Context, status int, message string) {
+	log.Error("Terraform API Error: %d - %s", status, message)
+	ctx.JSON(status, map[string]string{"error": message})
+}
+
+func getLockID(ctx *context.Context) (string, error) {
+	var lock struct {
+		ID string `json:"ID"`
+	}
+
+	// Read the body of the request and try to parse the JSON
+	body, err := io.ReadAll(ctx.Req.Body)
+	if err == nil && len(body) > 0 {
+		if err := json.Unmarshal(body, &lock); err != nil {
+			log.Error("Failed to unmarshal request body: %v", err)
+			return "", err
 		}
-		ctx.JSON(status, struct {
-			Errors []Error `json:"errors"`
-		}{
-			Errors: []Error{
-				{Status: status, Message: message},
-			},
-		})
-	})
+	}
+
+	// We check the presence of lock ID in the request body or request parameters
+	if lock.ID == "" {
+		lock.ID = ctx.Req.URL.Query().Get("ID")
+	}
+
+	if lock.ID == "" {
+		apiError(ctx, http.StatusBadRequest, "Missing lock ID")
+		return "", fmt.Errorf("missing lock ID")
+	}
+
+	log.Info("Extracted lockID: %s", lock.ID)
+	return lock.ID, nil
 }
 
 func GetState(ctx *context.Context) {
 	stateName := ctx.PathParam("statename")
-	log.Info("Function GetState called with parameters: stateName=%s", stateName)
+	log.Info("GetState called for: %s", stateName)
 
-	// Find the package version
-	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeTerraform,
-		Name: packages_model.SearchValue{
-			ExactMatch: true,
-			Value:      stateName,
-		},
+	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:         ctx.Package.Owner.ID,
+		Type:            packages_model.TypeTerraform,
+		Name:            packages_model.SearchValue{ExactMatch: true, Value: stateName},
 		HasFileWithName: stateName,
 		IsInternal:      optional.Some(false),
+		Sort:            packages_model.SortCreatedDesc,
 	})
 	if err != nil {
-		log.Error("Failed to search package versions for state %s: %v", stateName, err)
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, http.StatusInternalServerError, "Failed to fetch latest versions")
 		return
 	}
 
-	// If no version is found, return 204
 	if len(pvs) == 0 {
-		log.Info("No existing state found for %s, returning 204 No Content", stateName)
-		ctx.Resp.WriteHeader(http.StatusNoContent)
+		apiError(ctx, http.StatusNoContent, "No content available")
 		return
 	}
 
-	// Get the latest package version
-	stateVersion := pvs[0]
-	if stateVersion == nil {
-		log.Error("State version is nil for state %s", stateName)
-		apiError(ctx, http.StatusInternalServerError, "Invalid state version")
-		return
-	}
-	log.Info("Fetching file stream for state %s with version %s", stateName, stateVersion.Version)
-
-	// Log the parameters of GetFileStreamByPackageNameAndVersion call
-	log.Info("Fetching file stream with params: Owner=%v, PackageType=%v, Name=%v, Version=%v, Filename=%v",
-		ctx.Package.Owner,
-		packages_model.TypeTerraform,
-		stateName,
-		stateVersion.Version,
-		stateName,
-	)
-
-	// Fetch the file stream
-	s, _, _, err := packages_service.GetFileStreamByPackageNameAndVersion(
-		ctx,
-		&packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeTerraform,
-			Name:        stateName,
-			Version:     stateVersion.Version,
-		},
-		&packages_service.PackageFileInfo{
-			Filename: stateName,
-		},
-	)
+	stream, _, _, err := packages.GetFileStreamByPackageNameAndVersion(ctx, &packages.PackageInfo{
+		Owner:       ctx.Package.Owner,
+		PackageType: packages_model.TypeTerraform,
+		Name:        stateName,
+		Version:     pvs[0].Version,
+	}, &packages.PackageFileInfo{Filename: stateName})
 	if err != nil {
-		log.Error("Error fetching file stream for state %s: %v", stateName, err)
-		if errors.Is(err, packages_model.ErrPackageNotExist) {
-			log.Error("Package does not exist: %v", err)
+		switch {
+		case errors.Is(err, packages_model.ErrPackageNotExist):
 			apiError(ctx, http.StatusNotFound, "Package not found")
-			return
-		}
-		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			log.Error("Package file does not exist: %v", err)
+		case errors.Is(err, packages_model.ErrPackageFileNotExist):
 			apiError(ctx, http.StatusNotFound, "File not found")
-			return
+		default:
+			apiError(ctx, http.StatusInternalServerError, err.Error())
 		}
-		apiError(ctx, http.StatusInternalServerError, "Failed to fetch file stream")
 		return
 	}
-	defer s.Close()
+	defer stream.Close()
 
-	// Read the file contents
-	buf := new(bytes.Buffer)
-	if _, err := io.Copy(buf, s); err != nil {
-		log.Error("Failed to read state file for %s: %v", stateName, err)
-		apiError(ctx, http.StatusInternalServerError, "Failed to read state file")
-		return
-	}
-
-	// Deserialize the state
 	var state TFState
-	if err := json.Unmarshal(buf.Bytes(), &state); err != nil {
-		log.Error("Failed to unmarshal state file for %s: %v", stateName, err)
-		apiError(ctx, http.StatusInternalServerError, "Invalid state file format")
+	if err := json.NewDecoder(stream).Decode(&state); err != nil {
+		apiError(ctx, http.StatusInternalServerError, "Failed to parse state file")
 		return
 	}
 
-	// Ensure lineage is set
 	if state.Lineage == "" {
 		state.Lineage = uuid.NewString()
-		log.Info("Generated new lineage for state %s: %s", stateName, state.Lineage)
+		log.Info("Generated new lineage for state: %s", state.Lineage)
 	}
 
-	// Send the state in the response
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", stateName))
-	ctx.Resp.WriteHeader(http.StatusOK)
-	if _, writeErr := ctx.Resp.Write(buf.Bytes()); writeErr != nil {
-		log.Error("Failed to write response for state %s: %v", stateName, writeErr)
-	}
+	ctx.JSON(http.StatusOK, state)
 }
 
-// UpdateState updates or creates a new Terraform state and interacts with Gitea packages.
 func UpdateState(ctx *context.Context) {
 	stateName := ctx.PathParam("statename")
-	log.Info("UpdateState called for stateName: %s", stateName)
-
-	storeMutex.Lock()
-	defer storeMutex.Unlock()
-
-	// Check for the presence of a lock ID
-	requestLockID := ctx.Req.URL.Query().Get("ID")
-	if requestLockID == "" {
-		apiError(ctx, http.StatusBadRequest, "Missing ID query parameter")
-		return
-	}
-
-	// Check for blocking state
-	if lockID, locked := stateLocks[stateName]; locked && lockID != requestLockID {
-		apiError(ctx, http.StatusConflict, fmt.Sprintf("State %s is locked", stateName))
-		return
-	}
-
-	// Read the request body
 	body, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, "Failed to read request body")
@@ -209,37 +156,36 @@ func UpdateState(ctx *context.Context) {
 		return
 	}
 
-	// Getting the current serial
-	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages_model.TypeTerraform,
-		Name:       packages_model.SearchValue{ExactMatch: true, Value: stateName},
-		IsInternal: optional.Some(false),
+	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:         ctx.Package.Owner.ID,
+		Type:            packages_model.TypeTerraform,
+		Name:            packages_model.SearchValue{ExactMatch: true, Value: stateName},
+		HasFileWithName: stateName,
+		IsInternal:      optional.Some(false),
+		Sort:            packages_model.SortCreatedDesc,
 	})
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, "Failed to search package versions")
+		apiError(ctx, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	serial := uint64(1) // Start from 1
+	serial := uint64(0)
 	if len(pvs) > 0 {
-		lastSerial, _ := strconv.ParseUint(pvs[0].Version, 10, 64)
-		serial = lastSerial + 1
+		if lastSerial, err := strconv.ParseUint(pvs[0].Version, 10, 64); err == nil {
+			serial = lastSerial + 1
+		}
 	}
-	log.Info("State %s updated to serial %d", stateName, serial)
 
-	// Create package information
 	packageVersion := fmt.Sprintf("%d", serial)
-	packageInfo := &packages_service.PackageCreationInfo{
-		PackageInfo: packages_service.PackageInfo{
+
+	packageInfo := &packages.PackageCreationInfo{
+		PackageInfo: packages.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeTerraform,
 			Name:        stateName,
 			Version:     packageVersion,
 		},
-		SemverCompatible: true,
-		Creator:          ctx.Doer,
-		Metadata:         newState,
+		Creator:  ctx.Doer,
+		Metadata: newState,
 	}
 
 	buffer, err := packages_module.CreateHashedBufferFromReader(bytes.NewReader(body))
@@ -247,146 +193,86 @@ func UpdateState(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, "Failed to create buffer")
 		return
 	}
-
-	// Create/update package
-	if _, _, err = packages_service.CreatePackageOrAddFileToExisting(
-		ctx,
-		packageInfo,
-		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: stateName,
-			},
-			Creator: ctx.Doer,
-			Data:    buffer,
-			IsLead:  true,
-		},
-	); err != nil {
+	_, _, err = packages.CreatePackageOrAddFileToExisting(ctx, packageInfo, &packages.PackageFileCreationInfo{
+		PackageFileInfo: packages.PackageFileInfo{Filename: stateName},
+		Creator:         ctx.Doer,
+		Data:            buffer,
+		IsLead:          true,
+	})
+	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, "Failed to update package")
 		return
 	}
 
-	log.Info("State %s updated successfully with version %s", stateName, packageVersion)
-
-	ctx.JSON(http.StatusOK, map[string]string{
-		"message":   "State updated successfully",
-		"statename": stateName,
-	})
+	ctx.JSON(http.StatusOK, map[string]string{"message": "State updated successfully", "statename": stateName})
 }
 
-// LockState locks a Terraform state to prevent updates.
 func LockState(ctx *context.Context) {
 	stateName := ctx.PathParam("statename")
-	log.Info("LockState called for state: %s", stateName)
-
-	// Read the request body
-	body, err := io.ReadAll(ctx.Req.Body)
+	lockID, err := getLockID(ctx)
 	if err != nil {
-		log.Error("Failed to read request body: %v", err)
-		apiError(ctx, http.StatusInternalServerError, "Failed to read request body")
+		apiError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
-
-	// Decode JSON and check lockID
-	var lockRequest struct {
-		ID string `json:"ID"`
-	}
-	if err := json.Unmarshal(body, &lockRequest); err != nil || lockRequest.ID == "" {
-		log.Error("Invalid lock request body: %v", err)
-		apiError(ctx, http.StatusBadRequest, "Invalid or missing lock ID")
-		return
-	}
-
-	storeMutex.Lock()
-	defer storeMutex.Unlock()
 
 	// Check if the state is locked
-	if _, locked := stateLocks[stateName]; locked {
+	if lockInfo, locked := stateLocks[stateName]; locked {
 		log.Warn("State %s is already locked", stateName)
-		apiError(ctx, http.StatusConflict, fmt.Sprintf("State %s is already locked", stateName))
+
+		// Generate a response for the conflict with information about the current lock
+		response := lockInfo // Return full information about the lock
+		ctx.JSON(http.StatusConflict, response)
 		return
 	}
 
 	// Set the lock
-	stateLocks[stateName] = lockRequest.ID
-	log.Info("State %s locked with ID %s", stateName, lockRequest.ID)
+	stateLocks[stateName] = LockInfo{
+		ID:      lockID,
+		Created: time.Now().UTC().Format(time.RFC3339),
+	}
 
-	ctx.JSON(http.StatusOK, map[string]string{
-		"message":   "State locked successfully",
-		"statename": stateName,
-	})
+	log.Info("Locked state: %s with ID: %s", stateName, lockID)
+	ctx.JSON(http.StatusOK, map[string]string{"message": "State locked successfully", "statename": stateName})
 }
 
-// UnlockState unlocks a Terraform state.
 func UnlockState(ctx *context.Context) {
 	stateName := ctx.PathParam("statename")
-	log.Info("UnlockState called for state: %s", stateName)
-
-	// Extract lockID from request body or parameters
-	var unlockRequest struct {
-		ID string `json:"ID"`
-	}
-
-	// Trying to read the request body
-	body, _ := io.ReadAll(ctx.Req.Body)
-	if len(body) > 0 {
-		_ = json.Unmarshal(body, &unlockRequest) // The error can be ignored, since the ID can also be in the query
-	}
-
-	// Check for ID presence
-	if unlockRequest.ID == "" {
-		log.Error("Missing lock ID in both query and request body")
-		apiError(ctx, http.StatusBadRequest, "Missing lock ID")
+	lockID, err := getLockID(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	log.Info("Extracted lockID: %s", unlockRequest.ID)
-
-	storeMutex.Lock()
-	defer storeMutex.Unlock()
-
 	// Check the lock status
-	currentLockID, locked := stateLocks[stateName]
-	if !locked || currentLockID != unlockRequest.ID {
-		log.Warn("Unlock attempt failed for state %s with lock ID %s", stateName, unlockRequest.ID)
+	currentLockInfo, locked := stateLocks[stateName]
+	if !locked || currentLockInfo.ID != lockID {
+		log.Warn("Unlock attempt failed for state %s with lock ID %s", stateName, lockID)
 		apiError(ctx, http.StatusConflict, fmt.Sprintf("State %s is not locked or lock ID mismatch", stateName))
 		return
 	}
 
 	// Remove the lock
 	delete(stateLocks, stateName)
-	log.Info("State %s unlocked successfully", stateName)
-
-	ctx.JSON(http.StatusOK, map[string]string{
-		"message":   "State unlocked successfully",
-		"statename": stateName,
-	})
+	log.Info("Unlocked state: %s with ID: %s", stateName, lockID)
+	ctx.JSON(http.StatusOK, map[string]string{"message": "State unlocked successfully"})
 }
 
-// DeleteState deletes the Terraform state for a given name.
 func DeleteState(ctx *context.Context) {
 	stateName := ctx.PathParam("statename")
-	log.Info("Attempting to delete state: %s", stateName)
-
-	storeMutex.Lock()
-	defer storeMutex.Unlock()
-
-	// Check if a state or lock exists
-	_, stateExists := stateStorage[stateName]
-	_, lockExists := stateLocks[stateName]
-
-	if !stateExists && !lockExists {
-		log.Warn("State %s does not exist or is not locked", stateName)
-		apiError(ctx, http.StatusNotFound, "State not found")
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, stateName)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, "Failed to fetch package versions")
 		return
 	}
-
-	// Delete the state and lock
-	delete(stateStorage, stateName)
-	delete(stateLocks, stateName)
-
-	log.Info("State %s deleted successfully", stateName)
-	ctx.JSON(http.StatusOK, map[string]string{
-		"message":   "State deleted successfully",
-		"statename": stateName,
-	})
+	if len(pvs) == 0 {
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+	for _, pv := range pvs {
+		if err := packages.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
+			apiError(ctx, http.StatusInternalServerError, "Failed to delete package version")
+			return
+		}
+	}
+	ctx.JSON(http.StatusOK, map[string]string{"message": "State deleted successfully"})
 }
