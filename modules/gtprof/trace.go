@@ -1,4 +1,4 @@
-// Copyright 2024 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package gtprof
@@ -28,8 +28,9 @@ type traceSpanInternal interface {
 
 type TraceSpan struct {
 	// immutable
-	parent        *TraceSpan
-	internalSpans []traceSpanInternal
+	parent           *TraceSpan
+	internalSpans    []traceSpanInternal
+	internalContexts []context.Context
 
 	// mutable, must be protected by mutex
 	mu         sync.RWMutex
@@ -83,16 +84,22 @@ func (t *Tracer) Start(ctx context.Context, spanName string) (context.Context, *
 		starters = globalTraceStarters
 	}
 	ts := &TraceSpan{name: spanName, startTime: time.Now()}
-	existingCtxSpan := GetContextSpan(ctx)
-	if existingCtxSpan != nil {
-		existingCtxSpan.mu.Lock()
-		existingCtxSpan.children = append(existingCtxSpan.children, ts)
-		existingCtxSpan.mu.Unlock()
-		ts.parent = existingCtxSpan
+	parentSpan := GetContextSpan(ctx)
+	if parentSpan != nil {
+		parentSpan.mu.Lock()
+		parentSpan.children = append(parentSpan.children, ts)
+		parentSpan.mu.Unlock()
+		ts.parent = parentSpan
 	}
+
+	parentCtx := ctx
 	for internalSpanIdx, tsp := range starters {
 		var internalSpan traceSpanInternal
-		ctx, internalSpan = tsp.start(ctx, ts, internalSpanIdx)
+		if parentSpan != nil {
+			parentCtx = parentSpan.internalContexts[internalSpanIdx]
+		}
+		ctx, internalSpan = tsp.start(parentCtx, ts, internalSpanIdx)
+		ts.internalContexts = append(ts.internalContexts, ctx)
 		ts.internalSpans = append(ts.internalSpans, internalSpan)
 	}
 	ctx = context.WithValue(ctx, ContextKeySpan, ts)
