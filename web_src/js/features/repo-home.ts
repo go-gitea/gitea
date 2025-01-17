@@ -89,7 +89,7 @@ export function initRepoTopicBar() {
       url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
       cache: false,
-      onResponse(res) {
+      onResponse(this: any, res: any) {
         const formattedResponse = {
           success: false,
           results: [],

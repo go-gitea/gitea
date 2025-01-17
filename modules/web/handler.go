@@ -121,7 +121,7 @@ func wrapHandlerProvider[T http.Handler](hp func(next http.Handler) T, funcInfo 
 	return func(next http.Handler) http.Handler {
 		h := hp(next) // this handle could be dynamically generated, so we can't use it for debug info
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			routing.UpdateFuncInfo(req.Context(), funcInfo)
+			defer routing.RecordFuncInfo(req.Context(), funcInfo)()
 			h.ServeHTTP(resp, req)
 		})
 	}
@@ -157,7 +157,7 @@ func toHandlerProvider(handler any) func(next http.Handler) http.Handler {
 				return // it's doing pre-check, just return
 			}
 
-			routing.UpdateFuncInfo(req.Context(), funcInfo)
+			defer routing.RecordFuncInfo(req.Context(), funcInfo)()
 			ret := fn.Call(argsIn)
 
 			// handle the return value (no-op at the moment)

@@ -1,9 +1,10 @@
 <script lang="ts">
+import {defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {generateAriaId} from '../modules/fomantic/base.ts';
 
-export default {
+export default defineComponent({
   components: {SvgIcon},
   data: () => {
     const el = document.querySelector('#diff-commit-select');
@@ -55,11 +56,11 @@ export default {
       switch (event.key) {
         case 'ArrowDown': // select next element
           event.preventDefault();
-          this.focusElem(item.nextElementSibling, item);
+          this.focusElem(item.nextElementSibling as HTMLElement, item);
           break;
         case 'ArrowUp': // select previous element
           event.preventDefault();
-          this.focusElem(item.previousElementSibling, item);
+          this.focusElem(item.previousElementSibling as HTMLElement, item);
           break;
         case 'Escape': // close menu
           event.preventDefault();
@@ -118,9 +119,9 @@ export default {
       // set correct tabindex to allow easier navigation
       this.$nextTick(() => {
         if (this.menuVisible) {
-          this.focusElem(this.$refs.showAllChanges, this.$refs.expandBtn);
+          this.focusElem(this.$refs.showAllChanges as HTMLElement, this.$refs.expandBtn as HTMLElement);
         } else {
-          this.focusElem(this.$refs.expandBtn, this.$refs.showAllChanges);
+          this.focusElem(this.$refs.expandBtn as HTMLElement, this.$refs.showAllChanges as HTMLElement);
         }
       });
     },
@@ -188,7 +189,7 @@ export default {
       }
     },
   },
-};
+});
 </script>
 <template>
   <div class="ui scrolling dropdown custom diff-commit-selector">

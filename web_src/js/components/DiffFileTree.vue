@@ -60,7 +60,7 @@ const fileTree = computed(() => {
       parent = newParent;
     }
   }
-  const mergeChildIfOnlyOneDir = (entries) => {
+  const mergeChildIfOnlyOneDir = (entries: Array<Record<string, any>>) => {
     for (const entry of entries) {
       if (entry.children) {
         mergeChildIfOnlyOneDir(entry.children);
@@ -110,13 +110,13 @@ function toggleVisibility() {
   updateVisibility(!store.fileTreeIsVisible);
 }
 
-function updateVisibility(visible) {
+function updateVisibility(visible: boolean) {
   store.fileTreeIsVisible = visible;
   localStorage.setItem(LOCAL_STORAGE_KEY, store.fileTreeIsVisible);
   updateState(store.fileTreeIsVisible);
 }
 
-function updateState(visible) {
+function updateState(visible: boolean) {
   const btn = document.querySelector('.diff-toggle-file-tree-button');
   const [toShow, toHide] = btn.querySelectorAll('.icon');
   const tree = document.querySelector('#diff-file-tree');
