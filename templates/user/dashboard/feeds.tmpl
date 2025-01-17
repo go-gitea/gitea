@@ -73,7 +73,7 @@
 					{{else if .GetOpType.InActions "publish_release"}}
 						{{$linkText := .Content | ctx.RenderUtils.RenderEmoji}}
 						{{ctx.Locale.Tr "action.publish_release" (.GetRepoLink ctx) (printf "%s/releases/tag/%s" (.GetRepoLink ctx) .GetTag) (.ShortRepoPath ctx) $linkText}}
-					{{else if .GetOpType.InActions "review_dismissed"}}
+					{{else if .GetOpType.InActions "pull_review_dismissed"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$reviewer := index .GetIssueInfos 1}}
 						{{ctx.Locale.Tr "action.review_dismissed" (printf "%s/pulls/%s" (.GetRepoLink ctx) $index) $index (.ShortRepoPath ctx) $reviewer}}
