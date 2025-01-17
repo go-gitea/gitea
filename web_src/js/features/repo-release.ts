@@ -1,5 +1,5 @@
 import {hideElem, showElem, type DOMEvent} from '../utils/dom.ts';
-import {fomanticQuery} from "../modules/fomantic/base";
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initRepoRelease() {
   document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
@@ -25,7 +25,6 @@ function initTagNameEditor() {
   const tagWarning = document.querySelector('#tag-warning');
   const tagWarningDetailLinks = Array.from(document.getElementsByClassName('tag-warning-detail'));
   const existingTags = JSON.parse(el.getAttribute('data-existing-tags'));
-  if (!Array.isArray(existingTags)) return;
 
   const defaultTagHelperText = el.getAttribute('data-tag-helper');
   const newTagHelperText = el.getAttribute('data-tag-helper-new');
