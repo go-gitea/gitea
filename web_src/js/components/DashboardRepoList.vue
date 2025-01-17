@@ -361,7 +361,7 @@ export default defineComponent({
       </h4>
       <div v-if="isLoading && !reposTotalCount" class="ui attached segment" :class="{'is-loading': isLoading}"/>
       <div v-if="isRepoEmpty" class="ui attached segment empty-placeholder">
-        <svg-icon name="octicon-no-entry" :size="24" class-name="empty-placeholder-icon"/>
+        <svg-icon name="octicon-git-branch" :size="24" class-name="empty-placeholder-icon"/>
         <p>{{ textNoRepo }}</p>
       </div>
       <div v-if="reposTotalCount" class="ui attached segment repos-search">
@@ -479,7 +479,7 @@ export default defineComponent({
       </h4>
       <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
       <div v-if="isOrgEmpty" class="ui attached segment empty-placeholder">
-        <svg-icon name="octicon-no-entry" :size="24" class-name="empty-placeholder-icon"/>
+        <svg-icon name="octicon-organization" :size="24" class-name="empty-placeholder-icon"/>
         <p>{{ textNoOrg }}</p>
       </div>
       <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
