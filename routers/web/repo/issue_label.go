@@ -139,6 +139,7 @@ func UpdateLabel(ctx *context.Context) {
 	}
 	l.Name = form.Title
 	l.Exclusive = form.Exclusive
+	l.ExclusiveOrder = form.ExclusiveOrder
 	l.Description = form.Description
 	l.Color = form.Color
 

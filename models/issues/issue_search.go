@@ -70,6 +70,15 @@ func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOption
 // applySorts sort an issues-related session based on the provided
 // sortType string
 func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
+	// Since this sortType is dynamically created, it has to be treated specially.
+	if strings.HasPrefix(sortType, "scope-") {
+		scope := strings.TrimPrefix(sortType, "scope-")
+		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
+		sess.Join("LEFT", "label", "label.id = issue_label.label_id and label.name LIKE ?", scope+"/%")
+		sess.Asc("label.exclusive_order").Desc("issue.id")
+		return // EARLY RETURN
+	}
+
 	switch sortType {
 	case "oldest":
 		sess.Asc("issue.created_unix").Asc("issue.id")
