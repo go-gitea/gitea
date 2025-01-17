@@ -15,6 +15,9 @@ type contextKeyType struct{}
 
 var contextKey contextKeyType
 
+// StartContextSpan starts a trace span in Gitea's web request context
+// Due to the design limitation of Gitea's web framework, it can't use `context.WithValue` to bind a new span into a new context.
+// So here we use our "reqctx" framework to achieve the same result: web request context could always see the latest "span".
 func StartContextSpan(ctx reqctx.RequestContext, spanName string) (*gtprof.TraceSpan, func()) {
 	curTraceSpan := gtprof.GetContextSpan(ctx)
 	_, newTraceSpan := gtprof.GetTracer().Start(ctx, spanName)

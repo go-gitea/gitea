@@ -55,17 +55,17 @@ func TestTraceStarter(t *testing.T) {
 		ctx, span := GetTracer().Start(ctx, "span1")
 		defer span.End()
 		func(ctx context.Context) {
-			ctx, span := GetTracer().Start(ctx, "spanA")
+			_, span := GetTracer().Start(ctx, "spanA")
 			defer span.End()
 		}(ctx)
 		func(ctx context.Context) {
-			ctx, span := GetTracer().Start(ctx, "spanB")
+			_, span := GetTracer().Start(ctx, "spanB")
 			defer span.End()
 		}(ctx)
 	}(ctx)
 
 	func(ctx context.Context) {
-		ctx, span := GetTracer().Start(ctx, "span2")
+		_, span := GetTracer().Start(ctx, "span2")
 		defer span.End()
 	}(ctx)
 
@@ -79,11 +79,11 @@ func TestTraceStarter(t *testing.T) {
 		}
 	}
 	collectSpanNames("", span.internalSpans[0].(*testTraceSpan).vendorSpan)
-	assert.Equal(t, []string([]string{
+	assert.Equal(t, []string{
 		"/root",
 		"/root/span1",
 		"/root/span1/spanA",
 		"/root/span1/spanB",
 		"/root/span2",
-	}), spanFullNames)
+	}, spanFullNames)
 }
