@@ -97,7 +97,7 @@ func TestPackageTerraform(t *testing.T) {
 		// Validate the response
 		assert.Equal(t, lineage, jsonResponse["lineage"])
 		assert.Equal(t, terraformVersion, jsonResponse["terraform_version"])
-		assert.Equal(t, serial, jsonResponse["serial"])
+		assert.InEpsilon(t, serial, jsonResponse["serial"].(float64), 0.0001)
 		resource := jsonResponse["resources"].([]any)[0].(map[string]any)
 		assert.Equal(t, resourceName, resource["name"])
 		assert.Equal(t, resourceType, resource["type"])
