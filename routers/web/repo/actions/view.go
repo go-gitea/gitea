@@ -855,7 +855,7 @@ func Run(ctx *context_module.Context) {
 	inputs := make(map[string]any)
 	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
 		for name, config := range workflowDispatch.Inputs {
-			value := ctx.Req.PostForm.Get(name)
+			value := ctx.Req.PostFormValue(name)
 			if config.Type == "boolean" {
 				// https://www.w3.org/TR/html401/interact/forms.html
 				// https://stackoverflow.com/questions/11424037/do-checkbox-inputs-only-post-data-if-theyre-checked

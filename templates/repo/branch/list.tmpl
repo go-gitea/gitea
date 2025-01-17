@@ -142,7 +142,7 @@
 									{{if .LatestPullRequest.HasMerged}}
 										<a href="{{.LatestPullRequest.Issue.Link}}" class="ui purple large label">{{svg "octicon-git-merge" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.pulls.merged"}}</a>
 									{{else if .LatestPullRequest.Issue.IsClosed}}
-										<a href="{{.LatestPullRequest.Issue.Link}}" class="ui red large label">{{svg "octicon-git-pull-request" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.issues.closed_title"}}</a>
+										<a href="{{.LatestPullRequest.Issue.Link}}" class="ui red large label">{{svg "octicon-git-pull-request-closed" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.issues.closed_title"}}</a>
 									{{else}}
 										<a href="{{.LatestPullRequest.Issue.Link}}" class="ui green large label">{{svg "octicon-git-pull-request" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.issues.open_title"}}</a>
 									{{end}}
