@@ -51,7 +51,7 @@ func MustBeNotEmpty(ctx *context.Context) {
 
 // MustBeEditable check that repo can be edited
 func MustBeEditable(ctx *context.Context) {
-	if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {
+	if !ctx.Repo.Repository.CanEnableEditor() {
 		ctx.NotFound("", nil)
 		return
 	}

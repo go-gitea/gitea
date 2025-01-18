@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testAPINewFile(t *testing.T, session *TestSession, user, repo, branch, treePath, content string) *httptest.ResponseRecorder {
@@ -82,6 +84,29 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	req = NewRequest(t, "GET", redirect)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "newly-added-test-file")
+
+	// the repo is not empty anymore
+	req = NewRequest(t, "GET", "/user30/empty")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "test-file.md")
+
+	// if the repo is in incorrect state, it should be able to self-heal (recover to correct state)
+	user30EmptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
+	user30EmptyRepo.IsEmpty = true
+	user30EmptyRepo.DefaultBranch = "no-such"
+	_, err := db.GetEngine(db.DefaultContext).ID(user30EmptyRepo.ID).Cols("is_empty", "default_branch").Update(user30EmptyRepo)
+	require.NoError(t, err)
+	user30EmptyRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 30, Name: "empty"})
+	assert.True(t, user30EmptyRepo.IsEmpty)
+
+	req = NewRequest(t, "GET", "/user30/empty")
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	redirect = test.RedirectURL(resp)
+	assert.Equal(t, "/user30/empty", redirect)
+
+	req = NewRequest(t, "GET", "/user30/empty")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "test-file.md")
 }
 
 func TestEmptyRepoUploadFile(t *testing.T) {
