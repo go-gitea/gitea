@@ -55,7 +55,7 @@
 						</form>
 					{{end}}
 					<!-- TODO: add if enabled check -->
-					<a class="ui compact small basic button" href="{{$.RepoLink}}/view" data-tooltip-content="{{if not $.IsSigned}}{{ctx.Locale.Tr "repo.view_guest_user"}}{{else}}{{ctx.Locale.Tr "repo.view"}}{{end}}">
+					<a class="ui compact small basic button" href="{{$.RepoLink}}/hub" data-tooltip-content="{{if not $.IsSigned}}{{ctx.Locale.Tr "repo.view_guest_user"}}{{else}}{{ctx.Locale.Tr "repo.view"}}{{end}}">
 						{{svg "octicon-device-desktop" 16}}
 					</a>
 					<!-- TODO: add end if enabled check -->

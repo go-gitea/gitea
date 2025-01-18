@@ -1,0 +1,32 @@
+{{template "repo/hub/head" .}}
+<div class="search-page">
+
+  <!-- TODO!: add search bar -->
+  <div class="psearch-header">
+    <form action="{{.CurrentURL}}/search" method="GET" role="search">
+      <div class="psearch-bar">
+        <div class="search-flex">
+          <div class="search-icon">
+            {{svg "octicon-search"}}
+          </div>
+          <div class="search-input-area">
+            <textarea aria-activedescendant class="search-input" name="q" maxlength="2048" rows="1" role="search"
+              spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" required>{{.Keyword}}</textarea>
+          </div>
+          <div class="search-icons-right">
+            <div class="search-icon-clear tw-hidden">
+              {{svg "octicon-x" 22}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {{range $result := .SearchResults}}
+    {{$repo := or $.Repo (index $.RepoMaps .RepoID)}}
+    <a rel="nofollow" href="{{$repo.Link}}/hub/{{.Filename | PathEscapeSegments}}">{{.Filename}}</a>
+    <div></div>
+  {{end}}
+</div>
+{{template "repo/hub/footer" .}}

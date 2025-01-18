@@ -1156,9 +1156,9 @@ func registerRoutes(m *web.Router) {
 	// user/org home, including rss feeds
 	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRef(), repo.SetEditorconfigIfExists, repo.Home)
 
-	m.Group("/{username}/{reponame}/view", func() {
-		m.Get("", repo.View) // user/org viewing home
-		// TODO: add a search query
+	m.Group("/{username}/{reponame}/hub", func() {
+		m.Get("", repo.Hub)                                 // user/org viewing home
+		m.Get("/search", reqRepoCodeReader, repo.HubSearch) // user/org search
 	}, optSignIn, context.RepoAssignment, context.RepoRef(), repo.MustBeNotEmpty)
 
 	// TODO: maybe it should relax the permission to allow "any access"

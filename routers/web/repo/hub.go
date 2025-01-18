@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	tplRepoViewHome  templates.TplName = "repo/view/home"
-	tplRepoViewEmpty templates.TplName = "repo/view/empty"
+	tplRepoHub      templates.TplName = "repo/hub/home"
+	tplRepoHubEmpty templates.TplName = "repo/hub/empty"
 )
 
-// View render repository view page
-func View(ctx *context.Context) {
-	// TODO: add search query parsing. Similar to routers/web/repo/search.go/Search().
-	// Use modules/indexer/code/search.go/PerformSearch().
+// Hub render repository customer view page
+func Hub(ctx *context.Context) {
+	// TODO!: add search query parsing. Similar to routers/web/repo/search.go/Search().
+	// Use modules/indexer/code/search.go/Search().
 
 	// Check whether the repo is viewable: not in migration, and the code unit should be enabled
 	checkHomeCodeViewable(ctx)
@@ -97,7 +97,7 @@ func View(ctx *context.Context) {
 		}
 	}
 
-	ctx.HTML(http.StatusOK, tplRepoViewHome)
+	ctx.HTML(http.StatusOK, tplRepoHub)
 }
 
 func handleRepoEmptyOrBrokenView(ctx *context.Context) {
@@ -113,7 +113,7 @@ func handleRepoEmptyOrBrokenView(ctx *context.Context) {
 		}
 	}
 	if showEmpty {
-		ctx.HTML(http.StatusOK, tplRepoViewEmpty)
+		ctx.HTML(http.StatusOK, tplRepoHubEmpty)
 		return
 	}
 
