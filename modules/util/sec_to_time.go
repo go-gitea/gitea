@@ -9,17 +9,14 @@ import (
 )
 
 // SecToHours converts an amount of seconds to a human-readable hours string.
-// This is sutable for planning and managing timesheets.
+// This is stable for planning and managing timesheets.
+// Here it only supports hours and minutes, because a work day could contain 6 or 7 or 8 hours.
 func SecToHours(durationVal any) string {
 	duration, _ := ToInt64(durationVal)
-
-	formattedTime := ""
-
-	// The following three variables are calculated without depending
-	// on the previous calculated variables.
-	hours := (duration / 3600)
+	hours := duration / 3600
 	minutes := (duration / 60) % 60
 
+	formattedTime := ""
 	formattedTime = formatTime(hours, "hour", formattedTime)
 	formattedTime = formatTime(minutes, "minute", formattedTime)
 
@@ -37,6 +34,5 @@ func formatTime(value int64, name, formattedTime string) string {
 	} else if value > 1 {
 		formattedTime = fmt.Sprintf("%s%d %ss ", formattedTime, value, name)
 	}
-
 	return formattedTime
 }
