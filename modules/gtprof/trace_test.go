@@ -35,6 +35,10 @@ type testTraceSpan struct {
 	vendorSpan *vendorSpan
 }
 
+func (t *testTraceSpan) addEvent(name string, cfg *EventConfig) {}
+
+func (t *testTraceSpan) recordError(err error, cfg *EventConfig) {}
+
 func (t *testTraceSpan) end() {}
 
 type testTraceStarter struct{}

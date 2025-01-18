@@ -23,6 +23,8 @@ type traceStarter interface {
 }
 
 type traceSpanInternal interface {
+	addEvent(name string, cfg *EventConfig)
+	recordError(err error, cfg *EventConfig)
 	end()
 }
 
@@ -35,9 +37,11 @@ type TraceSpan struct {
 	// mutable, must be protected by mutex
 	mu         sync.RWMutex
 	name       string
+	statusCode uint32
+	statusDesc string
 	startTime  time.Time
 	endTime    time.Time
-	attributes []TraceAttribute
+	attributes []*TraceAttribute
 	children   []*TraceSpan
 }
 
@@ -70,11 +74,31 @@ type Tracer struct {
 	starters []traceStarter
 }
 
+func (s *TraceSpan) SetStatus(code uint32, desc string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.statusCode, s.statusDesc = code, desc
+}
+
+func (s *TraceSpan) AddEvent(name string, options ...EventOption) {
+	cfg := eventConfigFromOptions(options...)
+	for _, tsp := range s.internalSpans {
+		tsp.addEvent(name, cfg)
+	}
+}
+
+func (s *TraceSpan) RecordError(err error, options ...EventOption) {
+	cfg := eventConfigFromOptions(options...)
+	for _, tsp := range s.internalSpans {
+		tsp.recordError(err, cfg)
+	}
+}
+
 func (s *TraceSpan) SetAttributeString(key, value string) *TraceSpan {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.attributes = append(s.attributes, TraceAttribute{Key: key, Value: TraceValue{v: value}})
+	s.attributes = append(s.attributes, &TraceAttribute{Key: key, Value: TraceValue{v: value}})
 	return s
 }
 

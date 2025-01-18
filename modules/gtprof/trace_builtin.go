@@ -21,6 +21,16 @@ type traceBuiltinSpan struct {
 	internalSpanIdx int
 }
 
+func (t *traceBuiltinSpan) addEvent(name string, cfg *EventConfig) {
+	// No-op because builtin tracer doesn't need it.
+	// In the future we might use it to mark the time point between backend logic and network response.
+}
+
+func (t *traceBuiltinSpan) recordError(err error, cfg *EventConfig) {
+	// No-op because builtin tracer doesn't need it.
+	// Actually Gitea doesn't handle err this way in most cases
+}
+
 func (t *traceBuiltinSpan) toString(out *strings.Builder, indent int) {
 	t.ts.mu.RLock()
 	defer t.ts.mu.RUnlock()
