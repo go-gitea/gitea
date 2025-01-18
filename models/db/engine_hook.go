@@ -29,6 +29,9 @@ func (*EngineHook) BeforeProcess(c *contexts.ContextHook) (context.Context, erro
 func (h *EngineHook) AfterProcess(c *contexts.ContextHook) error {
 	span := gtprof.GetContextSpan(c.Ctx)
 	if span != nil {
+		// Do not record SQL parameters here:
+		// * It shouldn't expose the parameters because they contain sensitive information, end users need to report the trace details safely.
+		// * Some parameters contain quite long texts, waste memory and are difficult to display.
 		span.SetAttributeString(gtprof.TraceAttrDbSQL, c.SQL)
 		span.End()
 	} else {
