@@ -684,10 +684,19 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 	if err != nil {
 		return nil, err
 	}
-
+	if headGitBranch.IsDeleted {
+		return nil, git_model.ErrBranchNotExist{
+			BranchName: headBranch,
+		}
+	}
 	baseGitBranch, err := git_model.GetBranch(ctx, baseRepo.ID, baseBranch)
 	if err != nil {
 		return nil, err
+	}
+	if baseGitBranch.IsDeleted {
+		return nil, git_model.ErrBranchNotExist{
+			BranchName: baseBranch,
+		}
 	}
 
 	info := &BranchDivergingInfo{}
