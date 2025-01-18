@@ -148,7 +148,7 @@ async function verifyAssertion(assertedCredential: any) { // TODO: Credential ty
   window.location.href = reply?.redirect ?? `${appSubUrl}/`;
 }
 
-async function webauthnRegistered(newCredential: any) { // TODO: asserted Credential type does not work
+async function webauthnRegistered(newCredential: any) { // TODO: Credential type does not work
   const attestationObject = new Uint8Array(newCredential.response.attestationObject);
   const clientDataJSON = new Uint8Array(newCredential.response.clientDataJSON);
   const rawId = new Uint8Array(newCredential.rawId);
