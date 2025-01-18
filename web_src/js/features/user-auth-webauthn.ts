@@ -114,7 +114,7 @@ async function login2FA() {
   }
 }
 
-async function verifyAssertion(assertedCredential: any) { // TODO: asserted Credential type does not work
+async function verifyAssertion(assertedCredential: any) { // TODO: Credential type does not work
   // Move data into Arrays in case it is super long
   const authData = new Uint8Array(assertedCredential.response.authenticatorData);
   const clientDataJSON = new Uint8Array(assertedCredential.response.clientDataJSON);
