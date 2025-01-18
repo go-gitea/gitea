@@ -16,7 +16,7 @@ type contextKey struct {
 	name string
 }
 
-var ContextKeySpan = &contextKey{"span"}
+var contextKeySpan = &contextKey{"span"}
 
 type traceStarter interface {
 	start(ctx context.Context, traceSpan *TraceSpan, internalSpanIdx int) (context.Context, traceSpanInternal)
@@ -132,8 +132,27 @@ func (t *Tracer) Start(ctx context.Context, spanName string) (context.Context, *
 		ts.internalContexts = append(ts.internalContexts, ctx)
 		ts.internalSpans = append(ts.internalSpans, internalSpan)
 	}
-	ctx = context.WithValue(ctx, ContextKeySpan, ts)
+	ctx = context.WithValue(ctx, contextKeySpan, ts)
 	return ctx, ts
+}
+
+type mutableContext interface {
+	context.Context
+	SetContextValue(key, value any)
+	GetContextValue(key any) any
+}
+
+// StartInContext starts a trace span in Gitea's mutable context (usually the web request context).
+// Due to the design limitation of Gitea's web framework, it can't use `context.WithValue` to bind a new span into a new context.
+// So here we use our "reqctx" framework to achieve the same result: web request context could always see the latest "span".
+func (t *Tracer) StartInContext(ctx mutableContext, spanName string) (*TraceSpan, func()) {
+	curTraceSpan := GetContextSpan(ctx)
+	_, newTraceSpan := GetTracer().Start(ctx, spanName)
+	ctx.SetContextValue(contextKeySpan, newTraceSpan)
+	return newTraceSpan, func() {
+		newTraceSpan.End()
+		ctx.SetContextValue(contextKeySpan, curTraceSpan)
+	}
 }
 
 func (s *TraceSpan) End() {
@@ -151,6 +170,6 @@ func GetTracer() *Tracer {
 }
 
 func GetContextSpan(ctx context.Context) *TraceSpan {
-	ts, _ := ctx.Value(ContextKeySpan).(*TraceSpan)
+	ts, _ := ctx.Value(contextKeySpan).(*TraceSpan)
 	return ts
 }
