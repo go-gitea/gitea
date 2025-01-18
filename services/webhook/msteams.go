@@ -303,6 +303,20 @@ func (m msteamsConvertor) Package(p *api.PackagePayload) (MSTeamsPayload, error)
 	), nil
 }
 
+func (m msteamsConvertor) Status(p *api.CommitStatusPayload) (MSTeamsPayload, error) {
+	title, color := getStatusPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repo,
+		p.Sender,
+		title,
+		"",
+		p.TargetURL,
+		color,
+		&MSTeamsFact{"CommitStatus:", p.Context},
+	), nil
+}
+
 func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTarget string, color int, fact *MSTeamsFact) MSTeamsPayload {
 	facts := make([]MSTeamsFact, 0, 2)
 	if r != nil {

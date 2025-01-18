@@ -54,9 +54,9 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 		SendEverything: false,
 		ChooseEvents:   false,
 		HookEvents: webhook_module.HookEvents{
-			Create:      false,
-			Push:        true,
-			PullRequest: false,
+			webhook_module.HookEventCreate:      false,
+			webhook_module.HookEventPush:        true,
+			webhook_module.HookEventPullRequest: false,
 		},
 	}
 	webhook.HookEvent = hookEvent
