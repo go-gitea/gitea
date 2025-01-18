@@ -166,6 +166,11 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 			RepoID:     repoID,
 			BranchName: branchName,
 		}
+	} else if branch.IsDeleted {
+		return nil, ErrBranchNotExist{
+			RepoID:     repoID,
+			BranchName: branchName,
+		}
 	}
 	return &branch, nil
 }
