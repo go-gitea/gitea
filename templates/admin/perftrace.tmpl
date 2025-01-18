@@ -4,8 +4,8 @@
 	{{template "admin/trace_tabs" .}}
 
 	{{range $record := .PerfTraceRecords}}
-	<div class="ui segment">
-		<pre class="tw-w-full tw-overflow-scroll tw-whitespace-pre">{{$record.Content}}</pre>
+	<div class="ui segment tw-w-full tw-overflow-scroll">
+		<pre class="tw-whitespace-pre">{{$record.Content}}</pre>
 	</div>
 	{{end}}
 </div>
