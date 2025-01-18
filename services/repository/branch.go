@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -647,7 +646,7 @@ type BranchDivergingInfo struct {
 }
 
 // GetBranchDivergingInfo returns the information about the divergence of a patch branch to the base branch.
-func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repository, baseBranch string, headRepo *repo_model.Repository, headBranch string) (*BranchDivergingInfo, error) {
+func GetBranchDivergingInfo(ctx context.Context, baseRepo *repo_model.Repository, baseBranch string, headRepo *repo_model.Repository, headBranch string) (*BranchDivergingInfo, error) {
 	headGitBranch, err := git_model.GetBranch(ctx, headRepo.ID, headBranch)
 	if err != nil {
 		return nil, err
@@ -673,10 +672,12 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 			return info, nil
 		}
 		// if the base's update time is before the fork, check whether the base's head is in the fork
-		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
+		headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, headRepo)
 		if err != nil {
 			return nil, err
 		}
+		defer closer.Close()
+
 		headCommit, err := headGitRepo.GetCommit(headGitBranch.CommitID)
 		if err != nil {
 			return nil, err

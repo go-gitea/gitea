@@ -12,7 +12,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
 )
@@ -70,7 +69,7 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 }
 
 // GetUpstreamDivergingInfo returns the information about the divergence between the fork repository's branch and the base repository's default branch.
-func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, forkRepo *repo_model.Repository, forkBranch string) (*BranchDivergingInfo, error) {
+func GetUpstreamDivergingInfo(ctx context.Context, forkRepo *repo_model.Repository, forkBranch string) (*BranchDivergingInfo, error) {
 	if !forkRepo.IsFork {
 		return nil, util.NewInvalidArgumentErrorf("repo is not a fork")
 	}
