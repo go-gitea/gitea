@@ -1,5 +1,6 @@
-import {expect, type Browser, type Page, type WorkerInfo} from '@playwright/test';
+import {expect} from '@playwright/test';
 import {env} from 'node:process';
+import type {Browser, Page, WorkerInfo} from '@playwright/test';
 
 const ARTIFACTS_PATH = `tests/e2e/test-artifacts`;
 const LOGIN_PASSWORD = 'password';
