@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -443,7 +444,14 @@ func UpdateBranch(ctx *context.APIContext) {
 
 	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, oldName, opt.Name)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
+		switch {
+		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
+			ctx.Error(http.StatusForbidden, "", "User must be a repo or site admin to rename default or protected branches.")
+		case errors.Is(err, git_model.ErrBranchIsProtected):
+			ctx.Error(http.StatusForbidden, "", "Branch is protected by glob-based protection rules.")
+		default:
+			ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
+		}
 		return
 	}
 	if msg == "target_exist" {

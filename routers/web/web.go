@@ -1246,6 +1246,8 @@ func registerRoutes(m *web.Router) {
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 
+			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
+			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
 			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
@@ -1262,7 +1264,6 @@ func registerRoutes(m *web.Router) {
 			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
 		}, reqRepoIssuesOrPullsReader) // edit issue/pull comment
 
-		m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 		m.Group("/labels", func() {
 			m.Post("/new", web.Bind(forms.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), repo.UpdateLabel)
@@ -1270,7 +1271,6 @@ func registerRoutes(m *web.Router) {
 			m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), repo.InitializeLabels)
 		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
 
-		m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
 		m.Group("/milestones", func() {
 			m.Combo("/new").Get(repo.NewMilestone).
 				Post(web.Bind(forms.CreateMilestoneForm{}), repo.NewMilestonePost)
@@ -1280,12 +1280,13 @@ func registerRoutes(m *web.Router) {
 			m.Post("/delete", repo.DeleteMilestone)
 		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
 
-		m.Group("", func() {
+		// FIXME: need to move these routes to the proper place
+		m.Group("/issues", func() {
 			m.Post("/request_review", repo.UpdatePullReviewRequest)
 			m.Post("/dismiss_review", reqRepoAdmin, web.Bind(forms.DismissReviewForm{}), repo.DismissReview)
 			m.Post("/resolve_conversation", repo.SetShowOutdatedComments, repo.UpdateResolveConversation)
-			m.Post("/pull/{index}/target_branch", repo.UpdatePullRequestTarget)
 		}, reqUnitPullsReader)
+		m.Post("/pull/{index}/target_branch", reqUnitPullsReader, repo.UpdatePullRequestTarget)
 	}, reqSignIn, context.RepoAssignment, context.RepoMustNotBeArchived())
 	// end "/{username}/{reponame}": create or edit issues, pulls, labels, milestones
 
@@ -1331,7 +1332,7 @@ func registerRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}", func() { // repo tags
 		m.Group("/tags", func() {
-			m.Get("", repo.TagsList)
+			m.Get("", context.RepoRefByDefaultBranch() /* for the "commits" tab */, repo.TagsList)
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 			m.Get("/list", repo.GetTagList)
@@ -1521,8 +1522,8 @@ func registerRoutes(m *web.Router) {
 
 		m.Group("/branches", func() {
 			m.Get("/list", repo.GetBranchesList)
-			m.Get("", repo.Branches)
-		}, repo.MustBeNotEmpty, context.RepoRef())
+			m.Get("", context.RepoRefByDefaultBranch() /* for the "commits" tab */, repo.Branches)
+		}, repo.MustBeNotEmpty)
 
 		m.Group("/media", func() {
 			m.Get("/blob/{sha}", repo.DownloadByIDOrLFS)
@@ -1566,8 +1567,10 @@ func registerRoutes(m *web.Router) {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
-			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
-		}, repo.MustBeNotEmpty, context.RepoRef())
+
+			// FIXME: this route `/cherry-pick/{sha}` doesn't seem useful or right, the new code always uses `/_cherrypick/` which could handle branch name correctly
+			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, context.RepoRefByDefaultBranch(), repo.CherryPick)
+		}, repo.MustBeNotEmpty)
 
 		m.Get("/rss/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeed)
 		m.Get("/atom/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeed)
@@ -1591,7 +1594,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
 		m.Post("/action/{action}", reqSignIn, repo.Action)
-	}, optSignIn, context.RepoAssignment, context.RepoRef())
+	}, optSignIn, context.RepoAssignment)
 
 	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
 
@@ -1621,7 +1624,7 @@ func registerRoutes(m *web.Router) {
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req)
-		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))
+		defer routing.RecordFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))()
 		ctx.NotFound("", nil)
 	})
 }

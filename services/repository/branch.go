@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -416,6 +417,29 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "from_not_exist", nil
 	}
 
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	if err != nil {
+		return "", err
+	}
+
+	isDefault := from == repo.DefaultBranch
+	if isDefault && !perm.IsAdmin() {
+		return "", repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   doer.ID,
+			RepoName: repo.LowerName,
+		}
+	}
+
+	// If from == rule name, admins are allowed to modify them.
+	if protectedBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, from); err != nil {
+		return "", err
+	} else if protectedBranch != nil && !perm.IsAdmin() {
+		return "", repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   doer.ID,
+			RepoName: repo.LowerName,
+		}
+	}
+
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
@@ -641,4 +665,60 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 	notify_service.ChangeDefaultBranch(ctx, repo)
 
 	return nil
+}
+
+// BranchDivergingInfo contains the information about the divergence of a head branch to the base branch.
+// This struct is also used in templates, so it needs to search for all references before changing it.
+type BranchDivergingInfo struct {
+	BaseHasNewCommits bool
+	HeadCommitsBehind int
+	HeadCommitsAhead  int
+}
+
+// GetBranchDivergingInfo returns the information about the divergence of a patch branch to the base branch.
+func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repository, baseBranch string, headRepo *repo_model.Repository, headBranch string) (*BranchDivergingInfo, error) {
+	headGitBranch, err := git_model.GetBranch(ctx, headRepo.ID, headBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	baseGitBranch, err := git_model.GetBranch(ctx, baseRepo.ID, baseBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	info := &BranchDivergingInfo{}
+	if headGitBranch.CommitID == baseGitBranch.CommitID {
+		return info, nil
+	}
+
+	// if the fork repo has new commits, this call will fail because they are not in the base repo
+	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
+	// so at the moment, we first check the update time, then check whether the fork branch has base's head
+	diff, err := git.GetDivergingCommits(ctx, baseRepo.RepoPath(), baseGitBranch.CommitID, headGitBranch.CommitID)
+	if err != nil {
+		info.BaseHasNewCommits = baseGitBranch.UpdatedUnix > headGitBranch.UpdatedUnix
+		if headRepo.IsFork && info.BaseHasNewCommits {
+			return info, nil
+		}
+		// if the base's update time is before the fork, check whether the base's head is in the fork
+		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
+		if err != nil {
+			return nil, err
+		}
+		headCommit, err := headGitRepo.GetCommit(headGitBranch.CommitID)
+		if err != nil {
+			return nil, err
+		}
+		baseCommitID, err := git.NewIDFromString(baseGitBranch.CommitID)
+		if err != nil {
+			return nil, err
+		}
+		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseCommitID)
+		info.BaseHasNewCommits = !hasPreviousCommit
+		return info, nil
+	}
+
+	info.HeadCommitsBehind, info.HeadCommitsAhead = diff.Behind, diff.Ahead
+	return info, nil
 }
