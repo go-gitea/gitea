@@ -208,11 +208,11 @@ func RejectTransfer(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case repo_model.IsErrNoPendingTransfer(err):
-			ctx.Error(http.StatusNotFound, "CancelRepositoryTransfer", err)
+			ctx.Error(http.StatusNotFound, "RejectRepositoryTransfer", err)
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.Error(http.StatusForbidden, "CancelRepositoryTransfer", err)
+			ctx.Error(http.StatusForbidden, "RejectRepositoryTransfer", err)
 		default:
-			ctx.Error(http.StatusInternalServerError, "CancelRepositoryTransfer", err)
+			ctx.Error(http.StatusInternalServerError, "RejectRepositoryTransfer", err)
 		}
 		return
 	}
