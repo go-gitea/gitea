@@ -74,6 +74,12 @@ type Tracer struct {
 	starters []traceStarter
 }
 
+func (s *TraceSpan) SetName(name string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.name = name
+}
+
 func (s *TraceSpan) SetStatus(code uint32, desc string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
