@@ -15,9 +15,11 @@ window.customElements.define('absolute-date', class extends HTMLElement {
   initialized = false;
 
   update = () => {
-    const opt: Intl.DateTimeFormatOptions = {};
+    const opt: Record<string, string> = {};
     for (const attr of ['year', 'month', 'weekday', 'day']) {
-      if (this.getAttribute(attr)) opt[attr] = this.getAttribute(attr);
+      if (this.getAttribute(attr)) {
+        opt[attr] = this.getAttribute(attr);
+      }
     }
     const lang = this.closest('[lang]')?.getAttribute('lang') ||
       this.ownerDocument.documentElement.getAttribute('lang') || '';

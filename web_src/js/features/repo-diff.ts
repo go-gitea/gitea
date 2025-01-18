@@ -168,7 +168,7 @@ function onShowMoreFiles() {
   initDiffHeaderPopup();
 }
 
-export async function loadMoreFiles(url) {
+export async function loadMoreFiles(url: string) {
   const target = document.querySelector('a#diff-show-more-files');
   if (target?.classList.contains('disabled') || pageData.diffFileInfo.isLoadingNewData) {
     return;

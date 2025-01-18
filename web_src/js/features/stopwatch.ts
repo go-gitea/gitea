@@ -38,7 +38,7 @@ export function initStopwatch() {
   }
 
   let usingPeriodicPoller = false;
-  const startPeriodicPoller = (timeout) => {
+  const startPeriodicPoller = (timeout: number) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
     usingPeriodicPoller = true;
     setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
@@ -103,7 +103,7 @@ export function initStopwatch() {
   startPeriodicPoller(notificationSettings.MinTimeout);
 }
 
-async function updateStopwatchWithCallback(callback, timeout) {
+async function updateStopwatchWithCallback(callback: (timeout: number) => void, timeout: number) {
   const isSet = await updateStopwatch();
 
   if (!isSet) {
@@ -125,7 +125,7 @@ async function updateStopwatch() {
   return updateStopwatchData(data);
 }
 
-function updateStopwatchData(data) {
+function updateStopwatchData(data: any) {
   const watch = data[0];
   const btnEls = document.querySelectorAll('.active-stopwatch');
   if (!watch) {
@@ -147,7 +147,7 @@ function updateStopwatchData(data) {
 // TODO: This flickers on page load, we could avoid this by making a custom
 // element to render time periods. Feeding a datetime in backend does not work
 // when time zone between server and client differs.
-function updateStopwatchTime(seconds) {
+function updateStopwatchTime(seconds: number) {
   if (!Number.isFinite(seconds)) return;
   const datetime = (new Date(Date.now() - seconds * 1000)).toISOString();
   for (const parent of document.querySelectorAll('.header-stopwatch-dot')) {

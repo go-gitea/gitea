@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {SvgIcon} from '../svg.ts';
+import {SvgIcon, type SvgName} from '../svg.ts';
 import {diffTreeStore} from '../modules/stores.ts';
 import {ref} from 'vue';
 
@@ -11,7 +11,7 @@ type File = {
   IsSubmodule: boolean;
 }
 
-type Item = {
+export type Item = {
   name: string;
   isFile: boolean;
   file?: File;
@@ -26,14 +26,14 @@ const store = diffTreeStore();
 const collapsed = ref(false);
 
 function getIconForDiffType(pType: number) {
-  const diffTypes = {
-    1: {name: 'octicon-diff-added', classes: ['text', 'green']},
-    2: {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
-    3: {name: 'octicon-diff-removed', classes: ['text', 'red']},
-    4: {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
-    5: {name: 'octicon-diff-renamed', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
+  const diffTypes: Record<string, {name: SvgName, classes: Array<string>}> = {
+    '1': {name: 'octicon-diff-added', classes: ['text', 'green']},
+    '2': {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
+    '3': {name: 'octicon-diff-removed', classes: ['text', 'red']},
+    '4': {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
+    '5': {name: 'octicon-diff-renamed', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
   };
-  return diffTypes[pType];
+  return diffTypes[String(pType)];
 }
 
 function fileIcon(file: File) {

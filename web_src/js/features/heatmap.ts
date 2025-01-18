@@ -7,7 +7,7 @@ export function initHeatmap() {
   if (!el) return;
 
   try {
-    const heatmap = {};
+    const heatmap: Record<string, number> = {};
     for (const {contributions, timestamp} of JSON.parse(el.getAttribute('data-heatmap-data'))) {
       // Convert to user timezone and sum contributions by date
       const dateStr = new Date(timestamp * 1000).toDateString();
