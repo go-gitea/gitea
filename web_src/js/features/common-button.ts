@@ -137,8 +137,7 @@ function onShowModalClick(e: MouseEvent) {
     }
 
     if (attrTargetAttr) {
-      // @ts-expect-error - no idea how to fix
-      attrTarget[camelize(attrTargetAttr)] = attrib.value;
+      (attrTarget as any)[camelize(attrTargetAttr)] = attrib.value;
     } else if (attrTarget.matches('input, textarea')) {
       (attrTarget as HTMLInputElement | HTMLTextAreaElement).value = attrib.value; // FIXME: add more supports like checkbox
     } else {
