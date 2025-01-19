@@ -7,7 +7,7 @@ type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Ar
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
 type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
-export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & {target: Partial<T>};
+export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & { target: Partial<T>; };
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]) {
   if (typeof el === 'string' || el instanceof String) {
