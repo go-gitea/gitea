@@ -1135,7 +1135,8 @@ func registerRoutes(m *web.Router) {
 			})
 		})
 		m.Group("/actions", func() {
-			m.Get("", repo_setting.RedirectToDefaultSetting)
+			m.Get("", repo_setting.General)
+			m.Post("", repo_setting.GeneralPost)
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()

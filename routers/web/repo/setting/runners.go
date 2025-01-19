@@ -181,7 +181,3 @@ func RunnerDeletePost(ctx *context.Context) {
 	}
 	actions_shared.RunnerDeletePost(ctx, ctx.PathParamInt64("runnerid"), rCtx.RedirectLink, rCtx.RedirectLink+url.PathEscape(ctx.PathParam("runnerid")))
 }
-
-func RedirectToDefaultSetting(ctx *context.Context) {
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions/runners")
-}
