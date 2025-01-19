@@ -14,8 +14,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/markbates/goth"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -96,6 +99,11 @@ func TestSigninWithRememberMe(t *testing.T) {
 func TestEnablePasswordSignInForm(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	mockLinkAccount := func(ctx *context.Context) {
+		gothUser := goth.User{Email: "invalid-email", Name: "."}
+		_ = ctx.Session.Set("linkAccountGothUser", gothUser)
+	}
+
 	t.Run("EnablePasswordSignInForm=false", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		defer test.MockVariableValue(&setting.Service.EnablePasswordSignInForm, false)()
@@ -106,6 +114,12 @@ func TestEnablePasswordSignInForm(t *testing.T) {
 
 		req = NewRequest(t, "POST", "/user/login")
 		MakeRequest(t, req, http.StatusForbidden)
+
+		req = NewRequest(t, "GET", "/user/link_account")
+		defer web.RouteMockReset()
+		web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
+		resp = MakeRequest(t, req, http.StatusOK)
+		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/link_account_signin']", false)
 	})
 
 	t.Run("EnablePasswordSignInForm=true", func(t *testing.T) {
@@ -118,5 +132,11 @@ func TestEnablePasswordSignInForm(t *testing.T) {
 
 		req = NewRequest(t, "POST", "/user/login")
 		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", "/user/link_account")
+		defer web.RouteMockReset()
+		web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
+		resp = MakeRequest(t, req, http.StatusOK)
+		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/link_account_signin']", true)
 	})
 }
