@@ -215,10 +215,28 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
 			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) &&
 			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
-			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
+			var finalBranches []*git_model.RecentlyPushedNewBranch
+			branches, err := git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
 			if err != nil {
 				log.Error("FindRecentlyPushedNewBranches failed: %v", err)
 			}
+
+			for _, branch := range branches {
+				divergingInfo, err := repo_service.GetBranchDivergingInfo(ctx,
+					branch.BranchRepo, branch.BranchName, // "base" repo for diverging info
+					opts.BaseRepo, opts.BaseRepo.DefaultBranch, // "head" repo for diverging info
+				)
+				if err != nil {
+					log.Error("GetBranchDivergingInfo failed: %v", err)
+					continue
+				}
+				branchRepoHasNewCommits := divergingInfo.BaseHasNewCommits
+				baseRepoCommitsBehind := divergingInfo.HeadCommitsBehind
+				if branchRepoHasNewCommits || baseRepoCommitsBehind > 0 {
+					finalBranches = append(finalBranches, branch)
+				}
+			}
+			ctx.Data["RecentlyPushedNewBranches"] = finalBranches
 		}
 	}
 }

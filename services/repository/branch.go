@@ -636,3 +636,61 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 
 	return nil
 }
+
+// BranchDivergingInfo contains the information about the divergence of a head branch to the base branch.
+// This struct is also used in templates, so it needs to search for all references before changing it.
+type BranchDivergingInfo struct {
+	BaseHasNewCommits bool
+	HeadCommitsBehind int
+	HeadCommitsAhead  int
+}
+
+// GetBranchDivergingInfo returns the information about the divergence of a patch branch to the base branch.
+func GetBranchDivergingInfo(ctx context.Context, baseRepo *repo_model.Repository, baseBranch string, headRepo *repo_model.Repository, headBranch string) (*BranchDivergingInfo, error) {
+	headGitBranch, err := git_model.GetBranch(ctx, headRepo.ID, headBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	baseGitBranch, err := git_model.GetBranch(ctx, baseRepo.ID, baseBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	info := &BranchDivergingInfo{}
+	if headGitBranch.CommitID == baseGitBranch.CommitID {
+		return info, nil
+	}
+
+	// if the fork repo has new commits, this call will fail because they are not in the base repo
+	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
+	// so at the moment, we first check the update time, then check whether the fork branch has base's head
+	diff, err := git.GetDivergingCommits(ctx, baseRepo.RepoPath(), baseGitBranch.CommitID, headGitBranch.CommitID)
+	if err != nil {
+		info.BaseHasNewCommits = baseGitBranch.UpdatedUnix > headGitBranch.UpdatedUnix
+		if headRepo.IsFork && info.BaseHasNewCommits {
+			return info, nil
+		}
+		// if the base's update time is before the fork, check whether the base's head is in the fork
+		headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, headRepo)
+		if err != nil {
+			return nil, err
+		}
+		defer closer.Close()
+
+		headCommit, err := headGitRepo.GetCommit(headGitBranch.CommitID)
+		if err != nil {
+			return nil, err
+		}
+		baseCommitID, err := git.NewIDFromString(baseGitBranch.CommitID)
+		if err != nil {
+			return nil, err
+		}
+		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseCommitID)
+		info.BaseHasNewCommits = !hasPreviousCommit
+		return info, nil
+	}
+
+	info.HeadCommitsBehind, info.HeadCommitsAhead = diff.Behind, diff.Ahead
+	return info, nil
+}
