@@ -29,6 +29,7 @@ var tplLinkAccount templates.TplName = "user/auth/link_account"
 
 // LinkAccount shows the page where the user can decide to login or create a new account
 func LinkAccount(ctx *context.Context) {
+	// FIXME: these common template variables should be prepared in one common function, but not just copy-paste again and again.
 	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
