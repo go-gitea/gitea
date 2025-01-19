@@ -51,6 +51,9 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
 	gothUser, ok := ctx.Session.Get("linkAccountGothUser").(goth.User)
+	// If you'd like to quickly debug the "link account" page, just uncomment the blow line
+	// don't worry, the below line won't pass the lint
+	// gothUser, ok = goth.User{Email: "invalid-email", Name: "."}, true // intentionally use invalid data to avoid pass the registration check
 	if !ok {
 		// no account in session, so just redirect to the login page, then the user could restart the process
 		ctx.Redirect(setting.AppSubURL + "/user/login")
