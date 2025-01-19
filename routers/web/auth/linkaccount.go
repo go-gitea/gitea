@@ -43,6 +43,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["ShowRegistrationButton"] = false
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
