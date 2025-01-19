@@ -15,27 +15,26 @@ type ResponseWriter interface {
 	http.Flusher
 	web_types.ResponseStatusProvider
 
-	Before(func(ResponseWriter))
-
-	Status() int // used by access logger template
-	Size() int   // used by access logger template
+	Before(fn func(ResponseWriter))
+	Status() int
+	WrittenSize() int
 }
 
-var _ ResponseWriter = &Response{}
+var _ ResponseWriter = (*Response)(nil)
 
 // Response represents a response
 type Response struct {
 	http.ResponseWriter
 	written        int
 	status         int
-	befores        []func(ResponseWriter)
+	beforeFuncs    []func(ResponseWriter)
 	beforeExecuted bool
 }
 
 // Write writes bytes to HTTP endpoint
 func (r *Response) Write(bs []byte) (int, error) {
 	if !r.beforeExecuted {
-		for _, before := range r.befores {
+		for _, before := range r.beforeFuncs {
 			before(r)
 		}
 		r.beforeExecuted = true
@@ -51,18 +50,14 @@ func (r *Response) Write(bs []byte) (int, error) {
 	return size, nil
 }
 
-func (r *Response) Status() int {
-	return r.status
-}
-
-func (r *Response) Size() int {
+func (r *Response) WrittenSize() int {
 	return r.written
 }
 
 // WriteHeader write status code
 func (r *Response) WriteHeader(statusCode int) {
 	if !r.beforeExecuted {
-		for _, before := range r.befores {
+		for _, before := range r.beforeFuncs {
 			before(r)
 		}
 		r.beforeExecuted = true
@@ -80,6 +75,12 @@ func (r *Response) Flush() {
 	}
 }
 
+// Status returns status code written
+// TODO: use WrittenStatus instead
+func (r *Response) Status() int {
+	return r.status
+}
+
 // WrittenStatus returned status code written
 func (r *Response) WrittenStatus() int {
 	return r.status
@@ -87,17 +88,13 @@ func (r *Response) WrittenStatus() int {
 
 // Before allows for a function to be called before the ResponseWriter has been written to. This is
 // useful for setting headers or any other operations that must happen before a response has been written.
-func (r *Response) Before(f func(ResponseWriter)) {
-	r.befores = append(r.befores, f)
+func (r *Response) Before(fn func(ResponseWriter)) {
+	r.beforeFuncs = append(r.beforeFuncs, fn)
 }
 
 func WrapResponseWriter(resp http.ResponseWriter) *Response {
 	if v, ok := resp.(*Response); ok {
 		return v
 	}
-	return &Response{
-		ResponseWriter: resp,
-		status:         0,
-		befores:        make([]func(ResponseWriter), 0),
-	}
+	return &Response{ResponseWriter: resp}
 }
