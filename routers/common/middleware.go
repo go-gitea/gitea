@@ -44,7 +44,11 @@ func ProtocolMiddlewares() (handlers []any) {
 
 func RequestContextHandler() func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		return http.HandlerFunc(func(respOrig http.ResponseWriter, req *http.Request) {
+			// this response writer might not be the same as the one in context.Base.Resp
+			// because there might be a "gzip writer" in the middle, so the "written size" here is the compressed size
+			respWriter := context.WrapResponseWriter(respOrig)
+
 			profDesc := fmt.Sprintf("HTTP: %s %s", req.Method, req.RequestURI)
 			ctx, finished := reqctx.NewRequestContext(req.Context(), profDesc)
 			defer finished()
@@ -59,7 +63,7 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 
 			defer func() {
 				if err := recover(); err != nil {
-					RenderPanicErrorPage(resp, req, err) // it should never panic
+					RenderPanicErrorPage(respWriter, req, err) // it should never panic
 				}
 			}()
 
@@ -71,7 +75,7 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 					_ = req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
 				}
 			})
-			next.ServeHTTP(context.WrapResponseWriter(resp), req)
+			next.ServeHTTP(respWriter, req)
 		})
 	}
 }
