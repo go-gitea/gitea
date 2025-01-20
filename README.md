@@ -9,7 +9,7 @@
 [![](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea "Become a backer/sponsor of gitea")
 [![](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT "License: MIT")
 [![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
-[![](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea "Crowdin")
+[![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
 
 [View this document in Chinese](./README_ZH.md)
 
@@ -30,6 +30,14 @@ For online demonstrations, you can visit [demo.gitea.com](https://demo.gitea.com
 For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
 
 To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com).
+
+## Documentation
+
+You can find comprehensive documentation on our official [documentation website](https://docs.gitea.com/).
+
+It includes installation, administration, usage, development, contributing guides, and more to help you get started and explore all features effectively.
+
+If you have any suggestions or would like to contribute to it, you can visit the [documentation repository](https://gitea.com/gitea/docs)
 
 ## Building
 
@@ -52,6 +60,8 @@ More info: https://docs.gitea.com/installation/install-from-source
 
 ## Using
 
+After building, a binary file named `gitea` will be generated in the root of the source tree by default. To run it, use:
+
     ./gitea web
 
 > [!NOTE]
@@ -68,22 +78,25 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 
 ## Translating
 
-Translations are done through Crowdin. If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there.
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
+
+Translations are done through [Crowdin](https://translate.gitea.com). If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there.
 
 You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope to fill it as questions pop up.
 
-https://docs.gitea.com/contributing/localization
+Get more information from [documentation](https://docs.gitea.com/contributing/localization).
 
-[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
+## Official and Third-Party Projects
 
-## Further information
+We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [tea](https://gitea.com/gitea/tea) and an [action runner](https://gitea.com/gitea/act_runner) for Gitea Action.
 
-For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.com/).
-If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://forum.gitea.com/).
+We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea), where you can discover more third-party projects, including SDKs, plugins, themes, and more.
 
-We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
+## Communication
 
-The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
+[![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
+
+If you have questions that are not covered by the [documentation](https://docs.gitea.com/), you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create a post in the [discourse forum](https://forum.gitea.com/).
 
 ## Authors
 
@@ -122,18 +135,25 @@ Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" 
 
 We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
 
+**Where can I find the security patches?**
+
+In the [release log](https://github.com/go-gitea/gitea/releases) or the [change log](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md), search for the keyword `SECURITY` to find the security patches.
+
 ## License
 
 This project is licensed under the MIT License.
 See the [LICENSE](https://github.com/go-gitea/gitea/blob/main/LICENSE) file
 for the full license text.
 
-## Screenshots
+## Further information
 
-Looking for an overview of the interface? Check it out!
+<details>
+<summary>Looking for an overview of the interface? Check it out!</summary>
 
 |![Dashboard](https://dl.gitea.com/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.com/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.com/screenshots/global_issues.png)|
 |:---:|:---:|:---:|
 |![Branches](https://dl.gitea.com/screenshots/branches.png)|![Web Editor](https://dl.gitea.com/screenshots/web_editor.png)|![Activity](https://dl.gitea.com/screenshots/activity.png)|
 |![New Migration](https://dl.gitea.com/screenshots/migration.png)|![Migrating](https://dl.gitea.com/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)|
 |![Pull Request Dark](https://dl.gitea.com/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.com/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.com/screenshots/diff_dark.png)|
+
+</details>

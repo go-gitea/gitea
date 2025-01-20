@@ -4,11 +4,14 @@
 package git
 
 import (
+	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCommitsCount(t *testing.T) {
@@ -89,9 +92,7 @@ empty commit`
 
 	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
-	if !assert.NotNil(t, commitFromReader) {
-		return
-	}
+	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
 	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
 
@@ -133,7 +134,7 @@ author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 encoding ISO-8859-1
 gpgsig -----BEGIN PGP SIGNATURE-----
- 
+<SPACE>
  iQGzBAABCgAdFiEE9HRrbqvYxPT8PXbefPSEkrowAa8FAmYGg7IACgkQfPSEkrow
  Aa9olwv+P0HhtCM6CRvlUmPaqswRsDPNR4i66xyXGiSxdI9V5oJL7HLiQIM7KrFR
  gizKa2COiGtugv8fE+TKqXKaJx6uJUJEjaBd8E9Af9PrAzjWj+A84lU6/PgPS8hq
@@ -148,7 +149,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
  -----END PGP SIGNATURE-----
 
 ISO-8859-1`
-
+	commitString = strings.ReplaceAll(commitString, "<SPACE>", " ")
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
 	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
@@ -157,9 +158,7 @@ ISO-8859-1`
 
 	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
-	if !assert.NotNil(t, commitFromReader) {
-		return
-	}
+	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
 	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
 
@@ -341,7 +340,22 @@ func TestGetCommitFileStatusMerges(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, commitFileStatus.Added, expected.Added)
-	assert.Equal(t, commitFileStatus.Removed, expected.Removed)
-	assert.Equal(t, commitFileStatus.Modified, expected.Modified)
+	assert.Equal(t, expected.Added, commitFileStatus.Added)
+	assert.Equal(t, expected.Removed, commitFileStatus.Removed)
+	assert.Equal(t, expected.Modified, commitFileStatus.Modified)
+}
+
+func Test_GetCommitBranchStart(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	repo, err := OpenRepository(context.Background(), bareRepo1Path)
+	assert.NoError(t, err)
+	defer repo.Close()
+	commit, err := repo.GetBranchCommit("branch1")
+	assert.NoError(t, err)
+	assert.EqualValues(t, "2839944139e0de9737a044f78b0e4b40d989a9e3", commit.ID.String())
+
+	startCommitID, err := repo.GetCommitBranchStart(os.Environ(), "branch1", commit.ID.String())
+	assert.NoError(t, err)
+	assert.NotEmpty(t, startCommitID)
+	assert.EqualValues(t, "9c9aef8dd84e02bc7ec12641deb4c930a7c30185", startCommitID)
 }

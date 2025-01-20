@@ -31,9 +31,12 @@ func (repo *Repository) GetTags(skip, limit int) (tags []string, err error) {
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id ObjectID) (string, error) {
-	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	if err != nil {
+		return "", err
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(id.String() + "\n"))
+	_, err = wr.Write([]byte(id.String() + "\n"))
 	if err != nil {
 		return "", err
 	}
@@ -48,7 +51,7 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	t, ok := repo.tagCache.Get(tagID.String())
 	if ok {
 		log.Debug("Hit cache: %s", tagID)
-		tagClone := *t.(*Tag)
+		tagClone := *t
 		tagClone.Name = name // This is necessary because lightweight tags may have same id
 		return &tagClone, nil
 	}
@@ -89,7 +92,10 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 
 	// The tag is an annotated tag with a message.
-	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 
 	if _, err := wr.Write([]byte(tagID.String() + "\n")); err != nil {

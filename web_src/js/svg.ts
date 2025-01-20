@@ -1,4 +1,4 @@
-import {h} from 'vue';
+import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
@@ -27,13 +27,17 @@ import octiconDownload from '../../public/assets/img/svg/octicon-download.svg';
 import octiconEye from '../../public/assets/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/assets/img/svg/octicon-file.svg';
 import octiconFileDirectoryFill from '../../public/assets/img/svg/octicon-file-directory-fill.svg';
+import octiconFileDirectoryOpenFill from '../../public/assets/img/svg/octicon-file-directory-open-fill.svg';
+import octiconFileSubmodule from '../../public/assets/img/svg/octicon-file-submodule.svg';
 import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
 import octiconGear from '../../public/assets/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg';
 import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg';
 import octiconGitMerge from '../../public/assets/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/assets/img/svg/octicon-git-pull-request.svg';
+import octiconGitPullRequestClosed from '../../public/assets/img/svg/octicon-git-pull-request-closed.svg';
 import octiconGitPullRequestDraft from '../../public/assets/img/svg/octicon-git-pull-request-draft.svg';
+import octiconGrabber from '../../public/assets/img/svg/octicon-grabber.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
@@ -63,6 +67,7 @@ import octiconSidebarCollapse from '../../public/assets/img/svg/octicon-sidebar-
 import octiconSidebarExpand from '../../public/assets/img/svg/octicon-sidebar-expand.svg';
 import octiconSkip from '../../public/assets/img/svg/octicon-skip.svg';
 import octiconStar from '../../public/assets/img/svg/octicon-star.svg';
+import octiconStop from '../../public/assets/img/svg/octicon-stop.svg';
 import octiconStrikethrough from '../../public/assets/img/svg/octicon-strikethrough.svg';
 import octiconSync from '../../public/assets/img/svg/octicon-sync.svg';
 import octiconTable from '../../public/assets/img/svg/octicon-table.svg';
@@ -100,13 +105,17 @@ const svgs = {
   'octicon-eye': octiconEye,
   'octicon-file': octiconFile,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
+  'octicon-file-directory-open-fill': octiconFileDirectoryOpenFill,
+  'octicon-file-submodule': octiconFileSubmodule,
   'octicon-filter': octiconFilter,
   'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
   'octicon-git-commit': octiconGitCommit,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
+  'octicon-git-pull-request-closed': octiconGitPullRequestClosed,
   'octicon-git-pull-request-draft': octiconGitPullRequestDraft,
+  'octicon-grabber': octiconGrabber,
   'octicon-heading': octiconHeading,
   'octicon-horizontal-rule': octiconHorizontalRule,
   'octicon-image': octiconImage,
@@ -136,6 +145,7 @@ const svgs = {
   'octicon-sidebar-expand': octiconSidebarExpand,
   'octicon-skip': octiconSkip,
   'octicon-star': octiconStar,
+  'octicon-stop': octiconStop,
   'octicon-strikethrough': octiconStrikethrough,
   'octicon-sync': octiconSync,
   'octicon-table': octiconTable,
@@ -146,17 +156,20 @@ const svgs = {
   'octicon-x-circle-fill': octiconXCircleFill,
 };
 
+export type SvgName = keyof typeof svgs;
+
 // TODO: use a more general approach to access SVG icons.
 //  At the moment, developers must check, pick and fill the names manually,
 //  most of the SVG icons in assets couldn't be used directly.
 
 // retrieve an HTML string for given SVG icon name, size and additional classes
-export function svg(name, size = 16, className = '') {
+export function svg(name: SvgName, size = 16, classNames?: string|string[]): string {
+  const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
   if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
 
   const document = parseDom(svgs[name], 'image/svg+xml');
-  const svgNode = document.firstChild;
+  const svgNode = document.firstChild as SVGElement;
   if (size !== 16) {
     svgNode.setAttribute('width', String(size));
     svgNode.setAttribute('height', String(size));
@@ -165,7 +178,7 @@ export function svg(name, size = 16, className = '') {
   return serializeXml(svgNode);
 }
 
-export function svgParseOuterInner(name) {
+export function svgParseOuterInner(name: SvgName) {
   const svgStr = svgs[name];
   if (!svgStr) throw new Error(`Unknown SVG icon: ${name}`);
 
@@ -179,14 +192,14 @@ export function svgParseOuterInner(name) {
   const svgInnerHtml = svgStr.slice(p1 + 1, p2);
   const svgOuterHtml = svgStr.slice(0, p1 + 1) + svgStr.slice(p2);
   const svgDoc = parseDom(svgOuterHtml, 'image/svg+xml');
-  const svgOuter = svgDoc.firstChild;
+  const svgOuter = svgDoc.firstChild as SVGElement;
   return {svgOuter, svgInnerHtml};
 }
 
-export const SvgIcon = {
+export const SvgIcon = defineComponent({
   name: 'SvgIcon',
   props: {
-    name: {type: String, required: true},
+    name: {type: String as PropType<SvgName>, required: true},
     size: {type: Number, default: 16},
     className: {type: String, default: ''},
     symbolId: {type: String},
@@ -204,7 +217,7 @@ export const SvgIcon = {
     attrs[`^height`] = this.size;
 
     // make the <SvgIcon class="foo" class-name="bar"> classes work together
-    const classes = [];
+    const classes: Array<string> = [];
     for (const cls of svgOuter.classList) {
       classes.push(cls);
     }
@@ -223,4 +236,4 @@ export const SvgIcon = {
       innerHTML: svgInnerHtml,
     });
   },
-};
+});

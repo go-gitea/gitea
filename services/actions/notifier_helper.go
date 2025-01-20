@@ -43,7 +43,8 @@ func withMethod(ctx context.Context, method string) context.Context {
 			return ctx
 		}
 	}
-	return context.WithValue(ctx, methodCtxKey, method)
+	// FIXME: review the use of this nolint directive
+	return context.WithValue(ctx, methodCtxKey, method) //nolint:staticcheck
 }
 
 // getMethod gets the notification method that this context currently executes.
@@ -65,7 +66,7 @@ type notifyInput struct {
 	Event webhook_module.HookEventType
 
 	// optional
-	Ref         string
+	Ref         git.RefName
 	Payload     api.Payloader
 	PullRequest *issues_model.PullRequest
 }
@@ -89,7 +90,7 @@ func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
 }
 
 func (input *notifyInput) WithRef(ref string) *notifyInput {
-	input.Ref = ref
+	input.Ref = git.RefName(ref)
 	return input
 }
 
@@ -101,7 +102,7 @@ func (input *notifyInput) WithPayload(payload api.Payloader) *notifyInput {
 func (input *notifyInput) WithPullRequest(pr *issues_model.PullRequest) *notifyInput {
 	input.PullRequest = pr
 	if input.Ref == "" {
-		input.Ref = pr.GetGitRefName()
+		input.Ref = git.RefName(pr.GetGitRefName())
 	}
 	return input
 }
@@ -115,11 +116,20 @@ func (input *notifyInput) Notify(ctx context.Context) {
 }
 
 func notify(ctx context.Context, input *notifyInput) error {
+	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && input.Ref.BranchName() == input.Repo.DefaultBranch
 	if input.Doer.IsActions() {
 		// avoiding triggering cyclically, for example:
 		// a comment of an issue will trigger the runner to add a new comment as reply,
 		// and the new comment will trigger the runner again.
 		log.Debug("ignore executing %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
+
+		// we should update schedule tasks in this case, because
+		//   1. schedule tasks cannot be triggered by other events, so cyclic triggering will not occur
+		//   2. some schedule tasks may update the repo periodically, so the refs of schedule tasks need to be updated
+		if shouldDetectSchedules {
+			return DetectAndHandleSchedules(ctx, input.Repo)
+		}
+
 		return nil
 	}
 	if input.Repo.IsEmpty || input.Repo.IsArchived {
@@ -144,20 +154,25 @@ func notify(ctx context.Context, input *notifyInput) error {
 	defer gitRepo.Close()
 
 	ref := input.Ref
-	if ref != input.Repo.DefaultBranch && actions_module.IsDefaultBranchWorkflow(input.Event) {
+	if ref.BranchName() != input.Repo.DefaultBranch && actions_module.IsDefaultBranchWorkflow(input.Event) {
 		if ref != "" {
 			log.Warn("Event %q should only trigger workflows on the default branch, but its ref is %q. Will fall back to the default branch",
 				input.Event, ref)
 		}
-		ref = input.Repo.DefaultBranch
+		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 	if ref == "" {
 		log.Warn("Ref of event %q is empty, will fall back to the default branch", input.Event)
-		ref = input.Repo.DefaultBranch
+		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
+	}
+
+	commitID, err := gitRepo.GetRefCommitID(ref.String())
+	if err != nil {
+		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
 
 	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(ref)
+	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
@@ -168,7 +183,6 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && git.RefName(input.Ref).BranchName() == input.Repo.DefaultBranch
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
 		input.Event,
 		input.Payload,
@@ -220,12 +234,12 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if shouldDetectSchedules {
-		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
+		if err := handleSchedules(ctx, schedules, commit, input, ref.String()); err != nil {
 			return err
 		}
 	}
 
-	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
+	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref.String())
 }
 
 func skipWorkflows(input *notifyInput, commit *git.Commit) bool {

@@ -1,0 +1,60 @@
+.ui.label.commit-id-short,
+.ui.label.commit-sign-badge {
+  border: 1px solid var(--color-light-border);
+  font-size: 13px;
+  font-weight: var(--font-weight-normal);
+  padding: 3px 5px;
+  flex-shrink: 0;
+}
+
+.ui.label.commit-id-short {
+  font-family: var(--fonts-monospace);
+}
+
+.ui.label.commit-id-short > .commit-sign-badge {
+  margin: 0;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent;
+}
+
+.ui.label.commit-id-short > .commit-sign-badge:hover {
+  background: transparent !important;
+}
+
+.commit-is-signed.sign-trusted {
+  border: 1px solid var(--color-green-badge) !important;
+  background: var(--color-green-badge-bg) !important;
+}
+
+.commit-is-signed.sign-trusted:hover {
+  background: var(--color-green-badge-hover-bg) !important;
+}
+
+.commit-is-signed.sign-untrusted {
+  border: 1px solid var(--color-yellow-badge) !important;
+  background: var(--color-yellow-badge-bg) !important;
+}
+
+.commit-is-signed.sign-untrusted:hover {
+  background: var(--color-yellow-badge-hover-bg) !important;
+}
+
+.commit-is-signed.sign-unmatched {
+  border: 1px solid var(--color-orange-badge) !important;
+  background: var(--color-orange-badge-bg) !important;
+}
+
+.commit-is-signed.sign-unmatched:hover {
+  background: var(--color-orange-badge-hover-bg) !important;
+}
+
+.commit-is-signed.sign-warning {
+  border: 1px solid var(--color-red-badge) !important;
+  background: var(--color-red-badge-bg) !important;
+}
+
+.commit-is-signed.sign-warning:hover {
+  background: var(--color-red-badge-hover-bg) !important;
+}

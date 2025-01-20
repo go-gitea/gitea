@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -235,9 +234,9 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	globs := protectBranch.GetProtectedFilePatterns()
 	if len(globs) > 0 {
-		_, err := pull_service.CheckFileProtection(gitRepo, oldCommitID, newCommitID, globs, 1, ctx.env)
+		_, err := pull_service.CheckFileProtection(gitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
 		if err != nil {
-			if !models.IsErrFilePathProtected(err) {
+			if !pull_service.IsErrFilePathProtected(err) {
 				log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
 					Err: fmt.Sprintf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err),
@@ -246,7 +245,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			}
 
 			changedProtectedfiles = true
-			protectedFilePath = err.(models.ErrFilePathProtected).Path
+			protectedFilePath = err.(pull_service.ErrFilePathProtected).Path
 		}
 	}
 
@@ -293,7 +292,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			// Allow commits that only touch unprotected files
 			globs := protectBranch.GetUnprotectedFilePatterns()
 			if len(globs) > 0 {
-				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(gitRepo, oldCommitID, newCommitID, globs, ctx.env)
+				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(gitRepo, branchName, oldCommitID, newCommitID, globs, ctx.env)
 				if err != nil {
 					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 					ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -374,7 +373,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 		// Check all status checks and reviews are ok
 		if err := pull_service.CheckPullBranchProtections(ctx, pr, true); err != nil {
-			if models.IsErrDisallowedToMerge(err) {
+			if pull_service.IsErrDisallowedToMerge(err) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{
 					UserMsg: fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, ctx.opts.PullRequestID, err.Error()),

@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	package_service "code.gitea.io/gitea/services/packages"
 	"code.gitea.io/gitea/tests"
 
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
@@ -78,6 +79,8 @@ func TestPackageContainer(t *testing.T) {
 
 	anonymousToken := ""
 	userToken := ""
+	readToken := ""
+	badToken := ""
 
 	t.Run("Authenticate", func(t *testing.T) {
 		type TokenResponse struct {
@@ -123,7 +126,7 @@ func TestPackageContainer(t *testing.T) {
 			assert.Equal(t, `Bearer realm="https://domain:8443/v2/token",service="container_registry",scope="*"`, resp.Header().Get("WWW-Authenticate"))
 		})
 
-		t.Run("User", func(t *testing.T) {
+		t.Run("UserName/Password", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
@@ -139,12 +142,62 @@ func TestPackageContainer(t *testing.T) {
 			DecodeJSON(t, resp, &tokenResponse)
 
 			assert.NotEmpty(t, tokenResponse.Token)
+			pkgMeta, err := package_service.ParseAuthorizationToken(tokenResponse.Token)
+			assert.NoError(t, err)
+			assert.Equal(t, user.ID, pkgMeta.UserID)
+			assert.Equal(t, auth_model.AccessTokenScopeAll, pkgMeta.Scope)
 
 			userToken = fmt.Sprintf("Bearer %s", tokenResponse.Token)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
 				AddTokenAuth(userToken)
 			MakeRequest(t, req, http.StatusOK)
+		})
+
+		// Token that should enforce the read scope.
+		t.Run("AccessToken", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			session := loginUser(t, user.Name)
+
+			readToken = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
+			req := NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+			req.Request.SetBasicAuth(user.Name, readToken)
+			resp := MakeRequest(t, req, http.StatusOK)
+			tokenResponse := &TokenResponse{}
+			DecodeJSON(t, resp, &tokenResponse)
+
+			readToken = fmt.Sprintf("Bearer %s", tokenResponse.Token)
+
+			badToken = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
+			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+			req.Request.SetBasicAuth(user.Name, badToken)
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			testCase := func(scope auth_model.AccessTokenScope, expectedAuthStatus, expectedStatus int) {
+				token := getTokenForLoggedInUser(t, session, scope)
+
+				req := NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+				req.SetBasicAuth(user.Name, token)
+
+				resp := MakeRequest(t, req, expectedAuthStatus)
+				if expectedAuthStatus != http.StatusOK {
+					return
+				}
+
+				tokenResponse := &TokenResponse{}
+				DecodeJSON(t, resp, &tokenResponse)
+
+				assert.NotEmpty(t, tokenResponse.Token)
+
+				req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
+					AddTokenAuth(fmt.Sprintf("Bearer %s", tokenResponse.Token))
+				MakeRequest(t, req, expectedStatus)
+			}
+			testCase(auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusOK)
+			testCase(auth_model.AccessTokenScopeAll, http.StatusOK, http.StatusOK)
+			testCase(auth_model.AccessTokenScopeReadNotification, http.StatusUnauthorized, http.StatusUnauthorized)
+			testCase(auth_model.AccessTokenScopeWritePackage, http.StatusOK, http.StatusOK)
 		})
 	})
 
@@ -155,6 +208,15 @@ func TestPackageContainer(t *testing.T) {
 			AddTokenAuth(userToken)
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "registry/2.0", resp.Header().Get("Docker-Distribution-Api-Version"))
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
+			AddTokenAuth(readToken)
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, "registry/2.0", resp.Header().Get("Docker-Distribution-Api-Version"))
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
+			AddTokenAuth(badToken)
+		MakeRequest(t, req, http.StatusUnauthorized)
 	})
 
 	for _, image := range images {
@@ -166,6 +228,14 @@ func TestPackageContainer(t *testing.T) {
 
 				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
 					AddTokenAuth(anonymousToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+					AddTokenAuth(readToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+					AddTokenAuth(badToken)
 				MakeRequest(t, req, http.StatusUnauthorized)
 
 				req = NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, unknownDigest), bytes.NewReader(blobContent)).
@@ -195,6 +265,14 @@ func TestPackageContainer(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+					AddTokenAuth(readToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+					AddTokenAuth(badToken)
+				MakeRequest(t, req, http.StatusUnauthorized)
+
+				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusAccepted)
 
@@ -706,7 +784,7 @@ func TestPackageContainer(t *testing.T) {
 		newOwnerName := "newUsername"
 
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"_csrf":    GetUserCSRFToken(t, session),
 			"name":     newOwnerName,
 			"email":    "user2@example.com",
 			"language": "en-US",
@@ -716,7 +794,7 @@ func TestPackageContainer(t *testing.T) {
 		t.Run(fmt.Sprintf("Catalog[%s]", newOwnerName), checkCatalog(newOwnerName))
 
 		req = NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"_csrf":    GetUserCSRFToken(t, session),
 			"name":     user.Name,
 			"email":    "user2@example.com",
 			"language": "en-US",

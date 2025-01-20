@@ -5,16 +5,20 @@ import {GET, POST} from '../modules/fetch.ts';
 const {appSubUrl} = window.config;
 
 export async function initUserAuthWebAuthn() {
+  const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
+  const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
+  if (!elPrompt && !elSignInPasskeyBtn) {
+    return;
+  }
+
   if (!detectWebAuthnSupport()) {
     return;
   }
 
-  const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
   if (elSignInPasskeyBtn) {
     elSignInPasskeyBtn.addEventListener('click', loginPasskey);
   }
 
-  const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   if (elPrompt) {
     login2FA();
   }
@@ -36,14 +40,15 @@ async function loginPasskey() {
   try {
     const credential = await navigator.credentials.get({
       publicKey: options.publicKey,
-    });
+    }) as PublicKeyCredential;
+    const credResp = credential.response as AuthenticatorAssertionResponse;
 
     // Move data into Arrays in case it is super long
-    const authData = new Uint8Array(credential.response.authenticatorData);
-    const clientDataJSON = new Uint8Array(credential.response.clientDataJSON);
+    const authData = new Uint8Array(credResp.authenticatorData);
+    const clientDataJSON = new Uint8Array(credResp.clientDataJSON);
     const rawId = new Uint8Array(credential.rawId);
-    const sig = new Uint8Array(credential.response.signature);
-    const userHandle = new Uint8Array(credential.response.userHandle);
+    const sig = new Uint8Array(credResp.signature);
+    const userHandle = new Uint8Array(credResp.userHandle);
 
     const res = await POST(`${appSubUrl}/user/webauthn/passkey/login`, {
       data: {
@@ -171,7 +176,7 @@ async function webauthnRegistered(newCredential) {
   window.location.reload();
 }
 
-function webAuthnError(errorType, message) {
+function webAuthnError(errorType: string, message:string = '') {
   const elErrorMsg = document.querySelector(`#webauthn-error-msg`);
 
   if (errorType === 'general') {
@@ -203,10 +208,9 @@ function detectWebAuthnSupport() {
 }
 
 export function initUserAuthWebAuthnRegister() {
-  const elRegister = document.querySelector('#register-webauthn');
-  if (!elRegister) {
-    return;
-  }
+  const elRegister = document.querySelector<HTMLInputElement>('#register-webauthn');
+  if (!elRegister) return;
+
   if (!detectWebAuthnSupport()) {
     elRegister.disabled = true;
     return;
@@ -218,7 +222,7 @@ export function initUserAuthWebAuthnRegister() {
 }
 
 async function webAuthnRegisterRequest() {
-  const elNickname = document.querySelector('#nickname');
+  const elNickname = document.querySelector<HTMLInputElement>('#nickname');
 
   const formData = new FormData();
   formData.append('name', elNickname.value);

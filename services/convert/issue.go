@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
@@ -186,7 +187,7 @@ func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.Stop
 		result = append(result, api.StopWatch{
 			Created:       sw.CreatedUnix.AsTime(),
 			Seconds:       sw.Seconds(),
-			Duration:      sw.Duration(),
+			Duration:      util.SecToHours(sw.Seconds()),
 			IssueIndex:    issue.Index,
 			IssueTitle:    issue.Title,
 			RepoOwnerName: repo.OwnerName,
@@ -260,7 +261,7 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 	if m.IsClosed {
 		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
 	}
-	if m.DeadlineUnix.Year() < 9999 {
+	if m.DeadlineUnix > 0 {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone

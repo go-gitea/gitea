@@ -7,8 +7,8 @@
   ],
   "compilerOptions": {
     "target": "es2020",
-    "module": "node16",
-    "moduleResolution": "node16",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "lib": ["dom", "dom.iterable", "dom.asynciterable", "esnext"],
     "allowImportingTsExtensions": true,
     "allowJs": true,
@@ -22,6 +22,8 @@
     "verbatimModuleSyntax": true,
     "stripInternal": true,
     "strict": false,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false,
@@ -29,7 +31,7 @@
     "sourceMap": true,
     "types": [
       "vitest/globals",
-      "./types.d.ts",
+      "./web_src/js/globals.d.ts",
     ],
   }
 }

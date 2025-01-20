@@ -2,14 +2,14 @@
 	<div class="admin-setting-content">
 		{{if .NeedUpdate}}
 			<div class="ui negative message flash-error">
-				<p>{{ctx.Locale.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer}}</p>
+				<p>{{ctx.Locale.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer "https://blog.gitea.com"}}</p>
 			</div>
 		{{end}}
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.dashboard.maintenance_operations"}}
 		</h4>
 		<div class="ui attached table segment">
-			<form method="post" action="{{AppSubUrl}}/admin">
+			<form method="post" action="{{AppSubUrl}}/-/admin">
 				{{.CsrfTokenHtml}}
 				<table class="ui very basic table tw-mt-0 tw-px-4">
 					<tbody>

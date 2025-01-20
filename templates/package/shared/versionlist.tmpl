@@ -25,7 +25,7 @@
 			<div class="flex-item-main">
 				<a class="flex-item-title" href="{{.VersionWebLink}}">{{.Version.LowerVersion}}</a>
 				<div class="flex-item-body">
-					{{ctx.Locale.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix ctx.Locale) .Creator.HomeLink .Creator.GetDisplayName}}
+					{{ctx.Locale.Tr "packages.published_by" (DateUtils.TimeSince .Version.CreatedUnix) .Creator.HomeLink .Creator.GetDisplayName}}
 				</div>
 			</div>
 		</div>

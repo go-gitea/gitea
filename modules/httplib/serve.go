@@ -46,7 +46,7 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 		w.Header().Add(gzhttp.HeaderNoCompression, "1")
 	}
 
-	contentType := typesniffer.ApplicationOctetStream
+	contentType := typesniffer.MimeTypeApplicationOctetStream
 	if opts.ContentType != "" {
 		if opts.ContentTypeCharset != "" {
 			contentType = opts.ContentType + "; charset=" + strings.ToLower(opts.ContentTypeCharset)
@@ -79,6 +79,7 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 	httpcache.SetCacheControlInHeader(header, duration)
 
 	if !opts.LastModified.IsZero() {
+		// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
 		header.Set("Last-Modified", opts.LastModified.UTC().Format(http.TimeFormat))
 	}
 }
@@ -106,7 +107,7 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath stri
 		} else if isPlain {
 			opts.ContentType = "text/plain"
 		} else {
-			opts.ContentType = typesniffer.ApplicationOctetStream
+			opts.ContentType = typesniffer.MimeTypeApplicationOctetStream
 		}
 	}
 

@@ -16,6 +16,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -24,17 +25,22 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+type RenderUtils struct {
+	ctx context.Context
+}
+
+func NewRenderUtils(ctx context.Context) *RenderUtils {
+	return &RenderUtils{ctx: ctx}
+}
+
 // RenderCommitMessage renders commit message with XSS-safe and special links.
-func RenderCommitMessage(ctx context.Context, msg string, metas map[string]string) template.HTML {
+func (ut *RenderUtils) RenderCommitMessage(msg string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:   ctx,
-		Metas: metas,
-	}, cleanMsg)
+	fullMessage, err := markup.PostProcessCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), cleanMsg)
 	if err != nil {
-		log.Error("RenderCommitMessage: %v", err)
+		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
 	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
@@ -44,9 +50,9 @@ func RenderCommitMessage(ctx context.Context, msg string, metas map[string]strin
 	return renderCodeBlock(template.HTML(msgLines[0]))
 }
 
-// renderCommitMessageLinkSubject renders commit message as a XSS-safe link to
+// RenderCommitMessageLinkSubject renders commit message as a XSS-safe link to
 // the provided default url, handling for special links without email to links.
-func renderCommitMessageLinkSubject(ctx context.Context, msg, urlDefault string, metas map[string]string) template.HTML {
+func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -54,25 +60,21 @@ func renderCommitMessageLinkSubject(ctx context.Context, msg, urlDefault string,
 	}
 	msgLine = strings.TrimRightFunc(msgLine, unicode.IsSpace)
 	if len(msgLine) == 0 {
-		return template.HTML("")
+		return ""
 	}
 
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
-		Ctx:         ctx,
-		DefaultLink: urlDefault,
-		Metas:       metas,
-	}, template.HTMLEscapeString(msgLine))
+	renderedMessage, err := markup.PostProcessCommitMessageSubject(markup.NewRenderContext(ut.ctx).WithMetas(metas), urlDefault, template.HTMLEscapeString(msgLine))
 	if err != nil {
-		log.Error("RenderCommitMessageSubject: %v", err)
-		return template.HTML("")
+		log.Error("PostProcessCommitMessageSubject: %v", err)
+		return ""
 	}
 	return renderCodeBlock(template.HTML(renderedMessage))
 }
 
-// renderCommitBody extracts the body of a commit message without its title.
-func renderCommitBody(ctx context.Context, msg string, metas map[string]string) template.HTML {
+// RenderCommitBody extracts the body of a commit message without its title.
+func (ut *RenderUtils) RenderCommitBody(msg string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimSpace(msg)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -85,12 +87,9 @@ func renderCommitBody(ctx context.Context, msg string, metas map[string]string) 
 		return ""
 	}
 
-	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:   ctx,
-		Metas: metas,
-	}, template.HTMLEscapeString(msgLine))
+	renderedMessage, err := markup.PostProcessCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(msgLine))
 	if err != nil {
-		log.Error("RenderCommitMessage: %v", err)
+		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
 	}
 	return template.HTML(renderedMessage)
@@ -105,22 +104,26 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 	return template.HTML(htmlWithCodeTags)
 }
 
-// renderIssueTitle renders issue/pull title with defined post processors
-func renderIssueTitle(ctx context.Context, text string, metas map[string]string) template.HTML {
-	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
-		Ctx:   ctx,
-		Metas: metas,
-	}, template.HTMLEscapeString(text))
+// RenderIssueTitle renders issue/pull title with defined post processors
+func (ut *RenderUtils) RenderIssueTitle(text string, metas map[string]string) template.HTML {
+	renderedText, err := markup.PostProcessIssueTitle(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(text))
 	if err != nil {
-		log.Error("RenderIssueTitle: %v", err)
-		return template.HTML("")
+		log.Error("PostProcessIssueTitle: %v", err)
+		return ""
 	}
-	return template.HTML(renderedText)
+	return renderCodeBlock(template.HTML(renderedText))
 }
 
-// renderLabel renders a label
-// locale is needed due to an import cycle with our context providing the `Tr` function
-func renderLabel(ctx context.Context, locale translation.Locale, label *issues_model.Label) template.HTML {
+// RenderIssueSimpleTitle only renders with emoji and inline code block
+func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
+	ret := ut.RenderEmoji(text)
+	ret = renderCodeBlock(ret)
+	return ret
+}
+
+// RenderLabel renders a label
+func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
+	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
 	var extraCSSClasses string
 	textColor := util.ContrastColor(label.Color)
 	labelScope := label.ExclusiveScope()
@@ -133,13 +136,13 @@ func renderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 
 	if labelScope == "" {
 		// Regular label
-		return HTMLFormat(`<div class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s">%s</div>`,
-			extraCSSClasses, textColor, label.Color, descriptionText, renderEmoji(ctx, label.Name))
+		return htmlutil.HTMLFormat(`<div class="ui label %s" style="color: %s !important; background-color: %s !important;" data-tooltip-content title="%s">%s</div>`,
+			extraCSSClasses, textColor, label.Color, descriptionText, ut.RenderEmoji(label.Name))
 	}
 
 	// Scoped label
-	scopeHTML := renderEmoji(ctx, labelScope)
-	itemHTML := renderEmoji(ctx, label.Name[len(labelScope)+1:])
+	scopeHTML := ut.RenderEmoji(labelScope)
+	itemHTML := ut.RenderEmoji(label.Name[len(labelScope)+1:])
 
 	// Make scope and item background colors slightly darker and lighter respectively.
 	// More contrast needed with higher luminance, empirically tweaked.
@@ -167,7 +170,7 @@ func renderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
-	return HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+	return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`</span>`,
@@ -176,13 +179,12 @@ func renderLabel(ctx context.Context, locale translation.Locale, label *issues_m
 		textColor, itemColor, itemHTML)
 }
 
-// renderEmoji renders html text with emoji post processors
-func renderEmoji(ctx context.Context, text string) template.HTML {
-	renderedText, err := markup.RenderEmoji(&markup.RenderContext{Ctx: ctx},
-		template.HTMLEscapeString(text))
+// RenderEmoji renders html text with emoji post processors
+func (ut *RenderUtils) RenderEmoji(text string) template.HTML {
+	renderedText, err := markup.PostProcessEmoji(markup.NewRenderContext(ut.ctx), template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
-		return template.HTML("")
+		return ""
 	}
 	return template.HTML(renderedText)
 }
@@ -200,18 +202,15 @@ func reactionToEmoji(reaction string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, url.PathEscape(reaction)))
 }
 
-func RenderMarkdownToHtml(ctx context.Context, input string) template.HTML { //nolint:revive
-	output, err := markdown.RenderString(&markup.RenderContext{
-		Ctx:   ctx,
-		Metas: map[string]string{"mode": "document"},
-	}, input)
+func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:revive
+	output, err := markdown.RenderString(markup.NewRenderContext(ut.ctx).WithMetas(markup.ComposeSimpleDocumentMetas()), input)
 	if err != nil {
 		log.Error("RenderString: %v", err)
 	}
 	return output
 }
 
-func RenderLabels(ctx context.Context, locale translation.Locale, labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
+func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
 	htmlCode := `<span class="labels-list">`
@@ -220,7 +219,7 @@ func RenderLabels(ctx context.Context, locale translation.Locale, labels []*issu
 		if label == nil {
 			continue
 		}
-		htmlCode += fmt.Sprintf(`<a href="%s?labels=%d">%s</a>`, baseLink, label.ID, renderLabel(ctx, locale, label))
+		htmlCode += fmt.Sprintf(`<a href="%s?labels=%d">%s</a>`, baseLink, label.ID, ut.RenderLabel(label))
 	}
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)

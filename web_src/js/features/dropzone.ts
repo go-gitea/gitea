@@ -6,6 +6,7 @@ import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
+import type {DropzoneFile} from 'dropzone/index.js';
 
 const {csrfToken, i18n} = window.config;
 
@@ -15,14 +16,14 @@ export const DropzoneCustomEventRemovedFile = 'dropzone-custom-removed-file';
 export const DropzoneCustomEventUploadDone = 'dropzone-custom-upload-done';
 
 async function createDropzone(el, opts) {
-  const [{Dropzone}] = await Promise.all([
+  const [{default: Dropzone}] = await Promise.all([
     import(/* webpackChunkName: "dropzone" */'dropzone'),
     import(/* webpackChunkName: "dropzone" */'dropzone/dist/dropzone.css'),
   ]);
   return new Dropzone(el, opts);
 }
 
-export function generateMarkdownLinkForAttachment(file, {width, dppx} = {}) {
+export function generateMarkdownLinkForAttachment(file, {width, dppx}: {width?: number, dppx?: number} = {}) {
   let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
   if (isImageFile(file)) {
     fileMarkdown = `!${fileMarkdown}`;
@@ -52,7 +53,7 @@ function addCopyLink(file) {
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();
     const success = await clippie(generateMarkdownLinkForAttachment(file));
-    showTemporaryTooltip(e.target, success ? i18n.copy_success : i18n.copy_error);
+    showTemporaryTooltip(e.target as Element, success ? i18n.copy_success : i18n.copy_error);
   });
   file.previewTemplate.append(copyLinkEl);
 }
@@ -60,14 +61,14 @@ function addCopyLink(file) {
 /**
  * @param {HTMLElement} dropzoneEl
  */
-export async function initDropzone(dropzoneEl) {
+export async function initDropzone(dropzoneEl: HTMLElement) {
   const listAttachmentsUrl = dropzoneEl.closest('[data-attachment-url]')?.getAttribute('data-attachment-url');
   const removeAttachmentUrl = dropzoneEl.getAttribute('data-remove-url');
   const attachmentBaseLinkUrl = dropzoneEl.getAttribute('data-link-url');
 
   let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
   let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
-  const opts = {
+  const opts: Record<string, any> = {
     url: dropzoneEl.getAttribute('data-upload-url'),
     headers: {'X-Csrf-Token': csrfToken},
     acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')) ? null : dropzoneEl.getAttribute('data-accepts'),
@@ -88,7 +89,7 @@ export async function initDropzone(dropzoneEl) {
   // "http://localhost:3000/owner/repo/issues/[object%20Event]"
   // the reason is that the preview "callback(dataURL)" is assign to "img.onerror" then "thumbnail" uses the error object as the dataURL and generates '<img src="[object Event]">'
   const dzInst = await createDropzone(dropzoneEl, opts);
-  dzInst.on('success', (file, resp) => {
+  dzInst.on('success', (file: DropzoneFile & {uuid: string}, resp: any) => {
     file.uuid = resp.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
     const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});
@@ -97,7 +98,7 @@ export async function initDropzone(dropzoneEl) {
     dzInst.emit(DropzoneCustomEventUploadDone, {file});
   });
 
-  dzInst.on('removedfile', async (file) => {
+  dzInst.on('removedfile', async (file: DropzoneFile & {uuid: string}) => {
     if (disableRemovedfileEvent) return;
 
     dzInst.emit(DropzoneCustomEventRemovedFile, {fileUuid: file.uuid});
@@ -128,10 +129,12 @@ export async function initDropzone(dropzoneEl) {
       fileUuidDict = {};
       for (const attachment of respData) {
         const file = {name: attachment.name, uuid: attachment.uuid, size: attachment.size};
-        const imgSrc = `${attachmentBaseLinkUrl}/${file.uuid}`;
         dzInst.emit('addedfile', file);
-        dzInst.emit('thumbnail', file, imgSrc);
         dzInst.emit('complete', file);
+        if (isImageFile(file.name)) {
+          const imgSrc = `${attachmentBaseLinkUrl}/${file.uuid}`;
+          dzInst.emit('thumbnail', file, imgSrc);
+        }
         addCopyLink(file); // it is from server response, so no "type"
         fileUuidDict[file.uuid] = {submitted: true};
         const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${file.uuid}`, value: file.uuid});

@@ -39,7 +39,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	if assert.Len(t, teams, 2) {
 		assert.EqualValues(t, "Owners", teams[0].Name)
 		assert.True(t, teams[0].CanCreateOrgRepo)
-		assert.True(t, util.SliceSortedEqual(unit.AllUnitKeyNames(), teams[0].Units), fmt.Sprintf("%v == %v", unit.AllUnitKeyNames(), teams[0].Units))
+		assert.True(t, util.SliceSortedEqual(unit.AllUnitKeyNames(), teams[0].Units), "%v == %v", unit.AllUnitKeyNames(), teams[0].Units)
 		assert.EqualValues(t, "owner", teams[0].Permission)
 
 		assert.EqualValues(t, "test_team", teams[1].Name)

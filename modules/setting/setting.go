@@ -147,6 +147,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadGitFrom(cfg)
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
+	loadGlobalLockFrom(cfg)
 	loadOtherFrom(cfg)
 	return nil
 }
@@ -233,4 +234,10 @@ func checkOverlappedPath(name, path string) {
 		LogStartupProblem(1, log.ERROR, "Configured path %q is used by %q and %q at the same time. The paths must be unique to prevent data loss.", path, targetName, name)
 	}
 	configuredPaths[path] = name
+}
+
+func PanicInDevOrTesting(msg string, a ...any) {
+	if !IsProd || IsInTesting {
+		panic(fmt.Sprintf(msg, a...))
+	}
 }

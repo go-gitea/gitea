@@ -1,14 +1,21 @@
 import {imageInfo} from '../../utils/image.ts';
 import {replaceTextareaSelection} from '../../utils/dom.ts';
 import {isUrl} from '../../utils/url.ts';
-import {triggerEditorContentChanged} from './EditorMarkdown.ts';
+import {textareaInsertText, triggerEditorContentChanged} from './EditorMarkdown.ts';
 import {
   DropzoneCustomEventRemovedFile,
   DropzoneCustomEventUploadDone,
   generateMarkdownLinkForAttachment,
 } from '../dropzone.ts';
+import type CodeMirror from 'codemirror';
 
 let uploadIdCounter = 0;
+
+export const EventUploadStateChanged = 'ce-upload-state-changed';
+
+export function triggerUploadStateChanged(target) {
+  target.dispatchEvent(new CustomEvent(EventUploadStateChanged, {bubbles: true}));
+}
 
 function uploadFile(dropzoneEl, file) {
   return new Promise((resolve) => {
@@ -18,7 +25,7 @@ function uploadFile(dropzoneEl, file) {
     const onUploadDone = ({file}) => {
       if (file._giteaUploadId === curUploadId) {
         dropzoneInst.off(DropzoneCustomEventUploadDone, onUploadDone);
-        resolve();
+        resolve(file);
       }
     };
     dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
@@ -27,19 +34,14 @@ function uploadFile(dropzoneEl, file) {
 }
 
 class TextareaEditor {
+  editor : HTMLTextAreaElement;
+
   constructor(editor) {
     this.editor = editor;
   }
 
   insertPlaceholder(value) {
-    const editor = this.editor;
-    const startPos = editor.selectionStart;
-    const endPos = editor.selectionEnd;
-    editor.value = editor.value.substring(0, startPos) + value + editor.value.substring(endPos);
-    editor.selectionStart = startPos;
-    editor.selectionEnd = startPos + value.length;
-    editor.focus();
-    triggerEditorContentChanged(editor);
+    textareaInsertText(this.editor, value);
   }
 
   replacePlaceholder(oldVal, newVal) {
@@ -61,6 +63,8 @@ class TextareaEditor {
 }
 
 class CodeMirrorEditor {
+  editor: CodeMirror.EditorFromTextArea;
+
   constructor(editor) {
     this.editor = editor;
   }
@@ -119,7 +123,7 @@ function handleClipboardText(textarea, e, {text, isShiftDown}) {
   const {value, selectionStart, selectionEnd} = textarea;
   const selectedText = value.substring(selectionStart, selectionEnd);
   const trimmedText = text.trim();
-  if (selectedText && isUrl(trimmedText)) {
+  if (selectedText && isUrl(trimmedText) && !isUrl(selectedText)) {
     e.preventDefault();
     replaceTextareaSelection(textarea, `[${selectedText}](${trimmedText})`);
   }
@@ -156,7 +160,7 @@ export function initEasyMDEPaste(easyMDE, dropzoneEl) {
   });
 }
 
-export function initTextareaUpload(textarea, dropzoneEl) {
+export function initTextareaEvents(textarea, dropzoneEl) {
   let isShiftDown = false;
   textarea.addEventListener('keydown', (e) => {
     if (e.shiftKey) isShiftDown = true;
@@ -166,7 +170,7 @@ export function initTextareaUpload(textarea, dropzoneEl) {
   });
   textarea.addEventListener('paste', (e) => {
     const {images, text} = getPastedContent(e);
-    if (images.length) {
+    if (images.length && dropzoneEl) {
       handleUploadFiles(new TextareaEditor(textarea), dropzoneEl, images, e);
     } else if (text) {
       handleClipboardText(textarea, e, {text, isShiftDown});
@@ -174,9 +178,10 @@ export function initTextareaUpload(textarea, dropzoneEl) {
   });
   textarea.addEventListener('drop', (e) => {
     if (!e.dataTransfer.files.length) return;
+    if (!dropzoneEl) return;
     handleUploadFiles(new TextareaEditor(textarea), dropzoneEl, e.dataTransfer.files, e);
   });
-  dropzoneEl.dropzone.on(DropzoneCustomEventRemovedFile, ({fileUuid}) => {
+  dropzoneEl?.dropzone.on(DropzoneCustomEventRemovedFile, ({fileUuid}) => {
     const newText = removeAttachmentLinksFromMarkdown(textarea.value, fileUuid);
     if (textarea.value !== newText) textarea.value = newText;
   });

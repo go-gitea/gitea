@@ -22,17 +22,21 @@
             gzip
 
             # frontend
-            nodejs_20
+            nodejs_22
 
             # linting
             python312
             poetry
 
             # backend
-            go_1_22
+            go_1_23
             gofumpt
             sqlite
           ];
+          shellHook = ''
+            export GO="${pkgs.go_1_23}/bin/go"
+            export GOROOT="${pkgs.go_1_23}/share/go"
+          '';
         };
       }
     );

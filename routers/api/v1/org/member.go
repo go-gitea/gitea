@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -15,14 +14,16 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 // listMembers list an organization's members
-func listMembers(ctx *context.APIContext, publicOnly bool) {
+func listMembers(ctx *context.APIContext, isMember bool) {
 	opts := &organization.FindOrgMembersOpts{
-		OrgID:       ctx.Org.Organization.ID,
-		PublicOnly:  publicOnly,
-		ListOptions: utils.GetListOptions(ctx),
+		Doer:         ctx.Doer,
+		IsDoerMember: isMember,
+		OrgID:        ctx.Org.Organization.ID,
+		ListOptions:  utils.GetListOptions(ctx),
 	}
 
 	count, err := organization.CountOrgMembers(ctx, opts)
@@ -73,16 +74,19 @@ func ListMembers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	publicOnly := true
+	var (
+		isMember bool
+		err      error
+	)
+
 	if ctx.Doer != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
+		isMember, err = ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
 		}
-		publicOnly = !isMember && !ctx.Doer.IsAdmin
 	}
-	listMembers(ctx, publicOnly)
+	listMembers(ctx, isMember)
 }
 
 // ListPublicMembers list an organization's public members
@@ -112,7 +116,7 @@ func ListPublicMembers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	listMembers(ctx, true)
+	listMembers(ctx, false)
 }
 
 // IsMember check if a user is a member of an organization
@@ -139,7 +143,7 @@ func IsMember(ctx *context.APIContext) {
 	//   "404":
 	//     description: user is not a member
 
-	userToCheck := user.GetUserByParams(ctx)
+	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -190,7 +194,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	//   "404":
 	//     description: user is not a public member
 
-	userToCheck := user.GetUserByParams(ctx)
+	userToCheck := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -232,7 +236,7 @@ func PublicizeMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	userToPublicize := user.GetUserByParams(ctx)
+	userToPublicize := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -274,7 +278,7 @@ func ConcealMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	userToConceal := user.GetUserByParams(ctx)
+	userToConceal := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -314,11 +318,11 @@ func DeleteMember(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	member := user.GetUserByParams(ctx)
+	member := user.GetContextUserByPathParam(ctx)
 	if ctx.Written() {
 		return
 	}
-	if err := models.RemoveOrgUser(ctx, ctx.Org.Organization, member); err != nil {
+	if err := org_service.RemoveOrgUser(ctx, ctx.Org.Organization, member); err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveOrgUser", err)
 	}
 	ctx.Status(http.StatusNoContent)

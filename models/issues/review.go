@@ -214,9 +214,13 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	return err
 }
 
+// HTMLTypeColorName returns the color used in the ui indicating the review
 func (r *Review) HTMLTypeColorName() string {
 	switch r.Type {
 	case ReviewTypeApprove:
+		if !r.Official {
+			return "grey"
+		}
 		if r.Stale {
 			return "yellow"
 		}
@@ -229,6 +233,27 @@ func (r *Review) HTMLTypeColorName() string {
 		return "yellow"
 	}
 	return "grey"
+}
+
+// TooltipContent returns the locale string describing the review type
+func (r *Review) TooltipContent() string {
+	switch r.Type {
+	case ReviewTypeApprove:
+		if r.Stale {
+			return "repo.issues.review.stale"
+		}
+		if !r.Official {
+			return "repo.issues.review.unofficial"
+		}
+		return "repo.issues.review.official"
+	case ReviewTypeComment:
+		return "repo.issues.review.commented"
+	case ReviewTypeReject:
+		return "repo.issues.review.rejected"
+	case ReviewTypeRequest:
+		return "repo.issues.review.requested"
+	}
+	return ""
 }
 
 // GetReviewByID returns the review by the given ID
@@ -364,7 +389,7 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 		return nil, nil
 	}
 	reviews, err := FindReviews(ctx, FindReviewOptions{
-		Type:       ReviewTypePending,
+		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,
 		ReviewerID: reviewer.ID,
 	})
@@ -613,6 +638,10 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 			if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
 				return err
 			}
+		}
+
+		if err := UpdateIssueNumComments(ctx, review.IssueID); err != nil {
+			return err
 		}
 	}
 

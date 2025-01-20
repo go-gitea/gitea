@@ -26,7 +26,9 @@
 				{{else if eq .TabName "followers"}}
 					{{template "repo/user_cards" .}}
 				{{else if eq .TabName "overview"}}
-					<div id="readme_profile" class="markup">{{.ProfileReadme}}</div>
+					<div id="readme_profile" class="markup">{{.ProfileReadmeContent}}</div>
+				{{else if eq .TabName "organizations"}}
+					{{template "repo/user_cards" .}}
 				{{else}}
 					{{template "shared/repo_search" .}}
 					{{template "explore/repo_list" .}}

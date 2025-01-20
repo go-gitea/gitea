@@ -8,7 +8,7 @@ window.addEventListener('load', async () => {
 
   // Make the page's protocol be at the top of the schemes list
   const proto = window.location.protocol.slice(0, -1);
-  spec.schemes.sort((a, b) => {
+  spec.schemes.sort((a: string, b: string) => {
     if (a === proto) return -1;
     if (b === proto) return 1;
     return 0;

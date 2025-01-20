@@ -11,6 +11,7 @@ var defaultI18nLangNames = []string{
 	"zh-TW", "繁體中文（台灣）",
 	"de-DE", "Deutsch",
 	"fr-FR", "Français",
+	"ga-IE", "Gaeilge",
 	"nl-NL", "Nederlands",
 	"lv-LV", "Latviešu",
 	"ru-RU", "Русский",

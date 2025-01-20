@@ -12,7 +12,7 @@ import (
 
 // Indexer represents a basic meilisearch indexer implementation
 type Indexer struct {
-	Client *meilisearch.Client
+	Client meilisearch.ServiceManager
 
 	url, apiKey string
 	indexName   string
@@ -40,11 +40,7 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 		return false, fmt.Errorf("indexer is already initialized")
 	}
 
-	i.Client = meilisearch.NewClient(meilisearch.ClientConfig{
-		Host:   i.url,
-		APIKey: i.apiKey,
-	})
-
+	i.Client = meilisearch.New(i.url, meilisearch.WithAPIKey(i.apiKey))
 	_, err := i.Client.GetIndex(i.VersionedIndexName())
 	if err == nil {
 		return true, nil

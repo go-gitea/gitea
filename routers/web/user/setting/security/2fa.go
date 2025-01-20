@@ -39,8 +39,9 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		} else {
+			ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		}
-		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		return
 	}
 
@@ -74,8 +75,9 @@ func DisableTwoFactor(ctx *context.Context) {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		} else {
+			ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		}
-		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		return
 	}
 
@@ -84,8 +86,9 @@ func DisableTwoFactor(ctx *context.Context) {
 			// There is a potential DB race here - we must have been disabled by another request in the intervening period
 			ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		} else {
+			ctx.ServerError("SettingsTwoFactor: Failed to DeleteTwoFactorByID", err)
 		}
-		ctx.ServerError("SettingsTwoFactor: Failed to DeleteTwoFactorByID", err)
 		return
 	}
 

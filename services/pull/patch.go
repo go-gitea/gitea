@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
@@ -42,9 +41,19 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	}
 	defer closer.Close()
 
-	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
-		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+	compareArg := pr.MergeBase + "..." + pr.GetGitRefName()
+	switch {
+	case patch:
+		err = gitRepo.GetPatch(compareArg, w)
+	case binary:
+		err = gitRepo.GetDiffBinary(compareArg, w)
+	default:
+		err = gitRepo.GetDiff(compareArg, w)
+	}
+
+	if err != nil {
+		log.Error("unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	return nil
 }
@@ -355,7 +364,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		_ = util.Remove(tmpPatchFile.Name())
 	}()
 
-	if err := gitRepo.GetDiffBinary(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
+	if err := gitRepo.GetDiffBinary(pr.MergeBase+"...tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
@@ -502,12 +511,35 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	return false, nil
 }
 
+// ErrFilePathProtected represents a "FilePathProtected" kind of error.
+type ErrFilePathProtected struct {
+	Message string
+	Path    string
+}
+
+// IsErrFilePathProtected checks if an error is an ErrFilePathProtected.
+func IsErrFilePathProtected(err error) bool {
+	_, ok := err.(ErrFilePathProtected)
+	return ok
+}
+
+func (err ErrFilePathProtected) Error() string {
+	if err.Message != "" {
+		return err.Message
+	}
+	return fmt.Sprintf("path is protected and can not be changed [path: %s]", err.Path)
+}
+
+func (err ErrFilePathProtected) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // CheckFileProtection check file Protection
-func CheckFileProtection(repo *git.Repository, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
+func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
 	if len(patterns) == 0 {
 		return nil, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +557,7 @@ func CheckFileProtection(repo *git.Repository, oldCommitID, newCommitID string, 
 		}
 	}
 	if len(changedProtectedFiles) > 0 {
-		err = models.ErrFilePathProtected{
+		err = ErrFilePathProtected{
 			Path: changedProtectedFiles[0],
 		}
 	}
@@ -533,11 +565,11 @@ func CheckFileProtection(repo *git.Repository, oldCommitID, newCommitID string, 
 }
 
 // CheckUnprotectedFiles check if the commit only touches unprotected files
-func CheckUnprotectedFiles(repo *git.Repository, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
+func CheckUnprotectedFiles(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
 	if len(patterns) == 0 {
 		return false, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
 	if err != nil {
 		return false, err
 	}
@@ -574,8 +606,8 @@ func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest,
 		return nil
 	}
 
-	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
-	if err != nil && !models.IsErrFilePathProtected(err) {
+	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.HeadBranch, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
+	if err != nil && !IsErrFilePathProtected(err) {
 		return err
 	}
 	return nil

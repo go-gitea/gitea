@@ -5,10 +5,12 @@ package typesniffer
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
@@ -18,10 +20,10 @@ import (
 const sniffLen = 1024
 
 const (
-	// SvgMimeType MIME type of SVG images.
-	SvgMimeType = "image/svg+xml"
-	// ApplicationOctetStream MIME type of binary files.
-	ApplicationOctetStream = "application/octet-stream"
+	MimeTypeImageSvg  = "image/svg+xml"
+	MimeTypeImageAvif = "image/avif"
+
+	MimeTypeApplicationOctetStream = "application/octet-stream"
 )
 
 var (
@@ -47,7 +49,7 @@ func (ct SniffedType) IsImage() bool {
 
 // IsSvgImage detects if data is an SVG image format
 func (ct SniffedType) IsSvgImage() bool {
-	return strings.Contains(ct.contentType, SvgMimeType)
+	return strings.Contains(ct.contentType, MimeTypeImageSvg)
 }
 
 // IsPDF detects if data is a PDF format
@@ -81,6 +83,26 @@ func (ct SniffedType) GetMimeType() string {
 	return strings.SplitN(ct.contentType, ";", 2)[0]
 }
 
+// https://en.wikipedia.org/wiki/ISO_base_media_file_format#File_type_box
+func detectFileTypeBox(data []byte) (brands []string, found bool) {
+	if len(data) < 12 {
+		return nil, false
+	}
+	boxSize := int(binary.BigEndian.Uint32(data[:4]))
+	if boxSize < 12 || boxSize > len(data) {
+		return nil, false
+	}
+	tag := string(data[4:8])
+	if tag != "ftyp" {
+		return nil, false
+	}
+	brands = append(brands, string(data[8:12]))
+	for i := 16; i+4 <= boxSize; i += 4 {
+		brands = append(brands, string(data[i:i+4]))
+	}
+	return brands, true
+}
+
 // DetectContentType extends http.DetectContentType with more content types. Defaults to text/unknown if input is empty.
 func DetectContentType(data []byte) SniffedType {
 	if len(data) == 0 {
@@ -94,7 +116,6 @@ func DetectContentType(data []byte) SniffedType {
 	}
 
 	// SVG is unsupported by http.DetectContentType, https://github.com/golang/go/issues/15888
-
 	detectByHTML := strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")
 	detectByXML := strings.Contains(ct, "text/xml")
 	if detectByHTML || detectByXML {
@@ -102,7 +123,7 @@ func DetectContentType(data []byte) SniffedType {
 		dataProcessed = bytes.TrimSpace(dataProcessed)
 		if detectByHTML && svgTagRegex.Match(dataProcessed) ||
 			detectByXML && svgTagInXMLRegex.Match(dataProcessed) {
-			ct = SvgMimeType
+			ct = MimeTypeImageSvg
 		}
 	}
 
@@ -114,6 +135,11 @@ func DetectContentType(data []byte) SniffedType {
 		if strings.HasPrefix(ct2, "text/") {
 			ct = ct2
 		}
+	}
+
+	fileTypeBrands, found := detectFileTypeBox(data)
+	if found && slices.Contains(fileTypeBrands, "avif") {
+		ct = MimeTypeImageAvif
 	}
 
 	if ct == "application/ogg" {

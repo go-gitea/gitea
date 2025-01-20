@@ -133,6 +133,22 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	if setting.Packages.DefaultRPMSignEnabled || ctx.FormBool("sign") {
+		priv, _, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		signedBuf, err := rpm_service.SignPackage(buf, priv)
+		if err != nil {
+			apiError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		defer signedBuf.Close()
+
+		buf = signedBuf
+	}
+
 	pck, err := rpm_module.ParsePackage(buf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -142,7 +158,6 @@ func UploadPackageFile(ctx *context.Context) {
 		}
 		return
 	}
-
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

@@ -2,8 +2,22 @@ import {htmlEscape} from 'escape-goat';
 import {svg} from '../svg.ts';
 import {animateOnce, showElem} from '../utils/dom.ts';
 import Toastify from 'toastify-js'; // don't use "async import", because when network error occurs, the "async import" also fails and nothing is shown
+import type {Intent} from '../types.ts';
+import type {SvgName} from '../svg.ts';
+import type {Options} from 'toastify-js';
+import type StartToastifyInstance from 'toastify-js';
 
-const levels = {
+export type Toast = ReturnType<typeof StartToastifyInstance>;
+
+type ToastLevels = {
+  [intent in Intent]: {
+    icon: SvgName,
+    background: string,
+    duration: number,
+  }
+}
+
+const levels: ToastLevels = {
   info: {
     icon: 'octicon-check',
     background: 'var(--color-green)',
@@ -21,8 +35,13 @@ const levels = {
   },
 };
 
+type ToastOpts = {
+  useHtmlBody?: boolean,
+  preventDuplicates?: boolean,
+} & Options;
+
 // See https://github.com/apvarun/toastify-js#api for options
-function showToast(message, level, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other} = {}) {
+function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast {
   const body = useHtmlBody ? String(message) : htmlEscape(message);
   const key = `${level}-${body}`;
 
@@ -59,14 +78,14 @@ function showToast(message, level, {gravity, position, duration, useHtmlBody, pr
   return toast;
 }
 
-export function showInfoToast(message, opts) {
+export function showInfoToast(message: string, opts?: ToastOpts): Toast {
   return showToast(message, 'info', opts);
 }
 
-export function showWarningToast(message, opts) {
+export function showWarningToast(message: string, opts?: ToastOpts): Toast {
   return showToast(message, 'warning', opts);
 }
 
-export function showErrorToast(message, opts) {
+export function showErrorToast(message: string, opts?: ToastOpts): Toast {
   return showToast(message, 'error', opts);
 }

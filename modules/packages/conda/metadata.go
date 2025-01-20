@@ -13,8 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
-
-	"github.com/klauspost/compress/zstd"
+	"code.gitea.io/gitea/modules/zstd"
 )
 
 var (

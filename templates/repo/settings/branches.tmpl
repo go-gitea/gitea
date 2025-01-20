@@ -15,19 +15,17 @@
 				<form class="tw-flex" action="{{.Link}}" method="post">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="default_branch">
-					{{if not .Repository.IsEmpty}}
-						<div class="ui dropdown selection search tw-flex-1 tw-mr-2 tw-max-w-96">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
-							<div class="default text">{{.Repository.DefaultBranch}}</div>
-							<div class="menu">
-								{{range .Branches}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
-							</div>
+					<div class="ui dropdown selection search tw-flex-1 tw-mr-2 tw-max-w-96">
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
+						<div class="default text">{{.Repository.DefaultBranch}}</div>
+						<div class="menu">
+							{{range .Branches}}
+								<div class="item" data-value="{{.}}">{{.}}</div>
+							{{end}}
 						</div>
-						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
-					{{end}}
+					</div>
+					<button class="ui primary button"{{if .Repository.IsEmpty}} disabled{{end}}>{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
 				</form>
 			</div>
 
@@ -39,9 +37,12 @@
 			</h4>
 
 			<div class="ui attached segment">
-				<div class="flex-list">
+				<div class="flex-list" id="protected-branches-list" data-update-priority-url="{{$.Repository.Link}}/settings/branches/priority">
 					{{range .ProtectedBranches}}
-						<div class="flex-item tw-items-center">
+						<div class="flex-item tw-items-center item" data-id="{{.ID}}" >
+							<div class="drag-handle tw-cursor-grab">
+								{{svg "octicon-grabber" 16}}
+							</div>
 							<div class="flex-item-main">
 								<div class="flex-item-title">
 									<div class="ui basic primary label">{{.RuleName}}</div>

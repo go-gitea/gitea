@@ -70,7 +70,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 			"X-Forwarded-Proto": {"https"},
 		},
 	})
-	assert.Equal(t, "https://forwarded-host/foo", MakeAbsoluteURL(ctx, "/foo"))
+	assert.Equal(t, "https://user-host/foo", MakeAbsoluteURL(ctx, "/foo"))
 }
 
 func TestIsCurrentGiteaSiteURL(t *testing.T) {
@@ -119,5 +119,6 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 		},
 	})
 	assert.True(t, IsCurrentGiteaSiteURL(ctx, "http://localhost:3000"))
-	assert.True(t, IsCurrentGiteaSiteURL(ctx, "https://forwarded-host"))
+	assert.True(t, IsCurrentGiteaSiteURL(ctx, "https://user-host"))
+	assert.False(t, IsCurrentGiteaSiteURL(ctx, "https://forwarded-host"))
 }

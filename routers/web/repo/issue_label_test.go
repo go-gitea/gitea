@@ -62,7 +62,7 @@ func TestRetrieveLabels(t *testing.T) {
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, testCase.RepoID)
 		ctx.Req.Form.Set("sort", testCase.Sort)
-		RetrieveLabels(ctx)
+		RetrieveLabelsForList(ctx)
 		assert.False(t, ctx.Written())
 		labels, ok := ctx.Data["Labels"].([]*issues_model.Label)
 		assert.True(t, ok)
@@ -162,10 +162,11 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		UpdateIssueLabel(ctx)
 		assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 		for _, issueID := range testCase.IssueIDs {
-			unittest.AssertExistsIf(t, testCase.ExpectedAdd, &issues_model.IssueLabel{
-				IssueID: issueID,
-				LabelID: testCase.LabelID,
-			})
+			if testCase.ExpectedAdd {
+				unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issueID, LabelID: testCase.LabelID})
+			} else {
+				unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: issueID, LabelID: testCase.LabelID})
+			}
 		}
 		unittest.CheckConsistencyFor(t, &issues_model.Label{})
 	}

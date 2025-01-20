@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"strings"
 	"time"
 
@@ -26,9 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 
-	"github.com/keybase/go-crypto/openpgp"
-	"github.com/keybase/go-crypto/openpgp/armor"
-	"github.com/keybase/go-crypto/openpgp/packet"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 // GetOrCreateRepositoryVersion gets or creates the internal repository package
@@ -438,7 +437,7 @@ func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []
 				Archive:   pd.FileMetadata.ArchiveSize,
 			},
 			Location: Location{
-				Href: fmt.Sprintf("package/%s/%s/%s/%s", url.PathEscape(pd.Package.Name), url.PathEscape(packageVersion), url.PathEscape(pd.FileMetadata.Architecture), url.PathEscape(fmt.Sprintf("%s-%s.%s.rpm", pd.Package.Name, packageVersion, pd.FileMetadata.Architecture))),
+				Href: fmt.Sprintf("package/%s/%s/%s/%s-%s.%s.rpm", pd.Package.Name, packageVersion, pd.FileMetadata.Architecture, pd.Package.Name, packageVersion, pd.FileMetadata.Architecture),
 			},
 			Format: Format{
 				License:   pd.VersionMetadata.License,

@@ -36,10 +36,7 @@
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
 				<div id="diff-commit-select" data-issuelink="{{$.Issue.Link}}" data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-filter_changes_by_commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
-					{{/*
-						the following will be replaced by vue component
-						but this avoids any loading artifacts till the vue component is initialized
-					*/}}
+					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
 					<div class="ui jump dropdown basic button custom">
 						{{svg "octicon-git-commit"}}
 					</div>
@@ -61,7 +58,7 @@
 			</div>
 		{{end}}
 		<script id="diff-data-script" type="module">
-			const diffDataFiles = [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}},IsBin:{{$file.IsBin}},Addition:{{$file.Addition}},Deletion:{{$file.Deletion}},IsViewed:{{$file.IsViewed}}},{{end}}];
+			const diffDataFiles = [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}},IsBin:{{$file.IsBin}},IsSubmodule:{{$file.IsSubmodule}},Addition:{{$file.Addition}},Deletion:{{$file.Deletion}},IsViewed:{{$file.IsViewed}}},{{end}}];
 			const diffData = {
 				isIncomplete: {{.Diff.IsIncomplete}},
 				tooManyFilesMessage: "{{ctx.Locale.Tr "repo.diff.too_many_files"}}",
@@ -130,7 +127,7 @@
 								</div>
 								<span class="file tw-flex tw-items-center tw-font-mono tw-flex-1"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>
 									{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}
-									<button class="btn interact-fg tw-p-2" data-clipboard-text="{{$file.Name}}">{{svg "octicon-copy" 14}}</button>
+									<button class="btn interact-fg tw-p-2" data-clipboard-text="{{$file.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_path"}}">{{svg "octicon-copy" 14}}</button>
 									{{if $file.IsGenerated}}
 										<span class="ui label">{{ctx.Locale.Tr "repo.diff.generated"}}</span>
 									{{end}}
@@ -164,14 +161,14 @@
 										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
 									</label>
 								{{end}}
-								<div class="ui dropdown basic">
-									{{svg "octicon-kebab-horizontal" 18 "icon tw-mx-2"}}
-									<div class="ui menu">
-										{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-											<button class="unescape-button item">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-											<button class="escape-button tw-hidden item">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+								{{if not $file.IsSubmodule}}
+									<button class="btn diff-header-popup-btn tw-p-1">{{svg "octicon-kebab-horizontal" 18}}</button>
+									<div class="tippy-target">
+										{{if not (or $file.IsIncomplete $file.IsBin)}}
+											<button class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+											<button class="escape-button tw-hidden item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 										{{end}}
-										{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
+										{{if not $.PageIsWiki}}
 											{{if $file.IsDeleted}}
 												<a class="item" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 											{{else}}
@@ -182,7 +179,7 @@
 											{{end}}
 										{{end}}
 									</div>
-								</div>
+								{{end}}
 							</div>
 						</h4>
 						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
@@ -198,6 +195,17 @@
 											{{end}}
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
+										{{end}}
+									</div>
+								{{else if $file.SubmoduleDiffInfo}}
+									<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
+										{{- $submoduleName := $submoduleDiffInfo.SubmoduleRepoLinkHTML ctx -}}
+										{{- if $file.IsDeleted -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.PreviousRefID) -}}
+										{{- else if $file.IsCreated -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.NewRefID) -}}
+										{{- else -}}
+											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName ($submoduleDiffInfo.CompareRefIDLinkHTML ctx) -}}
 										{{end}}
 									</div>
 								{{else}}
@@ -240,10 +248,11 @@
 
 	{{if and (not $.Repository.IsArchived) (not .DiffNotAvailable)}}
 		<template id="issue-comment-editor-template">
-			<div class="ui form comment">
+			<form class="ui form comment">
 				{{template "shared/combomarkdowneditor" (dict
-					"MarkdownPreviewUrl" (print $.Repository.Link "/markup")
-					"MarkdownPreviewContext" $.RepoLink
+					"CustomInit" true
+					"MarkdownPreviewInRepo" $.Repository
+					"MarkdownPreviewMode" "comment"
 					"TextareaName" "content"
 					"DropzoneParentContainer" ".ui.form"
 				)}}
@@ -256,7 +265,7 @@
 					<button class="ui cancel button">{{ctx.Locale.Tr "repo.issues.cancel"}}</button>
 					<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.save"}}</button>
 				</div>
-			</div>
+			</form>
 		</template>
 	{{end}}
 	{{if (not .DiffNotAvailable)}}

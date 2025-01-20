@@ -109,7 +109,11 @@
 				{{if .IsBlockedByApprovals}}
 					<div class="item">
 						{{svg "octicon-x"}}
-						{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{if .RequireApprovalsWhitelist}}
+							{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals_whitelisted" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{end}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item">
@@ -160,7 +164,7 @@
 				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
 
 				{{/* admin can merge without checks, writer can merge when checks succeed */}}
-				{{$canMergeNow := and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
+				{{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 				{{/* admin and writer both can make an auto merge schedule */}}
 
 				{{if $canMergeNow}}
@@ -198,11 +202,11 @@
 				{{end}}
 
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
-					{{$prUnit := .Repository.MustGetUnit $.Context ctx.Consts.RepoUnitTypePullRequests}}
+					{{$prUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypePullRequests}}
 					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash $prUnit.PullRequestsConfig.AllowFastForwardOnly}}
 						{{$hasPendingPullRequestMergeTip := ""}}
 						{{if .HasPendingPullRequestMerge}}
-							{{$createdPRMergeStr := TimeSinceUnix .PendingPullRequestMerge.CreatedUnix ctx.Locale}}
+							{{$createdPRMergeStr := DateUtils.TimeSince .PendingPullRequestMerge.CreatedUnix}}
 							{{$hasPendingPullRequestMergeTip = ctx.Locale.Tr "repo.pulls.auto_merge_has_pending_schedule" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr}}
 						{{end}}
 						<div class="divider"></div>
@@ -363,8 +367,7 @@
 				{{end}}
 			{{end}}{{/* end if: pull request status */}}
 
-			{{/*
-			Manually Merged is not a well-known feature, it is used to mark a non-mergeable PR (already merged, conflicted) as merged
+			{{/* Manually Merged is not a well-known feature, it is used to mark a non-mergeable PR (already merged, conflicted) as merged
 			To test it:
 			* Enable "Manually Merged" feature in the Repository Settings
 			* Create a pull request, either:

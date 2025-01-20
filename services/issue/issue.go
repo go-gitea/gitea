@@ -105,6 +105,13 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 	return nil
 }
 
+// ChangeTimeEstimate changes the time estimate of this issue, as the given user.
+func ChangeTimeEstimate(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, timeEstimate int64) (err error) {
+	issue.TimeEstimate = timeEstimate
+
+	return issues_model.ChangeIssueTimeEstimate(ctx, issue, doer, timeEstimate)
+}
+
 // ChangeIssueRef changes the branch of this issue, as the given user.
 func ChangeIssueRef(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, ref string) error {
 	oldRef := issue.Ref
@@ -243,8 +250,9 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 	issueRefURLs := make(map[int64]string, len(issues))
 	for _, issue := range issues {
 		if issue.Ref != "" {
-			issueRefEndNames[issue.ID] = git.RefName(issue.Ref).ShortName()
-			issueRefURLs[issue.ID] = git.RefURL(repoLink, issue.Ref)
+			ref := git.RefName(issue.Ref)
+			issueRefEndNames[issue.ID] = ref.ShortName()
+			issueRefURLs[issue.ID] = repoLink + "/src/" + ref.RefWebLinkPath()
 		}
 	}
 	return issueRefEndNames, issueRefURLs

@@ -4,14 +4,19 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{template "repo/release_tag_header" .}}
-		{{if .Releases}}
 		<h4 class="ui top attached header">
 			<div class="five wide column tw-flex tw-items-center">
-				{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.tags"}}
+				{{.TagCount}} {{ctx.Locale.Tr "repo.release.tags"}}
 			</div>
 		</h4>
 		{{$canReadReleases := $.Permission.CanRead ctx.Consts.RepoUnitTypeReleases}}
+		<div class="ui attached segment">
+			<form class="ignore-dirty" method="get">
+				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.tag_kind") "Tooltip" (ctx.Locale.Tr "search.tag_tooltip")}}
+			</form>
+		</div>
 		<div class="ui attached table segment">
+			{{if .Releases}}
 			<table class="ui very basic striped fixed table single line" id="tags-table">
 				<tbody class="tag-list">
 					{{range $idx, $release := .Releases}}
@@ -27,7 +32,7 @@
 								<div class="download tw-flex tw-items-center">
 									{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 										{{if .CreatedUnix}}
-											<span class="tw-mr-2">{{svg "octicon-clock" 16 "tw-mr-1"}}{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
+											<span class="tw-mr-2">{{svg "octicon-clock" 16 "tw-mr-1"}}{{DateUtils.TimeSince .CreatedUnix}}</span>
 										{{end}}
 
 										<a class="tw-mr-2 tw-font-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha .Sha1}}</a>
@@ -57,9 +62,12 @@
 					{{end}}
 				</tbody>
 			</table>
+			{{else}}
+				{{if .NumTags}}
+					<p class="tw-p-4">{{ctx.Locale.Tr "no_results_found"}}</p>
+				{{end}}
+			{{end}}
 		</div>
-		{{end}}
-
 		{{template "base/paginate" .}}
 	</div>
 </div>

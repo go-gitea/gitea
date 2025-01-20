@@ -7,18 +7,19 @@ import (
 	"bytes"
 	"context"
 
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
 const (
-	tplNewReleaseMail base.TplName = "release"
+	tplNewReleaseMail templates.TplName = "release"
 )
 
 // MailNewRelease send new release notify to all repo watchers.
@@ -56,14 +57,9 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 	locale := translation.NewLocale(lang)
 
 	var err error
-	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
-		Ctx:  ctx,
-		Repo: rel.Repo,
-		Links: markup.Links{
-			Base: rel.Repo.HTMLURL(),
-		},
-		Metas: rel.Repo.ComposeMetas(ctx),
-	}, rel.Note)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, rel.Repo).WithUseAbsoluteLink(true)
+	rel.RenderedNote, err = markdown.RenderString(rctx,
+		rel.Note)
 	if err != nil {
 		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)
 		return
@@ -85,11 +81,11 @@ func mailNewRelease(ctx context.Context, lang string, tos []*user_model.User, re
 		return
 	}
 
-	msgs := make([]*Message, 0, len(tos))
+	msgs := make([]*sender_service.Message, 0, len(tos))
 	publisherName := fromDisplayName(rel.Publisher)
 	msgID := generateMessageIDForRelease(rel)
 	for _, to := range tos {
-		msg := NewMessageFrom(to.EmailTo(), publisherName, setting.MailService.FromEmail, subject, mailBody.String())
+		msg := sender_service.NewMessageFrom(to.EmailTo(), publisherName, setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = subject
 		msg.SetHeader("Message-ID", msgID)
 		msgs = append(msgs, msg)

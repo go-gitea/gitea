@@ -5,7 +5,6 @@ package project
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -66,7 +65,7 @@ func Test_moveIssuesToAnotherColumn(t *testing.T) {
 
 	issues, err = column1.GetIssues(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.Len(t, issues, 0)
+	assert.Empty(t, issues)
 
 	issues, err = column2.GetIssues(db.DefaultContext)
 	assert.NoError(t, err)
@@ -123,5 +122,5 @@ func Test_NewColumn(t *testing.T) {
 		ProjectID: project1.ID,
 	})
 	assert.Error(t, err)
-	assert.True(t, strings.Contains(err.Error(), "maximum number of columns reached"))
+	assert.Contains(t, err.Error(), "maximum number of columns reached")
 }
