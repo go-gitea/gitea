@@ -3,11 +3,11 @@ import {htmlEscape} from 'escape-goat';
 
 type TributeItem = Record<string, any>;
 
-function makeCollections(mentions: boolean, emoji: boolean) {
-  const collections = [];
+export async function attachTribute(element: HTMLElement) {
+  const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
 
-  if (emoji) {
-    collections.push({
+  const collections = [
+    { // emojis
       trigger: ':',
       requireLeadingSpace: true,
       values: (query: string, cb: (matches: Array<string>) => void) => {
@@ -28,11 +28,7 @@ function makeCollections(mentions: boolean, emoji: boolean) {
       menuItemTemplate: (item: TributeItem) => {
         return `<div class="tribute-item">${emojiHTML(item.original)}<span>${htmlEscape(item.original)}</span></div>`;
       },
-    });
-  }
-
-  if (mentions) {
-    collections.push({
+    }, { // mentions
       values: window.config.mentionValues ?? [],
       requireLeadingSpace: true,
       menuItemTemplate: (item: TributeItem) => {
@@ -44,15 +40,9 @@ function makeCollections(mentions: boolean, emoji: boolean) {
           </div>
         `;
       },
-    });
-  }
+    },
+  ];
 
-  return collections;
-}
-
-export async function attachTribute(element: HTMLElement, mentions: boolean, emoji: boolean) {
-  const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
-  const collections = makeCollections(mentions, emoji);
   // @ts-expect-error TS2351: This expression is not constructable (strange, why)
   const tribute = new Tribute({collection: collections, noMatchTemplate: ''});
   tribute.attach(element);

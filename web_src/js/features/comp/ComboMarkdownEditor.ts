@@ -363,7 +363,7 @@ export class ComboMarkdownEditor {
       },
     });
     this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
-    await attachTribute(this.easyMDE.codemirror.getInputField(), true, true);
+    await attachTribute(this.easyMDE.codemirror.getInputField());
     if (this.dropzone) {
       initEasyMDEPaste(this.easyMDE, this.dropzone);
     }
