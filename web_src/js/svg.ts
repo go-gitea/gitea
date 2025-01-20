@@ -208,7 +208,7 @@ export const SvgIcon = defineComponent({
     let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
     // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
     // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
-    const attrs = {};
+    const attrs: Record<string, any> = {};
     for (const attr of svgOuter.attributes) {
       if (attr.name === 'class') continue;
       attrs[`^${attr.name}`] = attr.value;

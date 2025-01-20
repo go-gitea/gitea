@@ -1,6 +1,8 @@
 import {hideElem, showElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 
+type DatabaseType = 'mysql' | 'postgres' | 'mssql' | 'sqlite3';
+
 export function initInstall() {
   const page = document.querySelector('.page-content.install');
   if (!page) {
@@ -12,6 +14,7 @@ export function initInstall() {
     initPreInstall();
   }
 }
+
 function initPreInstall() {
   const defaultDbUser = 'gitea';
   const defaultDbName = 'gitea';
@@ -28,7 +31,7 @@ function initPreInstall() {
 
   // Database type change detection.
   document.querySelector<HTMLInputElement>('#db_type').addEventListener('change', function () {
-    const dbType = this.value;
+    const dbType = this.value as DatabaseType;
     hideElem('div[data-db-setting-for]');
     showElem(`div[data-db-setting-for=${dbType}]`);
 

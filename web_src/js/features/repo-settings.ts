@@ -12,7 +12,7 @@ function initRepoSettingsCollaboration() {
   for (const dropdownEl of queryElems(document, '.page-content.repository .ui.dropdown.access-mode')) {
     const textEl = dropdownEl.querySelector(':scope > .text');
     $(dropdownEl).dropdown({
-      async action(text, value) {
+      async action(text: string, value: string) {
         dropdownEl.classList.add('is-loading', 'loading-icon-2px');
         const lastValue = dropdownEl.getAttribute('data-last-value');
         $(dropdownEl).dropdown('hide');
@@ -53,8 +53,8 @@ function initRepoSettingsSearchTeamBox() {
     apiSettings: {
       url: `${appSubUrl}/org/${searchTeamBox.getAttribute('data-org-name')}/teams/-/search?q={query}`,
       headers: {'X-Csrf-Token': csrfToken},
-      onResponse(response) {
-        const items = [];
+      onResponse(response: any) {
+        const items: Array<Record<string, any>> = [];
         $.each(response.data, (_i, item) => {
           items.push({
             title: item.name,

@@ -7,6 +7,7 @@ import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
 import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import type {SortableEvent} from 'sortablejs';
 
 function initRepoIssueListCheckboxes() {
   const issueSelectAll = document.querySelector<HTMLInputElement>('.issue-checkbox-all');
@@ -104,7 +105,7 @@ function initDropdownUserRemoteSearch(el: Element) {
   $searchDropdown.dropdown('setting', {
     fullTextSearch: true,
     selectOnKeydown: false,
-    action: (_text, value) => {
+    action: (_text: string, value: string) => {
       window.location.href = actionJumpUrl.replace('{username}', encodeURIComponent(value));
     },
   });
@@ -133,7 +134,7 @@ function initDropdownUserRemoteSearch(el: Element) {
     $searchDropdown.dropdown('setting', 'apiSettings', {
       cache: false,
       url: `${searchUrl}&q={query}`,
-      onResponse(resp) {
+      onResponse(resp: any) {
         // the content is provided by backend IssuePosters handler
         processedResults.length = 0;
         for (const item of resp.results) {
@@ -153,7 +154,7 @@ function initDropdownUserRemoteSearch(el: Element) {
   const dropdownSetup = {...$searchDropdown.dropdown('internal', 'setup')};
   const dropdownTemplates = $searchDropdown.dropdown('setting', 'templates');
   $searchDropdown.dropdown('internal', 'setup', dropdownSetup);
-  dropdownSetup.menu = function (values) {
+  dropdownSetup.menu = function (values: any) {
     // remove old dynamic items
     for (const el of elMenu.querySelectorAll(':scope > .dynamic-item')) {
       el.remove();
@@ -193,7 +194,7 @@ function initPinRemoveButton() {
   }
 }
 
-async function pinMoveEnd(e) {
+async function pinMoveEnd(e: SortableEvent) {
   const url = e.item.getAttribute('data-move-url');
   const id = Number(e.item.getAttribute('data-issue-id'));
   await POST(url, {data: {id, position: e.newIndex + 1}});

@@ -5,9 +5,13 @@ const {pageData} = window.config;
 
 async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citationCopyBibtex: HTMLButtonElement) {
   const [{Cite, plugins}] = await Promise.all([
+    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
+    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
+    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-bibtex'),
+    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-csl" */'@citation-js/plugin-csl'),
   ]);
   const {citationFileContent} = pageData;

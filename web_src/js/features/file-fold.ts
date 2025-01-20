@@ -5,15 +5,15 @@ import {svg} from '../svg.ts';
 // The fold arrow is the icon displayed on the upper left of the file box, especially intended for components having the 'fold-file' class.
 // The file content box is the box that should be hidden or shown, especially intended for components having the 'file-content' class.
 //
-export function setFileFolding(fileContentBox, foldArrow, newFold) {
+export function setFileFolding(fileContentBox: HTMLElement, foldArrow: HTMLElement, newFold: boolean) {
   foldArrow.innerHTML = svg(`octicon-chevron-${newFold ? 'right' : 'down'}`, 18);
-  fileContentBox.setAttribute('data-folded', newFold);
+  fileContentBox.setAttribute('data-folded', String(newFold));
   if (newFold && fileContentBox.getBoundingClientRect().top < 0) {
     fileContentBox.scrollIntoView();
   }
 }
 
 // Like `setFileFolding`, except that it automatically inverts the current file folding state.
-export function invertFileFolding(fileContentBox, foldArrow) {
+export function invertFileFolding(fileContentBox:HTMLElement, foldArrow: HTMLElement) {
   setFileFolding(fileContentBox, foldArrow, fileContentBox.getAttribute('data-folded') !== 'true');
 }

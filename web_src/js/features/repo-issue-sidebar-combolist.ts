@@ -46,7 +46,7 @@ class IssueSidebarComboList {
     return Array.from(this.elDropdown.querySelectorAll('.menu > .item.checked'), (el) => el.getAttribute('data-value'));
   }
 
-  updateUiList(changedValues) {
+  updateUiList(changedValues: Array<string>) {
     const elEmptyTip = this.elList.querySelector('.item.empty-list');
     queryElemChildren(this.elList, '.item:not(.empty-list)', (el) => el.remove());
     for (const value of changedValues) {
@@ -60,7 +60,7 @@ class IssueSidebarComboList {
     toggleElem(elEmptyTip, !hasItems);
   }
 
-  async updateToBackend(changedValues) {
+  async updateToBackend(changedValues: Array<string>) {
     if (this.updateAlgo === 'diff') {
       for (const value of this.initialValues) {
         if (!changedValues.includes(value)) {
@@ -93,7 +93,7 @@ class IssueSidebarComboList {
     }
   }
 
-  async onItemClick(e) {
+  async onItemClick(e: Event) {
     const elItem = (e.target as HTMLElement).closest('.item');
     if (!elItem) return;
     e.preventDefault();
