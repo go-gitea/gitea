@@ -70,7 +70,7 @@ func NewFuncMap() template.FuncMap {
 		// time / number / format
 		"FileSize": base.FileSize,
 		"CountFmt": base.FormatNumberSI,
-		"Sec2Time": util.SecToTime,
+		"Sec2Time": util.SecToHours,
 
 		"TimeEstimateString": timeEstimateString,
 
