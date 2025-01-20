@@ -9,6 +9,7 @@ import {
 } from '../dropzone.ts';
 import type CodeMirror from 'codemirror';
 import type EasyMDE from 'easymde';
+import type {DropzoneFile} from 'dropzone';
 
 let uploadIdCounter = 0;
 
@@ -30,8 +31,8 @@ function uploadFile(dropzoneEl: HTMLElement, file: File) {
       }
     };
     dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
-    // @ts-expect-error - bug in @types/dropzone
-    dropzoneInst.handleFiles([file]);
+    // this is not entirely correct because File does not satisfy DropzoneFile
+    dropzoneInst.addFile(file as DropzoneFile);
   });
 }
 
