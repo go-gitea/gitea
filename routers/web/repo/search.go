@@ -81,7 +81,7 @@ func Search(ctx *context.Context) {
 		}
 		commitID, err := ctx.Repo.GitRepo.GetRefCommitID(searchRefName.String())
 		if err != nil {
-			ctx.ServerError("GrepSearch", err)
+			ctx.ServerError("GetRefCommitID", err)
 			return
 		}
 		total = len(res)
