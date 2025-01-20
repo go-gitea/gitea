@@ -1,6 +1,6 @@
 .repo-grid-filelist-sidebar {
   display: grid;
-  grid-template-columns: auto 300px;
+  grid-template-columns: auto 254px;
   grid-template-rows: auto auto 1fr;
 }
 
