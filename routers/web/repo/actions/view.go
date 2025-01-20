@@ -944,7 +944,7 @@ func Run(ctx *context_module.Context) {
 			ctx.ServerError("GetVariablesOfRun", err)
 			return
 		}
-		wfConcurrencyGroup, wfConcurrencyCancel, err := actions_service.EvaluateWorkflowConcurrency(run, wfRawConcurrency, vars)
+		wfConcurrencyGroup, wfConcurrencyCancel, err := actions_service.EvaluateWorkflowConcurrency(ctx, run, wfRawConcurrency, vars)
 		if err != nil {
 			ctx.ServerError("EvaluateWorkflowConcurrency", err)
 			return
@@ -953,17 +953,6 @@ func Run(ctx *context_module.Context) {
 			run.ConcurrencyGroup = wfConcurrencyGroup
 			run.ConcurrencyCancel = wfConcurrencyCancel
 		}
-	}
-
-	// cancel running jobs of the same workflow
-	if err := actions_model.CancelPreviousJobs(
-		ctx,
-		run.RepoID,
-		run.Ref,
-		run.WorkflowID,
-		run.Event,
-	); err != nil {
-		log.Error("CancelRunningJobs: %v", err)
 	}
 
 	// Insert the action run and its associated jobs into the database

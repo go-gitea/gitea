@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -14,7 +15,10 @@ import (
 	act_model "github.com/nektos/act/pkg/model"
 )
 
-func EvaluateWorkflowConcurrency(run *actions_model.ActionRun, rc *act_model.RawConcurrency, vars map[string]string) (string, bool, error) {
+func EvaluateWorkflowConcurrency(ctx context.Context, run *actions_model.ActionRun, rc *act_model.RawConcurrency, vars map[string]string) (string, bool, error) {
+	if err := run.LoadAttributes(ctx); err != nil {
+		return "", false, fmt.Errorf("run LoadAttributes: %w", err)
+	}
 	gitCtx := jobparser.ToGitContext(GenerateGiteaContext(run, nil))
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	inputs, err := getInputsFromRun(run)

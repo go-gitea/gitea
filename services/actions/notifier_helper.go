@@ -338,7 +338,7 @@ func handleWorkflows(
 			continue
 		}
 		if wfRawConcurrency != nil {
-			wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(run, wfRawConcurrency, vars)
+			wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(ctx, run, wfRawConcurrency, vars)
 			if err != nil {
 				log.Error("EvaluateWorkflowConcurrency: %v", err)
 				continue

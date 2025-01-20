@@ -369,7 +369,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 type ActionRunIndex db.ResourceIndex
 
 func ShouldBlockRunByConcurrency(ctx context.Context, actionRun *ActionRun) (bool, error) {
-	if actionRun.ConcurrencyGroup != "" || actionRun.ConcurrencyCancel {
+	if actionRun.ConcurrencyGroup == "" || actionRun.ConcurrencyCancel {
 		return false, nil
 	}
 

@@ -148,7 +148,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		return err
 	}
 	if wfRawConcurrency != nil {
-		wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(run, wfRawConcurrency, vars)
+		wfConcurrencyGroup, wfConcurrencyCancel, err := EvaluateWorkflowConcurrency(ctx, run, wfRawConcurrency, vars)
 		if err != nil {
 			return err
 		}

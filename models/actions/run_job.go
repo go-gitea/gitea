@@ -193,7 +193,7 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 }
 
 func ShouldBlockJobByConcurrency(ctx context.Context, job *ActionRunJob) (bool, error) {
-	if job.RawConcurrencyGroup != "" {
+	if job.RawConcurrencyGroup == "" {
 		return false, nil
 	}
 	if !job.IsConcurrencyEvaluated {
@@ -202,7 +202,7 @@ func ShouldBlockJobByConcurrency(ctx context.Context, job *ActionRunJob) (bool, 
 			CancelInProgress: job.RawConcurrencyCancel,
 		}
 	}
-	if job.ConcurrencyGroup != "" || job.ConcurrencyCancel {
+	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
 		return false, nil
 	}
 
