@@ -137,14 +137,8 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return nil
 	}
 
-	for _, e := range w.EventCheckers() {
-		if event == e.Type {
-			if !e.Has() {
-				return nil
-			}
-
-			break
-		}
+	if !w.HasEvent(event) {
+		return nil
 	}
 
 	// Avoid sending "0 new commits" to non-integration relevant webhooks (e.g. slack, discord, etc.).
