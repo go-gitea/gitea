@@ -22,6 +22,7 @@ const (
 	HookEventPullRequestLabel          HookEventType = "pull_request_label"
 	HookEventPullRequestMilestone      HookEventType = "pull_request_milestone"
 	HookEventPullRequestComment        HookEventType = "pull_request_comment"
+	HookEventPullRequestReview         HookEventType = "pull_request_review"
 	HookEventPullRequestReviewApproved HookEventType = "pull_request_review_approved"
 	HookEventPullRequestReviewRejected HookEventType = "pull_request_review_rejected"
 	HookEventPullRequestReviewComment  HookEventType = "pull_request_review_comment"
@@ -38,14 +39,6 @@ const (
 // Event returns the HookEventType as an event string
 func (h HookEventType) Event() string {
 	switch h {
-	case HookEventCreate:
-		return "create"
-	case HookEventDelete:
-		return "delete"
-	case HookEventFork:
-		return "fork"
-	case HookEventPush:
-		return "push"
 	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone:
 		return "issues"
 	case HookEventPullRequest, HookEventPullRequestAssign, HookEventPullRequestLabel, HookEventPullRequestMilestone,
@@ -59,14 +52,9 @@ func (h HookEventType) Event() string {
 		return "pull_request_rejected"
 	case HookEventPullRequestReviewComment:
 		return "pull_request_comment"
-	case HookEventWiki:
-		return "wiki"
-	case HookEventRepository:
-		return "repository"
-	case HookEventRelease:
-		return "release"
+	default:
+		return string(h)
 	}
-	return ""
 }
 
 func (h HookEventType) IsPullRequest() bool {
