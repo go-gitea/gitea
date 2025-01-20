@@ -7,6 +7,8 @@ import (
 	"bytes"
 	stdCtx "context"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -18,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,6 +31,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 )
 
@@ -312,6 +316,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
+	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.
@@ -423,4 +428,95 @@ func decodeNode(node yaml.Node, out any) bool {
 		return false
 	}
 	return true
+}
+
+func DeleteRuns(ctx *context.Context) {
+	rd := ctx.Req.Body
+	defer rd.Close()
+
+	req := DeleteRunsRequest{}
+	if err := json.NewDecoder(rd).Decode(&req); err != nil {
+		ctx.ServerError("failed to decode request body into delte runs request", err)
+		return
+	}
+	if len(req.ActionIDs) < 1 {
+		ctx.ServerError("missing action_run.id for delete action run", nil)
+		return
+	}
+
+	var (
+		eg               = new(errgroup.Group)
+		actionRuns       []*actions_model.ActionRun
+		jobIDs, taskIDs  []int64
+		taskLogFileNames []string
+	)
+	eg.Go(func() error {
+		var err error
+		actionRuns, err = actions_model.GetRunsByIDsAndTriggerUserID(ctx, req.ActionIDs, ctx.Doer.ID)
+		return err
+	})
+
+	eg.Go(func() error {
+		actionRunJobs, err := actions_model.GetRunJobsByRunIDs(ctx, req.ActionIDs)
+		if err != nil {
+			return err
+		}
+
+		for _, actionRunJob := range actionRunJobs {
+			jobIDs = append(jobIDs, actionRunJob.ID)
+		}
+		actionTasks, err := actions_model.GetRunTasksByJobIDs(ctx, jobIDs)
+		if err != nil {
+			return err
+		}
+
+		for _, actionTask := range actionTasks {
+			taskIDs = append(taskIDs, actionTask.ID)
+			taskLogFileNames = append(taskLogFileNames, actionTask.LogFilename)
+		}
+		return nil
+	})
+
+	err := eg.Wait()
+	if err != nil {
+		ctx.ServerError("failed to get action runs and action run jobs", err)
+		return
+	}
+
+	if len(actionRuns) != len(req.ActionIDs) {
+		ctx.ServerError("action ids not match with request", nil)
+		return
+	}
+
+	err = actions_model.DeleteActionRunAndChild(ctx, req.ActionIDs, jobIDs, taskIDs)
+	if err != nil {
+		ctx.ServerError("failed to delete action_run", err)
+		return
+	}
+
+	removeActionTaskLogFilenames(taskLogFileNames)
+
+	ctx.Status(http.StatusNoContent)
+}
+
+type DeleteRunsRequest struct {
+	ActionIDs []int64 `json:"actionIds"`
+}
+
+func removeActionTaskLogFilenames(taskLogFileNames []string) {
+	dirNameActionLog := "actions_log"
+	go func() {
+		for _, taskLogFileName := range taskLogFileNames {
+			var fileName string
+			if filepath.IsAbs(setting.AppDataPath) {
+				fileName = filepath.Join(setting.AppDataPath, dirNameActionLog, taskLogFileName)
+			} else {
+				fileName = filepath.Join(setting.AppWorkPath, setting.AppDataPath, dirNameActionLog, taskLogFileName)
+			}
+
+			if err := os.Remove(fileName); err != nil {
+				log.Error("failed to remove actions_log file %s: %v", fileName, err)
+			}
+		}
+	}()
 }
