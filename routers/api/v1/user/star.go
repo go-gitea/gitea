@@ -11,6 +11,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -66,6 +67,13 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "410":
+	//     "$ref": "#/responses/gone"
+
+	if setting.Repository.DisableStars {
+		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		return
+	}
 
 	private := ctx.ContextUser.ID == ctx.Doer.ID
 	repos, err := getStarredRepos(ctx, ctx.ContextUser, private)
@@ -97,6 +105,13 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+	//   "410":
+	//     "$ref": "#/responses/gone"
+
+	if setting.Repository.DisableStars {
+		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		return
+	}
 
 	repos, err := getStarredRepos(ctx, ctx.Doer, true)
 	if err != nil {
@@ -128,6 +143,13 @@ func IsStarring(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "410":
+	//     "$ref": "#/responses/gone"
+
+	if setting.Repository.DisableStars {
+		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		return
+	}
 
 	if repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(http.StatusNoContent)
@@ -159,6 +181,13 @@ func Star(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "410":
+	//     "$ref": "#/responses/gone"
+
+	if setting.Repository.DisableStars {
+		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		return
+	}
 
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
@@ -193,6 +222,13 @@ func Unstar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "410":
+	//     "$ref": "#/responses/gone"
+
+	if setting.Repository.DisableStars {
+		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		return
+	}
 
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	if err != nil {
