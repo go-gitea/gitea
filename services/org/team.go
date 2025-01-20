@@ -12,8 +12,10 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -89,11 +91,87 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 	return committer.Commit()
 }
 
+type UpdateTeamOptions struct {
+	TeamName                string
+	Description             string
+	IsAdmin                 bool
+	IncludesAllRepositories bool
+	CanCreateOrgRepo        bool
+	UnitPerms               map[unit_model.Type]perm.AccessMode
+}
+
+func UpdateTeam(ctx context.Context, team *organization.Team, opts UpdateTeamOptions) error {
+	var changedCols []string
+
+	newAccessMode := team.AccessMode
+	if opts.IsAdmin {
+		newAccessMode = perm.AccessModeAdmin
+	} else if len(opts.UnitPerms) > 0 {
+		// if newAccessMode is less than admin accessmode, then it should be general accessmode,
+		// so we should calculate the minial accessmode from units accessmodes.
+		newAccessMode = unit_model.MinUnitAccessMode(opts.UnitPerms)
+	}
+
+	if !team.IsOwnerTeam() {
+		if team.Name != opts.TeamName {
+			team.Name = opts.TeamName
+			team.LowerName = strings.ToLower(opts.TeamName)
+			changedCols = append(changedCols, "name", "lower_name")
+		}
+
+		if team.AccessMode != newAccessMode {
+			team.AccessMode = newAccessMode
+			changedCols = append(changedCols, "authorize")
+		}
+
+		if team.IncludesAllRepositories != opts.IncludesAllRepositories {
+			team.IncludesAllRepositories = opts.IncludesAllRepositories
+			changedCols = append(changedCols, "includes_all_repositories")
+		}
+		if len(opts.UnitPerms) > 0 {
+			units := make([]*organization.TeamUnit, 0, len(opts.UnitPerms))
+			for tp, perm := range opts.UnitPerms {
+				units = append(units, &organization.TeamUnit{
+					OrgID:      team.OrgID,
+					TeamID:     team.ID,
+					Type:       tp,
+					AccessMode: perm,
+				})
+			}
+			team.Units = units
+			changedCols = append(changedCols, "units")
+		}
+		if team.CanCreateOrgRepo != opts.CanCreateOrgRepo {
+			team.CanCreateOrgRepo = opts.CanCreateOrgRepo
+			changedCols = append(changedCols, "can_create_org_repo")
+		}
+	} else { // make the possible legacy data correct, we force to update these fields
+		team.CanCreateOrgRepo = true
+		team.IncludesAllRepositories = true
+		changedCols = append(changedCols, "can_create_org_repo", "includes_all_repositories")
+	}
+
+	if team.Description != opts.Description {
+		changedCols = append(changedCols, "description")
+		team.Description = opts.Description
+	}
+
+	return organization.UpdateTeam(ctx, team, changedCols...)
+}
+
 // UpdateTeam updates information of team.
-func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeAllChanged bool) (err error) {
+/*func UpdateTeam(ctx context.Context, t *organization.Team, updateCols ...string) (err error) {
 	if len(t.Name) == 0 {
 		return util.NewInvalidArgumentErrorf("empty team name")
 	}
+
+	if slices.Contains(updateCols, "name") && !slices.Contains(updateCols, "lower_name") {
+		t.LowerName = strings.ToLower(t.Name)
+		updateCols = append(updateCols, "lower_name")
+	}
+
+	authChanged := slices.Contains(updateCols, "authorize")
+	includeAllChanged := slices.Contains(updateCols, "includes_all_repositories")
 
 	if len(t.Description) > 255 {
 		t.Description = t.Description[:255]
@@ -118,13 +196,12 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 	}
 
 	sess := db.GetEngine(ctx)
-	if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
-		"can_create_org_repo", "authorize", "includes_all_repositories").Update(t); err != nil {
+	if _, err = sess.ID(t.ID).Cols(updateCols...).Update(t); err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
 
 	// update units for team
-	if len(t.Units) > 0 {
+	if slices.Contains(updateCols, "units") {
 		for _, unit := range t.Units {
 			unit.TeamID = t.ID
 		}
@@ -164,7 +241,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 	}
 
 	return committer.Commit()
-}
+}*/
 
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.

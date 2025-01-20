@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/migrations"
+	org_model "code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -163,6 +164,12 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 			Counter:      repo_model.CountOrphanedTopics,
 			Fixer:        repo_model.DeleteOrphanedTopics,
 			FixedMessage: "Removed",
+		},
+		{
+			Name:         "Owner teams with wrong admin access unit",
+			Counter:      org_model.CountInconsistentOwnerTeams,
+			Fixer:        org_model.FixInconsistentOwnerTeams,
+			FixedMessage: "Fixed",
 		},
 	}
 
