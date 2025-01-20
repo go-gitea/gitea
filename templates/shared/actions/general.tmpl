@@ -1,0 +1,37 @@
+<div>
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.general.approval_for_workflows_from_contributors"}}
+	</h4>
+	<div class="ui attached segment">
+		{{ctx.Locale.Tr "actions.general.approval_for_workflows_from_contributors_desc"}}
+	</div>
+	<div class="ui bottom attached segment">
+		<form class="ui form" action="" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input type="radio" name="approvalType" value="1" {{if eq .Checked 1}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "actions.general.approval_for_first_time_contributors_to_gitea"}}</label>
+					<span class="help">{{ctx.Locale.Tr "actions.general.approval_for_first_time_contributors_to_gitea_helper"}}</span>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input type="radio" name="approvalType" value="2" {{if eq .Checked 2}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "actions.general.approval_for_first_time_contributors"}}</label>
+					<span class="help">{{ctx.Locale.Tr "actions.general.approval_for_first_time_contributors_helper"}}</span>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input type="radio" name="approvalType" value="3" {{if eq .Checked 3}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "actions.general.approval_for_all_external_contributors"}}</label>
+					<span class="help">{{ctx.Locale.Tr "actions.general.approval_for_all_external_contributors_helper"}}</span>
+				</div>
+			</div>
+			<div class="field">
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
