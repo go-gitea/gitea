@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
@@ -52,6 +53,14 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			ctx, finished := reqctx.NewRequestContext(req.Context(), profDesc)
 			defer finished()
 
+			ctx, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanHTTP)
+			req = req.WithContext(ctx)
+			defer func() {
+				chiCtx := chi.RouteContext(req.Context())
+				span.SetAttributeString(gtprof.TraceAttrHTTPRoute, chiCtx.RoutePattern())
+				span.End()
+			}()
+
 			defer func() {
 				if err := recover(); err != nil {
 					RenderPanicErrorPage(respWriter, req, err) // it should never panic
@@ -75,11 +84,11 @@ func ChiRoutePathHandler() func(h http.Handler) http.Handler {
 	// make sure chi uses EscapedPath(RawPath) as RoutePath, then "%2f" could be handled correctly
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			ctx := chi.RouteContext(req.Context())
+			chiCtx := chi.RouteContext(req.Context())
 			if req.URL.RawPath == "" {
-				ctx.RoutePath = req.URL.EscapedPath()
+				chiCtx.RoutePath = req.URL.EscapedPath()
 			} else {
-				ctx.RoutePath = req.URL.RawPath
+				chiCtx.RoutePath = req.URL.RawPath
 			}
 			next.ServeHTTP(resp, req)
 		})
