@@ -1146,7 +1146,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/cancel", repo.MigrateCancelPost)
 		})
 	},
-		reqSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoRef(),
+		reqSignIn, context.RepoAssignment, reqRepoAdmin,
 		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
 	)
 	// end "/{username}/{reponame}/settings"
@@ -1513,7 +1513,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("/activity_author_data", func() {
 			m.Get("", repo.ActivityAuthors)
 			m.Get("/{period}", repo.ActivityAuthors)
-		}, context.RepoRef(), repo.MustBeNotEmpty)
+		}, repo.MustBeNotEmpty)
 
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)
