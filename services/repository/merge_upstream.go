@@ -4,6 +4,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -17,7 +18,7 @@ import (
 )
 
 // MergeUpstream merges the base repository's default branch into the fork repository's current branch.
-func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, branch string) (mergeStyle string, err error) {
+func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) (mergeStyle string, err error) {
 	if err = repo.MustNotBeArchived(); err != nil {
 		return "", err
 	}
@@ -84,7 +85,7 @@ type UpstreamDivergingInfo struct {
 }
 
 // GetUpstreamDivergingInfo returns the information about the divergence between the fork repository's branch and the base repository's default branch.
-func GetUpstreamDivergingInfo(ctx context.Context, forkRepo *repo_model.Repository, forkBranch string) (*BranchDivergingInfo, error) {
+func GetUpstreamDivergingInfo(ctx context.Context, forkRepo *repo_model.Repository, forkBranch string) (*UpstreamDivergingInfo, error) {
 	if !forkRepo.IsFork {
 		return nil, util.NewInvalidArgumentErrorf("repo is not a fork")
 	}
