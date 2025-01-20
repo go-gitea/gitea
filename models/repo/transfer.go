@@ -68,6 +68,7 @@ type RepoTransfer struct { //nolint
 	RecipientID int64
 	Recipient   *user_model.User `xorm:"-"`
 	RepoID      int64
+	Repo        *Repository `xorm:"-"`
 	TeamIDs     []int64
 	Teams       []*organization.Team `xorm:"-"`
 
@@ -79,30 +80,48 @@ func init() {
 	db.RegisterModel(new(RepoTransfer))
 }
 
-// LoadAttributes fetches the transfer recipient from the database
-func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
+func (r *RepoTransfer) LoadRecipient(ctx context.Context) error {
 	if r.Recipient == nil {
 		u, err := user_model.GetUserByID(ctx, r.RecipientID)
 		if err != nil {
 			return err
 		}
-
 		r.Recipient = u
 	}
 
-	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
-		for _, v := range r.TeamIDs {
-			team, err := organization.GetTeamByID(ctx, v)
-			if err != nil {
-				return err
-			}
+	return nil
+}
 
-			if team.OrgID != r.Recipient.ID {
-				return fmt.Errorf("team %d belongs not to org %d", v, r.Recipient.ID)
-			}
+func (r *RepoTransfer) LoadRepo(ctx context.Context) error {
+	if r.Repo == nil {
+		repo, err := GetRepositoryByID(ctx, r.RepoID)
+		if err != nil {
+			return err
+		}
+		r.Repo = repo
+	}
 
+	return nil
+}
+
+// LoadAttributes fetches the transfer recipient from the database
+func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
+	if err := r.LoadRecipient(ctx); err != nil {
+		return err
+	}
+
+	if r.Recipient.IsOrganization() && r.Teams == nil {
+		teamsMap, err := organization.GetTeamsByIDs(ctx, r.TeamIDs)
+		if err != nil {
+			return err
+		}
+		for _, team := range teamsMap {
 			r.Teams = append(r.Teams, team)
 		}
+	}
+
+	if err := r.LoadRepo(ctx); err != nil {
+		return err
 	}
 
 	if r.Doer == nil {
@@ -110,17 +129,16 @@ func (r *RepoTransfer) LoadAttributes(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-
 		r.Doer = u
 	}
 
 	return nil
 }
 
-// CanUserAcceptTransfer checks if the user has the rights to accept/decline a repo transfer.
+// CanUserAcceptOrRejectTransfer checks if the user has the rights to accept/decline a repo transfer.
 // For user, it checks if it's himself
 // For organizations, it checks if the user is able to create repos
-func (r *RepoTransfer) CanUserAcceptTransfer(ctx context.Context, u *user_model.User) bool {
+func (r *RepoTransfer) CanUserAcceptOrRejectTransfer(ctx context.Context, u *user_model.User) bool {
 	if err := r.LoadAttributes(ctx); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return false
@@ -206,8 +224,22 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 			return err
 		}
 
+		if _, err := user_model.GetUserByID(ctx, newOwner.ID); err != nil {
+			return err
+		}
+
 		// Make sure repo is ready to transfer
 		if err := TestRepositoryReadyForTransfer(repo.Status); err != nil {
+			return err
+		}
+
+		_, err = GetPendingRepositoryTransfer(ctx, repo)
+		if err == nil {
+			return ErrRepoTransferInProgress{
+				Uname: repo.Owner.LowerName,
+				Name:  repo.Name,
+			}
+		} else if !IsErrNoPendingTransfer(err) {
 			return err
 		}
 
