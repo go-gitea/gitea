@@ -315,6 +315,47 @@ func Get(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, org)
 }
 
+func Rename(ctx *context.APIContext) {
+	// swagger:operation POST /orgs/{org}/rename organization renameOrg
+	// ---
+	// summary: Rename an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: existing org name
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/RenameOrgOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	org := ctx.Org.Organization
+	form := web.GetForm(ctx).(*api.RenameOrgOption)
+
+	if err := user_service.RenameUser(ctx, org.AsUser(), form.NewName); err != nil {
+		if user_model.IsErrUserAlreadyExist(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", ctx.Tr("form.username_been_taken"))
+		} else if db.IsErrNameReserved(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name))
+		} else if db.IsErrNamePatternNotAllowed(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern))
+		} else {
+			ctx.ServerError("RenameOrg", err)
+		}
+	}
+}
+
 // Edit change an organization's information
 func Edit(ctx *context.APIContext) {
 	// swagger:operation PATCH /orgs/{org} organization orgEdit
