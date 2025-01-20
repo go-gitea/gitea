@@ -99,7 +99,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			// we do not need to evaluate job concurrency if the job is blocked because it will be checked by job emitter
 			if runJob.Status != actions_model.StatusBlocked {
 				var err error
-				runJob.ConcurrencyGroup, runJob.ConcurrencyCancel, err = EvaluateJobConcurrency(run, runJob, vars, nil)
+				runJob.ConcurrencyGroup, runJob.ConcurrencyCancel, err = EvaluateJobConcurrency(ctx, run, runJob, vars, nil)
 				if err != nil {
 					return fmt.Errorf("evaluate job concurrency: %w", err)
 				}

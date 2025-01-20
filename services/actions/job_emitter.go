@@ -291,7 +291,7 @@ func checkConcurrencyForJobWithNeeds(ctx context.Context, actionRunJob *actions_
 			jobResults[jobID] = jobResult
 		}
 
-		actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = EvaluateJobConcurrency(actionRunJob.Run, actionRunJob, vars, jobResults)
+		actionRunJob.ConcurrencyGroup, actionRunJob.ConcurrencyCancel, err = EvaluateJobConcurrency(ctx, actionRunJob.Run, actionRunJob, vars, jobResults)
 		if err != nil {
 			return false, fmt.Errorf("evaluate job concurrency: %w", err)
 		}

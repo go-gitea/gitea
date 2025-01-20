@@ -19,6 +19,7 @@ func EvaluateWorkflowConcurrency(ctx context.Context, run *actions_model.ActionR
 	if err := run.LoadAttributes(ctx); err != nil {
 		return "", false, fmt.Errorf("run LoadAttributes: %w", err)
 	}
+
 	gitCtx := jobparser.ToGitContext(GenerateGiteaContext(run, nil))
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	inputs, err := getInputsFromRun(run)
@@ -34,19 +35,15 @@ func EvaluateWorkflowConcurrency(ctx context.Context, run *actions_model.ActionR
 	return concurrencyGroup, concurrencyCancel, nil
 }
 
-func EvaluateJobConcurrency(run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string, jobResults map[string]*jobparser.JobResult) (string, bool, error) {
+func EvaluateJobConcurrency(ctx context.Context, run *actions_model.ActionRun, actionRunJob *actions_model.ActionRunJob, vars map[string]string, jobResults map[string]*jobparser.JobResult) (string, bool, error) {
+	if err := actionRunJob.LoadAttributes(ctx); err != nil {
+		return "", false, fmt.Errorf("job LoadAttributes: %w", err)
+	}
+
 	rawConcurrency := &act_model.RawConcurrency{
 		Group:            actionRunJob.RawConcurrencyGroup,
 		CancelInProgress: actionRunJob.RawConcurrencyCancel,
 	}
-
-	singleWorkflows, err := jobparser.Parse([]byte(actionRunJob.WorkflowPayload))
-	if err != nil {
-		return "", false, fmt.Errorf("parse single workflow: %w", err)
-	} else if len(singleWorkflows) != 1 {
-		return "", false, fmt.Errorf("not single workflow")
-	}
-	_, singleWorkflowJob := singleWorkflows[0].Job()
 
 	gitCtx := jobparser.ToGitContext(GenerateGiteaContext(run, actionRunJob))
 	if jobResults == nil {
@@ -59,6 +56,14 @@ func EvaluateJobConcurrency(run *actions_model.ActionRun, actionRunJob *actions_
 	if err != nil {
 		return "", false, fmt.Errorf("get inputs: %w", err)
 	}
+
+	singleWorkflows, err := jobparser.Parse([]byte(actionRunJob.WorkflowPayload))
+	if err != nil {
+		return "", false, fmt.Errorf("parse single workflow: %w", err)
+	} else if len(singleWorkflows) != 1 {
+		return "", false, fmt.Errorf("not single workflow")
+	}
+	_, singleWorkflowJob := singleWorkflows[0].Job()
 
 	concurrencyGroup, concurrencyCancel, err := jobparser.EvaluateConcurrency(rawConcurrency, actionRunJob.JobID, singleWorkflowJob, gitCtx, jobResults, vars, inputs)
 	if err != nil {

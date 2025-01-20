@@ -454,7 +454,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	}
 	if job.RawConcurrencyGroup != "" && job.Status != actions_model.StatusBlocked {
 		var err error
-		job.ConcurrencyGroup, job.ConcurrencyCancel, err = actions_service.EvaluateJobConcurrency(job.Run, job, vars, nil)
+		job.ConcurrencyGroup, job.ConcurrencyCancel, err = actions_service.EvaluateJobConcurrency(ctx, job.Run, job, vars, nil)
 		if err != nil {
 			return fmt.Errorf("evaluate job concurrency: %w", err)
 		}
