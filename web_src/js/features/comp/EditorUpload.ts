@@ -30,7 +30,7 @@ function uploadFile(dropzoneEl: HTMLElement, file: File) {
       }
     };
     dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
-    // @ts-expect-error - handleFiles not present?
+    // @ts-expect-error - bug in @types/dropzone
     dropzoneInst.handleFiles([file]);
   });
 }
