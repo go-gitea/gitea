@@ -17,7 +17,7 @@ export function initAriaDropdownPatch() {
 // the patched `$.fn.dropdown` function, it passes the arguments to Fomantic's `$.fn.dropdown` function, and:
 // * it does the one-time attaching on the first call
 // * it delegates the `onLabelCreate` to the patched `onLabelCreate` to add necessary aria attributes
-function ariaDropdownFn(...args: Parameters<FomanticInitFunction>) {
+function ariaDropdownFn(this: any, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticDropdownFn.apply(this, args);
 
   // if the `$().dropdown()` call is without arguments, or it has non-string (object) argument,
@@ -76,18 +76,18 @@ function delegateOne($dropdown: any) {
   const oldFocusSearch = dropdownCall('internal', 'focusSearch');
   const oldBlurSearch = dropdownCall('internal', 'blurSearch');
   // * If the "dropdown icon" is clicked, Fomantic calls "focusSearch", so show the menu
-  dropdownCall('internal', 'focusSearch', function () { dropdownCall('show'); oldFocusSearch.call(this) });
+  dropdownCall('internal', 'focusSearch', function (this: any) { dropdownCall('show'); oldFocusSearch.call(this) });
   // * If the "dropdown icon" is clicked again when the menu is visible, Fomantic calls "blurSearch", so hide the menu
-  dropdownCall('internal', 'blurSearch', function () { oldBlurSearch.call(this); dropdownCall('hide') });
+  dropdownCall('internal', 'blurSearch', function (this: any) { oldBlurSearch.call(this); dropdownCall('hide') });
 
   const oldFilterItems = dropdownCall('internal', 'filterItems');
-  dropdownCall('internal', 'filterItems', function (...args: any[]) {
+  dropdownCall('internal', 'filterItems', function (this: any, ...args: any[]) {
     oldFilterItems.call(this, ...args);
     processMenuItems($dropdown, dropdownCall);
   });
 
   const oldShow = dropdownCall('internal', 'show');
-  dropdownCall('internal', 'show', function (...args: any[]) {
+  dropdownCall('internal', 'show', function (this: any, ...args: any[]) {
     oldShow.call(this, ...args);
     processMenuItems($dropdown, dropdownCall);
   });
@@ -110,7 +110,7 @@ function delegateOne($dropdown: any) {
 
   // the `onLabelCreate` is used to add necessary aria attributes for dynamically created selection labels
   const dropdownOnLabelCreateOld = dropdownCall('setting', 'onLabelCreate');
-  dropdownCall('setting', 'onLabelCreate', function(value: any, text: string) {
+  dropdownCall('setting', 'onLabelCreate', function(this: any, value: any, text: string) {
     const $label = dropdownOnLabelCreateOld.call(this, value, text);
     updateSelectionLabel($label[0]);
     return $label;

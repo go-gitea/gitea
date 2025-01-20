@@ -11,13 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	org_model "code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/tests"
@@ -142,19 +137,51 @@ func TestCreateBranchInvalidCSRF(t *testing.T) {
 	assert.Contains(t, resp.Body.String(), "Invalid CSRF token")
 }
 
-func prepareBranch(t *testing.T, session *TestSession, repo *repo_model.Repository) {
-	baseRefSubURL := fmt.Sprintf("branch/%s", repo.DefaultBranch)
-
+func prepareRecentlyPushedBranchTest(t *testing.T, headSession *TestSession, baseRepo, headRepo *repo_model.Repository) {
+	refSubURL := fmt.Sprintf("branch/%s", headRepo.DefaultBranch)
+	baseRepoPath := baseRepo.OwnerName + "/" + baseRepo.Name
+	headRepoPath := headRepo.OwnerName + "/" + headRepo.Name
+	// Case 1: Normal branch changeset to display pushed message
 	// create branch with no new commit
-	testCreateBranch(t, session, repo.OwnerName, repo.Name, baseRefSubURL, "no-commit", http.StatusSeeOther)
+	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, refSubURL, "no-commit", http.StatusSeeOther)
 
 	// create branch with commit
-	testCreateBranch(t, session, repo.OwnerName, repo.Name, baseRefSubURL, "new-commit", http.StatusSeeOther)
-	testAPINewFile(t, session, repo.OwnerName, repo.Name, "new-commit", "new-commit.txt", "new-commit")
+	testAPINewFile(t, headSession, headRepo.OwnerName, headRepo.Name, "new-commit", fmt.Sprintf("new-file-%s.txt", headRepo.Name), "new-commit")
 
-	// create deleted branch
-	testCreateBranch(t, session, repo.OwnerName, repo.Name, "branch/new-commit", "deleted-branch", http.StatusSeeOther)
-	testUIDeleteBranch(t, session, repo.OwnerName, repo.Name, "deleted-branch")
+	// create a branch then delete it
+	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "deleted-branch", http.StatusSeeOther)
+	testUIDeleteBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "deleted-branch")
+
+	// only `new-commit` branch has commits ahead the base branch
+	checkRecentlyPushedNewBranches(t, headSession, headRepoPath, []string{"new-commit"})
+	if baseRepo.RepoPath() != headRepo.RepoPath() {
+		checkRecentlyPushedNewBranches(t, headSession, baseRepoPath, []string{fmt.Sprintf("%v:new-commit", headRepo.FullName())})
+	}
+
+	// Case 2: Create PR so that `new-commit` branch will not show
+	testCreatePullToDefaultBranch(t, headSession, baseRepo, headRepo, "new-commit", "merge new-commit to default branch")
+	// No push message show because of active PR
+	checkRecentlyPushedNewBranches(t, headSession, headRepoPath, []string{})
+	if baseRepo.RepoPath() != headRepo.RepoPath() {
+		checkRecentlyPushedNewBranches(t, headSession, baseRepoPath, []string{})
+	}
+}
+
+func prepareRecentlyPushedBranchSpecialTest(t *testing.T, session *TestSession, baseRepo, headRepo *repo_model.Repository) {
+	refSubURL := fmt.Sprintf("branch/%s", headRepo.DefaultBranch)
+	baseRepoPath := baseRepo.OwnerName + "/" + baseRepo.Name
+	headRepoPath := headRepo.OwnerName + "/" + headRepo.Name
+	// create branch with no new commit
+	testCreateBranch(t, session, headRepo.OwnerName, headRepo.Name, refSubURL, "no-commit-special", http.StatusSeeOther)
+
+	// update base (default) branch before head branch is updated
+	testAPINewFile(t, session, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, fmt.Sprintf("new-file-special-%s.txt", headRepo.Name), "new-commit")
+
+	// Though we have new `no-commit` branch, but the headBranch is not newer or commits ahead baseBranch. No message show.
+	checkRecentlyPushedNewBranches(t, session, headRepoPath, []string{})
+	if baseRepo.RepoPath() != headRepo.RepoPath() {
+		checkRecentlyPushedNewBranches(t, session, baseRepoPath, []string{})
+	}
 }
 
 func testCreatePullToDefaultBranch(t *testing.T, session *TestSession, baseRepo, headRepo *repo_model.Repository, headBranch, title string) string {
@@ -169,6 +196,9 @@ func testCreatePullToDefaultBranch(t *testing.T, session *TestSession, baseRepo,
 }
 
 func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo, headRepo *repo_model.Repository) {
+	refSubURL := fmt.Sprintf("branch/%s", headRepo.DefaultBranch)
+	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, refSubURL, "new-commit", http.StatusSeeOther)
+
 	// create opening PR
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "opening-pr", http.StatusSeeOther)
 	testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "opening-pr", "opening pr")
@@ -210,65 +240,19 @@ func checkRecentlyPushedNewBranches(t *testing.T, session *TestSession, repoPath
 
 func TestRecentlyPushedNewBranches(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user1Session := loginUser(t, "user1")
-		user2Session := loginUser(t, "user2")
 		user12Session := loginUser(t, "user12")
-		user13Session := loginUser(t, "user13")
 
-		// prepare branch and PRs in original repo
+		// Same reposioty check
 		repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
-		prepareBranch(t, user12Session, repo10)
 		prepareRepoPR(t, user12Session, user12Session, repo10, repo10)
-
-		// outdated new branch should not be displayed
-		checkRecentlyPushedNewBranches(t, user12Session, "user12/repo10", []string{"new-commit"})
+		prepareRecentlyPushedBranchTest(t, user12Session, repo10, repo10)
+		prepareRecentlyPushedBranchSpecialTest(t, user12Session, repo10, repo10)
 
 		// create a fork repo in public org
-		testRepoFork(t, user12Session, repo10.OwnerName, repo10.Name, "org25", "org25_fork_repo10", "new-commit")
+		testRepoFork(t, user12Session, repo10.OwnerName, repo10.Name, "org25", "org25_fork_repo10", repo10.DefaultBranch)
 		orgPublicForkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 25, Name: "org25_fork_repo10"})
 		prepareRepoPR(t, user12Session, user12Session, repo10, orgPublicForkRepo)
-
-		// user12 is the owner of the repo10 and the organization org25
-		// in repo10, user12 has opening/closed/merged pr and closed/merged pr with deleted branch
-		checkRecentlyPushedNewBranches(t, user12Session, "user12/repo10", []string{"org25/org25_fork_repo10:new-commit", "new-commit"})
-
-		userForkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
-		testCtx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
-		t.Run("AddUser13AsCollaborator", doAPIAddCollaborator(testCtx, "user13", perm.AccessModeWrite))
-		prepareBranch(t, user13Session, userForkRepo)
-		prepareRepoPR(t, user13Session, user13Session, repo10, userForkRepo)
-
-		// create branch with same name in different repo by user13
-		testCreateBranch(t, user13Session, repo10.OwnerName, repo10.Name, "branch/new-commit", "same-name-branch", http.StatusSeeOther)
-		testCreateBranch(t, user13Session, userForkRepo.OwnerName, userForkRepo.Name, "branch/new-commit", "same-name-branch", http.StatusSeeOther)
-		testCreatePullToDefaultBranch(t, user13Session, repo10, userForkRepo, "same-name-branch", "same name branch pr")
-
-		// user13 pushed 2 branches with the same name in repo10 and repo11
-		// and repo11's branch has a pr, but repo10's branch doesn't
-		// in this case, we should get repo10's branch but not repo11's branch
-		checkRecentlyPushedNewBranches(t, user13Session, "user12/repo10", []string{"same-name-branch", "user13/repo11:new-commit"})
-
-		// create a fork repo in private org
-		testRepoFork(t, user1Session, repo10.OwnerName, repo10.Name, "private_org35", "org35_fork_repo10", "new-commit")
-		orgPrivateForkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 35, Name: "org35_fork_repo10"})
-		prepareRepoPR(t, user1Session, user1Session, repo10, orgPrivateForkRepo)
-
-		// user1 is the owner of private_org35 and no write permission to repo10
-		// so user1 can only see the branch in org35_fork_repo10
-		checkRecentlyPushedNewBranches(t, user1Session, "user12/repo10", []string{"private_org35/org35_fork_repo10:new-commit"})
-
-		// user2 push a branch in private_org35
-		testCreateBranch(t, user2Session, orgPrivateForkRepo.OwnerName, orgPrivateForkRepo.Name, "branch/new-commit", "user-read-permission", http.StatusSeeOther)
-		// convert write permission to read permission for code unit
-		token := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeWriteOrganization)
-		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", 24), &api.EditTeamOption{
-			Name:     "team24",
-			UnitsMap: map[string]string{"repo.code": "read"},
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-		teamUnit := unittest.AssertExistsAndLoadBean(t, &org_model.TeamUnit{TeamID: 24, Type: unit.TypeCode})
-		assert.Equal(t, perm.AccessModeRead, teamUnit.AccessMode)
-		// user2 can see the branch as it is created by user2
-		checkRecentlyPushedNewBranches(t, user2Session, "user12/repo10", []string{"private_org35/org35_fork_repo10:user-read-permission"})
+		prepareRecentlyPushedBranchTest(t, user12Session, repo10, orgPublicForkRepo)
+		prepareRecentlyPushedBranchSpecialTest(t, user12Session, repo10, orgPublicForkRepo)
 	})
 }

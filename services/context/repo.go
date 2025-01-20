@@ -56,7 +56,6 @@ type Repository struct {
 	// RefFullName is the full ref name that the user is viewing
 	RefFullName git.RefName
 	BranchName  string // it is the RefFullName's short name if its type is "branch"
-	TagName     string // it is the RefFullName's short name if its type is "tag"
 	TreePath    string
 
 	// Commit it is always set to the commit for the branch or tag, or just the commit that the user is viewing
@@ -778,6 +777,18 @@ func repoRefFullName(typ git.RefType, shortName string) git.RefName {
 	}
 }
 
+func RepoRefByDefaultBranch() func(*Context) {
+	return func(ctx *Context) {
+		ctx.Repo.RefFullName = git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
+		ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
+		ctx.Repo.Commit, _ = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
+		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount()
+		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
+		ctx.Data["BranchName"] = ctx.Repo.BranchName
+		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+	}
+}
+
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
 func RepoRefByType(detectRefType git.RefType) func(*Context) {
@@ -851,7 +862,6 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 			} else if refType == git.RefTypeTag && ctx.Repo.GitRepo.IsTagExist(refShortName) {
 				ctx.Repo.RefFullName = git.RefNameFromTag(refShortName)
-				ctx.Repo.TagName = refShortName
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refShortName)
 				if err != nil {
@@ -900,8 +910,6 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		ctx.Data["TreePath"] = ctx.Repo.TreePath
 
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
-
-		ctx.Data["TagName"] = ctx.Repo.TagName
 
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
 
