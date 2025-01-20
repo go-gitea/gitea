@@ -50,6 +50,10 @@ var (
 	AppSubURL string
 	// UseSubURLPath makes Gitea handle requests with sub-path like "/sub-path/owner/repo/...", to make it easier to debug sub-path related problems without a reverse proxy.
 	UseSubURLPath bool
+	// UseHostHeader makes Gitea always use the "Host" request header for construction of absolute URLs.
+	// This requires any reverse proxy to properly pass headers like "X-Forwarded-Proto" and "Host".
+	// It maps to ini:"USE_HOST_HEADER" in [server] and defaults to false
+	UseHostHeader bool
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
 	AppDataPath string
@@ -277,6 +281,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
 	UseSubURLPath = sec.Key("USE_SUB_URL_PATH").MustBool(false)
+	UseHostHeader = sec.Key("USE_HOST_HEADER").MustBool(false)
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
