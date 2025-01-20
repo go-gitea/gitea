@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/context"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -51,4 +52,26 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 	}
 
 	return false
+}
+
+func Tree(ctx *context.Context) {
+	recursive := ctx.FormBool("recursive")
+
+	if ctx.Repo.RefFullName == "" {
+		ctx.Error(http.StatusBadRequest, "RefFullName", "ref_name is invalid")
+		return
+	}
+
+	var results []*files_service.TreeViewNode
+	var err error
+	if !recursive {
+		results, err = files_service.GetTreeList(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.RefFullName, false)
+	} else {
+		results, err = files_service.GetTreeInformation(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.RefFullName)
+	}
+	if err != nil {
+		ctx.ServerError("GetTreeInformation", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, results)
 }

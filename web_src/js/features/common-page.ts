@@ -28,8 +28,13 @@ export function initFootLanguageMenu() {
 }
 
 export function initGlobalDropdown() {
+  initTargetDropdown(document.body);
+}
+
+export function initTargetDropdown(target: Element) {
   // Semantic UI modules.
-  const $uiDropdowns = fomanticQuery('.ui.dropdown');
+  const $target = fomanticQuery(target);
+  const $uiDropdowns = $target.find('.ui.dropdown');
 
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
   $uiDropdowns.filter(':not(.custom)').dropdown({hideDividers: 'empty'});
