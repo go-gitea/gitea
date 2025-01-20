@@ -48,7 +48,7 @@ func (s Stopwatch) Seconds() int64 {
 
 // Duration returns a human-readable duration string based on local server time
 func (s Stopwatch) Duration() string {
-	return util.SecToTime(s.Seconds())
+	return util.SecToHours(s.Seconds())
 }
 
 func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
@@ -201,7 +201,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
-		Content: util.SecToTime(timediff),
+		Content: util.SecToHours(timediff),
 		Type:    CommentTypeStopTracking,
 		TimeID:  tt.ID,
 	}); err != nil {

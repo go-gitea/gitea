@@ -1,6 +1,6 @@
 import {createTippy} from '../modules/tippy.ts';
 import {GET} from '../modules/fetch.ts';
-import {hideElem, showElem} from '../utils/dom.ts';
+import {hideElem, queryElems, showElem} from '../utils/dom.ts';
 import {logoutFromWorker} from '../modules/worker.ts';
 
 const {appSubUrl, notificationSettings, enableTimeTracking, assetVersionEncoded} = window.config;
@@ -144,23 +144,10 @@ function updateStopwatchData(data) {
   return Boolean(data.length);
 }
 
-// TODO: This flickers on page load, we could avoid this by making a custom
-// element to render time periods. Feeding a datetime in backend does not work
-// when time zone between server and client differs.
-function updateStopwatchTime(seconds) {
-  if (!Number.isFinite(seconds)) return;
-  const datetime = (new Date(Date.now() - seconds * 1000)).toISOString();
-  for (const parent of document.querySelectorAll('.header-stopwatch-dot')) {
-    const existing = parent.querySelector(':scope > relative-time');
-    if (existing) {
-      existing.setAttribute('datetime', datetime);
-    } else {
-      const el = document.createElement('relative-time');
-      el.setAttribute('format', 'micro');
-      el.setAttribute('datetime', datetime);
-      el.setAttribute('lang', 'en-US');
-      el.setAttribute('title', ''); // make <relative-time> show no title and therefor no tooltip
-      parent.append(el);
-    }
-  }
+// TODO: This flickers on page load, we could avoid this by making a custom element to render time periods.
+function updateStopwatchTime(seconds: number) {
+  const hours = seconds / 3600 || 0;
+  const minutes = seconds / 60 || 0;
+  const timeText = hours >= 1 ? `${Math.round(hours)}h` : `${Math.round(minutes)}m`;
+  queryElems(document, '.header-stopwatch-dot', (el) => el.textContent = timeText);
 }
