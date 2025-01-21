@@ -668,9 +668,12 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitR
 }
 
 // BranchDivergingInfo contains the information about the divergence of a head branch to the base branch.
-// This struct is also used in templates, so it needs to search for all references before changing it.
 type BranchDivergingInfo struct {
+	// whether the base branch contains new commits which are not in the head branch
 	BaseHasNewCommits bool
+
+	// behind/after are number of commits that the head branch is behind/after the base branch, it's 0 if it's unable to calculate.
+	// there could be a case that BaseHasNewCommits=true while the behind/after are both 0 (unable to calculate).
 	HeadCommitsBehind int
 	HeadCommitsAhead  int
 }
@@ -681,10 +684,19 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 	if err != nil {
 		return nil, err
 	}
-
+	if headGitBranch.IsDeleted {
+		return nil, git_model.ErrBranchNotExist{
+			BranchName: headBranch,
+		}
+	}
 	baseGitBranch, err := git_model.GetBranch(ctx, baseRepo.ID, baseBranch)
 	if err != nil {
 		return nil, err
+	}
+	if baseGitBranch.IsDeleted {
+		return nil, git_model.ErrBranchNotExist{
+			BranchName: baseBranch,
+		}
 	}
 
 	info := &BranchDivergingInfo{}
@@ -720,5 +732,6 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 	}
 
 	info.HeadCommitsBehind, info.HeadCommitsAhead = diff.Behind, diff.Ahead
+	info.BaseHasNewCommits = info.HeadCommitsBehind > 0
 	return info, nil
 }
