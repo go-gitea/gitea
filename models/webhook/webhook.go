@@ -177,7 +177,7 @@ func (w *Webhook) HasEvent(evt webhook_module.HookEventType) bool {
 	return w.HookEvents[evt]
 }
 
-// EventsArray returns an array of hook events,
+// EventsArray returns an array of hook events
 func (w *Webhook) EventsArray() []string {
 	if w.SendEverything {
 		events := make([]string, 0, len(webhook_module.AllEvents()))
