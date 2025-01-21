@@ -22,7 +22,6 @@ const (
 	HookEventPullRequestLabel          HookEventType = "pull_request_label"
 	HookEventPullRequestMilestone      HookEventType = "pull_request_milestone"
 	HookEventPullRequestComment        HookEventType = "pull_request_comment"
-	HookEventPullRequestReview         HookEventType = "pull_request_review"
 	HookEventPullRequestReviewApproved HookEventType = "pull_request_review_approved"
 	HookEventPullRequestReviewRejected HookEventType = "pull_request_review_rejected"
 	HookEventPullRequestReviewComment  HookEventType = "pull_request_review_comment"
@@ -32,9 +31,11 @@ const (
 	HookEventRepository                HookEventType = "repository"
 	HookEventRelease                   HookEventType = "release"
 	HookEventPackage                   HookEventType = "package"
-	HookEventSchedule                  HookEventType = "schedule"
 	HookEventStatus                    HookEventType = "status"
 	// once a new event added here, please also added to AllEvents() function
+
+	// Actions event only
+	HookEventSchedule HookEventType = "schedule"
 )
 
 func AllEvents() []HookEventType {
@@ -53,7 +54,6 @@ func AllEvents() []HookEventType {
 		HookEventPullRequestLabel,
 		HookEventPullRequestMilestone,
 		HookEventPullRequestComment,
-		HookEventPullRequestReview,
 		HookEventPullRequestReviewApproved,
 		HookEventPullRequestReviewRejected,
 		HookEventPullRequestReviewComment,
@@ -63,7 +63,6 @@ func AllEvents() []HookEventType {
 		HookEventRepository,
 		HookEventRelease,
 		HookEventPackage,
-		HookEventSchedule,
 		HookEventStatus,
 	}
 }
