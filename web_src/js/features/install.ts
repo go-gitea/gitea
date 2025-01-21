@@ -1,8 +1,6 @@
 import {hideElem, showElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 
-type DatabaseType = 'mysql' | 'postgres' | 'mssql' | 'sqlite3';
-
 export function initInstall() {
   const page = document.querySelector('.page-content.install');
   if (!page) {
@@ -19,7 +17,7 @@ function initPreInstall() {
   const defaultDbUser = 'gitea';
   const defaultDbName = 'gitea';
 
-  const defaultDbHosts = {
+  const defaultDbHosts: Record<string, string> = {
     mysql: '127.0.0.1:3306',
     postgres: '127.0.0.1:5432',
     mssql: '127.0.0.1:1433',
@@ -31,7 +29,7 @@ function initPreInstall() {
 
   // Database type change detection.
   document.querySelector<HTMLInputElement>('#db_type').addEventListener('change', function () {
-    const dbType = this.value as DatabaseType;
+    const dbType = this.value;
     hideElem('div[data-db-setting-for]');
     showElem(`div[data-db-setting-for=${dbType}]`);
 
