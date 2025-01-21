@@ -116,3 +116,9 @@ prime/
 
 # Manpage
 /man
+
+# Environment variables
+.env
+
+# Gitpolicy local
+/gitpolicy
