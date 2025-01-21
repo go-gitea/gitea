@@ -177,10 +177,21 @@ func (w *Webhook) HasEvent(evt webhook_module.HookEventType) bool {
 	return w.HookEvents[evt]
 }
 
-// EventsArray returns an array of hook events
+// EventsArray returns an array of hook events,
 func (w *Webhook) EventsArray() []string {
-	events := make([]string, 0, 7)
+	if w.SendEverything {
+		events := make([]string, 0, len(webhook_module.AllEvents()))
+		for _, evt := range webhook_module.AllEvents() {
+			events = append(events, string(evt))
+		}
+		return events
+	}
 
+	if w.PushOnly {
+		return []string{string(webhook_module.HookEventPush)}
+	}
+
+	events := make([]string, 0, len(w.HookEvents))
 	for event, enabled := range w.HookEvents {
 		if enabled {
 			events = append(events, string(event))

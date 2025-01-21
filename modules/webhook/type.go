@@ -34,7 +34,39 @@ const (
 	HookEventPackage                   HookEventType = "package"
 	HookEventSchedule                  HookEventType = "schedule"
 	HookEventStatus                    HookEventType = "status"
+	// once a new event added here, please also added to AllEvents() function
 )
+
+func AllEvents() []HookEventType {
+	return []HookEventType{
+		HookEventCreate,
+		HookEventDelete,
+		HookEventFork,
+		HookEventPush,
+		HookEventIssues,
+		HookEventIssueAssign,
+		HookEventIssueLabel,
+		HookEventIssueMilestone,
+		HookEventIssueComment,
+		HookEventPullRequest,
+		HookEventPullRequestAssign,
+		HookEventPullRequestLabel,
+		HookEventPullRequestMilestone,
+		HookEventPullRequestComment,
+		HookEventPullRequestReview,
+		HookEventPullRequestReviewApproved,
+		HookEventPullRequestReviewRejected,
+		HookEventPullRequestReviewComment,
+		HookEventPullRequestSync,
+		HookEventPullRequestReviewRequest,
+		HookEventWiki,
+		HookEventRepository,
+		HookEventRelease,
+		HookEventPackage,
+		HookEventSchedule,
+		HookEventStatus,
+	}
+}
 
 // Event returns the HookEventType as an event string
 func (h HookEventType) Event() string {
