@@ -1,14 +1,19 @@
 import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
 import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
-import {parseIssueHref, parseIssueNewHref} from '../../utils.ts';
+import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
 import {getIssueColor, getIssueIcon} from '../issue.ts';
 import {debounce} from 'perfect-debounce';
 
 const debouncedSuggestIssues = debounce((key: string, text: string) => new Promise<{matched:boolean; fragment?: HTMLElement}>(async (resolve) => {
-  let issuePathInfo = parseIssueHref(window.location.href);
-  if (!issuePathInfo.ownerName) issuePathInfo = parseIssueNewHref(window.location.href);
+  const issuePathInfo = parseIssueHref(window.location.href);
+  if (!issuePathInfo.ownerName) {
+    const repoOwnerPathInfo = parseRepoOwnerPathInfo(window.location.pathname);
+    issuePathInfo.ownerName = repoOwnerPathInfo.ownerName;
+    issuePathInfo.repoName = repoOwnerPathInfo.repoName;
+    // then no issuePathInfo.indexString here, it is only used to exclude the current issue when "matchIssue"
+  }
   if (!issuePathInfo.ownerName) return resolve({matched: false});
 
   const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString, text);

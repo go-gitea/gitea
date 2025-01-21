@@ -30,6 +30,11 @@ export type RequestOpts = {
   data?: RequestData,
 } & RequestInit;
 
+export type RepoOwnerPathInfo = {
+  ownerName: string,
+  repoName: string,
+}
+
 export type IssuePathInfo = {
   ownerName: string,
   repoName: string,
