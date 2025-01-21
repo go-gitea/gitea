@@ -31,7 +31,7 @@ function uploadFile(dropzoneEl: HTMLElement, file: File) {
       }
     };
     dropzoneInst.on(DropzoneCustomEventUploadDone, onUploadDone);
-    // this is not entirely correct because File does not satisfy DropzoneFile
+    // FIXME: this is not entirely correct because `file` does not satisfy DropzoneFile (we have abused the Dropzone for long time)
     dropzoneInst.addFile(file as DropzoneFile);
   });
 }
