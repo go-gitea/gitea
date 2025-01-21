@@ -41,8 +41,7 @@ export function parseIssueHref(href: string): IssuePathInfo {
 export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo {
   const appSubUrl = window.config.appSubUrl;
   if (appSubUrl && pathname.startsWith(appSubUrl)) pathname = pathname.substring(appSubUrl.length);
-  const path = (pathname || '').replace(/[#?].*$/, '');
-  const [_, ownerName, repoName] = /([^/]+)\/([^/]+)/.exec(path) || [];
+  const [_, ownerName, repoName] = /([^/]+)\/([^/]+)/.exec(pathname) || [];
   return {ownerName, repoName};
 }
 
