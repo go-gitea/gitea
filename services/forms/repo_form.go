@@ -236,6 +236,7 @@ type WebhookForm struct {
 	PullRequestLabel         bool
 	PullRequestMilestone     bool
 	PullRequestComment       bool
+	PullRequestReview        bool
 	PullRequestSync          bool
 	PullRequestReviewRequest bool
 	Wiki                     bool

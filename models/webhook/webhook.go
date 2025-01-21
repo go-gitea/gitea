@@ -174,7 +174,12 @@ func (w *Webhook) HasEvent(evt webhook_module.HookEventType) bool {
 	if w.PushOnly {
 		return evt == webhook_module.HookEventPush
 	}
-	return w.HookEvents[evt]
+	checkEvt := evt
+	switch evt {
+	case webhook_module.HookEventPullRequestReviewApproved, webhook_module.HookEventPullRequestReviewRejected, webhook_module.HookEventPullRequestReviewComment:
+		checkEvt = webhook_module.HookEventPullRequestReview
+	}
+	return w.HookEvents[checkEvt]
 }
 
 // EventsArray returns an array of hook events

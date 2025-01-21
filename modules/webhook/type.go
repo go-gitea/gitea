@@ -34,6 +34,8 @@ const (
 	HookEventStatus                    HookEventType = "status"
 	// once a new event added here, please also added to AllEvents() function
 
+	// FIXME: This event should be a group of pull_request_review_xxx events
+	HookEventPullRequestReview HookEventType = "pull_request_review"
 	// Actions event only
 	HookEventSchedule HookEventType = "schedule"
 )
