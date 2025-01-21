@@ -246,7 +246,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 			return err
 		}
 
-		if setting.Packages.RepoLatestVersionArch {
+		if setting.Packages.ShowLatestVersionArch {
 			if old, ok := vpfs[current.Version.PackageID]; ok {
 				if compareVersions(old.Version.Version, current.Version.Version) == -1 {
 					vpfs[current.Version.PackageID] = current

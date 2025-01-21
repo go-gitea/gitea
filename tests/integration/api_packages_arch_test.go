@@ -302,7 +302,7 @@ license = MIT`)
 	}
 	t.Run("KeepLastVersion", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		defer test.MockVariableValue(&setting.Packages.RepoLatestVersionArch, true)()
+		defer test.MockVariableValue(&setting.Packages.ShowLatestVersionArch, true)()
 		pkgVer1 := createPackage("gz", "gitea-test", "1.0.0", "aarch64")
 		pkgVer2 := createPackage("gz", "gitea-test", "1.0.1", "aarch64")
 		req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgVer1)).

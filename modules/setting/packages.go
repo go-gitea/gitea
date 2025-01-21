@@ -46,7 +46,7 @@ var (
 
 		DefaultRPMSignEnabled bool
 
-		RepoLatestVersionArch bool
+		ShowLatestVersionArch bool
 	}{
 		Enabled:              true,
 		LimitTotalOwnerCount: -1,
@@ -104,7 +104,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
 	Packages.DefaultRPMSignEnabled = sec.Key("DEFAULT_RPM_SIGN_ENABLED").MustBool(false)
-	Packages.RepoLatestVersionArch = sec.Key("KEEP_LATEST_VERSION_ARCH").MustBool(false)
+	Packages.ShowLatestVersionArch = sec.Key("SHOW_LATEST_VERSION_ARCH").MustBool(false)
 	return nil
 }
 
