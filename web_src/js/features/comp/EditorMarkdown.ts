@@ -184,8 +184,13 @@ function handleNewline(textarea: HTMLTextAreaElement, e: Event) {
   triggerEditorContentChanged(textarea);
 }
 
+function isTextExpanderShown(textarea: HTMLElement): boolean {
+  return Boolean(textarea.closest('text-expander')?.querySelector('.suggestions'));
+}
+
 export function initTextareaMarkdown(textarea) {
   textarea.addEventListener('keydown', (e) => {
+    if (isTextExpanderShown(textarea)) return;
     if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       // use Tab/Shift-Tab to indent/unindent the selected lines
       handleIndentSelection(textarea, e);
