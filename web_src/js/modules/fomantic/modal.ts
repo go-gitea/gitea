@@ -12,7 +12,7 @@ export function initAriaModalPatch() {
 
 // the patched `$.fn.modal` modal function
 // * it does the one-time attaching on the first call
-function ariaModalFn(...args: Parameters<FomanticInitFunction>) {
+function ariaModalFn(this: any, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticModalFn.apply(this, args);
   if (args[0] === 'show' || args[0]?.autoShow) {
     for (const el of this) {

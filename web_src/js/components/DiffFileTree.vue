@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import DiffFileTreeItem from './DiffFileTreeItem.vue';
+import DiffFileTreeItem, {type Item} from './DiffFileTreeItem.vue';
 import {loadMoreFiles} from '../features/repo-diff.ts';
 import {toggleElem} from '../utils/dom.ts';
 import {diffTreeStore} from '../modules/stores.ts';
@@ -11,7 +11,7 @@ const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 const store = diffTreeStore();
 
 const fileTree = computed(() => {
-  const result = [];
+  const result: Array<Item> = [];
   for (const file of store.files) {
     // Split file into directories
     const splits = file.Name.split('/');
@@ -24,15 +24,10 @@ const fileTree = computed(() => {
       if (index === splits.length) {
         isFile = true;
       }
-      let newParent = {
+      let newParent: Item = {
         name: split,
         children: [],
         isFile,
-      } as {
-        name: string,
-        children: any[],
-        isFile: boolean,
-        file?: any,
       };
 
       if (isFile === true) {
@@ -60,7 +55,7 @@ const fileTree = computed(() => {
       parent = newParent;
     }
   }
-  const mergeChildIfOnlyOneDir = (entries) => {
+  const mergeChildIfOnlyOneDir = (entries: Array<Record<string, any>>) => {
     for (const entry of entries) {
       if (entry.children) {
         mergeChildIfOnlyOneDir(entry.children);
@@ -110,13 +105,13 @@ function toggleVisibility() {
   updateVisibility(!store.fileTreeIsVisible);
 }
 
-function updateVisibility(visible) {
+function updateVisibility(visible: boolean) {
   store.fileTreeIsVisible = visible;
   localStorage.setItem(LOCAL_STORAGE_KEY, store.fileTreeIsVisible);
   updateState(store.fileTreeIsVisible);
 }
 
-function updateState(visible) {
+function updateState(visible: boolean) {
   const btn = document.querySelector('.diff-toggle-file-tree-button');
   const [toShow, toHide] = btn.querySelectorAll('.icon');
   const tree = document.querySelector('#diff-file-tree');

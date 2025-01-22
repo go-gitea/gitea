@@ -17,7 +17,7 @@ export function initAriaDropdownPatch() {
 // the patched `$.fn.dropdown` function, it passes the arguments to Fomantic's `$.fn.dropdown` function, and:
 // * it does the one-time attaching on the first call
 // * it delegates the `onLabelCreate` to the patched `onLabelCreate` to add necessary aria attributes
-function ariaDropdownFn(...args: Parameters<FomanticInitFunction>) {
+function ariaDropdownFn(this: any, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticDropdownFn.apply(this, args);
 
   // if the `$().dropdown()` call is without arguments, or it has non-string (object) argument,
@@ -38,7 +38,7 @@ function ariaDropdownFn(...args: Parameters<FomanticInitFunction>) {
 // the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
 function updateMenuItem(dropdown: HTMLElement, item: HTMLElement) {
   if (!item.id) item.id = generateAriaId();
-  item.setAttribute('role', dropdown[ariaPatchKey].listItemRole);
+  item.setAttribute('role', (dropdown as any)[ariaPatchKey].listItemRole);
   item.setAttribute('tabindex', '-1');
   for (const el of item.querySelectorAll('a, input, button')) el.setAttribute('tabindex', '-1');
 }
@@ -61,7 +61,7 @@ function updateSelectionLabel(label: HTMLElement) {
   }
 }
 
-function processMenuItems($dropdown, dropdownCall) {
+function processMenuItems($dropdown: any, dropdownCall: any) {
   const hideEmptyDividers = dropdownCall('setting', 'hideDividers') === 'empty';
   const itemsMenu = $dropdown[0].querySelector('.scrolling.menu') || $dropdown[0].querySelector('.menu');
   if (hideEmptyDividers) hideScopedEmptyDividers(itemsMenu);
@@ -76,18 +76,18 @@ function delegateOne($dropdown: any) {
   const oldFocusSearch = dropdownCall('internal', 'focusSearch');
   const oldBlurSearch = dropdownCall('internal', 'blurSearch');
   // * If the "dropdown icon" is clicked, Fomantic calls "focusSearch", so show the menu
-  dropdownCall('internal', 'focusSearch', function () { dropdownCall('show'); oldFocusSearch.call(this) });
+  dropdownCall('internal', 'focusSearch', function (this: any) { dropdownCall('show'); oldFocusSearch.call(this) });
   // * If the "dropdown icon" is clicked again when the menu is visible, Fomantic calls "blurSearch", so hide the menu
-  dropdownCall('internal', 'blurSearch', function () { oldBlurSearch.call(this); dropdownCall('hide') });
+  dropdownCall('internal', 'blurSearch', function (this: any) { oldBlurSearch.call(this); dropdownCall('hide') });
 
   const oldFilterItems = dropdownCall('internal', 'filterItems');
-  dropdownCall('internal', 'filterItems', function (...args: any[]) {
+  dropdownCall('internal', 'filterItems', function (this: any, ...args: any[]) {
     oldFilterItems.call(this, ...args);
     processMenuItems($dropdown, dropdownCall);
   });
 
   const oldShow = dropdownCall('internal', 'show');
-  dropdownCall('internal', 'show', function (...args: any[]) {
+  dropdownCall('internal', 'show', function (this: any, ...args: any[]) {
     oldShow.call(this, ...args);
     processMenuItems($dropdown, dropdownCall);
   });
@@ -110,7 +110,7 @@ function delegateOne($dropdown: any) {
 
   // the `onLabelCreate` is used to add necessary aria attributes for dynamically created selection labels
   const dropdownOnLabelCreateOld = dropdownCall('setting', 'onLabelCreate');
-  dropdownCall('setting', 'onLabelCreate', function(value: any, text: string) {
+  dropdownCall('setting', 'onLabelCreate', function(this: any, value: any, text: string) {
     const $label = dropdownOnLabelCreateOld.call(this, value, text);
     updateSelectionLabel($label[0]);
     return $label;
@@ -143,7 +143,7 @@ function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, men
   $(menu).find('> .item').each((_, item) => updateMenuItem(dropdown, item));
 
   // this role could only be changed after its content is ready, otherwise some browsers+readers (like Chrome+AppleVoice) crash
-  menu.setAttribute('role', dropdown[ariaPatchKey].listPopupRole);
+  menu.setAttribute('role', (dropdown as any)[ariaPatchKey].listPopupRole);
 
   // prepare selection label items
   for (const label of dropdown.querySelectorAll<HTMLElement>('.ui.label')) {
@@ -151,8 +151,8 @@ function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, men
   }
 
   // make the primary element (focusable) aria-friendly
-  focusable.setAttribute('role', focusable.getAttribute('role') ?? dropdown[ariaPatchKey].focusableRole);
-  focusable.setAttribute('aria-haspopup', dropdown[ariaPatchKey].listPopupRole);
+  focusable.setAttribute('role', focusable.getAttribute('role') ?? (dropdown as any)[ariaPatchKey].focusableRole);
+  focusable.setAttribute('aria-haspopup', (dropdown as any)[ariaPatchKey].listPopupRole);
   focusable.setAttribute('aria-controls', menu.id);
   focusable.setAttribute('aria-expanded', 'false');
 
@@ -164,7 +164,7 @@ function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, men
 }
 
 function attachInit(dropdown: HTMLElement) {
-  dropdown[ariaPatchKey] = {};
+  (dropdown as any)[ariaPatchKey] = {};
   if (dropdown.classList.contains('custom')) return;
 
   // Dropdown has 2 different focusing behaviors
@@ -204,9 +204,9 @@ function attachInit(dropdown: HTMLElement) {
   // Since #19861 we have prepared the "combobox" solution, but didn't get enough time to put it into practice and test before.
   const isComboBox = dropdown.querySelectorAll('input').length > 0;
 
-  dropdown[ariaPatchKey].focusableRole = isComboBox ? 'combobox' : 'menu';
-  dropdown[ariaPatchKey].listPopupRole = isComboBox ? 'listbox' : '';
-  dropdown[ariaPatchKey].listItemRole = isComboBox ? 'option' : 'menuitem';
+  (dropdown as any)[ariaPatchKey].focusableRole = isComboBox ? 'combobox' : 'menu';
+  (dropdown as any)[ariaPatchKey].listPopupRole = isComboBox ? 'listbox' : '';
+  (dropdown as any)[ariaPatchKey].listItemRole = isComboBox ? 'option' : 'menuitem';
 
   attachDomEvents(dropdown, focusable, menu);
   attachStaticElements(dropdown, focusable, menu);
@@ -229,7 +229,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
     // if the popup is visible and has an active/selected item, use its id as aria-activedescendant
     if (menuVisible) {
       focusable.setAttribute('aria-activedescendant', active.id);
-    } else if (dropdown[ariaPatchKey].listPopupRole === 'menu') {
+    } else if ((dropdown as any)[ariaPatchKey].listPopupRole === 'menu') {
       // for menu, when the popup is hidden, no need to keep the aria-activedescendant, and clear the active/selected item
       focusable.removeAttribute('aria-activedescendant');
       active.classList.remove('active', 'selected');
@@ -253,7 +253,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   // when the popup is hiding, it's better to have a small "delay", because there is a Fomantic UI animation
   // without the delay for hiding, the UI will be somewhat laggy and sometimes may get stuck in the animation.
   const deferredRefreshAriaActiveItem = (delay = 0) => { setTimeout(refreshAriaActiveItem, delay) };
-  dropdown[ariaPatchKey].deferredRefreshAriaActiveItem = deferredRefreshAriaActiveItem;
+  (dropdown as any)[ariaPatchKey].deferredRefreshAriaActiveItem = deferredRefreshAriaActiveItem;
   dropdown.addEventListener('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAriaActiveItem(); });
 
   // if the dropdown has been opened by focus, do not trigger the next click event again.
@@ -363,7 +363,7 @@ function onResponseKeepSelectedItem(dropdown: typeof $|HTMLElement, selectedValu
   // then the dropdown only shows other items and will select another (wrong) one.
   // It can't be easily fix by using setTimeout(patch, 0) in `onResponse` because the `onResponse` is called before another `setTimeout(..., timeLeft)`
   // Fortunately, the "timeLeft" is controlled by "loadingDuration" which is always zero at the moment, so we can use `setTimeout(..., 10)`
-  const elDropdown = (dropdown instanceof HTMLElement) ? dropdown : dropdown[0];
+  const elDropdown = (dropdown instanceof HTMLElement) ? dropdown : (dropdown as any)[0];
   setTimeout(() => {
     queryElems(elDropdown, `.menu .item[data-value="${CSS.escape(selectedValue)}"].filtered`, (el) => el.classList.remove('filtered'));
     $(elDropdown).dropdown('set selected', selectedValue ?? '');

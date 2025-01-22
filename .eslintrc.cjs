@@ -403,7 +403,7 @@ module.exports = {
     'github/a11y-svg-has-accessible-name': [0],
     'github/array-foreach': [0],
     'github/async-currenttarget': [2],
-    'github/async-preventdefault': [2],
+    'github/async-preventdefault': [0], // https://github.com/github/eslint-plugin-github/issues/599
     'github/authenticity-token': [0],
     'github/get-attribute': [0],
     'github/js-class-name': [0],

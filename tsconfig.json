@@ -23,6 +23,8 @@
     "stripInternal": true,
     "strict": false,
     "strictFunctionTypes": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false,

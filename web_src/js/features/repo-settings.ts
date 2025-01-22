@@ -12,7 +12,7 @@ function initRepoSettingsCollaboration() {
   for (const dropdownEl of queryElems(document, '.page-content.repository .ui.dropdown.access-mode')) {
     const textEl = dropdownEl.querySelector(':scope > .text');
     $(dropdownEl).dropdown({
-      async action(text, value) {
+      async action(text: string, value: string) {
         dropdownEl.classList.add('is-loading', 'loading-icon-2px');
         const lastValue = dropdownEl.getAttribute('data-last-value');
         $(dropdownEl).dropdown('hide');
@@ -53,8 +53,8 @@ function initRepoSettingsSearchTeamBox() {
     apiSettings: {
       url: `${appSubUrl}/org/${searchTeamBox.getAttribute('data-org-name')}/teams/-/search?q={query}`,
       headers: {'X-Csrf-Token': csrfToken},
-      onResponse(response) {
-        const items = [];
+      onResponse(response: any) {
+        const items: Array<Record<string, any>> = [];
         $.each(response.data, (_i, item) => {
           items.push({
             title: item.name,
@@ -79,21 +79,21 @@ function initRepoSettingsGitHook() {
 function initRepoSettingsBranches() {
   if (!document.querySelector('.repository.settings.branches')) return;
 
-  for (const el of document.querySelectorAll('.toggle-target-enabled')) {
+  for (const el of document.querySelectorAll<HTMLInputElement>('.toggle-target-enabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target'));
       target?.classList.toggle('disabled', !this.checked);
     });
   }
 
-  for (const el of document.querySelectorAll('.toggle-target-disabled')) {
+  for (const el of document.querySelectorAll<HTMLInputElement>('.toggle-target-disabled')) {
     el.addEventListener('change', function () {
       const target = document.querySelector(this.getAttribute('data-target'));
       if (this.checked) target?.classList.add('disabled'); // only disable, do not auto enable
     });
   }
 
-  document.querySelector('#dismiss_stale_approvals')?.addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#dismiss_stale_approvals')?.addEventListener('change', function () {
     document.querySelector('#ignore_stale_approvals_box')?.classList.toggle('disabled', this.checked);
   });
 
