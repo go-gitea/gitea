@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -1102,6 +1103,7 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 				issues_model.ReviewTypeComment,
 				issues_model.ReviewTypeReject,
 			},
+			Dismissed: optional.Some(false),
 		})
 
 		if err != nil && !issues_model.IsErrReviewNotExist(err) {

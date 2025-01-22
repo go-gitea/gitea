@@ -163,7 +163,7 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (latestReviews, mig
 	reviews := make([]*Review, 0, 10)
 
 	// Get all reviews for the issue id
-	if err := db.GetEngine(ctx).Where("issue_id=?", issueID).OrderBy("updated_unix ASC").Find(&reviews); err != nil {
+	if err := db.GetEngine(ctx).Where("issue_id=? AND dismissed=?", issueID, false).OrderBy("updated_unix ASC").Find(&reviews); err != nil {
 		return nil, nil, err
 	}
 
@@ -175,7 +175,7 @@ func GetReviewsByIssueID(ctx context.Context, issueID int64) (latestReviews, mig
 	reviewTeamsMap := make(map[int64][]*Review)       // key is reviewer team id
 	countedReivewTypes := []ReviewType{ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest}
 	for _, review := range reviews {
-		if review.ReviewerTeamID == 0 && slices.Contains(countedReivewTypes, review.Type) && !review.Dismissed {
+		if review.ReviewerTeamID == 0 && slices.Contains(countedReivewTypes, review.Type) {
 			if review.OriginalAuthorID != 0 {
 				originalReviewersMap[review.OriginalAuthorID] = append(originalReviewersMap[review.OriginalAuthorID], review)
 			} else {
