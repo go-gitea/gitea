@@ -11,12 +11,11 @@ import (
 
 // ResponseWriter represents a response writer for HTTP
 type ResponseWriter interface {
-	http.ResponseWriter
-	http.Flusher
-	web_types.ResponseStatusProvider
+	http.ResponseWriter              // provides Header/Write/WriteHeader
+	http.Flusher                     // provides Flush
+	web_types.ResponseStatusProvider // provides WrittenStatus
 
 	Before(fn func(ResponseWriter))
-	Status() int
 	WrittenSize() int
 }
 
@@ -73,12 +72,6 @@ func (r *Response) Flush() {
 	if f, ok := r.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
-}
-
-// Status returns status code written
-// TODO: use WrittenStatus instead
-func (r *Response) Status() int {
-	return r.status
 }
 
 // WrittenStatus returned status code written

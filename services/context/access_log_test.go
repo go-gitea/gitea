@@ -48,10 +48,6 @@ func (t testAccessLoggerResponseWriterMock) WrittenStatus() int {
 	return http.StatusOK
 }
 
-func (t testAccessLoggerResponseWriterMock) Status() int {
-	return t.WrittenStatus()
-}
-
 func (t testAccessLoggerResponseWriterMock) WrittenSize() int {
 	return 123123
 }
