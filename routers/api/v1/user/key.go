@@ -7,6 +7,7 @@ import (
 	std_ctx "context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -89,8 +90,16 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	apiKeys := make([]*api.PublicKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToPublicKey(apiLink, keys[i])
-		if ctx.Doer.IsAdmin || ctx.Doer.ID == keys[i].OwnerID {
-			apiKeys[i], _ = appendPrivateInformation(ctx, apiKeys[i], keys[i], user)
+		if ctx.Doer != nil {
+			if ctx.Doer.IsAdmin || ctx.Doer.ID == keys[i].OwnerID {
+				apiKeys[i], _ = appendPrivateInformation(ctx, apiKeys[i], keys[i], user)
+			}
+		} else {
+			// unauthenticated requests will not receive the title property
+			// to preserve privacy
+			apiKeys[i].Title = ""
+			// the key comment is truncated to preserve privacy
+			apiKeys[i].Key = strings.Join(strings.Split(apiKeys[i].Key, " ")[:2], " ")
 		}
 	}
 
