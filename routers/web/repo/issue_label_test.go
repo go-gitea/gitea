@@ -38,7 +38,7 @@ func TestInitializeLabels(t *testing.T) {
 	contexttest.LoadRepo(t, ctx, 2)
 	web.SetForm(ctx, &forms.InitializeLabelsForm{TemplateName: "Default"})
 	InitializeLabels(ctx)
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{
 		RepoID: 2,
 		Name:   "enhancement",
@@ -84,7 +84,7 @@ func TestNewLabel(t *testing.T) {
 		Color: "#abcdef",
 	})
 	NewLabel(ctx)
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{
 		Name:  "newlabel",
 		Color: "#abcdef",
@@ -104,7 +104,7 @@ func TestUpdateLabel(t *testing.T) {
 		IsArchived: true,
 	})
 	UpdateLabel(ctx)
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{
 		ID:    2,
 		Name:  "newnameforlabel",
@@ -120,7 +120,7 @@ func TestDeleteLabel(t *testing.T) {
 	contexttest.LoadRepo(t, ctx, 1)
 	ctx.Req.Form.Set("id", "2")
 	DeleteLabel(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: 2})
 	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{LabelID: 2})
 	assert.EqualValues(t, ctx.Tr("repo.issues.label_deletion_success"), ctx.Flash.SuccessMsg)
@@ -134,7 +134,7 @@ func TestUpdateIssueLabel_Clear(t *testing.T) {
 	ctx.Req.Form.Set("issue_ids", "1,3")
 	ctx.Req.Form.Set("action", "clear")
 	UpdateIssueLabel(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: 1})
 	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: 3})
 	unittest.CheckConsistencyFor(t, &issues_model.Label{})
@@ -160,7 +160,7 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		ctx.Req.Form.Set("action", testCase.Action)
 		ctx.Req.Form.Set("id", strconv.Itoa(int(testCase.LabelID)))
 		UpdateIssueLabel(ctx)
-		assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+		assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 		for _, issueID := range testCase.IssueIDs {
 			if testCase.ExpectedAdd {
 				unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issueID, LabelID: testCase.LabelID})
