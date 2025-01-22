@@ -166,10 +166,10 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function isImageFile({name, type}: {name: string, type?: string}): boolean {
+export function isImageFile({name, type}: {name?: string, type?: string}): boolean {
   return /\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
 }
 
-export function isVideoFile({name, type}: {name: string, type?: string}): boolean {
+export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
   return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
 }
