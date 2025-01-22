@@ -23,7 +23,7 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
     $dropdown.dropdown('setting', {
       apiSettings: {
         url: `${appSubUrl}/repo/search?q={query}&template=true&priority_owner_id=${inputRepoOwnerUid.value}`,
-        onResponse(response) {
+        onResponse(response: any) {
           const results = [];
           results.push({name: '', value: ''}); // empty item means not using template
           for (const tmplRepo of response.data) {
@@ -66,7 +66,7 @@ export function initRepoNew() {
     let help = form.querySelector(`.help[data-help-for-repo-name="${CSS.escape(inputRepoName.value)}"]`);
     if (!help) help = form.querySelector(`.help[data-help-for-repo-name=""]`);
     showElem(help);
-    const repoNamePreferPrivate = {'.profile': false, '.profile-private': true};
+    const repoNamePreferPrivate: Record<string, boolean> = {'.profile': false, '.profile-private': true};
     const preferPrivate = repoNamePreferPrivate[inputRepoName.value];
     // inputPrivate might be disabled because site admin "force private"
     if (preferPrivate !== undefined && !inputPrivate.closest('.disabled, [disabled]')) {

@@ -243,7 +243,7 @@ func LastCommit(ctx *context.Context) {
 			ctx.Data["ParentPath"] = "/" + paths[len(paths)-2]
 		}
 	}
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	ctx.Data["BranchLink"] = branchLink
 
 	ctx.HTML(http.StatusOK, tplRepoViewList)
@@ -301,7 +301,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	treeLink := branchLink
 
 	if len(ctx.Repo.TreePath) > 0 {

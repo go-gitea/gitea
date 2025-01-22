@@ -12,11 +12,12 @@ export function initInstall() {
     initPreInstall();
   }
 }
+
 function initPreInstall() {
   const defaultDbUser = 'gitea';
   const defaultDbName = 'gitea';
 
-  const defaultDbHosts = {
+  const defaultDbHosts: Record<string, string> = {
     mysql: '127.0.0.1:3306',
     postgres: '127.0.0.1:5432',
     mssql: '127.0.0.1:1433',
@@ -27,7 +28,7 @@ function initPreInstall() {
   const dbName = document.querySelector<HTMLInputElement>('#db_name');
 
   // Database type change detection.
-  document.querySelector('#db_type').addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#db_type').addEventListener('change', function () {
     const dbType = this.value;
     hideElem('div[data-db-setting-for]');
     showElem(`div[data-db-setting-for=${dbType}]`);
@@ -59,26 +60,26 @@ function initPreInstall() {
   }
 
   // TODO: better handling of exclusive relations.
-  document.querySelector('#offline-mode input').addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#offline-mode input').addEventListener('change', function () {
     if (this.checked) {
       document.querySelector<HTMLInputElement>('#disable-gravatar input').checked = true;
       document.querySelector<HTMLInputElement>('#federated-avatar-lookup input').checked = false;
     }
   });
-  document.querySelector('#disable-gravatar input').addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#disable-gravatar input').addEventListener('change', function () {
     if (this.checked) {
       document.querySelector<HTMLInputElement>('#federated-avatar-lookup input').checked = false;
     } else {
       document.querySelector<HTMLInputElement>('#offline-mode input').checked = false;
     }
   });
-  document.querySelector('#federated-avatar-lookup input').addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#federated-avatar-lookup input').addEventListener('change', function () {
     if (this.checked) {
       document.querySelector<HTMLInputElement>('#disable-gravatar input').checked = false;
       document.querySelector<HTMLInputElement>('#offline-mode input').checked = false;
     }
   });
-  document.querySelector('#enable-openid-signin input').addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#enable-openid-signin input').addEventListener('change', function () {
     if (this.checked) {
       if (!document.querySelector<HTMLInputElement>('#disable-registration input').checked) {
         document.querySelector<HTMLInputElement>('#enable-openid-signup input').checked = true;
@@ -87,7 +88,7 @@ function initPreInstall() {
       document.querySelector<HTMLInputElement>('#enable-openid-signup input').checked = false;
     }
   });
-  document.querySelector('#disable-registration input').addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#disable-registration input').addEventListener('change', function () {
     if (this.checked) {
       document.querySelector<HTMLInputElement>('#enable-captcha input').checked = false;
       document.querySelector<HTMLInputElement>('#enable-openid-signup input').checked = false;
@@ -95,7 +96,7 @@ function initPreInstall() {
       document.querySelector<HTMLInputElement>('#enable-openid-signup input').checked = true;
     }
   });
-  document.querySelector('#enable-captcha input').addEventListener('change', function () {
+  document.querySelector<HTMLInputElement>('#enable-captcha input').addEventListener('change', function () {
     if (this.checked) {
       document.querySelector<HTMLInputElement>('#disable-registration input').checked = false;
     }
