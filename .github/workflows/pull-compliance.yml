@@ -21,10 +21,28 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+      - id: vars
+        run: |
+          echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+            ${{ steps.vars.outputs.GOCACHE }}
+          key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
       - run: make lint-backend
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+            ${{ steps.vars.outputs.GOCACHE }}
+          key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
 
   lint-templates:
     if: needs.files-changed.outputs.templates == 'true'
@@ -94,12 +112,30 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+      - id: vars
+        run: |
+          echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+            ${{ steps.vars.outputs.GOCACHE }}
+          key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
       - run: make lint-go-windows lint-go-vet
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows
           GOARCH: amd64
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+            ${{ steps.vars.outputs.GOCACHE }}
+          key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
 
   lint-go-gogit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -111,10 +147,28 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+      - id: vars
+        run: |
+          echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "GOVERSION=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+            ${{ steps.vars.outputs.GOCACHE }}
+          key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
       - run: make deps-backend deps-tools
       - run: make lint-go
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/.cache/gopls
+            ${{ steps.vars.outputs.GOCACHE }}
+          key: golint-v1-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.vars.outputs.GOVERSION }}-${{ hashFiles('go.mod', 'Makefile', '.golangci.yml', 'tools/lint-go-gopls.sh') }}
 
   checks-backend:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
