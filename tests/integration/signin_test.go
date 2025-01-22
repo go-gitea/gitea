@@ -95,7 +95,7 @@ func TestSigninWithRememberMe(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
-func TestEnablePasswordSignInForm(t *testing.T) {
+func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	t.Run("EnablePasswordSignInForm=false", func(t *testing.T) {
@@ -121,10 +121,6 @@ func TestEnablePasswordSignInForm(t *testing.T) {
 		req = NewRequest(t, "POST", "/user/login")
 		MakeRequest(t, req, http.StatusOK)
 	})
-}
-
-func TestEnablePasskeyAuth(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
 
 	t.Run("EnablePasskeyAuth=false", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
