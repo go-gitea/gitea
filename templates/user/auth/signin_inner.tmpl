@@ -60,12 +60,9 @@
 </div>
 
 <div class="ui container fluid">
-	{{if .EnablePasskeyAuth}}
-		{{template "user/auth/webauthn_error" .}}
-	{{end}}
-
 	<div class="ui attached segment header top tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
 		{{if .EnablePasskeyAuth}}
+			{{template "user/auth/webauthn_error" .}}
 			<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>
 		{{end}}
 
