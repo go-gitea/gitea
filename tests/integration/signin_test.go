@@ -122,3 +122,25 @@ func TestEnablePasswordSignInForm(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 	})
 }
+
+func TestEnablePasskeyAuth(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	t.Run("EnablePasskeyAuth=false", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
+
+		req := NewRequest(t, "GET", "/user/login")
+		resp := MakeRequest(t, req, http.StatusOK)
+		NewHTMLParser(t, resp.Body).AssertElement(t, ".signin-passkey", false)
+	})
+
+	t.Run("EnablePasskeyAuth=true", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, true)()
+
+		req := NewRequest(t, "GET", "/user/login")
+		resp := MakeRequest(t, req, http.StatusOK)
+		NewHTMLParser(t, resp.Body).AssertElement(t, ".signin-passkey", true)
+	})
+}
