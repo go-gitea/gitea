@@ -6,7 +6,7 @@ export function initCommonOrganization() {
     return;
   }
 
-  document.querySelector('.organization.settings.options #org_name')?.addEventListener('input', function () {
+  document.querySelector<HTMLInputElement>('.organization.settings.options #org_name')?.addEventListener('input', function () {
     const nameChanged = this.value.toLowerCase() !== this.getAttribute('data-org-name').toLowerCase();
     toggleElem('#org-name-change-prompt', nameChanged);
   });

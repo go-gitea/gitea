@@ -80,6 +80,10 @@ func RefNameFromTag(shortName string) RefName {
 	return RefName(TagPrefix + shortName)
 }
 
+func RefNameFromCommit(shortName string) RefName {
+	return RefName(shortName)
+}
+
 func (ref RefName) String() string {
 	return string(ref)
 }
@@ -181,32 +185,38 @@ func (ref RefName) RefGroup() string {
 	return ""
 }
 
+// RefType is a simple ref type of the reference, it is used for UI and webhooks
+type RefType string
+
+const (
+	RefTypeBranch RefType = "branch"
+	RefTypeTag    RefType = "tag"
+	RefTypeCommit RefType = "commit"
+)
+
 // RefType returns the simple ref type of the reference, e.g. branch, tag
 // It's different from RefGroup, which is using the name of the directory under .git/refs
-// Here we using branch but not heads, using tag but not tags
-func (ref RefName) RefType() string {
-	var refType string
-	if ref.IsBranch() {
-		refType = "branch"
-	} else if ref.IsTag() {
-		refType = "tag"
+func (ref RefName) RefType() RefType {
+	switch {
+	case ref.IsBranch():
+		return RefTypeBranch
+	case ref.IsTag():
+		return RefTypeTag
+	case IsStringLikelyCommitID(nil, string(ref), 6):
+		return RefTypeCommit
 	}
-	return refType
+	return ""
 }
 
-// RefURL returns the absolute URL for a ref in a repository
-func RefURL(repoURL, ref string) string {
-	refFullName := RefName(ref)
-	refName := util.PathEscapeSegments(refFullName.ShortName())
-	switch {
-	case refFullName.IsBranch():
-		return repoURL + "/src/branch/" + refName
-	case refFullName.IsTag():
-		return repoURL + "/src/tag/" + refName
-	case !Sha1ObjectFormat.IsValid(ref):
-		// assume they mean a branch
-		return repoURL + "/src/branch/" + refName
-	default:
-		return repoURL + "/src/commit/" + refName
+// RefWebLinkPath returns a path for the reference that can be used in a web link:
+// * "branch/<branch_name>"
+// * "tag/<tag_name>"
+// * "commit/<commit_id>"
+// It returns an empty string if the reference is not a branch, tag or commit.
+func (ref RefName) RefWebLinkPath() string {
+	refType := ref.RefType()
+	if refType == "" {
+		return ""
 	}
+	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
 }
