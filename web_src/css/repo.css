@@ -47,7 +47,7 @@
 
 .issue-content-right {
   margin: 0 !important;
-  width: var(--sidebar-width);
+  width: 300px;
 }
 
 .issue-sidebar-combo .ui.dropdown .item:not(.checked) .item-check-mark {
