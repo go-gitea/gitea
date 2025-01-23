@@ -184,6 +184,10 @@ func GetPendingRepositoryTransfers(ctx context.Context, opts *PendingRepositoryT
 		Find(&transfers)
 }
 
+func IsRepositoryTransferExist(ctx context.Context, repoID int64) (bool, error) {
+	return db.GetEngine(ctx).Where("repo_id = ?", repoID).Exist(new(RepoTransfer))
+}
+
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
 func GetPendingRepositoryTransfer(ctx context.Context, repo *Repository) (*RepoTransfer, error) {
@@ -233,14 +237,15 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 			return err
 		}
 
-		_, err = GetPendingRepositoryTransfer(ctx, repo)
-		if err == nil {
+		exist, err := IsRepositoryTransferExist(ctx, repo.ID)
+		if err != nil {
+			return err
+		}
+		if exist {
 			return ErrRepoTransferInProgress{
 				Uname: repo.Owner.LowerName,
 				Name:  repo.Name,
 			}
-		} else if !IsErrNoPendingTransfer(err) {
-			return err
 		}
 
 		repo.Status = RepositoryPendingTransfer

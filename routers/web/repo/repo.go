@@ -335,10 +335,8 @@ func handleActionError(ctx *context.Context, err error) {
 			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
 		} else if errors.Is(err, util.ErrPermissionDenied) {
 			ctx.Error(http.StatusNotFound)
-			return
 		} else {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
-			return
 		}
 	}
 }
