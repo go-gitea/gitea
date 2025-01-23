@@ -45,11 +45,11 @@ func ListStargazers(ctx *context.APIContext) {
 	//     "$ref": "#/responses/UserList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "410":
-	//     "$ref": "#/responses/gone"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
 		return
 	}
 

@@ -67,11 +67,11 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "410":
-	//     "$ref": "#/responses/gone"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
 		return
 	}
 
@@ -105,11 +105,11 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	//   "410":
-	//     "$ref": "#/responses/gone"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
 		return
 	}
 
@@ -143,11 +143,11 @@ func IsStarring(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "410":
-	//     "$ref": "#/responses/gone"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
 		return
 	}
 
@@ -181,11 +181,9 @@ func Star(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "410":
-	//     "$ref": "#/responses/gone"
 
 	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
 		return
 	}
 
@@ -222,11 +220,11 @@ func Unstar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "410":
-	//     "$ref": "#/responses/gone"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusGone, "StarsDisabled", "Stars are disabled.")
+		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
 		return
 	}
 

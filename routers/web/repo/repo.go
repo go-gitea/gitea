@@ -317,10 +317,13 @@ func Action(ctx *context.Context) {
 		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	case "unwatch":
 		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
-	case "star":
-		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
-	case "unstar":
-		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
+	case "star", "unstar":
+		if setting.Repository.DisableStars {
+			err = errors.New("stars are disabled")
+		} else {
+			err = repo_model.StarRepo(ctx, ctx.Doer,
+				ctx.Repo.Repository, ctx.PathParam("action") == "star")
+		}
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":
@@ -349,7 +352,11 @@ func Action(ctx *context.Context) {
 	case "watch", "unwatch":
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	case "star", "unstar":
-		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+		if setting.Repository.DisableStars {
+			ctx.Data["IsStaringRepo"] = false
+		} else {
+			ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
+		}
 	}
 
 	// see the `hx-trigger="refreshUserCards ..."` comments in tmpl
@@ -370,7 +377,9 @@ func Action(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplWatchUnwatch)
 		return
 	case "star", "unstar":
-		ctx.HTML(http.StatusOK, tplStarUnstar)
+		if !setting.Repository.DisableStars {
+			ctx.HTML(http.StatusOK, tplStarUnstar)
+		}
 		return
 	}
 
