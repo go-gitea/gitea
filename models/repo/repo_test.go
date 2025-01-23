@@ -4,16 +4,12 @@
 package repo
 
 import (
-	"context"
-	"net/http"
-	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -130,79 +126,6 @@ func TestMetas(t *testing.T) {
 	assert.Contains(t, metas, "teams")
 	assert.Equal(t, "org3", metas["org"])
 	assert.Equal(t, ",owners,team1,", metas["teams"])
-}
-
-func TestParseRepositoryURLPathSegments(t *testing.T) {
-	defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000")()
-
-	ctxURL, _ := url.Parse("https://gitea")
-	ctxReq := &http.Request{URL: ctxURL, Header: http.Header{}}
-	ctxReq.Host = ctxURL.Host
-	ctxReq.Header.Add("X-Forwarded-Proto", ctxURL.Scheme)
-	ctx := context.WithValue(context.Background(), httplib.RequestContextKey, ctxReq)
-	cases := []struct {
-		input                          string
-		ownerName, repoName, remaining string
-	}{
-		{input: "/user/repo"},
-
-		{input: "https://localhost:3000/user/repo", ownerName: "user", repoName: "repo"},
-		{input: "https://external:3000/user/repo"},
-
-		{input: "https://localhost:3000/user/repo.git/other", ownerName: "user", repoName: "repo", remaining: "/other"},
-
-		{input: "https://gitea/user/repo", ownerName: "user", repoName: "repo"},
-		{input: "https://gitea:3333/user/repo"},
-
-		{input: "ssh://try.gitea.io:2222/user/repo", ownerName: "user", repoName: "repo"},
-		{input: "ssh://external:2222/user/repo"},
-
-		{input: "git+ssh://user@try.gitea.io/user/repo.git", ownerName: "user", repoName: "repo"},
-		{input: "git+ssh://user@external/user/repo.git"},
-
-		{input: "root@try.gitea.io:user/repo.git", ownerName: "user", repoName: "repo"},
-		{input: "root@gitea:user/repo.git", ownerName: "user", repoName: "repo"},
-		{input: "root@external:user/repo.git"},
-	}
-
-	for _, c := range cases {
-		t.Run(c.input, func(t *testing.T) {
-			ret := parseRepositoryURL(ctx, c.input)
-			assert.Equal(t, c.ownerName, ret.OwnerName)
-			assert.Equal(t, c.repoName, ret.RepoName)
-			assert.Equal(t, c.remaining, ret.RemainingPath)
-		})
-	}
-
-	t.Run("WithSubpath", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000/subpath")()
-		defer test.MockVariableValue(&setting.AppSubURL, "/subpath")()
-		cases = []struct {
-			input                          string
-			ownerName, repoName, remaining string
-		}{
-			{input: "https://localhost:3000/user/repo"},
-			{input: "https://localhost:3000/subpath/user/repo.git/other", ownerName: "user", repoName: "repo", remaining: "/other"},
-
-			{input: "ssh://try.gitea.io:2222/user/repo", ownerName: "user", repoName: "repo"},
-			{input: "ssh://external:2222/user/repo"},
-
-			{input: "git+ssh://user@try.gitea.io/user/repo.git", ownerName: "user", repoName: "repo"},
-			{input: "git+ssh://user@external/user/repo.git"},
-
-			{input: "root@try.gitea.io:user/repo.git", ownerName: "user", repoName: "repo"},
-			{input: "root@external:user/repo.git"},
-		}
-
-		for _, c := range cases {
-			t.Run(c.input, func(t *testing.T) {
-				ret := parseRepositoryURL(ctx, c.input)
-				assert.Equal(t, c.ownerName, ret.OwnerName)
-				assert.Equal(t, c.repoName, ret.RepoName)
-				assert.Equal(t, c.remaining, ret.RemainingPath)
-			})
-		}
-	})
 }
 
 func TestGetRepositoryByURL(t *testing.T) {

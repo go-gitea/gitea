@@ -17,7 +17,7 @@
 			</a>
 		{{end}}
 		{{if and (not .PageIsTagList) .CanCreateRelease}}
-			<a class="ui small primary button" href="{{$.RepoLink}}/releases/new{{if .PageIsSingleTag}}?tag={{.TagName}}{{end}}">
+			<a class="ui small primary button" href="{{$.RepoLink}}/releases/new{{if .PageIsSingleTag}}?tag={{.SingleReleaseTagName}}{{end}}">
 				{{ctx.Locale.Tr "repo.release.new_release"}}
 			</a>
 		{{end}}
