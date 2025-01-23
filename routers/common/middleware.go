@@ -165,7 +165,7 @@ func RouteMetrics() func(h http.Handler) http.Handler {
 			route := chi.RouteContext(req.Context()).RoutePattern()
 			code := strconv.Itoa(m.WrittenStatus())
 			reqDurationHistogram.WithLabelValues(req.Method, code, route).Observe(time.Since(start).Seconds())
-			respSizeHistogram.WithLabelValues(req.Method, code, route).Observe(float64(m.Size()))
+			respSizeHistogram.WithLabelValues(req.Method, code, route).Observe(float64(m.WrittenSize()))
 			size := req.ContentLength
 			if size < 0 {
 				size = 0
