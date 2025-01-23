@@ -32,8 +32,8 @@ export function initRepoIssueSidebarList() {
     fullTextSearch: true,
     apiSettings: {
       url: issueSearchUrl,
-      onResponse(response) {
-        const filteredResponse = {success: true, results: []};
+      onResponse(response: any) {
+        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
         const currIssueId = $('#new-dependency-drop-list').data('issue-id');
         // Parse the response from the api to work with our dropdown
         $.each(response, (_i, issue) => {
@@ -247,7 +247,7 @@ export function initRepoPullRequestUpdate() {
   });
 
   $('.update-button > .dropdown').dropdown({
-    onChange(_text, _value, $choice) {
+    onChange(_text: string, _value: string, $choice: any) {
       const choiceEl = $choice[0];
       const url = choiceEl.getAttribute('data-do');
       if (url) {
@@ -298,8 +298,8 @@ export function initRepoIssueReferenceRepositorySearch() {
     .dropdown({
       apiSettings: {
         url: `${appSubUrl}/repo/search?q={query}&limit=20`,
-        onResponse(response) {
-          const filteredResponse = {success: true, results: []};
+        onResponse(response: any) {
+          const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
               name: htmlEscape(repo.repository.full_name),
@@ -310,7 +310,7 @@ export function initRepoIssueReferenceRepositorySearch() {
         },
         cache: false,
       },
-      onChange(_value, _text, $choice) {
+      onChange(_value: string, _text: string, $choice: any) {
         const $form = $choice.closest('form');
         if (!$form.length) return;
 
@@ -360,7 +360,7 @@ export function initRepoIssueComments() {
   });
 }
 
-export async function handleReply(el) {
+export async function handleReply(el: HTMLElement) {
   const form = el.closest('.comment-code-cloud').querySelector('.comment-form');
   const textarea = form.querySelector('textarea');
 
@@ -379,7 +379,7 @@ export function initRepoPullRequestReview() {
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        const ancestorDiffBox = commentDiv.closest('.diff-file-box');
+        const ancestorDiffBox = commentDiv.closest<HTMLElement>('.diff-file-box');
 
         hideElem(`#show-outdated-${id}`);
         showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
@@ -589,7 +589,7 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-async function initSingleCommentEditor($commentForm) {
+async function initSingleCommentEditor($commentForm: any) {
   // pages:
   // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
   // * issue/pr view page: with comment form, has status-button and comment-button
@@ -611,7 +611,7 @@ async function initSingleCommentEditor($commentForm) {
   syncUiState();
 }
 
-function initIssueTemplateCommentEditors($commentForm) {
+function initIssueTemplateCommentEditors($commentForm: any) {
   // pages:
   // * new issue with issue template
   const $comboFields = $commentForm.find('.combo-editor-dropzone');

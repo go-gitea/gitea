@@ -167,6 +167,9 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 			BranchName: branchName,
 		}
 	}
+	// FIXME: this design is not right: it doesn't check `branch.IsDeleted`, it doesn't make sense to make callers to check IsDeleted again and again.
+	// It causes inconsistency with `GetBranches` and `git.GetBranch`, and will lead to strange bugs
+	// In the future, there should be 2 functions: `GetBranchExisting` and `GetBranchWithDeleted`
 	return &branch, nil
 }
 
