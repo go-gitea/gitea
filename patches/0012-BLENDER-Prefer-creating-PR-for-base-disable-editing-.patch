@@ -1,8 +1,8 @@
-From 62e70696f452132e8b04479005f915bb8585cd4d Mon Sep 17 00:00:00 2001
+From 86cfd732195d8ccf7168d4d8a20d08b74530afdb Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:09:11 +0200
-Subject: [PATCH] BLENDER: Prefer creating PR for base, disable editing default
- branch in fork
+Subject: [PATCH 12/14] BLENDER: Prefer creating PR for base, disable editing
+ default branch in fork
 
 To make online editing a bit more fool proof.
 ---
@@ -11,7 +11,7 @@ To make online editing a bit more fool proof.
  2 files changed, 6 insertions(+), 3 deletions(-)
 
 diff --git a/routers/web/repo/editor.go b/routers/web/repo/editor.go
-index 4ff86b5a6647b..ad22657c4f9c2 100644
+index 9396115b0d..76b1e9b5c8 100644
 --- a/routers/web/repo/editor.go
 +++ b/routers/web/repo/editor.go
 @@ -53,6 +53,7 @@ func renderCommitRights(ctx *context.Context) bool {
@@ -19,7 +19,7 @@ index 4ff86b5a6647b..ad22657c4f9c2 100644
  	ctx.Data["CanCommitToBranch"] = canCommitToBranch
  	ctx.Data["CanCreatePullRequest"] = ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) || canCreateBasePullRequest(ctx)
 +	ctx.Data["IsForkDefaultBranch"] = canCreateBasePullRequest(ctx) && ctx.Repo.BranchName == ctx.Repo.Repository.BaseRepo.DefaultBranch
-
+ 
  	return canCommitToBranch.CanCommitToBranch
  }
 @@ -184,7 +185,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
@@ -50,7 +50,7 @@ index 4ff86b5a6647b..ad22657c4f9c2 100644
  	} else {
  		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 diff --git a/templates/repo/editor/commit_form.tmpl b/templates/repo/editor/commit_form.tmpl
-index 21ef63288fd84..958e012bc4ebb 100644
+index c050324e93..57b3a2f6f1 100644
 --- a/templates/repo/editor/commit_form.tmpl
 +++ b/templates/repo/editor/commit_form.tmpl
 @@ -21,6 +21,7 @@
@@ -60,7 +60,7 @@ index 21ef63288fd84..958e012bc4ebb 100644
 +			{{if not .IsForkDefaultBranch}}
  			<div class="field">
  				<div class="ui radio checkbox {{if not .CanCommitToBranch.CanCommitToBranch}}disabled{{end}}">
- 					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
+ 					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" data-button-text="{{ctx.Locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
 @@ -39,6 +40,7 @@
  					</label>
  				</div>
@@ -69,3 +69,6 @@ index 21ef63288fd84..958e012bc4ebb 100644
  			{{if and (not .Repository.IsEmpty) (not .IsEditingFileOnly)}}
  				<div class="field">
  					<div class="ui radio checkbox">
+-- 
+2.45.2
+

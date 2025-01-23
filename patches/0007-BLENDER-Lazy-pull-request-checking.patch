@@ -1,33 +1,33 @@
-From ba9670f5af0de43674111ab6cbfa88cb54c307d7 Mon Sep 17 00:00:00 2001
+From 1c064f69e3a3aa1969b24ec12b99ac150fd8533a Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:02:04 +0200
-Subject: [PATCH] BLENDER: Lazy pull request checking
+Subject: [PATCH 07/14] BLENDER: Lazy pull request checking
 
 Delay conflict checking of PRs that had no update in last 24h until page load.
 This solves the problem where after every commit to main, it takes a long time
 for conflict checking to update as it goes through many old PRs.
 ---
- routers/web/repo/issue.go |  3 +++
- services/pull/check.go    | 55 ++++++++++++++++++++++++++++++++++++---
- services/pull/pull.go     |  2 +-
+ routers/web/repo/issue_view.go |  3 ++
+ services/pull/check.go         | 55 ++++++++++++++++++++++++++++++++--
+ services/pull/pull.go          |  2 +-
  3 files changed, 56 insertions(+), 4 deletions(-)
 
-diff --git a/routers/web/repo/issue.go b/routers/web/repo/issue.go
-index 6cfc22566ad70..cb233b787a690 100644
---- a/routers/web/repo/issue.go
-+++ b/routers/web/repo/issue.go
-@@ -1793,6 +1793,9 @@ func ViewIssue(ctx *context.Context) {
- 		allowMerge := false
- 		canWriteToHeadRepo := false
-
-+		// BLENDER: Lazy conflict checking
-+		pull_service.AddToTaskQueueOnView(ctx, pull)
+diff --git a/routers/web/repo/issue_view.go b/routers/web/repo/issue_view.go
+index 09b57f4e78..a45c68dfc9 100644
+--- a/routers/web/repo/issue_view.go
++++ b/routers/web/repo/issue_view.go
+@@ -778,6 +778,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
+ 	allowMerge := false
+ 	canWriteToHeadRepo := false
+ 
++	// BLENDER: Lazy conflict checking
++	pull_service.AddToTaskQueueOnView(ctx, pull)
 +
- 		if ctx.IsSigned {
- 			if err := pull.LoadHeadRepo(ctx); err != nil {
- 				log.Error("LoadHeadRepo: %v", err)
+ 	if ctx.IsSigned {
+ 		if err := pull.LoadHeadRepo(ctx); err != nil {
+ 			log.Error("LoadHeadRepo: %v", err)
 diff --git a/services/pull/check.go b/services/pull/check.go
-index 7d93ff7a8a4b2..62e37a03d8fbe 100644
+index baca1511a2..af19214412 100644
 --- a/services/pull/check.go
 +++ b/services/pull/check.go
 @@ -10,6 +10,7 @@ import (
@@ -35,12 +35,12 @@ index 7d93ff7a8a4b2..62e37a03d8fbe 100644
  	"strconv"
  	"strings"
 +	"time"
-
+ 
  	"code.gitea.io/gitea/models"
  	"code.gitea.io/gitea/models/db"
-@@ -44,20 +45,61 @@ var (
+@@ -45,20 +46,61 @@ var (
  )
-
+ 
  // AddToTaskQueue adds itself to pull request test task queue.
 -func AddToTaskQueue(ctx context.Context, pr *issues_model.PullRequest) {
 +func setStatusChecking(ctx context.Context, pr *issues_model.PullRequest) bool {
@@ -62,7 +62,7 @@ index 7d93ff7a8a4b2..62e37a03d8fbe 100644
  		log.Error("Error adding %-v to the test pull requests queue: %v", pr, err)
  	}
  }
-
+ 
 +func checkPRUpdate(ctx context.Context, pr *issues_model.PullRequest) bool {
 +	if err := pr.LoadIssue(ctx); err != nil {
 +		return false
@@ -101,9 +101,9 @@ index 7d93ff7a8a4b2..62e37a03d8fbe 100644
 +}
 +
  type MergeCheckType int
-
+ 
  const (
-@@ -316,6 +358,13 @@ func InitializePullRequests(ctx context.Context) {
+@@ -331,6 +373,13 @@ func InitializePullRequests(ctx context.Context) {
  		case <-ctx.Done():
  			return
  		default:
@@ -118,10 +118,10 @@ index 7d93ff7a8a4b2..62e37a03d8fbe 100644
  			if err := prPatchCheckerQueue.Push(strconv.FormatInt(prID, 10)); err != nil {
  				log.Error("Error adding PR[%d] to the pull requests patch checking queue %v", prID, err)
 diff --git a/services/pull/pull.go b/services/pull/pull.go
-index 5c0ea42d77525..088184ec089f7 100644
+index 98bd28a4a5..87a5d40f7c 100644
 --- a/services/pull/pull.go
 +++ b/services/pull/pull.go
-@@ -402,7 +402,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string,
+@@ -455,7 +455,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string,
  					log.Error("UpdateCommitDivergence: %v", err)
  				}
  			}
@@ -130,3 +130,6 @@ index 5c0ea42d77525..088184ec089f7 100644
  		}
  	})
  }
+-- 
+2.45.2
+

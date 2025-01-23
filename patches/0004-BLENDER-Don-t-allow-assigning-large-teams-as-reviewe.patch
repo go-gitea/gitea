@@ -1,7 +1,7 @@
-From 8d0600f7eb914d9629e78b8f5250fb9307d2dd43 Mon Sep 17 00:00:00 2001
+From ff4fd9166ac3c8cc099ab35968e23096ec0525a4 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:33:32 +0200
-Subject: [PATCH] BLENDER: Don't allow assigning large teams as reviewers
+Subject: [PATCH 04/14] BLENDER: Don't allow assigning large teams as reviewers
 
 To avoid accidentally spamming hundreds of people.
 ---
@@ -35,10 +35,10 @@ index fb7f0c0493..be56a0428e 100644
 +	return smallTeams, nil
 +}
 diff --git a/routers/web/repo/issue.go b/routers/web/repo/issue.go
-index 3fdf594045..2f3660178c 100644
+index 5397411b59..abf7f457e9 100644
 --- a/routers/web/repo/issue.go
 +++ b/routers/web/repo/issue.go
-@@ -3670,13 +3670,13 @@ func handleTeamMentions(ctx *context.Context) {
+@@ -661,13 +661,13 @@ func handleMentionableAssigneesAndTeams(ctx *context.Context, assignees []*user_
  	}
  
  	if isAdmin {

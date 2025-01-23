@@ -1,0 +1,153 @@
+From 6d833f20e2bff71d1a7bce47a934700fdfc15738 Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 13:58:05 +0200
+Subject: [PATCH 05/14] BLENDER: Support both exclusive and non-exclusive scope
+ for labels
+
+---
+ models/issues/label.go                       | 15 ++++++++++-----
+ modules/templates/util_render.go             |  2 +-
+ templates/repo/issue/filter_actions.tmpl     | 10 +++++-----
+ templates/repo/issue/filter_item_label.tmpl  | 10 +++++-----
+ templates/repo/issue/sidebar/label_list.tmpl | 14 ++++++++------
+ 5 files changed, 29 insertions(+), 22 deletions(-)
+
+diff --git a/models/issues/label.go b/models/issues/label.go
+index b9d24bbe99..6eb8a888e9 100644
+--- a/models/issues/label.go
++++ b/models/issues/label.go
+@@ -183,11 +183,8 @@ func (l *Label) BelongsToRepo() bool {
+ 	return l.RepoID > 0
+ }
+ 
+-// ExclusiveScope returns scope substring of label name, or empty string if none exists
+-func (l *Label) ExclusiveScope() string {
+-	if !l.Exclusive {
+-		return ""
+-	}
++// Return scope substring of label name, or empty string if none exists
++func (l *Label) Scope() string {
+ 	lastIndex := strings.LastIndex(l.Name, "/")
+ 	if lastIndex == -1 || lastIndex == 0 || lastIndex == len(l.Name)-1 {
+ 		return ""
+@@ -195,6 +192,14 @@ func (l *Label) ExclusiveScope() string {
+ 	return l.Name[:lastIndex]
+ }
+ 
++// ExclusiveScope returns scope substring of label name, or empty string if none exists
++func (l *Label) ExclusiveScope() string {
++	if !l.Exclusive {
++		return ""
++	}
++	return l.Scope()
++}
++
+ // NewLabel creates a new label
+ func NewLabel(ctx context.Context, l *Label) error {
+ 	color, err := label.NormalizeColor(l.Color)
+diff --git a/modules/templates/util_render.go b/modules/templates/util_render.go
+index 1800747f48..ee1b231f2b 100644
+--- a/modules/templates/util_render.go
++++ b/modules/templates/util_render.go
+@@ -126,7 +126,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
+ 	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+ 	var extraCSSClasses string
+ 	textColor := util.ContrastColor(label.Color)
+-	labelScope := label.ExclusiveScope()
++	labelScope := label.Scope()
+ 	descriptionText := emoji.ReplaceAliases(label.Description)
+ 
+ 	if label.IsArchived() {
+diff --git a/templates/repo/issue/filter_actions.tmpl b/templates/repo/issue/filter_actions.tmpl
+index 8e2410393d..0d196d1f87 100644
+--- a/templates/repo/issue/filter_actions.tmpl
++++ b/templates/repo/issue/filter_actions.tmpl
+@@ -22,15 +22,15 @@
+ 				<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/labels">
+ 					{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}
+ 				</div>
+-				{{$previousExclusiveScope := "_no_scope"}}
++				{{$previousScope := "_no_scope"}}
+ 				{{range .Labels}}
+-					{{$exclusiveScope := .ExclusiveScope}}
+-					{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
++					{{$scope := .Scope}}
++					{{if and (ne $previousScope "_no_scope") (ne $previousScope $scope)}}
+ 						<div class="divider"></div>
+ 					{{end}}
+-					{{$previousExclusiveScope = $exclusiveScope}}
++					{{$previousScope = $scope}}
+ 					<div class="item issue-action tw-flex tw-justify-between" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+-						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}{{end}} {{ctx.RenderUtils.RenderLabel .}}
++						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{svg (Iif .ExclusiveScope "octicon-dot-fill" "octicon-check")}}{{end}} {{ctx.RenderUtils.RenderLabel .}}
+ 						{{template "repo/issue/labels/label_archived" .}}
+ 					</div>
+ 				{{end}}
+diff --git a/templates/repo/issue/filter_item_label.tmpl b/templates/repo/issue/filter_item_label.tmpl
+index 88e2e43120..ee569b4fd0 100644
+--- a/templates/repo/issue/filter_item_label.tmpl
++++ b/templates/repo/issue/filter_item_label.tmpl
+@@ -26,19 +26,19 @@
+ 		{{/* The logic here is not the same as the label selector in the issue sidebar.
+ 		The one in the issue sidebar renders "repo labels | divider | org labels".
+ 		Maybe the logic should be updated to be consistent.*/}}
+-		{{$previousExclusiveScope := "_no_scope"}}
++		{{$previousScope := "_no_scope"}}
+ 		{{range .Labels}}
+-			{{$exclusiveScope := .ExclusiveScope}}
+-			{{if and (ne $previousExclusiveScope $exclusiveScope)}}
++			{{$scope := .Scope}}
++			{{if and (ne $previousScope $scope)}}
+ 				<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
+ 			{{end}}
+-			{{$previousExclusiveScope = $exclusiveScope}}
++			{{$previousScope = $scope}}
+ 			<a class="item label-filter-query-item" data-label-id="{{.ID}}" data-scope="{{.ExclusiveScope}}" {{if .IsArchived}}data-is-archived{{end}}
+ 				href="{{QueryBuild $queryLink "labels" .QueryString}}">
+ 				{{if .IsExcluded}}
+ 					{{svg "octicon-circle-slash"}}
+ 				{{else if .IsSelected}}
+-					{{Iif $exclusiveScope (svg "octicon-dot-fill") (svg "octicon-check")}}
++					{{Iif .ExclusiveScope (svg "octicon-dot-fill") (svg "octicon-check")}}
+ 				{{end}}
+ 				{{ctx.RenderUtils.RenderLabel .}}
+ 				<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
+diff --git a/templates/repo/issue/sidebar/label_list.tmpl b/templates/repo/issue/sidebar/label_list.tmpl
+index 9dd83ba188..124e3a1bc6 100644
+--- a/templates/repo/issue/sidebar/label_list.tmpl
++++ b/templates/repo/issue/sidebar/label_list.tmpl
+@@ -18,23 +18,25 @@
+ 				</div>
+ 				<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
+ 				<div class="scrolling menu">
+-					{{$previousExclusiveScope := "_no_scope"}}
++					{{$previousScope := "_no_scope"}}
+ 					{{range $data.RepoLabels}}
++						{{$scope := .Scope}}
+ 						{{$exclusiveScope := .ExclusiveScope}}
+-						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
++						{{if and (ne $previousScope "_no_scope") (ne $previousScope $scope)}}
+ 							<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
+ 						{{end}}
+-						{{$previousExclusiveScope = $exclusiveScope}}
++						{{$previousScope = $scope}}
+ 						{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}
+ 					{{end}}
+ 					{{if and $data.RepoLabels $data.OrgLabels}}<div class="divider"></div>{{end}}
+-					{{$previousExclusiveScope = "_no_scope"}}
++					{{$previousScope = "_no_scope"}}
+ 					{{range $data.OrgLabels}}
++						{{$scope := .Scope}}
+ 						{{$exclusiveScope := .ExclusiveScope}}
+-						{{if and (ne $previousExclusiveScope "_no_scope") (ne $previousExclusiveScope $exclusiveScope)}}
++						{{if and (ne $previousScope "_no_scope") (ne $previousScope $scope)}}
+ 							<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
+ 						{{end}}
+-						{{$previousExclusiveScope = $exclusiveScope}}
++						{{$previousScope = $scope}}
+ 						{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}
+ 					{{end}}
+ 				</div>
+-- 
+2.45.2
+

@@ -1,7 +1,7 @@
-From 4c24231b259c420267fd543f55bd3c1124f6f2fb Mon Sep 17 00:00:00 2001
+From ccc7e36651049cb08ab4161d1c2f5d23e90ff807 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:58:32 +0200
-Subject: [PATCH] BLENDER: Add docs explaining merge strategy
+Subject: [PATCH 13/14] BLENDER: Add docs explaining merge strategy
 
 ---
  BLENDER_README.md | 12 ++++++++++++
@@ -10,7 +10,7 @@ Subject: [PATCH] BLENDER: Add docs explaining merge strategy
 
 diff --git a/BLENDER_README.md b/BLENDER_README.md
 new file mode 100644
-index 0000000000000..f5bd495d5e96d
+index 0000000000..f5bd495d5e
 --- /dev/null
 +++ b/BLENDER_README.md
 @@ -0,0 +1,12 @@
@@ -26,3 +26,6 @@ index 0000000000000..f5bd495d5e96d
 +
 +First do changes in `blender-merged-develop`, and deploy on uatest. Then apply
 +the changes in `blender-merged` and deploy in production.
+-- 
+2.45.2
+

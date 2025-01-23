@@ -1,0 +1,25 @@
+From d29a40511fe4390c5d846eb2be28d1e5791c0aae Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 13:31:35 +0200
+Subject: [PATCH 02/14] BLENDER: Show warning for target branch switching
+
+---
+ templates/repo/issue/view_title.tmpl | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/templates/repo/issue/view_title.tmpl b/templates/repo/issue/view_title.tmpl
+index bf2ede58e4..610a4e4a3e 100644
+--- a/templates/repo/issue/view_title.tmpl
++++ b/templates/repo/issue/view_title.tmpl
+@@ -118,6 +118,8 @@
+ 								</div>
+ 							</div>
+ 						</div>
++						<br/>
++						<div class="desc" style="display: flex;"><br/>Remember to rebase the branch in your fork, see&nbsp;<a href="https://wiki.blender.org/wiki/Tools/Pull_Requests">documentation</a>.</div>
+ 					</span>
+ 				{{end}}
+ 			{{else}}
+-- 
+2.45.2
+

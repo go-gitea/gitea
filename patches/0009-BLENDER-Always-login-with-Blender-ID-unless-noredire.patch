@@ -1,21 +1,21 @@
-From dc6069b433cbde65887cd5081a0eb80124156e5e Mon Sep 17 00:00:00 2001
+From 4446aa850393d32df9c8ce9964d9aa087ad621f2 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:04:49 +0200
-Subject: [PATCH] BLENDER: Always login with Blender ID, unless noredirect is
- specified
+Subject: [PATCH 09/14] BLENDER: Always login with Blender ID, unless
+ noredirect is specified
 
 ---
- routers/web/auth/auth.go | 25 +++++++++++++++++++++++++
- 1 file changed, 25 insertions(+)
+ routers/web/auth/auth.go | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
 
 diff --git a/routers/web/auth/auth.go b/routers/web/auth/auth.go
-index 842020791f519..98baf771ccbec 100644
+index 8ddb9730c3..99c423e782 100644
 --- a/routers/web/auth/auth.go
 +++ b/routers/web/auth/auth.go
 @@ -160,6 +160,26 @@ func CheckAutoLogin(ctx *context.Context) bool {
  	return false
  }
-
+ 
 +// BLENDER: always use OAuth unless ?noredirect=true is set
 +func checkForceOAuth(ctx *context.Context) bool {
 +	// Check if authentication is forced to OAuth
@@ -36,18 +36,20 @@ index 842020791f519..98baf771ccbec 100644
 +	return false
 +}
 +
- // SignIn render sign in page
- func SignIn(ctx *context.Context) {
+ func prepareSignInPageData(ctx *context.Context) {
  	ctx.Data["Title"] = ctx.Tr("sign_in")
-@@ -168,6 +188,11 @@ func SignIn(ctx *context.Context) {
+ 	ctx.Data["OAuth2Providers"], _ = oauth2.GetOAuth2Providers(ctx, optional.Some(true))
+@@ -180,6 +200,10 @@ func SignIn(ctx *context.Context) {
+ 	if CheckAutoLogin(ctx) {
  		return
  	}
-
 +	// BLENDER: Check if authentication is forced to OAuth
 +	if checkForceOAuth(ctx) {
 +		return
 +	}
-+
  	if ctx.IsSigned {
  		RedirectAfterLogin(ctx)
  		return
+-- 
+2.45.2
+

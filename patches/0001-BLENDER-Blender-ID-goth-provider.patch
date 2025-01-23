@@ -1,12 +1,12 @@
-From d4a41bc0ebbb015e97e076e6040a3349ee0dab33 Mon Sep 17 00:00:00 2001
+From 8b5a296990a67b35b5fcd9047d79418e31b37f60 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:28:51 +0200
-Subject: [PATCH] BLENDER: Blender ID goth provider
+Subject: [PATCH 01/14] BLENDER: Blender ID goth provider
 
 Provider authored by Matti Ranta and Arnd Marijnissen.
 ---
  go.mod                                        |   1 +
- go.sum                                        |   2 +
+ go.sum                                        |   3 +
  public/assets/img/blenderid.png               |   0
  .../auth/source/oauth2/blenderid/blenderid.go | 181 ++++++++++++++++++
  .../source/oauth2/blenderid/blenderid_test.go |  70 +++++++
@@ -15,7 +15,7 @@ Provider authored by Matti Ranta and Arnd Marijnissen.
  .../auth/source/oauth2/blenderid/session.go   |  66 +++++++
  .../source/oauth2/blenderid/session_test.go   |  51 +++++
  .../auth/source/oauth2/providers_custom.go    |  11 ++
- 10 files changed, 490 insertions(+)
+ 10 files changed, 491 insertions(+)
  create mode 100644 public/assets/img/blenderid.png
  create mode 100644 services/auth/source/oauth2/blenderid/blenderid.go
  create mode 100644 services/auth/source/oauth2/blenderid/blenderid_test.go
@@ -25,25 +25,26 @@ Provider authored by Matti Ranta and Arnd Marijnissen.
  create mode 100644 services/auth/source/oauth2/blenderid/session_test.go
 
 diff --git a/go.mod b/go.mod
-index 8752e6d196a8b..0bfd9342c7fe8 100644
+index d8e7e37152..af00e05199 100644
 --- a/go.mod
 +++ b/go.mod
-@@ -235,6 +235,7 @@ require (
- 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+@@ -258,6 +258,7 @@ require (
+ 	github.com/mmcloughlin/avo v0.6.0 // indirect
  	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
  	github.com/modern-go/reflect2 v1.0.2 // indirect
 +	github.com/mozillazg/go-unidecode v0.2.0 // indirect
  	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
  	github.com/mschoch/smat v0.2.0 // indirect
- 	github.com/nwaples/rardecode v1.1.3 // indirect
+ 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 diff --git a/go.sum b/go.sum
-index 6a3e6dc7f645c..d59c282ce0411 100644
+index 968001e7f9..bce9ba2fd7 100644
 --- a/go.sum
 +++ b/go.sum
-@@ -586,6 +586,8 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJ
+@@ -590,6 +590,9 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w
+ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
  github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
  github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
- github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe/go.mod h1:wL8QJuTMNUDYhXwkmfOly8iTdp5TEcJFWZD2D7SIkUc=
++github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe/go.mod h1:wL8QJuTMNUDYhXwkmfOly8iTdp5TEcJFWZD2D7SIkUc=
 +github.com/mozillazg/go-unidecode v0.2.0 h1:vFGEzAH9KSwyWmXCOblazEWDh7fOkpmy/Z4ArmamSUc=
 +github.com/mozillazg/go-unidecode v0.2.0/go.mod h1:zB48+/Z5toiRolOZy9ksLryJ976VIwmDmpQ2quyt1aA=
  github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 h1:j2kD3MT1z4PXCiUllUJF9mWUESr9TWKS7iEKsQ/IipM=
@@ -51,10 +52,10 @@ index 6a3e6dc7f645c..d59c282ce0411 100644
  github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae/go.mod h1:qAyveg+e4CE+eKJXWVjKXM4ck2QobLqTDytGJbLLhJg=
 diff --git a/public/assets/img/blenderid.png b/public/assets/img/blenderid.png
 new file mode 100644
-index 0000000000000..e69de29bb2d1d
+index 0000000000..e69de29bb2
 diff --git a/services/auth/source/oauth2/blenderid/blenderid.go b/services/auth/source/oauth2/blenderid/blenderid.go
 new file mode 100644
-index 0000000000000..671e5e4f541a5
+index 0000000000..671e5e4f54
 --- /dev/null
 +++ b/services/auth/source/oauth2/blenderid/blenderid.go
 @@ -0,0 +1,181 @@
@@ -241,7 +242,7 @@ index 0000000000000..671e5e4f541a5
 +}
 diff --git a/services/auth/source/oauth2/blenderid/blenderid_test.go b/services/auth/source/oauth2/blenderid/blenderid_test.go
 new file mode 100644
-index 0000000000000..2bf4c443d86ff
+index 0000000000..2bf4c443d8
 --- /dev/null
 +++ b/services/auth/source/oauth2/blenderid/blenderid_test.go
 @@ -0,0 +1,70 @@
@@ -317,7 +318,7 @@ index 0000000000000..2bf4c443d86ff
 +}
 diff --git a/services/auth/source/oauth2/blenderid/gitealize_usernames.go b/services/auth/source/oauth2/blenderid/gitealize_usernames.go
 new file mode 100644
-index 0000000000000..880516c8e28f1
+index 0000000000..880516c8e2
 --- /dev/null
 +++ b/services/auth/source/oauth2/blenderid/gitealize_usernames.go
 @@ -0,0 +1,65 @@
@@ -388,7 +389,7 @@ index 0000000000000..880516c8e28f1
 +}
 diff --git a/services/auth/source/oauth2/blenderid/gitealize_usernames_test.go b/services/auth/source/oauth2/blenderid/gitealize_usernames_test.go
 new file mode 100644
-index 0000000000000..7d633198e8886
+index 0000000000..7d633198e8
 --- /dev/null
 +++ b/services/auth/source/oauth2/blenderid/gitealize_usernames_test.go
 @@ -0,0 +1,43 @@
@@ -437,7 +438,7 @@ index 0000000000000..7d633198e8886
 +}
 diff --git a/services/auth/source/oauth2/blenderid/session.go b/services/auth/source/oauth2/blenderid/session.go
 new file mode 100644
-index 0000000000000..52a2d2174584c
+index 0000000000..52a2d21745
 --- /dev/null
 +++ b/services/auth/source/oauth2/blenderid/session.go
 @@ -0,0 +1,66 @@
@@ -509,7 +510,7 @@ index 0000000000000..52a2d2174584c
 +}
 diff --git a/services/auth/source/oauth2/blenderid/session_test.go b/services/auth/source/oauth2/blenderid/session_test.go
 new file mode 100644
-index 0000000000000..ab7fb974a5772
+index 0000000000..ab7fb974a5
 --- /dev/null
 +++ b/services/auth/source/oauth2/blenderid/session_test.go
 @@ -0,0 +1,51 @@
@@ -565,15 +566,15 @@ index 0000000000000..ab7fb974a5772
 +	a.Equal(s.String(), s.Marshal())
 +}
 diff --git a/services/auth/source/oauth2/providers_custom.go b/services/auth/source/oauth2/providers_custom.go
-index 65cf538ad7386..f6f49ada048aa 100644
+index 65cf538ad7..f6f49ada04 100644
 --- a/services/auth/source/oauth2/providers_custom.go
 +++ b/services/auth/source/oauth2/providers_custom.go
 @@ -5,6 +5,7 @@ package oauth2
-
+ 
  import (
  	"code.gitea.io/gitea/modules/setting"
 +	"code.gitea.io/gitea/services/auth/source/oauth2/blenderid"
-
+ 
  	"github.com/markbates/goth"
  	"github.com/markbates/goth/providers/azureadv2"
 @@ -120,4 +121,14 @@ func init() {
@@ -591,3 +592,6 @@ index 65cf538ad7386..f6f49ada048aa 100644
 +			return blenderid.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL, scopes...), nil
 +		}))
  }
+-- 
+2.45.2
+

@@ -1,0 +1,45 @@
+From 35f8ad0fce06ac0aee3d54b8e46987f0cdd4b4ba Mon Sep 17 00:00:00 2001
+From: Brecht Van Lommel <brecht@blender.org>
+Date: Fri, 10 May 2024 14:04:02 +0200
+Subject: [PATCH 08/14] BLENDER: Remember login for OAuth / Blender ID
+
+Otherwise for some browsers, users have to login again for every session.
+---
+ routers/web/auth/oauth.go | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/routers/web/auth/oauth.go b/routers/web/auth/oauth.go
+index 75f94de0ed..5b58bc6337 100644
+--- a/routers/web/auth/oauth.go
++++ b/routers/web/auth/oauth.go
+@@ -20,7 +20,9 @@ import (
+ 	"code.gitea.io/gitea/modules/log"
+ 	"code.gitea.io/gitea/modules/optional"
+ 	"code.gitea.io/gitea/modules/setting"
++	"code.gitea.io/gitea/modules/timeutil"
+ 	"code.gitea.io/gitea/modules/web/middleware"
++	auth_service "code.gitea.io/gitea/services/auth"
+ 	source_service "code.gitea.io/gitea/services/auth/source"
+ 	"code.gitea.io/gitea/services/auth/source/oauth2"
+ 	"code.gitea.io/gitea/services/context"
+@@ -360,6 +362,17 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
+ 			return
+ 		}
+ 
++		// BLENDER: remember login for Blender ID.
++		// A proper OAuth implementation would check how long the access token is
++		// valid depending on the provider, but since this is only for Blender ID
++		// we can just set days in the Gitea config.
++		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
++		if err != nil {
++			ctx.ServerError("CreateAuthTokenForUserID", err)
++			return
++		}
++		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
++
+ 		// force to generate a new CSRF token
+ 		ctx.Csrf.PrepareForSessionUser(ctx)
+ 
+-- 
+2.45.2
+
