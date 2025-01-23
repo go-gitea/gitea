@@ -51,7 +51,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     ...other,
   } satisfies Partial<Props>);
 
-  if (role === 'menu') {
+  if (instance.props.role === 'menu') {
     target.setAttribute('aria-haspopup', 'true');
   }
 
