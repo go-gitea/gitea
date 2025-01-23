@@ -99,6 +99,8 @@ function initClonePanelButton(btn: HTMLButtonElement) {
     placement: 'bottom-end',
     interactive: true,
     hideOnClick: true,
+    arrow: false,
+    offset: [0, 6],
   });
 }
 

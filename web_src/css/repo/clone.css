@@ -23,7 +23,7 @@
 }
 
 .clone-panel-tab .item.active {
-  border-bottom: 3px solid var(--color-secondary);
+  border-bottom: 3px solid var(--color-text);
 }
 
 .clone-panel-tab + .divider {
