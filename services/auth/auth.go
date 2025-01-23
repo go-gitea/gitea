@@ -32,6 +32,11 @@ func isAttachmentDownload(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
 }
 
+// isFeed checks if the request targets a rss/atom feed
+func isFeed(req *http.Request) bool {
+	return strings.HasSuffix(req.URL.Path, ".rss") || strings.HasSuffix(req.URL.Path, ".atom")
+}
+
 // isContainerPath checks if the request targets the container endpoint
 func isContainerPath(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/v2/")
