@@ -655,6 +655,8 @@ func TestWebhook(ctx *context.Context) {
 	}
 
 	// Grab latest commit or fake one if it's empty repository.
+	// Note: in old code, the "ctx.Repo.Commit" is the last commit of the default branch.
+	// New code doesn't set that commit, so it always uses the fake commit to test webhook.
 	commit := ctx.Repo.Commit
 	if commit == nil {
 		ghost := user_model.NewGhostUser()

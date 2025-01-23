@@ -80,10 +80,10 @@ export default defineComponent({
     sortedContributors: {} as Record<string, any>,
     type: 'commits',
     contributorsStats: {} as Record<string, any>,
-    xAxisStart: null,
-    xAxisEnd: null,
-    xAxisMin: null,
-    xAxisMax: null,
+    xAxisStart: null as number | null,
+    xAxisEnd: null as number | null,
+    xAxisMin: null as number | null,
+    xAxisMax: null as number | null,
   }),
   mounted() {
     this.fetchGraphData();
@@ -99,7 +99,7 @@ export default defineComponent({
   },
   methods: {
     sortContributors() {
-      const contributors = this.filterContributorWeeksByDateRange();
+      const contributors: Record<string, any> = this.filterContributorWeeksByDateRange();
       const criteria = `total_${this.type}`;
       this.sortedContributors = Object.values(contributors)
         .filter((contributor) => contributor[criteria] !== 0)
@@ -158,7 +158,7 @@ export default defineComponent({
     },
 
     filterContributorWeeksByDateRange() {
-      const filteredData = {};
+      const filteredData: Record<string, any> = {};
       const data = this.contributorsStats;
       for (const key of Object.keys(data)) {
         const user = data[key];
@@ -196,7 +196,7 @@ export default defineComponent({
       // Normally, chartjs handles this automatically, but it will resize the graph when you
       // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
       const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o) => o[this.type]),
+        ...this.totalStats.weeks.map((o: Record<string, any>) => o[this.type]),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -208,7 +208,7 @@ export default defineComponent({
       // for contributors' graph. If I let chartjs do this for me, it will choose different
       // maxY value for each contributors' graph which again makes it harder to compare.
       const maxValue = Math.max(
-        ...this.sortedContributors.map((c) => c.max_contribution_type),
+        ...this.sortedContributors.map((c: Record<string, any>) => c.max_contribution_type),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -232,8 +232,8 @@ export default defineComponent({
     },
 
     updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
-      const minVal = chart.options.scales.x.min;
-      const maxVal = chart.options.scales.x.max;
+      const minVal = Number(chart.options.scales.x.min);
+      const maxVal = Number(chart.options.scales.x.max);
       if (reset) {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;

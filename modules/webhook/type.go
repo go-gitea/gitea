@@ -22,7 +22,6 @@ const (
 	HookEventPullRequestLabel          HookEventType = "pull_request_label"
 	HookEventPullRequestMilestone      HookEventType = "pull_request_milestone"
 	HookEventPullRequestComment        HookEventType = "pull_request_comment"
-	HookEventPullRequestReview         HookEventType = "pull_request_review"
 	HookEventPullRequestReviewApproved HookEventType = "pull_request_review_approved"
 	HookEventPullRequestReviewRejected HookEventType = "pull_request_review_rejected"
 	HookEventPullRequestReviewComment  HookEventType = "pull_request_review_comment"
@@ -32,9 +31,43 @@ const (
 	HookEventRepository                HookEventType = "repository"
 	HookEventRelease                   HookEventType = "release"
 	HookEventPackage                   HookEventType = "package"
-	HookEventSchedule                  HookEventType = "schedule" // this is not for webhook at the moment, only for actions
 	HookEventStatus                    HookEventType = "status"
+	// once a new event added here, please also added to AllEvents() function
+
+	// FIXME: This event should be a group of pull_request_review_xxx events
+	HookEventPullRequestReview HookEventType = "pull_request_review"
+	// Actions event only
+	HookEventSchedule HookEventType = "schedule"
 )
+
+func AllEvents() []HookEventType {
+	return []HookEventType{
+		HookEventCreate,
+		HookEventDelete,
+		HookEventFork,
+		HookEventPush,
+		HookEventIssues,
+		HookEventIssueAssign,
+		HookEventIssueLabel,
+		HookEventIssueMilestone,
+		HookEventIssueComment,
+		HookEventPullRequest,
+		HookEventPullRequestAssign,
+		HookEventPullRequestLabel,
+		HookEventPullRequestMilestone,
+		HookEventPullRequestComment,
+		HookEventPullRequestReviewApproved,
+		HookEventPullRequestReviewRejected,
+		HookEventPullRequestReviewComment,
+		HookEventPullRequestSync,
+		HookEventPullRequestReviewRequest,
+		HookEventWiki,
+		HookEventRepository,
+		HookEventRelease,
+		HookEventPackage,
+		HookEventStatus,
+	}
+}
 
 // Event returns the HookEventType as an event string
 func (h HookEventType) Event() string {
