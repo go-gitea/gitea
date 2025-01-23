@@ -169,6 +169,7 @@ func prepareSignInPageData(ctx *context.Context) {
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
 		context.SetCaptchaData(ctx)

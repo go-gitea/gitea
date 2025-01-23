@@ -18,14 +18,14 @@ function toggleFileList() {
 }
 
 function diffTypeToString(pType: number) {
-  const diffTypes = {
-    1: 'add',
-    2: 'modify',
-    3: 'del',
-    4: 'rename',
-    5: 'copy',
+  const diffTypes: Record<string, string> = {
+    '1': 'add',
+    '2': 'modify',
+    '3': 'del',
+    '4': 'rename',
+    '5': 'copy',
   };
-  return diffTypes[pType];
+  return diffTypes[String(pType)];
 }
 
 function diffStatsWidth(adds: number, dels: number) {

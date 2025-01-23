@@ -1,4 +1,4 @@
-import {queryElems} from '../utils/dom.ts';
+import {queryElems, type DOMEvent} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
@@ -7,10 +7,10 @@ import {createApp} from 'vue';
 import {toOriginUrl} from '../utils/url.ts';
 import {createTippy} from '../modules/tippy.ts';
 
-async function onDownloadArchive(e) {
+async function onDownloadArchive(e: DOMEvent<MouseEvent>) {
   e.preventDefault();
   // there are many places using the "archive-link", eg: the dropdown on the repo code page, the release list
-  const el = e.target.closest('a.archive-link[href]');
+  const el = e.target.closest<HTMLAnchorElement>('a.archive-link[href]');
   const targetLoading = el.closest('.ui.dropdown') ?? el;
   targetLoading.classList.add('is-loading', 'loading-icon-2px');
   try {
@@ -107,7 +107,7 @@ export function initRepoCloneButtons() {
   queryElems(document, '.clone-buttons-combo', initCloneSchemeUrlSelection);
 }
 
-export async function updateIssuesMeta(url, action, issue_ids, id) {
+export async function updateIssuesMeta(url: string, action: string, issue_ids: string, id: string) {
   try {
     const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
     if (!response.ok) {

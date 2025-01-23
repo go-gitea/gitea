@@ -85,7 +85,7 @@ func (lr *accessLogRecorder) record(start time.Time, respWriter ResponseWriter, 
 		},
 		RequestID: &requestID,
 	}
-	tmplData.ResponseWriter.Status = respWriter.Status()
+	tmplData.ResponseWriter.Status = respWriter.WrittenStatus()
 	tmplData.ResponseWriter.Size = respWriter.WrittenSize()
 	err = lr.logTemplate.Execute(buf, tmplData)
 	if err != nil {
