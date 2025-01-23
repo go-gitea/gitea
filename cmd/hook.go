@@ -705,7 +705,8 @@ Gitea or set your environment appropriately.`, "")
 
 	if err == nil {
 		for _, res := range resp.Results {
-			hookPrintResult(res.ShouldShowMessage, res.IsCreatePR, res.HeadBranch, res.URL)
+			// AGit always creates a pull request so there is no point in prompting user to create one
+			hookPrintResult(res.ShouldShowMessage, false, res.HeadBranch, res.URL)
 		}
 	}
 
