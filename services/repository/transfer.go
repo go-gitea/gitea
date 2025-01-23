@@ -481,7 +481,7 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 }
 
 func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *user_model.User) bool {
-	if u.ID == r.DoerID {
+	if u.IsAdmin || u.ID == r.DoerID {
 		return true
 	}
 
@@ -504,7 +504,7 @@ func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *u
 		log.Error("GetUserRepoPermission: %v", err)
 		return false
 	}
-	return perm.IsAdmin()
+	return perm.IsOwner()
 }
 
 // CancelRepositoryTransfer cancels the repository transfer process. The sender or
