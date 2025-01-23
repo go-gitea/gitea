@@ -12,10 +12,17 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
+func monitorTraceCommon(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor")
+	ctx.Data["PageIsAdminMonitorTrace"] = true
+	// Hide the performance trace tab in production, because it shows a lot of SQLs and is not that useful for end users.
+	// To avoid confusing end users, do not let them know this tab. End users should "download diagnosis report" instead.
+	ctx.Data["ShowAdminPerformanceTraceTab"] = !setting.IsProd
+}
+
 // Stacktrace show admin monitor goroutines page
 func Stacktrace(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor")
-	ctx.Data["PageIsAdminMonitorStacktrace"] = true
+	monitorTraceCommon(ctx)
 
 	ctx.Data["GoroutineCount"] = runtime.NumGoroutine()
 
