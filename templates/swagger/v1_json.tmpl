@@ -13768,11 +13768,11 @@
           "200": {
             "$ref": "#/responses/UserList"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "410": {
-            "$ref": "#/responses/gone"
           }
         }
       }
@@ -17510,8 +17510,8 @@
           "200": {
             "$ref": "#/responses/RepositoryList"
           },
-          "410": {
-            "$ref": "#/responses/gone"
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -17543,11 +17543,11 @@
           "204": {
             "$ref": "#/responses/empty"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "410": {
-            "$ref": "#/responses/gone"
           }
         }
       },
@@ -17582,9 +17582,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "410": {
-            "$ref": "#/responses/gone"
           }
         }
       },
@@ -17614,11 +17611,11 @@
           "204": {
             "$ref": "#/responses/empty"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "410": {
-            "$ref": "#/responses/gone"
           }
         }
       }
@@ -18293,11 +18290,11 @@
           "200": {
             "$ref": "#/responses/RepositoryList"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "410": {
-            "$ref": "#/responses/gone"
           }
         }
       }
@@ -26620,17 +26617,6 @@
     },
     "forbidden": {
       "description": "APIForbiddenError is a forbidden error response",
-      "headers": {
-        "message": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
-      }
-    },
-    "gone": {
-      "description": "APIGone means the functionality has been disabled",
       "headers": {
         "message": {
           "type": "string"

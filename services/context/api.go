@@ -89,12 +89,6 @@ type APINotFound struct{}
 // swagger:response conflict
 type APIConflict struct{}
 
-// APIGone means the functionality has been disabled
-// swagger:response gone
-type APIGone struct {
-	APIError
-}
-
 // APIRedirect is a redirect response
 // swagger:response redirect
 type APIRedirect struct{}

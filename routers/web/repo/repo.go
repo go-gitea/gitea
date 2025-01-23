@@ -377,9 +377,7 @@ func Action(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplWatchUnwatch)
 		return
 	case "star", "unstar":
-		if !setting.Repository.DisableStars {
-			ctx.HTML(http.StatusOK, tplStarUnstar)
-		}
+		ctx.HTML(http.StatusOK, tplStarUnstar)
 		return
 	}
 
