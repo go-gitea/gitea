@@ -212,6 +212,11 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 	}
 
+	// reviewers can remove themself
+	if !isAdd && doer.ID == reviewer.ID {
+		return nil
+	}
+
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}

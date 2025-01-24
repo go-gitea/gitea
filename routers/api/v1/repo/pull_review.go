@@ -611,7 +611,8 @@ func CreateReviewRequests(ctx *context.APIContext) {
 
 	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
 
-	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	// this will load issue
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -620,6 +621,8 @@ func CreateReviewRequests(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	pr.Issue.Repo = ctx.Repo.Repository
 
 	allowedUsers, err := pull_service.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, pr.Issue.PosterID)
 	if err != nil {
