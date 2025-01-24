@@ -353,7 +353,6 @@ func (pr *PullRequest) LoadIssue(ctx context.Context) (err error) {
 	pr.Issue, err = GetIssueByID(ctx, pr.IssueID)
 	if err == nil {
 		pr.Issue.PullRequest = pr
-		pr.Issue.Repo = pr.BaseRepo
 	}
 	return err
 }
