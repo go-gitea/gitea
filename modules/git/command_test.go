@@ -58,5 +58,5 @@ func TestCommandString(t *testing.T) {
 	assert.EqualValues(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.LogString())
 
 	cmd = NewCommandContextNoGlobals(context.Background(), "url: https://a:b@c/", "/root/dir-a/dir-b")
-	assert.EqualValues(t, cmd.prog+` "url: https://sanitized-credential@c/" dir-a/dir-b`, cmd.LogString())
+	assert.EqualValues(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
 }

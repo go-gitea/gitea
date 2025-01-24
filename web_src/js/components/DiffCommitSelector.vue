@@ -4,6 +4,22 @@ import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {generateAriaId} from '../modules/fomantic/base.ts';
 
+type Commit = {
+  id: string,
+  hovered: boolean,
+  selected: boolean,
+  summary: string,
+  committer_or_author_name: string,
+  time: string,
+  short_sha: string,
+}
+
+type CommitListResult = {
+  commits: Array<Commit>,
+  last_review_commit_sha: string,
+  locale: Record<string, string>,
+}
+
 export default defineComponent({
   components: {SvgIcon},
   data: () => {
@@ -16,9 +32,9 @@ export default defineComponent({
       locale: {
         filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
       } as Record<string, string>,
-      commits: [],
+      commits: [] as Array<Commit>,
       hoverActivated: false,
-      lastReviewCommitSha: null,
+      lastReviewCommitSha: '',
       uniqueIdMenu: generateAriaId(),
       uniqueIdShowAll: generateAriaId(),
     };
@@ -71,7 +87,7 @@ export default defineComponent({
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         const item = document.activeElement; // try to highlight the selected commits
         const commitIdx = item?.matches('.item') ? item.getAttribute('data-commit-idx') : null;
-        if (commitIdx) this.highlight(this.commits[commitIdx]);
+        if (commitIdx) this.highlight(this.commits[Number(commitIdx)]);
       }
     },
     onKeyUp(event: KeyboardEvent) {
@@ -87,7 +103,7 @@ export default defineComponent({
         }
       }
     },
-    highlight(commit) {
+    highlight(commit: Commit) {
       if (!this.hoverActivated) return;
       const indexSelected = this.commits.findIndex((x) => x.selected);
       const indexCurrentElem = this.commits.findIndex((x) => x.id === commit.id);
@@ -125,10 +141,11 @@ export default defineComponent({
         }
       });
     },
+
     /** Load the commits to show in this dropdown */
     async fetchCommits() {
       const resp = await GET(`${this.issueLink}/commits/list`);
-      const results = await resp.json();
+      const results = await resp.json() as CommitListResult;
       this.commits.push(...results.commits.map((x) => {
         x.hovered = false;
         return x;
@@ -166,7 +183,7 @@ export default defineComponent({
      * the diff from beginning of PR up to the second clicked commit is
      * opened
      */
-    commitClickedShift(commit) {
+    commitClickedShift(commit: Commit) {
       this.hoverActivated = !this.hoverActivated;
       commit.selected = true;
       // Second click -> determine our range and open links accordingly
