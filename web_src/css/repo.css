@@ -1484,7 +1484,7 @@ td .commit-summary {
   background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary) !important;
   font-weight: var(--font-weight-normal) !important;
-  padding: 0.5rem 1rem;
+  padding: 0 1rem;
   margin: 0 !important;
   position: relative;
   color: var(--color-text);
