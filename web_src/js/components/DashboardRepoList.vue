@@ -1,5 +1,5 @@
 <script lang="ts">
-import {createApp, nextTick} from 'vue';
+import {nextTick, defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -24,7 +24,7 @@ const commitStatus: CommitStatusMap = {
   warning: {name: 'gitea-exclamation', color: 'yellow'},
 };
 
-const sfc = {
+export default defineComponent({
   components: {SvgIcon},
   data() {
     const params = new URLSearchParams(window.location.search);
@@ -130,12 +130,12 @@ const sfc = {
   },
 
   methods: {
-    changeTab(t) {
-      this.tab = t;
+    changeTab(tab: string) {
+      this.tab = tab;
       this.updateHistory();
     },
 
-    changeReposFilter(filter) {
+    changeReposFilter(filter: string) {
       this.reposFilter = filter;
       this.repos = [];
       this.page = 1;
@@ -218,7 +218,7 @@ const sfc = {
       this.searchRepos();
     },
 
-    changePage(page) {
+    changePage(page: number) {
       this.page = page;
       if (this.page > this.finalPage) {
         this.page = this.finalPage;
@@ -256,7 +256,7 @@ const sfc = {
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data.map((webSearchRepo) => {
+        this.repos = json.data.map((webSearchRepo: any) => {
           return {
             ...webSearchRepo.repository,
             latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
@@ -264,7 +264,7 @@ const sfc = {
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
           };
         });
-        const count = response.headers.get('X-Total-Count');
+        const count = Number(response.headers.get('X-Total-Count'));
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
         }
@@ -275,7 +275,7 @@ const sfc = {
       }
     },
 
-    repoIcon(repo) {
+    repoIcon(repo: any) {
       if (repo.fork) {
         return 'octicon-repo-forked';
       } else if (repo.mirror) {
@@ -298,7 +298,7 @@ const sfc = {
       return commitStatus[status].color;
     },
 
-    reposFilterKeyControl(e) {
+    reposFilterKeyControl(e: KeyboardEvent) {
       switch (e.key) {
         case 'Enter':
           document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
@@ -335,16 +335,8 @@ const sfc = {
       }
     },
   },
-};
+});
 
-export function initDashboardRepoList() {
-  const el = document.querySelector('#dashboard-repo-list');
-  if (el) {
-    createApp(sfc).mount(el);
-  }
-}
-
-export default sfc; // activate the IDE's Vue plugin
 </script>
 <template>
   <div>

@@ -720,6 +720,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("/monitor", func() {
 			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
+			m.Get("/perftrace", admin.PerfTrace)
 			m.Get("/stacktrace", admin.Stacktrace)
 			m.Post("/stacktrace/cancel/{pid}", admin.StacktraceCancel)
 			m.Get("/queue", admin.Queues)
@@ -1146,7 +1147,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/cancel", repo.MigrateCancelPost)
 		})
 	},
-		reqSignIn, context.RepoAssignment, reqRepoAdmin, context.RepoRef(),
+		reqSignIn, context.RepoAssignment, reqRepoAdmin,
 		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
 	)
 	// end "/{username}/{reponame}/settings"
@@ -1332,7 +1333,7 @@ func registerRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}", func() { // repo tags
 		m.Group("/tags", func() {
-			m.Get("", repo.TagsList)
+			m.Get("", context.RepoRefByDefaultBranch() /* for the "commits" tab */, repo.TagsList)
 			m.Get(".rss", feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", feedEnabled, repo.TagsListFeedAtom)
 			m.Get("/list", repo.GetTagList)
@@ -1513,7 +1514,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("/activity_author_data", func() {
 			m.Get("", repo.ActivityAuthors)
 			m.Get("/{period}", repo.ActivityAuthors)
-		}, context.RepoRef(), repo.MustBeNotEmpty)
+		}, repo.MustBeNotEmpty)
 
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)
@@ -1522,8 +1523,8 @@ func registerRoutes(m *web.Router) {
 
 		m.Group("/branches", func() {
 			m.Get("/list", repo.GetBranchesList)
-			m.Get("", repo.Branches)
-		}, repo.MustBeNotEmpty, context.RepoRef())
+			m.Get("", context.RepoRefByDefaultBranch() /* for the "commits" tab */, repo.Branches)
+		}, repo.MustBeNotEmpty)
 
 		m.Group("/media", func() {
 			m.Get("/blob/{sha}", repo.DownloadByIDOrLFS)
@@ -1567,8 +1568,10 @@ func registerRoutes(m *web.Router) {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
-			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
-		}, repo.MustBeNotEmpty, context.RepoRef())
+
+			// FIXME: this route `/cherry-pick/{sha}` doesn't seem useful or right, the new code always uses `/_cherrypick/` which could handle branch name correctly
+			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, context.RepoRefByDefaultBranch(), repo.CherryPick)
+		}, repo.MustBeNotEmpty)
 
 		m.Get("/rss/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeed)
 		m.Get("/atom/branch/*", context.RepoRefByType(git.RefTypeBranch), feedEnabled, feed.RenderBranchFeed)
@@ -1622,7 +1625,7 @@ func registerRoutes(m *web.Router) {
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req)
-		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))
+		defer routing.RecordFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))()
 		ctx.NotFound("", nil)
 	})
 }

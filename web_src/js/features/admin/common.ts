@@ -90,7 +90,7 @@ export function initAdminCommon(): void {
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
 
-  function onOAuth2UseCustomURLChange(applyDefaultValues) {
+  function onOAuth2UseCustomURLChange(applyDefaultValues: boolean) {
     const provider = document.querySelector<HTMLInputElement>('#oauth2_provider').value;
     hideElem('.oauth2_use_custom_url_field');
     for (const input of document.querySelectorAll<HTMLInputElement>('.oauth2_use_custom_url_field input[required]')) {

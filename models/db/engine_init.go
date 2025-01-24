@@ -72,7 +72,7 @@ func InitEngine(ctx context.Context) error {
 	xe.SetDefaultContext(ctx)
 
 	if setting.Database.SlowQueryThreshold > 0 {
-		xe.AddHook(&SlowQueryHook{
+		xe.AddHook(&EngineHook{
 			Threshold: setting.Database.SlowQueryThreshold,
 			Logger:    log.GetLogger("xorm"),
 		})
