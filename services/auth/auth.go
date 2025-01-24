@@ -34,7 +34,7 @@ func isAttachmentDownload(req *http.Request) bool {
 
 // isFeed checks if the request targets a rss/atom feed
 func isFeed(req *http.Request) bool {
-	return strings.HasSuffix(req.URL.Path, ".rss") || strings.HasSuffix(req.URL.Path, ".atom")
+	return setting.Other.EnableFeed && req.Method == "GET" && (strings.HasSuffix(req.URL.Path, ".rss") || strings.HasSuffix(req.URL.Path, ".atom"))
 }
 
 // isContainerPath checks if the request targets the container endpoint
