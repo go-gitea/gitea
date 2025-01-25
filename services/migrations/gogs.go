@@ -84,15 +84,9 @@ func (g *GogsDownloader) LogString() string {
 	return fmt.Sprintf("<GogsDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
 }
 
-// SetContext set context
-func (g *GogsDownloader) SetContext(ctx context.Context) {
-	g.ctx = ctx
-}
-
 // NewGogsDownloader creates a gogs Downloader via gogs API
-func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
+func NewGogsDownloader(_ context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
 	downloader := GogsDownloader{
-		ctx:       ctx,
 		baseURL:   baseURL,
 		userName:  userName,
 		password:  password,
@@ -129,7 +123,7 @@ func (g *GogsDownloader) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 // GetRepoInfo returns a repository information
-func (g *GogsDownloader) GetRepoInfo() (*base.Repository, error) {
+func (g *GogsDownloader) GetRepoInfo(_ context.Context) (*base.Repository, error) {
 	gr, err := g.client.GetRepo(g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
@@ -148,7 +142,7 @@ func (g *GogsDownloader) GetRepoInfo() (*base.Repository, error) {
 }
 
 // GetMilestones returns milestones
-func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
+func (g *GogsDownloader) GetMilestones(_ context.Context) ([]*base.Milestone, error) {
 	perPage := 100
 	milestones := make([]*base.Milestone, 0, perPage)
 
@@ -171,7 +165,7 @@ func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
 }
 
 // GetLabels returns labels
-func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
+func (g *GogsDownloader) GetLabels(_ context.Context) ([]*base.Label, error) {
 	perPage := 100
 	labels := make([]*base.Label, 0, perPage)
 	ls, err := g.client.ListRepoLabels(g.repoOwner, g.repoName)
@@ -187,7 +181,7 @@ func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
 }
 
 // GetIssues returns issues according start and limit, perPage is not supported
-func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
+func (g *GogsDownloader) GetIssues(_ context.Context, page, _ int) ([]*base.Issue, bool, error) {
 	var state string
 	if g.openIssuesFinished {
 		state = string(gogs.STATE_CLOSED)
@@ -234,7 +228,7 @@ func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool,
 }
 
 // GetComments returns comments according issueNumber
-func (g *GogsDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+func (g *GogsDownloader) GetComments(_ context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	allComments := make([]*base.Comment, 0, 100)
 
 	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex())
@@ -261,7 +255,7 @@ func (g *GogsDownloader) GetComments(commentable base.Commentable) ([]*base.Comm
 }
 
 // GetTopics return repository topics
-func (g *GogsDownloader) GetTopics() ([]string, error) {
+func (g *GogsDownloader) GetTopics(_ context.Context) ([]string, error) {
 	return []string{}, nil
 }
 
