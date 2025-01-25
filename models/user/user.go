@@ -502,10 +502,10 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
-// IsUserExist checks if given user name exist,
-// the user name should be noncased unique.
+// IsUserExist checks if given username exist,
+// the username should be non-cased unique.
 // If uid is presented, then check will rule out that one,
-// it is used when update a user name in settings page.
+// it is used when update a username in settings page.
 func IsUserExist(ctx context.Context, uid int64, name string) (bool, error) {
 	if len(name) == 0 {
 		return false, nil
@@ -515,7 +515,7 @@ func IsUserExist(ctx context.Context, uid int64, name string) (bool, error) {
 		Get(&User{LowerName: strings.ToLower(name)})
 }
 
-// Note: As of the beginning of 2022, it is recommended to use at least
+// SaltByteLength as of the beginning of 2022, it is recommended to use at least
 // 64 bits of salt, but NIST is already recommending to use to 128 bits.
 // (16 bytes = 16 * 8 = 128 bits)
 const SaltByteLength = 16
