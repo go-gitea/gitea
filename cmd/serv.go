@@ -104,6 +104,7 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
 	// if nothing is outputted on stdout.
 	_, _ = fmt.Fprintln(os.Stdout, "")
+	// add extra empty lines to separate our message from other git errors to get more attention
 	_, _ = fmt.Fprintln(os.Stderr, "error:")
 	_, _ = fmt.Fprintln(os.Stderr, "error:", userMessage)
 	_, _ = fmt.Fprintln(os.Stderr, "error:")
