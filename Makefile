@@ -190,7 +190,7 @@ all: build
 
 .PHONY: help
 help: Makefile ## print Makefile help information.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[TARGETS] default target: build\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-45s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' Makefile #$(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[TARGETS] default target: build\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 }' Makefile #$(MAKEFILE_LIST)
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e[#TestSpecificName]" "test end to end using playwright"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test[#TestSpecificName]" "run unit test"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-sqlite[#TestSpecificName]" "run integration test for sqlite"
