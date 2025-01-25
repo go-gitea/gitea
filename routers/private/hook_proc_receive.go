@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -28,15 +27,13 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 
 	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, opts)
 	if err != nil {
-		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
-		} else if errors.Is(err, issues_model.ErrMustCollaborator) {
+		if errors.Is(err, issues_model.ErrMustCollaborator) {
 			ctx.JSON(http.StatusUnauthorized, private.Response{
-				Err: err.Error(), UserMsg: string(ctx.Tr("repo.pulls.new.must_collaborator")),
+				Err: err.Error(), UserMsg: "You must be a collaborator to create pull request.",
 			})
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSON(http.StatusUnauthorized, private.Response{
-				Err: err.Error(), UserMsg: string(ctx.Tr("repo.pulls.new.blocked_user")),
+				Err: err.Error(), UserMsg: "Cannot create pull request because you are blocked by the repository owner.",
 			})
 		} else {
 			log.Error(err.Error())
