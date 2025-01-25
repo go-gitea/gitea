@@ -433,7 +433,7 @@ test-check:
 	fi
 
 .PHONY: test\#%
-test\#%: ## run unit test
+test\#%:
 	@echo "Running go test with -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_TEST_PACKAGES)
 
@@ -486,7 +486,7 @@ test-sqlite: integrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-sqlite\#%
-test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite  ## run integration test for sqlite
+test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./integrations.sqlite.test -test.run $(subst .,/,$*)
 
 .PHONY: test-sqlite-migration
@@ -562,7 +562,7 @@ playwright: deps-frontend
 	npx playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%
-test-e2e%: TEST_TYPE ?= e2e ## test end to end using playwright
+test-e2e%: TEST_TYPE ?= e2e
 	# Clear display env variable. Otherwise, chromium tests can fail.
 	DISPLAY=
 
