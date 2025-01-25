@@ -165,18 +165,10 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Base.SetContextValue(WebContextKey, ctx)
 			ctx.Csrf = NewCSRFProtector(csrfOpts)
 
-			// Get the last flash message from cookie
-			lastFlashCookie := middleware.GetSiteCookie(ctx.Req, CookieNameFlash)
+			// get the last flash message from cookie
+			lastFlashCookie, lastFlashMsg := middleware.GetSiteCookieFlashMessage(ctx, ctx.Req, CookieNameFlash)
 			if vals, _ := url.ParseQuery(lastFlashCookie); len(vals) > 0 {
-				// store last Flash message into the template data, to render it
-				ctx.Data["Flash"] = &middleware.Flash{
-					DataStore:  ctx,
-					Values:     vals,
-					ErrorMsg:   vals.Get("error"),
-					SuccessMsg: vals.Get("success"),
-					InfoMsg:    vals.Get("info"),
-					WarningMsg: vals.Get("warning"),
-				}
+				ctx.Data["Flash"] = lastFlashMsg // store last Flash message into the template data, to render it
 			}
 
 			// if there are new messages in the ctx.Flash, write them into cookie
