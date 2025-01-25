@@ -27,16 +27,12 @@ import (
 	"github.com/gobwas/glob"
 )
 
-var webhookRequesters = map[webhook_module.HookType]func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error){
-	webhook_module.SLACK:      newSlackRequest,
-	webhook_module.DISCORD:    newDiscordRequest,
-	webhook_module.DINGTALK:   newDingtalkRequest,
-	webhook_module.TELEGRAM:   newTelegramRequest,
-	webhook_module.MSTEAMS:    newMSTeamsRequest,
-	webhook_module.FEISHU:     newFeishuRequest,
-	webhook_module.MATRIX:     newMatrixRequest,
-	webhook_module.WECHATWORK: newWechatworkRequest,
-	webhook_module.PACKAGIST:  newPackagistRequest,
+type WebhookRequester func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error)
+
+var webhookRequesters = map[webhook_module.HookType]WebhookRequester{}
+
+func RegisterWebhookRequester(hookType webhook_module.HookType, requester WebhookRequester) {
+	webhookRequesters[hookType] = requester
 }
 
 // IsValidHookTaskType returns true if a webhook registered
