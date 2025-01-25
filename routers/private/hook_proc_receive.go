@@ -36,7 +36,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 				Err: err.Error(), UserMsg: "Cannot create pull request because you are blocked by the repository owner.",
 			})
 		} else {
-			log.Error(err.Error())
+			log.Error("agit.ProcReceive failed: %v", err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: err.Error(),
 			})
