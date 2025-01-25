@@ -85,8 +85,9 @@ func (g *GogsDownloader) LogString() string {
 }
 
 // NewGogsDownloader creates a gogs Downloader via gogs API
-func NewGogsDownloader(_ context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
+func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
 	downloader := GogsDownloader{
+		ctx:       ctx,
 		baseURL:   baseURL,
 		userName:  userName,
 		password:  password,

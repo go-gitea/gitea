@@ -113,7 +113,6 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	}
 
 	return &GiteaDownloader{
-		// ctx:        ctx,
 		client:     giteaClient,
 		baseURL:    baseURL,
 		repoOwner:  path[0],
