@@ -27,11 +27,11 @@ import (
 	"github.com/gobwas/glob"
 )
 
-type WebhookRequester func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error)
+type Requester func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error)
 
-var webhookRequesters = map[webhook_module.HookType]WebhookRequester{}
+var webhookRequesters = map[webhook_module.HookType]Requester{}
 
-func RegisterWebhookRequester(hookType webhook_module.HookType, requester WebhookRequester) {
+func RegisterWebhookRequester(hookType webhook_module.HookType, requester Requester) {
 	webhookRequesters[hookType] = requester
 }
 

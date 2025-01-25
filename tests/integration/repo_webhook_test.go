@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/repo"
@@ -132,8 +131,6 @@ func Test_WebhookCreate(t *testing.T) {
 		// 2. trigger the webhook
 		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
 
-		time.Sleep(1 * time.Second)
-
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, string(webhook_module.HookEventCreate), triggeredEvent)
 		assert.EqualValues(t, "repo1", payload.Repo.Name)
@@ -163,8 +160,6 @@ func Test_WebhookDelete(t *testing.T) {
 		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
 		testAPIDeleteBranch(t, "master2", http.StatusNoContent)
 
-		time.Sleep(1 * time.Second)
-
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "delete", triggeredEvent)
 		assert.EqualValues(t, "repo1", payload.Repo.Name)
@@ -192,8 +187,6 @@ func Test_WebhookFork(t *testing.T) {
 
 		// 2. trigger the webhook
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1-fork", "master")
-
-		time.Sleep(1 * time.Second)
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "fork", triggeredEvent)
@@ -223,8 +216,6 @@ func Test_WebhookIssueComment(t *testing.T) {
 		// 2. trigger the webhook
 		issueURL := testNewIssue(t, session, "user2", "repo1", "Title2", "Description2")
 		testIssueAddComment(t, session, issueURL, "issue title2 comment1", "")
-
-		time.Sleep(1 * time.Second)
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "issue_comment", triggeredEvent)
@@ -256,8 +247,6 @@ func Test_WebhookRelease(t *testing.T) {
 		// 2. trigger the webhook
 		createNewRelease(t, session, "/user2/repo1", "v0.0.99", "v0.0.99", false, false)
 
-		time.Sleep(1 * time.Second)
-
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "release", triggeredEvent)
 		assert.EqualValues(t, "repo1", payload.Repository.Name)
@@ -287,8 +276,6 @@ func Test_WebhookPush(t *testing.T) {
 		// 2. trigger the webhook
 		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push")
 
-		time.Sleep(1 * time.Second)
-
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "push", triggeredEvent)
 		assert.EqualValues(t, "repo1", payload.Repo.Name)
@@ -316,8 +303,6 @@ func Test_WebhookIssue(t *testing.T) {
 
 		// 2. trigger the webhook
 		testNewIssue(t, session, "user2", "repo1", "Title1", "Description1")
-
-		time.Sleep(1 * time.Second)
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "issues", triggeredEvent)
@@ -350,8 +335,6 @@ func Test_WebhookPullRequest(t *testing.T) {
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 		testCreatePullToDefaultBranch(t, session, repo1, repo1, "master2", "first pull request")
 
-		time.Sleep(1 * time.Second)
-
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "pull_request", triggeredEvent)
 		assert.EqualValues(t, "repo1", payload.PullRequest.Base.Repository.Name)
@@ -381,8 +364,6 @@ func Test_WebhookWiki(t *testing.T) {
 		// 2. trigger the webhook
 		testAPICreateWikiPage(t, session, "user2", "repo1", "Test Wiki Page", http.StatusCreated)
 
-		time.Sleep(1 * time.Second)
-
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "wiki", triggeredEvent)
 		assert.EqualValues(t, "created", payload.Action)
@@ -410,8 +391,6 @@ func Test_WebhookRepository(t *testing.T) {
 
 		// 2. trigger the webhook
 		testAPIOrgCreateRepo(t, session, "org3", "repo_new", http.StatusCreated)
-
-		time.Sleep(1 * time.Second)
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "repository", triggeredEvent)
@@ -444,8 +423,6 @@ func Test_WebhookPackage(t *testing.T) {
 		req := NewRequestWithBody(t, "PUT", url+"/gitea", strings.NewReader("This is a dummy file")).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
-
-		time.Sleep(1 * time.Second)
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "package", triggeredEvent)
