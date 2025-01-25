@@ -60,6 +60,7 @@ export function initTextExpander(expander: TextExpanderElement) {
   };
 
   const debouncedIssueSuggestions = debounce(async (key: string, text: string): Promise<TextExpanderProvideResult> => {
+    // https://github.com/github/text-expander-element/issues/71
     // Upstream bug: when using "multiword+promise", TextExpander will get wrong "key" position.
     // To reproduce, comment out the "shouldShowIssueSuggestions" check, use the "await sleep" below,
     // then use content "close #20\nclose #20\close #20", keep changing the last line `#20` part from the end (including removing the `#`)
