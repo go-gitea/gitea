@@ -69,8 +69,8 @@ export function initTextExpander(expander: TextExpanderElement) {
     // check the input before the request, to avoid emitting empty query to backend (still related to the upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     // await sleep(Math.random() * 1000); // help to reproduce the text-expander bug
-    // check the input again to avoid text-expander use incorrect position (upstream bug)
     const ret = await fetchIssueSuggestions(key, text);
+    // check the input again to avoid text-expander use incorrect position (upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     return ret;
   }, 300); // to match onInputDebounce delay
