@@ -110,21 +110,21 @@ func Test_isGitRawOrLFSPath(t *testing.T) {
 		t.Run(tt.path, func(t *testing.T) {
 			req, _ := http.NewRequest("POST", "http://localhost"+tt.path, nil)
 			setting.LFS.StartServer = false
-			assert.Equal(t, tt.want, isGitRawOrAttachOrLFSPath(req))
+			assert.Equal(t, tt.want, newAuthPathDetector(req).isGitRawOrAttachOrLFSPath())
 
 			setting.LFS.StartServer = true
-			assert.Equal(t, tt.want, isGitRawOrAttachOrLFSPath(req))
+			assert.Equal(t, tt.want, newAuthPathDetector(req).isGitRawOrAttachOrLFSPath())
 		})
 	}
 	for _, tt := range lfsTests {
 		t.Run(tt, func(t *testing.T) {
 			req, _ := http.NewRequest("POST", tt, nil)
 			setting.LFS.StartServer = false
-			got := isGitRawOrAttachOrLFSPath(req)
-			assert.Equalf(t, setting.LFS.StartServer, got, "isGitOrLFSPath(%q) = %v, want %v, %v", tt, got, setting.LFS.StartServer, gitRawOrAttachPathRe.MatchString(tt))
+			got := newAuthPathDetector(req).isGitRawOrAttachOrLFSPath()
+			assert.Equalf(t, setting.LFS.StartServer, got, "isGitOrLFSPath(%q) = %v, want %v, %v", tt, got, setting.LFS.StartServer, globalVars().gitRawOrAttachPathRe.MatchString(tt))
 
 			setting.LFS.StartServer = true
-			got = isGitRawOrAttachOrLFSPath(req)
+			got = newAuthPathDetector(req).isGitRawOrAttachOrLFSPath()
 			assert.Equalf(t, setting.LFS.StartServer, got, "isGitOrLFSPath(%q) = %v, want %v", tt, got, setting.LFS.StartServer)
 		})
 	}

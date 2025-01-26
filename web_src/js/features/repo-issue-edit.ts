@@ -14,7 +14,7 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
   if (!clickTarget) return;
 
   e.preventDefault();
-  const segment = clickTarget.closest('.header').nextElementSibling;
+  const segment = clickTarget.closest('.comment-header').nextElementSibling;
   const editContentZone = segment.querySelector('.edit-content-zone');
   const renderContent = segment.querySelector('.render-content');
   const rawContent = segment.querySelector('.raw-content');
