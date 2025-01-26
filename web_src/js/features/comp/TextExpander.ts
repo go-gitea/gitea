@@ -63,14 +63,14 @@ export function initTextExpander(expander: TextExpanderElement) {
     // https://github.com/github/text-expander-element/issues/71
     // Upstream bug: when using "multiword+promise", TextExpander will get wrong "key" position.
     // To reproduce, comment out the "shouldShowIssueSuggestions" check, use the "await sleep" below,
-    // then use content "close #20\nclose #20\close #20", keep changing the last line `#20` part from the end (including removing the `#`)
+    // then use content "close #20\nclose #20\nclose #20" (3 lines), keep changing the last line `#20` part from the end (including removing the `#`)
     // There will be a JS error: Uncaught (in promise) IndexSizeError: Failed to execute 'setStart' on 'Range': The offset 28 is larger than the node's length (27).
 
     // check the input before the request, to avoid emitting empty query to backend (still related to the upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     // await sleep(Math.random() * 1000); // help to reproduce the text-expander bug
     const ret = await fetchIssueSuggestions(key, text);
-    // check the input again to avoid text-expander use incorrect position (upstream bug)
+    // check the input again to avoid text-expander using incorrect position (upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     return ret;
   }, 300); // to match onInputDebounce delay
