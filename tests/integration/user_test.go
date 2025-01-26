@@ -134,8 +134,7 @@ Note: This user hasn't uploaded any GPG keys.
 
 
 =twTO
------END PGP PUBLIC KEY BLOCK-----
-`)
+-----END PGP PUBLIC KEY BLOCK-----`)
 	// Import key
 	// User1 <user1@example.com>
 	session := loginUser(t, "user1")
