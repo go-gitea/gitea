@@ -3,6 +3,7 @@ export async function renderAsciicast() {
   if (!els.length) return;
 
   const [player] = await Promise.all([
+    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "asciinema-player" */'asciinema-player'),
     import(/* webpackChunkName: "asciinema-player" */'asciinema-player/dist/bundle/asciinema-player.css'),
   ]);

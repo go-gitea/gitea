@@ -219,4 +219,5 @@ func TestIsUsableRepoName(t *testing.T) {
 	assert.Error(t, IsUsableRepoName("the..repo"))
 	assert.Error(t, IsUsableRepoName("foo.wiki"))
 	assert.Error(t, IsUsableRepoName("foo.git"))
+	assert.Error(t, IsUsableRepoName("foo.RSS"))
 }

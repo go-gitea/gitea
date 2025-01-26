@@ -46,6 +46,7 @@ var Service = struct {
 	RequireSignInView                       bool
 	EnableNotifyMail                        bool
 	EnableBasicAuth                         bool
+	EnablePasskeyAuth                       bool
 	EnableReverseProxyAuth                  bool
 	EnableReverseProxyAuthAPI               bool
 	EnableReverseProxyAutoRegister          bool
@@ -161,6 +162,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
 	Service.EnableBasicAuth = sec.Key("ENABLE_BASIC_AUTHENTICATION").MustBool(true)
 	Service.EnablePasswordSignInForm = sec.Key("ENABLE_PASSWORD_SIGNIN_FORM").MustBool(true)
+	Service.EnablePasskeyAuth = sec.Key("ENABLE_PASSKEY_AUTHENTICATION").MustBool(true)
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAuthAPI = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION_API").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()

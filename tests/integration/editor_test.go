@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
-	gitea_context "code.gitea.io/gitea/services/context"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -58,9 +57,8 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		// Check if master branch has been locked successfully
-		flashCookie := session.GetCookie(gitea_context.CookieNameFlash)
-		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2522master%2522%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+		flashMsg := session.GetCookieFlashMessage()
+		assert.EqualValues(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
 
 		// Request editor page
 		req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
@@ -98,9 +96,8 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		assert.EqualValues(t, "/user2/repo1/settings/branches", res["redirect"])
 
 		// Check if master branch has been locked successfully
-		flashCookie = session.GetCookie(gitea_context.CookieNameFlash)
-		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "error%3DRemoving%2Bbranch%2Bprotection%2Brule%2B%25221%2522%2Bfailed.", flashCookie.Value)
+		flashMsg = session.GetCookieFlashMessage()
+		assert.EqualValues(t, `Removing branch protection rule "1" failed.`, flashMsg.ErrorMsg)
 	})
 }
 

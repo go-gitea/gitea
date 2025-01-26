@@ -67,15 +67,21 @@ func Search(ctx *context.Context) {
 			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 		}
 	} else {
+		searchRefName := git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch) // BranchName should be default branch or the first existing branch
 		res, err := git.GrepSearch(ctx, ctx.Repo.GitRepo, prepareSearch.Keyword, git.GrepOptions{
 			ContextLineNumber: 1,
 			IsFuzzy:           prepareSearch.IsFuzzy,
-			RefName:           git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch).String(), // BranchName should be default branch or the first existing branch
+			RefName:           searchRefName.String(),
 			PathspecList:      indexSettingToGitGrepPathspecList(),
 		})
 		if err != nil {
 			// TODO: if no branch exists, it reports: exit status 128, fatal: this operation must be run in a work tree.
 			ctx.ServerError("GrepSearch", err)
+			return
+		}
+		commitID, err := ctx.Repo.GitRepo.GetRefCommitID(searchRefName.String())
+		if err != nil {
+			ctx.ServerError("GetRefCommitID", err)
 			return
 		}
 		total = len(res)
@@ -86,7 +92,7 @@ func Search(ctx *context.Context) {
 			searchResults = append(searchResults, &code_indexer.Result{
 				RepoID:   ctx.Repo.Repository.ID,
 				Filename: r.Filename,
-				CommitID: ctx.Repo.CommitID,
+				CommitID: commitID,
 				// UpdatedUnix: not supported yet
 				// Language:    not supported yet
 				// Color:       not supported yet
