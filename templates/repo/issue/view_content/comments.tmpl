@@ -26,7 +26,7 @@
 				</a>
 			{{end}}
 				<div class="content comment-container">
-					<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between" role="heading" aria-level="3">
+					<div class="comment-header" role="heading" aria-level="3">
 						<div class="comment-header-left tw-flex tw-items-center">
 							{{if .OriginalAuthor}}
 								<span class="text black tw-font-semibold tw-mr-1">
@@ -393,7 +393,7 @@
 				{{if or .Content .Attachments}}
 				<div class="timeline-item comment">
 					<div class="content comment-container">
-						<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between">
+						<div class="comment-header">
 							<div class="comment-header-left tw-flex tw-items-center">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
@@ -633,8 +633,8 @@
 				</div>
 				{{if .Content}}
 					<div class="timeline-item comment">
-						<div class="content">
-							<div class="ui top attached header comment-header-left tw-flex tw-items-center arrow-top">
+						<div class="content comment-container">
+							<div class="comment-header arrow-top">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
 										{{ctx.AvatarUtils.Avatar .Poster 24}}
@@ -644,7 +644,7 @@
 									{{ctx.Locale.Tr "action.review_dismissed_reason"}}
 								</span>
 							</div>
-							<div class="ui attached segment">
+							<div class="ui attached segment comment-body">
 								<div class="render-content markup">
 									{{if .RenderedContent}}
 										{{.RenderedContent}}
