@@ -51,6 +51,7 @@ export function initTextExpander(expander: TextExpanderElement) {
 
   const textarea = expander.querySelector<HTMLTextAreaElement>('textarea');
 
+  // help to fix the text-expander "multiword+promise" bug: do not show the popup when there is no "#" before current line
   const shouldShowIssueSuggestions = () => {
     const posVal = textarea.value.substring(0, textarea.selectionStart);
     const lineStart = posVal.lastIndexOf('\n');
@@ -59,13 +60,17 @@ export function initTextExpander(expander: TextExpanderElement) {
   };
 
   const debouncedIssueSuggestions = debounce(async (key: string, text: string): Promise<TextExpanderProvideResult> => {
-    // Upstream bug: when using "multiword", TextExpander will get wrong "key" position.
-    // To reproduce, use the "await sleep" below,
-    // then use content "close #20\nclose #20\close #20", keep changing the last line `#20` part from the end (including removing the `#`)
+    // https://github.com/github/text-expander-element/issues/71
+    // Upstream bug: when using "multiword+promise", TextExpander will get wrong "key" position.
+    // To reproduce, comment out the "shouldShowIssueSuggestions" check, use the "await sleep" below,
+    // then use content "close #20\nclose #20\nclose #20" (3 lines), keep changing the last line `#20` part from the end (including removing the `#`)
     // There will be a JS error: Uncaught (in promise) IndexSizeError: Failed to execute 'setStart' on 'Range': The offset 28 is larger than the node's length (27).
+
+    // check the input before the request, to avoid emitting empty query to backend (still related to the upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     // await sleep(Math.random() * 1000); // help to reproduce the text-expander bug
     const ret = await fetchIssueSuggestions(key, text);
+    // check the input again to avoid text-expander using incorrect position (upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     return ret;
   }, 300); // to match onInputDebounce delay
