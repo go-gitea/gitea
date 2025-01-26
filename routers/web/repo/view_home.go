@@ -311,21 +311,21 @@ func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 }
 
 func handleRepoHomeFeed(ctx *context.Context) bool {
-	if setting.Other.EnableFeed {
-		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam("reponame"), ctx.Req)
-		if isFeed {
-			switch {
-			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
-				feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
-			case ctx.Repo.TreePath == "":
-				feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
-			case ctx.Repo.TreePath != "":
-				feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
-			}
-			return true
-		}
+	if !setting.Other.EnableFeed {
+		return false
 	}
-	return false
+	isFeed, showFeedType := feed.GetFeedType(ctx.PathParam("reponame"), ctx.Req)
+	if !isFeed {
+		return false
+	}
+	if ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType) {
+		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else if ctx.Repo.TreePath == "" {
+		feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else {
+		feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+	}
+	return true
 }
 
 // Home render repository home page
