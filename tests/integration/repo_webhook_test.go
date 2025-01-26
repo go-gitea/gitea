@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -464,5 +466,52 @@ func Test_WebhookPackage(t *testing.T) {
 		assert.EqualValues(t, "generic", payloads[0].Package.Type)
 		assert.EqualValues(t, "org3", payloads[0].Organization.UserName)
 		assert.EqualValues(t, "v1.24.0", payloads[0].Package.Version)
+	})
+}
+
+func Test_WebhookStatus(t *testing.T) {
+	var payloads []api.CommitStatusPayload
+	var triggeredEvent string
+	provider := newMockWebhookProvider(func(content string) {
+		var payload api.CommitStatusPayload
+		err := json.Unmarshal([]byte(content), &payload)
+		assert.NoError(t, err)
+		payloads = append(payloads, payload)
+		triggeredEvent = "status"
+	})
+	defer provider.Close()
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// 1. create a new webhook with special webhook for repo1
+		session := loginUser(t, "user2")
+
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "status")
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+
+		gitRepo1, err := gitrepo.OpenRepository(context.Background(), repo1)
+		assert.NoError(t, err)
+		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
+		assert.NoError(t, err)
+
+		// 2. trigger the webhook
+		testCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
+
+		// update a status for a commit via API
+		doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
+			State:       api.CommitStatusSuccess,
+			TargetURL:   "http://test.ci/",
+			Description: "",
+			Context:     "testci",
+		})(t)
+
+		// 3. validate the webhook is triggered
+		assert.EqualValues(t, "status", triggeredEvent)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, commitID, payloads[0].Commit.ID)
+		assert.EqualValues(t, "repo1", payloads[0].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Repo.FullName)
+		assert.EqualValues(t, "testci", payloads[0].Context)
+		assert.EqualValues(t, commitID, payloads[0].SHA)
 	})
 }
