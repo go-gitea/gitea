@@ -391,6 +391,9 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 	session8 := loginUser(t, user8.LoginName)
 	token8 := getTokenForLoggedInUser(t, session8, auth_model.AccessTokenScopeWriteRepository)
 
+	// add user8 as collaborator of repo 1 otherwise he can't be as reviewer
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(db.DefaultContext, repo, user8, perm.AccessModeRead))
+
 	// user2 request user8
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers", repo.OwnerName, repo.Name, pullIssue.Index), &api.PullReviewRequestOptions{
 		Reviewers: []string{user8.LoginName},
