@@ -113,11 +113,13 @@ func (m *mockWebhookProvider) Close() {
 }
 
 func Test_WebhookCreate(t *testing.T) {
-	var payload api.CreatePayload
+	var payloads []api.CreatePayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.CreatePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = string(webhook_module.HookEventCreate)
 	})
 	defer provider.Close()
@@ -132,20 +134,23 @@ func Test_WebhookCreate(t *testing.T) {
 		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
 
 		// 3. validate the webhook is triggered
+		assert.Len(t, payloads, 1)
 		assert.EqualValues(t, string(webhook_module.HookEventCreate), triggeredEvent)
-		assert.EqualValues(t, "repo1", payload.Repo.Name)
-		assert.EqualValues(t, "user2/repo1", payload.Repo.FullName)
-		assert.EqualValues(t, "master2", payload.Ref)
-		assert.EqualValues(t, "branch", payload.RefType)
+		assert.EqualValues(t, "repo1", payloads[0].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Repo.FullName)
+		assert.EqualValues(t, "master2", payloads[0].Ref)
+		assert.EqualValues(t, "branch", payloads[0].RefType)
 	})
 }
 
 func Test_WebhookDelete(t *testing.T) {
-	var payload api.DeletePayload
+	var payloads []api.DeletePayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.DeletePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "delete"
 	})
 	defer provider.Close()
@@ -162,19 +167,22 @@ func Test_WebhookDelete(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "delete", triggeredEvent)
-		assert.EqualValues(t, "repo1", payload.Repo.Name)
-		assert.EqualValues(t, "user2/repo1", payload.Repo.FullName)
-		assert.EqualValues(t, "master2", payload.Ref)
-		assert.EqualValues(t, "branch", payload.RefType)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "repo1", payloads[0].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Repo.FullName)
+		assert.EqualValues(t, "master2", payloads[0].Ref)
+		assert.EqualValues(t, "branch", payloads[0].RefType)
 	})
 }
 
 func Test_WebhookFork(t *testing.T) {
-	var payload api.ForkPayload
+	var payloads []api.ForkPayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.ForkPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "fork"
 	})
 	defer provider.Close()
@@ -190,19 +198,22 @@ func Test_WebhookFork(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "fork", triggeredEvent)
-		assert.EqualValues(t, "repo1-fork", payload.Repo.Name)
-		assert.EqualValues(t, "user1/repo1-fork", payload.Repo.FullName)
-		assert.EqualValues(t, "repo1", payload.Forkee.Name)
-		assert.EqualValues(t, "user2/repo1", payload.Forkee.FullName)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "repo1-fork", payloads[0].Repo.Name)
+		assert.EqualValues(t, "user1/repo1-fork", payloads[0].Repo.FullName)
+		assert.EqualValues(t, "repo1", payloads[0].Forkee.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Forkee.FullName)
 	})
 }
 
 func Test_WebhookIssueComment(t *testing.T) {
-	var payload api.IssueCommentPayload
+	var payloads []api.IssueCommentPayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.IssueCommentPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "issue_comment"
 	})
 	defer provider.Close()
@@ -219,21 +230,24 @@ func Test_WebhookIssueComment(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "issue_comment", triggeredEvent)
-		assert.EqualValues(t, "created", payload.Action)
-		assert.EqualValues(t, "repo1", payload.Issue.Repo.Name)
-		assert.EqualValues(t, "user2/repo1", payload.Issue.Repo.FullName)
-		assert.EqualValues(t, "Title2", payload.Issue.Title)
-		assert.EqualValues(t, "Description2", payload.Issue.Body)
-		assert.EqualValues(t, "issue title2 comment1", payload.Comment.Body)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "created", payloads[0].Action)
+		assert.EqualValues(t, "repo1", payloads[0].Issue.Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Issue.Repo.FullName)
+		assert.EqualValues(t, "Title2", payloads[0].Issue.Title)
+		assert.EqualValues(t, "Description2", payloads[0].Issue.Body)
+		assert.EqualValues(t, "issue title2 comment1", payloads[0].Comment.Body)
 	})
 }
 
 func Test_WebhookRelease(t *testing.T) {
-	var payload api.ReleasePayload
+	var payloads []api.ReleasePayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.ReleasePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "release"
 	})
 	defer provider.Close()
@@ -249,20 +263,23 @@ func Test_WebhookRelease(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "release", triggeredEvent)
-		assert.EqualValues(t, "repo1", payload.Repository.Name)
-		assert.EqualValues(t, "user2/repo1", payload.Repository.FullName)
-		assert.EqualValues(t, "v0.0.99", payload.Release.TagName)
-		assert.False(t, payload.Release.IsDraft)
-		assert.False(t, payload.Release.IsPrerelease)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "repo1", payloads[0].Repository.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Repository.FullName)
+		assert.EqualValues(t, "v0.0.99", payloads[0].Release.TagName)
+		assert.False(t, payloads[0].Release.IsDraft)
+		assert.False(t, payloads[0].Release.IsPrerelease)
 	})
 }
 
 func Test_WebhookPush(t *testing.T) {
-	var payload api.PushPayload
+	var payloads []api.PushPayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.PushPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "push"
 	})
 	defer provider.Close()
@@ -278,19 +295,22 @@ func Test_WebhookPush(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "push", triggeredEvent)
-		assert.EqualValues(t, "repo1", payload.Repo.Name)
-		assert.EqualValues(t, "user2/repo1", payload.Repo.FullName)
-		assert.Len(t, payload.Commits, 1)
-		assert.EqualValues(t, []string{"test_webhook_push.md"}, payload.Commits[0].Added)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "repo1", payloads[0].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Repo.FullName)
+		assert.Len(t, payloads[0].Commits, 1)
+		assert.EqualValues(t, []string{"test_webhook_push.md"}, payloads[0].Commits[0].Added)
 	})
 }
 
 func Test_WebhookIssue(t *testing.T) {
-	var payload api.IssuePayload
+	var payloads []api.IssuePayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.IssuePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "issues"
 	})
 	defer provider.Close()
@@ -306,20 +326,23 @@ func Test_WebhookIssue(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "issues", triggeredEvent)
-		assert.EqualValues(t, "opened", payload.Action)
-		assert.EqualValues(t, "repo1", payload.Issue.Repo.Name)
-		assert.EqualValues(t, "user2/repo1", payload.Issue.Repo.FullName)
-		assert.EqualValues(t, "Title1", payload.Issue.Title)
-		assert.EqualValues(t, "Description1", payload.Issue.Body)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "opened", payloads[0].Action)
+		assert.EqualValues(t, "repo1", payloads[0].Issue.Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Issue.Repo.FullName)
+		assert.EqualValues(t, "Title1", payloads[0].Issue.Title)
+		assert.EqualValues(t, "Description1", payloads[0].Issue.Body)
 	})
 }
 
 func Test_WebhookPullRequest(t *testing.T) {
-	var payload api.PullRequestPayload
+	var payloads []api.PullRequestPayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.PullRequestPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "pull_request"
 	})
 	defer provider.Close()
@@ -337,20 +360,23 @@ func Test_WebhookPullRequest(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "pull_request", triggeredEvent)
-		assert.EqualValues(t, "repo1", payload.PullRequest.Base.Repository.Name)
-		assert.EqualValues(t, "user2/repo1", payload.PullRequest.Base.Repository.FullName)
-		assert.EqualValues(t, "repo1", payload.PullRequest.Head.Repository.Name)
-		assert.EqualValues(t, "user2/repo1", payload.PullRequest.Head.Repository.FullName)
-		assert.EqualValues(t, 0, payload.PullRequest.Additions)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "repo1", payloads[0].PullRequest.Base.Repository.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].PullRequest.Base.Repository.FullName)
+		assert.EqualValues(t, "repo1", payloads[0].PullRequest.Head.Repository.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].PullRequest.Head.Repository.FullName)
+		assert.EqualValues(t, 0, payloads[0].PullRequest.Additions)
 	})
 }
 
 func Test_WebhookWiki(t *testing.T) {
-	var payload api.WikiPayload
+	var payloads []api.WikiPayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.WikiPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "wiki"
 	})
 	defer provider.Close()
@@ -366,19 +392,22 @@ func Test_WebhookWiki(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "wiki", triggeredEvent)
-		assert.EqualValues(t, "created", payload.Action)
-		assert.EqualValues(t, "created", payload.Repository.Name)
-		assert.EqualValues(t, "user2/repo1", payload.Repository.FullName)
-		assert.EqualValues(t, "Test Wiki Page", payload.Page)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "created", payloads[0].Action)
+		assert.EqualValues(t, "repo1", payloads[0].Repository.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Repository.FullName)
+		assert.EqualValues(t, "Test-Wiki-Page", payloads[0].Page)
 	})
 }
 
 func Test_WebhookRepository(t *testing.T) {
-	var payload api.RepositoryPayload
+	var payloads []api.RepositoryPayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.RepositoryPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "repository"
 	})
 	defer provider.Close()
@@ -394,19 +423,22 @@ func Test_WebhookRepository(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "repository", triggeredEvent)
-		assert.EqualValues(t, "created", payload.Action)
-		assert.EqualValues(t, "org3", payload.Organization.UserName)
-		assert.EqualValues(t, "repo_new", payload.Repository.Name)
-		assert.EqualValues(t, "org3/repo_new", payload.Repository.FullName)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "created", payloads[0].Action)
+		assert.EqualValues(t, "org3", payloads[0].Organization.UserName)
+		assert.EqualValues(t, "repo_new", payloads[0].Repository.Name)
+		assert.EqualValues(t, "org3/repo_new", payloads[0].Repository.FullName)
 	})
 }
 
 func Test_WebhookPackage(t *testing.T) {
-	var payload api.PackagePayload
+	var payloads []api.PackagePayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(content string) {
+		var payload api.PackagePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
+		payloads = append(payloads, payload)
 		triggeredEvent = "package"
 	})
 	defer provider.Close()
@@ -426,10 +458,11 @@ func Test_WebhookPackage(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "package", triggeredEvent)
-		assert.EqualValues(t, "created", payload.Action)
-		assert.EqualValues(t, "gitea", payload.Package.Name)
-		assert.EqualValues(t, "generic", payload.Package.Type)
-		assert.EqualValues(t, "org3", payload.Organization.UserName)
-		assert.EqualValues(t, "v1.24.0", payload.Package.Version)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "created", payloads[0].Action)
+		assert.EqualValues(t, "gitea", payloads[0].Package.Name)
+		assert.EqualValues(t, "generic", payloads[0].Package.Type)
+		assert.EqualValues(t, "org3", payloads[0].Organization.UserName)
+		assert.EqualValues(t, "v1.24.0", payloads[0].Package.Version)
 	})
 }
