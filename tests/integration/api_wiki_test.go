@@ -182,7 +182,7 @@ func testAPICreateWikiPage(t *testing.T, session *TestSession, userName, repoNam
 		ContentBase64: base64.StdEncoding.EncodeToString([]byte("Wiki page content for API unit tests")),
 		Message:       "",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
+	MakeRequest(t, req, status)
 }
 
 func TestAPINewWikiPage(t *testing.T) {
