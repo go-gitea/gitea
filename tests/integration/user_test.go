@@ -169,8 +169,7 @@ C0TLXKur6NVYQMn01iyL+FZzRpEWNuYF3f9QeeLJ/+l2DafESNhNTy17+RPmacK6
 7XhJ1v6JYuh8kaYaEz8OpZDeh7f6Ho6PzJrsy/TKTKhGgZNINj1iaPFyOkQgKR5M
 GrE0MHOxUbc9tbtyk0F1SuzREUBH
 =DDXw
------END PGP PUBLIC KEY BLOCK-----
-`)
+-----END PGP PUBLIC KEY BLOCK-----`)
 	// Export new key
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -201,8 +200,7 @@ C0TLXKur6NVYQMn01iyL+FZzRpEWNuYF3f9QeeLJ/+l2DafESNhNTy17+RPmacK6
 7XhJ1v6JYuh8kaYaEz8OpZDeh7f6Ho6PzJrsy/TKTKhGgZNINj1iaPFyOkQgKR5M
 GrE0MHOxUbc9tbtyk0F1SuzREUBH
 =WFf5
------END PGP PUBLIC KEY BLOCK-----
-`)
+-----END PGP PUBLIC KEY BLOCK-----`)
 }
 
 func testExportUserGPGKeys(t *testing.T, user, expected string) {
