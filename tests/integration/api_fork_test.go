@@ -82,8 +82,8 @@ func TestAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 		var forks []*api.Repository
 		DecodeJSON(t, resp, &forks)
 
-		assert.Len(t, forks, 1)
-		assert.EqualValues(t, "1", resp.Header().Get("X-Total-Count"))
+		assert.Len(t, forks, 2)
+		assert.EqualValues(t, "2", resp.Header().Get("X-Total-Count"))
 
 		assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
 
