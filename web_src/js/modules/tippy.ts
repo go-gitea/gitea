@@ -47,6 +47,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     role: role || 'menu',
     // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
     theme: theme || role || 'default',
+    offset: [0, arrow ? 10 : 6],
     plugins: [followCursor],
     ...other,
   } satisfies Partial<Props>);

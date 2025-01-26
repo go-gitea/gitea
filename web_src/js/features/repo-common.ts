@@ -100,7 +100,6 @@ function initClonePanelButton(btn: HTMLButtonElement) {
     interactive: true,
     hideOnClick: true,
     arrow: false,
-    offset: [0, 6],
   });
 }
 
