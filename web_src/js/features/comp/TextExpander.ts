@@ -65,6 +65,7 @@ export function initTextExpander(expander: TextExpanderElement) {
     // To reproduce, comment out the "shouldShowIssueSuggestions" check, use the "await sleep" below,
     // then use content "close #20\nclose #20\close #20", keep changing the last line `#20` part from the end (including removing the `#`)
     // There will be a JS error: Uncaught (in promise) IndexSizeError: Failed to execute 'setStart' on 'Range': The offset 28 is larger than the node's length (27).
+
     // check the input before the request, to avoid emitting empty query to backend (still related to the upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     // await sleep(Math.random() * 1000); // help to reproduce the text-expander bug
