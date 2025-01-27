@@ -120,7 +120,6 @@ export default {
     'csstools/value-no-unknown-custom-properties': [true, {importFrom: cssVarFiles}],
     'declaration-block-no-duplicate-properties': [true, {ignore: ['consecutive-duplicates-with-different-values']}],
     'declaration-block-no-redundant-longhand-properties': [true, {ignoreShorthands: ['flex-flow', 'overflow', 'grid-template']}],
-    'declaration-block-no-shorthand-property-overrides': true,
     'declaration-property-unit-disallowed-list': {'line-height': ['em']},
     'declaration-property-value-disallowed-list': {'word-break': ['break-word']},
     'font-family-name-quotes': 'always-where-recommended',
