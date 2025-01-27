@@ -480,7 +480,6 @@ type PackagePayload struct {
 	Action       HookPackageAction `json:"action"`
 	Repository   *Repository       `json:"repository"`
 	Package      *Package          `json:"package"`
-	Status       *CommitStatus     `json:"status"`
 	Organization *User             `json:"organization"`
 	Sender       *User             `json:"sender"`
 }
