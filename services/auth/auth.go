@@ -26,13 +26,17 @@ type globalVarsStruct struct {
 	gitRawOrAttachPathRe *regexp.Regexp
 	lfsPathRe            *regexp.Regexp
 	archivePathRe        *regexp.Regexp
+	feedPathRe           *regexp.Regexp
+	feedRefPathRe        *regexp.Regexp
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
 	return &globalVarsStruct{
-		gitRawOrAttachPathRe: regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/)|(?:attachments/))`),
-		lfsPathRe:            regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`),
-		archivePathRe:        regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/archive/`),
+		gitRawOrAttachPathRe: regexp.MustCompile(`^/[-.\w]+/[-.\w]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/)|(?:attachments/))`),
+		lfsPathRe:            regexp.MustCompile(`^/[-.\w]+/[-.\w]+/info/lfs/`),
+		archivePathRe:        regexp.MustCompile(`^/[-.\w]+/[-.\w]+/archive/`),
+		feedPathRe:           regexp.MustCompile(`^/[-.\w]+(/[-.\w]+)?\.(rss|atom)$`), // "/owner.rss" or "/owner/repo.atom"
+		feedRefPathRe:        regexp.MustCompile(`^/[-.\w]+/[-.\w]+/(rss|atom)/`),     // "/owner/repo/rss/branch/..."
 	}
 })
 
@@ -59,6 +63,16 @@ func (a *authPathDetector) isAPIPath() bool {
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func (a *authPathDetector) isAttachmentDownload() bool {
 	return strings.HasPrefix(a.req.URL.Path, "/attachments/") && a.req.Method == "GET"
+}
+
+func (a *authPathDetector) isFeedRequest(req *http.Request) bool {
+	if !setting.Other.EnableFeed {
+		return false
+	}
+	if req.Method != "GET" {
+		return false
+	}
+	return a.vars.feedPathRe.MatchString(req.URL.Path) || a.vars.feedRefPathRe.MatchString(req.URL.Path)
 }
 
 // isContainerPath checks if the request targets the container endpoint
