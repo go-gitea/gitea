@@ -106,6 +106,7 @@
     "stylelint-config-recommended": "15.0.0",
     "stylelint-declaration-block-no-ignored-properties": "2.8.0",
     "stylelint-declaration-strict-value": "1.10.7",
+    "stylelint-define-config": "16.14.0",
     "stylelint-value-no-unknown-custom-properties": "6.0.1",
     "svgo": "3.3.2",
     "type-fest": "4.33.0",

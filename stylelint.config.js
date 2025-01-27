@@ -1,3 +1,5 @@
+// @ts-check
+import {defineConfig} from 'stylelint-define-config';
 import {fileURLToPath} from 'node:url';
 
 const cssVarFiles = [
@@ -6,8 +8,7 @@ const cssVarFiles = [
   fileURLToPath(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url)),
 ];
 
-/** @type {import('stylelint').Config} */
-export default {
+export default defineConfig({
   extends: 'stylelint-config-recommended',
   plugins: [
     'stylelint-declaration-strict-value',
@@ -120,13 +121,15 @@ export default {
     'csstools/value-no-unknown-custom-properties': [true, {importFrom: cssVarFiles}],
     'declaration-block-no-duplicate-properties': [true, {ignore: ['consecutive-duplicates-with-different-values']}],
     'declaration-block-no-redundant-longhand-properties': [true, {ignoreShorthands: ['flex-flow', 'overflow', 'grid-template']}],
+    // @ts-expect-error - https://github.com/stylelint-types/stylelint-define-config/issues/1
     'declaration-property-unit-disallowed-list': {'line-height': ['em']},
+    // @ts-expect-error - https://github.com/stylelint-types/stylelint-define-config/issues/1
     'declaration-property-value-disallowed-list': {'word-break': ['break-word']},
     'font-family-name-quotes': 'always-where-recommended',
     'function-name-case': 'lower',
     'function-url-quotes': 'always',
     'import-notation': 'string',
-    'length-zero-no-unit': [true, {ignore: ['custom-properties']}, {ignoreFunctions: ['var']}],
+    'length-zero-no-unit': [true, {ignore: ['custom-properties'], ignoreFunctions: ['var']}],
     'media-feature-name-no-vendor-prefix': true,
     'no-descending-specificity': null,
     'no-invalid-position-at-import-rule': [true, {ignoreAtRules: ['tailwind']}],
@@ -143,4 +146,4 @@ export default {
     'shorthand-property-no-redundant-values': true,
     'value-no-vendor-prefix': [true, {ignoreValues: ['box', 'inline-box']}],
   },
-};
+});
