@@ -78,6 +78,7 @@ export default {
     '@stylistic/media-feature-colon-space-after': null,
     '@stylistic/media-feature-colon-space-before': 'never',
     '@stylistic/media-feature-name-case': null,
+    '@stylistic/media-feature-name-no-vendor-prefix': true,
     '@stylistic/media-feature-parentheses-space-inside': null,
     '@stylistic/media-feature-range-operator-space-after': 'always',
     '@stylistic/media-feature-range-operator-space-before': 'always',
