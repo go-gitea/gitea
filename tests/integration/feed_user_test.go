@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"encoding/xml"
 	"net/http"
 	"testing"
 
@@ -12,7 +13,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFeed(t *testing.T) {
+// RSS is a struct to unmarshal RSS feeds test only
+type RSS struct {
+	Channel struct {
+		Title       string `xml:"title"`
+		Link        string `xml:"link"`
+		Description string `xml:"description"`
+		PubDate     string `xml:"pubDate"`
+		Items       []struct {
+			Title       string `xml:"title"`
+			Link        string `xml:"link"`
+			Description string `xml:"description"`
+			PubDate     string `xml:"pubDate"`
+		} `xml:"item"`
+	} `xml:"channel"`
+}
+
+func TestFeedUser(t *testing.T) {
 	t.Run("User", func(t *testing.T) {
 		t.Run("Atom", func(t *testing.T) {
 			defer tests.PrepareTestEnv(t)()
@@ -32,6 +49,12 @@ func TestFeed(t *testing.T) {
 
 			data := resp.Body.String()
 			assert.Contains(t, data, `<rss version="2.0"`)
+
+			var rss RSS
+			err := xml.Unmarshal(resp.Body.Bytes(), &rss)
+			assert.NoError(t, err)
+			assert.Contains(t, rss.Channel.Link, "/user2")
+			assert.NotEmpty(t, rss.Channel.PubDate)
 		})
 	})
 }
