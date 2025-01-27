@@ -1630,7 +1630,7 @@ td .commit-summary {
 }
 
 .repo-button-row-left {
-  flex: 1;
+  flex-grow: 1;
 }
 
 .repo-button-row .button {
