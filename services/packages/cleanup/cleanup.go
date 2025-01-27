@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package container
+package cleanup
 
 import (
 	"context"
@@ -20,6 +20,7 @@ import (
 	cargo_service "code.gitea.io/gitea/services/packages/cargo"
 	container_service "code.gitea.io/gitea/services/packages/container"
 	debian_service "code.gitea.io/gitea/services/packages/debian"
+	maven_service "code.gitea.io/gitea/services/packages/maven"
 	rpm_service "code.gitea.io/gitea/services/packages/rpm"
 )
 
@@ -163,6 +164,10 @@ func CleanupExpiredData(outerCtx context.Context, olderThan time.Duration) error
 	defer committer.Close()
 
 	if err := container_service.Cleanup(ctx, olderThan); err != nil {
+		return err
+	}
+
+	if err := maven_service.CleanupSnapshotVersions(ctx); err != nil {
 		return err
 	}
 
