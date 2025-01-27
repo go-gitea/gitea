@@ -226,3 +226,26 @@ func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 		}
 	})
 }
+
+func TestAPIOrgRename(t *testing.T) {
+	onGiteaRun(t, func(*testing.T, *url.URL) {
+		token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteOrganization)
+		orgName := "org_to_rename"
+		newOrgName := "renamed_org"
+
+		// create org
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &api.CreateOrgOption{
+			UserName: orgName,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequestWithJSON(t, "POST", "/api/v1/orgs/org_to_rename/rename", &api.RenameOrgOption{
+			NewName: newOrgName,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		unittest.AssertExistsAndLoadBean(t, &org_model.Organization{
+			Name: newOrgName,
+		})
+	})
+}

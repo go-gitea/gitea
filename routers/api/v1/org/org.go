@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
@@ -343,6 +344,8 @@ func Rename(ctx *context.APIContext) {
 	org := ctx.Org.Organization
 	form := web.GetForm(ctx).(*api.RenameOrgOption)
 
+	oldName := org.AsUser().Name
+
 	if err := user_service.RenameUser(ctx, org.AsUser(), form.NewName); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", ctx.Tr("form.username_been_taken"))
@@ -353,6 +356,9 @@ func Rename(ctx *context.APIContext) {
 		} else {
 			ctx.ServerError("RenameOrg", err)
 		}
+	} else {
+		log.Trace("Org name changed: %s -> %s", oldName, form.NewName)
+		ctx.Status(http.StatusNoContent)
 	}
 }
 
