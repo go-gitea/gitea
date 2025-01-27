@@ -114,7 +114,7 @@ func Test_WebhookCreate(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.CreatePayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = string(webhook_module.HookEventCreate)
@@ -146,7 +146,7 @@ func Test_WebhookDelete(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.DeletePayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "delete"
@@ -179,7 +179,7 @@ func Test_WebhookFork(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.ForkPayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "fork"
@@ -211,7 +211,7 @@ func Test_WebhookIssueComment(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.IssueCommentPayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "issue_comment"
@@ -246,7 +246,7 @@ func Test_WebhookRelease(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.ReleasePayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "release"
@@ -279,7 +279,7 @@ func Test_WebhookPush(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.PushPayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "push"
@@ -311,7 +311,7 @@ func Test_WebhookIssue(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.IssuePayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "issues"
@@ -344,7 +344,7 @@ func Test_WebhookPullRequest(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.PullRequestPayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "pull_request"
@@ -379,7 +379,7 @@ func Test_WebhookPullRequestComment(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.IssueCommentPayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "pull_request_comment"
@@ -417,7 +417,7 @@ func Test_WebhookWiki(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.WikiPayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "wiki"
@@ -449,7 +449,7 @@ func Test_WebhookRepository(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.RepositoryPayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "repository"
@@ -481,7 +481,7 @@ func Test_WebhookPackage(t *testing.T) {
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		content, _ := io.ReadAll(r.Body)
 		var payload api.PackagePayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "package"
@@ -521,7 +521,7 @@ func Test_WebhookStatus(t *testing.T) {
 		assert.Contains(t, r.Header["X-Gogs-Event-Type"], "status", "X-Gogs-Event-Type should contain status")
 		content, _ := io.ReadAll(r.Body)
 		var payload api.CommitStatusPayload
-		err := json.Unmarshal([]byte(content), &payload)
+		err := json.Unmarshal(content, &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "status"
