@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -464,9 +463,8 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhit
 		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// Check if master branch has been locked successfully
-		flashCookie := ctx.Session.GetCookie(gitea_context.CookieNameFlash)
-		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2522"+url.QueryEscape(branch)+"%2522%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+		flashMsg := ctx.Session.GetCookieFlashMessage()
+		assert.EqualValues(t, `Branch protection for rule "`+branch+`" has been updated.`, flashMsg.SuccessMsg)
 	}
 }
 

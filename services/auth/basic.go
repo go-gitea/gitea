@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // Ensure the struct implements the interface.
@@ -49,7 +48,8 @@ func (b *Basic) Name() string {
 // Returns nil if header is empty or validation fails.
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if !middleware.IsAPIPath(req) && !isContainerPath(req) && !isAttachmentDownload(req) && !isGitRawOrAttachOrLFSPath(req) {
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isContainerPath() && !detector.isAttachmentDownload() && !detector.isGitRawOrAttachOrLFSPath() {
 		return nil, nil
 	}
 

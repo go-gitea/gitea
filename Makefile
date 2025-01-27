@@ -26,9 +26,9 @@ COMMA := ,
 XGO_VERSION := go-1.23.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.0.3
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.1.2
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.7.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.6.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
@@ -36,7 +36,7 @@ XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
-GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.17.0
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.17.1
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest

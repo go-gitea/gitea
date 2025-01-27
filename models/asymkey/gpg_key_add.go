@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/keybase/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp"
 )
 
 //   __________________  ________   ____  __.
@@ -83,12 +83,12 @@ func AddGPGKey(ctx context.Context, ownerID int64, content, token, signature str
 	verified := false
 	// Handle provided signature
 	if signature != "" {
-		signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature))
+		signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature), nil)
 		if err != nil {
-			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\n"), strings.NewReader(signature))
+			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\n"), strings.NewReader(signature), nil)
 		}
 		if err != nil {
-			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature))
+			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature), nil)
 		}
 		if err != nil {
 			log.Error("Unable to validate token signature. Error: %v", err)
