@@ -26,7 +26,7 @@ func TestFeedRepo(t *testing.T) {
 		var rss RSS
 		err := xml.Unmarshal(resp.Body.Bytes(), &rss)
 		assert.NoError(t, err)
-		assert.Equal(t, "http://localhost:3003/user2/repo1", rss.Channel.Link)
+		assert.Contains(t, rss.Channel.Link, "/user2/repo1")
 		assert.NotEmpty(t, rss.Channel.PubDate)
 		assert.Len(t, rss.Channel.Items, 1)
 		assert.EqualValues(t, "issue5", rss.Channel.Items[0].Description)

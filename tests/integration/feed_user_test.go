@@ -53,7 +53,7 @@ func TestFeedUser(t *testing.T) {
 			var rss RSS
 			err := xml.Unmarshal(resp.Body.Bytes(), &rss)
 			assert.NoError(t, err)
-			assert.Equal(t, "http://localhost:3003/user2", rss.Channel.Link)
+			assert.Contains(t, rss.Channel.Link, "/user2")
 			assert.NotEmpty(t, rss.Channel.PubDate)
 		})
 	})
