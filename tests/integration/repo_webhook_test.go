@@ -373,6 +373,44 @@ func Test_WebhookPullRequest(t *testing.T) {
 	})
 }
 
+func Test_WebhookPullRequestComment(t *testing.T) {
+	var payloads []api.IssueCommentPayload
+	var triggeredEvent string
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
+		var payload api.IssueCommentPayload
+		err := json.Unmarshal([]byte(content), &payload)
+		assert.NoError(t, err)
+		payloads = append(payloads, payload)
+		triggeredEvent = "pull_request_comment"
+	}, http.StatusOK)
+	defer provider.Close()
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// 1. create a new webhook with special webhook for repo1
+		session := loginUser(t, "user2")
+
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "pull_request_comment")
+
+		// 2. trigger the webhook
+		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+		prID := testCreatePullToDefaultBranch(t, session, repo1, repo1, "master2", "first pull request")
+
+		testIssueAddComment(t, session, "/user2/repo1/pulls/"+prID, "pull title2 comment1", "")
+
+		// 3. validate the webhook is triggered
+		assert.EqualValues(t, "pull_request_comment", triggeredEvent)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "created", payloads[0].Action)
+		assert.EqualValues(t, "repo1", payloads[0].Issue.Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Issue.Repo.FullName)
+		assert.EqualValues(t, "first pull request", payloads[0].Issue.Title)
+		assert.EqualValues(t, "", payloads[0].Issue.Body)
+		assert.EqualValues(t, "pull title2 comment1", payloads[0].Comment.Body)
+	})
+}
+
 func Test_WebhookWiki(t *testing.T) {
 	var payloads []api.WikiPayload
 	var triggeredEvent string
