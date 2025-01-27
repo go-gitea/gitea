@@ -43,6 +43,7 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 			},
 			Description: commit.Message(),
 			Content:     commit.Message(),
+			Created:     commit.Committer.When,
 		})
 	}
 
