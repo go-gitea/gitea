@@ -411,9 +411,9 @@ func TestParseGPGKey(t *testing.T) {
 
 	// create a key for test email
 	e, err := openpgp.NewEntity("name", "comment", "email1@example.com", nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	k, err := parseGPGKey(db.DefaultContext, 1, e, true)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotEmpty(t, k.KeyID)
 	assert.NotEmpty(t, k.Emails) // the key is valid, matches the email
 
@@ -422,7 +422,7 @@ func TestParseGPGKey(t *testing.T) {
 		id.Revocations = append(id.Revocations, &packet.Signature{RevocationReason: util.ToPointer(packet.KeyCompromised)})
 	}
 	k, err = parseGPGKey(db.DefaultContext, 1, e, true)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotEmpty(t, k.KeyID)
 	assert.Empty(t, k.Emails) // the key is revoked, matches no email
 }
