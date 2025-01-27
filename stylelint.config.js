@@ -127,7 +127,6 @@ export default {
     'function-url-quotes': 'always',
     'import-notation': 'string',
     'length-zero-no-unit': [true, {ignore: ['custom-properties']}, {ignoreFunctions: ['var']}],
-    'max-nesting-depth': null,
     'no-descending-specificity': null,
     'no-invalid-position-at-import-rule': [true, {ignoreAtRules: ['tailwind']}],
     'no-unknown-animations': null, // disabled until stylelint supports multi-file linting
