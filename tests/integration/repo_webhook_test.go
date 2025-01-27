@@ -84,17 +84,11 @@ type mockWebhookProvider struct {
 	server *httptest.Server
 }
 
-func newMockWebhookProvider(callback func(content string)) *mockWebhookProvider {
+func newMockWebhookProvider(callback func(r *http.Request), status int) *mockWebhookProvider {
 	m := &mockWebhookProvider{}
 	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bs, err := io.ReadAll(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		callback(string(bs))
-		w.WriteHeader(http.StatusOK)
+		callback(r)
+		w.WriteHeader(status)
 	}))
 	return m
 }
@@ -117,13 +111,14 @@ func (m *mockWebhookProvider) Close() {
 func Test_WebhookCreate(t *testing.T) {
 	var payloads []api.CreatePayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.CreatePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = string(webhook_module.HookEventCreate)
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -148,13 +143,14 @@ func Test_WebhookCreate(t *testing.T) {
 func Test_WebhookDelete(t *testing.T) {
 	var payloads []api.DeletePayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.DeletePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "delete"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -180,13 +176,14 @@ func Test_WebhookDelete(t *testing.T) {
 func Test_WebhookFork(t *testing.T) {
 	var payloads []api.ForkPayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.ForkPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "fork"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -211,13 +208,14 @@ func Test_WebhookFork(t *testing.T) {
 func Test_WebhookIssueComment(t *testing.T) {
 	var payloads []api.IssueCommentPayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.IssueCommentPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "issue_comment"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -245,13 +243,14 @@ func Test_WebhookIssueComment(t *testing.T) {
 func Test_WebhookRelease(t *testing.T) {
 	var payloads []api.ReleasePayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.ReleasePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "release"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -277,13 +276,14 @@ func Test_WebhookRelease(t *testing.T) {
 func Test_WebhookPush(t *testing.T) {
 	var payloads []api.PushPayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.PushPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "push"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -308,13 +308,14 @@ func Test_WebhookPush(t *testing.T) {
 func Test_WebhookIssue(t *testing.T) {
 	var payloads []api.IssuePayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.IssuePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "issues"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -340,13 +341,14 @@ func Test_WebhookIssue(t *testing.T) {
 func Test_WebhookPullRequest(t *testing.T) {
 	var payloads []api.PullRequestPayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.PullRequestPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "pull_request"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -374,13 +376,14 @@ func Test_WebhookPullRequest(t *testing.T) {
 func Test_WebhookWiki(t *testing.T) {
 	var payloads []api.WikiPayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.WikiPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "wiki"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -405,13 +408,14 @@ func Test_WebhookWiki(t *testing.T) {
 func Test_WebhookRepository(t *testing.T) {
 	var payloads []api.RepositoryPayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.RepositoryPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "repository"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -436,13 +440,14 @@ func Test_WebhookRepository(t *testing.T) {
 func Test_WebhookPackage(t *testing.T) {
 	var payloads []api.PackagePayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
 		var payload api.PackagePayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "package"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
@@ -472,13 +477,17 @@ func Test_WebhookPackage(t *testing.T) {
 func Test_WebhookStatus(t *testing.T) {
 	var payloads []api.CommitStatusPayload
 	var triggeredEvent string
-	provider := newMockWebhookProvider(func(content string) {
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		assert.Contains(t, r.Header["X-Github-Event-Type"], "status", "X-GitHub-Event-Type should contain status")
+		assert.Contains(t, r.Header["X-Gitea-Event-Type"], "status", "X-Gitea-Event-Type should contain status")
+		assert.Contains(t, r.Header["X-Gogs-Event-Type"], "status", "X-Gogs-Event-Type should contain status")
+		content, _ := io.ReadAll(r.Body)
 		var payload api.CommitStatusPayload
 		err := json.Unmarshal([]byte(content), &payload)
 		assert.NoError(t, err)
 		payloads = append(payloads, payload)
 		triggeredEvent = "status"
-	})
+	}, http.StatusOK)
 	defer provider.Close()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
