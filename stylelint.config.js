@@ -78,7 +78,6 @@ export default {
     '@stylistic/media-feature-colon-space-after': null,
     '@stylistic/media-feature-colon-space-before': 'never',
     '@stylistic/media-feature-name-case': null,
-    '@stylistic/media-feature-name-no-vendor-prefix': true,
     '@stylistic/media-feature-parentheses-space-inside': null,
     '@stylistic/media-feature-range-operator-space-after': 'always',
     '@stylistic/media-feature-range-operator-space-before': 'always',
@@ -128,6 +127,7 @@ export default {
     'function-url-quotes': 'always',
     'import-notation': 'string',
     'length-zero-no-unit': [true, {ignore: ['custom-properties']}, {ignoreFunctions: ['var']}],
+    'media-feature-name-no-vendor-prefix': true,
     'no-descending-specificity': null,
     'no-invalid-position-at-import-rule': [true, {ignoreAtRules: ['tailwind']}],
     'no-unknown-animations': null, // disabled until stylelint supports multi-file linting
