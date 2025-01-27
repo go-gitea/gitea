@@ -44,10 +44,12 @@ var (
 		LimitSizeSwift       int64
 		LimitSizeVagrant     int64
 
-		DefaultRPMSignEnabled bool
+		DefaultRPMSignEnabled     bool
+		RetainMavenSnapshotBuilds int
 	}{
-		Enabled:              true,
-		LimitTotalOwnerCount: -1,
+		Enabled:                   true,
+		LimitTotalOwnerCount:      -1,
+		RetainMavenSnapshotBuilds: -1,
 	}
 )
 
@@ -101,7 +103,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
 	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
-	Packages.DefaultRPMSignEnabled = sec.Key("DEFAULT_RPM_SIGN_ENABLED").MustBool(false)
+	Packages.RetainMavenSnapshotBuilds = sec.Key("RETAIN_MAVEN_SNAPSHOT_BUILDS").MustInt(Packages.RetainMavenSnapshotBuilds)
 	return nil
 }
 

@@ -5,11 +5,14 @@ package packages
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -224,6 +227,62 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 // HasFiles tests if there are files of packages matching the search options
 func HasFiles(ctx context.Context, opts *PackageFileSearchOptions) (bool, error) {
 	return db.Exist[PackageFile](ctx, opts.toConds())
+}
+
+// GetFilesByBuildNumber retrieves all files for a package version with build numbers <= maxBuildNumber.
+func GetFilesByBuildNumber(ctx context.Context, versionID int64, maxBuildNumber int) ([]*PackageFile, error) {
+	if maxBuildNumber < 0 {
+		return nil, errors.New("maxBuildNumber must be a non-negative integer")
+	}
+
+	files, err := GetFilesByVersionID(ctx, versionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve files: %w", err)
+	}
+
+	var filteredFiles []*PackageFile
+	for _, file := range files {
+		buildNumber, err := extractBuildNumberFromFileName(file.Name)
+		if err != nil {
+			if err.Error() == "metadata file" {
+				continue
+			}
+			log.Warn("Failed to extract build number from file name '%s': %v", file.Name, err)
+			continue
+		}
+
+		if buildNumber <= maxBuildNumber {
+			filteredFiles = append(filteredFiles, file)
+		}
+	}
+
+	log.Info("Filtered %d files out of %d total files for version ID %d with maxBuildNumber %d", len(filteredFiles), len(files), versionID, maxBuildNumber)
+	return filteredFiles, nil
+}
+
+// extractBuildNumberFromFileName extracts the build number from the file name.
+func extractBuildNumberFromFileName(filename string) (int, error) {
+	// Skip metadata files
+	if strings.Contains(filename, "maven-metadata.xml") {
+		return 0, errors.New("metadata file")
+	}
+
+	// Split filename by hyphens to extract the build number
+	parts := strings.Split(filename, "-")
+	if len(parts) < 3 {
+		return 0, fmt.Errorf("invalid file name format: '%s'", filename)
+	}
+
+	// Extract the last part before the extension
+	buildNumberWithExt := parts[len(parts)-1]
+	buildNumberStr := strings.Split(buildNumberWithExt, ".")[0]
+
+	buildNumber, err := strconv.Atoi(buildNumberStr)
+	if err != nil {
+		return 0, fmt.Errorf("failed to convert build number to integer: '%s'", buildNumberStr)
+	}
+
+	return buildNumber, nil
 }
 
 // CalculateFileSize sums up all blob sizes matching the search options.
