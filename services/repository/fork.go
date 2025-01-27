@@ -258,9 +258,11 @@ type findForksOptions struct {
 }
 
 func (opts findForksOptions) ToConds() builder.Cond {
-	return builder.Eq{"fork_id": opts.RepoID}.And(
-		repo_model.AccessibleRepositoryCondition(opts.Doer, unit.TypeInvalid),
-	)
+	cond := builder.Eq{"fork_id": opts.RepoID}
+	if opts.Doer != nil && opts.Doer.IsAdmin {
+		return cond
+	}
+	return cond.And(repo_model.AccessibleRepositoryCondition(opts.Doer, unit.TypeInvalid))
 }
 
 // FindForks returns all the forks of the repository
