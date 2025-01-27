@@ -42,6 +42,7 @@
     "htmx.org": "2.0.4",
     "idiomorph": "0.3.0",
     "jquery": "3.7.1",
+    "js-beautify": "1.15.1",
     "katex": "0.16.18",
     "license-checker-webpack-plugin": "0.2.1",
     "mermaid": "11.4.1",

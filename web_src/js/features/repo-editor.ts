@@ -17,6 +17,7 @@ import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
+import beautify from 'js-beautify';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
   const elTabMenu = elForm.querySelector('.repo-editor-menu');
@@ -79,7 +80,7 @@ export function initRepoEditor() {
   });
 
   createApp(RichTextEditorFixedMenu, {
-    editor: editor,
+    editor,
     enableLink: true,
     enableUnderline: true,
     enableCheckList: false,
@@ -87,7 +88,11 @@ export function initRepoEditor() {
   }).mount(fixedMenu);
 
   const onUpdate = () => {
-    editArea.value = JSON.stringify(editor.getJSON());
+    const options = {};
+    const formatedHTMl = beautify.html(editor.getHTML(), options);
+    // console.log('EDITED TEXT');
+    // console.log(formatedHTMl);
+    editArea.value = formatedHTMl;
   };
 
   editor.on('update', onUpdate);

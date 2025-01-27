@@ -2,6 +2,9 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+// TODO!: This is where gitdiff's are generated. If it is possible to make a nicely formated
+//        .pdoc these data structure and functions may be helpful.
+
 package gitdiff
 
 import (
