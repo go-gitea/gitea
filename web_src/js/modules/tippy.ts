@@ -42,16 +42,17 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       visibleInstances.add(instance);
       return onShow?.(instance);
     },
-    arrow: arrow || (theme === 'bare' ? false : arrowSvg),
+    arrow: arrow ?? (theme === 'bare' ? false : arrowSvg),
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
     // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
     theme: theme || role || 'default',
+    offset: [0, arrow ? 10 : 6],
     plugins: [followCursor],
     ...other,
   } satisfies Partial<Props>);
 
-  if (role === 'menu') {
+  if (instance.props.role === 'menu') {
     target.setAttribute('aria-haspopup', 'true');
   }
 
