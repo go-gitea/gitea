@@ -155,7 +155,6 @@ function toggleLink() {
             <button
               type="button"
               @click="editor.chain().focus().setTextAlign('left').run()"
-              :disabled="!editor.can().chain().focus().setTextAlign('left').run()"
               :class="{'is-active': editor.isActive({ textAlign: 'left' })}"
             >
               <svg-icon name="remix-align-left"/>
@@ -163,7 +162,6 @@ function toggleLink() {
             <button
               type="button"
               @click="editor.chain().focus().setTextAlign('center').run()"
-              :disabled="!editor.can().chain().focus().setTextAlign('center').run()"
               :class="{'is-active': editor.isActive({ textAlign: 'center' })}"
             >
               <svg-icon name="remix-align-center"/>
@@ -171,7 +169,6 @@ function toggleLink() {
             <button
               type="button"
               @click="editor.chain().focus().setTextAlign('right').run()"
-              :disabled="!editor.can().chain().focus().setTextAlign('right').run()"
               :class="{'is-active': editor.isActive({ textAlign: 'right' })}"
             >
               <svg-icon name="remix-align-right"/>
@@ -179,7 +176,6 @@ function toggleLink() {
             <button
               type="button"
               @click="editor.chain().focus().setTextAlign('justify').run()"
-              :disabled="!editor.can().chain().focus().setTextAlign('justify').run()"
               :class="{'is-active': editor.isActive({ textAlign: 'justify' })}"
             >
               <svg-icon name="remix-align-justify"/>

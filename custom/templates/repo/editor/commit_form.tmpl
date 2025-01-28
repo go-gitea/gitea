@@ -14,12 +14,14 @@
 		<div class="field">
 			<textarea name="commit_message" placeholder="{{ctx.Locale.Tr "repo.editor.commit_message_desc"}}" rows="5">{{.commit_message}}</textarea>
 		</div>
+    {{if .IsAdmin}}
 		<div class="inline field">
 			<div class="ui checkbox">
 				<input name="signoff" type="checkbox">
 				<label>{{ctx.Locale.Tr "repo.editor.signoff_desc"}}</label>
 			</div>
 		</div>
+    {{end}}
 		<div class="quick-pull-choice js-quick-pull-choice">
 			<div class="field">
 				<div class="ui radio checkbox {{if not .CanCommitToBranch.CanCommitToBranch}}disabled{{end}}">

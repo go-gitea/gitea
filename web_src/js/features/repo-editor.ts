@@ -70,6 +70,7 @@ export function initRepoEditor() {
       Underline,
       TextAlign.configure({
         alignments: ['left', 'center', 'right', 'justify'],
+        types: ['heading', 'paragraph'],
       }),
       TaskItem.configure({
         nested: true,
