@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"net/mail"
-	"regexp"
 	"strings"
 	"time"
 
@@ -152,8 +151,6 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 	_, err := db.GetEngine(ctx).ID(email.ID).AllCols().Update(email)
 	return err
 }
-
-var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
@@ -514,7 +511,7 @@ func validateEmailBasic(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	if !emailRegexp.MatchString(email) {
+	if !globalVars().emailRegexp.MatchString(email) {
 		return ErrEmailCharIsNotSupported{email}
 	}
 

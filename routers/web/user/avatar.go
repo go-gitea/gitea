@@ -4,7 +4,6 @@
 package user
 
 import (
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/avatars"
@@ -27,7 +26,7 @@ func AvatarByUserName(ctx *context.Context) {
 	size := int(ctx.PathParamInt64("size"))
 
 	var user *user_model.User
-	if strings.ToLower(userName) != user_model.GhostUserLowerName {
+	if !user_model.IsGhostUserName(userName) {
 		var err error
 		if user, err = user_model.GetUserByName(ctx, userName); err != nil {
 			if user_model.IsErrUserNotExist(err) {
