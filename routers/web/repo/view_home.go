@@ -416,13 +416,8 @@ func Home(ctx *context.Context) {
 
 // HomeRedirect redirects from /tree/* to /src/* in order to maintain a similar URL structure.
 func HomeRedirect(ctx *context.Context) {
-	prefix := "/"
-	if setting.AppSubURL != "" {
-		prefix = setting.AppSubURL
-	}
-
 	url := treeRedirectURL(
-		prefix,
+		setting.AppSubURL,
 		ctx.PathParam("username"),
 		ctx.PathParam("reponame"),
 		ctx.PathParam("*"),
@@ -436,6 +431,7 @@ func HomeRedirect(ctx *context.Context) {
 func treeRedirectURL(prefix, username, reponame, remainder string) string {
 	return path.Join(
 		prefix,
+		"/", // The prefix may be an empty string, so ensure we have a preceding slash
 		url.PathEscape(username),
 		url.PathEscape(reponame),
 		"src",
