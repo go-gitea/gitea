@@ -39,7 +39,6 @@ const baseOptions: MonacoOpts = {
   scrollBeyondLastLine: false,
   automaticLayout: true,
   indentSize: 'tabSize',
-  wordWrap: 'on',
 };
 
 function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
