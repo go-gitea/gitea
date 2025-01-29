@@ -1584,8 +1584,11 @@ func registerRoutes(m *web.Router) {
 			m.Get("/*", context.RepoRefByType(""), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
 
-		// Add a /tree/* path to redirect to the deprecated /src/*
-		// path. This emulates both Github & Gitlab's URL structure.
+		// Add a /tree/* path to redirect to the /src/* path, which
+		// will redirect to the canonical URL for that ref. This is
+		// included so that Gitea's repo URL structure matches what
+		// other forges provide, allowing clients to construct URLs
+		// that work across forges.
 		m.Get("/tree/*", repo.HomeRedirect)
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
