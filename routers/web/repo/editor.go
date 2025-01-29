@@ -192,7 +192,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	}
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
+	ctx.Data["PreviewableExtensions"] = markup.PreviewableExtensions()
 	ctx.Data["LineWrapExtensions"] = setting.Repository.Editor.LineWrapExtensions
 
 	ecDef := GetEditorConfig(ctx, treePath)
@@ -252,7 +252,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	ctx.Data["commit_choice"] = form.CommitChoice
 	ctx.Data["new_branch_name"] = form.NewBranchName
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
+	ctx.Data["PreviewableExtensions"] = markup.PreviewableExtensions()
 	ctx.Data["LineWrapExtensions"] = setting.Repository.Editor.LineWrapExtensions
 	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, form.TreePath)
 
