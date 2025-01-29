@@ -240,7 +240,7 @@ function getEditorConfigOptions(ec: EditorConfig | null): MonacoOpts {
   const opts: MonacoOpts = {};
   opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
 
-  opts.tabSize = Number(ec.tab_width) || Number(ec.indent_size) || 4;
+  opts.tabSize = Number(ec.indent_size) || Number(ec.tab_width) || 4;
 
   if ('max_line_length' in ec) {
     opts.rulers = [Number(ec.max_line_length)];
