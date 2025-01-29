@@ -1,0 +1,20 @@
+<select class="js-indent-style-select tw-w-auto">
+	<optgroup label="{{ctx.Locale.Tr "text_indent_style"}}">
+		<option{{if eq .EditorconfigIndentStyle "space"}} selected{{end}} value="space">{{ctx.Locale.Tr "characters_spaces"}}</option>
+		<option{{if eq .EditorconfigIndentStyle "tab"}} selected{{end}} value="tab">{{ctx.Locale.Tr "characters_tabs"}}</option>
+	</optgroup>
+</select>
+<select class="js-indent-size-select tw-w-auto">
+	<optgroup label="{{ctx.Locale.Tr "text_indent_size"}}">
+		<option{{if eq .EditorconfigIndentSize "2"}} selected{{end}} value="2">2</option>
+		<option{{if eq .EditorconfigIndentSize "4"}} selected{{end}} value="4">4</option>
+		<option{{if eq .EditorconfigIndentSize "8"}} selected{{end}} value="8">8</option>
+	</optgroup>
+</select>
+{{$mode := (Iif (SliceUtils.Contains .LineWrapExtensions (PathExt .TreePath)) "on" "off")}}
+<select class="js-line-wrap-select tw-w-auto">
+	<optgroup label="{{ctx.Locale.Tr "text_line_wrap_mode"}}">
+		<option{{if eq $mode "on"}} selected{{end}} value="on">{{ctx.Locale.Tr "text_line_wrap"}}</option>
+		<option{{if eq $mode "off"}} selected{{end}} value="off">{{ctx.Locale.Tr "text_line_nowrap"}}</option>
+	</optgroup>
+</select>

@@ -36,7 +36,7 @@ func NewDiffPatch(ctx *context.Context) {
 	}
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
+	ctx.Data["LineWrapExtensions"] = setting.Repository.Editor.LineWrapExtensions
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
 	ctx.HTML(200, tplPatchFile)
@@ -59,7 +59,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 	ctx.Data["commit_choice"] = form.CommitChoice
 	ctx.Data["new_branch_name"] = form.NewBranchName
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
+	ctx.Data["LineWrapExtensions"] = setting.Repository.Editor.LineWrapExtensions
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplPatchFile)

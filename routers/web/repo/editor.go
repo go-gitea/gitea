@@ -28,6 +28,8 @@ import (
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
 	files_service "code.gitea.io/gitea/services/repository/files"
+
+	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
 const (
@@ -191,8 +193,13 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
-	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
-	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
+	ctx.Data["LineWrapExtensions"] = setting.Repository.Editor.LineWrapExtensions
+
+	ecDef := GetEditorConfig(ctx, treePath)
+	ecBytes, _ := json.Marshal(ecDef)
+	ctx.Data["EditorconfigJson"] = string(ecBytes)
+	ctx.Data["EditorconfigIndentStyle"] = ecDef.IndentStyle
+	ctx.Data["EditorconfigIndentSize"] = ecDef.IndentSize
 
 	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
 	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
@@ -201,16 +208,17 @@ func editFile(ctx *context.Context, isNewFile bool) {
 }
 
 // GetEditorConfig returns a editorconfig JSON string for given treePath or "null"
-func GetEditorConfig(ctx *context.Context, treePath string) string {
+func GetEditorConfig(ctx *context.Context, treePath string) *editorconfig.Definition {
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
-			jsonStr, _ := json.Marshal(def)
-			return string(jsonStr)
+			return def
+		} else {
+			return nil
 		}
 	}
-	return "null"
+	return nil
 }
 
 // EditFile render edit file page
@@ -245,7 +253,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	ctx.Data["new_branch_name"] = form.NewBranchName
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
-	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
+	ctx.Data["LineWrapExtensions"] = setting.Repository.Editor.LineWrapExtensions
 	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, form.TreePath)
 
 	if ctx.HasError() {

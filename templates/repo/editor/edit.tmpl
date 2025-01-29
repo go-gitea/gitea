@@ -30,19 +30,24 @@
 			</div>
 			<div class="field">
 				<div class="ui top attached header">
-					<div class="ui compact small menu small-menu-items repo-editor-menu">
-						<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
-						<a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
-						{{if not .IsNewFile}}
-						<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
-						{{end}}
+					<div class="tw-w-100 tw-flex tw-justify-between tw-flex-col md:tw-flex-row tw-gap-2 tw-items-stretch">
+						<div class="ui compact small menu small-menu-items repo-editor-menu tw-self-start">
+							<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
+							<a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
+							{{if not .IsNewFile}}
+							<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
+							{{end}}
+						</div>
+						<div class="tw-flex tw-gap-3">
+							{{template "repo/editor/options" .}}
+						</div>
 					</div>
 				</div>
 				<div class="ui bottom attached segment tw-p-0">
 					<div class="ui active tab tw-rounded-b" data-tab="write">
 						<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 							data-previewable-extensions="{{.PreviewableExtensions}}"
-							data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
+							data-line-wrap-extensions="{{StringUtils.Join .LineWrapExtensions ","}}">{{.FileContent}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>
 					<div class="ui tab markup tw-px-4 tw-py-3" data-tab="preview">

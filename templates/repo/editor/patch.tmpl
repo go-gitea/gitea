@@ -28,7 +28,7 @@
 				<div class="ui active tab segment tw-rounded tw-p-0" data-tab="write">
 					<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
 						data-context="{{.RepoLink}}"
-						data-line-wrap-extensions="{{.LineWrapExtensions}}">
+						data-line-wrap-extensions="{{StringUtils.Join .LineWrapExtensions ","}}">
 {{.FileContent}}</textarea>
 					<div class="editor-loading is-loading"></div>
 				</div>
