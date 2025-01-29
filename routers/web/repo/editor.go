@@ -214,9 +214,8 @@ func GetEditorConfig(ctx *context.Context, treePath string) *editorconfig.Defini
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
 			return def
-		} else {
-			return nil
 		}
+		return nil
 	}
 	return nil
 }
