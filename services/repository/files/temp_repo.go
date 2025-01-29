@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
 )
@@ -225,15 +226,53 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 	return strings.TrimSpace(stdout), nil
 }
 
-// CommitTree creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTree(parent string, author, committer *user_model.User, treeHash, message string, signoff bool) (string, error) {
-	return t.CommitTreeWithDate(parent, author, committer, treeHash, message, signoff, time.Now(), time.Now())
+type CommitTreeUserOptions struct {
+	ParentCommitID string
+	TreeHash       string
+	CommitMessage  string
+	SignOff        bool
+
+	DoerUser *user_model.User
+
+	AuthorIdentity    *IdentityOptions // if nil, use doer
+	AuthorTime        *time.Time       // if nil, use now
+	CommitterIdentity *IdentityOptions
+	CommitterTime     *time.Time
 }
 
-// CommitTreeWithDate creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, committer *user_model.User, treeHash, message string, signoff bool, authorDate, committerDate time.Time) (string, error) {
-	authorSig := author.NewGitSig()
-	committerSig := committer.NewGitSig()
+func makeGitUserSignature(doer *user_model.User, identity, other *IdentityOptions) *git.Signature {
+	gitSig := &git.Signature{}
+	if identity != nil {
+		gitSig.Name, gitSig.Email = identity.GitUserName, identity.GitUserEmail
+	}
+	if other != nil {
+		gitSig.Name = util.IfZero(gitSig.Name, other.GitUserName)
+		gitSig.Email = util.IfZero(gitSig.Email, other.GitUserEmail)
+	}
+	if gitSig.Name == "" {
+		gitSig.Name = doer.GitName()
+	}
+	if gitSig.Email == "" {
+		gitSig.Email = doer.GetEmail()
+	}
+	return gitSig
+}
+
+// CommitTree creates a commit from a given tree for the user with provided message
+func (t *TemporaryUploadRepository) CommitTree(opts *CommitTreeUserOptions) (string, error) {
+	authorSig := makeGitUserSignature(opts.DoerUser, opts.AuthorIdentity, opts.CommitterIdentity)
+	committerSig := makeGitUserSignature(opts.DoerUser, opts.CommitterIdentity, opts.AuthorIdentity)
+
+	authorDate := opts.AuthorTime
+	committerDate := opts.CommitterTime
+	if authorDate == nil && committerDate == nil {
+		authorDate = util.ToPointer(time.Now())
+		committerDate = authorDate
+	} else if authorDate == nil {
+		authorDate = committerDate
+	} else if committerDate == nil {
+		committerDate = authorDate
+	}
 
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
@@ -244,21 +283,21 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 	)
 
 	messageBytes := new(bytes.Buffer)
-	_, _ = messageBytes.WriteString(message)
+	_, _ = messageBytes.WriteString(opts.CommitMessage)
 	_, _ = messageBytes.WriteString("\n")
 
-	cmdCommitTree := git.NewCommand(t.ctx, "commit-tree").AddDynamicArguments(treeHash)
-	if parent != "" {
-		cmdCommitTree.AddOptionValues("-p", parent)
+	cmdCommitTree := git.NewCommand(t.ctx, "commit-tree").AddDynamicArguments(opts.TreeHash)
+	if opts.ParentCommitID != "" {
+		cmdCommitTree.AddOptionValues("-p", opts.ParentCommitID)
 	}
 
 	var sign bool
 	var keyID string
 	var signer *git.Signature
-	if parent != "" {
-		sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, parent)
+	if opts.ParentCommitID != "" {
+		sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), opts.DoerUser, t.basePath, opts.ParentCommitID)
 	} else {
-		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
+		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), opts.DoerUser)
 	}
 	if sign {
 		cmdCommitTree.AddOptionFormat("-S%s", keyID)
@@ -279,7 +318,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		cmdCommitTree.AddArguments("--no-gpg-sign")
 	}
 
-	if signoff {
+	if opts.SignOff {
 		// Signed-off-by
 		_, _ = messageBytes.WriteString("\n")
 		_, _ = messageBytes.WriteString("Signed-off-by: ")
