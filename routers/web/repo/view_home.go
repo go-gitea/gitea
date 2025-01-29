@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -411,4 +412,33 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplRepoHome)
+}
+
+// HomeRedirect redirects from /tree/* to /src/* in order to maintain a similar URL structure.
+func HomeRedirect(ctx *context.Context) {
+	prefix := "/"
+	if setting.AppSubURL != "" {
+		prefix = setting.AppSubURL
+	}
+
+	url := treeRedirectURL(
+		prefix,
+		ctx.PathParam("username"),
+		ctx.PathParam("reponame"),
+		ctx.PathParam("*"),
+	)
+	ctx.Redirect(url)
+}
+
+// treeRedirectURL constructs a "src" URL from the given "tree"
+// prefixed path params. This is a private function for testing
+// purposes.
+func treeRedirectURL(prefix, username, reponame, remainder string) string {
+	return path.Join(
+		prefix,
+		url.PathEscape(username),
+		url.PathEscape(reponame),
+		"src",
+		util.PathEscapeSegments(remainder),
+	)
 }

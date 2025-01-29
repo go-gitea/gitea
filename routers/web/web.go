@@ -5,7 +5,6 @@ package web
 
 import (
 	"net/http"
-	"path"
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -1587,15 +1586,7 @@ func registerRoutes(m *web.Router) {
 
 		// Add a /tree/* path to redirect to the deprecated /src/*
 		// path. This emulates both Github & Gitlab's URL structure.
-		m.Get("/tree/*", func(ctx *context.Context) {
-			prefix := "/"
-			if setting.AppSubURL != "" {
-				prefix = setting.AppSubURL
-			}
-
-			url := path.Join(prefix, ctx.PathParam("username"), ctx.PathParam("reponame"), "src", ctx.PathParam("*"))
-			ctx.Redirect(url)
-		})
+		m.Get("/tree/*", repo.HomeRedirect)
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
