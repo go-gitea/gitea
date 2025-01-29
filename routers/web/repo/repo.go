@@ -330,14 +330,12 @@ func rejectTransfer(ctx *context.Context) {
 }
 
 func handleActionError(ctx *context.Context, err error) {
-	if err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
-		} else if errors.Is(err, util.ErrPermissionDenied) {
-			ctx.Error(http.StatusNotFound)
-		} else {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
-		}
+	if errors.Is(err, user_model.ErrBlockedUser) {
+		ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
+	} else if errors.Is(err, util.ErrPermissionDenied) {
+		ctx.Error(http.StatusNotFound)
+	} else {
+		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 	}
 }
 

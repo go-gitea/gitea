@@ -399,13 +399,14 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return err
 	}
 
-	var isTransfer bool
+	var isDirectTransfer bool
 	oldOwnerName := repo.OwnerName
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		// Admin is always allowed to transfer || user transfer repo back to his account
+		// Admin is always allowed to transfer || user transfer repo back to his account,
+		// then it will transfer directly without acceptance.
 		if doer.IsAdmin || doer.ID == newOwner.ID {
-			isTransfer = true
+			isDirectTransfer = true
 			return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
 		}
 
@@ -420,7 +421,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 				return err
 			}
 			if allowed {
-				isTransfer = true
+				isDirectTransfer = true
 				return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
 			}
 		}
@@ -443,7 +444,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return err
 	}
 
-	if isTransfer {
+	if isDirectTransfer {
 		notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
 	} else {
 		// notify users who are able to accept / reject transfer
