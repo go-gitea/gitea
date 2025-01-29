@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	gitea_context "code.gitea.io/gitea/services/context"
 
@@ -120,7 +119,8 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 
 	// Make sure requests to API paths and PWA resources do not create a new session
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isAttachmentDownload() {
 		handleSignIn(w, req, sess, user)
 	}
 
@@ -155,8 +155,9 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 		} else if req.FormValue("auth_with_sspi") == "1" {
 			shouldAuth = true
 		}
-	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
-		shouldAuth = true
+	} else {
+		detector := newAuthPathDetector(req)
+		shouldAuth = detector.isAPIPath() || detector.isAttachmentDownload()
 	}
 	return shouldAuth
 }

@@ -795,6 +795,9 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 	return func(ctx *Context) {
 		var err error
 		refType := detectRefType
+		if ctx.Repo.Repository.IsBeingCreated() {
+			return // no git repo, so do nothing, users will see a "migrating" UI provided by "migrate/migrating.tmpl"
+		}
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
 			// assume the user is viewing the (non-existent) default branch

@@ -681,7 +681,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
-		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
+		m.Get("/avatar/{username}/{size}", user.AvatarByUsernameSize)
 		m.Get("/recover_account", auth.ResetPasswd)
 		m.Post("/recover_account", auth.ResetPasswdPost)
 		m.Get("/forgot_password", auth.ForgotPasswd)
@@ -1152,7 +1152,7 @@ func registerRoutes(m *web.Router) {
 	)
 	// end "/{username}/{reponame}/settings"
 
-	// user/org home, including rss feeds
+	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
 	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
 
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind(structs.MarkupOption{}), misc.Markup)
