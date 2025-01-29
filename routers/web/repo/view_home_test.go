@@ -46,5 +46,4 @@ func TestTreeRedirectURL(t *testing.T) {
 			assert.Equal(t, c.expected, actual)
 		})
 	}
-
 }
