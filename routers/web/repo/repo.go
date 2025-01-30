@@ -368,9 +368,11 @@ func Action(ctx *context.Context) {
 		err = repo_service.UpdateRepository(ctx, ctx.Repo.Repository, false)
 	}
 
-	handleActionError(ctx, err)
-	if ctx.Written() {
-		return
+	if err != nil {
+		handleActionError(ctx, err)
+		if ctx.Written() {
+			return
+		}
 	}
 
 	switch ctx.PathParam("action") {
