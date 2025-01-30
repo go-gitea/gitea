@@ -15,11 +15,11 @@ func TestCommitSubmoduleLink(t *testing.T) {
 
 	wl := sf.SubmoduleWebLink(context.Background())
 	assert.Equal(t, "https://github.com/user/repo", wl.RepoWebLink)
-	assert.Equal(t, "https://github.com/user/repo/commit/aaaa", wl.CommitWebLink)
+	assert.Equal(t, "https://github.com/user/repo/tree/aaaa", wl.CommitWebLink)
 
 	wl = sf.SubmoduleWebLink(context.Background(), "1111")
 	assert.Equal(t, "https://github.com/user/repo", wl.RepoWebLink)
-	assert.Equal(t, "https://github.com/user/repo/commit/1111", wl.CommitWebLink)
+	assert.Equal(t, "https://github.com/user/repo/tree/1111", wl.CommitWebLink)
 
 	wl = sf.SubmoduleWebLink(context.Background(), "1111", "2222")
 	assert.Equal(t, "https://github.com/user/repo", wl.RepoWebLink)

@@ -13,6 +13,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
@@ -102,10 +103,32 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 	return treeNames, treePaths
 }
 
-func editFile(ctx *context.Context, isNewFile bool) {
-	ctx.Data["PageIsViewCode"] = true
+func getCandidateEmailAddresses(ctx *context.Context) []string {
+	emails, err := user_model.GetActivatedEmailAddresses(ctx, ctx.Doer.ID)
+	if err != nil {
+		log.Error("getCandidateEmailAddresses: GetActivatedEmailAddresses: %v", err)
+	}
+
+	if ctx.Doer.KeepEmailPrivate {
+		emails = append([]string{ctx.Doer.GetPlaceholderEmail()}, emails...)
+	}
+	return emails
+}
+
+func editFileCommon(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
+	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
+	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
+	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
+	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
+	ctx.Data["CommitCandidateEmails"] = getCandidateEmailAddresses(ctx)
+	ctx.Data["CommitDefaultEmail"] = ctx.Doer.GetEmail()
+}
+
+func editFile(ctx *context.Context, isNewFile bool) {
+	editFileCommon(ctx, isNewFile)
 	canCommit := renderCommitRights(ctx)
 
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
@@ -174,28 +197,19 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			ctx.Data["FileContent"] = content
 		}
 	} else {
-		// Append filename from query, or empty string to allow user name the new file.
+		// Append filename from query, or empty string to allow username the new file.
 		treeNames = append(treeNames, fileName)
 	}
 
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	if canCommit {
-		ctx.Data["commit_choice"] = frmCommitChoiceDirect
-	} else {
-		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
-	}
+	ctx.Data["commit_choice"] = util.Iif(canCommit, frmCommitChoiceDirect, frmCommitChoiceNewBranch)
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
-	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
-	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
 
-	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
-	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
+	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, treePath)
 
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
@@ -224,6 +238,9 @@ func NewFile(ctx *context.Context) {
 }
 
 func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile bool) {
+	editFileCommon(ctx, isNewFile)
+	ctx.Data["PageHasPosted"] = true
+
 	canCommit := renderCommitRights(ctx)
 	treeNames, treePaths := getParentTreeFields(form.TreePath)
 	branchName := ctx.Repo.BranchName
@@ -231,21 +248,15 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		branchName = form.NewBranchName
 	}
 
-	ctx.Data["PageIsEdit"] = true
-	ctx.Data["PageHasPosted"] = true
-	ctx.Data["IsNewFile"] = isNewFile
 	ctx.Data["TreePath"] = form.TreePath
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	ctx.Data["FileContent"] = form.Content
 	ctx.Data["commit_summary"] = form.CommitSummary
 	ctx.Data["commit_message"] = form.CommitMessage
 	ctx.Data["commit_choice"] = form.CommitChoice
 	ctx.Data["new_branch_name"] = form.NewBranchName
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
-	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["EditorconfigJson"] = GetEditorConfig(ctx, form.TreePath)
 
 	if ctx.HasError() {
@@ -253,7 +264,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		return
 	}
 
-	// Cannot commit to a an existing branch if user doesn't have rights
+	// Cannot commit to an existing branch if user doesn't have rights
 	if branchName == ctx.Repo.BranchName && !canCommit {
 		ctx.Data["Err_NewBranchName"] = true
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
@@ -276,6 +287,17 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		message += "\n\n" + form.CommitMessage
 	}
 
+	gitCommitter := &files_service.IdentityOptions{}
+	if form.CommitEmail != "" {
+		if util.SliceContainsString(getCandidateEmailAddresses(ctx), form.CommitEmail, true) {
+			gitCommitter.GitUserEmail = form.CommitEmail
+		} else {
+			ctx.Data["Err_CommitEmail"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplEditFile, &form)
+			return
+		}
+	}
+
 	operation := "update"
 	if isNewFile {
 		operation = "create"
@@ -294,7 +316,9 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
 			},
 		},
-		Signoff: form.Signoff,
+		Signoff:   form.Signoff,
+		Author:    gitCommitter,
+		Committer: gitCommitter,
 	}); err != nil {
 		// This is where we handle all the errors thrown by files_service.ChangeRepoFiles
 		if git.IsErrNotExist(err) {
