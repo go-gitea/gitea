@@ -16,6 +16,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
@@ -64,6 +65,19 @@ func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, r
 		Active: true,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
+}
+
+func testCreateWebhookForRepo(t *testing.T, session *TestSession, webhookType, userName, repoName, url, eventKind string) {
+	csrf := GetUserCSRFToken(t, session)
+	req := NewRequestWithValues(t, "POST", "/"+userName+"/"+repoName+"/settings/hooks/"+webhookType+"/new", map[string]string{
+		"_csrf":        csrf,
+		"payload_url":  url,
+		"events":       eventKind,
+		"active":       "true",
+		"content_type": fmt.Sprintf("%d", webhook.ContentTypeJSON),
+		"http_method":  "POST",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
 func testAPICreateWebhookForOrg(t *testing.T, session *TestSession, userName, url, event string) {
@@ -560,5 +574,30 @@ func Test_WebhookStatus(t *testing.T) {
 		assert.EqualValues(t, "user2/repo1", payloads[0].Repo.FullName)
 		assert.EqualValues(t, "testci", payloads[0].Context)
 		assert.EqualValues(t, commitID, payloads[0].SHA)
+	})
+}
+
+func Test_WebhookStatus_NoWrongTrigger(t *testing.T) {
+	var trigger string
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		assert.NotContains(t, r.Header["X-Github-Event-Type"], "status", "X-GitHub-Event-Type should not contain status")
+		assert.NotContains(t, r.Header["X-Gitea-Event-Type"], "status", "X-Gitea-Event-Type should not contain status")
+		assert.NotContains(t, r.Header["X-Gogs-Event-Type"], "status", "X-Gogs-Event-Type should not contain status")
+		trigger = "push"
+	}, http.StatusOK)
+	defer provider.Close()
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// 1. create a new webhook with special webhook for repo1
+		session := loginUser(t, "user2")
+
+		// create a push_only webhook from web UI
+		testCreateWebhookForRepo(t, session, "gitea", "user2", "repo1", provider.URL(), "push_only")
+
+		// 2. trigger the webhook with a push action
+		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push")
+
+		// 3. validate the webhook is triggered with right event
+		assert.EqualValues(t, "push", trigger)
 	})
 }
