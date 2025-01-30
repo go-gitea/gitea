@@ -370,9 +370,7 @@ func Action(ctx *context.Context) {
 
 	if err != nil {
 		handleActionError(ctx, err)
-		if ctx.Written() {
-			return
-		}
+		return
 	}
 
 	switch ctx.PathParam("action") {
