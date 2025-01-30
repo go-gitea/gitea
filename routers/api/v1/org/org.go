@@ -357,7 +357,7 @@ func Rename(ctx *context.APIContext) {
 			ctx.ServerError("RenameOrg", err)
 		}
 	} else {
-		log.Trace("Org name changed: %s -> %s", oldName, form.NewName)
+		log.Info("Org name changed: %s -> %s", oldName, form.NewName)
 		ctx.Status(http.StatusNoContent)
 	}
 }
