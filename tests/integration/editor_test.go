@@ -200,7 +200,7 @@ func TestWebGitCommitEmail(t *testing.T) {
 
 		session := loginUser(t, user.Name)
 
-		makeReq := func(t *testing.T, link string, params map[string]string, expectedUserName, expectedEmail string) {
+		makeReq := func(t *testing.T, link string, params map[string]string, expectedUserName, expectedEmail string) *httptest.ResponseRecorder {
 			lastCommit := getLastCommit(t)
 			params["_csrf"] = GetUserCSRFToken(t, session)
 			params["last_commit"] = lastCommit.ID.String()
@@ -220,6 +220,7 @@ func TestWebGitCommitEmail(t *testing.T) {
 				assert.EqualValues(t, expectedUserName, newCommit.Committer.Name)
 				assert.EqualValues(t, expectedEmail, newCommit.Committer.Email)
 			}
+			return resp
 		}
 
 		uploadFile := func(t *testing.T, name, content string) string {
@@ -261,17 +262,18 @@ func TestWebGitCommitEmail(t *testing.T) {
 			}, "", "")
 		})
 
-		testWebGit := func(t *testing.T, linkForKeepPrivate string, paramsForKeepPrivate map[string]string, linkForChosenEmail string, paramsForChosenEmail map[string]string) {
+		testWebGit := func(t *testing.T, linkForKeepPrivate string, paramsForKeepPrivate map[string]string, linkForChosenEmail string, paramsForChosenEmail map[string]string) (resp1, resp2 *httptest.ResponseRecorder) {
 			t.Run("DefaultEmailKeepPrivate", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 				paramsForKeepPrivate["commit_email"] = ""
-				makeReq(t, linkForKeepPrivate, paramsForKeepPrivate, "User Two", "user2@noreply.example.org")
+				resp1 = makeReq(t, linkForKeepPrivate, paramsForKeepPrivate, "User Two", "user2@noreply.example.org")
 			})
 			t.Run("ChooseEmail", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 				paramsForChosenEmail["commit_email"] = "user2@example.com"
-				makeReq(t, linkForChosenEmail, paramsForChosenEmail, "User Two", "user2@example.com")
+				resp2 = makeReq(t, linkForChosenEmail, paramsForChosenEmail, "User Two", "user2@example.com")
 			})
+			return resp1, resp2
 		}
 
 		t.Run("Edit", func(t *testing.T) {
@@ -324,10 +326,13 @@ index 0000000000..bbbbbbbbbb
 			require.NoError(t, err)
 			commit2, err := gitRepo.GetCommitByPath("patch-file-2.txt")
 			require.NoError(t, err)
-			testWebGit(t,
+			resp1, _ := testWebGit(t,
 				"/user2/repo1/_cherrypick/"+commit1.ID.String()+"/master", map[string]string{"revert": "true"},
 				"/user2/repo1/_cherrypick/"+commit2.ID.String()+"/master", map[string]string{"revert": "true"},
 			)
+
+			// By the way, test the "cherrypick" page: a successful revert redirects to the main branch
+			assert.EqualValues(t, "/user2/repo1/src/branch/master", resp1.Header().Get("Location"))
 		})
 	})
 }
