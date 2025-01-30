@@ -1294,21 +1294,20 @@ func registerRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}", func() { // repo code
 		m.Group("", func() {
 			m.Group("", func() {
+				m.Post("/_preview/*", web.Bind(forms.EditPreviewDiffForm{}), repo.DiffPreviewPost)
 				m.Combo("/_edit/*").Get(repo.EditFile).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.EditFilePost)
 				m.Combo("/_new/*").Get(repo.NewFile).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewFilePost)
-				m.Post("/_preview/*", web.Bind(forms.EditPreviewDiffForm{}), repo.DiffPreviewPost)
 				m.Combo("/_delete/*").Get(repo.DeleteFile).
 					Post(web.Bind(forms.DeleteRepoFileForm{}), repo.DeleteFilePost)
-				m.Combo("/_upload/*", repo.MustBeAbleToUpload).
-					Get(repo.UploadFile).
+				m.Combo("/_upload/*", repo.MustBeAbleToUpload).Get(repo.UploadFile).
 					Post(web.Bind(forms.UploadRepoFileForm{}), repo.UploadFilePost)
 				m.Combo("/_diffpatch/*").Get(repo.NewDiffPatch).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
 				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,64})}/*").Get(repo.CherryPick).
 					Post(web.Bind(forms.CherryPickForm{}), repo.CherryPickPost)
-			}, context.RepoRefByType(git.RefTypeBranch), context.CanWriteToBranch())
+			}, context.RepoRefByType(git.RefTypeBranch), context.CanWriteToBranch(), repo.WebGitOperationCommonData)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
