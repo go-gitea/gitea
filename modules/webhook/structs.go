@@ -26,6 +26,7 @@ type HookEvents struct {
 	Repository               bool `json:"repository"`
 	Release                  bool `json:"release"`
 	Package                  bool `json:"package"`
+	Status                   bool `json:"status"`
 }
 
 // HookEvent represents events that will delivery hook.

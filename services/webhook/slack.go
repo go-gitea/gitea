@@ -295,6 +295,10 @@ func newSlackRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mod
 	return newJSONRequest(pc, w, t, true)
 }
 
+func init() {
+	RegisterWebhookRequester(webhook_module.SLACK, newSlackRequest)
+}
+
 var slackChannel = regexp.MustCompile(`^#?[a-z0-9_-]{1,80}$`)
 
 // IsValidSlackChannel validates a channel name conforms to what slack expects:
