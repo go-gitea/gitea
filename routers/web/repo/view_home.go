@@ -417,7 +417,7 @@ func RedirectRepoTreeToSrc(ctx *context.Context) {
 	// Redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*",
 	// then use the deprecated "/src/*" handler to guess the ref type and render a file list page.
 	// This is done intentionally so that Gitea's repo URL structure matches other forges (GitHub/GitLab) provide,
-	// allowing we to construct submodule URLs across forges easily.
+	// allowing us to construct submodule URLs across forges easily.
 	// For example, when viewing a submodule, we can simply construct the link as:
 	// * "https://gitea/owner/repo/tree/{CommitID}"
 	// * "https://github/owner/repo/tree/{CommitID}"
