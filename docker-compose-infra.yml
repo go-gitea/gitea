@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: on-failure
+    volumes:
+      - $PWD/docker_compose_conf/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - $PWD/docker_compose_conf/nginx/conf.d:/etc/nginx/conf.d
+      - nginx_log:/var/log/nginx # 无关的卷均随机绑定
+    ports:
+      - "80:80"
+    networks:
+      - gitea_network
+  nexus:
+    image: sonatype/nexus3:latest
+    container_name: nexus3
+    restart: on-failure
+    ports:
+      # web服务使用
+      - "8081:8081"
+      # http仓库使用
+      - "8082:8082"
+      # https仓库使用，本例不使用
+      #- "5000:5000"
+    volumes:
+      - nexus_data:/nexus-data
+    environment:
+      # 配置nexus3服务的内存，避免小规格机器崩掉
+      INSTALL4J_ADD_VM_PARAMS: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
+    networks:
+      - gitea_network
+  portainer:
+    image: portainer/portainer:latest
+    container_name: gitea_portainer
+    restart: always
+    ports:
+      - "9000:9000"
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    environment:
+      - ADMIN_PASSWORD=admin123456789  # 设置管理员密码
+    networks:
+      - gitea_network
+  gitea:
+    image: docker.io/gitea/gitea:1.23.1
+    container_name: gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=mysql
+      - GITEA__database__HOST=mysql:3306
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=root
+      - GITEA__database__PASSWD=${MYSQL_ROOT_PASSWORD}
+    restart: always
+    networks:
+      - gitea_network
+    volumes:
+      - gitea_data:/data
+      - $PWD/docker_compose_conf/gitea/app.ini:/data/gitea/conf/app.ini
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3000:3000"
+      - "222:22"
+  mysql:
+    image: mysql:8.0.20
+    container_name: gitea_mysql
+    restart: always
+    privileged: true # 允许root远程连接
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_log:/var/log/mysql
+      - $PWD/docker_compose_conf/mysql/conf.d:/etc/mysql/conf.d
+      - mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: gitea
+    networks:
+      - gitea_network
+# 定义自定义网络
+networks:
+  gitea_network:
+    name: gitea
+    driver: bridge
+
+volumes:
+  nginx_log:
+  nexus_data:
+  portainer_data:
+  mysql_log:
+  mysql_data:
+  gitea_data:
