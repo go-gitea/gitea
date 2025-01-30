@@ -120,3 +120,7 @@ func newPackagistRequest(_ context.Context, w *webhook_model.Webhook, t *webhook
 	}
 	return newJSONRequest(pc, w, t, true)
 }
+
+func init() {
+	RegisterWebhookRequester(webhook_module.PACKAGIST, newPackagistRequest)
+}

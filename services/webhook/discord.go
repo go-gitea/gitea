@@ -277,6 +277,10 @@ func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_m
 	return newJSONRequest(pc, w, t, true)
 }
 
+func init() {
+	RegisterWebhookRequester(webhook_module.DISCORD, newDiscordRequest)
+}
+
 func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {
 	switch event {
 	case webhook_module.HookEventPullRequestReviewApproved:
