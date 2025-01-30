@@ -542,3 +542,13 @@ func IsEmailDomainAllowed(email string) bool {
 
 	return validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email)
 }
+
+func GetActivatedEmailAddresses(ctx context.Context, uid int64) ([]string, error) {
+	emails := make([]string, 0, 2)
+	if err := db.GetEngine(ctx).Table("email_address").Select("email").
+		Where("uid=? AND is_activated=?", uid, true).Asc("id").
+		Find(&emails); err != nil {
+		return nil, err
+	}
+	return emails, nil
+}

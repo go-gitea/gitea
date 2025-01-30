@@ -720,6 +720,7 @@ type EditRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields

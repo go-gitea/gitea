@@ -214,7 +214,7 @@ func (u *User) GetPlaceholderEmail() string {
 	return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
 }
 
-// GetEmail returns an noreply email, if the user has set to keep his
+// GetEmail returns a noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
 func (u *User) GetEmail() string {
 	if u.KeepEmailPrivate {
