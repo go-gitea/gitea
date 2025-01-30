@@ -22,6 +22,8 @@
     "verbatimModuleSyntax": true,
     "stripInternal": true,
     "strict": false,
+    "strictBindCallApply": true,
+    "strictBuiltinIteratorReturn": true,
     "strictFunctionTypes": true,
     "noImplicitAny": true,
     "noImplicitThis": true,

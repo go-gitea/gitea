@@ -363,3 +363,7 @@ func newMSTeamsRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_m
 	var pc payloadConvertor[MSTeamsPayload] = msteamsConvertor{}
 	return newJSONRequest(pc, w, t, true)
 }
+
+func init() {
+	RegisterWebhookRequester(webhook_module.MSTEAMS, newMSTeamsRequest)
+}

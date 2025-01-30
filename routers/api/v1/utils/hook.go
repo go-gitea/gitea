@@ -204,6 +204,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 				webhook_module.HookEventWiki:                     util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true),
 				webhook_module.HookEventRepository:               util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true),
 				webhook_module.HookEventRelease:                  util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true),
+				webhook_module.HookEventPackage:                  util.SliceContainsString(form.Events, string(webhook_module.HookEventPackage), true),
 				webhook_module.HookEventStatus:                   util.SliceContainsString(form.Events, string(webhook_module.HookEventStatus), true),
 			},
 			BranchFilter: form.BranchFilter,

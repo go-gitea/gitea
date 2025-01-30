@@ -732,7 +732,7 @@ func UsernameSubRoute(ctx *context.Context) {
 	switch {
 	case strings.HasSuffix(username, ".png"):
 		if reloadParam(".png") {
-			AvatarByUserName(ctx)
+			AvatarByUsernameSize(ctx)
 		}
 	case strings.HasSuffix(username, ".keys"):
 		if reloadParam(".keys") {

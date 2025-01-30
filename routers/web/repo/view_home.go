@@ -412,3 +412,9 @@ func Home(ctx *context.Context) {
 
 	ctx.HTML(http.StatusOK, tplRepoHome)
 }
+
+// HomeRedirect redirects from /tree/* to /src/* in order to maintain a similar URL structure.
+func HomeRedirect(ctx *context.Context) {
+	remainder := ctx.PathParam("*")
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/" + util.PathEscapeSegments(remainder))
+}
