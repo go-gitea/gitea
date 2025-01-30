@@ -46,9 +46,9 @@ func (sf *CommitSubmoduleFile) SubmoduleWebLink(ctx context.Context, optCommitID
 	if len(optCommitID) == 2 {
 		commitLink = sf.repoLink + "/compare/" + optCommitID[0] + "..." + optCommitID[1]
 	} else if len(optCommitID) == 1 {
-		commitLink = sf.repoLink + "/commit/" + optCommitID[0]
+		commitLink = sf.repoLink + "/tree/" + optCommitID[0]
 	} else {
-		commitLink = sf.repoLink + "/commit/" + sf.refID
+		commitLink = sf.repoLink + "/tree/" + sf.refID
 	}
 	return &SubmoduleWebLink{RepoWebLink: sf.repoLink, CommitWebLink: commitLink}
 }
