@@ -16,8 +16,9 @@
 					<i class="icon">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_labels"}}">
 				</div>
-				<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
 				<div class="scrolling menu">
+					<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
+					<div class="divider"></div>
 					{{$previousExclusiveScope := "_no_scope"}}
 					{{range $data.RepoLabels}}
 						{{$exclusiveScope := .ExclusiveScope}}
