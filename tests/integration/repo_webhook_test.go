@@ -533,6 +533,9 @@ func Test_WebhookStatus(t *testing.T) {
 		assert.Contains(t, r.Header["X-Github-Event-Type"], "status", "X-GitHub-Event-Type should contain status")
 		assert.Contains(t, r.Header["X-Gitea-Event-Type"], "status", "X-Gitea-Event-Type should contain status")
 		assert.Contains(t, r.Header["X-Gogs-Event-Type"], "status", "X-Gogs-Event-Type should contain status")
+		assert.Contains(t, r.Header["X-Github-Event"], "status", "X-GitHub-Event should contain status")
+		assert.Contains(t, r.Header["X-Gitea-Event"], "status", "X-Gitea-Event should contain status")
+		assert.Contains(t, r.Header["X-Gogs-Event"], "status", "X-Gogs-Event should contain status")
 		content, _ := io.ReadAll(r.Body)
 		var payload api.CommitStatusPayload
 		err := json.Unmarshal(content, &payload)

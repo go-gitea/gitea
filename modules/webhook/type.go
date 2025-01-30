@@ -38,14 +38,6 @@ const (
 // Event returns the HookEventType as an event string
 func (h HookEventType) Event() string {
 	switch h {
-	case HookEventCreate:
-		return "create"
-	case HookEventDelete:
-		return "delete"
-	case HookEventFork:
-		return "fork"
-	case HookEventPush:
-		return "push"
 	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone:
 		return "issues"
 	case HookEventPullRequest, HookEventPullRequestAssign, HookEventPullRequestLabel, HookEventPullRequestMilestone,
@@ -59,14 +51,9 @@ func (h HookEventType) Event() string {
 		return "pull_request_rejected"
 	case HookEventPullRequestReviewComment:
 		return "pull_request_comment"
-	case HookEventWiki:
-		return "wiki"
-	case HookEventRepository:
-		return "repository"
-	case HookEventRelease:
-		return "release"
+	default:
+		return string(h)
 	}
-	return ""
 }
 
 // HookType is the type of a webhook
