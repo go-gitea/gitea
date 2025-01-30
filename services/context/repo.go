@@ -897,6 +897,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 			if guessLegacyPath {
 				// redirect from old URL scheme to new URL scheme
+				// FIXME: the path handling is not right here
 				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.PathParam("*"))), strings.ToLower(ctx.Repo.RepoLink))
 				redirect := path.Join(
 					ctx.Repo.RepoLink,
