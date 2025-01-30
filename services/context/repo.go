@@ -897,13 +897,20 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 			if guessLegacyPath {
 				// redirect from old URL scheme to new URL scheme
-				// FIXME: the path handling is not right here
-				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.PathParam("*"))), strings.ToLower(ctx.Repo.RepoLink))
-				redirect := path.Join(
-					ctx.Repo.RepoLink,
-					util.PathEscapeSegments(prefix),
-					ctx.Repo.RefTypeNameSubURL(),
-					util.PathEscapeSegments(ctx.Repo.TreePath))
+				// * /user2/repo1/commits/master => /user2/repo1/commits/branch/master
+				// * /user2/repo1/src/master => /user2/repo1/src/branch/master
+
+				var redirect string
+				refSubPath := "src"
+				// remove the "/subpath/owner/repo/" prefix, the names are case-insensitive
+				remainingLowerPath, cut := strings.CutPrefix(setting.AppSubURL+strings.ToLower(ctx.Req.URL.Path), strings.ToLower(ctx.Repo.RepoLink)+"/")
+				if cut {
+					refSubPath, _, _ = strings.Cut(remainingLowerPath, "/") // it could be "src" or "commits"
+				}
+				redirect = fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, refSubPath, refType, ctx.PathParamRaw("*"))
+				if ctx.Req.URL.RawQuery != "" {
+					redirect += "?" + ctx.Req.URL.RawQuery
+				}
 				ctx.Redirect(redirect)
 				return
 			}

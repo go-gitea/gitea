@@ -423,5 +423,9 @@ func RedirectRepoTreeToSrc(ctx *context.Context) {
 	// * "https://github/owner/repo/tree/{CommitID}"
 	// * "https://gitlab/owner/repo/tree/{CommitID}"
 	// Then no matter which forge the submodule is using, the link works.
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.PathParamRaw("*"))
+	redirect := ctx.Repo.RepoLink + "/src/" + ctx.PathParamRaw("*")
+	if ctx.Req.URL.RawQuery != "" {
+		redirect += "?" + ctx.Req.URL.RawQuery
+	}
+	ctx.Redirect(redirect)
 }
