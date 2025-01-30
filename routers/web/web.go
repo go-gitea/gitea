@@ -681,7 +681,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
-		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
+		m.Get("/avatar/{username}/{size}", user.AvatarByUsernameSize)
 		m.Get("/recover_account", auth.ResetPasswd)
 		m.Post("/recover_account", auth.ResetPasswdPost)
 		m.Get("/forgot_password", auth.ForgotPasswd)
@@ -1583,6 +1583,13 @@ func registerRoutes(m *web.Router) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.Home)
 			m.Get("/*", context.RepoRefByType(""), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
+
+		// Add a /tree/* path to redirect to the /src/* path, which
+		// will redirect to the canonical URL for that ref. This is
+		// included so that Gitea's repo URL structure matches what
+		// other forges provide, allowing clients to construct URLs
+		// that work across forges.
+		m.Get("/tree/*", repo.HomeRedirect)
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)

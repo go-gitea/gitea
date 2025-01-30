@@ -71,8 +71,8 @@ func getDeleteRepoFilesOptions(repo *repo_model.Repository) *files_service.Chang
 		NewBranch:    repo.DefaultBranch,
 		Message:      "Deletes README.md",
 		Author: &files_service.IdentityOptions{
-			Name:  "Bob Smith",
-			Email: "bob@smith.com",
+			GitUserName:  "Bob Smith",
+			GitUserEmail: "bob@smith.com",
 		},
 		Committer: nil,
 	}
