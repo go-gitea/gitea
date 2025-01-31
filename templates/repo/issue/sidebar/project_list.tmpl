@@ -17,8 +17,9 @@
 				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
 			</div>
 			{{end}}
-			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
 			<div class="scrolling menu">
+				<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
+				<div class="divider"></div>
 				{{if $data.OpenProjects}}
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
 					{{range $data.OpenProjects}}
