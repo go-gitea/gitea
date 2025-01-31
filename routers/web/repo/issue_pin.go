@@ -6,6 +6,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -27,7 +28,20 @@ func IssuePinOrUnpin(ctx *context.Context) {
 		return
 	}
 
-	err = issue.PinOrUnpin(ctx, ctx.Doer)
+	// PinOrUnpin pins or unpins a Issue
+	_, err = issues_model.GetIssuePin(ctx, issue)
+	if err != nil && !db.IsErrNotExist(err) {
+		ctx.Status(http.StatusInternalServerError)
+		log.Error(err.Error())
+		return
+	}
+
+	if db.IsErrNotExist(err) {
+		err = issues_model.PinIssue(ctx, issue, ctx.Doer)
+	} else {
+		err = issues_model.UnpinIssue(ctx, issue, ctx.Doer)
+	}
+
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		log.Error(err.Error())
@@ -54,7 +68,7 @@ func IssueUnpin(ctx *context.Context) {
 		return
 	}
 
-	err = issue.Unpin(ctx, ctx.Doer)
+	err = issues_model.UnpinIssue(ctx, issue, ctx.Doer)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		log.Error(err.Error())
@@ -96,7 +110,7 @@ func IssuePinMove(ctx *context.Context) {
 		return
 	}
 
-	err = issue.MovePin(ctx, form.Position)
+	err = issues_model.MovePin(ctx, issue, form.Position)
 	if err != nil {
 		ctx.Status(http.StatusInternalServerError)
 		log.Error(err.Error())

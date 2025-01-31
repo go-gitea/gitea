@@ -299,6 +299,9 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 	if err := issueList.LoadAssignees(ctx); err != nil {
 		return nil, err
 	}
+	if err = issueList.LoadPinOrder(ctx); err != nil {
+		return nil, err
+	}
 
 	reviews, err := prs.LoadReviews(ctx)
 	if err != nil {
