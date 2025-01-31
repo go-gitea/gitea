@@ -13,7 +13,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
@@ -103,18 +102,6 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 	return treeNames, treePaths
 }
 
-func getCandidateEmailAddresses(ctx *context.Context) []string {
-	emails, err := user_model.GetActivatedEmailAddresses(ctx, ctx.Doer.ID)
-	if err != nil {
-		log.Error("getCandidateEmailAddresses: GetActivatedEmailAddresses: %v", err)
-	}
-
-	if ctx.Doer.KeepEmailPrivate {
-		emails = append([]string{ctx.Doer.GetPlaceholderEmail()}, emails...)
-	}
-	return emails
-}
-
 func editFileCommon(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
@@ -123,8 +110,6 @@ func editFileCommon(ctx *context.Context, isNewFile bool) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
 	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
-	ctx.Data["CommitCandidateEmails"] = getCandidateEmailAddresses(ctx)
-	ctx.Data["CommitDefaultEmail"] = ctx.Doer.GetEmail()
 }
 
 func editFile(ctx *context.Context, isNewFile bool) {
@@ -287,15 +272,11 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		message += "\n\n" + form.CommitMessage
 	}
 
-	gitCommitter := &files_service.IdentityOptions{}
-	if form.CommitEmail != "" {
-		if util.SliceContainsString(getCandidateEmailAddresses(ctx), form.CommitEmail, true) {
-			gitCommitter.GitUserEmail = form.CommitEmail
-		} else {
-			ctx.Data["Err_CommitEmail"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplEditFile, &form)
-			return
-		}
+	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
+	if !valid {
+		ctx.Data["Err_CommitEmail"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplEditFile, &form)
+		return
 	}
 
 	operation := "update"
@@ -515,6 +496,13 @@ func DeleteFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
+	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
+	if !valid {
+		ctx.Data["Err_CommitEmail"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplDeleteFile, &form)
+		return
+	}
+
 	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
@@ -525,8 +513,10 @@ func DeleteFilePost(ctx *context.Context) {
 				TreePath:  ctx.Repo.TreePath,
 			},
 		},
-		Message: message,
-		Signoff: form.Signoff,
+		Message:   message,
+		Signoff:   form.Signoff,
+		Author:    gitCommitter,
+		Committer: gitCommitter,
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.DeleteRepoFile
 		if git.IsErrNotExist(err) || files_service.IsErrRepoFileDoesNotExist(err) {
@@ -726,6 +716,13 @@ func UploadFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
+	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
+	if !valid {
+		ctx.Data["Err_CommitEmail"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplUploadFile, &form)
+		return
+	}
+
 	if err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
@@ -734,6 +731,8 @@ func UploadFilePost(ctx *context.Context) {
 		Message:      message,
 		Files:        form.Files,
 		Signoff:      form.Signoff,
+		Author:       gitCommitter,
+		Committer:    gitCommitter,
 	}); err != nil {
 		if git_model.IsErrLFSFileLocked(err) {
 			ctx.Data["Err_TreePath"] = true

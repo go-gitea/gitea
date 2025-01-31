@@ -691,10 +691,6 @@ func TestOAuth_GrantScopesReadRepositoryFailOrganization(t *testing.T) {
 			FullRepoName: "user2/commitsonpr",
 			Private:      false,
 		},
-		{
-			FullRepoName: "user2/test_commit_revert",
-			Private:      true,
-		},
 	}
 	assert.Equal(t, reposExpected, reposCaptured)
 
