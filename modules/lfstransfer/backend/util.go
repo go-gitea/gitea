@@ -5,15 +5,12 @@ package backend
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net"
+	"io"
 	"net/http"
-	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/proxyprotocol"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/private"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -89,53 +86,19 @@ func statusCodeToErr(code int) error {
 	}
 }
 
-func newInternalRequest(ctx context.Context, url, method string, headers map[string]string, body []byte) *httplib.Request {
-	req := httplib.NewRequest(url, method).
-		SetContext(ctx).
-		SetTimeout(10*time.Second, 60*time.Second).
-		SetTLSClientConfig(&tls.Config{
-			InsecureSkipVerify: true,
-		})
-
-	if setting.Protocol == setting.HTTPUnix {
-		req.SetTransport(&http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				var d net.Dialer
-				conn, err := d.DialContext(ctx, "unix", setting.HTTPAddr)
-				if err != nil {
-					return conn, err
-				}
-				if setting.LocalUseProxyProtocol {
-					if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
-						_ = conn.Close()
-						return nil, err
-					}
-				}
-				return conn, err
-			},
-		})
-	} else if setting.LocalUseProxyProtocol {
-		req.SetTransport(&http.Transport{
-			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
-				var d net.Dialer
-				conn, err := d.DialContext(ctx, network, address)
-				if err != nil {
-					return conn, err
-				}
-				if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
-					_ = conn.Close()
-					return nil, err
-				}
-				return conn, err
-			},
-		})
-	}
-
+func newInternalRequestLFS(ctx context.Context, url, method string, headers map[string]string, body any) *httplib.Request {
+	req := private.NewInternalRequest(ctx, url, method)
 	for k, v := range headers {
 		req.Header(k, v)
 	}
-
-	req.Body(body)
-
+	switch body := body.(type) {
+	case nil: // do nothing
+	case []byte:
+		req.Body(body) // []byte
+	case io.Reader:
+		req.Body(body) // io.Reader or io.ReadCloser
+	default:
+		panic(fmt.Sprintf("unsupported request body type %T", body))
+	}
 	return req
 }
