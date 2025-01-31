@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
@@ -341,25 +340,17 @@ func Rename(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	org := ctx.Org.Organization
 	form := web.GetForm(ctx).(*api.RenameOrgOption)
-
-	oldName := org.AsUser().Name
-
-	if err := user_service.RenameUser(ctx, org.AsUser(), form.NewName); err != nil {
-		if user_model.IsErrUserAlreadyExist(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", ctx.Tr("form.username_been_taken"))
-		} else if db.IsErrNameReserved(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name))
-		} else if db.IsErrNamePatternNotAllowed(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern))
+	orgUser := ctx.Org.Organization.AsUser()
+	if err := user_service.RenameUser(ctx, orgUser, form.NewName); err != nil {
+		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", err)
 		} else {
 			ctx.ServerError("RenameOrg", err)
 		}
-	} else {
-		log.Info("Org name changed: %s -> %s", oldName, form.NewName)
-		ctx.Status(http.StatusNoContent)
+		return
 	}
+	ctx.Status(http.StatusNoContent)
 }
 
 // Edit change an organization's information
