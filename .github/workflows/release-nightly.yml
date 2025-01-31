@@ -29,7 +29,7 @@ jobs:
       # xgo build
       - run: make release
         env:
-          TAGS: bindata sqlite sqlite_unlock_notify
+          TAGS: bindata timetzdata sqlite sqlite_unlock_notify
       - name: import gpg key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v6
