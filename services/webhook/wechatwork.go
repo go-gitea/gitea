@@ -179,3 +179,7 @@ func newWechatworkRequest(_ context.Context, w *webhook_model.Webhook, t *webhoo
 	var pc payloadConvertor[WechatworkPayload] = wechatworkConvertor{}
 	return newJSONRequest(pc, w, t, true)
 }
+
+func init() {
+	RegisterWebhookRequester(webhook_module.WECHATWORK, newWechatworkRequest)
+}

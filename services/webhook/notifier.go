@@ -8,6 +8,7 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -920,10 +921,16 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		return
 	}
 
+	var org *api.Organization
+	if pd.Owner.IsOrganization() {
+		org = convert.ToOrganization(ctx, organization.OrgFromUser(pd.Owner))
+	}
+
 	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventPackage, &api.PackagePayload{
-		Action:  action,
-		Package: apiPackage,
-		Sender:  convert.ToUser(ctx, sender, nil),
+		Action:       action,
+		Package:      apiPackage,
+		Organization: org,
+		Sender:       convert.ToUser(ctx, sender, nil),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}

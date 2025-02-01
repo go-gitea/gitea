@@ -219,26 +219,18 @@ type ProtectBranchPriorityForm struct {
 	IDs []int64
 }
 
-//  __      __      ___.   .__                   __
-// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
-//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
-//        \/       \/    \/     \/                   \/
-
 // WebhookForm form for changing web hook
 type WebhookForm struct {
 	Events                   string
 	Create                   bool
 	Delete                   bool
 	Fork                     bool
+	Push                     bool
 	Issues                   bool
 	IssueAssign              bool
 	IssueLabel               bool
 	IssueMilestone           bool
 	IssueComment             bool
-	Release                  bool
-	Push                     bool
 	PullRequest              bool
 	PullRequestAssign        bool
 	PullRequestLabel         bool
@@ -249,6 +241,7 @@ type WebhookForm struct {
 	PullRequestReviewRequest bool
 	Wiki                     bool
 	Repository               bool
+	Release                  bool
 	Package                  bool
 	Active                   bool
 	BranchFilter             string `binding:"GlobPattern"`
@@ -727,6 +720,7 @@ type EditRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -762,6 +756,7 @@ type CherryPickForm struct {
 	LastCommit    string
 	Revert        bool
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -787,6 +782,7 @@ type UploadRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	Files         []string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -821,6 +817,7 @@ type DeleteRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
