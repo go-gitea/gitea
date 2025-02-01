@@ -24,6 +24,10 @@ func NewGhostUser() *User {
 	}
 }
 
+func IsGhostUserName(name string) bool {
+	return strings.EqualFold(name, GhostUserName)
+}
+
 // IsGhost check if user is fake user for a deleted account
 func (u *User) IsGhost() bool {
 	if u == nil {
@@ -48,6 +52,10 @@ const (
 	ActionsEmail    = "teabot@gitea.io"
 )
 
+func IsGiteaActionsUserName(name string) bool {
+	return strings.EqualFold(name, ActionsUserName)
+}
+
 // NewActionsUser creates and returns a fake user for running the actions.
 func NewActionsUser() *User {
 	return &User{
@@ -65,6 +73,16 @@ func NewActionsUser() *User {
 	}
 }
 
-func (u *User) IsActions() bool {
+func (u *User) IsGiteaActions() bool {
 	return u != nil && u.ID == ActionsUserID
+}
+
+func GetSystemUserByName(name string) *User {
+	if IsGhostUserName(name) {
+		return NewGhostUser()
+	}
+	if IsGiteaActionsUserName(name) {
+		return NewActionsUser()
+	}
+	return nil
 }
