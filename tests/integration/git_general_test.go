@@ -484,7 +484,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhit
 		// Check if master branch has been locked successfully
 		flashCookie := ctx.Session.GetCookie(gitea_context.CookieNameFlash)
 		assert.NotNil(t, flashCookie)
-		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2522"+url.QueryEscape(branch)+"%2522%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
+		assert.EqualValues(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2522"+url.QueryEscape(url.QueryEscape(branch))+"%2522%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
 	}
 }
 
