@@ -38,7 +38,7 @@ export function initStopwatch() {
   }
 
   let usingPeriodicPoller = false;
-  const startPeriodicPoller = (timeout) => {
+  const startPeriodicPoller = (timeout: number) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
     usingPeriodicPoller = true;
     setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
@@ -103,7 +103,7 @@ export function initStopwatch() {
   startPeriodicPoller(notificationSettings.MinTimeout);
 }
 
-async function updateStopwatchWithCallback(callback, timeout) {
+async function updateStopwatchWithCallback(callback: (timeout: number) => void, timeout: number) {
   const isSet = await updateStopwatch();
 
   if (!isSet) {
@@ -125,7 +125,7 @@ async function updateStopwatch() {
   return updateStopwatchData(data);
 }
 
-function updateStopwatchData(data) {
+function updateStopwatchData(data: any) {
   const watch = data[0];
   const btnEls = document.querySelectorAll('.active-stopwatch');
   if (!watch) {

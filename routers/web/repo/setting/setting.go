@@ -832,16 +832,10 @@ func SettingsPost(ctx *context.Context) {
 			} else {
 				ctx.ServerError("GetPendingRepositoryTransfer", err)
 			}
-
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("LoadRecipient", err)
-			return
-		}
-
-		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, repoTransfer, ctx.Doer); err != nil {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}

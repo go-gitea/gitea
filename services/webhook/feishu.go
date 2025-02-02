@@ -170,3 +170,7 @@ func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mo
 	var pc payloadConvertor[FeishuPayload] = feishuConvertor{}
 	return newJSONRequest(pc, w, t, true)
 }
+
+func init() {
+	RegisterWebhookRequester(webhook_module.FEISHU, newFeishuRequest)
+}
