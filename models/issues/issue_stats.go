@@ -107,7 +107,7 @@ func GetIssueStats(ctx context.Context, opts *IssuesOptions) (*IssueStats, error
 		accum.YourRepositoriesCount += stats.YourRepositoriesCount
 		accum.AssignCount += stats.AssignCount
 		accum.CreateCount += stats.CreateCount
-		accum.OpenCount += stats.MentionCount
+		accum.MentionCount += stats.MentionCount
 		accum.ReviewRequestedCount += stats.ReviewRequestedCount
 		accum.ReviewedCount += stats.ReviewedCount
 		i = chunk

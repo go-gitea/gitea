@@ -628,11 +628,6 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 }
 
 func ArtifactsDeleteView(ctx *context_module.Context) {
-	if !ctx.Repo.CanWrite(unit.TypeActions) {
-		ctx.Error(http.StatusForbidden, "no permission")
-		return
-	}
-
 	runIndex := getRunIndex(ctx)
 	artifactName := ctx.PathParam("artifact_name")
 
