@@ -63,6 +63,7 @@ func GetOrganizationByParams(ctx *Context) {
 }
 
 // HandleOrgAssignment handles organization assignment
+// args: requireMember, requireOwner, requireTeamMember, requireTeamAdmin
 func HandleOrgAssignment(ctx *Context, args ...bool) {
 	var (
 		requireMember     bool
@@ -269,6 +270,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 }
 
 // OrgAssignment returns a middleware to handle organization assignment
+// args: requireMember, requireOwner, requireTeamMember, requireTeamAdmin
 func OrgAssignment(args ...bool) func(ctx *Context) {
 	return func(ctx *Context) {
 		HandleOrgAssignment(ctx, args...)

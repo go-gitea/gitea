@@ -756,6 +756,7 @@ type CherryPickForm struct {
 	LastCommit    string
 	Revert        bool
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -781,6 +782,7 @@ type UploadRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	Files         []string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -815,6 +817,7 @@ type DeleteRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields

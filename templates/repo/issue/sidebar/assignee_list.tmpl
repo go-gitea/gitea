@@ -15,8 +15,9 @@
 				<i class="icon">{{svg "octicon-search" 16}}</i>
 				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
 			</div>
-			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
 			<div class="scrolling menu flex-items-block">
+				<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
+				<div class="divider"></div>
 				{{range $data.CandidateAssignees}}
 					<a class="item" href="#" data-value="{{.ID}}">
 						<span class="item-check-mark">{{svg "octicon-check"}}</span>
