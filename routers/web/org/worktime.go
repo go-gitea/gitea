@@ -17,8 +17,8 @@ const tplByRepos templates.TplName = "org/worktime"
 // parseOrgTimes contains functionality that is required in all these functions,
 // like parsing the date from the request, setting default dates, etc.
 func parseOrgTimes(ctx *context.Context) (unixFrom, unixTo int64) {
-	rangeFrom := ctx.FormString("range_from")
-	rangeTo := ctx.FormString("range_to")
+	rangeFrom := ctx.FormString("from")
+	rangeTo := ctx.FormString("to")
 	if rangeFrom == "" {
 		rangeFrom = time.Now().Format("2006-01") + "-01" // defaults to start of current month
 	}
@@ -51,6 +51,8 @@ func Worktime(ctx *context.Context) {
 	}
 
 	worktimeBy := ctx.FormString("by")
+	ctx.Data["WorktimeBy"] = worktimeBy
+
 	var worktimeSumResult any
 	var err error
 	if worktimeBy == "milestones" {

@@ -4,18 +4,15 @@
 	<div class="ui container">
 		<div class="ui grid">
 			<div class="three wide column">
-				<form class="ui form">
+				<form class="ui form" method="get">
+					<input type="hidden" name="by" value="{{$.WorktimeBy}}">
 					<div class="field">
 						<label>{{ctx.Locale.Tr "org.worktime.date_range_start"}}</label>
-						<div class="ui calendar">
-							<input type="date" name="range_from" value="{{.RangeFrom}}">
-						</div>
+						<input type="date" name="from" value="{{.RangeFrom}}">
 					</div>
 					<div class="field">
 						<label>{{ctx.Locale.Tr "org.worktime.date_range_end"}}</label>
-						<div class="ui calendar">
-							<input type="date" name="range_to" value="{{.RangeTo}}">
-						</div>
+						<input type="date" name="to" value="{{.RangeTo}}">
 					</div>
 					<button class="ui primary button">{{ctx.Locale.Tr "org.worktime.query"}}</button>
 				</form>
