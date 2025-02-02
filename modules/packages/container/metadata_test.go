@@ -17,9 +17,9 @@ func TestParseImageConfig(t *testing.T) {
 	description := "Image Description"
 	author := "Gitea"
 	license := "MIT"
-	projectURL := "https://gitea.io"
+	projectURL := "https://gitea.com"
 	repositoryURL := "https://gitea.com/gitea"
-	documentationURL := "https://docs.gitea.io"
+	documentationURL := "https://docs.gitea.com"
 
 	configOCI := `{"config": {"labels": {"` + labelAuthors + `": "` + author + `", "` + labelLicenses + `": "` + license + `", "` + labelURL + `": "` + projectURL + `", "` + labelSource + `": "` + repositoryURL + `", "` + labelDocumentation + `": "` + documentationURL + `", "` + labelDescription + `": "` + description + `"}}, "history": [{"created_by": "do it 1"}, {"created_by": "dummy #(nop) do it 2"}]}`
 
@@ -33,7 +33,7 @@ func TestParseImageConfig(t *testing.T) {
 	assert.Equal(t, projectURL, metadata.ProjectURL)
 	assert.Equal(t, repositoryURL, metadata.RepositoryURL)
 	assert.Equal(t, documentationURL, metadata.DocumentationURL)
-	assert.Equal(t, []string{"do it 1", "do it 2"}, metadata.ImageLayers)
+	assert.ElementsMatch(t, []string{"do it 1", "do it 2"}, metadata.ImageLayers)
 	assert.Equal(
 		t,
 		map[string]string{
@@ -46,7 +46,7 @@ func TestParseImageConfig(t *testing.T) {
 		},
 		metadata.Labels,
 	)
-	assert.Empty(t, metadata.MultiArch)
+	assert.Empty(t, metadata.Manifests)
 
 	configHelm := `{"description":"` + description + `", "home": "` + projectURL + `", "sources": ["` + repositoryURL + `"], "maintainers":[{"name":"` + author + `"}]}`
 

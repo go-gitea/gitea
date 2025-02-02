@@ -17,10 +17,10 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	conda_module "code.gitea.io/gitea/modules/packages/conda"
+	"code.gitea.io/gitea/modules/zstd"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/dsnet/compress/bzip2"
-	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,12 +66,12 @@ func TestPackageConda(t *testing.T) {
 			req := NewRequestWithBody(t, "PUT", root+"/"+filename, bytes.NewReader(buf.Bytes()))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequestWithBody(t, "PUT", root+"/"+filename, bytes.NewReader(buf.Bytes()))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", root+"/"+filename, bytes.NewReader(buf.Bytes())).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			req = NewRequestWithBody(t, "PUT", root+"/"+filename, bytes.NewReader(buf.Bytes()))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", root+"/"+filename, bytes.NewReader(buf.Bytes())).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConda)
@@ -107,12 +107,12 @@ func TestPackageConda(t *testing.T) {
 			req := NewRequestWithBody(t, "PUT", root+"/"+channel+"/"+filename, bytes.NewReader(buf.Bytes()))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequestWithBody(t, "PUT", root+"/"+channel+"/"+filename, bytes.NewReader(buf.Bytes()))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", root+"/"+channel+"/"+filename, bytes.NewReader(buf.Bytes())).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			req = NewRequestWithBody(t, "PUT", root+"/"+channel+"/"+filename, bytes.NewReader(buf.Bytes()))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequestWithBody(t, "PUT", root+"/"+channel+"/"+filename, bytes.NewReader(buf.Bytes())).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConda)

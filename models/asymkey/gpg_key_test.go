@@ -7,11 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckArmoredGPGKeyString(t *testing.T) {
@@ -104,9 +109,8 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 =i9b7
 -----END PGP PUBLIC KEY BLOCK-----`
 	keys, err := checkArmoredGPGKeyString(testGPGArmor)
-	if !assert.NotEmpty(t, keys) {
-		return
-	}
+	require.NotEmpty(t, keys)
+
 	ekey := keys[0]
 	assert.NoError(t, err, "Could not parse a valid GPG armored key", ekey)
 
@@ -228,7 +232,7 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 =zHo9
 -----END PGP PUBLIC KEY BLOCK-----`
 
-	keys, err := AddGPGKey(1, testEmailWithUpperCaseLetters, "", "")
+	keys, err := AddGPGKey(db.DefaultContext, 1, testEmailWithUpperCaseLetters, "", "")
 	assert.NoError(t, err)
 	if assert.NotEmpty(t, keys) {
 		key := keys[0]
@@ -389,4 +393,36 @@ epiDVQ==
 		expire := getExpiryTime(ekey)
 		assert.Equal(t, time.Unix(1586105389, 0), expire)
 	}
+}
+
+func TestTryGetKeyIDFromSignature(t *testing.T) {
+	assert.Empty(t, tryGetKeyIDFromSignature(&packet.Signature{}))
+	assert.Equal(t, "038D1A3EADDBEA9C", tryGetKeyIDFromSignature(&packet.Signature{
+		IssuerKeyId: util.ToPointer(uint64(0x38D1A3EADDBEA9C)),
+	}))
+	assert.Equal(t, "038D1A3EADDBEA9C", tryGetKeyIDFromSignature(&packet.Signature{
+		IssuerFingerprint: []uint8{0xb, 0x23, 0x24, 0xc7, 0xe6, 0xfe, 0x4f, 0x3a, 0x6, 0x26, 0xc1, 0x21, 0x3, 0x8d, 0x1a, 0x3e, 0xad, 0xdb, 0xea, 0x9c},
+	}))
+}
+
+func TestParseGPGKey(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	assert.NoError(t, db.Insert(db.DefaultContext, &user_model.EmailAddress{UID: 1, Email: "email1@example.com", IsActivated: true}))
+
+	// create a key for test email
+	e, err := openpgp.NewEntity("name", "comment", "email1@example.com", nil)
+	require.NoError(t, err)
+	k, err := parseGPGKey(db.DefaultContext, 1, e, true)
+	require.NoError(t, err)
+	assert.NotEmpty(t, k.KeyID)
+	assert.NotEmpty(t, k.Emails) // the key is valid, matches the email
+
+	// then revoke the key
+	for _, id := range e.Identities {
+		id.Revocations = append(id.Revocations, &packet.Signature{RevocationReason: util.ToPointer(packet.KeyCompromised)})
+	}
+	k, err = parseGPGKey(db.DefaultContext, 1, e, true)
+	require.NoError(t, err)
+	assert.NotEmpty(t, k.KeyID)
+	assert.Empty(t, k.Emails) // the key is revoked, matches no email
 }

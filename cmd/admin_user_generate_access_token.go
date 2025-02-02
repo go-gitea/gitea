@@ -4,32 +4,35 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserGenerateAccessToken = cli.Command{
+var microcmdUserGenerateAccessToken = &cli.Command{
 	Name:  "generate-access-token",
 	Usage: "Generate an access token for a specific user",
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "username,u",
-			Usage: "Username",
+		&cli.StringFlag{
+			Name:    "username",
+			Aliases: []string{"u"},
+			Usage:   "Username",
 		},
-		cli.StringFlag{
-			Name:  "token-name,t",
-			Usage: "Token name",
-			Value: "gitea-admin",
+		&cli.StringFlag{
+			Name:    "token-name",
+			Aliases: []string{"t"},
+			Usage:   "Token name",
+			Value:   "gitea-admin",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "raw",
 			Usage: "Display only the token value",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "scopes",
 			Value: "",
 			Usage: "Comma separated list of scopes to apply to access token",
@@ -40,7 +43,7 @@ var microcmdUserGenerateAccessToken = cli.Command{
 
 func runGenerateAccessToken(c *cli.Context) error {
 	if !c.IsSet("username") {
-		return fmt.Errorf("You must provide a username to generate a token for")
+		return errors.New("You must provide a username to generate a token for")
 	}
 
 	ctx, cancel := installSignals()
@@ -55,18 +58,29 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
-	accessTokenScope, err := auth_model.AccessTokenScope(c.String("scopes")).Normalize()
+	// construct token with name and user so we can make sure it is unique
+	t := &auth_model.AccessToken{
+		Name: c.String("token-name"),
+		UID:  user.ID,
+	}
+
+	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
 		return err
 	}
-
-	t := &auth_model.AccessToken{
-		Name:  c.String("token-name"),
-		UID:   user.ID,
-		Scope: accessTokenScope,
+	if exist {
+		return errors.New("access token name has been used already")
 	}
 
-	if err := auth_model.NewAccessToken(t); err != nil {
+	// make sure the scopes are valid
+	accessTokenScope, err := auth_model.AccessTokenScope(c.String("scopes")).Normalize()
+	if err != nil {
+		return fmt.Errorf("invalid access token scope provided: %w", err)
+	}
+	t.Scope = accessTokenScope
+
+	// create the token
+	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		return err
 	}
 

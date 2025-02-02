@@ -18,8 +18,8 @@ func AddTableCommitStatusIndex(x *xorm.Engine) error {
 		MaxIndex int64  `xorm:"index"`
 	}
 
-	if err := x.Sync2(new(CommitStatusIndex)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := x.Sync(new(CommitStatusIndex)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 
 	sess := x.NewSession()

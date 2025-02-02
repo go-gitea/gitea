@@ -4,24 +4,19 @@
 package issues_test
 
 import (
-	"path/filepath"
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/setting"
 
 	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/actions"
+	_ "code.gitea.io/gitea/models/activities"
 	_ "code.gitea.io/gitea/models/repo"
 	_ "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
-}
 
 func TestFixturesAreConsistent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -34,7 +29,5 @@ func TestFixturesAreConsistent(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }

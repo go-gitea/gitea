@@ -9,13 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-//  ____ ___
-// |    |   \______ ___________
-// |    |   /  ___// __ \_  __ \
-// |    |  /\___ \\  ___/|  | \/
-// |______//____  >\___  >__|
-//              \/     \/
-
 // ErrUserAlreadyExist represents a "user already exists" error.
 type ErrUserAlreadyExist struct {
 	Name string
@@ -38,9 +31,8 @@ func (err ErrUserAlreadyExist) Unwrap() error {
 
 // ErrUserNotExist represents a "UserNotExist" kind of error.
 type ErrUserNotExist struct {
-	UID   int64
-	Name  string
-	KeyID int64
+	UID  int64
+	Name string
 }
 
 // IsErrUserNotExist checks if an error is a ErrUserNotExist.
@@ -50,7 +42,7 @@ func IsErrUserNotExist(err error) bool {
 }
 
 func (err ErrUserNotExist) Error() string {
-	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
+	return fmt.Sprintf("user does not exist [uid: %d, name: %s]", err.UID, err.Name)
 }
 
 // Unwrap unwraps this error as a ErrNotExist error
@@ -98,4 +90,20 @@ func (err ErrUserInactive) Error() string {
 // Unwrap unwraps this error as a ErrPermission error
 func (err ErrUserInactive) Unwrap() error {
 	return util.ErrPermissionDenied
+}
+
+// ErrUserIsNotLocal represents a "ErrUserIsNotLocal" kind of error.
+type ErrUserIsNotLocal struct {
+	UID  int64
+	Name string
+}
+
+func (err ErrUserIsNotLocal) Error() string {
+	return fmt.Sprintf("user is not local type [uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// IsErrUserIsNotLocal
+func IsErrUserIsNotLocal(err error) bool {
+	_, ok := err.(ErrUserIsNotLocal)
+	return ok
 }

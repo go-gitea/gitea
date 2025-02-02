@@ -10,7 +10,7 @@ REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH    = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/indexers/repos.bleve
 
 [queue.issue_indexer]
-PATH   = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/indexers/issues.bleve
+TYPE = level
 DATADIR = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/indexers/issues.queue
 
 [queue]
@@ -20,6 +20,9 @@ TYPE = immediate
 TYPE = immediate
 
 [queue.push_update]
+TYPE = immediate
+
+[queue.webhook_sender]
 TYPE = immediate
 
 [repository]
@@ -55,7 +58,7 @@ PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/data/attachments
 
 [mailer]
 ENABLED     = true
-MAILER_TYPE = dummy
+PROTOCOL = dummy
 FROM        = sqlite-{{TEST_TYPE}}-test@gitea.io
 
 [service]
@@ -82,9 +85,8 @@ PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/data/sessions
 [log]
 MODE                 = {{TEST_LOGGER}}
 ROOT_PATH            = {{REPO_TEST_DIR}}sqlite-log
-ROUTER               = ,
-XORM                 = file
 ENABLE_SSH_LOG       = true
+logger.xorm.MODE     = file
 
 [log.test]
 LEVEL                = Info
@@ -94,10 +96,10 @@ COLORIZE             = true
 LEVEL                = Debug
 
 [security]
-DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTI3OTU5ODN9.OQkH5UmzID2XBdwQ9TAI6Jj2t1X-wElVTjbE7aoN4I8
+DISABLE_QUERY_AUTH_TOKEN = true
 
 [oauth2]
 JWT_SECRET = KZb_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko
@@ -111,6 +113,12 @@ ENABLED = true
 [markup.html]
 ENABLED = true
 FILE_EXTENSIONS = .html
-RENDER_COMMAND = `go run tools/external_renderer.go`
+RENDER_COMMAND = `go run build/test-echo.go`
 IS_INPUT_FILE = false
 RENDER_CONTENT_MODE=sanitized
+
+[actions]
+ENABLED = true
+
+[webhook]
+ALLOWED_HOST_LIST = 127.0.0.1

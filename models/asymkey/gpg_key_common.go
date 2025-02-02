@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/keybase/go-crypto/openpgp"
-	"github.com/keybase/go-crypto/openpgp/armor"
-	"github.com/keybase/go-crypto/openpgp/packet"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 //   __________________  ________   ____  __.
@@ -80,7 +80,7 @@ func base64DecPubKey(content string) (*packet.PublicKey, error) {
 	return pkey, nil
 }
 
-// getExpiryTime extract the expire time of primary key based on sig
+// getExpiryTime extract the expiry time of primary key based on sig
 func getExpiryTime(e *openpgp.Entity) time.Time {
 	expiry := time.Time{}
 	// Extract self-sign for expire date based on : https://github.com/golang/crypto/blob/master/openpgp/keys.go#L165
@@ -88,12 +88,12 @@ func getExpiryTime(e *openpgp.Entity) time.Time {
 	for _, ident := range e.Identities {
 		if selfSig == nil {
 			selfSig = ident.SelfSignature
-		} else if ident.SelfSignature.IsPrimaryId != nil && *ident.SelfSignature.IsPrimaryId {
+		} else if ident.SelfSignature != nil && ident.SelfSignature.IsPrimaryId != nil && *ident.SelfSignature.IsPrimaryId {
 			selfSig = ident.SelfSignature
 			break
 		}
 	}
-	if selfSig.KeyLifetimeSecs != nil {
+	if selfSig != nil && selfSig.KeyLifetimeSecs != nil {
 		expiry = e.PrimaryKey.CreationTime.Add(time.Duration(*selfSig.KeyLifetimeSecs) * time.Second)
 	}
 	return expiry
@@ -111,10 +111,10 @@ func populateHash(hashFunc crypto.Hash, msg []byte) (hash.Hash, error) {
 func readArmoredSign(r io.Reader) (body io.Reader, err error) {
 	block, err := armor.Decode(r)
 	if err != nil {
-		return
+		return nil, err
 	}
 	if block.Type != openpgp.SignatureType {
-		return nil, fmt.Errorf("expected '" + openpgp.SignatureType + "', got: " + block.Type)
+		return nil, fmt.Errorf("expected '%s', got: %s", openpgp.SignatureType, block.Type)
 	}
 	return block.Body, nil
 }
@@ -133,4 +133,14 @@ func extractSignature(s string) (*packet.Signature, error) {
 		return nil, fmt.Errorf("Packet is not a signature")
 	}
 	return sig, nil
+}
+
+func tryGetKeyIDFromSignature(sig *packet.Signature) string {
+	if sig.IssuerKeyId != nil && (*sig.IssuerKeyId) != 0 {
+		return fmt.Sprintf("%016X", *sig.IssuerKeyId)
+	}
+	if len(sig.IssuerFingerprint) > 0 {
+		return fmt.Sprintf("%016X", sig.IssuerFingerprint[12:20])
+	}
+	return ""
 }

@@ -40,8 +40,8 @@ func HashAppToken(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Sync2(new(AccessToken)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := sess.Sync(new(AccessToken)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 
 	if err := sess.Commit(); err != nil {
@@ -81,7 +81,6 @@ func HashAppToken(x *xorm.Engine) error {
 			if _, err := sess.ID(token.ID).Cols("token_hash, token_salt, token_last_eight, sha1").Update(token); err != nil {
 				return fmt.Errorf("couldn't add in sha1, token_hash, token_salt and token_last_eight: %w", err)
 			}
-
 		}
 	}
 
@@ -112,8 +111,8 @@ func resyncHashAppTokenWithUniqueHash(x *xorm.Engine) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := sess.Sync2(new(AccessToken)); err != nil {
-		return fmt.Errorf("Sync2: %w", err)
+	if err := sess.Sync(new(AccessToken)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
 	}
 	return sess.Commit()
 }

@@ -15,7 +15,7 @@ import (
 
 func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 	if len(value) == 0 {
-		return
+		return 0, nil
 	}
 	var n int
 	last := 0
@@ -23,24 +23,24 @@ func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 		n, err = w.Write(prefix)
 		sum += int64(n)
 		if err != nil {
-			return
+			return sum, err
 		}
 		n, err = w.Write(value[last : last+j+1])
 		sum += int64(n)
 		if err != nil {
-			return
+			return sum, err
 		}
 		last += j + 1
 	}
 	n, err = w.Write(prefix)
 	sum += int64(n)
 	if err != nil {
-		return
+		return sum, err
 	}
 	n, err = w.Write(value[last:])
 	sum += int64(n)
 	if err != nil {
-		return
+		return sum, err
 	}
 	n, err = w.Write([]byte("\n"))
 	sum += int64(n)
@@ -51,8 +51,8 @@ func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 type Event struct {
 	// Name represents the value of the event: tag in the stream
 	Name string
-	// Data is either JSONified []byte or interface{} that can be JSONd
-	Data interface{}
+	// Data is either JSONified []byte or any that can be JSONd
+	Data any
 	// ID represents the ID of an event
 	ID string
 	// Retry tells the receiver only to attempt to reconnect to the source after this time

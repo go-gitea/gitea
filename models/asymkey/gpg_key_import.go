@@ -3,7 +3,11 @@
 
 package asymkey
 
-import "code.gitea.io/gitea/models/db"
+import (
+	"context"
+
+	"code.gitea.io/gitea/models/db"
+)
 
 //    __________________  ________   ____  __.
 //   /  _____/\______   \/  _____/  |    |/ _|____ ___.__.
@@ -23,7 +27,7 @@ import "code.gitea.io/gitea/models/db"
 // GPGKeyImport the original import of key
 type GPGKeyImport struct {
 	KeyID   string `xorm:"pk CHAR(16) NOT NULL"`
-	Content string `xorm:"TEXT NOT NULL"`
+	Content string `xorm:"MEDIUMTEXT NOT NULL"`
 }
 
 func init() {
@@ -31,9 +35,9 @@ func init() {
 }
 
 // GetGPGImportByKeyID returns the import public armored key by given KeyID.
-func GetGPGImportByKeyID(keyID string) (*GPGKeyImport, error) {
+func GetGPGImportByKeyID(ctx context.Context, keyID string) (*GPGKeyImport, error) {
 	key := new(GPGKeyImport)
-	has, err := db.GetEngine(db.DefaultContext).ID(keyID).Get(key)
+	has, err := db.GetEngine(ctx).ID(keyID).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {

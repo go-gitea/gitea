@@ -4,10 +4,10 @@
 package admin
 
 import (
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
+	"code.gitea.io/gitea/services/context"
 )
 
 // CreateRepo api for creating a repository
@@ -32,6 +32,8 @@ func CreateRepo(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":

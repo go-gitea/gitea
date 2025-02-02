@@ -24,7 +24,7 @@ const (
 	privateActivityTestUser  = "user2"
 )
 
-// user3 is an organization so it is not usable here
+// org3 is an organization so it is not usable here
 const privateActivityTestOtherUser = "user4"
 
 // activity helpers
@@ -34,12 +34,12 @@ func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 
 	session := loginUser(t, privateActivityTestUser)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeRepo)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all", owner.Name, repoBefore.Name)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:  "test",
 		Title: "test",
-	})
+	}).AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusCreated)
 }
 
@@ -48,7 +48,7 @@ func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
 func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 	session := loginUser(t, privateActivityTestUser)
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":                 GetCSRF(t, session, "/user/settings"),
+		"_csrf":                 GetUserCSRFToken(t, session),
 		"name":                  privateActivityTestUser,
 		"email":                 privateActivityTestUser + "@example.com",
 		"language":              "en-US",
@@ -58,7 +58,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc *HTMLDoc) bool {
-	return htmlDoc.doc.Find(".feeds").Find(".news").Length() > 0
+	return htmlDoc.doc.Find("#activity-feed").Find(".flex-item").Length() > 0
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesFromSession(t *testing.T, session *TestSession) bool {
@@ -125,9 +125,10 @@ func testPrivateActivityHelperHasHeatmapContentFromPublic(t *testing.T) bool {
 }
 
 func testPrivateActivityHelperHasHeatmapContentFromSession(t *testing.T, session *TestSession) bool {
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser)
 
-	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap?token=%s", privateActivityTestUser, token)
+	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap", privateActivityTestUser).
+		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var items []*activities_model.UserHeatmapData

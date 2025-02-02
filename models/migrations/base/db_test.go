@@ -36,12 +36,14 @@ func Test_DropTableColumns(t *testing.T) {
 		"updated_unix",
 	}
 
+	x.SetMapper(names.GonicMapper{})
+
 	for i := range columns {
-		x.SetMapper(names.GonicMapper{})
-		if err := x.Sync2(new(DropTest)); err != nil {
+		if err := x.Sync(new(DropTest)); err != nil {
 			t.Errorf("unable to create DropTest table: %v", err)
 			return
 		}
+
 		sess := x.NewSession()
 		if err := sess.Begin(); err != nil {
 			sess.Close()
@@ -64,8 +66,7 @@ func Test_DropTableColumns(t *testing.T) {
 			return
 		}
 		for j := range columns[i+1:] {
-			x.SetMapper(names.GonicMapper{})
-			if err := x.Sync2(new(DropTest)); err != nil {
+			if err := x.Sync(new(DropTest)); err != nil {
 				t.Errorf("unable to create DropTest table: %v", err)
 				return
 			}

@@ -6,18 +6,20 @@ package admin
 import (
 	"net/http"
 	"net/url"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
+	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 )
 
 const (
-	tplPackagesList base.TplName = "admin/packages/list"
+	tplPackagesList templates.TplName = "admin/packages/list"
 )
 
 // Packages shows all packages
@@ -34,7 +36,7 @@ func Packages(ctx *context.Context) {
 		Type:       packages_model.Type(packageType),
 		Name:       packages_model.SearchValue{Value: query},
 		Sort:       sort,
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
@@ -64,7 +66,6 @@ func Packages(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminPackages"] = true
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
@@ -76,9 +77,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamString("q", query)
-	pager.AddParamString("type", packageType)
-	pager.AddParamString("sort", sort)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
@@ -86,19 +85,27 @@ func Packages(ctx *context.Context) {
 
 // DeletePackageVersion deletes a package version
 func DeletePackageVersion(ctx *context.Context) {
-	pv, err := packages_model.GetVersionByID(db.DefaultContext, ctx.FormInt64("id"))
+	pv, err := packages_model.GetVersionByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return
 	}
 
-	if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
+	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
 		ctx.ServerError("RemovePackageVersion", err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")),
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
+}
+
+func CleanupExpiredData(ctx *context.Context) {
+	if err := packages_cleanup_service.CleanupExpiredData(ctx, time.Duration(0)); err != nil {
+		ctx.ServerError("CleanupExpiredData", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.packages.cleanup.success"))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/packages")
 }

@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestToCorrectPageSize(t *testing.T) {
@@ -23,6 +21,8 @@ func TestToGitServiceType(t *testing.T) {
 		typ  string
 		enum int
 	}{{
+		typ: "trash", enum: 1,
+	}, {
 		typ: "github", enum: 2,
 	}, {
 		typ: "gitea", enum: 3,
@@ -31,7 +31,13 @@ func TestToGitServiceType(t *testing.T) {
 	}, {
 		typ: "gogs", enum: 5,
 	}, {
-		typ: "trash", enum: 1,
+		typ: "onedev", enum: 6,
+	}, {
+		typ: "gitbucket", enum: 7,
+	}, {
+		typ: "codebase", enum: 8,
+	}, {
+		typ: "codecommit", enum: 9,
 	}}
 	for _, test := range tc {
 		assert.EqualValues(t, test.enum, ToGitServiceType(test.typ))

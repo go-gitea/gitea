@@ -34,7 +34,7 @@ var (
 	ErrInvalidIntegrity = util.NewInvalidArgumentErrorf("failed to validate integrity")
 )
 
-var nameMatch = regexp.MustCompile(`\A((@[^\s\/~'!\(\)\*]+?)[\/])?([^_.][^\s\/~'!\(\)\*]+)\z`)
+var nameMatch = regexp.MustCompile(`^(@[a-z0-9-][a-z0-9-._]*/)?[a-z0-9-][a-z0-9-._]*$`)
 
 // Package represents a npm package
 type Package struct {
@@ -78,8 +78,10 @@ type PackageMetadataVersion struct {
 	Repository           Repository          `json:"repository,omitempty"`
 	Keywords             []string            `json:"keywords,omitempty"`
 	Dependencies         map[string]string   `json:"dependencies,omitempty"`
+	BundleDependencies   []string            `json:"bundleDependencies,omitempty"`
 	DevDependencies      map[string]string   `json:"devDependencies,omitempty"`
 	PeerDependencies     map[string]string   `json:"peerDependencies,omitempty"`
+	PeerDependenciesMeta map[string]any      `json:"peerDependenciesMeta,omitempty"`
 	Bin                  map[string]string   `json:"bin,omitempty"`
 	OptionalDependencies map[string]string   `json:"optionalDependencies,omitempty"`
 	Readme               string              `json:"readme,omitempty"`
@@ -218,11 +220,14 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				ProjectURL:              meta.Homepage,
 				Keywords:                meta.Keywords,
 				Dependencies:            meta.Dependencies,
+				BundleDependencies:      meta.BundleDependencies,
 				DevelopmentDependencies: meta.DevDependencies,
 				PeerDependencies:        meta.PeerDependencies,
+				PeerDependenciesMeta:    meta.PeerDependenciesMeta,
 				OptionalDependencies:    meta.OptionalDependencies,
 				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,
+				Repository:              meta.Repository,
 			},
 		}
 

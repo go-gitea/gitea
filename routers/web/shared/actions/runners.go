@@ -5,48 +5,40 @@ package actions
 
 import (
 	"errors"
-	"net/http"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
-// RunnersList render common runners list page
-func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.FindRunnerOptions) {
-	count, err := actions_model.CountRunners(ctx, opts)
+// RunnersList prepares data for runners list
+func RunnersList(ctx *context.Context, opts actions_model.FindRunnerOptions) {
+	runners, count, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
-		ctx.ServerError("AdminRunners", err)
+		ctx.ServerError("CountRunners", err)
 		return
 	}
 
-	runners, err := actions_model.FindRunners(ctx, opts)
-	if err != nil {
-		ctx.ServerError("AdminRunners", err)
-		return
-	}
-	if err := runners.LoadAttributes(ctx); err != nil {
+	if err := actions_model.RunnerList(runners).LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
 
 	// ownid=0,repo_id=0,means this token is used for global
 	var token *actions_model.ActionRunnerToken
-	token, err = actions_model.GetUnactivatedRunnerToken(ctx, opts.OwnerID, opts.RepoID)
-	if errors.Is(err, util.ErrNotExist) {
+	token, err = actions_model.GetLatestRunnerToken(ctx, opts.OwnerID, opts.RepoID)
+	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
 		token, err = actions_model.NewRunnerToken(ctx, opts.OwnerID, opts.RepoID)
 		if err != nil {
 			ctx.ServerError("CreateRunnerToken", err)
 			return
 		}
 	} else if err != nil {
-		ctx.ServerError("GetUnactivatedRunnerToken", err)
+		ctx.ServerError("GetLatestRunnerToken", err)
 		return
 	}
 
@@ -54,17 +46,17 @@ func RunnersList(ctx *context.Context, tplName base.TplName, opts actions_model.
 	ctx.Data["Runners"] = runners
 	ctx.Data["Total"] = count
 	ctx.Data["RegistrationToken"] = token.Token
-	ctx.Data["RunnerOnwerID"] = opts.OwnerID
+	ctx.Data["RunnerOwnerID"] = opts.OwnerID
 	ctx.Data["RunnerRepoID"] = opts.RepoID
+	ctx.Data["SortType"] = opts.Sort
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplName)
+	ctx.Data["Page"] = pager
 }
 
-// RunnerDetails render runner details page
-func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerID, ownerID, repoID int64) {
+// RunnerDetails prepares data for runners edit page
+func RunnerDetails(ctx *context.Context, page int, runnerID, ownerID, repoID int64) {
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		ctx.ServerError("GetRunnerByID", err)
@@ -87,23 +79,17 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerI
 			Page:     page,
 			PageSize: 30,
 		},
-		Status:      actions_model.StatusUnknown, // Unknown means all
-		IDOrderDesc: true,
-		RunnerID:    runner.ID,
+		Status:   actions_model.StatusUnknown, // Unknown means all
+		RunnerID: runner.ID,
 	}
 
-	count, err := actions_model.CountTasks(ctx, opts)
+	tasks, count, err := db.FindAndCount[actions_model.ActionTask](ctx, opts)
 	if err != nil {
 		ctx.ServerError("CountTasks", err)
 		return
 	}
 
-	tasks, err := actions_model.FindTasks(ctx, opts)
-	if err != nil {
-		ctx.ServerError("FindTasks", err)
-		return
-	}
-	if err = tasks.LoadAttributes(ctx); err != nil {
+	if err = actions_model.TaskList(tasks).LoadAttributes(ctx); err != nil {
 		ctx.ServerError("TasksLoadAttributes", err)
 		return
 	}
@@ -111,8 +97,6 @@ func RunnerDetails(ctx *context.Context, tplName base.TplName, page int, runnerI
 	ctx.Data["Tasks"] = tasks
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Page"] = pager
-
-	ctx.HTML(http.StatusOK, tplName)
 }
 
 // RunnerDetailsEditPost response for edit runner details
@@ -130,9 +114,8 @@ func RunnerDetailsEditPost(ctx *context.Context, runnerID, ownerID, repoID int64
 
 	form := web.GetForm(ctx).(*forms.EditRunnerForm)
 	runner.Description = form.Description
-	runner.CustomLabels = splitLabels(form.CustomLabels)
 
-	err = actions_model.UpdateRunner(ctx, runner, "description", "custom_labels")
+	err = actions_model.UpdateRunner(ctx, runner, "description")
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.update_runner_failed"))
@@ -153,9 +136,8 @@ func RunnerResetRegistrationToken(ctx *context.Context, ownerID, repoID int64, r
 		ctx.ServerError("ResetRunnerRegistrationToken", err)
 		return
 	}
-
 	ctx.Flash.Success(ctx.Tr("actions.runners.reset_registration_token_success"))
-	ctx.Redirect(redirectTo)
+	ctx.JSONRedirect(redirectTo)
 }
 
 // RunnerDeletePost response for deleting a runner
@@ -166,9 +148,7 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
 
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": failedRedirectTo,
-		})
+		ctx.JSONRedirect(failedRedirectTo)
 		return
 	}
 
@@ -176,15 +156,5 @@ func RunnerDeletePost(ctx *context.Context, runnerID int64,
 
 	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": successRedirectTo,
-	})
-}
-
-func splitLabels(s string) []string {
-	labels := strings.Split(s, ",")
-	for i, v := range labels {
-		labels[i] = strings.TrimSpace(v)
-	}
-	return labels
+	ctx.JSONRedirect(successRedirectTo)
 }

@@ -20,7 +20,7 @@ const (
 )
 
 // CreateReferencePayload creates data which GetReferenceFromPayload resolves to the reference again.
-func CreateReferencePayload(reference interface{}) ([]byte, error) {
+func CreateReferencePayload(reference any) ([]byte, error) {
 	var refType payloadReferenceType
 	var refID int64
 
@@ -44,7 +44,7 @@ func CreateReferencePayload(reference interface{}) ([]byte, error) {
 }
 
 // GetReferenceFromPayload resolves the reference from the payload
-func GetReferenceFromPayload(ctx context.Context, payload []byte) (interface{}, error) {
+func GetReferenceFromPayload(ctx context.Context, payload []byte) (any, error) {
 	if len(payload) < 1 {
 		return nil, util.NewInvalidArgumentErrorf("payload to small")
 	}

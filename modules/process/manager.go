@@ -6,11 +6,13 @@ package process
 
 import (
 	"context"
-	"log"
 	"runtime/pprof"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"code.gitea.io/gitea/modules/gtprof"
 )
 
 // TODO: This packages still uses a singleton for the Manager.
@@ -25,18 +27,6 @@ var (
 	DefaultContext = context.Background()
 )
 
-// DescriptionPProfLabel is a label set on goroutines that have a process attached
-const DescriptionPProfLabel = "process-description"
-
-// PIDPProfLabel is a label set on goroutines that have a process attached
-const PIDPProfLabel = "pid"
-
-// PPIDPProfLabel is a label set on goroutines that have a process attached
-const PPIDPProfLabel = "ppid"
-
-// ProcessTypePProfLabel is a label set on goroutines that have a process attached
-const ProcessTypePProfLabel = "process-type"
-
 // IDType is a pid type
 type IDType string
 
@@ -44,16 +34,33 @@ type IDType string
 // - it is simply an alias for context.CancelFunc and is only for documentary purposes
 type FinishedFunc = context.CancelFunc
 
-var Trace = defaultTrace // this global can be overridden by particular logging packages - thus avoiding import cycles
+var (
+	traceDisabled atomic.Int64
+	TraceCallback = defaultTraceCallback // this global can be overridden by particular logging packages - thus avoiding import cycles
+)
 
-func defaultTrace(start bool, pid IDType, description string, parentPID IDType, typ string) {
-	if start && parentPID != "" {
-		log.Printf("start process %s: %s (from %s) (%s)", pid, description, parentPID, typ)
-	} else if start {
-		log.Printf("start process %s: %s (%s)", pid, description, typ)
+// defaultTraceCallback is a no-op. Without a proper TraceCallback (provided by the logger system), this "Trace" level messages shouldn't be outputted.
+func defaultTraceCallback(skip int, start bool, pid IDType, description string, parentPID IDType, typ string) {
+}
+
+// TraceLogDisable disables (or revert the disabling) the trace log for the process lifecycle.
+// eg: the logger system shouldn't print the trace log for themselves, that's cycle dependency (Logger -> ProcessManager -> TraceCallback -> Logger ...)
+// Theoretically, such trace log should only be enabled when the logger system is ready with a proper level, so the default TraceCallback is a no-op.
+func TraceLogDisable(v bool) {
+	if v {
+		traceDisabled.Add(1)
 	} else {
-		log.Printf("end process %s: %s", pid, description)
+		traceDisabled.Add(-1)
 	}
+}
+
+func Trace(start bool, pid IDType, description string, parentPID IDType, typ string) {
+	if traceDisabled.Load() != 0 {
+		// the traceDisabled counter is mainly for recursive calls, so no concurrency problem.
+		// because the counter can't be 0 since the caller function hasn't returned (decreased the counter) yet.
+		return
+	}
+	TraceCallback(1, start, pid, description, parentPID, typ)
 }
 
 // Manager manages all processes and counts PIDs.
@@ -117,7 +124,7 @@ func (pm *Manager) AddTypedContext(parent context.Context, description, processT
 //
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
-func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finshed FinishedFunc) {
+func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
 	if timeout <= 0 {
 		// it's meaningless to use timeout <= 0, and it must be a bug! so we must panic here to tell developers to make the timeout correct
 		panic("the timeout must be greater than zero, otherwise the context will be cancelled immediately")
@@ -125,9 +132,9 @@ func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Durati
 
 	ctx, cancel = context.WithTimeout(parent, timeout)
 
-	ctx, _, finshed = pm.Add(ctx, description, cancel, NormalProcessType, true)
+	ctx, _, finished = pm.Add(ctx, description, cancel, NormalProcessType, true)
 
-	return ctx, cancel, finshed
+	return ctx, cancel, finished
 }
 
 // Add create a new process
@@ -167,9 +174,15 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 
 	pm.processMap[pid] = process
 	pm.mutex.Unlock()
+
 	Trace(true, pid, description, parentPID, processType)
 
-	pprofCtx := pprof.WithLabels(ctx, pprof.Labels(DescriptionPProfLabel, description, PPIDPProfLabel, string(parentPID), PIDPProfLabel, string(pid), ProcessTypePProfLabel, processType))
+	pprofCtx := pprof.WithLabels(ctx, pprof.Labels(
+		gtprof.LabelProcessDescription, description,
+		gtprof.LabelPpid, string(parentPID),
+		gtprof.LabelPid, string(pid),
+		gtprof.LabelProcessType, processType,
+	))
 	if currentlyRunning {
 		pprof.SetGoroutineLabels(pprofCtx)
 	}
@@ -193,17 +206,23 @@ func (pm *Manager) nextPID() (start time.Time, pid IDType) {
 	pid = IDType(strconv.FormatInt(start.Unix(), 16))
 
 	if pm.next == 1 {
-		return
+		return start, pid
 	}
 	pid = IDType(string(pid) + "-" + strconv.FormatInt(pm.next, 10))
 	return start, pid
 }
 
 func (pm *Manager) remove(process *process) {
+	deleted := false
+
 	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
-	if p := pm.processMap[process.PID]; p == process {
+	if pm.processMap[process.PID] == process {
 		delete(pm.processMap, process.PID)
+		deleted = true
+	}
+	pm.mutex.Unlock()
+
+	if deleted {
 		Trace(false, process.PID, process.Description, process.ParentPID, process.Type)
 	}
 }

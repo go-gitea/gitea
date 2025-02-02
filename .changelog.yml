@@ -13,46 +13,47 @@ groups:
   -
     name: BREAKING
     labels:
-      - kind/breaking
+      - pr/breaking
   -
     name: SECURITY
     labels:
-      - kind/security
+      - topic/security
   -
     name: FEATURES
     labels:
-      - kind/feature
-  -
-    name: API
-    labels:
-      - kind/api
+      - type/feature
   -
     name: ENHANCEMENTS
     labels:
-      - kind/enhancement
-      - kind/refactor
-      - kind/ui
+      - type/enhancement
+  -
+    name: PERFORMANCE
+    labels:
+      - performance/memory
+      - performance/speed
+      - performance/bigrepo
+      - performance/cpu
   -
     name: BUGFIXES
     labels:
-      - kind/bug
+      - type/bug
+  -
+    name: API
+    labels:
+      - modifies/api
   -
     name: TESTING
     labels:
-      - kind/testing
-  -
-    name: TRANSLATION
-    labels:
-      - kind/translation
+      - type/testing
   -
     name: BUILD
     labels:
-      - kind/build
-      - kind/lint
+      - topic/build
+      - topic/code-linting
   -
     name: DOCS
     labels:
-      - kind/docs
+      - type/docs
   -
     name: MISC
     default: true

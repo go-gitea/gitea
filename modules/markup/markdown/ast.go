@@ -34,13 +34,6 @@ func NewDetails() *Details {
 	}
 }
 
-// IsDetails returns true if the given node implements the Details interface,
-// otherwise false.
-func IsDetails(node ast.Node) bool {
-	_, ok := node.(*Details)
-	return ok
-}
-
 // Summary is a block that contains the summary of details block
 type Summary struct {
 	ast.BaseBlock
@@ -66,17 +59,11 @@ func NewSummary() *Summary {
 	}
 }
 
-// IsSummary returns true if the given node implements the Summary interface,
-// otherwise false.
-func IsSummary(node ast.Node) bool {
-	_, ok := node.(*Summary)
-	return ok
-}
-
 // TaskCheckBoxListItem is a block that represents a list item of a markdown block with a checkbox
 type TaskCheckBoxListItem struct {
 	*ast.ListItem
-	IsChecked bool
+	IsChecked      bool
+	SourcePosition int
 }
 
 // KindTaskCheckBoxListItem is the NodeKind for TaskCheckBoxListItem
@@ -86,6 +73,7 @@ var KindTaskCheckBoxListItem = ast.NewNodeKind("TaskCheckBoxListItem")
 func (n *TaskCheckBoxListItem) Dump(source []byte, level int) {
 	m := map[string]string{}
 	m["IsChecked"] = strconv.FormatBool(n.IsChecked)
+	m["SourcePosition"] = strconv.FormatInt(int64(n.SourcePosition), 10)
 	ast.DumpHelper(n, source, level, m, nil)
 }
 
@@ -101,14 +89,7 @@ func NewTaskCheckBoxListItem(listItem *ast.ListItem) *TaskCheckBoxListItem {
 	}
 }
 
-// IsTaskCheckBoxListItem returns true if the given node implements the TaskCheckBoxListItem interface,
-// otherwise false.
-func IsTaskCheckBoxListItem(node ast.Node) bool {
-	_, ok := node.(*TaskCheckBoxListItem)
-	return ok
-}
-
-// Icon is an inline for a fomantic icon
+// Icon is an inline for a Fomantic UI icon
 type Icon struct {
 	ast.BaseInline
 	Name []byte
@@ -135,13 +116,6 @@ func NewIcon(name string) *Icon {
 		BaseInline: ast.BaseInline{},
 		Name:       []byte(name),
 	}
-}
-
-// IsIcon returns true if the given node implements the Icon interface,
-// otherwise false.
-func IsIcon(node ast.Node) bool {
-	_, ok := node.(*Icon)
-	return ok
 }
 
 // ColorPreview is an inline for a color preview
@@ -173,19 +147,7 @@ func NewColorPreview(color []byte) *ColorPreview {
 	}
 }
 
-// IsColorPreview returns true if the given node implements the ColorPreview interface,
-// otherwise false.
-func IsColorPreview(node ast.Node) bool {
-	_, ok := node.(*ColorPreview)
-	return ok
-}
-
-const (
-	AttentionNote    string = "Note"
-	AttentionWarning string = "Warning"
-)
-
-// Attention is an inline for a color preview
+// Attention is an inline for an attention
 type Attention struct {
 	ast.BaseInline
 	AttentionType string

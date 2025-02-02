@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -11,26 +12,28 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	user_service "code.gitea.io/gitea/services/user"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserDelete = cli.Command{
+var microcmdUserDelete = &cli.Command{
 	Name:  "delete",
 	Usage: "Delete specific user by id, name or email",
 	Flags: []cli.Flag{
-		cli.Int64Flag{
+		&cli.Int64Flag{
 			Name:  "id",
 			Usage: "ID of user of the user to delete",
 		},
-		cli.StringFlag{
-			Name:  "username,u",
-			Usage: "Username of the user to delete",
+		&cli.StringFlag{
+			Name:    "username",
+			Aliases: []string{"u"},
+			Usage:   "Username of the user to delete",
 		},
-		cli.StringFlag{
-			Name:  "email,e",
-			Usage: "Email of the user to delete",
+		&cli.StringFlag{
+			Name:    "email",
+			Aliases: []string{"e"},
+			Usage:   "Email of the user to delete",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "purge",
 			Usage: "Purge user, all their repositories, organizations and comments",
 		},
@@ -40,7 +43,7 @@ var microcmdUserDelete = cli.Command{
 
 func runDeleteUser(c *cli.Context) error {
 	if !c.IsSet("id") && !c.IsSet("username") && !c.IsSet("email") {
-		return fmt.Errorf("You must provide the id, username or email of a user to delete")
+		return errors.New("You must provide the id, username or email of a user to delete")
 	}
 
 	ctx, cancel := installSignals()

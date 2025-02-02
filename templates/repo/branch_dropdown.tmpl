@@ -1,106 +1,63 @@
-{{$release := .release}}
-{{$defaultBranch := $.root.BranchName}}{{if and .root.IsViewTag (not .noTag)}}{{$defaultBranch = .root.TagName}}{{end}}{{if eq $defaultBranch ""}}{{$defaultBranch = $.root.Repository.DefaultBranch}}{{end}}
-{{$type := ""}}{{if and .root.IsViewTag (not .noTag)}}{{$type = "tag"}}{{else if .root.IsViewBranch}}{{$type = "branch"}}{{else}}{{$type = "tree"}}{{end}}
-{{$showBranchesInDropdown := not .root.HideBranchesInDropdown}}
-<div class="fitted item choose reference">
-	<div class="ui floating filter dropdown custom"
-		data-branch-form="{{if $.branchForm}}{{$.branchForm}}{{end}}"
-		data-can-create-branch="{{if .canCreateBranch}}{{.canCreateBranch}}{{else}}{{.root.CanCreateBranch}}{{end}}"
-		data-no-results="{{.root.locale.Tr "repo.pulls.no_results"}}"
-		data-set-action="{{.setAction}}" data-submit-form="{{.submitForm}}"
-		data-view-type="{{$type}}"
-		data-ref-name="{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}"
-		data-branch-url-prefix="{{if .branchURLPrefix}}{{.branchURLPrefix}}{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{end}}"
-		data-branch-url-suffix="{{if .branchURLSuffix}}{{.branchURLSuffix}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}"
-		data-tag-url-prefix="{{if .tagURLPrefix}}{{.tagURLPrefix}}{{else if $release}}{{$.root.RepoLink}}/compare/{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{end}}"
-		data-tag-url-suffix="{{if .tagURLSuffix}}{{.tagURLSuffix}}{{else if $release}}...{{if $release.IsDraft}}{{PathEscapeSegments $release.Target}}{{else}}{{if $release.TagName}}{{PathEscapeSegments $release.TagName}}{{else}}{{PathEscapeSegments $release.Sha1}}{{end}}{{end}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}">
-		<button class="branch-dropdown-button gt-ellipsis ui basic small compact button gt-df" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-			<span class="text gt-df gt-ac gt-mr-2">
-				{{if $release}}
-					{{.root.locale.Tr "repo.release.compare"}}
-				{{else}}
-					<span :class="{visible: isViewTag}" v-if="isViewTag" {{if not (eq $type "tag")}}v-cloak{{end}}>{{svg "octicon-tag"}}</span>
-					<span :class="{visible: isViewBranch}" v-if="isViewBranch" {{if not (eq $type "branch")}}v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
-					<span :class="{visible: isViewTree}" v-if="isViewTree" {{if not (eq $type "tree")}}v-cloak{{end}}>{{svg "octicon-git-branch"}}</span>
-					<strong ref="dropdownRefName" class="gt-ml-3">{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
-				{{end}}
-			</span>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		</button>
-		<div class="data" style="display: none" data-mode="{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}">
-			{{if $showBranchesInDropdown}}
-				{{range .root.Branches}}
-					<div class="item branch {{if eq $defaultBranch .}}selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>
-				{{end}}
-			{{end}}
-			{{if (not .noTag)}}
-				{{range .root.Tags}}
-					{{if $release}}
-						<div class="item tag {{if eq $release.TagName .}}selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>
-					{{else}}
-						<div class="item tag {{if eq $defaultBranch .}}selected{{end}}" data-url="{{PathEscapeSegments .}}">{{.}}</div>
+{{/* Attributes:
+* ContainerClasses
+* Repository
+* CurrentRefType: eg. "branch", "tag", "commit"
+* CurrentRefShortName: eg. "master", "v1.0", "abcdef0123"
+* CurrentTreePath
+* RefLinkTemplate: redirect to the link when a branch/tag is selected
+* RefFormActionTemplate: change the parent form's action when a branch/tag is selected
+* DropdownFixedText: the text to show in the dropdown (mainly used by "release page"), if empty, the text will be the branch/tag name
+* ShowTabBranches
+* ShowTabTagsTab
+* AllowCreateNewRef
+* ShowViewAllRefsEntry
+
+Search "repo/branch_dropdown" in the template directory to find all occurrences.
+*/}}
+<div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}"
+	data-text-release-compare="{{ctx.Locale.Tr "repo.release.compare"}}"
+	data-text-branches="{{ctx.Locale.Tr "repo.branches"}}"
+	data-text-tags="{{ctx.Locale.Tr "repo.tags"}}"
+	data-text-filter-branch="{{ctx.Locale.Tr "repo.pulls.filter_branch"}}"
+	data-text-filter-tag="{{ctx.Locale.Tr "repo.find_tag"}}"
+	data-text-default-branch-label="{{ctx.Locale.Tr "repo.default_branch_label"}}"
+	data-text-create-tag="{{ctx.Locale.Tr "repo.tag.create_tag"}}"
+	data-text-create-branch="{{ctx.Locale.Tr "repo.branch.create_branch"}}"
+	data-text-create-ref-from="{{ctx.Locale.Tr "repo.branch.create_from"}}"
+	data-text-no-results="{{ctx.Locale.Tr "no_results_found"}}"
+	data-text-view-all-branches="{{ctx.Locale.Tr "repo.view_all_branches"}}"
+	data-text-view-all-tags="{{ctx.Locale.Tr "repo.view_all_tags"}}"
+
+	data-current-repo-default-branch="{{.Repository.DefaultBranch}}"
+	data-current-repo-link="{{.Repository.Link}}"
+	data-current-tree-path="{{.CurrentTreePath}}"
+	data-current-ref-type="{{.CurrentRefType}}"
+	data-current-ref-short-name="{{.CurrentRefShortName}}"
+
+	data-ref-link-template="{{.RefLinkTemplate}}"
+	data-ref-form-action-template="{{.RefFormActionTemplate}}"
+	data-dropdown-fixed-text="{{.DropdownFixedText}}"
+	data-show-tab-branches="{{.ShowTabBranches}}"
+	data-show-tab-tags="{{.ShowTabTags}}"
+	data-allow-create-new-ref="{{.AllowCreateNewRef}}"
+	data-show-view-all-refs-entry="{{.ShowViewAllRefsEntry}}"
+
+	data-enable-feed="{{ctx.RootData.EnableFeed}}"
+>
+	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
+	<div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
+		<div class="ui button branch-dropdown-button">
+			<span class="flex-text-block gt-ellipsis">
+				{{if not .DropdownFixedText}}
+					{{if .ShowTabTags}}
+						{{svg "octicon-tag"}}
+					{{else if .ShowTabBranches}}
+						{{svg "octicon-git-branch"}}
 					{{end}}
 				{{end}}
-			{{end}}
-		</div>
-		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
-			<div class="ui icon search input">
-				<i class="icon gt-df gt-ac gt-jc gt-m-0">{{svg "octicon-filter" 16}}</i>
-				<input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{if $.noTag}}{{.root.locale.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{.root.locale.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.locale.Tr "repo.find_tag"}}{{end}}...">
-			</div>
-			{{if $showBranchesInDropdown}}
-				<div class="header branch-tag-choice">
-					<div class="ui grid">
-						<div class="two column row">
-							<a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField()">
-								<span class="text" :class="{black: mode == 'branches'}">
-									{{svg "octicon-git-branch" 16 "gt-mr-2"}}{{.root.locale.Tr "repo.branches"}}
-								</span>
-							</a>
-							{{if not .noTag}}
-								<a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField()">
-									<span class="text" :class="{black: mode == 'tags'}">
-										{{svg "octicon-tag" 16 "gt-mr-2"}}{{.root.locale.Tr "repo.tags"}}
-									</span>
-								</a>
-							{{end}}
-						</div>
-					</div>
-				</div>
-			{{end}}
-			<div class="scrolling menu" ref="scrollContainer">
-				<div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active == index}" @click="selectItem(item)" :ref="'listItem' + index">${ item.name }</div>
-				<div class="item" v-if="showCreateNewBranch" :class="{active: active == filteredItems.length}" :ref="'listItem' + filteredItems.length">
-					<a href="#" @click="createNewBranch()">
-						<div v-show="createTag">
-							<i class="reference tags icon"></i>
-							{{.root.locale.Tr "repo.tag.create_tag" `${ searchTerm }` | Safe}}
-						</div>
-						<div v-show="!createTag">
-							{{svg "octicon-git-branch"}}
-							{{.root.locale.Tr "repo.branch.create_branch" `${ searchTerm }` | Safe}}
-						</div>
-						<div class="text small">
-							{{if or .root.IsViewBranch $release}}
-								{{.root.locale.Tr "repo.branch.create_from" .root.BranchName}}
-							{{else if .root.IsViewTag}}
-								{{.root.locale.Tr "repo.branch.create_from" .root.TagName}}
-							{{else}}
-								{{.root.locale.Tr "repo.branch.create_from" (ShortSha .root.CommitID)}}
-							{{end}}
-						</div>
-					</a>
-					<form ref="newBranchForm" action="{{.root.RepoLink}}/branches/_new/{{.root.BranchNameSubURL}}" method="post">
-						{{.root.CsrfTokenHtml}}
-						<input type="hidden" name="new_branch_name" v-model="searchTerm">
-						<input type="hidden" name="create_tag" v-model="createTag">
-						{{if $.root.TreePath}}
-							<input type="hidden" name="current_path" value="{{.root.TreePath}}">
-						{{end}}
-					</form>
-				</div>
-			</div>
-			<div class="message" v-if="showNoResults">${ noResults }</div>
+				<strong class="tw-ml-2 tw-inline-block gt-ellipsis">{{Iif .DropdownFixedText .SelectedRefShortName}}</strong>
+			</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>
 	</div>
 </div>

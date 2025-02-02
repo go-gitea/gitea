@@ -101,16 +101,7 @@ func getContainerBlobsLimit(ctx context.Context, opts *BlobSearchOptions, limit 
 		return nil, err
 	}
 
-	pfds := make([]*packages.PackageFileDescriptor, 0, len(pfs))
-	for _, pf := range pfs {
-		pfd, err := packages.GetPackageFileDescriptor(ctx, pf)
-		if err != nil {
-			return nil, err
-		}
-		pfds = append(pfds, pfd)
-	}
-
-	return pfds, nil
+	return packages.GetPackageFileDescriptors(ctx, pfs)
 }
 
 // GetManifestVersions gets all package versions representing the matching manifest
@@ -216,6 +207,9 @@ func (opts *ImageTagsSearchOptions) configureOrderBy(e db.Engine) {
 	default:
 		e.Desc("package_version.created_unix")
 	}
+
+	// Sort by id for stable order with duplicates in the other field
+	e.Asc("package_version.id")
 }
 
 // SearchImageTags gets a sorted list of the tags of an image
@@ -269,6 +263,10 @@ func GetRepositories(ctx context.Context, actor *user_model.User, n int, last st
 
 	if last != "" {
 		cond = cond.And(builder.Gt{"package_property.value": strings.ToLower(last)})
+	}
+
+	if actor.IsGhost() {
+		actor = nil
 	}
 
 	cond = cond.And(user_model.BuildCanSeeUserCondition(actor))

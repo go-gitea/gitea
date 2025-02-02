@@ -62,18 +62,21 @@ func (g *GitBucketDownloader) String() string {
 	return fmt.Sprintf("migration from gitbucket server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
-// ColorFormat provides a basic color format for a GitBucketDownloader
-func (g *GitBucketDownloader) ColorFormat(s fmt.State) {
+func (g *GitBucketDownloader) LogString() string {
 	if g == nil {
-		log.ColorFprintf(s, "<nil: GitBucketDownloader>")
-		return
+		return "<GitBucketDownloader nil>"
 	}
-	log.ColorFprintf(s, "migration from gitbucket server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+	return fmt.Sprintf("<GitBucketDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // NewGitBucketDownloader creates a GitBucket downloader
 func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GitBucketDownloader {
 	githubDownloader := NewGithubDownloaderV3(ctx, baseURL, userName, password, token, repoOwner, repoName)
+	// Gitbucket 4.40 uses different internal hard-coded perPage values.
+	// Issues, PRs, and other major parts use 25.  Release page uses 10.
+	// Some API doesn't support paging yet.  Sounds difficult, but using
+	// minimum number among them worked out very well.
+	githubDownloader.maxPerPage = 10
 	githubDownloader.SkipReactions = true
 	githubDownloader.SkipReviews = true
 	return &GitBucketDownloader{

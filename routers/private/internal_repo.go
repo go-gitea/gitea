@@ -1,78 +1,52 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package private includes all internal routes. The package name internal is ideal but Golang is not allowed, so we use private as package name instead.
 package private
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	gitea_context "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/private"
+	gitea_context "code.gitea.io/gitea/services/context"
 )
 
-// __________
-// \______   \ ____ ______   ____
-//  |       _// __ \\____ \ /  _ \
-//  |    |   \  ___/|  |_> >  <_> )
-//  |____|_  /\___  >   __/ \____/
-//         \/     \/|__|
-//    _____                .__                                     __
-//   /  _  \   ______ _____|__| ____   ____   _____   ____   _____/  |_
-//  /  /_\  \ /  ___//  ___/  |/ ___\ /    \ /     \_/ __ \ /    \   __\
-// /    |    \\___ \ \___ \|  / /_/  >   |  \  Y Y  \  ___/|   |  \  |
-// \____|__  /____  >____  >__\___  /|___|  /__|_|  /\___  >___|  /__|
-//         \/     \/     \/  /_____/      \/      \/     \/     \/
+// This file contains common functions relating to setting the Repository for the internal routes
 
-// This file contains common functions relating to setting the Repository for the
-// internal routes
-
-// RepoAssignment assigns the repository and gitrepository to the private context
-func RepoAssignment(ctx *gitea_context.PrivateContext) context.CancelFunc {
-	ownerName := ctx.Params(":owner")
-	repoName := ctx.Params(":repo")
+// RepoAssignment assigns the repository and git repository to the private context
+func RepoAssignment(ctx *gitea_context.PrivateContext) {
+	ownerName := ctx.PathParam("owner")
+	repoName := ctx.PathParam("repo")
 
 	repo := loadRepository(ctx, ownerName, repoName)
 	if ctx.Written() {
 		// Error handled in loadRepository
-		return nil
+		return
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"Err": fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
 		})
-		return nil
+		return
 	}
-
 	ctx.Repo = &gitea_context.Repository{
 		Repository: repo,
 		GitRepo:    gitRepo,
 	}
-
-	// We opened it, we should close it
-	cancel := func() {
-		// If it's been set to nil then assume someone else has closed it.
-		if ctx.Repo.GitRepo != nil {
-			ctx.Repo.GitRepo.Close()
-		}
-	}
-
-	return cancel
 }
 
 func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName string) *repo_model.Repository {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 	if err != nil {
 		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"Err": fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
 		})
 		return nil
 	}

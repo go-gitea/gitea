@@ -2,13 +2,13 @@
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package v1 Gitea API.
+// Package v1 Gitea API
 //
 // This documentation describes the Gitea API.
 //
-//	Schemes: http, https
+//	Schemes: https, http
 //	BasePath: /api/v1
-//	Version: {{AppVer | JSEscape | Safe}}
+//	Version: {{AppVer | JSEscape}}
 //	License: MIT http://opensource.org/licenses/MIT
 //
 //	Consumes:
@@ -35,10 +35,12 @@
 //	     type: apiKey
 //	     name: token
 //	     in: query
+//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
 //	AccessToken:
 //	     type: apiKey
 //	     name: access_token
 //	     in: query
+//	     description: This authentication option is deprecated for removal in Gitea 1.23. Please use AuthorizationHeaderToken instead.
 //	AuthorizationHeaderToken:
 //	     type: apiKey
 //	     name: Authorization
@@ -64,20 +66,19 @@
 package v1
 
 import (
-	gocontext "context"
 	"fmt"
 	"net/http"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -91,8 +92,10 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/auth"
-	context_service "code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -133,8 +136,8 @@ func sudo() func(ctx *context.APIContext) {
 
 func repoAssignment() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		userName := ctx.Params("username")
-		repoName := ctx.Params("reponame")
+		userName := ctx.PathParam("username")
+		repoName := ctx.PathParam("reponame")
 
 		var (
 			owner *user_model.User
@@ -148,8 +151,8 @@ func repoAssignment() func(ctx *context.APIContext) {
 			owner, err = user_model.GetUserByName(ctx, userName)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
-					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
-						context.RedirectToUser(ctx.Context, userName, redirectUserID)
+					if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
+						context.RedirectToUser(ctx.Base, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetUserByName", err)
 					} else {
@@ -165,12 +168,12 @@ func repoAssignment() func(ctx *context.APIContext) {
 		ctx.ContextUser = owner
 
 		// Get repository.
-		repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
-				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
+				redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName)
 				if err == nil {
-					context.RedirectToRepo(ctx.Context, redirectRepoID)
+					context.RedirectToRepo(ctx.Base, redirectRepoID)
 				} else if repo_model.IsErrRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
@@ -207,11 +210,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 				ctx.Error(http.StatusInternalServerError, "LoadUnits", err)
 				return
 			}
-			ctx.Repo.Permission.Units = ctx.Repo.Repository.Units
-			ctx.Repo.Permission.UnitsMode = make(map[unit.Type]perm.AccessMode)
-			for _, u := range ctx.Repo.Repository.Units {
-				ctx.Repo.Permission.UnitsMode[u.Type] = ctx.Repo.Permission.AccessMode
-			}
+			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.Repo.Permission.AccessMode)
 		} else {
 			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
@@ -220,7 +219,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 		}
 
-		if !ctx.Repo.HasAccess() {
+		if !ctx.Repo.Permission.HasAnyUnitAccess() {
 			ctx.NotFound()
 			return
 		}
@@ -236,48 +235,118 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) 
 	}
 }
 
+func checkTokenPublicOnly() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.PublicOnly {
+			return
+		}
+
+		requiredScopeCategories, ok := ctx.Data["requiredScopeCategories"].([]auth_model.AccessTokenScopeCategory)
+		if !ok || len(requiredScopeCategories) == 0 {
+			return
+		}
+
+		// public Only permission check
+		switch {
+		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryRepository):
+			if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public repos")
+				return
+			}
+		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryIssue):
+			if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public issues")
+				return
+			}
+		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryOrganization):
+			if ctx.Org.Organization != nil && ctx.Org.Organization.Visibility != api.VisibleTypePublic {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public orgs")
+				return
+			}
+			if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public orgs")
+				return
+			}
+		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryUser):
+			if ctx.ContextUser != nil && ctx.ContextUser.IsUser() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public users")
+				return
+			}
+		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryActivityPub):
+			if ctx.ContextUser != nil && ctx.ContextUser.IsUser() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public activitypub")
+				return
+			}
+		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryNotification):
+			if ctx.Repo.Repository != nil && ctx.Repo.Repository.IsPrivate {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public notifications")
+				return
+			}
+		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryPackage):
+			if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
+				return
+			}
+		}
+	}
+}
+
+// if a token is being used for auth, we check that it contains the required scope
+// if a token is not being used, reqToken will enforce other sign in methods
+func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeCategory) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		// no scope required
+		if len(requiredScopeCategories) == 0 {
+			return
+		}
+
+		// Need OAuth2 token to be present.
+		scope, scopeExists := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+		if ctx.Data["IsApiToken"] != true || !scopeExists {
+			return
+		}
+
+		// use the http method to determine the access level
+		requiredScopeLevel := auth_model.Read
+		if ctx.Req.Method == "POST" || ctx.Req.Method == "PUT" || ctx.Req.Method == "PATCH" || ctx.Req.Method == "DELETE" {
+			requiredScopeLevel = auth_model.Write
+		}
+
+		// get the required scope for the given access level and category
+		requiredScopes := auth_model.GetRequiredScopes(requiredScopeLevel, requiredScopeCategories...)
+		allow, err := scope.HasScope(requiredScopes...)
+		if err != nil {
+			ctx.Error(http.StatusForbidden, "tokenRequiresScope", "checking scope failed: "+err.Error())
+			return
+		}
+
+		if !allow {
+			ctx.Error(http.StatusForbidden, "tokenRequiresScope", fmt.Sprintf("token does not have at least one of required scope(s), required=%v, token scope=%v", requiredScopes, scope))
+			return
+		}
+
+		ctx.Data["requiredScopeCategories"] = requiredScopeCategories
+
+		// check if scope only applies to public resources
+		publicOnly, err := scope.PublicOnly()
+		if err != nil {
+			ctx.Error(http.StatusForbidden, "tokenRequiresScope", "parsing public resource scope failed: "+err.Error())
+			return
+		}
+
+		// assign to true so that those searching should only filter public repositories/users/organizations
+		ctx.PublicOnly = publicOnly
+	}
+}
+
 // Contexter middleware already checks token for user sign in process.
-func reqToken(requiredScope auth_model.AccessTokenScope) func(ctx *context.APIContext) {
+func reqToken() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		// If actions token is present
 		if true == ctx.Data["IsActionsToken"] {
 			return
 		}
 
-		// If OAuth2 token is present
-		if _, ok := ctx.Data["ApiTokenScope"]; ctx.Data["IsApiToken"] == true && ok {
-			// no scope required
-			if requiredScope == "" {
-				return
-			}
-
-			// check scope
-			scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-			allow, err := scope.HasScope(requiredScope)
-			if err != nil {
-				ctx.Error(http.StatusForbidden, "reqToken", "parsing token failed: "+err.Error())
-				return
-			}
-			if allow {
-				return
-			}
-
-			// if requires 'repo' scope, but only has 'public_repo' scope, allow it only if the repo is public
-			if requiredScope == auth_model.AccessTokenScopeRepo {
-				if allowPublicRepo, err := scope.HasScope(auth_model.AccessTokenScopePublicRepo); err == nil && allowPublicRepo {
-					if ctx.Repo.Repository != nil && !ctx.Repo.Repository.IsPrivate {
-						return
-					}
-				}
-			}
-
-			ctx.Error(http.StatusForbidden, "reqToken", "token does not have required scope: "+requiredScope)
-			return
-		}
-		if ctx.Context.IsBasicAuth {
-			ctx.CheckForOTP()
-			return
-		}
 		if ctx.IsSigned {
 			return
 		}
@@ -287,19 +356,29 @@ func reqToken(requiredScope auth_model.AccessTokenScope) func(ctx *context.APICo
 
 func reqExploreSignIn() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if setting.Service.Explore.RequireSigninView && !ctx.IsSigned {
+		if (setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView) && !ctx.IsSigned {
 			ctx.Error(http.StatusUnauthorized, "reqExploreSignIn", "you must be signed in to search for users")
 		}
 	}
 }
 
-func reqBasicAuth() func(ctx *context.APIContext) {
+func reqUsersExploreEnabled() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.Context.IsBasicAuth {
+		if setting.Service.Explore.DisableUsersPage {
+			ctx.NotFound()
+		}
+	}
+}
+
+func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.IsSigned && setting.Service.EnableReverseProxyAuthAPI && ctx.Data["AuthedMethod"].(string) == auth.ReverseProxyMethodName {
+			return
+		}
+		if !ctx.IsBasicAuth {
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "auth required")
 			return
 		}
-		ctx.CheckForOTP()
 	}
 }
 
@@ -316,8 +395,18 @@ func reqSiteAdmin() func(ctx *context.APIContext) {
 // reqOwner user should be the owner of the repo or site admin.
 func reqOwner() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoOwner() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.IsOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqOwner", "user should be the owner of the repo")
+			return
+		}
+	}
+}
+
+// reqSelfOrAdmin doer should be the same as the contextUser or site admin
+func reqSelfOrAdmin() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !ctx.IsUserSiteAdmin() && ctx.ContextUser != ctx.Doer {
+			ctx.Error(http.StatusForbidden, "reqSelfOrAdmin", "doer should be the site admin or be same as the contextUser")
 			return
 		}
 	}
@@ -346,7 +435,7 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 // reqRepoBranchWriter user should have a permission to write to a branch, or be a site admin
 func reqRepoBranchWriter(ctx *context.APIContext) {
 	options, ok := web.GetForm(ctx).(api.FileOptionInterface)
-	if !ok || (!ctx.Repo.CanWriteToBranch(ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
+	if !ok || (!ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
 		ctx.Error(http.StatusForbidden, "reqRepoBranchWriter", "user should have a permission to write to this branch")
 		return
 	}
@@ -355,7 +444,7 @@ func reqRepoBranchWriter(ctx *context.APIContext) {
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
@@ -365,7 +454,7 @@ func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
 func reqAnyRepoReader() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.IsUserRepoReaderAny() && !ctx.IsUserSiteAdmin() {
+		if !ctx.Repo.Permission.HasAnyUnitAccess() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqAnyRepoReader", "user should have any permission to read repository or permissions of site admin")
 			return
 		}
@@ -375,7 +464,7 @@ func reqAnyRepoReader() func(ctx *context.APIContext) {
 // reqOrgOwnership user should be an organization owner, or a site admin
 func reqOrgOwnership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Context.IsUserSiteAdmin() {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 
@@ -407,7 +496,7 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 // reqTeamMembership user should be an team member, or a site admin
 func reqTeamMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Context.IsUserSiteAdmin() {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 		if ctx.Org.Team == nil {
@@ -444,7 +533,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 // reqOrgMembership user should be an organization member, or a site admin
 func reqOrgMembership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if ctx.Context.IsUserSiteAdmin() {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 
@@ -507,12 +596,12 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.Params(":org"))
+			ctx.Org.Organization, err = organization.GetOrgByName(ctx, ctx.PathParam("org"))
 			if err != nil {
 				if organization.IsErrOrgNotExist(err) {
-					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
+					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam("org"))
 					if err == nil {
-						context.RedirectToUser(ctx.Context, ctx.Params(":org"), redirectUserID)
+						context.RedirectToUser(ctx.Base, ctx.PathParam("org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
@@ -527,7 +616,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 		}
 
 		if assignTeam {
-			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.ParamsInt64(":teamid"))
+			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.PathParamInt64("teamid"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound()
@@ -621,7 +710,7 @@ func mustEnableWiki(ctx *context.APIContext) {
 
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
-		ctx.NotFound()
+		ctx.Error(http.StatusLocked, "RepoArchived", fmt.Errorf("%s is archived", ctx.Repo.Repository.LogString()))
 		return
 	}
 }
@@ -634,8 +723,8 @@ func mustEnableAttachments(ctx *context.APIContext) {
 }
 
 // bind binding an obj to a func(ctx *context.APIContext)
-func bind[T any](obj T) http.HandlerFunc {
-	return web.Wrap(func(ctx *context.APIContext) {
+func bind[T any](_ T) any {
+	return func(ctx *context.APIContext) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
@@ -643,36 +732,134 @@ func bind[T any](obj T) http.HandlerFunc {
 			return
 		}
 		web.SetForm(ctx, theObj)
-	})
+	}
 }
 
-// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
-// in the session (if there is a user id stored in session other plugins might return the user
-// object for that id).
-//
-// The Session plugin is expected to be executed second, in order to skip authentication
-// for users that have already signed in.
 func buildAuthGroup() *auth.Group {
 	group := auth.NewGroup(
 		&auth.OAuth2{},
 		&auth.HTTPSign{},
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
 	)
-	specialAdd(group)
+	if setting.Service.EnableReverseProxyAuthAPI {
+		group.Add(&auth.ReverseProxy{})
+	}
+
+	if setting.IsWindows && auth_model.IsSSPIEnabled(db.DefaultContext) {
+		group.Add(&auth.SSPI{}) // it MUST be the last, see the comment of SSPI
+	}
 
 	return group
 }
 
+func apiAuth(authMethod auth.Method) func(*context.APIContext) {
+	return func(ctx *context.APIContext) {
+		ar, err := common.AuthShared(ctx.Base, nil, authMethod)
+		if err != nil {
+			ctx.Error(http.StatusUnauthorized, "APIAuth", err)
+			return
+		}
+		ctx.Doer = ar.Doer
+		ctx.IsSigned = ar.Doer != nil
+		ctx.IsBasicAuth = ar.IsBasicAuth
+	}
+}
+
+// verifyAuthWithOptions checks authentication according to options
+func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		// Check prohibit login users.
+		if ctx.IsSigned {
+			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is not activated.",
+				})
+				return
+			}
+			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
+				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
+				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is prohibited from signing in, please contact your site administrator.",
+				})
+				return
+			}
+
+			if ctx.Doer.MustChangePassword {
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
+				})
+				return
+			}
+		}
+
+		// Redirect to dashboard if user tries to visit any non-login page.
+		if options.SignOutRequired && ctx.IsSigned && ctx.Req.URL.RequestURI() != "/" {
+			ctx.Redirect(setting.AppSubURL + "/")
+			return
+		}
+
+		if options.SignInRequired {
+			if !ctx.IsSigned {
+				// Restrict API calls with error message.
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "Only signed in user is allowed to call APIs.",
+				})
+				return
+			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "This account is not activated.",
+				})
+				return
+			}
+		}
+
+		if options.AdminRequired {
+			if !ctx.Doer.IsAdmin {
+				ctx.JSON(http.StatusForbidden, map[string]string{
+					"message": "You have no permission to request for this.",
+				})
+				return
+			}
+		}
+	}
+}
+
+func individualPermsChecker(ctx *context.APIContext) {
+	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
+	if ctx.ContextUser.IsIndividual() {
+		switch {
+		case ctx.ContextUser.Visibility == api.VisibleTypePrivate:
+			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
+				ctx.NotFound("Visit Project", nil)
+				return
+			}
+		case ctx.ContextUser.Visibility == api.VisibleTypeLimited:
+			if ctx.Doer == nil {
+				ctx.NotFound("Visit Project", nil)
+				return
+			}
+		}
+	}
+}
+
+// check for and warn against deprecated authentication options
+func checkDeprecatedAuthMethods(ctx *context.APIContext) {
+	if ctx.FormString("token") != "" || ctx.FormString("access_token") != "" {
+		ctx.Resp.Header().Set("X-Gitea-Warning", "token and access_token API authentication is deprecated and will be removed in gitea 1.23. Please use AuthorizationHeaderToken instead. Existing queries will continue to work but without authorization.")
+	}
+}
+
 // Routes registers all v1 APIs routes to web application.
-func Routes(ctx gocontext.Context) *web.Route {
-	m := web.NewRoute()
+func Routes() *web.Router {
+	m := web.NewRouter()
 
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
 		m.Use(cors.Handler(cors.Options{
-			// Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
-			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			AllowedOrigins:   setting.CORSConfig.AllowDomain,
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
 			AllowedHeaders:   append([]string{"Authorization", "X-Gitea-OTP"}, setting.CORSConfig.Headers...),
@@ -681,17 +868,42 @@ func Routes(ctx gocontext.Context) *web.Route {
 	}
 	m.Use(context.APIContexter())
 
-	group := buildAuthGroup()
-	if err := group.Init(ctx); err != nil {
-		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
-	}
+	m.Use(checkDeprecatedAuthMethods)
 
 	// Get user from session if logged in.
-	m.Use(auth.APIAuth(group))
+	m.Use(apiAuth(buildAuthGroup()))
 
-	m.Use(context.ToggleAPI(&context.ToggleOptions{
+	m.Use(verifyAuthWithOptions(&common.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
+
+	addActionsRoutes := func(
+		m *web.Router,
+		reqChecker func(ctx *context.APIContext),
+		act actions.API,
+	) {
+		m.Group("/actions", func() {
+			m.Group("/secrets", func() {
+				m.Get("", reqToken(), reqChecker, act.ListActionsSecrets)
+				m.Combo("/{secretname}").
+					Put(reqToken(), reqChecker, bind(api.CreateOrUpdateSecretOption{}), act.CreateOrUpdateSecret).
+					Delete(reqToken(), reqChecker, act.DeleteSecret)
+			})
+
+			m.Group("/variables", func() {
+				m.Get("", reqToken(), reqChecker, act.ListVariables)
+				m.Combo("/{variablename}").
+					Get(reqToken(), reqChecker, act.GetVariable).
+					Delete(reqToken(), reqChecker, act.DeleteVariable).
+					Post(reqToken(), reqChecker, bind(api.CreateVariableOption{}), act.CreateVariable).
+					Put(reqToken(), reqChecker, bind(api.UpdateVariableOption{}), act.UpdateVariable)
+			})
+
+			m.Group("/runners", func() {
+				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
+			})
+		})
+	}
 
 	m.Group("", func() {
 		// Miscellaneous (no scope required)
@@ -700,40 +912,58 @@ func Routes(ctx gocontext.Context) *web.Route {
 				ctx.Redirect(setting.AppSubURL + "/api/swagger")
 			})
 		}
-		m.Get("/version", misc.Version)
+
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", misc.NodeInfo)
 			m.Group("/activitypub", func() {
+				// deprecated, remove in 1.20, use /user-id/{user-id} instead
 				m.Group("/user/{username}", func() {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
-				}, context_service.UserAssignmentAPI())
-			})
+				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
+				m.Group("/user-id/{user-id}", func() {
+					m.Get("", activitypub.Person)
+					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
+				}, context.UserIDAssignmentAPI(), checkTokenPublicOnly())
+			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryActivityPub))
 		}
-		m.Get("/signing-key.gpg", misc.SigningKey)
-		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
-		m.Post("/markdown/raw", misc.MarkdownRaw)
-		m.Group("/settings", func() {
-			m.Get("/ui", settings.GetGeneralUISettings)
-			m.Get("/api", settings.GetGeneralAPISettings)
-			m.Get("/attachment", settings.GetGeneralAttachmentSettings)
-			m.Get("/repository", settings.GetGeneralRepoSettings)
+
+		// Misc (public accessible)
+		m.Group("", func() {
+			m.Get("/version", misc.Version)
+			m.Get("/signing-key.gpg", misc.SigningKey)
+			m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
+			m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
+			m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
+			m.Get("/gitignore/templates", misc.ListGitignoresTemplates)
+			m.Get("/gitignore/templates/{name}", misc.GetGitignoreTemplateInfo)
+			m.Get("/licenses", misc.ListLicenseTemplates)
+			m.Get("/licenses/{name}", misc.GetLicenseTemplateInfo)
+			m.Get("/label/templates", misc.ListLabelTemplates)
+			m.Get("/label/templates/{name}", misc.GetLabelTemplate)
+
+			m.Group("/settings", func() {
+				m.Get("/ui", settings.GetGeneralUISettings)
+				m.Get("/api", settings.GetGeneralAPISettings)
+				m.Get("/attachment", settings.GetGeneralAttachmentSettings)
+				m.Get("/repository", settings.GetGeneralRepoSettings)
+			})
 		})
 
-		// Notifications (requires 'notification' scope)
+		// Notifications (requires 'notifications' scope)
 		m.Group("/notifications", func() {
 			m.Combo("").
-				Get(notify.ListNotifications).
-				Put(notify.ReadNotifications)
-			m.Get("/new", notify.NewAvailable)
+				Get(reqToken(), notify.ListNotifications).
+				Put(reqToken(), notify.ReadNotifications)
+			m.Get("/new", reqToken(), notify.NewAvailable)
 			m.Combo("/threads/{id}").
-				Get(notify.GetThread).
-				Patch(notify.ReadThread)
-		}, reqToken(auth_model.AccessTokenScopeNotification))
+				Get(reqToken(), notify.GetThread).
+				Patch(reqToken(), notify.ReadThread)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
 
-		// Users (no scope required)
+		// Users (requires user scope)
 		m.Group("/users", func() {
-			m.Get("/search", reqExploreSignIn(), user.Search)
+			m.Get("/search", reqExploreSignIn(), reqUsersExploreEnabled(), user.Search)
 
 			m.Group("/{username}", func() {
 				m.Get("", reqExploreSignIn(), user.GetInfo)
@@ -742,16 +972,18 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/heatmap", user.GetUserHeatmapData)
 				}
 
-				m.Get("/repos", reqExploreSignIn(), user.ListUserRepos)
+				m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignIn(), user.ListUserRepos)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
-						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
-					m.Combo("/{id}").Delete(user.DeleteAccessToken)
-				}, reqBasicAuth())
-			}, context_service.UserAssignmentAPI())
-		})
+						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
+					m.Combo("/{id}").Delete(reqToken(), user.DeleteAccessToken)
+				}, reqSelfOrAdmin(), reqBasicOrRevProxyAuth())
 
-		// (no scope required)
+				m.Get("/activities/feeds", user.ListUserActivityFeeds)
+			}, context.UserAssignmentAPI(), checkTokenPublicOnly(), individualPermsChecker)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser))
+
+		// Users (requires user scope)
 		m.Group("/users", func() {
 			m.Group("/{username}", func() {
 				m.Get("/keys", user.ListPublicKeys)
@@ -766,60 +998,84 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Get("/starred", user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-			}, context_service.UserAssignmentAPI())
-		}, reqToken(""))
+			}, context.UserAssignmentAPI(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
+		// Users (requires user scope)
 		m.Group("/user", func() {
 			m.Get("", user.GetAuthenticatedUser)
 			m.Group("/settings", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadUser), user.GetUserSettings)
-				m.Patch("", reqToken(auth_model.AccessTokenScopeUser), bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
+				m.Get("", user.GetUserSettings)
+				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
+			}, reqToken())
+			m.Combo("/emails").
+				Get(user.ListEmails).
+				Post(bind(api.CreateEmailOption{}), user.AddEmail).
+				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
+
+			// manage user-level actions features
+			m.Group("/actions", func() {
+				m.Group("/secrets", func() {
+					m.Combo("/{secretname}").
+						Put(bind(api.CreateOrUpdateSecretOption{}), user.CreateOrUpdateSecret).
+						Delete(user.DeleteSecret)
+				})
+
+				m.Group("/variables", func() {
+					m.Get("", user.ListVariables)
+					m.Combo("/{variablename}").
+						Get(user.GetVariable).
+						Delete(user.DeleteVariable).
+						Post(bind(api.CreateVariableOption{}), user.CreateVariable).
+						Put(bind(api.UpdateVariableOption{}), user.UpdateVariable)
+				})
+
+				m.Group("/runners", func() {
+					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
+				})
 			})
-			m.Combo("/emails").Get(reqToken(auth_model.AccessTokenScopeReadUser), user.ListEmails).
-				Post(reqToken(auth_model.AccessTokenScopeUser), bind(api.CreateEmailOption{}), user.AddEmail).
-				Delete(reqToken(auth_model.AccessTokenScopeUser), bind(api.DeleteEmailOption{}), user.DeleteEmail)
 
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
 				m.Get("", user.ListMyFollowing)
 				m.Group("/{username}", func() {
 					m.Get("", user.CheckMyFollowing)
-					m.Put("", reqToken(auth_model.AccessTokenScopeUserFollow), user.Follow)      // requires 'user:follow' scope
-					m.Delete("", reqToken(auth_model.AccessTokenScopeUserFollow), user.Unfollow) // requires 'user:follow' scope
-				}, context_service.UserAssignmentAPI())
+					m.Put("", user.Follow)
+					m.Delete("", user.Unfollow)
+				}, context.UserAssignmentAPI())
 			})
 
 			// (admin:public_key scope)
 			m.Group("/keys", func() {
-				m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadPublicKey), user.ListMyPublicKeys).
-					Post(reqToken(auth_model.AccessTokenScopeWritePublicKey), bind(api.CreateKeyOption{}), user.CreatePublicKey)
-				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadPublicKey), user.GetPublicKey).
-					Delete(reqToken(auth_model.AccessTokenScopeWritePublicKey), user.DeletePublicKey)
+				m.Combo("").Get(user.ListMyPublicKeys).
+					Post(bind(api.CreateKeyOption{}), user.CreatePublicKey)
+				m.Combo("/{id}").Get(user.GetPublicKey).
+					Delete(user.DeletePublicKey)
 			})
 
 			// (admin:application scope)
 			m.Group("/applications", func() {
 				m.Combo("/oauth2").
-					Get(reqToken(auth_model.AccessTokenScopeReadApplication), user.ListOauth2Applications).
-					Post(reqToken(auth_model.AccessTokenScopeWriteApplication), bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
+					Get(user.ListOauth2Applications).
+					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
 				m.Combo("/oauth2/{id}").
-					Delete(reqToken(auth_model.AccessTokenScopeWriteApplication), user.DeleteOauth2Application).
-					Patch(reqToken(auth_model.AccessTokenScopeWriteApplication), bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
-					Get(reqToken(auth_model.AccessTokenScopeReadApplication), user.GetOauth2Application)
+					Delete(user.DeleteOauth2Application).
+					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
+					Get(user.GetOauth2Application)
 			})
 
 			// (admin:gpg_key scope)
 			m.Group("/gpg_keys", func() {
-				m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadGPGKey), user.ListMyGPGKeys).
-					Post(reqToken(auth_model.AccessTokenScopeWriteGPGKey), bind(api.CreateGPGKeyOption{}), user.CreateGPGKey)
-				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadGPGKey), user.GetGPGKey).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteGPGKey), user.DeleteGPGKey)
+				m.Combo("").Get(user.ListMyGPGKeys).
+					Post(bind(api.CreateGPGKeyOption{}), user.CreateGPGKey)
+				m.Combo("/{id}").Get(user.GetGPGKey).
+					Delete(user.DeleteGPGKey)
 			})
-			m.Get("/gpg_key_token", reqToken(auth_model.AccessTokenScopeReadGPGKey), user.GetVerificationToken)
-			m.Post("/gpg_key_verify", reqToken(auth_model.AccessTokenScopeReadGPGKey), bind(api.VerifyGPGKeyOption{}), user.VerifyUserGPGKey)
+			m.Get("/gpg_key_token", user.GetVerificationToken)
+			m.Post("/gpg_key_verify", bind(api.VerifyGPGKeyOption{}), user.VerifyUserGPGKey)
 
 			// (repo scope)
-			m.Combo("/repos", reqToken(auth_model.AccessTokenScopeRepo)).Get(user.ListMyRepos).
+			m.Combo("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository)).Get(user.ListMyRepos).
 				Post(bind(api.CreateRepoOption{}), repo.Create)
 
 			// (repo scope)
@@ -829,295 +1085,256 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("", user.IsStarring)
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
-				}, repoAssignment())
-			}, reqToken(auth_model.AccessTokenScopeRepo))
-			m.Get("/times", reqToken(auth_model.AccessTokenScopeRepo), repo.ListMyTrackedTimes)
-			m.Get("/stopwatches", reqToken(auth_model.AccessTokenScopeRepo), repo.GetStopwatches)
-			m.Get("/subscriptions", reqToken(auth_model.AccessTokenScopeRepo), user.GetMyWatchedRepos)
-			m.Get("/teams", reqToken(auth_model.AccessTokenScopeRepo), org.ListUserTeams)
-		}, reqToken(""))
+				}, repoAssignment(), checkTokenPublicOnly())
+			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+			m.Get("/times", repo.ListMyTrackedTimes)
+			m.Get("/stopwatches", repo.GetStopwatches)
+			m.Get("/subscriptions", user.GetMyWatchedRepos)
+			m.Get("/teams", org.ListUserTeams)
+			m.Group("/hooks", func() {
+				m.Combo("").Get(user.ListHooks).
+					Post(bind(api.CreateHookOption{}), user.CreateHook)
+				m.Combo("/{id}").Get(user.GetHook).
+					Patch(bind(api.EditHookOption{}), user.EditHook).
+					Delete(user.DeleteHook)
+			}, reqWebhooksEnabled())
 
-		// Repositories
-		m.Post("/org/{org}/repos", reqToken(auth_model.AccessTokenScopeAdminOrg), bind(api.CreateRepoOption{}), repo.CreateOrgRepoDeprecated)
+			m.Group("/avatar", func() {
+				m.Post("", bind(api.UpdateUserAvatarOption{}), user.UpdateAvatar)
+				m.Delete("", user.DeleteAvatar)
+			})
 
-		m.Combo("/repositories/{id}", reqToken(auth_model.AccessTokenScopeRepo)).Get(repo.GetByID)
+			m.Group("/blocks", func() {
+				m.Get("", user.ListBlocks)
+				m.Group("/{username}", func() {
+					m.Get("", user.CheckUserBlock)
+					m.Put("", user.BlockUser)
+					m.Delete("", user.UnblockUser)
+				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
+			})
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
+		// Repositories (requires repo scope, org scope)
+		m.Post("/org/{org}/repos",
+			// FIXME: we need org in context
+			tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization, auth_model.AccessTokenScopeCategoryRepository),
+			reqToken(),
+			bind(api.CreateRepoOption{}),
+			repo.CreateOrgRepoDeprecated)
+
+		// requires repo scope
+		// FIXME: Don't expose repository id outside of the system
+		m.Combo("/repositories/{id}", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository)).Get(repo.GetByID)
+
+		// Repos (requires repo scope)
 		m.Group("/repos", func() {
 			m.Get("/search", repo.Search)
 
-			m.Get("/issues/search", repo.SearchIssues)
-
 			// (repo scope)
-			m.Post("/migrate", reqToken(auth_model.AccessTokenScopeRepo), bind(api.MigrateRepoOptions{}), repo.Migrate)
+			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
+				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
+
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
-					Delete(reqToken(auth_model.AccessTokenScopeDeleteRepo), reqOwner(), repo.Delete).
-					Patch(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
-				m.Post("/generate", reqToken(auth_model.AccessTokenScopeRepo), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
+					Delete(reqToken(), reqOwner(), repo.Delete).
+					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
+				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Group("/transfer", func() {
 					m.Post("", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
-				}, reqToken(auth_model.AccessTokenScopeRepo))
-				m.Combo("/notifications", reqToken(auth_model.AccessTokenScopeNotification)).
-					Get(notify.ListRepoNotifications).
-					Put(notify.ReadRepoNotifications)
+				}, reqToken())
+				addActionsRoutes(
+					m,
+					reqOwner(),
+					repo.NewAction(),
+				)
 				m.Group("/hooks/git", func() {
-					m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadRepoHook), repo.ListGitHooks)
+					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
-						m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadRepoHook), repo.GetGitHook).
-							Patch(reqToken(auth_model.AccessTokenScopeWriteRepoHook), bind(api.EditGitHookOption{}), repo.EditGitHook).
-							Delete(reqToken(auth_model.AccessTokenScopeWriteRepoHook), repo.DeleteGitHook)
+						m.Combo("").Get(repo.GetGitHook).
+							Patch(bind(api.EditGitHookOption{}), repo.EditGitHook).
+							Delete(repo.DeleteGitHook)
 					})
-				}, reqAdmin(), reqGitHook(), context.ReferencesGitRepo(true))
+				}, reqToken(), reqAdmin(), reqGitHook(), context.ReferencesGitRepo(true))
 				m.Group("/hooks", func() {
-					m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadRepoHook), repo.ListHooks).
-						Post(reqToken(auth_model.AccessTokenScopeWriteRepoHook), bind(api.CreateHookOption{}), repo.CreateHook)
+					m.Combo("").Get(repo.ListHooks).
+						Post(bind(api.CreateHookOption{}), repo.CreateHook)
 					m.Group("/{id}", func() {
-						m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadRepoHook), repo.GetHook).
-							Patch(reqToken(auth_model.AccessTokenScopeWriteRepoHook), bind(api.EditHookOption{}), repo.EditHook).
-							Delete(reqToken(auth_model.AccessTokenScopeWriteRepoHook), repo.DeleteHook)
-						m.Post("/tests", reqToken(auth_model.AccessTokenScopeReadRepoHook), context.ReferencesGitRepo(), context.RepoRefForAPI, repo.TestHook)
+						m.Combo("").Get(repo.GetHook).
+							Patch(bind(api.EditHookOption{}), repo.EditHook).
+							Delete(repo.DeleteHook)
+						m.Post("/tests", context.ReferencesGitRepo(), context.RepoRefForAPI, repo.TestHook)
 					})
-				}, reqAdmin(), reqWebhooksEnabled())
+				}, reqToken(), reqAdmin(), reqWebhooksEnabled())
 				m.Group("/collaborators", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
 					m.Group("/{collaborator}", func() {
 						m.Combo("").Get(reqAnyRepoReader(), repo.IsCollaborator).
-							Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
+							Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddOrUpdateCollaborator).
 							Delete(reqAdmin(), repo.DeleteCollaborator)
 						m.Get("/permission", repo.GetRepoPermissions)
 					})
-				}, reqToken(auth_model.AccessTokenScopeRepo))
-				m.Get("/assignees", reqToken(auth_model.AccessTokenScopeRepo), reqAnyRepoReader(), repo.GetAssignees)
-				m.Get("/reviewers", reqToken(auth_model.AccessTokenScopeRepo), reqAnyRepoReader(), repo.GetReviewers)
+				}, reqToken())
+				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
+				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
 				m.Group("/teams", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListTeams)
 					m.Combo("/{team}").Get(reqAnyRepoReader(), repo.IsTeam).
 						Put(reqAdmin(), repo.AddTeam).
 						Delete(reqAdmin(), repo.DeleteTeam)
-				}, reqToken(auth_model.AccessTokenScopeRepo))
+				}, reqToken())
 				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
 				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
 				m.Get("/archive/*", reqRepoReader(unit.TypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
-					Post(reqToken(auth_model.AccessTokenScopeRepo), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
+					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
+				m.Post("/merge-upstream", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), bind(api.MergeUpstreamRequest{}), repo.MergeUpstream)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", repo.GetBranch)
-					m.Delete("/*", reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
-					m.Post("", reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteBranch)
+					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+					m.Patch("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.UpdateBranchRepoOption{}), repo.UpdateBranch)
 				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
-					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateBranchProtection)
+					m.Post("", bind(api.CreateBranchProtectionOption{}), mustNotBeArchived, repo.CreateBranchProtection)
 					m.Group("/{name}", func() {
 						m.Get("", repo.GetBranchProtection)
-						m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditBranchProtection)
+						m.Patch("", bind(api.EditBranchProtectionOption{}), mustNotBeArchived, repo.EditBranchProtection)
 						m.Delete("", repo.DeleteBranchProtection)
 					})
-				}, reqToken(auth_model.AccessTokenScopeRepo), reqAdmin())
+					m.Post("/priority", bind(api.UpdateBranchProtectionPriories{}), mustNotBeArchived, repo.UpdateBranchProtectionPriories)
+				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
 					m.Get("/*", repo.GetTag)
-					m.Post("", reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeCode), bind(api.CreateTagOption{}), repo.CreateTag)
-					m.Delete("/*", reqToken(auth_model.AccessTokenScopeRepo), repo.DeleteTag)
+					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateTagOption{}), repo.CreateTag)
+					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteTag)
 				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
+				m.Group("/tag_protections", func() {
+					m.Combo("").Get(repo.ListTagProtection).
+						Post(bind(api.CreateTagProtectionOption{}), mustNotBeArchived, repo.CreateTagProtection)
+					m.Group("/{id}", func() {
+						m.Combo("").Get(repo.GetTagProtection).
+							Patch(bind(api.EditTagProtectionOption{}), mustNotBeArchived, repo.EditTagProtection).
+							Delete(repo.DeleteTagProtection)
+					})
+				}, reqToken(), reqAdmin())
+				m.Group("/actions", func() {
+					m.Get("/tasks", repo.ListActionTasks)
+				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
 					m.Combo("/{id}").Get(repo.GetDeployKey).
 						Delete(repo.DeleteDeploykey)
-				}, reqToken(auth_model.AccessTokenScopeRepo), reqAdmin())
+				}, reqToken(), reqAdmin())
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/{timetrackingusername}").Get(repo.ListTrackedTimesByUser)
-				}, mustEnableIssues, reqToken(auth_model.AccessTokenScopeRepo))
+				}, mustEnableIssues, reqToken())
 				m.Group("/wiki", func() {
 					m.Combo("/page/{pageName}").
 						Get(repo.GetWikiPage).
-						Patch(mustNotBeArchived, reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.EditWikiPage).
-						Delete(mustNotBeArchived, reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeWiki), repo.DeleteWikiPage)
+						Patch(mustNotBeArchived, reqToken(), reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.EditWikiPage).
+						Delete(mustNotBeArchived, reqToken(), reqRepoWriter(unit.TypeWiki), repo.DeleteWikiPage)
 					m.Get("/revisions/{pageName}", repo.ListPageRevisions)
-					m.Post("/new", mustNotBeArchived, reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
+					m.Post("/new", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
 					m.Get("/pages", repo.ListWikiPages)
 				}, mustEnableWiki)
-				m.Group("/issues", func() {
-					m.Combo("").Get(repo.ListIssues).
-						Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
-					m.Group("/comments", func() {
-						m.Get("", repo.ListRepoIssueComments)
-						m.Group("/{id}", func() {
-							m.Combo("").
-								Get(repo.GetIssueComment).
-								Patch(mustNotBeArchived, reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
-								Delete(reqToken(auth_model.AccessTokenScopeRepo), repo.DeleteIssueComment)
-							m.Combo("/reactions").
-								Get(repo.GetIssueCommentReactions).
-								Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
-								Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
-							m.Group("/assets", func() {
-								m.Combo("").
-									Get(repo.ListIssueCommentAttachments).
-									Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.CreateIssueCommentAttachment)
-								m.Combo("/{asset}").
-									Get(repo.GetIssueCommentAttachment).
-									Patch(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
-									Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
-							}, mustEnableAttachments)
-						})
-					})
-					m.Group("/{index}", func() {
-						m.Combo("").Get(repo.GetIssue).
-							Patch(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditIssueOption{}), repo.EditIssue).
-							Delete(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), context.ReferencesGitRepo(), repo.DeleteIssue)
-						m.Group("/comments", func() {
-							m.Combo("").Get(repo.ListIssueComments).
-								Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
-							m.Combo("/{id}", reqToken(auth_model.AccessTokenScopeRepo)).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
-								Delete(repo.DeleteIssueCommentDeprecated)
-						})
-						m.Get("/timeline", repo.ListIssueCommentsAndTimeline)
-						m.Group("/labels", func() {
-							m.Combo("").Get(repo.ListIssueLabels).
-								Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueLabelsOption{}), repo.AddIssueLabels).
-								Put(reqToken(auth_model.AccessTokenScopeRepo), bind(api.IssueLabelsOption{}), repo.ReplaceIssueLabels).
-								Delete(reqToken(auth_model.AccessTokenScopeRepo), repo.ClearIssueLabels)
-							m.Delete("/{id}", reqToken(auth_model.AccessTokenScopeRepo), repo.DeleteIssueLabel)
-						})
-						m.Group("/times", func() {
-							m.Combo("").
-								Get(repo.ListTrackedTimes).
-								Post(bind(api.AddTimeOption{}), repo.AddTime).
-								Delete(repo.ResetIssueTime)
-							m.Delete("/{id}", repo.DeleteTime)
-						}, reqToken(auth_model.AccessTokenScopeRepo))
-						m.Combo("/deadline").Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
-						m.Group("/stopwatch", func() {
-							m.Post("/start", reqToken(auth_model.AccessTokenScopeRepo), repo.StartIssueStopwatch)
-							m.Post("/stop", reqToken(auth_model.AccessTokenScopeRepo), repo.StopIssueStopwatch)
-							m.Delete("/delete", reqToken(auth_model.AccessTokenScopeRepo), repo.DeleteIssueStopwatch)
-						})
-						m.Group("/subscriptions", func() {
-							m.Get("", repo.GetIssueSubscribers)
-							m.Get("/check", reqToken(auth_model.AccessTokenScopeRepo), repo.CheckIssueSubscription)
-							m.Put("/{user}", reqToken(auth_model.AccessTokenScopeRepo), repo.AddIssueSubscription)
-							m.Delete("/{user}", reqToken(auth_model.AccessTokenScopeRepo), repo.DelIssueSubscription)
-						})
-						m.Combo("/reactions").
-							Get(repo.GetIssueReactions).
-							Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditReactionOption{}), repo.PostIssueReaction).
-							Delete(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
-						m.Group("/assets", func() {
-							m.Combo("").
-								Get(repo.ListIssueAttachments).
-								Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.CreateIssueAttachment)
-							m.Combo("/{asset}").
-								Get(repo.GetIssueAttachment).
-								Patch(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
-								Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.DeleteIssueAttachment)
-						}, mustEnableAttachments)
-					})
-				}, mustEnableIssuesOrPulls)
-				m.Group("/labels", func() {
-					m.Combo("").Get(repo.ListLabels).
-						Post(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
-					m.Combo("/{id}").Get(repo.GetLabel).
-						Patch(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
-						Delete(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
-				})
-				m.Post("/markdown", reqToken(auth_model.AccessTokenScopeRepo), bind(api.MarkdownOption{}), misc.Markdown)
-				m.Post("/markdown/raw", reqToken(auth_model.AccessTokenScopeRepo), misc.MarkdownRaw)
-				m.Group("/milestones", func() {
-					m.Combo("").Get(repo.ListMilestones).
-						Post(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
-					m.Combo("/{id}").Get(repo.GetMilestone).
-						Patch(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
-						Delete(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
-				})
+				m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
+				m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
+				m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
 				m.Get("/stargazers", repo.ListStargazers)
 				m.Get("/subscribers", repo.ListSubscribers)
 				m.Group("/subscription", func() {
 					m.Get("", user.IsWatching)
-					m.Put("", reqToken(auth_model.AccessTokenScopeRepo), user.Watch)
-					m.Delete("", reqToken(auth_model.AccessTokenScopeRepo), user.Unwatch)
-				})
+					m.Put("", user.Watch)
+					m.Delete("", user.Unwatch)
+				}, reqToken())
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
-						Post(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+						Post(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Combo("/latest").Get(repo.GetLatestRelease)
 					m.Group("/{id}", func() {
 						m.Combo("").Get(repo.GetRelease).
-							Patch(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
-							Delete(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeReleases), repo.DeleteRelease)
+							Patch(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(), bind(api.EditReleaseOption{}), repo.EditRelease).
+							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteRelease)
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
-								Post(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeReleases), repo.CreateReleaseAttachment)
-							m.Combo("/{asset}").Get(repo.GetReleaseAttachment).
-								Patch(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
-								Delete(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseAttachment)
+								Post(reqToken(), reqRepoWriter(unit.TypeReleases), repo.CreateReleaseAttachment)
+							m.Combo("/{attachment_id}").Get(repo.GetReleaseAttachment).
+								Patch(reqToken(), reqRepoWriter(unit.TypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
+								Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseAttachment)
 						})
 					})
 					m.Group("/tags", func() {
 						m.Combo("/{tag}").
 							Get(repo.GetReleaseByTag).
-							Delete(reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
+							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(unit.TypeReleases))
-				m.Post("/mirror-sync", reqToken(auth_model.AccessTokenScopeRepo), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
-				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(auth_model.AccessTokenScopeRepo), repo.PushMirrorSync)
+				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
+				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {
 					m.Combo("").Get(repo.ListPushMirrors).
-						Post(bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
+						Post(mustNotBeArchived, bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
 					m.Combo("/{name}").
-						Delete(repo.DeletePushMirrorByRemoteName).
+						Delete(mustNotBeArchived, repo.DeletePushMirrorByRemoteName).
 						Get(repo.GetPushMirrorByName)
-				}, reqAdmin(), reqToken(auth_model.AccessTokenScopeRepo))
+				}, reqAdmin(), reqToken())
 
 				m.Get("/editorconfig/{filename}", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(repo.ListPullRequests).
-						Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
+						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
+					m.Get("/pinned", repo.ListPinnedPullRequests)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
-							Patch(reqToken(auth_model.AccessTokenScopeRepo), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
+							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Get(".{diffType:diff|patch}", repo.DownloadPullDiffOrPatch)
-						m.Post("/update", reqToken(auth_model.AccessTokenScopeRepo), repo.UpdatePullRequest)
+						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Get("/commits", repo.GetPullRequestCommits)
 						m.Get("/files", repo.GetPullRequestFiles)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
-							Post(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
-							Delete(reqToken(auth_model.AccessTokenScopeRepo), mustNotBeArchived, repo.CancelScheduledAutoMerge)
+							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
+							Delete(reqToken(), mustNotBeArchived, repo.CancelScheduledAutoMerge)
 						m.Group("/reviews", func() {
 							m.Combo("").
 								Get(repo.ListPullReviews).
-								Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.CreatePullReviewOptions{}), repo.CreatePullReview)
+								Post(reqToken(), bind(api.CreatePullReviewOptions{}), repo.CreatePullReview)
 							m.Group("/{id}", func() {
 								m.Combo("").
 									Get(repo.GetPullReview).
-									Delete(reqToken(auth_model.AccessTokenScopeRepo), repo.DeletePullReview).
-									Post(reqToken(auth_model.AccessTokenScopeRepo), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
+									Delete(reqToken(), repo.DeletePullReview).
+									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
 								m.Combo("/comments").
 									Get(repo.GetPullReviewComments)
-								m.Post("/dismissals", reqToken(auth_model.AccessTokenScopeRepo), bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
-								m.Post("/undismissals", reqToken(auth_model.AccessTokenScopeRepo), repo.UnDismissPullReview)
+								m.Post("/dismissals", reqToken(), bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
+								m.Post("/undismissals", reqToken(), repo.UnDismissPullReview)
 							})
 						})
-						m.Combo("/requested_reviewers", reqToken(auth_model.AccessTokenScopeRepo)).
+						m.Combo("/requested_reviewers", reqToken()).
 							Delete(bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
 							Post(bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
 					})
+					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(auth_model.AccessTokenScopeRepoStatus), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
+					}, context.ReferencesGitRepo())
+					m.Group("/{sha}", func() {
+						m.Get("/pull", repo.GetCommitPullRequest)
 					}, context.ReferencesGitRepo())
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
@@ -1132,76 +1349,217 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/tags/{sha}", repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
 				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode))
-				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(auth_model.AccessTokenScopeRepo), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
+				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), mustNotBeArchived, repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
+					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
-						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, repo.CreateFile)
-						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, repo.UpdateFile)
-						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, repo.DeleteFile)
-					}, reqToken(auth_model.AccessTokenScopeRepo))
+						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.CreateFile)
+						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.UpdateFile)
+						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.DeleteFile)
+					}, reqToken())
 				}, reqRepoReader(unit.TypeCode))
 				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
-						Put(reqToken(auth_model.AccessTokenScopeRepo), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
+						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
 					m.Group("/{topic}", func() {
-						m.Combo("").Put(reqToken(auth_model.AccessTokenScopeRepo), repo.AddTopic).
-							Delete(reqToken(auth_model.AccessTokenScopeRepo), repo.DeleteTopic)
+						m.Combo("").Put(reqToken(), repo.AddTopic).
+							Delete(reqToken(), repo.DeleteTopic)
 					}, reqAdmin())
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(), repo.GetIssueTemplates)
+				m.Get("/issue_config", context.ReferencesGitRepo(), repo.GetIssueConfig)
+				m.Get("/issue_config/validate", context.ReferencesGitRepo(), repo.ValidateIssueConfig)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
-			}, repoAssignment())
-		})
+				m.Get("/licenses", reqRepoReader(unit.TypeCode), repo.GetLicenses)
+				m.Get("/activities/feeds", repo.ListRepoActivityFeeds)
+				m.Get("/new_pin_allowed", repo.AreNewIssuePinsAllowed)
+				m.Group("/avatar", func() {
+					m.Post("", bind(api.UpdateRepoAvatarOption{}), repo.UpdateAvatar)
+					m.Delete("", repo.DeleteAvatar)
+				}, reqAdmin(), reqToken())
+
+				m.Get("/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), repo.DownloadArchive)
+			}, repoAssignment(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		// Notifications (requires notifications scope)
+		m.Group("/repos", func() {
+			m.Group("/{username}/{reponame}", func() {
+				m.Combo("/notifications", reqToken()).
+					Get(notify.ListRepoNotifications).
+					Put(notify.ReadRepoNotifications)
+			}, repoAssignment(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryNotification))
+
+		// Issue (requires issue scope)
+		m.Group("/repos", func() {
+			m.Get("/issues/search", repo.SearchIssues)
+
+			m.Group("/{username}/{reponame}", func() {
+				m.Group("/issues", func() {
+					m.Combo("").Get(repo.ListIssues).
+						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), reqRepoReader(unit.TypeIssues), repo.CreateIssue)
+					m.Get("/pinned", reqRepoReader(unit.TypeIssues), repo.ListPinnedIssues)
+					m.Group("/comments", func() {
+						m.Get("", repo.ListRepoIssueComments)
+						m.Group("/{id}", func() {
+							m.Combo("").
+								Get(repo.GetIssueComment).
+								Patch(mustNotBeArchived, reqToken(), bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
+								Delete(reqToken(), repo.DeleteIssueComment)
+							m.Combo("/reactions").
+								Get(repo.GetIssueCommentReactions).
+								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
+								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+							m.Group("/assets", func() {
+								m.Combo("").
+									Get(repo.ListIssueCommentAttachments).
+									Post(reqToken(), mustNotBeArchived, repo.CreateIssueCommentAttachment)
+								m.Combo("/{attachment_id}").
+									Get(repo.GetIssueCommentAttachment).
+									Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
+									Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
+							}, mustEnableAttachments)
+						})
+					})
+					m.Group("/{index}", func() {
+						m.Combo("").Get(repo.GetIssue).
+							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue).
+							Delete(reqToken(), reqAdmin(), context.ReferencesGitRepo(), repo.DeleteIssue)
+						m.Group("/comments", func() {
+							m.Combo("").Get(repo.ListIssueComments).
+								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
+							m.Combo("/{id}", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
+								Delete(repo.DeleteIssueCommentDeprecated)
+						})
+						m.Get("/timeline", repo.ListIssueCommentsAndTimeline)
+						m.Group("/labels", func() {
+							m.Combo("").Get(repo.ListIssueLabels).
+								Post(reqToken(), bind(api.IssueLabelsOption{}), repo.AddIssueLabels).
+								Put(reqToken(), bind(api.IssueLabelsOption{}), repo.ReplaceIssueLabels).
+								Delete(reqToken(), repo.ClearIssueLabels)
+							m.Delete("/{id}", reqToken(), repo.DeleteIssueLabel)
+						})
+						m.Group("/times", func() {
+							m.Combo("").
+								Get(repo.ListTrackedTimes).
+								Post(bind(api.AddTimeOption{}), repo.AddTime).
+								Delete(repo.ResetIssueTime)
+							m.Delete("/{id}", repo.DeleteTime)
+						}, reqToken())
+						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
+						m.Group("/stopwatch", func() {
+							m.Post("/start", repo.StartIssueStopwatch)
+							m.Post("/stop", repo.StopIssueStopwatch)
+							m.Delete("/delete", repo.DeleteIssueStopwatch)
+						}, reqToken())
+						m.Group("/subscriptions", func() {
+							m.Get("", repo.GetIssueSubscribers)
+							m.Get("/check", reqToken(), repo.CheckIssueSubscription)
+							m.Put("/{user}", reqToken(), repo.AddIssueSubscription)
+							m.Delete("/{user}", reqToken(), repo.DelIssueSubscription)
+						})
+						m.Combo("/reactions").
+							Get(repo.GetIssueReactions).
+							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
+							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
+						m.Group("/assets", func() {
+							m.Combo("").
+								Get(repo.ListIssueAttachments).
+								Post(reqToken(), mustNotBeArchived, repo.CreateIssueAttachment)
+							m.Combo("/{attachment_id}").
+								Get(repo.GetIssueAttachment).
+								Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
+								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueAttachment)
+						}, mustEnableAttachments)
+						m.Combo("/dependencies").
+							Get(repo.GetIssueDependencies).
+							Post(reqToken(), mustNotBeArchived, bind(api.IssueMeta{}), repo.CreateIssueDependency).
+							Delete(reqToken(), mustNotBeArchived, bind(api.IssueMeta{}), repo.RemoveIssueDependency)
+						m.Combo("/blocks").
+							Get(repo.GetIssueBlocks).
+							Post(reqToken(), bind(api.IssueMeta{}), repo.CreateIssueBlocking).
+							Delete(reqToken(), bind(api.IssueMeta{}), repo.RemoveIssueBlocking)
+						m.Group("/pin", func() {
+							m.Combo("").
+								Post(reqToken(), reqAdmin(), repo.PinIssue).
+								Delete(reqToken(), reqAdmin(), repo.UnpinIssue)
+							m.Patch("/{position}", reqToken(), reqAdmin(), repo.MoveIssuePin)
+						})
+					})
+				}, mustEnableIssuesOrPulls)
+				m.Group("/labels", func() {
+					m.Combo("").Get(repo.ListLabels).
+						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
+					m.Combo("/{id}").Get(repo.GetLabel).
+						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
+						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
+				})
+				m.Group("/milestones", func() {
+					m.Combo("").Get(repo.ListMilestones).
+						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
+					m.Combo("/{id}").Get(repo.GetMilestone).
+						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
+						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
+				})
+			}, repoAssignment(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}/{version}", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadPackage), packages.GetPackage)
-				m.Delete("", reqToken(auth_model.AccessTokenScopeDeletePackage), reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
-				m.Get("/files", reqToken(auth_model.AccessTokenScopeReadPackage), packages.ListPackageFiles)
+				m.Get("", reqToken(), packages.GetPackage)
+				m.Delete("", reqToken(), reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
+				m.Get("/files", reqToken(), packages.ListPackageFiles)
 			})
-			m.Get("/", reqToken(auth_model.AccessTokenScopeReadPackage), packages.ListPackages)
-		}, context_service.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+			m.Get("/", reqToken(), packages.ListPackages)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), checkTokenPublicOnly())
 
 		// Organizations
-		m.Get("/user/orgs", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListMyOrgs)
+		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
-			m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListUserOrgs)
-			m.Get("/{org}/permissions", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetUserOrgsPermissions)
-		}, context_service.UserAssignmentAPI())
-		m.Post("/orgs", reqToken(auth_model.AccessTokenScopeWriteOrg), bind(api.CreateOrgOption{}), org.Create)
-		m.Get("/orgs", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetAll)
+			m.Get("", reqToken(), org.ListUserOrgs)
+			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI(), checkTokenPublicOnly())
+		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
+		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
 		m.Group("/orgs/{org}", func() {
-			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.Get).
-				Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
-				Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.Delete)
-			m.Combo("/repos").Get(reqToken(auth_model.AccessTokenScopeReadOrg), user.ListOrgRepos).
-				Post(reqToken(auth_model.AccessTokenScopeWriteOrg), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
+			m.Combo("").Get(org.Get).
+				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
+				Delete(reqToken(), reqOrgOwnership(), org.Delete)
+			m.Post("/rename", reqToken(), reqOrgOwnership(), bind(api.RenameOrgOption{}), org.Rename)
+			m.Combo("/repos").Get(user.ListOrgRepos).
+				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
 			m.Group("/members", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListMembers)
-				m.Combo("/{username}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.IsMember).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteMember)
+				m.Get("", reqToken(), org.ListMembers)
+				m.Combo("/{username}").Get(reqToken(), org.IsMember).
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			})
+			addActionsRoutes(
+				m,
+				reqOrgOwnership(),
+				org.NewAction(),
+			)
 			m.Group("/public_members", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListPublicMembers)
-				m.Combo("/{username}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.IsPublicMember).
-					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership(), org.PublicizeMember).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgMembership(), org.ConcealMember)
+				m.Get("", org.ListPublicMembers)
+				m.Combo("/{username}").Get(org.IsPublicMember).
+					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
+					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
 			m.Group("/teams", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListTeams)
-				m.Post("", reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
-				m.Get("/search", reqToken(auth_model.AccessTokenScopeReadOrg), org.SearchTeam)
-			}, reqOrgMembership())
+				m.Get("", org.ListTeams)
+				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", org.SearchTeam)
+			}, reqToken(), reqOrgMembership())
 			m.Group("/labels", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.ListLabels)
-				m.Post("", reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)
-				m.Combo("/{id}").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetLabel).
-					Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteLabel)
+				m.Get("", org.ListLabels)
+				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)
+				m.Combo("/{id}").Get(reqToken(), org.GetLabel).
+					Patch(reqToken(), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteLabel)
 			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
@@ -1209,27 +1567,42 @@ func Routes(ctx gocontext.Context) *web.Route {
 				m.Combo("/{id}").Get(org.GetHook).
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
-			}, reqToken(auth_model.AccessTokenScopeAdminOrgHook), reqOrgOwnership(), reqWebhooksEnabled())
-		}, orgAssignment(true))
+			}, reqToken(), reqOrgOwnership(), reqWebhooksEnabled())
+			m.Group("/avatar", func() {
+				m.Post("", bind(api.UpdateUserAvatarOption{}), org.UpdateAvatar)
+				m.Delete("", org.DeleteAvatar)
+			}, reqToken(), reqOrgOwnership())
+			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
+
+			m.Group("/blocks", func() {
+				m.Get("", org.ListBlocks)
+				m.Group("/{username}", func() {
+					m.Get("", org.CheckUserBlock)
+					m.Put("", org.BlockUser)
+					m.Delete("", org.UnblockUser)
+				})
+			}, reqToken(), reqOrgOwnership())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
 		m.Group("/teams/{teamid}", func() {
-			m.Combo("").Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeam).
-				Patch(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
-				Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.DeleteTeam)
+			m.Combo("").Get(reqToken(), org.GetTeam).
+				Patch(reqToken(), reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
+				Delete(reqToken(), reqOrgOwnership(), org.DeleteTeam)
 			m.Group("/members", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamMembers)
+				m.Get("", reqToken(), org.GetTeamMembers)
 				m.Combo("/{username}").
-					Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamMember).
-					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.AddTeamMember).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), reqOrgOwnership(), org.RemoveTeamMember)
+					Get(reqToken(), org.GetTeamMember).
+					Put(reqToken(), reqOrgOwnership(), org.AddTeamMember).
+					Delete(reqToken(), reqOrgOwnership(), org.RemoveTeamMember)
 			})
 			m.Group("/repos", func() {
-				m.Get("", reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamRepos)
+				m.Get("", reqToken(), org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
-					Put(reqToken(auth_model.AccessTokenScopeWriteOrg), org.AddTeamRepository).
-					Delete(reqToken(auth_model.AccessTokenScopeWriteOrg), org.RemoveTeamRepository).
-					Get(reqToken(auth_model.AccessTokenScopeReadOrg), org.GetTeamRepo)
+					Put(reqToken(), org.AddTeamRepository).
+					Delete(reqToken(), org.RemoveTeamRepository).
+					Get(reqToken(), org.GetTeamRepo)
 			})
-		}, orgAssignment(false, true), reqToken(""), reqTeamMembership())
+			m.Get("/activities/feeds", org.ListTeamActivityFeeds)
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamMembership(), checkTokenPublicOnly())
 
 		m.Group("/admin", func() {
 			m.Group("/cron", func() {
@@ -1238,7 +1611,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			})
 			m.Get("/orgs", admin.GetAllOrgs)
 			m.Group("/users", func() {
-				m.Get("", admin.GetAllUsers)
+				m.Get("", admin.SearchUsers)
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)
 				m.Group("/{username}", func() {
 					m.Combo("").Patch(bind(api.EditUserOption{}), admin.EditUser).
@@ -1250,7 +1623,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 					m.Get("/orgs", org.ListUserOrgs)
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
-				}, context_service.UserAssignmentAPI())
+					m.Post("/rename", bind(api.RenameUserOption{}), admin.RenameUser)
+					m.Get("/badges", admin.ListUserBadges)
+					m.Post("/badges", bind(api.UserBadgeOption{}), admin.AddUserBadges)
+					m.Delete("/badges", bind(api.UserBadgeOption{}), admin.DeleteUserBadges)
+				}, context.UserAssignmentAPI())
+			})
+			m.Group("/emails", func() {
+				m.Get("", admin.GetAllEmails)
+				m.Get("/search", admin.SearchEmail)
 			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)
@@ -1264,11 +1645,14 @@ func Routes(ctx gocontext.Context) *web.Route {
 					Patch(bind(api.EditHookOption{}), admin.EditHook).
 					Delete(admin.DeleteHook)
 			})
-		}, reqToken(auth_model.AccessTokenScopeSudo), reqSiteAdmin())
+			m.Group("/runners", func() {
+				m.Get("/registration-token", admin.GetRegistrationToken)
+			})
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryAdmin), reqToken(), reqSiteAdmin())
 
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
-		})
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 	}, sudo())
 
 	return m

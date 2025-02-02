@@ -2,7 +2,11 @@
 
 <div class="page-content repository">
 	{{template "repo/header" .}}
-	<div id="repo-action-view" data-run-index="{{.RunIndex}}" data-job-index="{{.JobIndex}}" data-actions-url="{{.ActionsURL}}"></div>
+	{{template "repo/actions/view_component" (dict
+		"RunIndex" .RunIndex
+		"JobIndex" .JobIndex
+		"ActionsURL" .ActionsURL
+	)}}
 </div>
 
 {{template "base/footer" .}}

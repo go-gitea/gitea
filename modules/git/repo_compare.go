@@ -92,8 +92,11 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
+			// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
 			var logs []byte
-			logs, _, err = NewCommand(repo.Ctx, "log").AddDynamicArguments(baseCommitID + separator + headBranch).AddArguments(prettyLogFormat).RunStdBytes(&RunOpts{Dir: repo.Path})
+			logs, _, err = NewCommand(repo.Ctx, "log").AddArguments(prettyLogFormat).
+				AddDynamicArguments(baseCommitID + separator + headBranch).AddArguments("--").
+				RunStdBytes(&RunOpts{Dir: repo.Path})
 			if err != nil {
 				return nil, err
 			}
@@ -146,7 +149,8 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 		separator = ".."
 	}
 
-	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base + separator + head).
+	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
+	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base + separator + head).AddArguments("--").
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
@@ -157,7 +161,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
 			stderr.Reset()
-			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base, head).Run(&RunOpts{
+			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only").AddDynamicArguments(base, head).AddArguments("--").Run(&RunOpts{
 				Dir:    repo.Path,
 				Stdout: w,
 				Stderr: stderr,
@@ -229,74 +233,62 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 	return numFiles, totalAdditions, totalDeletions, err
 }
 
-// GetDiffOrPatch generates either diff or formatted patch data between given revisions
-func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, patch, binary bool) error {
-	if patch {
-		return repo.GetPatch(base, head, w)
-	}
-	if binary {
-		return repo.GetDiffBinary(base, head, w)
-	}
-	return repo.GetDiff(base, head, w)
-}
-
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
-func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
-	return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(base, head).Run(&RunOpts{
-		Dir:    repo.Path,
-		Stdout: w,
-	})
+func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
+	stderr := new(bytes.Buffer)
+	return NewCommand(repo.Ctx, "diff", "-p").AddDynamicArguments(compareArg).
+		Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: w,
+			Stderr: stderr,
+		})
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
-func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
-	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(base, head).Run(&RunOpts{
+func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
+	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram").AddDynamicArguments(compareArg).Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: w,
 	})
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
-func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
+func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
-	err := NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(base + "..." + head).
+	return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
 		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,
 		})
-	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
-		return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout").AddDynamicArguments(base, head).
-			Run(&RunOpts{
-				Dir:    repo.Path,
-				Stdout: w,
-			})
-	}
-	return err
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
+// If base is undefined empty SHA (zeros), it only returns the files changed in the head commit
+// If base is the SHA of an empty tree (EmptyTreeSHA), it returns the files changes from the initial commit to the head commit
 func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only").AddDynamicArguments(base + ".." + head).RunStdString(&RunOpts{Dir: repo.Path})
+	objectFormat, err := repo.GetObjectFormat()
 	if err != nil {
 		return nil, err
 	}
-	return strings.Split(stdout, "\n"), err
-}
-
-// GetDiffFromMergeBase generates and return patch data from merge base to head
-func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
-	stderr := new(bytes.Buffer)
-	err := NewCommand(repo.Ctx, "diff", "-p", "--binary").AddDynamicArguments(base + "..." + head).
-		Run(&RunOpts{
-			Dir:    repo.Path,
-			Stdout: w,
-			Stderr: stderr,
-		})
-	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
-		return repo.GetDiffBinary(base, head, w)
+	cmd := NewCommand(repo.Ctx, "diff-tree", "--name-only", "--root", "--no-commit-id", "-r", "-z")
+	if base == objectFormat.EmptyObjectID().String() {
+		cmd.AddDynamicArguments(head)
+	} else {
+		cmd.AddDynamicArguments(base, head)
 	}
-	return err
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
+	if err != nil {
+		return nil, err
+	}
+	split := strings.Split(stdout, "\000")
+
+	// Because Git will always emit filenames with a terminal NUL ignore the last entry in the split - which will always be empty.
+	if len(split) > 0 {
+		split = split[:len(split)-1]
+	}
+
+	return split, err
 }
 
 // ReadPatchCommit will check if a diff patch exists and return stats

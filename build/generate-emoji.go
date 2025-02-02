@@ -25,7 +25,7 @@ import (
 
 const (
 	gemojiURL         = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
-	maxUnicodeVersion = 14
+	maxUnicodeVersion = 15
 )
 
 var flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")
@@ -53,20 +53,18 @@ func (e Emoji) MarshalJSON() ([]byte, error) {
 }
 
 func main() {
-	var err error
-
 	flag.Parse()
 
 	// generate data
 	buf, err := generate()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("generate err: %v", err)
 	}
 
 	// write
 	err = os.WriteFile(*flagOut, buf, 0o644)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("WriteFile err: %v", err)
 	}
 }
 
@@ -83,8 +81,6 @@ var replacer = strings.NewReplacer(
 var emojiRE = regexp.MustCompile(`\{Emoji:"([^"]*)"`)
 
 func generate() ([]byte, error) {
-	var err error
-
 	// load gemoji data
 	res, err := http.Get(gemojiURL)
 	if err != nil {

@@ -5,62 +5,80 @@
 package templates
 
 import (
-	"bytes"
-	"context"
-	"errors"
 	"fmt"
 	"html"
 	"html/template"
-	"mime"
 	"net/url"
-	"path/filepath"
-	"reflect"
-	"regexp"
-	"runtime"
-	"strconv"
 	"strings"
-	texttmpl "text/template"
 	"time"
-	"unicode"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/avatars"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/git"
-	giturl "code.gitea.io/gitea/modules/git/url"
-	gitea_html "code.gitea.io/gitea/modules/html"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/templates/eval"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-
-	"github.com/editorconfig/editorconfig-core-go/v2"
+	"code.gitea.io/gitea/services/webtheme"
 )
 
-// Used from static.go && dynamic.go
-var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
-
 // NewFuncMap returns functions for injecting to templates
-func NewFuncMap() []template.FuncMap {
-	return []template.FuncMap{map[string]interface{}{
-		"GoVer": func() string {
-			return util.ToTitleCase(runtime.Version())
+func NewFuncMap() template.FuncMap {
+	return map[string]any{
+		"ctx": func() any { return nil }, // template context function
+
+		"DumpVar": dumpVar,
+		"NIL":     func() any { return nil },
+
+		// -----------------------------------------------------------------
+		// html/template related functions
+		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Iif":          iif,
+		"Eval":         evalTokens,
+		"SafeHTML":     safeHTML,
+		"HTMLFormat":   htmlFormat,
+		"HTMLEscape":   htmlEscape,
+		"QueryEscape":  queryEscape,
+		"QueryBuild":   QueryBuild,
+		"JSEscape":     jsEscapeSafe,
+		"SanitizeHTML": SanitizeHTML,
+		"URLJoin":      util.URLJoin,
+		"DotEscape":    dotEscape,
+
+		"PathEscape":         url.PathEscape,
+		"PathEscapeSegments": util.PathEscapeSegments,
+
+		// utils
+		"StringUtils": NewStringUtils,
+		"SliceUtils":  NewSliceUtils,
+		"JsonUtils":   NewJsonUtils,
+		"DateUtils":   NewDateUtils,
+
+		// -----------------------------------------------------------------
+		// svg / avatar / icon / color
+		"svg":           svg.RenderHTML,
+		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": migrationIcon,
+		"ActionIcon":    actionIcon,
+		"SortArrow":     sortArrow,
+		"ContrastColor": util.ContrastColor,
+
+		// -----------------------------------------------------------------
+		// time / number / format
+		"FileSize": base.FileSize,
+		"CountFmt": countFmt,
+		"Sec2Time": util.SecToHours,
+
+		"TimeEstimateString": timeEstimateString,
+
+		"LoadTimes": func(startTime time.Time) string {
+			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
-		"UseHTTPS": func() bool {
-			return strings.HasPrefix(setting.AppURL, "https")
-		},
+
+		// -----------------------------------------------------------------
+		// setting
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -80,110 +98,26 @@ func NewFuncMap() []template.FuncMap {
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppBuiltWith": func() string {
-			return setting.AppBuiltWith
-		},
-		"AppDomain": func() string {
+		"AppDomain": func() string { // documented in mail-templates.md
 			return setting.Domain
 		},
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
-		"DisableGravatar": func(ctx context.Context) bool {
-			return system_model.GetSettingBool(ctx, system_model.KeyPictureDisableGravatar)
-		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
-			return setting.ShowFooterTemplateLoadTime
+			return setting.Other.ShowFooterTemplateLoadTime
 		},
-		"LoadTimes": func(startTime time.Time) string {
-			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+		"ShowFooterPoweredBy": func() bool {
+			return setting.Other.ShowFooterPoweredBy
 		},
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
-		},
-		"Safe":           Safe,
-		"SafeJS":         SafeJS,
-		"JSEscape":       JSEscape,
-		"Str2html":       Str2html,
-		"TimeSince":      timeutil.TimeSince,
-		"TimeSinceUnix":  timeutil.TimeSinceUnix,
-		"FileSize":       base.FileSize,
-		"PrettyNumber":   base.PrettyNumber,
-		"JsPrettyNumber": JsPrettyNumber,
-		"Subtract":       base.Subtract,
-		"EntryIcon":      base.EntryIcon,
-		"MigrationIcon":  MigrationIcon,
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
-		"ActionIcon": ActionIcon,
-		"DateFmtLong": func(t time.Time) string {
-			return t.Format(time.RFC1123Z)
-		},
-		"DateFmtShort": func(t time.Time) string {
-			return t.Format("Jan 02, 2006")
-		},
-		"CountFmt": base.FormatNumberSI,
-		"SubStr": func(str string, start, length int) string {
-			if len(str) == 0 {
-				return ""
-			}
-			end := start + length
-			if length == -1 {
-				end = len(str)
-			}
-			if len(str) < end {
-				return str
-			}
-			return str[start:end]
-		},
-		"EllipsisString":                 base.EllipsisString,
-		"DiffTypeToStr":                  DiffTypeToStr,
-		"DiffLineTypeToStr":              DiffLineTypeToStr,
-		"ShortSha":                       base.ShortSha,
-		"ActionContent2Commits":          ActionContent2Commits,
-		"PathEscape":                     url.PathEscape,
-		"PathEscapeSegments":             util.PathEscapeSegments,
-		"URLJoin":                        util.URLJoin,
-		"RenderCommitMessage":            RenderCommitMessage,
-		"RenderCommitMessageLink":        RenderCommitMessageLink,
-		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
-		"RenderCommitBody":               RenderCommitBody,
-		"RenderCodeBlock":                RenderCodeBlock,
-		"RenderIssueTitle":               RenderIssueTitle,
-		"RenderEmoji":                    RenderEmoji,
-		"RenderEmojiPlain":               emoji.ReplaceAliases,
-		"ReactionToEmoji":                ReactionToEmoji,
-		"RenderNote":                     RenderNote,
-		"RenderMarkdownToHtml": func(input string) template.HTML {
-			output, err := markdown.RenderString(&markup.RenderContext{
-				URLPrefix: setting.AppSubURL,
-			}, input)
-			if err != nil {
-				log.Error("RenderString: %v", err)
-			}
-			return template.HTML(output)
-		},
-		"IsMultilineCommitMessage": IsMultilineCommitMessage,
-		"ThemeColorMetaTag": func() string {
-			return setting.UI.ThemeColorMetaTag
 		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author
@@ -194,815 +128,246 @@ func NewFuncMap() []template.FuncMap {
 		"MetaKeywords": func() string {
 			return setting.UI.Meta.Keywords
 		},
-		"UseServiceWorker": func() bool {
-			return setting.UI.UseServiceWorker
-		},
 		"EnableTimetracking": func() bool {
 			return setting.Service.EnableTimetracking
-		},
-		"FilenameIsImage": func(filename string) bool {
-			mimeType := mime.TypeByExtension(filepath.Ext(filename))
-			return strings.HasPrefix(mimeType, "image/")
-		},
-		"TabSizeClass": func(ec interface{}, filename string) string {
-			var (
-				value *editorconfig.Editorconfig
-				ok    bool
-			)
-			if ec != nil {
-				if value, ok = ec.(*editorconfig.Editorconfig); !ok || value == nil {
-					return "tab-size-8"
-				}
-				def, err := value.GetDefinitionForFilename(filename)
-				if err != nil {
-					log.Error("tab size class: getting definition for filename: %v", err)
-					return "tab-size-8"
-				}
-				if def.TabWidth > 0 {
-					return fmt.Sprintf("tab-size-%d", def.TabWidth)
-				}
-			}
-			return "tab-size-8"
-		},
-		"SubJumpablePath": func(str string) []string {
-			var path []string
-			index := strings.LastIndex(str, "/")
-			if index != -1 && index != len(str) {
-				path = append(path, str[0:index+1], str[index+1:])
-			} else {
-				path = append(path, str)
-			}
-			return path
-		},
-		"DiffStatsWidth": func(adds, dels int) string {
-			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
-		},
-		"Json": func(in interface{}) string {
-			out, err := json.Marshal(in)
-			if err != nil {
-				return ""
-			}
-			return string(out)
-		},
-		"JsonPrettyPrint": func(in string) string {
-			var out bytes.Buffer
-			err := json.Indent(&out, []byte(in), "", "  ")
-			if err != nil {
-				return ""
-			}
-			return out.String()
-		},
-		"DisableGitHooks": func() bool {
-			return setting.DisableGitHooks
 		},
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
 		},
-		"DisableImportLocal": func() bool {
-			return !setting.ImportLocalPaths
-		},
-		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values)%2 != 0 {
-				return nil, errors.New("invalid dict call")
-			}
-			dict := make(map[string]interface{}, len(values)/2)
-			for i := 0; i < len(values); i += 2 {
-				key, ok := values[i].(string)
-				if !ok {
-					return nil, errors.New("dict keys must be strings")
-				}
-				dict[key] = values[i+1]
-			}
-			return dict, nil
-		},
-		"Printf":   fmt.Sprintf,
-		"Escape":   Escape,
-		"Sec2Time": util.SecToTime,
-		"Sec2Hour": util.SecToHour,
-		"ParseDeadline": func(deadline string) []string {
-			return strings.Split(deadline, "|")
-		},
-		"DefaultTheme": func() string {
-			return setting.UI.DefaultTheme
-		},
-		// pass key-value pairs to a partial template which receives them as a dict
-		"dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values) == 0 {
-				return nil, errors.New("invalid dict call")
-			}
-
-			dict := make(map[string]interface{})
-			return util.MergeInto(dict, values...)
-		},
-		/* like dict but merge key-value pairs into the first dict and return it */
-		"mergeinto": func(root map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
-			if len(values) == 0 {
-				return nil, errors.New("invalid mergeinto call")
-			}
-
-			dict := make(map[string]interface{})
-			for key, value := range root {
-				dict[key] = value
-			}
-
-			return util.MergeInto(dict, values...)
-		},
-		"percentage": func(n int, values ...int) float32 {
-			sum := 0
-			for i := 0; i < len(values); i++ {
-				sum += values[i]
-			}
-			return float32(n) * 100 / float32(sum)
-		},
-		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
-		"MirrorRemoteAddress": mirrorRemoteAddress,
-		"NotificationSettings": func() map[string]interface{} {
-			return map[string]interface{}{
+		"UserThemeName": userThemeName,
+		"NotificationSettings": func() map[string]any {
+			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
 				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
 		},
-		"containGeneric": func(arr, v interface{}) bool {
-			arrV := reflect.ValueOf(arr)
-			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
-				return strings.Contains(arr.(string), v.(string))
-			}
-
-			if arrV.Kind() == reflect.Slice {
-				for i := 0; i < arrV.Len(); i++ {
-					iV := arrV.Index(i)
-					if !iV.CanInterface() {
-						continue
-					}
-					if iV.Interface() == v {
-						return true
-					}
-				}
-			}
-
-			return false
-		},
-		"contain": func(s []int64, id int64) bool {
-			for i := 0; i < len(s); i++ {
-				if s[i] == id {
-					return true
-				}
-			}
-			return false
-		},
-		"svg":            svg.RenderHTML,
-		"avatar":         Avatar,
-		"avatarHTML":     AvatarHTML,
-		"avatarByAction": AvatarByAction,
-		"avatarByEmail":  AvatarByEmail,
-		"repoAvatar":     RepoAvatar,
-		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
-			// if needed
-			if len(normSort) == 0 || len(urlSort) == 0 {
-				return ""
-			}
-
-			if len(urlSort) == 0 && isDefault {
-				// if sort is sorted as default add arrow tho this table header
-				if isDefault {
-					return svg.RenderHTML("octicon-triangle-down", 16)
-				}
-			} else {
-				// if sort arg is in url test if it correlates with column header sort arguments
-				// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
-				if urlSort == normSort {
-					// the table is sorted with this header normal
-					return svg.RenderHTML("octicon-triangle-up", 16)
-				} else if urlSort == revSort {
-					// the table is sorted with this header reverse
-					return svg.RenderHTML("octicon-triangle-down", 16)
-				}
-			}
-			// the table is NOT sorted with this header
-			return ""
-		},
-		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
-			htmlCode := `<span class="labels-list">`
-			for _, label := range labels {
-				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
-				if label == nil {
-					continue
-				}
-				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</a> ",
-					repoLink, label.ID, label.ForegroundColor(), label.Color, html.EscapeString(label.Description), RenderEmoji(label.Name))
-			}
-			htmlCode += "</span>"
-			return template.HTML(htmlCode)
-		},
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
 		},
-		"Join":        strings.Join,
-		"QueryEscape": url.QueryEscape,
-		"DotEscape":   DotEscape,
-		"Iterate": func(arg interface{}) (items []uint64) {
-			count := uint64(0)
-			switch val := arg.(type) {
-			case uint64:
-				count = val
-			case *uint64:
-				count = *val
-			case int64:
-				if val < 0 {
-					val = 0
-				}
-				count = uint64(val)
-			case *int64:
-				if *val < 0 {
-					*val = 0
-				}
-				count = uint64(*val)
-			case int:
-				if val < 0 {
-					val = 0
-				}
-				count = uint64(val)
-			case *int:
-				if *val < 0 {
-					*val = 0
-				}
-				count = uint64(*val)
-			case uint:
-				count = uint64(val)
-			case *uint:
-				count = uint64(*val)
-			case int32:
-				if val < 0 {
-					val = 0
-				}
-				count = uint64(val)
-			case *int32:
-				if *val < 0 {
-					*val = 0
-				}
-				count = uint64(*val)
-			case uint32:
-				count = uint64(val)
-			case *uint32:
-				count = uint64(*val)
-			case string:
-				cnt, _ := strconv.ParseInt(val, 10, 64)
-				if cnt < 0 {
-					cnt = 0
-				}
-				count = uint64(cnt)
-			}
-			if count <= 0 {
-				return items
-			}
-			for i := uint64(0); i < count; i++ {
-				items = append(items, i)
-			}
-			return items
-		},
-		"HasPrefix": strings.HasPrefix,
-		"CompareLink": func(baseRepo, repo *repo_model.Repository, branchName string) string {
-			var curBranch string
-			if repo.ID != baseRepo.ID {
-				curBranch += fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
-			}
-			curBranch += util.PathEscapeSegments(branchName)
 
-			return fmt.Sprintf("%s/compare/%s...%s",
-				baseRepo.Link(),
-				util.PathEscapeSegments(baseRepo.DefaultBranch),
-				curBranch,
-			)
-		},
-		"RefShortName": func(ref string) string {
-			return git.RefName(ref).ShortName()
-		},
-	}}
-}
+		// -----------------------------------------------------------------
+		// render
+		"RenderCodeBlock": renderCodeBlock,
+		"ReactionToEmoji": reactionToEmoji,
 
-// NewTextFuncMap returns functions for injecting to text templates
-// It's a subset of those used for HTML and other templates
-func NewTextFuncMap() []texttmpl.FuncMap {
-	return []texttmpl.FuncMap{map[string]interface{}{
-		"GoVer": func() string {
-			return util.ToTitleCase(runtime.Version())
-		},
-		"AppName": func() string {
-			return setting.AppName
-		},
-		"AppSubUrl": func() string {
-			return setting.AppSubURL
-		},
-		"AppUrl": func() string {
-			return setting.AppURL
-		},
-		"AppVer": func() string {
-			return setting.AppVer
-		},
-		"AppBuiltWith": func() string {
-			return setting.AppBuiltWith
-		},
-		"AppDomain": func() string {
-			return setting.Domain
-		},
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"DateFmtLong": func(t time.Time) string {
-			return t.Format(time.RFC1123Z)
-		},
-		"DateFmtShort": func(t time.Time) string {
-			return t.Format("Jan 02, 2006")
-		},
-		"SubStr": func(str string, start, length int) string {
-			if len(str) == 0 {
-				return ""
-			}
-			end := start + length
-			if length == -1 {
-				end = len(str)
-			}
-			if len(str) < end {
-				return str
-			}
-			return str[start:end]
-		},
-		"EllipsisString": base.EllipsisString,
-		"URLJoin":        util.URLJoin,
-		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values)%2 != 0 {
-				return nil, errors.New("invalid dict call")
-			}
-			dict := make(map[string]interface{}, len(values)/2)
-			for i := 0; i < len(values); i += 2 {
-				key, ok := values[i].(string)
-				if !ok {
-					return nil, errors.New("dict keys must be strings")
-				}
-				dict[key] = values[i+1]
-			}
-			return dict, nil
-		},
-		"Printf":   fmt.Sprintf,
-		"Escape":   Escape,
-		"Sec2Time": util.SecToTime,
-		"ParseDeadline": func(deadline string) []string {
-			return strings.Split(deadline, "|")
-		},
-		"dict": func(values ...interface{}) (map[string]interface{}, error) {
-			if len(values) == 0 {
-				return nil, errors.New("invalid dict call")
-			}
+		// -----------------------------------------------------------------
+		// misc
+		"ShortSha":                 base.ShortSha,
+		"ActionContent2Commits":    ActionContent2Commits,
+		"IsMultilineCommitMessage": isMultilineCommitMessage,
+		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress":      mirrorRemoteAddress,
 
-			dict := make(map[string]interface{})
+		"FilenameIsImage": filenameIsImage,
+		"TabSizeClass":    tabSizeClass,
 
-			for i := 0; i < len(values); i++ {
-				switch key := values[i].(type) {
-				case string:
-					i++
-					if i == len(values) {
-						return nil, errors.New("specify the key for non array values")
-					}
-					dict[key] = values[i]
-				case map[string]interface{}:
-					m := values[i].(map[string]interface{})
-					for i, v := range m {
-						dict[i] = v
-					}
-				default:
-					return nil, errors.New("dict values must be maps")
-				}
-			}
-			return dict, nil
-		},
-		"percentage": func(n int, values ...int) float32 {
-			sum := 0
-			for i := 0; i < len(values); i++ {
-				sum += values[i]
-			}
-			return float32(n) * 100 / float32(sum)
-		},
-		"Add": func(a ...int) int {
-			sum := 0
-			for _, val := range a {
-				sum += val
-			}
-			return sum
-		},
-		"Mul": func(a ...int) int {
-			sum := 1
-			for _, val := range a {
-				sum *= val
-			}
-			return sum
-		},
-		"QueryEscape": url.QueryEscape,
-	}}
-}
+		// for backward compatibility only, do not use them anymore
+		"TimeSince":     timeSinceLegacy,
+		"TimeSinceUnix": timeSinceLegacy,
+		"DateTime":      dateTimeLegacy,
 
-// AvatarHTML creates the HTML for an avatar
-func AvatarHTML(src string, size int, class, name string) template.HTML {
-	sizeStr := fmt.Sprintf(`%d`, size)
+		"RenderEmoji":      renderEmojiLegacy,
+		"RenderLabel":      renderLabelLegacy,
+		"RenderLabels":     renderLabelsLegacy,
+		"RenderIssueTitle": renderIssueTitleLegacy,
 
-	if name == "" {
-		name = "avatar"
+		"RenderMarkdownToHtml": renderMarkdownToHtmlLegacy,
+
+		"RenderCommitMessage":            renderCommitMessageLegacy,
+		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubjectLegacy,
+		"RenderCommitBody":               renderCommitBodyLegacy,
 	}
-
-	return template.HTML(`<img class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
 }
 
-// Avatar renders user avatars. args: user, size (int), class (string)
-func Avatar(ctx context.Context, item interface{}, others ...interface{}) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
-
-	switch t := item.(type) {
-	case *user_model.User:
-		src := t.AvatarLinkWithSize(ctx, size*setting.Avatar.RenderedSizeFactor)
-		if src != "" {
-			return AvatarHTML(src, size, class, t.DisplayName())
-		}
-	case *repo_model.Collaborator:
-		src := t.AvatarLinkWithSize(ctx, size*setting.Avatar.RenderedSizeFactor)
-		if src != "" {
-			return AvatarHTML(src, size, class, t.DisplayName())
-		}
-	case *organization.Organization:
-		src := t.AsUser().AvatarLinkWithSize(ctx, size*setting.Avatar.RenderedSizeFactor)
-		if src != "" {
-			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
-		}
+// safeHTML render raw as HTML
+func safeHTML(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(v)
+	case template.HTML:
+		return v
 	}
-
-	return template.HTML("")
+	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-// AvatarByAction renders user avatars from action. args: action, size (int), class (string)
-func AvatarByAction(ctx context.Context, action *activities_model.Action, others ...interface{}) template.HTML {
-	action.LoadActUser(ctx)
-	return Avatar(ctx, action.ActUser, others...)
+// SanitizeHTML sanitizes the input by pre-defined markdown rules
+func SanitizeHTML(s string) template.HTML {
+	return template.HTML(markup.Sanitize(s))
 }
 
-// RepoAvatar renders repo avatars. args: repo, size(int), class (string)
-func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
-
-	src := repo.RelAvatarLink()
-	if src != "" {
-		return AvatarHTML(src, size, class, repo.FullName())
+func htmlEscape(s any) template.HTML {
+	switch v := s.(type) {
+	case string:
+		return template.HTML(html.EscapeString(v))
+	case template.HTML:
+		return v
 	}
-	return template.HTML("")
+	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-// AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
-func AvatarByEmail(ctx context.Context, email, name string, others ...interface{}) template.HTML {
-	size, class := gitea_html.ParseSizeAndClass(avatars.DefaultAvatarPixelSize, avatars.DefaultAvatarClass, others...)
-	src := avatars.GenerateEmailAvatarFastLink(ctx, email, size*setting.Avatar.RenderedSizeFactor)
-
-	if src != "" {
-		return AvatarHTML(src, size, class, name)
+func htmlFormat(s any, args ...any) template.HTML {
+	if len(args) == 0 {
+		// to prevent developers from calling "HTMLFormat $userInput" by mistake which will lead to XSS
+		panic("missing arguments for HTMLFormat")
 	}
-
-	return template.HTML("")
+	switch v := s.(type) {
+	case string:
+		return htmlutil.HTMLFormat(template.HTML(v), args...)
+	case template.HTML:
+		return htmlutil.HTMLFormat(v, args...)
+	}
+	panic(fmt.Sprintf("unexpected type %T", s))
 }
 
-// Safe render raw as HTML
-func Safe(raw string) template.HTML {
-	return template.HTML(raw)
+func jsEscapeSafe(s string) template.HTML {
+	return template.HTML(template.JSEscapeString(s))
 }
 
-// SafeJS renders raw as JS
-func SafeJS(raw string) template.JS {
-	return template.JS(raw)
+func queryEscape(s string) template.URL {
+	return template.URL(url.QueryEscape(s))
 }
 
-// Str2html render Markdown text to HTML
-func Str2html(raw string) template.HTML {
-	return template.HTML(markup.Sanitize(raw))
-}
-
-// Escape escapes a HTML string
-func Escape(raw string) string {
-	return html.EscapeString(raw)
-}
-
-// JSEscape escapes a JS string
-func JSEscape(raw string) string {
-	return template.JSEscapeString(raw)
-}
-
-// DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
-func DotEscape(raw string) string {
+// dotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent auto-linkers from detecting these as urls
+func dotEscape(raw string) string {
 	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
-// RenderCommitMessage renders commit message with XSS-safe and special links.
-func RenderCommitMessage(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
-	return RenderCommitMessageLink(ctx, msg, urlPrefix, "", metas)
+// iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
+// and it could be simply used as "{{iif expr trueVal}}" (omit the falseVal).
+func iif(condition any, vals ...any) any {
+	if isTemplateTruthy(condition) {
+		return vals[0]
+	} else if len(vals) > 1 {
+		return vals[1]
+	}
+	return nil
 }
 
-// RenderCommitMessageLink renders commit message as a XXS-safe link to the provided
-// default url, handling for special links.
-func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
-	// we can safely assume that it will not return any error, since there
-	// shouldn't be any special HTML.
-	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:         ctx,
-		URLPrefix:   urlPrefix,
-		DefaultLink: urlDefault,
-		Metas:       metas,
-	}, cleanMsg)
-	if err != nil {
-		log.Error("RenderCommitMessage: %v", err)
-		return ""
-	}
-	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
-	if len(msgLines) == 0 {
-		return template.HTML("")
-	}
-	return template.HTML(msgLines[0])
+func isTemplateTruthy(v any) bool {
+	truth, _ := template.IsTrue(v)
+	return truth
 }
 
-// RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
-// the provided default url, handling for special links without email to links.
-func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
-	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
-	lineEnd := strings.IndexByte(msgLine, '\n')
-	if lineEnd > 0 {
-		msgLine = msgLine[:lineEnd]
-	}
-	msgLine = strings.TrimRightFunc(msgLine, unicode.IsSpace)
-	if len(msgLine) == 0 {
-		return template.HTML("")
-	}
-
-	// we can safely assume that it will not return any error, since there
-	// shouldn't be any special HTML.
-	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
-		Ctx:         ctx,
-		URLPrefix:   urlPrefix,
-		DefaultLink: urlDefault,
-		Metas:       metas,
-	}, template.HTMLEscapeString(msgLine))
-	if err != nil {
-		log.Error("RenderCommitMessageSubject: %v", err)
-		return template.HTML("")
-	}
-	return template.HTML(renderedMessage)
+// evalTokens evaluates the expression by tokens and returns the result, see the comment of eval.Expr for details.
+// To use this helper function in templates, pass each token as a separate parameter.
+//
+//	{{ $int64 := Eval $var "+" 1 }}
+//	{{ $float64 := Eval $var "+" 1.0 }}
+//
+// Golang's template supports comparable int types, so the int64 result can be used in later statements like {{if lt $int64 10}}
+func evalTokens(tokens ...any) (any, error) {
+	n, err := eval.Expr(tokens...)
+	return n.Value, err
 }
 
-// RenderCommitBody extracts the body of a commit message without its title.
-func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
-	msgLine := strings.TrimRightFunc(msg, unicode.IsSpace)
-	lineEnd := strings.IndexByte(msgLine, '\n')
-	if lineEnd > 0 {
-		msgLine = msgLine[lineEnd+1:]
-	} else {
-		return template.HTML("")
+func userThemeName(user *user_model.User) string {
+	if user == nil || user.Theme == "" {
+		return setting.UI.DefaultTheme
 	}
-	msgLine = strings.TrimLeftFunc(msgLine, unicode.IsSpace)
-	if len(msgLine) == 0 {
-		return template.HTML("")
+	if webtheme.IsThemeAvailable(user.Theme) {
+		return user.Theme
 	}
-
-	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: urlPrefix,
-		Metas:     metas,
-	}, template.HTMLEscapeString(msgLine))
-	if err != nil {
-		log.Error("RenderCommitMessage: %v", err)
-		return ""
-	}
-	return template.HTML(renderedMessage)
+	return setting.UI.DefaultTheme
 }
 
-// Match text that is between back ticks.
-var codeMatcher = regexp.MustCompile("`([^`]+)`")
-
-// RenderCodeBlock renders "`…`" as highlighted "<code>" block.
-// Intended for issue and PR titles, these containers should have styles for "<code>" elements
-func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
-	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), "<code>$1</code>") // replace with HTML <code> tags
-	return template.HTML(htmlWithCodeTags)
+func isQueryParamEmpty(v any) bool {
+	return v == nil || v == false || v == 0 || v == int64(0) || v == ""
 }
 
-// RenderIssueTitle renders issue/pull title with defined post processors
-func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[string]string) template.HTML {
-	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: urlPrefix,
-		Metas:     metas,
-	}, template.HTMLEscapeString(text))
-	if err != nil {
-		log.Error("RenderIssueTitle: %v", err)
-		return template.HTML("")
-	}
-	return template.HTML(renderedText)
-}
-
-// RenderEmoji renders html text with emoji post processors
-func RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji(template.HTMLEscapeString(text))
-	if err != nil {
-		log.Error("RenderEmoji: %v", err)
-		return template.HTML("")
-	}
-	return template.HTML(renderedText)
-}
-
-// ReactionToEmoji renders emoji for use in reactions
-func ReactionToEmoji(reaction string) template.HTML {
-	val := emoji.FromCode(reaction)
-	if val != nil {
-		return template.HTML(val.Emoji)
-	}
-	val = emoji.FromAlias(reaction)
-	if val != nil {
-		return template.HTML(val.Emoji)
-	}
-	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, url.PathEscape(reaction)))
-}
-
-// RenderNote renders the contents of a git-notes file as a commit message.
-func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
-		Ctx:       ctx,
-		URLPrefix: urlPrefix,
-		Metas:     metas,
-	}, cleanMsg)
-	if err != nil {
-		log.Error("RenderNote: %v", err)
-		return ""
-	}
-	return template.HTML(fullMessage)
-}
-
-// IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
-func IsMultilineCommitMessage(msg string) bool {
-	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
-}
-
-// Actioner describes an action
-type Actioner interface {
-	GetOpType() activities_model.ActionType
-	GetActUserName() string
-	GetRepoUserName() string
-	GetRepoName() string
-	GetRepoPath() string
-	GetRepoLink() string
-	GetBranch() string
-	GetContent() string
-	GetCreate() time.Time
-	GetIssueInfos() []string
-}
-
-// ActionIcon accepts an action operation type and returns an icon class name.
-func ActionIcon(opType activities_model.ActionType) string {
-	switch opType {
-	case activities_model.ActionCreateRepo, activities_model.ActionTransferRepo, activities_model.ActionRenameRepo:
-		return "repo"
-	case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
-		return "git-commit"
-	case activities_model.ActionCreateIssue:
-		return "issue-opened"
-	case activities_model.ActionCreatePullRequest:
-		return "git-pull-request"
-	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
-		return "comment-discussion"
-	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
-		return "git-merge"
-	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
-		return "issue-closed"
-	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
-		return "issue-reopened"
-	case activities_model.ActionMirrorSyncPush, activities_model.ActionMirrorSyncCreate, activities_model.ActionMirrorSyncDelete:
-		return "mirror"
-	case activities_model.ActionApprovePullRequest:
-		return "check"
-	case activities_model.ActionRejectPullRequest:
-		return "diff"
-	case activities_model.ActionPublishRelease:
-		return "tag"
-	case activities_model.ActionPullReviewDismissed:
-		return "x"
-	default:
-		return "question"
-	}
-}
-
-// ActionContent2Commits converts action content to push commits
-func ActionContent2Commits(act Actioner) *repository.PushCommits {
-	push := repository.NewPushCommits()
-
-	if act == nil || act.GetContent() == "" {
-		return push
-	}
-
-	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
-		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
-	}
-
-	if push.Len == 0 {
-		push.Len = len(push.Commits)
-	}
-
-	return push
-}
-
-// DiffTypeToStr returns diff type name
-func DiffTypeToStr(diffType int) string {
-	diffTypes := map[int]string{
-		1: "add", 2: "modify", 3: "del", 4: "rename", 5: "copy",
-	}
-	return diffTypes[diffType]
-}
-
-// DiffLineTypeToStr returns diff line type name
-func DiffLineTypeToStr(diffType int) string {
-	switch diffType {
-	case 2:
-		return "add"
-	case 3:
-		return "del"
-	case 4:
-		return "tag"
-	}
-	return "same"
-}
-
-// MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
-func MigrationIcon(hostname string) string {
-	switch hostname {
-	case "github.com":
-		return "octicon-mark-github"
-	default:
-		return "gitea-git"
-	}
-}
-
-func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) {
-	// Split template into subject and body
-	var subjectContent []byte
-	bodyContent := content
-	loc := mailSubjectSplit.FindIndex(content)
-	if loc != nil {
-		subjectContent = content[0:loc[0]]
-		bodyContent = content[loc[1]:]
-	}
-	if _, err := stpl.New(name).
-		Parse(string(subjectContent)); err != nil {
-		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
-	}
-	if _, err := btpl.New(name).
-		Parse(string(bodyContent)); err != nil {
-		log.Warn("Failed to parse template [%s/body]: %v", name, err)
-	}
-}
-
-type remoteAddress struct {
-	Address  string
-	Username string
-	Password string
-}
-
-func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string, ignoreOriginalURL bool) remoteAddress {
-	a := remoteAddress{}
-
-	remoteURL := m.OriginalURL
-	if ignoreOriginalURL || remoteURL == "" {
-		var err error
-		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
-		if err != nil {
-			log.Error("GetRemoteURL %v", err)
-			return a
+// QueryBuild builds a query string from a list of key-value pairs.
+// It omits the nil, false, zero int/int64 and empty string values,
+// because they are default empty values for "ctx.FormXxx" calls.
+// If 0 or false need to be included, use string values: "0" and "false".
+// Build rules:
+// * Even parameters: always build as query string: a=b&c=d
+// * Odd parameters:
+// * * {"/anything", param-pairs...} => "/?param-paris"
+// * * {"anything?old-params", new-param-pairs...} => "anything?old-params&new-param-paris"
+// * * Otherwise: {"old&params", new-param-pairs...} => "old&params&new-param-paris"
+// * * Other behaviors are undefined yet.
+func QueryBuild(a ...any) template.URL {
+	var reqPath, s string
+	hasTrailingSep := false
+	if len(a)%2 == 1 {
+		if v, ok := a[0].(string); ok {
+			s = v
+		} else if v, ok := a[0].(template.URL); ok {
+			s = string(v)
+		} else {
+			panic("QueryBuild: invalid argument")
+		}
+		hasTrailingSep = s != "&" && strings.HasSuffix(s, "&")
+		if strings.HasPrefix(s, "/") || strings.Contains(s, "?") {
+			if s1, s2, ok := strings.Cut(s, "?"); ok {
+				reqPath = s1 + "?"
+				s = s2
+			} else {
+				reqPath += s + "?"
+				s = ""
+			}
 		}
 	}
-
-	u, err := giturl.Parse(remoteURL)
-	if err != nil {
-		log.Error("giturl.Parse %v", err)
-		return a
-	}
-
-	if u.Scheme != "ssh" && u.Scheme != "file" {
-		if u.User != nil {
-			a.Username = u.User.Username()
-			a.Password, _ = u.User.Password()
+	for i := len(a) % 2; i < len(a); i += 2 {
+		k, ok := a[i].(string)
+		if !ok {
+			panic("QueryBuild: invalid argument")
 		}
-		u.User = nil
+		var v string
+		if va, ok := a[i+1].(string); ok {
+			v = va
+		} else if a[i+1] != nil {
+			if !isQueryParamEmpty(a[i+1]) {
+				v = fmt.Sprint(a[i+1])
+			}
+		}
+		// pos1 to pos2 is the "k=v&" part, "&" is optional
+		pos1 := strings.Index(s, "&"+k+"=")
+		if pos1 != -1 {
+			pos1++
+		} else if strings.HasPrefix(s, k+"=") {
+			pos1 = 0
+		}
+		pos2 := len(s)
+		if pos1 == -1 {
+			pos1 = len(s)
+		} else {
+			pos2 = pos1 + 1
+			for pos2 < len(s) && s[pos2-1] != '&' {
+				pos2++
+			}
+		}
+		if v != "" {
+			sep := ""
+			hasPrefixSep := pos1 == 0 || (pos1 <= len(s) && s[pos1-1] == '&')
+			if !hasPrefixSep {
+				sep = "&"
+			}
+			s = s[:pos1] + sep + k + "=" + url.QueryEscape(v) + "&" + s[pos2:]
+		} else {
+			s = s[:pos1] + s[pos2:]
+		}
 	}
-	a.Address = u.String()
-
-	return a
+	if s != "" && s[len(s)-1] == '&' && !hasTrailingSep {
+		s = s[:len(s)-1]
+	}
+	if reqPath != "" {
+		if s == "" {
+			s = reqPath
+			if s != "?" {
+				s = s[:len(s)-1]
+			}
+		} else {
+			if s[0] == '&' {
+				s = s[1:]
+			}
+			s = reqPath + s
+		}
+	}
+	return template.URL(s)
 }
 
-// JsPrettyNumber renders a number using english decimal separators, e.g. 1,200 and subsequent
-// JS will replace the number with locale-specific separators, based on the user's selected language
-func JsPrettyNumber(i interface{}) template.HTML {
-	num := util.NumberIntoInt64(i)
-
-	return template.HTML(`<span class="js-pretty-number" data-value="` + strconv.FormatInt(num, 10) + `">` + base.PrettyNumber(num) + `</span>`)
+func panicIfDevOrTesting() {
+	setting.PanicInDevOrTesting("legacy template functions are for backward compatibility only, do not use them in new code")
 }

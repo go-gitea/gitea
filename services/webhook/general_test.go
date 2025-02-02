@@ -64,9 +64,17 @@ func forkTestPayload() *api.ForkPayload {
 }
 
 func pushTestPayload() *api.PushPayload {
+	return pushTestPayloadWithCommitMessage("commit message")
+}
+
+func pushTestMultilineCommitMessagePayload() *api.PushPayload {
+	return pushTestPayloadWithCommitMessage("chore: This is a commit summary\n\nThis is a commit description.")
+}
+
+func pushTestPayloadWithCommitMessage(message string) *api.PushPayload {
 	commit := &api.PayloadCommit{
 		ID:      "2020558fe2e34debb818a514715839cabd25e778",
-		Message: "commit message",
+		Message: message,
 		URL:     "http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778",
 		Author: &api.PayloadUser{
 			Name:     "user1",
@@ -123,6 +131,10 @@ func issueTestPayload() *api.IssuePayload {
 			HTMLURL: "http://localhost:3000/test/repo/issues/2",
 			Title:   "crash",
 			Body:    "issue body",
+			Poster: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
 			Assignees: []*api.User{
 				{
 					UserName:  "user1",
@@ -161,7 +173,11 @@ func issueCommentTestPayload() *api.IssueCommentPayload {
 			URL:     "http://localhost:3000/api/v1/repos/test/repo/issues/2",
 			HTMLURL: "http://localhost:3000/test/repo/issues/2",
 			Title:   "crash",
-			Body:    "this happened",
+			Poster: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			Body: "this happened",
 		},
 	}
 }
@@ -190,6 +206,10 @@ func pullRequestCommentTestPayload() *api.IssueCommentPayload {
 			HTMLURL: "http://localhost:3000/test/repo/pulls/12",
 			Title:   "Fix bug",
 			Body:    "fixes bug #2",
+			Poster: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
 		},
 		IsPull: true,
 	}
@@ -228,7 +248,7 @@ func pullReleaseTestPayload() *api.ReleasePayload {
 			Target:  "master",
 			Title:   "First stable release",
 			Note:    "Note of first stable release",
-			URL:     "http://localhost:3000/api/v1/repos/test/repo/releases/2",
+			HTMLURL: "http://localhost:3000/test/repo/releases/tag/v1.0",
 		},
 	}
 }
@@ -254,6 +274,10 @@ func pullRequestTestPayload() *api.PullRequestPayload {
 			Title:     "Fix bug",
 			Body:      "fixes bug #2",
 			Mergeable: true,
+			Poster: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
 			Assignees: []*api.User{
 				{
 					UserName:  "user1",
@@ -283,6 +307,36 @@ func repositoryTestPayload() *api.RepositoryPayload {
 			HTMLURL:  "http://localhost:3000/test/repo",
 			Name:     "repo",
 			FullName: "test/repo",
+		},
+	}
+}
+
+func packageTestPayload() *api.PackagePayload {
+	return &api.PackagePayload{
+		Action: api.HookPackageCreated,
+		Sender: &api.User{
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
+		},
+		Repository: nil,
+		Organization: &api.Organization{
+			Name:      "org1",
+			AvatarURL: "http://localhost:3000/org1/avatar",
+		},
+		Package: &api.Package{
+			Owner: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			Repository: nil,
+			Creator: &api.User{
+				UserName:  "user1",
+				AvatarURL: "http://localhost:3000/user1/avatar",
+			},
+			Type:    "container",
+			Name:    "GiteaContainer",
+			Version: "latest",
+			HTMLURL: "http://localhost:3000/user1/-/packages/container/GiteaContainer/latest",
 		},
 	}
 }
@@ -378,10 +432,10 @@ func TestGetIssuesPayloadInfo(t *testing.T) {
 
 	for i, c := range cases {
 		p.Action = c.action
-		text, issueTitle, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, true)
+		text, issueTitle, extraMarkdown, color := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 		assert.Equal(t, c.text, text, "case %d", i)
 		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
-		assert.Equal(t, c.attachmentText, attachmentText, "case %d", i)
+		assert.Equal(t, c.attachmentText, extraMarkdown, "case %d", i)
 		assert.Equal(t, c.color, color, "case %d", i)
 	}
 }
@@ -477,10 +531,10 @@ func TestGetPullRequestPayloadInfo(t *testing.T) {
 
 	for i, c := range cases {
 		p.Action = c.action
-		text, issueTitle, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
+		text, issueTitle, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 		assert.Equal(t, c.text, text, "case %d", i)
 		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
-		assert.Equal(t, c.attachmentText, attachmentText, "case %d", i)
+		assert.Equal(t, c.attachmentText, extraMarkdown, "case %d", i)
 		assert.Equal(t, c.color, color, "case %d", i)
 	}
 }

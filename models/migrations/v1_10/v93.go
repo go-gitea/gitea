@@ -11,5 +11,5 @@ func AddEmailNotificationEnabledToUser(x *xorm.Engine) error {
 		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	}
 
-	return x.Sync2(new(User))
+	return x.Sync(new(User))
 }

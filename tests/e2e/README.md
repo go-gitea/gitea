@@ -1,13 +1,12 @@
 # End to end tests
 
-E2e tests largely follow the same syntax as [integration tests](tests/e2e/README.md). 
+E2e tests largely follow the same syntax as [integration tests](../integration).
 Whereas integration tests are intended to mock and stress the back-end, server-side code, e2e tests the interface between front-end and back-end, as well as visual regressions with both assertions and visual comparisons.
 They can be run with make commands for the appropriate backends, namely:
 ```shell
 make test-sqlite
 make test-pgsql
 make test-mysql
-make test-mysql8
 make test-mssql
 ```
 
@@ -22,9 +21,9 @@ npx playwright install-deps
 ```
 
 
-## Run all tests via local drone
+## Run all tests via local act_runner
 ```
-drone exec --local --build-event "pull_request"
+act_runner exec -W ./.github/workflows/pull-e2e-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
 ```
 
 ## Run sqlite e2e tests
@@ -66,7 +65,7 @@ TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=
 
 ## Running individual tests
 
-Example command to run `example.test.e2e.js` test file:
+Example command to run `example.test.e2e.ts` test file:
 
 _Note: unlike integration tests, this filtering is at the file level, not function_
 
@@ -76,7 +75,7 @@ For SQLite:
 make test-e2e-sqlite#example
 ```
 
-For other databases(replace `mssql` to `mysql`, `mysql8` or `pgsql`):
+For other databases(replace `mssql` to `mysql` or `pgsql`):
 
 ```
 TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-e2e-mssql#example

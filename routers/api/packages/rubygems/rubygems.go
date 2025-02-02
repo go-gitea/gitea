@@ -6,6 +6,7 @@ package rubygems
 import (
 	"compress/gzip"
 	"compress/zlib"
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"io"
@@ -13,15 +14,16 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func apiError(ctx *context.Context, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj any) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
@@ -43,7 +45,7 @@ func EnumeratePackagesLatest(ctx *context.Context) {
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeRubyGems,
-		IsInternal: util.OptionalBoolFalse,
+		IsInternal: optional.Some(false),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -65,9 +67,9 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 		return
 	}
 
-	specs := make([]interface{}, 0, len(pds))
+	specs := make([]any, 0, len(pds))
 	for _, p := range pds {
-		specs = append(specs, []interface{}{
+		specs = append(specs, []any{
 			p.Package.Name,
 			&rubygems_module.RubyUserMarshal{
 				Name:  "Gem::Version",
@@ -93,7 +95,7 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 
 // ServePackageSpecification serves the compressed Gemspec file of a package
 func ServePackageSpecification(ctx *context.Context) {
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 
 	if !strings.HasSuffix(filename, ".gemspec.rz") {
 		apiError(ctx, http.StatusNotImplemented, nil)
@@ -129,7 +131,7 @@ func ServePackageSpecification(ctx *context.Context) {
 	// create a Ruby Gem::Specification object
 	spec := &rubygems_module.RubyUserDef{
 		Name: "Gem::Specification",
-		Value: []interface{}{
+		Value: []any{
 			"3.2.3", // @rubygems_version
 			4,       // @specification_version,
 			pd.Package.Name,
@@ -142,7 +144,7 @@ func ServePackageSpecification(ctx *context.Context) {
 			nil,               // @required_ruby_version
 			nil,               // @required_rubygems_version
 			metadata.Platform, // @original_platform
-			[]interface{}{},   // @dependencies
+			[]any{},           // @dependencies
 			nil,               // rubyforge_project
 			"",                // @email
 			metadata.Authors,
@@ -162,7 +164,7 @@ func ServePackageSpecification(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 
 	pvs, err := getVersionsByFilename(ctx, filename)
 	if err != nil {
@@ -175,7 +177,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
 		ctx,
 		pvs[0],
 		&packages_service.PackageFileInfo{
@@ -183,33 +185,29 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	defer s.Close()
 
-	ctx.ServeContent(s, &context.ServeHeaderOptions{
-		Filename:     pf.Name,
-		LastModified: pf.CreatedUnix.AsLocalTime(),
-	})
+	helper.ServePackageFile(ctx, s, u, pf)
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
 func UploadPackageFile(ctx *context.Context) {
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
-	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -230,14 +228,10 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	var filename string
-	if rp.Metadata.Platform == "" || rp.Metadata.Platform == "ruby" {
-		filename = strings.ToLower(fmt.Sprintf("%s-%s.gem", rp.Name, rp.Version))
-	} else {
-		filename = strings.ToLower(fmt.Sprintf("%s-%s-%s.gem", rp.Name, rp.Version, rp.Metadata.Platform))
-	}
+	filename := makeGemFullFileName(rp.Name, rp.Version, rp.Metadata.Platform)
 
 	_, _, err = packages_service.CreatePackageAndAddFile(
+		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -261,7 +255,7 @@ func UploadPackageFile(ctx *context.Context) {
 	if err != nil {
 		switch err {
 		case packages_model.ErrDuplicatePackageVersion:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
@@ -284,6 +278,7 @@ func DeletePackage(ctx *context.Context) {
 	packageVersion := ctx.FormString("version")
 
 	err := packages_service.RemovePackageVersionByNameAndVersion(
+		ctx,
 		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -293,7 +288,7 @@ func DeletePackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -301,12 +296,142 @@ func DeletePackage(ctx *context.Context) {
 	}
 }
 
+// GetPackageInfo returns a custom text based format for the single rubygem with a line for each version of the rubygem
+// ref: https://guides.rubygems.org/rubygems-org-compact-index-api/
+func GetPackageInfo(ctx *context.Context) {
+	packageName := ctx.PathParam("packagename")
+	versions, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, packageName)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(versions) == 0 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+	infoContent, err := makePackageInfo(ctx, versions)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.PlainText(http.StatusOK, infoContent)
+}
+
+// GetAllPackagesVersions returns a custom text based format containing information about all versions of all rubygems.
+// ref: https://guides.rubygems.org/rubygems-org-compact-index-api/
+func GetAllPackagesVersions(ctx *context.Context) {
+	packages, err := packages_model.GetPackagesByType(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	out := &strings.Builder{}
+	out.WriteString("---\n")
+	for _, pkg := range packages {
+		versions, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, pkg.Name)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if len(versions) == 0 {
+			continue
+		}
+
+		info, err := makePackageInfo(ctx, versions)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		// format: RUBYGEM [-]VERSION_PLATFORM[,VERSION_PLATFORM],...] MD5
+		_, _ = fmt.Fprintf(out, "%s ", pkg.Name)
+		for i, v := range versions {
+			sep := util.Iif(i == len(versions)-1, "", ",")
+			_, _ = fmt.Fprintf(out, "%s%s", v.Version, sep)
+		}
+		_, _ = fmt.Fprintf(out, " %x\n", md5.Sum([]byte(info)))
+	}
+
+	ctx.PlainText(http.StatusOK, out.String())
+}
+
+func writePackageVersionRequirements(prefix string, reqs []rubygems_module.VersionRequirement, out *strings.Builder) {
+	out.WriteString(prefix)
+	if len(reqs) == 0 {
+		reqs = []rubygems_module.VersionRequirement{{Restriction: ">=", Version: "0"}}
+	}
+	for i, req := range reqs {
+		sep := util.Iif(i == 0, "", "&")
+		_, _ = fmt.Fprintf(out, "%s%s %s", sep, req.Restriction, req.Version)
+	}
+}
+
+func makePackageVersionDependency(ctx *context.Context, version *packages_model.PackageVersion) (string, error) {
+	// format: VERSION[-PLATFORM] [DEPENDENCY[,DEPENDENCY,...]]|REQUIREMENT[,REQUIREMENT,...]
+	// DEPENDENCY: GEM:CONSTRAINT[&CONSTRAINT]
+	// REQUIREMENT: KEY:VALUE (always contains "checksum")
+	pd, err := packages_model.GetPackageDescriptor(ctx, version)
+	if err != nil {
+		return "", err
+	}
+
+	metadata := pd.Metadata.(*rubygems_module.Metadata)
+	fullFilename := makeGemFullFileName(pd.Package.Name, version.Version, metadata.Platform)
+	file, err := packages_model.GetFileForVersionByName(ctx, version.ID, fullFilename, "")
+	if err != nil {
+		return "", err
+	}
+	blob, err := packages_model.GetBlobByID(ctx, file.BlobID)
+	if err != nil {
+		return "", err
+	}
+
+	buf := &strings.Builder{}
+	buf.WriteString(version.Version)
+	buf.WriteByte(' ')
+	for i, dep := range metadata.RuntimeDependencies {
+		sep := util.Iif(i == 0, "", ",")
+		writePackageVersionRequirements(fmt.Sprintf("%s%s:", sep, dep.Name), dep.Version, buf)
+	}
+	_, _ = fmt.Fprintf(buf, "|checksum:%s", blob.HashSHA256)
+	if len(metadata.RequiredRubyVersion) != 0 {
+		writePackageVersionRequirements(",ruby:", metadata.RequiredRubyVersion, buf)
+	}
+	if len(metadata.RequiredRubygemsVersion) != 0 {
+		writePackageVersionRequirements(",rubygems:", metadata.RequiredRubygemsVersion, buf)
+	}
+	return buf.String(), nil
+}
+
+func makePackageInfo(ctx *context.Context, versions []*packages_model.PackageVersion) (string, error) {
+	ret := "---\n"
+	for _, v := range versions {
+		dep, err := makePackageVersionDependency(ctx, v)
+		if err != nil {
+			return "", err
+		}
+		ret += dep + "\n"
+	}
+	return ret, nil
+}
+
+func makeGemFullFileName(gemName, version, platform string) string {
+	var basename string
+	if platform == "" || platform == "ruby" {
+		basename = fmt.Sprintf("%s-%s", gemName, version)
+	} else {
+		basename = fmt.Sprintf("%s-%s-%s", gemName, version, platform)
+	}
+	return strings.ToLower(basename) + ".gem"
+}
+
 func getVersionsByFilename(ctx *context.Context, filename string) ([]*packages_model.PackageVersion, error) {
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:         ctx.Package.Owner.ID,
 		Type:            packages_model.TypeRubyGems,
 		HasFileWithName: filename,
-		IsInternal:      util.OptionalBoolFalse,
+		IsInternal:      optional.Some(false),
 	})
 	return pvs, err
 }

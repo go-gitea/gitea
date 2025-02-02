@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -18,13 +19,13 @@ import (
 func AesEncrypt(key, text []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("AesEncrypt invalid key: %v", err)
 	}
 	b := base64.StdEncoding.EncodeToString(text)
 	ciphertext := make([]byte, aes.BlockSize+len(b))
 	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return nil, err
+	if _, err = io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, fmt.Errorf("AesEncrypt unable to read IV: %w", err)
 	}
 	cfb := cipher.NewCFBEncrypter(block, iv)
 	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
@@ -38,7 +39,7 @@ func AesDecrypt(key, text []byte) ([]byte, error) {
 		return nil, err
 	}
 	if len(text) < aes.BlockSize {
-		return nil, errors.New("ciphertext too short")
+		return nil, errors.New("AesDecrypt ciphertext too short")
 	}
 	iv := text[:aes.BlockSize]
 	text = text[aes.BlockSize:]
@@ -46,7 +47,7 @@ func AesDecrypt(key, text []byte) ([]byte, error) {
 	cfb.XORKeyStream(text, text)
 	data, err := base64.StdEncoding.DecodeString(string(text))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("AesDecrypt invalid decrypted base64 string: %w", err)
 	}
 	return data, nil
 }
@@ -57,21 +58,21 @@ func EncryptSecret(key, str string) (string, error) {
 	plaintext := []byte(str)
 	ciphertext, err := AesEncrypt(keyHash[:], plaintext)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to encrypt by secret: %w", err)
 	}
 	return hex.EncodeToString(ciphertext), nil
 }
 
 // DecryptSecret decrypts a previously encrypted hex string
-func DecryptSecret(key, cipherhex string) (string, error) {
+func DecryptSecret(key, cipherHex string) (string, error) {
 	keyHash := sha256.Sum256([]byte(key))
-	ciphertext, err := hex.DecodeString(cipherhex)
+	ciphertext, err := hex.DecodeString(cipherHex)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to decrypt by secret, invalid hex string: %w", err)
 	}
 	plaintext, err := AesDecrypt(keyHash[:], ciphertext)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to decrypt by secret, the key (maybe SECRET_KEY?) might be incorrect: %w", err)
 	}
 	return string(plaintext), nil
 }

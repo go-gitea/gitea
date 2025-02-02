@@ -11,7 +11,6 @@ import (
 	"io"
 	"path"
 	"strconv"
-	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -19,9 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	cargo_module "code.gitea.io/gitea/modules/packages/cargo"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -105,10 +105,16 @@ func RebuildIndex(ctx context.Context, doer, owner *user_model.User) error {
 	)
 }
 
-func AddOrUpdatePackageIndex(ctx context.Context, doer, owner *user_model.User, packageID int64) error {
-	repo, err := getOrCreateIndexRepository(ctx, doer, owner)
+func UpdatePackageIndexIfExists(ctx context.Context, doer, owner *user_model.User, packageID int64) error {
+	// We do not want to force the creation of the repo here
+	// cargo http index does not rely on the repo itself,
+	// so if the repo does not exist, we just do nothing.
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
-		return err
+		if errors.Is(err, util.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("GetRepositoryByOwnerAndName: %w", err)
 	}
 
 	p, err := packages_model.GetPackageByID(ctx, packageID)
@@ -137,21 +143,21 @@ type IndexVersionEntry struct {
 	Links        string                     `json:"links,omitempty"`
 }
 
-func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, p *packages_model.Package) error {
+func BuildPackageIndex(ctx context.Context, p *packages_model.Package) (*bytes.Buffer, error) {
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		PackageID: p.ID,
 		Sort:      packages_model.SortVersionAsc,
 	})
 	if err != nil {
-		return fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)
+		return nil, fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)
 	}
 	if len(pvs) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		return fmt.Errorf("GetPackageDescriptors[%s]: %w", p.Name, err)
+		return nil, fmt.Errorf("GetPackageDescriptors[%s]: %w", p.Name, err)
 	}
 
 	var b bytes.Buffer
@@ -179,21 +185,33 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 			Links:        metadata.Links,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		b.Write(entry)
 		b.WriteString("\n")
 	}
 
-	return writeObjectToIndex(t, BuildPackagePath(pds[0].Package.LowerName), &b)
+	return &b, nil
+}
+
+func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, p *packages_model.Package) error {
+	b, err := BuildPackageIndex(ctx, p)
+	if err != nil {
+		return err
+	}
+	if b == nil {
+		return nil
+	}
+
+	return writeObjectToIndex(t, BuildPackagePath(p.LowerName), b)
 }
 
 func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.User) (*repo_model.Repository, error) {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, owner.Name, IndexRepositoryName)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			repo, err = repo_module.CreateRepository(doer, owner, repo_module.CreateRepoOptions{
+			repo, err = repo_service.CreateRepositoryDirectly(ctx, doer, owner, repo_service.CreateRepoOptions{
 				Name: IndexRepositoryName,
 			})
 			if err != nil {
@@ -208,8 +226,17 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 }
 
 type Config struct {
-	DownloadURL string `json:"dl"`
-	APIURL      string `json:"api"`
+	DownloadURL  string `json:"dl"`
+	APIURL       string `json:"api"`
+	AuthRequired bool   `json:"auth-required"`
+}
+
+func BuildConfig(owner *user_model.User, isPrivate bool) *Config {
+	return &Config{
+		DownloadURL:  setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
+		APIURL:       setting.AppURL + "api/packages/" + owner.Name + "/cargo",
+		AuthRequired: isPrivate,
+	}
 }
 
 func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, doer, owner *user_model.User) error {
@@ -220,10 +247,7 @@ func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, 
 		"Initialize Cargo Config",
 		func(t *files_service.TemporaryUploadRepository) error {
 			var b bytes.Buffer
-			err := json.NewEncoder(&b).Encode(Config{
-				DownloadURL: setting.AppURL + "api/packages/" + owner.Name + "/cargo/api/v1/crates",
-				APIURL:      setting.AppURL + "api/packages/" + owner.Name + "/cargo",
-			})
+			err := json.NewEncoder(&b).Encode(BuildConfig(owner, setting.Service.RequireSignInView || owner.Visibility != structs.VisibleTypePublic || repo.IsPrivate))
 			if err != nil {
 				return err
 			}
@@ -242,11 +266,11 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 	defer t.Close()
 
 	var lastCommitID string
-	if err := t.Clone(repo.DefaultBranch); err != nil {
+	if err := t.Clone(repo.DefaultBranch, true); err != nil {
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return err
 		}
-		if err := t.Init(); err != nil {
+		if err := t.Init(repo.ObjectFormatName); err != nil {
 			return err
 		}
 	} else {
@@ -271,8 +295,13 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 		return err
 	}
 
-	now := time.Now()
-	commitHash, err := t.CommitTreeWithDate(lastCommitID, doer, doer, treeHash, commitMessage, false, now, now)
+	commitOpts := &files_service.CommitTreeUserOptions{
+		ParentCommitID: lastCommitID,
+		TreeHash:       treeHash,
+		CommitMessage:  commitMessage,
+		DoerUser:       doer,
+	}
+	commitHash, err := t.CommitTree(commitOpts)
 	if err != nil {
 		return err
 	}

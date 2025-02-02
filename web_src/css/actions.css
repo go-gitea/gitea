@@ -1,0 +1,83 @@
+.runner-container {
+  padding-bottom: 30px;
+}
+
+.runner-container .ui.table.segment {
+  overflow-x: auto;
+}
+
+.runner-container .runner-ops > a {
+  margin-left: 0.5em;
+}
+
+.runner-container .runner-ops-delete {
+  color: var(--color-red-light);
+}
+
+.runner-container .runner-new-text {
+  color: var(--color-white);
+}
+
+.runner-container #runner-new:hover .runner-new-text {
+  color: var(--color-white) !important;
+}
+
+.runner-container .task-status-success {
+  background-color: var(--color-green);
+  color: var(--color-white);
+}
+
+.runner-container .task-status-failure {
+  background-color: var(--color-red-light);
+  color: var(--color-white);
+}
+
+.runner-container .task-status-running {
+  background-color: var(--color-blue);
+  color: var(--color-white);
+}
+
+.runner-container .task-status-cancelled,
+.runner-container .task-status-blocked {
+  background-color: var(--color-yellow);
+  color: var(--color-white);
+}
+
+.run-list-item-right {
+  width: 130px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 3px;
+  color: var(--color-text-light);
+}
+
+.run-list-item-right .run-list-meta {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: .25rem;
+  align-items: center;
+}
+
+.run-list .flex-item-trailing {
+  flex-wrap: nowrap;
+  width: 280px;
+  flex: 0 0 280px;
+}
+
+.run-list-ref {
+  display: inline-block !important;
+}
+
+@media (max-width: 767.98px) {
+  .run-list .flex-item-trailing {
+    flex-direction: column;
+    align-items: flex-end;
+    width: auto;
+    flex-basis: auto;
+  }
+  .run-list-item-right,
+  .run-list-ref {
+    max-width: 110px;
+  }
+}

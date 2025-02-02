@@ -47,7 +47,9 @@ func (e *escapeStreamer) EscapeStatus() *EscapeStatus {
 // Text tells the next streamer there is a text
 func (e *escapeStreamer) Text(data string) error {
 	sb := &strings.Builder{}
-	pos, until, next := 0, 0, 0
+	var until int
+	var next int
+	pos := 0
 	if len(data) > len(UTF8BOM) && data[:len(UTF8BOM)] == string(UTF8BOM) {
 		_, _ = sb.WriteString(data[:len(UTF8BOM)])
 		pos = len(UTF8BOM)
@@ -62,7 +64,7 @@ func (e *escapeStreamer) Text(data string) error {
 			until, next = nextIdxs[0]+pos, nextIdxs[1]+pos
 		}
 
-		// from pos until until we know that the runes are not \r\t\n or even ' '
+		// from pos until we know that the runes are not \r\t\n or even ' '
 		runes := make([]rune, 0, next-until)
 		positions := make([]int, 0, next-until+1)
 
@@ -168,10 +170,10 @@ func (e *escapeStreamer) ambiguousRune(r, c rune) error {
 
 	if err := e.PassthroughHTMLStreamer.StartTag("span", html.Attribute{
 		Key: "class",
-		Val: "ambiguous-code-point tooltip",
+		Val: "ambiguous-code-point",
 	}, html.Attribute{
-		Key: "data-content",
-		Val: e.locale.Tr("repo.ambiguous_character", r, c),
+		Key: "data-tooltip-content",
+		Val: e.locale.TrString("repo.ambiguous_character", r, c),
 	}); err != nil {
 		return err
 	}

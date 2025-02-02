@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,6 +22,7 @@ var defaultFileBlockSize int64 = 32 * 1024
 type File interface {
 	io.ReadWriteCloser
 	io.Seeker
+	fs.File
 }
 
 type file struct {
@@ -193,20 +195,35 @@ func (f *file) Close() error {
 	return nil
 }
 
+func (f *file) Stat() (os.FileInfo, error) {
+	if f.metaID == 0 {
+		return nil, os.ErrInvalid
+	}
+
+	fileMeta, err := findFileMetaByID(f.ctx, f.metaID)
+	if err != nil {
+		return nil, err
+	}
+	return fileMeta, nil
+}
+
 func timeToFileTimestamp(t time.Time) int64 {
 	return t.UnixMicro()
 }
 
-func (f *file) loadMetaByPath() (*dbfsMeta, error) {
+func fileTimestampToTime(timestamp int64) time.Time {
+	return time.UnixMicro(timestamp)
+}
+
+func (f *file) loadMetaByPath() error {
 	var fileMeta dbfsMeta
 	if ok, err := db.GetEngine(f.ctx).Where("full_path = ?", f.fullPath).Get(&fileMeta); err != nil {
-		return nil, err
+		return err
 	} else if ok {
 		f.metaID = fileMeta.ID
 		f.blockSize = fileMeta.BlockSize
-		return &fileMeta, nil
 	}
-	return nil, nil
+	return nil
 }
 
 func (f *file) open(flag int) (err error) {
@@ -270,10 +287,7 @@ func (f *file) createEmpty() error {
 	if err != nil {
 		return err
 	}
-	if _, err = f.loadMetaByPath(); err != nil {
-		return err
-	}
-	return nil
+	return f.loadMetaByPath()
 }
 
 func (f *file) truncate() error {
@@ -350,8 +364,5 @@ func buildPath(path string) string {
 func newDbFile(ctx context.Context, path string) (*file, error) {
 	path = buildPath(path)
 	f := &file{ctx: ctx, fullPath: path, blockSize: defaultFileBlockSize}
-	if _, err := f.loadMetaByPath(); err != nil {
-		return nil, err
-	}
-	return f, nil
+	return f, f.loadMetaByPath()
 }

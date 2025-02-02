@@ -4,6 +4,8 @@
 package issue
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"html"
 	"net/url"
@@ -12,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -78,20 +79,20 @@ func timeLogToAmount(str string) int64 {
 	return a
 }
 
-func issueAddTime(issue *issues_model.Issue, doer *user_model.User, time time.Time, timeLog string) error {
+func issueAddTime(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, time time.Time, timeLog string) error {
 	amount := timeLogToAmount(timeLog)
 	if amount == 0 {
 		return nil
 	}
 
-	_, err := issues_model.AddTime(doer, issue, amount, time)
+	_, err := issues_model.AddTime(ctx, doer, issue, amount, time)
 	return err
 }
 
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
 // if the provided ref references a non-existent issue.
-func getIssueFromRef(repo *repo_model.Repository, index int64) (*issues_model.Issue, error) {
-	issue, err := issues_model.GetIssueByIndex(repo.ID, index)
+func getIssueFromRef(ctx context.Context, repo *repo_model.Repository, index int64) (*issues_model.Issue, error) {
+	issue, err := issues_model.GetIssueByIndex(ctx, repo.ID, index)
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
 			return nil, nil
@@ -102,7 +103,7 @@ func getIssueFromRef(repo *repo_model.Repository, index int64) (*issues_model.Is
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, commits []*repository.PushCommit, branchName string) error {
+func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commits []*repository.PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -117,10 +118,9 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 		var refIssue *issues_model.Issue
 		var err error
 		for _, ref := range references.FindAllIssueReferences(c.Message) {
-
 			// issue is from another repo
 			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
-				refRepo, err = repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, ref.Owner, ref.Name)
+				refRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Name)
 				if err != nil {
 					if repo_model.IsErrRepoNotExist(err) {
 						log.Warn("Repository referenced in commit but does not exist: %v", err)
@@ -132,14 +132,14 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			} else {
 				refRepo = repo
 			}
-			if refIssue, err = getIssueFromRef(refRepo, ref.Index); err != nil {
+			if refIssue, err = getIssueFromRef(ctx, refRepo, ref.Index); err != nil {
 				return err
 			}
 			if refIssue == nil {
 				continue
 			}
 
-			perm, err := access_model.GetUserRepoPermission(db.DefaultContext, refRepo, doer)
+			perm, err := access_model.GetUserRepoPermission(ctx, refRepo, doer)
 			if err != nil {
 				return err
 			}
@@ -159,7 +159,10 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			}
 
 			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
-			if err = CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
+			if err = CreateRefComment(ctx, doer, refRepo, refIssue, message, c.Sha1); err != nil {
+				if errors.Is(err, user_model.ErrBlockedUser) {
+					continue
+				}
 				return err
 			}
 
@@ -185,15 +188,19 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 					continue
 				}
 			}
-			close := ref.Action == references.XRefActionCloses
-			if close && len(ref.TimeLog) > 0 {
-				if err := issueAddTime(refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {
+
+			refIssue.Repo = refRepo
+			if ref.Action == references.XRefActionCloses && !refIssue.IsClosed {
+				if len(ref.TimeLog) > 0 {
+					if err := issueAddTime(ctx, refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {
+						return err
+					}
+				}
+				if err := CloseIssue(ctx, refIssue, doer, c.Sha1); err != nil {
 					return err
 				}
-			}
-			if close != refIssue.IsClosed {
-				refIssue.Repo = refRepo
-				if err := ChangeStatus(refIssue, doer, c.Sha1, close); err != nil {
+			} else if ref.Action == references.XRefActionReopens && refIssue.IsClosed {
+				if err := ReopenIssue(ctx, refIssue, doer, c.Sha1); err != nil {
 					return err
 				}
 			}

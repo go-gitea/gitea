@@ -5,7 +5,10 @@ package dbfs
 
 import (
 	"context"
+	"io/fs"
 	"os"
+	"path"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 )
@@ -99,4 +102,30 @@ func Remove(ctx context.Context, name string) error {
 	}
 	defer f.Close()
 	return f.delete()
+}
+
+var _ fs.FileInfo = (*dbfsMeta)(nil)
+
+func (m *dbfsMeta) Name() string {
+	return path.Base(m.FullPath)
+}
+
+func (m *dbfsMeta) Size() int64 {
+	return m.FileSize
+}
+
+func (m *dbfsMeta) Mode() fs.FileMode {
+	return os.ModePerm
+}
+
+func (m *dbfsMeta) ModTime() time.Time {
+	return fileTimestampToTime(m.ModifyTimestamp)
+}
+
+func (m *dbfsMeta) IsDir() bool {
+	return false
+}
+
+func (m *dbfsMeta) Sys() any {
+	return nil
 }

@@ -1,0 +1,29 @@
+name: cron-licenses
+
+on:
+  schedule:
+    - cron: "7 0 * * 1" # every Monday at 00:07 UTC
+  workflow_dispatch:
+
+jobs:
+  cron-licenses:
+    runs-on: ubuntu-latest
+    if: github.repository == 'go-gitea/gitea'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - run: make generate-license generate-gitignore
+        timeout-minutes: 40
+      - name: push translations to repo
+        uses: appleboy/git-push-action@v0.0.3
+        with:
+          author_email: "teabot@gitea.io"
+          author_name: GiteaBot
+          branch: main
+          commit: true
+          commit_message: "[skip ci] Updated licenses and gitignores"
+          remote: "git@github.com:go-gitea/gitea.git"
+          ssh_key: ${{ secrets.DEPLOY_KEY }}

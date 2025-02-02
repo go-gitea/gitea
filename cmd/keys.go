@@ -8,36 +8,43 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdKeys represents the available keys sub-command
-var CmdKeys = cli.Command{
-	Name:   "keys",
-	Usage:  "This command queries the Gitea database to get the authorized command for a given ssh key fingerprint",
-	Action: runKeys,
+var CmdKeys = &cli.Command{
+	Name:        "keys",
+	Usage:       "(internal) Should only be called by SSH server",
+	Description: "Queries the Gitea database to get the authorized command for a given ssh key fingerprint",
+	Before:      PrepareConsoleLoggerLevel(log.FATAL),
+	Action:      runKeys,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "expected, e",
-			Value: "git",
-			Usage: "Expected user for whom provide key commands",
+		&cli.StringFlag{
+			Name:    "expected",
+			Aliases: []string{"e"},
+			Value:   "git",
+			Usage:   "Expected user for whom provide key commands",
 		},
-		cli.StringFlag{
-			Name:  "username, u",
-			Value: "",
-			Usage: "Username trying to log in by SSH",
+		&cli.StringFlag{
+			Name:    "username",
+			Aliases: []string{"u"},
+			Value:   "",
+			Usage:   "Username trying to log in by SSH",
 		},
-		cli.StringFlag{
-			Name:  "type, t",
-			Value: "",
-			Usage: "Type of the SSH key provided to the SSH Server (requires content to be provided too)",
+		&cli.StringFlag{
+			Name:    "type",
+			Aliases: []string{"t"},
+			Value:   "",
+			Usage:   "Type of the SSH key provided to the SSH Server (requires content to be provided too)",
 		},
-		cli.StringFlag{
-			Name:  "content, k",
-			Value: "",
-			Usage: "Base64 encoded content of the SSH key provided to the SSH Server (requires type to be provided too)",
+		&cli.StringFlag{
+			Name:    "content",
+			Aliases: []string{"k"},
+			Value:   "",
+			Usage:   "Base64 encoded content of the SSH key provided to the SSH Server (requires type to be provided too)",
 		},
 	},
 }
@@ -64,12 +71,13 @@ func runKeys(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("keys.log", false)
+	setup(ctx, c.Bool("debug"))
 
-	authorizedString, err := private.AuthorizedPublicKeyByContent(ctx, content)
-	if err != nil {
-		return err
+	authorizedString, extra := private.AuthorizedPublicKeyByContent(ctx, content)
+	// do not use handleCliResponseExtra or cli.NewExitError, if it exists immediately, it breaks some tests like Test_CmdKeys
+	if extra.Error != nil {
+		return extra.Error
 	}
-	fmt.Println(strings.TrimSpace(authorizedString))
+	_, _ = fmt.Fprintln(c.App.Writer, strings.TrimSpace(authorizedString.Text))
 	return nil
 }

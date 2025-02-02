@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -33,6 +33,7 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		}
 		uuid := request.Header().Get(uuidHeaderKey)
 		token := request.Header().Get(tokenHeaderKey)
+
 		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {

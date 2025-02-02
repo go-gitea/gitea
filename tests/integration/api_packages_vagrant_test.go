@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
@@ -27,7 +28,7 @@ func TestPackageVagrant(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	token := "Bearer " + getUserToken(t, user.Name)
+	token := "Bearer " + getUserToken(t, user.Name, auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "test_package"
 	packageVersion := "1.0.1"
@@ -63,8 +64,8 @@ func TestPackageVagrant(t *testing.T) {
 		req := NewRequest(t, "GET", authenticateURL)
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequest(t, "GET", authenticateURL)
-		addTokenAuthHeader(req, token)
+		req = NewRequest(t, "GET", authenticateURL).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 	})
 
@@ -81,8 +82,8 @@ func TestPackageVagrant(t *testing.T) {
 		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusUnauthorized)
 
-		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
-		addTokenAuthHeader(req, token)
+		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content)).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequest(t, "HEAD", boxURL)
@@ -110,8 +111,8 @@ func TestPackageVagrant(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
-		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content))
-		addTokenAuthHeader(req, token)
+		req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(content)).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusConflict)
 	})
 

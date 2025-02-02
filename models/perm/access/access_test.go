@@ -79,17 +79,17 @@ func TestHasAccess(t *testing.T) {
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.True(t, repo2.IsPrivate)
 
-	has, err := access_model.HasAccess(db.DefaultContext, user1.ID, repo1)
+	has, err := access_model.HasAnyUnitAccess(db.DefaultContext, user1.ID, repo1)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	_, err = access_model.HasAccess(db.DefaultContext, user1.ID, repo2)
+	_, err = access_model.HasAnyUnitAccess(db.DefaultContext, user1.ID, repo2)
 	assert.NoError(t, err)
 
-	_, err = access_model.HasAccess(db.DefaultContext, user2.ID, repo1)
+	_, err = access_model.HasAnyUnitAccess(db.DefaultContext, user2.ID, repo1)
 	assert.NoError(t, err)
 
-	_, err = access_model.HasAccess(db.DefaultContext, user2.ID, repo2)
+	_, err = access_model.HasAnyUnitAccess(db.DefaultContext, user2.ID, repo2)
 	assert.NoError(t, err)
 }
 
@@ -97,7 +97,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 	// test with organization repo
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
+	assert.NoError(t, repo1.LoadOwner(db.DefaultContext))
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&repo_model.Collaboration{UserID: 2, RepoID: 3})
 	assert.NoError(t, err)
@@ -114,7 +114,7 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 	// test with non-organization repo
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
+	assert.NoError(t, repo1.LoadOwner(db.DefaultContext))
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&repo_model.Collaboration{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)

@@ -3,19 +3,15 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<h2 class="ui dividing header">
-			{{.locale.Tr "repo.forks"}}
+			{{ctx.Locale.Tr "repo.forks"}}
 		</h2>
-		<div class="ui list">
-			{{range .Forks}}
-				<div class="item">
-					{{avatar $.Context .Owner}}
-					<div class="link">
-						<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
-						/
-						<a href="{{.Link}}">{{.Name}}</a>
-					</div>
-				</div>
-			{{end}}
+		<div class="flex-list">
+		{{range .Forks}}
+			<div class="flex-item tw-border-0 repo-fork-item">
+				<span>{{ctx.AvatarUtils.Avatar .Owner}}</span>
+				<span><a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a></span>
+			</div>
+		{{end}}
 		</div>
 	</div>
 

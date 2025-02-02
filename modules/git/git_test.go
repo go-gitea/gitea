@@ -7,19 +7,16 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 )
 
 func testRun(m *testing.M) error {
-	_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
-
 	gitHomePath, err := os.MkdirTemp(os.TempDir(), "git-home")
 	if err != nil {
 		return fmt.Errorf("unable to create temp dir: %w", err)
@@ -45,42 +42,24 @@ func TestMain(m *testing.M) {
 	}
 }
 
-func TestGitConfig(t *testing.T) {
-	gitConfigContains := func(sub string) bool {
-		if b, err := os.ReadFile(HomeDir() + "/.gitconfig"); err == nil {
-			return strings.Contains(string(b), sub)
-		}
-		return false
-	}
+func TestParseGitVersion(t *testing.T) {
+	v, err := parseGitVersionLine("git version 2.29.3")
+	assert.NoError(t, err)
+	assert.Equal(t, "2.29.3", v.String())
 
-	assert.False(t, gitConfigContains("key-a"))
+	v, err = parseGitVersionLine("git version 2.29.3.windows.1")
+	assert.NoError(t, err)
+	assert.Equal(t, "2.29.3", v.String())
 
-	assert.NoError(t, configSetNonExist("test.key-a", "val-a"))
-	assert.True(t, gitConfigContains("key-a = val-a"))
+	_, err = parseGitVersionLine("git version")
+	assert.Error(t, err)
 
-	assert.NoError(t, configSetNonExist("test.key-a", "val-a-changed"))
-	assert.False(t, gitConfigContains("key-a = val-a-changed"))
+	_, err = parseGitVersionLine("git version windows")
+	assert.Error(t, err)
+}
 
-	assert.NoError(t, configSet("test.key-a", "val-a-changed"))
-	assert.True(t, gitConfigContains("key-a = val-a-changed"))
-
-	assert.NoError(t, configAddNonExist("test.key-b", "val-b"))
-	assert.True(t, gitConfigContains("key-b = val-b"))
-
-	assert.NoError(t, configAddNonExist("test.key-b", "val-2b"))
-	assert.True(t, gitConfigContains("key-b = val-b"))
-	assert.True(t, gitConfigContains("key-b = val-2b"))
-
-	assert.NoError(t, configUnsetAll("test.key-b", "val-b"))
-	assert.False(t, gitConfigContains("key-b = val-b"))
-	assert.True(t, gitConfigContains("key-b = val-2b"))
-
-	assert.NoError(t, configUnsetAll("test.key-b", "val-2b"))
-	assert.False(t, gitConfigContains("key-b = val-2b"))
-
-	assert.NoError(t, configSet("test.key-x", "*"))
-	assert.True(t, gitConfigContains("key-x = *"))
-	assert.NoError(t, configSetNonExist("test.key-x", "*"))
-	assert.NoError(t, configUnsetAll("test.key-x", "*"))
-	assert.False(t, gitConfigContains("key-x = *"))
+func TestCheckGitVersionCompatibility(t *testing.T) {
+	assert.NoError(t, checkGitVersionCompatibility(version.Must(version.NewVersion("2.43.0"))))
+	assert.ErrorContains(t, checkGitVersionCompatibility(version.Must(version.NewVersion("2.43.1"))), "regression bug of GIT_FLUSH")
+	assert.NoError(t, checkGitVersionCompatibility(version.Must(version.NewVersion("2.43.2"))))
 }

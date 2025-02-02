@@ -62,8 +62,8 @@ func Test_UnwrapLDAPSourceCfg(t *testing.T) {
 		}
 
 		for _, source := range sources {
-			converted := map[string]interface{}{}
-			expected := map[string]interface{}{}
+			converted := map[string]any{}
+			expected := map[string]any{}
 
 			if err := json.Unmarshal([]byte(source.Cfg), &converted); err != nil {
 				assert.NoError(t, err)

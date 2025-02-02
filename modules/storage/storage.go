@@ -20,7 +20,7 @@ var ErrURLNotSupported = errors.New("url method not supported")
 
 // ErrInvalidConfiguration is called when there is invalid configuration for a storage
 type ErrInvalidConfiguration struct {
-	cfg interface{}
+	cfg any
 	err error
 }
 
@@ -37,16 +37,15 @@ func IsErrInvalidConfiguration(err error) bool {
 	return ok
 }
 
-// Type is a type of Storage
-type Type string
+type Type = setting.StorageType
 
 // NewStorageFunc is a function that creates a storage
-type NewStorageFunc func(ctx context.Context, cfg interface{}) (ObjectStorage, error)
+type NewStorageFunc func(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error)
 
 var storageMap = map[Type]NewStorageFunc{}
 
 // RegisterStorageType registers a provided storage type with a function to create it
-func RegisterStorageType(typ Type, fn func(ctx context.Context, cfg interface{}) (ObjectStorage, error)) {
+func RegisterStorageType(typ Type, fn func(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error)) {
 	storageMap[typ] = fn
 }
 
@@ -64,8 +63,8 @@ type ObjectStorage interface {
 	Save(path string, r io.Reader, size int64) (int64, error)
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
-	URL(path, name string) (*url.URL, error)
-	IterateObjects(func(path string, obj Object) error) error
+	URL(path, name string, reqParams url.Values) (*url.URL, error)
+	IterateObjects(path string, iterator func(path string, obj Object) error) error
 }
 
 // Copy copies a file from source ObjectStorage to dest ObjectStorage
@@ -87,14 +86,14 @@ func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, sr
 
 // Clean delete all the objects in this storage
 func Clean(storage ObjectStorage) error {
-	return storage.IterateObjects(func(path string, obj Object) error {
+	return storage.IterateObjects("", func(path string, obj Object) error {
 		_ = obj.Close()
 		return storage.Delete(path)
 	})
 }
 
 // SaveFrom saves data to the ObjectStorage with path p from the callback
-func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) error) error {
+func SaveFrom(objStorage ObjectStorage, path string, callback func(w io.Writer) error) error {
 	pr, pw := io.Pipe()
 	defer pr.Close()
 	go func() {
@@ -104,7 +103,7 @@ func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) err
 		}
 	}()
 
-	_, err := objStorage.Save(p, pr, -1)
+	_, err := objStorage.Save(path, pr, -1)
 	return err
 }
 
@@ -128,9 +127,11 @@ var (
 
 	// Actions represents actions storage
 	Actions ObjectStorage = uninitializedStorage
+	// Actions Artifacts represents actions artifacts storage
+	ActionsArtifacts ObjectStorage = uninitializedStorage
 )
 
-// Init init the stoarge
+// Init init the storage
 func Init() error {
 	for _, f := range []func() error{
 		initAttachments,
@@ -149,11 +150,11 @@ func Init() error {
 }
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
-func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
+func NewStorage(typStr Type, cfg *setting.Storage) (ObjectStorage, error) {
 	if len(typStr) == 0 {
-		typStr = string(LocalStorageType)
+		typStr = setting.LocalStorageType
 	}
-	fn, ok := storageMap[Type(typStr)]
+	fn, ok := storageMap[typStr]
 	if !ok {
 		return nil, fmt.Errorf("Unsupported storage type: %s", typStr)
 	}
@@ -163,7 +164,7 @@ func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
 
 func initAvatars() (err error) {
 	log.Info("Initialising Avatar storage with type: %s", setting.Avatar.Storage.Type)
-	Avatars, err = NewStorage(setting.Avatar.Storage.Type, &setting.Avatar.Storage)
+	Avatars, err = NewStorage(setting.Avatar.Storage.Type, setting.Avatar.Storage)
 	return err
 }
 
@@ -173,7 +174,7 @@ func initAttachments() (err error) {
 		return nil
 	}
 	log.Info("Initialising Attachment storage with type: %s", setting.Attachment.Storage.Type)
-	Attachments, err = NewStorage(setting.Attachment.Storage.Type, &setting.Attachment.Storage)
+	Attachments, err = NewStorage(setting.Attachment.Storage.Type, setting.Attachment.Storage)
 	return err
 }
 
@@ -183,19 +184,19 @@ func initLFS() (err error) {
 		return nil
 	}
 	log.Info("Initialising LFS storage with type: %s", setting.LFS.Storage.Type)
-	LFS, err = NewStorage(setting.LFS.Storage.Type, &setting.LFS.Storage)
+	LFS, err = NewStorage(setting.LFS.Storage.Type, setting.LFS.Storage)
 	return err
 }
 
 func initRepoAvatars() (err error) {
 	log.Info("Initialising Repository Avatar storage with type: %s", setting.RepoAvatar.Storage.Type)
-	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, &setting.RepoAvatar.Storage)
+	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, setting.RepoAvatar.Storage)
 	return err
 }
 
 func initRepoArchives() (err error) {
 	log.Info("Initialising Repository Archive storage with type: %s", setting.RepoArchive.Storage.Type)
-	RepoArchives, err = NewStorage(setting.RepoArchive.Storage.Type, &setting.RepoArchive.Storage)
+	RepoArchives, err = NewStorage(setting.RepoArchive.Storage.Type, setting.RepoArchive.Storage)
 	return err
 }
 
@@ -205,16 +206,21 @@ func initPackages() (err error) {
 		return nil
 	}
 	log.Info("Initialising Packages storage with type: %s", setting.Packages.Storage.Type)
-	Packages, err = NewStorage(setting.Packages.Storage.Type, &setting.Packages.Storage)
+	Packages, err = NewStorage(setting.Packages.Storage.Type, setting.Packages.Storage)
 	return err
 }
 
 func initActions() (err error) {
 	if !setting.Actions.Enabled {
 		Actions = discardStorage("Actions isn't enabled")
+		ActionsArtifacts = discardStorage("ActionsArtifacts isn't enabled")
 		return nil
 	}
-	log.Info("Initialising Actions storage with type: %s", setting.Actions.Storage.Type)
-	Actions, err = NewStorage(setting.Actions.Storage.Type, &setting.Actions.Storage)
+	log.Info("Initialising Actions storage with type: %s", setting.Actions.LogStorage.Type)
+	if Actions, err = NewStorage(setting.Actions.LogStorage.Type, setting.Actions.LogStorage); err != nil {
+		return err
+	}
+	log.Info("Initialising ActionsArtifacts storage with type: %s", setting.Actions.ArtifactStorage.Type)
+	ActionsArtifacts, err = NewStorage(setting.Actions.ArtifactStorage.Type, setting.Actions.ArtifactStorage)
 	return err
 }

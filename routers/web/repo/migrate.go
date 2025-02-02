@@ -9,25 +9,27 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
 	"code.gitea.io/gitea/services/task"
 )
 
 const (
-	tplMigrate base.TplName = "repo/migrate/migrate"
+	tplMigrate templates.TplName = "repo/migrate/migrate"
 )
 
 // Migrate render migration of repository page
@@ -65,10 +67,10 @@ func Migrate(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	ctx.HTML(http.StatusOK, base.TplName("repo/migrate/"+serviceType.Name()))
+	ctx.HTML(http.StatusOK, templates.TplName("repo/migrate/"+serviceType.Name()))
 }
 
-func handleMigrateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form *forms.MigrateRepoForm) {
+func handleMigrateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form *forms.MigrateRepoForm) {
 	if setting.Repository.DisableMigrations {
 		ctx.Error(http.StatusForbidden, "MigrateError: the site administrator has disabled migrations")
 		return
@@ -120,9 +122,9 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 	}
 }
 
-func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplName, form *forms.MigrateRepoForm) {
-	if models.IsErrInvalidCloneAddr(err) {
-		addrErr := err.(*models.ErrInvalidCloneAddr)
+func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl templates.TplName, form *forms.MigrateRepoForm) {
+	if git.IsErrInvalidCloneAddr(err) {
+		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
@@ -167,14 +169,14 @@ func MigratePost(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	tpl := base.TplName("repo/migrate/" + form.Service.Name())
+	tpl := templates.TplName("repo/migrate/" + form.Service.Name())
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tpl)
 		return
 	}
 
-	remoteAddr, err := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
+	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
 	}
@@ -230,14 +232,18 @@ func MigratePost(ctx *context.Context) {
 		opts.PullRequests = false
 		opts.Releases = false
 	}
+	if form.Service == structs.CodeCommitService {
+		opts.AWSAccessKeyID = form.AWSAccessKeyID
+		opts.AWSSecretAccessKey = form.AWSSecretAccessKey
+	}
 
-	err = repo_model.CheckCreateRepository(ctx.Doer, ctxUser, opts.RepoName, false)
+	err = repo_model.CheckCreateRepository(ctx, ctx.Doer, ctxUser, opts.RepoName, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return
 	}
 
-	err = task.MigrateRepository(ctx.Doer, ctxUser, opts)
+	err = task.MigrateRepository(ctx, ctx.Doer, ctxUser, opts)
 	if err == nil {
 		ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(opts.RepoName))
 		return
@@ -256,4 +262,67 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 	// Plain git should be first
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 	ctx.Data["service"] = serviceType
+}
+
+func MigrateRetryPost(ctx *context.Context) {
+	if err := task.RetryMigrateTask(ctx, ctx.Repo.Repository.ID); err != nil {
+		log.Error("Retry task failed: %v", err)
+		ctx.ServerError("task.RetryMigrateTask", err)
+		return
+	}
+	ctx.JSONOK()
+}
+
+func MigrateCancelPost(ctx *context.Context) {
+	migratingTask, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		log.Error("GetMigratingTask: %v", err)
+		ctx.Redirect(ctx.Repo.Repository.Link())
+		return
+	}
+	if migratingTask.Status == structs.TaskStatusRunning {
+		taskUpdate := &admin_model.Task{ID: migratingTask.ID, Status: structs.TaskStatusFailed, Message: "canceled"}
+		if err = taskUpdate.UpdateCols(ctx, "status", "message"); err != nil {
+			ctx.ServerError("task.UpdateCols", err)
+			return
+		}
+	}
+	ctx.Redirect(ctx.Repo.Repository.Link())
+}
+
+// MigrateStatus returns migrate task's status
+func MigrateStatus(ctx *context.Context) {
+	task, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		if admin_model.IsErrTaskDoesNotExist(err) {
+			ctx.JSON(http.StatusNotFound, map[string]any{
+				"err": "task does not exist or you do not have access to this task",
+			})
+			return
+		}
+		log.Error("GetMigratingTask: %v", err)
+		ctx.JSON(http.StatusInternalServerError, map[string]any{
+			"err": http.StatusText(http.StatusInternalServerError),
+		})
+		return
+	}
+
+	message := task.Message
+
+	if task.Message != "" && task.Message[0] == '{' {
+		// assume message is actually a translatable string
+		var translatableMessage admin_model.TranslatableMessage
+		if err := json.Unmarshal([]byte(message), &translatableMessage); err != nil {
+			translatableMessage = admin_model.TranslatableMessage{
+				Format: "migrate.migrating_failed.error",
+				Args:   []any{task.Message},
+			}
+		}
+		message = ctx.Locale.TrString(translatableMessage.Format, translatableMessage.Args...)
+	}
+
+	ctx.JSON(http.StatusOK, map[string]any{
+		"status":  task.Status,
+		"message": message,
+	})
 }

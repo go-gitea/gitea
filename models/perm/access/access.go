@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+
+	"xorm.io/builder"
 )
 
 // Access represents the highest access level of a user to the repository. The only access type
@@ -51,21 +53,21 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 		return perm.AccessModeOwner, nil
 	}
 
-	a := &Access{UserID: userID, RepoID: repo.ID}
-	if has, err := db.GetByBean(ctx, a); !has || err != nil {
+	a, exist, err := db.Get[Access](ctx, builder.Eq{"user_id": userID, "repo_id": repo.ID})
+	if err != nil {
 		return mode, err
+	} else if !exist {
+		return mode, nil
 	}
 	return a.Mode, nil
 }
 
 func maxAccessMode(modes ...perm.AccessMode) perm.AccessMode {
-	max := perm.AccessModeNone
+	maxMode := perm.AccessModeNone
 	for _, mode := range modes {
-		if mode > max {
-			max = mode
-		}
+		maxMode = max(maxMode, mode)
 	}
-	return max
+	return maxMode
 }
 
 type userAccess struct {
@@ -85,8 +87,8 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mo
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
 func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
 	minMode := perm.AccessModeRead
-	if err := repo.GetOwner(ctx); err != nil {
-		return fmt.Errorf("GetOwner: %w", err)
+	if err := repo.LoadOwner(ctx); err != nil {
+		return fmt.Errorf("LoadOwner: %w", err)
 	}
 
 	// If the repo isn't private and isn't owned by a organization,
@@ -124,9 +126,9 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
 func refreshCollaboratorAccesses(ctx context.Context, repoID int64, accessMap map[int64]*userAccess) error {
-	collaborators, err := repo_model.GetCollaborators(ctx, repoID, db.ListOptions{})
+	collaborators, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: repoID})
 	if err != nil {
-		return fmt.Errorf("getCollaborations: %w", err)
+		return fmt.Errorf("GetCollaborators: %w", err)
 	}
 	for _, c := range collaborators {
 		if c.User.IsGhost() {
@@ -143,7 +145,7 @@ func refreshCollaboratorAccesses(ctx context.Context, repoID int64, accessMap ma
 func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, ignTeamID int64) (err error) {
 	accessMap := make(map[int64]*userAccess, 20)
 
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return err
 	} else if !repo.Owner.IsOrganization() {
 		return fmt.Errorf("owner is not an organization: %d", repo.OwnerID)
@@ -199,7 +201,7 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 		accessMode = collaborator.Mode
 	}
 
-	if err = repo.GetOwner(ctx); err != nil {
+	if err = repo.LoadOwner(ctx); err != nil {
 		return err
 	} else if repo.Owner.IsOrganization() {
 		var teams []organization.Team

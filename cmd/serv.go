@@ -7,20 +7,23 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/lfstransfer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -29,87 +32,148 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/kballard/go-shellquote"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (
-	lfsAuthenticateVerb = "git-lfs-authenticate"
+	verbUploadPack      = "git-upload-pack"
+	verbUploadArchive   = "git-upload-archive"
+	verbReceivePack     = "git-receive-pack"
+	verbLfsAuthenticate = "git-lfs-authenticate"
+	verbLfsTransfer     = "git-lfs-transfer"
 )
 
 // CmdServ represents the available serv sub-command.
-var CmdServ = cli.Command{
+var CmdServ = &cli.Command{
 	Name:        "serv",
-	Usage:       "This command should only be called by SSH shell",
+	Usage:       "(internal) Should only be called by SSH shell",
 	Description: "Serv provides access auth for repositories",
+	Before:      PrepareConsoleLoggerLevel(log.FATAL),
 	Action:      runServ,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name: "enable-pprof",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name: "debug",
 		},
 	},
 }
 
-func setup(logPath string, debug bool) {
-	_ = log.DelLogger("console")
+func setup(ctx context.Context, debug bool) {
 	if debug {
-		_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
+		setupConsoleLogger(log.TRACE, false, os.Stderr)
 	} else {
-		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
+		setupConsoleLogger(log.FATAL, false, os.Stderr)
 	}
-	setting.LoadFromExisting()
-	if debug {
-		setting.RunMode = "dev"
-	}
-
-	// Check if setting.RepoRootPath exists. It could be the case that it doesn't exist, this can happen when
-	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
+	setting.MustInstalled()
 	if _, err := os.Stat(setting.RepoRootPath); err != nil {
-		if os.IsNotExist(err) {
-			_ = fail("Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.", setting.RepoRootPath)
-		} else {
-			_ = fail("Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %v", setting.RepoRootPath, err)
-		}
+		_ = fail(ctx, "Unable to access repository path", "Unable to access repository path %q, err: %v", setting.RepoRootPath, err)
 		return
 	}
-
 	if err := git.InitSimple(context.Background()); err != nil {
-		_ = fail("Failed to init git", "Failed to init git, err: %v", err)
+		_ = fail(ctx, "Failed to init git", "Failed to init git, err: %v", err)
 	}
 }
 
 var (
-	allowedCommands = map[string]perm.AccessMode{
-		"git-upload-pack":    perm.AccessModeRead,
-		"git-upload-archive": perm.AccessModeRead,
-		"git-receive-pack":   perm.AccessModeWrite,
-		lfsAuthenticateVerb:  perm.AccessModeNone,
-	}
+	// keep getAccessMode() in sync
+	allowedCommands = container.SetOf(
+		verbUploadPack,
+		verbUploadArchive,
+		verbReceivePack,
+		verbLfsAuthenticate,
+		verbLfsTransfer,
+	)
+	allowedCommandsLfs = container.SetOf(
+		verbLfsAuthenticate,
+		verbLfsTransfer,
+	)
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
-func fail(userMessage, logMessage string, args ...interface{}) error {
+// fail prints message to stdout, it's mainly used for git serv and git hook commands.
+// The output will be passed to git client and shown to user.
+func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error {
+	if userMessage == "" {
+		userMessage = "Internal Server Error (no specific error)"
+	}
+
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
 	// if nothing is outputted on stdout.
 	_, _ = fmt.Fprintln(os.Stdout, "")
-	_, _ = fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
+	// add extra empty lines to separate our message from other git errors to get more attention
+	_, _ = fmt.Fprintln(os.Stderr, "error:")
+	_, _ = fmt.Fprintln(os.Stderr, "error:", userMessage)
+	_, _ = fmt.Fprintln(os.Stderr, "error:")
 
-	if len(logMessage) > 0 {
+	if logMsgFmt != "" {
+		logMsg := fmt.Sprintf(logMsgFmt, args...)
 		if !setting.IsProd {
-			_, _ = fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
+			_, _ = fmt.Fprintln(os.Stderr, "Gitea:", logMsg)
+		}
+		if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
+			logMsg = userMessage + " " + logMsg
+		} else {
+			logMsg = userMessage + ". " + logMsg
+		}
+		_ = private.SSHLog(ctx, true, logMsg)
+	}
+	return cli.Exit("", 1)
+}
+
+// handleCliResponseExtra handles the extra response from the cli sub-commands
+// If there is a user message it will be printed to stdout
+// If the command failed it will return an error (the error will be printed by cli framework)
+func handleCliResponseExtra(extra private.ResponseExtra) error {
+	if extra.UserMsg != "" {
+		_, _ = fmt.Fprintln(os.Stdout, extra.UserMsg)
+	}
+	if extra.HasError() {
+		return cli.Exit(extra.Error, 1)
+	}
+	return nil
+}
+
+func getAccessMode(verb, lfsVerb string) perm.AccessMode {
+	switch verb {
+	case verbUploadPack, verbUploadArchive:
+		return perm.AccessModeRead
+	case verbReceivePack:
+		return perm.AccessModeWrite
+	case verbLfsAuthenticate, verbLfsTransfer:
+		switch lfsVerb {
+		case "upload":
+			return perm.AccessModeWrite
+		case "download":
+			return perm.AccessModeRead
 		}
 	}
-	ctx, cancel := installSignals()
-	defer cancel()
+	// should be unreachable
+	return perm.AccessModeNone
+}
 
-	if len(logMessage) > 0 {
-		_ = private.SSHLog(ctx, true, fmt.Sprintf(logMessage+": ", args...))
+func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServCommandResults) (string, error) {
+	now := time.Now()
+	claims := lfs.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+			NotBefore: jwt.NewNumericDate(now),
+		},
+		RepoID: results.RepoID,
+		Op:     lfsVerb,
+		UserID: results.UserID,
 	}
-	return cli.NewExitError("", 1)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+	if err != nil {
+		return "", fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
+	}
+	return fmt.Sprintf("Bearer %s", tokenString), nil
 }
 
 func runServ(c *cli.Context) error {
@@ -117,34 +181,40 @@ func runServ(c *cli.Context) error {
 	defer cancel()
 
 	// FIXME: This needs to internationalised
-	setup("serv.log", c.Bool("debug"))
+	setup(ctx, c.Bool("debug"))
 
 	if setting.SSH.Disabled {
 		println("Gitea: SSH has been disabled")
 		return nil
 	}
 
-	if len(c.Args()) < 1 {
+	if c.NArg() < 1 {
 		if err := cli.ShowSubcommandHelp(c); err != nil {
 			fmt.Printf("error showing subcommand help: %v\n", err)
 		}
 		return nil
 	}
 
-	keys := strings.Split(c.Args()[0], "-")
+	defer func() {
+		if err := recover(); err != nil {
+			_ = fail(ctx, "Internal Server Error", "Panic: %v\n%s", err, log.Stack(2))
+		}
+	}()
+
+	keys := strings.Split(c.Args().First(), "-")
 	if len(keys) != 2 || keys[0] != "key" {
-		return fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
+		return fail(ctx, "Key ID format error", "Invalid key argument: %s", c.Args().First())
 	}
 	keyID, err := strconv.ParseInt(keys[1], 10, 64)
 	if err != nil {
-		return fail("Key ID format error", "Invalid key argument: %s", c.Args()[1])
+		return fail(ctx, "Key ID parsing error", "Invalid key argument: %s", c.Args().Get(1))
 	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
 	if len(cmd) == 0 {
 		key, user, err := private.ServNoCommand(ctx, keyID)
 		if err != nil {
-			return fail("Internal error", "Failed to check provided key: %v", err)
+			return fail(ctx, "Key check failed", "Failed to check provided key: %v", err)
 		}
 		switch key.Type {
 		case asymkey_model.KeyTypeDeploy:
@@ -162,144 +232,130 @@ func runServ(c *cli.Context) error {
 
 	words, err := shellquote.Split(cmd)
 	if err != nil {
-		return fail("Error parsing arguments", "Failed to parse arguments: %v", err)
+		return fail(ctx, "Error parsing arguments", "Failed to parse arguments: %v", err)
 	}
 
 	if len(words) < 2 {
-		if git.CheckGitVersionAtLeast("2.29") == nil {
+		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
 				fmt.Print(`{"type":"gitea","version":1}`)
 				return nil
 			}
 		}
-		return fail("Too few arguments", "Too few arguments in cmd: %s", cmd)
+		return fail(ctx, "Too few arguments", "Too few arguments in cmd: %s", cmd)
 	}
 
 	verb := words[0]
-	repoPath := words[1]
-	if repoPath[0] == '/' {
-		repoPath = repoPath[1:]
-	}
+	repoPath := strings.TrimPrefix(words[1], "/")
 
 	var lfsVerb string
-	if verb == lfsAuthenticateVerb {
-		if !setting.LFS.StartServer {
-			return fail("Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
-		}
-
-		if len(words) > 2 {
-			lfsVerb = words[2]
-		}
-	}
-
-	// LowerCase and trim the repoPath as that's how they are stored.
-	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
 
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
-		return fail("Invalid repository path", "Invalid repository path: %v", repoPath)
+		return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
 	}
 
-	username := strings.ToLower(rr[0])
-	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
+	username := rr[0]
+	reponame := strings.TrimSuffix(rr[1], ".git")
+
+	// LowerCase and trim the repoPath as that's how they are stored.
+	// This should be done after splitting the repoPath into username and reponame
+	// so that username and reponame are not affected.
+	repoPath = strings.ToLower(strings.TrimSpace(repoPath))
 
 	if alphaDashDotPattern.MatchString(reponame) {
-		return fail("Invalid repo name", "Invalid repo name: %s", reponame)
+		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
 	if c.Bool("enable-pprof") {
 		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
-			return fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
+			return fail(ctx, "Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
 		}
 
 		stopCPUProfiler, err := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
 		if err != nil {
-			return fail("Internal Server Error", "Unable to start CPU profile: %v", err)
+			return fail(ctx, "Unable to start CPU profiler", "Unable to start CPU profile: %v", err)
 		}
 		defer func() {
 			stopCPUProfiler()
 			err := pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
 			if err != nil {
-				_ = fail("Internal Server Error", "Unable to dump Mem Profile: %v", err)
+				_ = fail(ctx, "Unable to dump Mem profile", "Unable to dump Mem Profile: %v", err)
 			}
 		}()
 	}
 
-	requestedMode, has := allowedCommands[verb]
-	if !has {
-		return fail("Unknown git command", "Unknown git command %s", verb)
-	}
-
-	if verb == lfsAuthenticateVerb {
-		if lfsVerb == "upload" {
-			requestedMode = perm.AccessModeWrite
-		} else if lfsVerb == "download" {
-			requestedMode = perm.AccessModeRead
-		} else {
-			return fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
-		}
-	}
-
-	results, err := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
-	if err != nil {
-		if private.IsErrServCommand(err) {
-			errServCommand := err.(private.ErrServCommand)
-			if errServCommand.StatusCode != http.StatusInternalServerError {
-				return fail("Unauthorized", "%s", errServCommand.Error())
+	if allowedCommands.Contains(verb) {
+		if allowedCommandsLfs.Contains(verb) {
+			if !setting.LFS.StartServer {
+				return fail(ctx, "LFS Server is not enabled", "")
 			}
-			return fail("Internal Server Error", "%s", errServCommand.Error())
+			if verb == verbLfsTransfer && !setting.LFS.AllowPureSSH {
+				return fail(ctx, "LFS SSH transfer is not enabled", "")
+			}
+			if len(words) > 2 {
+				lfsVerb = words[2]
+			}
 		}
-		return fail("Internal Server Error", "%s", err.Error())
+	} else {
+		return fail(ctx, "Unknown git command", "Unknown git command %s", verb)
+	}
+
+	requestedMode := getAccessMode(verb, lfsVerb)
+
+	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
+	if extra.HasError() {
+		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
+	}
+
+	// LFS SSH protocol
+	if verb == verbLfsTransfer {
+		token, err := getLFSAuthToken(ctx, lfsVerb, results)
+		if err != nil {
+			return err
+		}
+		return lfstransfer.Main(ctx, repoPath, lfsVerb, token)
 	}
 
 	// LFS token authentication
-	if verb == lfsAuthenticateVerb {
+	if verb == verbLfsAuthenticate {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
-		now := time.Now()
-		claims := lfs.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
-				NotBefore: jwt.NewNumericDate(now),
-			},
-			RepoID: results.RepoID,
-			Op:     lfsVerb,
-			UserID: results.UserID,
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-		// Sign and get the complete encoded token as a string using the secret
-		tokenString, err := token.SignedString(setting.LFS.JWTSecretBytes)
+		token, err := getLFSAuthToken(ctx, lfsVerb, results)
 		if err != nil {
-			return fail("Internal error", "Failed to sign JWT token: %v", err)
+			return err
 		}
 
 		tokenAuthentication := &git_model.LFSTokenResponse{
 			Header: make(map[string]string),
 			Href:   url,
 		}
-		tokenAuthentication.Header["Authorization"] = fmt.Sprintf("Bearer %s", tokenString)
+		tokenAuthentication.Header["Authorization"] = token
 
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)
 		if err != nil {
-			return fail("Internal error", "Failed to encode LFS json response: %v", err)
+			return fail(ctx, "Failed to encode LFS json response", "Failed to encode LFS json response: %v", err)
 		}
 		return nil
 	}
 
-	// Special handle for Windows.
-	if setting.IsWindows {
-		verb = strings.Replace(verb, "-", " ", 1)
-	}
-
 	var gitcmd *exec.Cmd
-	verbs := strings.Split(verb, " ")
-	if len(verbs) == 2 {
-		gitcmd = exec.CommandContext(ctx, verbs[0], verbs[1], repoPath)
-	} else {
-		gitcmd = exec.CommandContext(ctx, verb, repoPath)
+	gitBinPath := filepath.Dir(git.GitExecutable) // e.g. /usr/bin
+	gitBinVerb := filepath.Join(gitBinPath, verb) // e.g. /usr/bin/git-upload-pack
+	if _, err := os.Stat(gitBinVerb); err != nil {
+		// if the command "git-upload-pack" doesn't exist, try to split "git-upload-pack" to use the sub-command with git
+		// ps: Windows only has "git.exe" in the bin path, so Windows always uses this way
+		verbFields := strings.SplitN(verb, "-", 2)
+		if len(verbFields) == 2 {
+			// use git binary with the sub-command part: "C:\...\bin\git.exe", "upload-pack", ...
+			gitcmd = exec.CommandContext(ctx, git.GitExecutable, verbFields[1], repoPath)
+		}
+	}
+	if gitcmd == nil {
+		// by default, use the verb (it has been checked above by allowedCommands)
+		gitcmd = exec.CommandContext(ctx, gitBinVerb, repoPath)
 	}
 
 	process.SetSysProcAttribute(gitcmd)
@@ -326,13 +382,13 @@ func runServ(c *cli.Context) error {
 	gitcmd.Env = append(gitcmd.Env, git.CommonCmdServEnvs()...)
 
 	if err = gitcmd.Run(); err != nil {
-		return fail("Internal error", "Failed to execute git command: %v", err)
+		return fail(ctx, "Failed to execute git command", "Failed to execute git command: %v", err)
 	}
 
 	// Update user key activity.
 	if results.KeyID > 0 {
 		if err = private.UpdatePublicKeyInRepo(ctx, results.KeyID, results.RepoID); err != nil {
-			return fail("Internal error", "UpdatePublicKeyInRepo: %v", err)
+			return fail(ctx, "Failed to update public key", "UpdatePublicKeyInRepo: %v", err)
 		}
 	}
 

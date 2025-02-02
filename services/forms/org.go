@@ -7,9 +7,9 @@ package forms
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 )
@@ -30,7 +30,7 @@ type CreateOrgForm struct {
 
 // Validate validates the fields
 func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -38,6 +38,7 @@ func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding
 type UpdateOrgSettingForm struct {
 	Name                      string `binding:"Required;Username;MaxSize(40)" locale:"org.org_name_holder"`
 	FullName                  string `binding:"MaxSize(100)"`
+	Email                     string `binding:"MaxSize(255)"`
 	Description               string `binding:"MaxSize(255)"`
 	Website                   string `binding:"ValidUrl;MaxSize(255)"`
 	Location                  string `binding:"MaxSize(50)"`
@@ -48,7 +49,7 @@ type UpdateOrgSettingForm struct {
 
 // Validate validates the fields
 func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -61,7 +62,7 @@ func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) 
 
 // CreateTeamForm form for creating team
 type CreateTeamForm struct {
-	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(30)"`
+	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(255)"`
 	Description      string `binding:"MaxSize(255)"`
 	Permission       string
 	RepoAccess       string
@@ -70,6 +71,6 @@ type CreateTeamForm struct {
 
 // Validate validates the fields
 func (f *CreateTeamForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

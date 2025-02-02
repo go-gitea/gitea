@@ -17,9 +17,9 @@ import (
 
 var (
 	// ErrHashMismatch occurs if the content has does not match OID
-	ErrHashMismatch = errors.New("Content hash does not match OID")
+	ErrHashMismatch = errors.New("content hash does not match OID")
 	// ErrSizeMismatch occurs if the content size does not match
-	ErrSizeMismatch = errors.New("Content size does not match")
+	ErrSizeMismatch = errors.New("content size does not match")
 )
 
 // ContentStore provides a simple file system based storage.
@@ -59,15 +59,22 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 		return err
 	}
 
-	// This shouldn't happen but it is sensible to test
-	if written != pointer.Size {
-		if err := s.Delete(p); err != nil {
-			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, err)
-		}
-		return ErrSizeMismatch
+	// check again whether there is any error during the Save operation
+	// because some errors might be ignored by the Reader's caller
+	if wrappedRd.lastError != nil && !errors.Is(wrappedRd.lastError, io.EOF) {
+		err = wrappedRd.lastError
+	} else if written != pointer.Size {
+		err = ErrSizeMismatch
 	}
 
-	return nil
+	// if the upload failed, try to delete the file
+	if err != nil {
+		if errDel := s.Delete(p); errDel != nil {
+			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, errDel)
+		}
+	}
+
+	return err
 }
 
 // Exists returns true if the object exists in the content store.
@@ -97,7 +104,7 @@ func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
 }
 
 // ReadMetaObject will read a git_model.LFSMetaObject and return a reader
-func ReadMetaObject(pointer Pointer) (io.ReadCloser, error) {
+func ReadMetaObject(pointer Pointer) (io.ReadSeekCloser, error) {
 	contentStore := NewContentStore()
 	return contentStore.Get(pointer)
 }
@@ -108,6 +115,17 @@ type hashingReader struct {
 	expectedSize int64
 	hash         hash.Hash
 	expectedHash string
+	lastError    error
+}
+
+// recordError records the last error during the Save operation
+// Some callers of the Reader doesn't respect the returned "err"
+// For example, MinIO's Put will ignore errors if the written size could equal to expected size
+// So we must remember the error by ourselves,
+// and later check again whether ErrSizeMismatch or ErrHashMismatch occurs during the Save operation
+func (r *hashingReader) recordError(err error) error {
+	r.lastError = err
+	return err
 }
 
 func (r *hashingReader) Read(b []byte) (int, error) {
@@ -117,22 +135,22 @@ func (r *hashingReader) Read(b []byte) (int, error) {
 		r.currentSize += int64(n)
 		wn, werr := r.hash.Write(b[:n])
 		if wn != n || werr != nil {
-			return n, werr
+			return n, r.recordError(werr)
 		}
 	}
 
-	if err != nil && err == io.EOF {
+	if errors.Is(err, io.EOF) || r.currentSize >= r.expectedSize {
 		if r.currentSize != r.expectedSize {
-			return n, ErrSizeMismatch
+			return n, r.recordError(ErrSizeMismatch)
 		}
 
 		shaStr := hex.EncodeToString(r.hash.Sum(nil))
 		if shaStr != r.expectedHash {
-			return n, ErrHashMismatch
+			return n, r.recordError(ErrHashMismatch)
 		}
 	}
 
-	return n, err
+	return n, r.recordError(err)
 }
 
 func newHashingReader(expectedSize int64, expectedHash string, reader io.Reader) *hashingReader {

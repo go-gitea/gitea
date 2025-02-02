@@ -5,16 +5,17 @@ package integration
 
 import (
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
-	"github.com/go-fed/httpsig"
+	"github.com/42wim/httpsig"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -52,16 +53,17 @@ fhTNAzWwZoQ91aHdAAAAFHUwMDIyMTQ2QGljdHMtcC1ueC03AQIDBAUG
 func TestHTTPSigPubKey(t *testing.T) {
 	// Add our public key to user1
 	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.SSH.MinimumKeySizeCheck, false)()
 	session := loginUser(t, "user1")
-	token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAdminPublicKey, auth_model.AccessTokenScopeSudo))
-	keysURL := fmt.Sprintf("/api/v1/user/keys?token=%s", token)
+	token := url.QueryEscape(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser))
 	keyType := "ssh-rsa"
 	keyContent := "AAAAB3NzaC1yc2EAAAADAQABAAABAQCqOZB5vkRvXFXups1/0StDRdG8plbNSwsWEnNnP4Bvurxa0+z3W9B8GLKnDiLw5MbpbMNyBlpXw13GfuIeciy10DWTz0xUbiy3J3KabCaT36asIw2y7k6Z0jL0UBnrVENwq5/lUbZYqSZ4rRU744wkhh8TULpzM14npQCZwg6aEbG+MwjzddQ72fR+3BPBrKn5dTmmu8rH99O+U+Nuto81Tg7PA+NUupcHOmhdiEGq49plgVFXK98Vks5tiybL4GuzFyWgyX73Dg/QBMn2eMHt1EMv5Gs3i6GFhKKGo4rjDi9qI6PX5oDR4LTNe6cR8td8YhVD8WFZwLLl/vaYyIqd"
 	rawKeyBody := api.CreateKeyOption{
 		Title: "test-key",
 		Key:   keyType + " " + keyContent,
 	}
-	req := NewRequestWithJSON(t, "POST", keysURL, rawKeyBody)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/keys", rawKeyBody).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
 	// parse our private key and create the httpsig request
@@ -69,7 +71,9 @@ func TestHTTPSigPubKey(t *testing.T) {
 	keyID := ssh.FingerprintSHA256(sshSigner.PublicKey())
 
 	// create the request
-	req = NewRequest(t, "GET", "/api/v1/admin/users")
+	token = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
+	req = NewRequest(t, "GET", "/api/v1/admin/users").
+		AddTokenAuth(token)
 
 	signer, _, err := httpsig.NewSSHSigner(sshSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)"}, httpsig.Signature, 10)
 	if err != nil {
@@ -77,7 +81,7 @@ func TestHTTPSigPubKey(t *testing.T) {
 	}
 
 	// sign the request
-	err = signer.SignRequest(keyID, req, nil)
+	err = signer.SignRequest(keyID, req.Request, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +95,7 @@ func TestHTTPSigCert(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
 
-	csrf := GetCSRF(t, session, "/user/settings/keys")
+	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", "/user/settings/keys", map[string]string{
 		"_csrf":   csrf,
 		"content": "user1",
@@ -120,7 +124,7 @@ func TestHTTPSigCert(t *testing.T) {
 
 	// add our cert to the request
 	certString := base64.RawStdEncoding.EncodeToString(pkcert.(*ssh.Certificate).Marshal())
-	req.Header.Add("x-ssh-certificate", certString)
+	req.SetHeader("x-ssh-certificate", certString)
 
 	signer, _, err := httpsig.NewSSHSigner(certSigner, httpsig.DigestSha512, []string{httpsig.RequestTarget, "(created)", "(expires)", "x-ssh-certificate"}, httpsig.Signature, 10)
 	if err != nil {
@@ -128,7 +132,7 @@ func TestHTTPSigCert(t *testing.T) {
 	}
 
 	// sign the request
-	err = signer.SignRequest(keyID, req, nil)
+	err = signer.SignRequest(keyID, req.Request, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -90,7 +90,7 @@ Usage: %[1]s [-v] [-o output.go] ambiguous.json
 	sort.Slice(tables, func(i, j int) bool {
 		return tables[i].Locale < tables[j].Locale
 	})
-	data := map[string]interface{}{
+	data := map[string]any{
 		"Tables": tables,
 	}
 
@@ -99,7 +99,7 @@ Usage: %[1]s [-v] [-o output.go] ambiguous.json
 	}
 }
 
-func runTemplate(t *template.Template, filename string, data interface{}) error {
+func runTemplate(t *template.Template, filename string, data any) error {
 	buf := bytes.NewBuffer(nil)
 	if err := t.Execute(buf, data); err != nil {
 		return fmt.Errorf("unable to execute template: %w", err)
@@ -172,17 +172,17 @@ var AmbiguousCharacters = map[string]*AmbiguousTable{
 
 `))
 
-func logf(format string, args ...interface{}) {
+func logf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
 
-func verbosef(format string, args ...interface{}) {
+func verbosef(format string, args ...any) {
 	if verbose {
 		logf(format, args...)
 	}
 }
 
-func fatalf(format string, args ...interface{}) {
+func fatalf(format string, args ...any) {
 	logf("fatal: "+format+"\n", args...)
 	os.Exit(1)
 }

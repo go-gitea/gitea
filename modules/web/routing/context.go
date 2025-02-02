@@ -6,22 +6,29 @@ package routing
 import (
 	"context"
 	"net/http"
+
+	"code.gitea.io/gitea/modules/gtprof"
+	"code.gitea.io/gitea/modules/reqctx"
 )
 
 type contextKeyType struct{}
 
 var contextKey contextKeyType
 
-// UpdateFuncInfo updates a context's func info
-func UpdateFuncInfo(ctx context.Context, funcInfo *FuncInfo) {
-	record, ok := ctx.Value(contextKey).(*requestRecord)
-	if !ok {
-		return
+// RecordFuncInfo records a func info into context
+func RecordFuncInfo(ctx context.Context, funcInfo *FuncInfo) (end func()) {
+	end = func() {}
+	if reqCtx := reqctx.FromContext(ctx); reqCtx != nil {
+		var traceSpan *gtprof.TraceSpan
+		traceSpan, end = gtprof.GetTracer().StartInContext(reqCtx, "http.func")
+		traceSpan.SetAttributeString("func", funcInfo.shortName)
 	}
-
-	record.lock.Lock()
-	record.funcInfo = funcInfo
-	record.lock.Unlock()
+	if record, ok := ctx.Value(contextKey).(*requestRecord); ok {
+		record.lock.Lock()
+		record.funcInfo = funcInfo
+		record.lock.Unlock()
+	}
+	return end
 }
 
 // MarkLongPolling marks the request is a long-polling request, and the logger may output different message for it
@@ -37,7 +44,7 @@ func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
 }
 
 // UpdatePanicError updates a context's error info, a panic may be recovered by other middlewares, but we still need to know that.
-func UpdatePanicError(ctx context.Context, err interface{}) {
+func UpdatePanicError(ctx context.Context, err any) {
 	record, ok := ctx.Value(contextKey).(*requestRecord)
 	if !ok {
 		return

@@ -55,14 +55,14 @@ type Maintainer struct {
 }
 
 type Dependency struct {
-	Name         string        `json:"name" yaml:"name"`
-	Version      string        `json:"version,omitempty" yaml:"version,omitempty"`
-	Repository   string        `json:"repository" yaml:"repository"`
-	Condition    string        `json:"condition,omitempty" yaml:"condition,omitempty"`
-	Tags         []string      `json:"tags,omitempty" yaml:"tags,omitempty"`
-	Enabled      bool          `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	ImportValues []interface{} `json:"import_values,omitempty" yaml:"import-values,omitempty"`
-	Alias        string        `json:"alias,omitempty" yaml:"alias,omitempty"`
+	Name         string   `json:"name" yaml:"name"`
+	Version      string   `json:"version,omitempty" yaml:"version,omitempty"`
+	Repository   string   `json:"repository" yaml:"repository"`
+	Condition    string   `json:"condition,omitempty" yaml:"condition,omitempty"`
+	Tags         []string `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Enabled      bool     `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	ImportValues []any    `json:"import_values,omitempty" yaml:"import-values,omitempty"`
+	Alias        string   `json:"alias,omitempty" yaml:"alias,omitempty"`
 }
 
 // ParseChartArchive parses the metadata of a Helm archive

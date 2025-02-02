@@ -9,69 +9,15 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
-	issue_service "code.gitea.io/gitea/services/issue"
 )
-
-type commitBranchCheckItem struct {
-	Commit  *git.Commit
-	Checked bool
-}
-
-func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endCommitID, baseBranch string, commitList map[string]*commitBranchCheckItem) error {
-	if startCommit.ID.String() == endCommitID {
-		return nil
-	}
-
-	checkStack := make([]string, 0, 10)
-	checkStack = append(checkStack, startCommit.ID.String())
-
-	for len(checkStack) > 0 {
-		commitID := checkStack[0]
-		checkStack = checkStack[1:]
-
-		item, ok := commitList[commitID]
-		if !ok {
-			continue
-		}
-
-		if item.Commit.ID.String() == endCommitID {
-			continue
-		}
-
-		if err := item.Commit.LoadBranchName(); err != nil {
-			return err
-		}
-
-		if item.Commit.Branch == baseBranch {
-			continue
-		}
-
-		if item.Checked {
-			continue
-		}
-
-		item.Checked = true
-
-		parentNum := item.Commit.ParentCount()
-		for i := 0; i < parentNum; i++ {
-			parentCommit, err := item.Commit.Parent(i)
-			if err != nil {
-				return err
-			}
-			checkStack = append(checkStack, parentCommit.ID.String())
-		}
-	}
-	return nil
-}
 
 // getCommitIDsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
 func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
-	repoPath := repo.RepoPath()
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, false, err
 	}
@@ -82,47 +28,33 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 		return nil, false, err
 	}
 
-	if err = oldCommit.LoadBranchName(); err != nil {
-		return nil, false, err
-	}
-
-	if len(oldCommit.Branch) == 0 {
-		commitIDs = make([]string, 2)
-		commitIDs[0] = oldCommitID
-		commitIDs[1] = newCommitID
-
-		return commitIDs, true, err
-	}
-
 	newCommit, err := gitRepo.GetCommit(newCommitID)
 	if err != nil {
 		return nil, false, err
 	}
 
-	commits, err := newCommit.CommitsBeforeUntil(oldCommitID)
+	isForcePush, err = newCommit.IsForcePush(oldCommitID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if isForcePush {
+		commitIDs = make([]string, 2)
+		commitIDs[0] = oldCommitID
+		commitIDs[1] = newCommitID
+
+		return commitIDs, isForcePush, err
+	}
+
+	// Find commits between new and old commit excluding base branch commits
+	commits, err := gitRepo.CommitsBetweenNotBase(newCommit, oldCommit, baseBranch)
 	if err != nil {
 		return nil, false, err
 	}
 
 	commitIDs = make([]string, 0, len(commits))
-	commitChecks := make(map[string]*commitBranchCheckItem)
-
-	for _, commit := range commits {
-		commitChecks[commit.ID.String()] = &commitBranchCheckItem{
-			Commit:  commit,
-			Checked: false,
-		}
-	}
-
-	if err = commitBranchCheck(gitRepo, newCommit, oldCommitID, baseBranch, commitChecks); err != nil {
-		return
-	}
-
 	for i := len(commits) - 1; i >= 0; i-- {
-		commitID := commits[i].ID.String()
-		if item, ok := commitChecks[commitID]; ok && item.Checked {
-			commitIDs = append(commitIDs, commitID)
-		}
+		commitIDs = append(commitIDs, commits[i].ID.String())
 	}
 
 	return commitIDs, isForcePush, err
@@ -156,7 +88,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 
 	ops.Content = string(dataJSON)
 
-	comment, err = issue_service.CreateComment(ops)
+	comment, err = issues_model.CreateComment(ctx, ops)
 
 	return comment, err
 }

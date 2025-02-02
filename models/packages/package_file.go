@@ -46,18 +46,18 @@ type PackageFile struct {
 func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 	e := db.GetEngine(ctx)
 
-	key := &PackageFile{
-		VersionID:    pf.VersionID,
-		LowerName:    pf.LowerName,
-		CompositeKey: pf.CompositeKey,
-	}
+	existing := &PackageFile{}
 
-	has, err := e.Get(key)
+	has, err := e.Where(builder.Eq{
+		"version_id":    pf.VersionID,
+		"lower_name":    pf.LowerName,
+		"composite_key": pf.CompositeKey,
+	}).Get(existing)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return pf, ErrDuplicatePackageFile
+		return existing, ErrDuplicatePackageFile
 	}
 	if _, err = e.Insert(pf); err != nil {
 		return nil, err
@@ -93,13 +93,13 @@ func GetFileForVersionByName(ctx context.Context, versionID int64, name, key str
 		return nil, ErrPackageFileNotExist
 	}
 
-	pf := &PackageFile{
-		VersionID:    versionID,
-		LowerName:    strings.ToLower(name),
-		CompositeKey: key,
-	}
+	pf := &PackageFile{}
 
-	has, err := db.GetEngine(ctx).Get(pf)
+	has, err := db.GetEngine(ctx).Where(builder.Eq{
+		"version_id":    versionID,
+		"lower_name":    strings.ToLower(name),
+		"composite_key": key,
+	}).Get(pf)
 	if err != nil {
 		return nil, err
 	}
@@ -117,13 +117,15 @@ func DeleteFileByID(ctx context.Context, fileID int64) error {
 
 // PackageFileSearchOptions are options for SearchXXX methods
 type PackageFileSearchOptions struct {
-	OwnerID      int64
-	PackageType  string
-	VersionID    int64
-	Query        string
-	CompositeKey string
-	Properties   map[string]string
-	OlderThan    time.Duration
+	OwnerID       int64
+	PackageType   Type
+	VersionID     int64
+	Query         string
+	CompositeKey  string
+	Properties    map[string]string
+	OlderThan     time.Duration
+	HashAlgorithm string
+	Hash          string
 	db.Paginator
 }
 
@@ -182,6 +184,26 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Lt{"package_file.created_unix": time.Now().Add(-opts.OlderThan).Unix()})
 	}
 
+	if opts.Hash != "" {
+		var field string
+		switch strings.ToLower(opts.HashAlgorithm) {
+		case "md5":
+			field = "package_blob.hash_md5"
+		case "sha1":
+			field = "package_blob.hash_sha1"
+		case "sha256":
+			field = "package_blob.hash_sha256"
+		case "sha512":
+			fallthrough
+		default: // default to SHA512 if not specified or unknown
+			field = "package_blob.hash_sha512"
+		}
+		innerCond := builder.
+			Expr("package_blob.id = package_file.blob_id").
+			And(builder.Eq{field: opts.Hash})
+		cond = cond.And(builder.Exists(builder.Select("package_blob.id").From("package_blob").Where(innerCond)))
+	}
+
 	return cond
 }
 
@@ -197,6 +219,11 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 	pfs := make([]*PackageFile, 0, 10)
 	count, err := sess.FindAndCount(&pfs)
 	return pfs, count, err
+}
+
+// HasFiles tests if there are files of packages matching the search options
+func HasFiles(ctx context.Context, opts *PackageFileSearchOptions) (bool, error) {
+	return db.Exist[PackageFile](ctx, opts.toConds())
 }
 
 // CalculateFileSize sums up all blob sizes matching the search options.

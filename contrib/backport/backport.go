@@ -1,6 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:forbidigo
 package main
 
 import (
@@ -16,8 +17,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/google/go-github/v45/github"
-	"github.com/urfave/cli"
+	"github.com/google/go-github/v61/github"
+	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,53 +32,62 @@ func main() {
 	app.ArgsUsage = "<PR-to-backport>"
 
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "version",
 			Usage: "Version branch to backport on to",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "upstream",
 			Value: "origin",
 			Usage: "Upstream remote for the Gitea upstream",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "release-branch",
 			Value: "",
 			Usage: "Release branch to backport on. Will default to release/<version>",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "cherry-pick",
 			Usage: "SHA to cherry-pick as backport",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "backport-branch",
 			Usage: "Backport branch to backport on to (default: backport-<pr>-<version>",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "remote",
 			Value: "",
 			Usage: "Remote for your fork of the Gitea upstream",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "fork-user",
 			Value: "",
 			Usage: "Forked user name on Github",
 		},
-		cli.BoolFlag{
+		&cli.StringFlag{
+			Name:  "gh-access-token",
+			Value: "",
+			Usage: "Access token for GitHub api request",
+		},
+		&cli.BoolFlag{
 			Name:  "no-fetch",
 			Usage: "Set this flag to prevent fetch of remote branches",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "no-amend-message",
 			Usage: "Set this flag to prevent automatic amendment of the commit message",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "no-push",
 			Usage: "Set this flag to prevent pushing the backport up to your fork",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "no-xdg-open",
 			Usage: "Set this flag to not use xdg-open to open the PR URL",
+		},
+		&cli.BoolFlag{
+			Name:  "continue",
+			Usage: "Set this flag to continue from a git cherry-pick that has broken",
 		},
 	}
 	cli.AppHelpTemplate = `NAME:
@@ -104,7 +114,19 @@ func runBackport(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
+	continuing := c.Bool("continue")
+
+	var pr string
+
 	version := c.String("version")
+	if version == "" && continuing {
+		// determine version from current branch name
+		var err error
+		pr, version, err = readCurrentBranch(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	if version == "" {
 		version = readVersion()
 	}
@@ -134,14 +156,15 @@ func runBackport(c *cli.Context) error {
 
 	localReleaseBranch := path.Join(upstream, upstreamReleaseBranch)
 
-	args := c.Args()
-	if len(args) == 0 {
+	args := c.Args().Slice()
+	if len(args) == 0 && pr == "" {
 		return fmt.Errorf("no PR number provided\nProvide a PR number to backport")
-	} else if len(args) != 1 {
+	} else if len(args) != 1 && pr == "" {
 		return fmt.Errorf("multiple PRs provided %v\nOnly a single PR can be backported at a time", args)
 	}
-
-	pr := args[0]
+	if pr == "" {
+		pr = args[0]
+	}
 
 	backportBranch := c.String("backport-branch")
 	if backportBranch == "" {
@@ -151,9 +174,10 @@ func runBackport(c *cli.Context) error {
 	fmt.Printf("* Backporting %s to %s as %s\n", pr, localReleaseBranch, backportBranch)
 
 	sha := c.String("cherry-pick")
+	accessToken := c.String("gh-access-token")
 	if sha == "" {
 		var err error
-		sha, err = determineSHAforPR(ctx, pr)
+		sha, err = determineSHAforPR(ctx, pr, accessToken)
 		if err != nil {
 			return err
 		}
@@ -168,8 +192,10 @@ func runBackport(c *cli.Context) error {
 		}
 	}
 
-	if err := checkoutBackportBranch(ctx, backportBranch, localReleaseBranch); err != nil {
-		return err
+	if !continuing {
+		if err := checkoutBackportBranch(ctx, backportBranch, localReleaseBranch); err != nil {
+			return err
+		}
 	}
 
 	if err := cherrypick(ctx, sha); err != nil {
@@ -353,6 +379,22 @@ func determineRemote(ctx context.Context, forkUser string) (string, string, erro
 	return "", "", fmt.Errorf("unable to find appropriate remote in:\n%s", string(out))
 }
 
+func readCurrentBranch(ctx context.Context) (pr, version string, err error) {
+	out, err := exec.CommandContext(ctx, "git", "branch", "--show-current").Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to read current git branch:\n%s\n", string(out))
+		return "", "", fmt.Errorf("unable to read current git branch: %w", err)
+	}
+	parts := strings.Split(strings.TrimSpace(string(out)), "-")
+
+	if len(parts) != 3 || parts[0] != "backport" {
+		fmt.Fprintf(os.Stderr, "Unable to continue from git branch:\n%s\n", string(out))
+		return "", "", fmt.Errorf("unable to continue from git branch:\n%s", string(out))
+	}
+
+	return parts[1], parts[2], nil
+}
+
 func readVersion() string {
 	bs, err := os.ReadFile("docs/config.yaml")
 	if err != nil {
@@ -391,13 +433,16 @@ func readVersion() string {
 	return strings.Join(split[:2], ".")
 }
 
-func determineSHAforPR(ctx context.Context, prStr string) (string, error) {
+func determineSHAforPR(ctx context.Context, prStr, accessToken string) (string, error) {
 	prNum, err := strconv.Atoi(prStr)
 	if err != nil {
 		return "", err
 	}
 
 	client := github.NewClient(http.DefaultClient)
+	if accessToken != "" {
+		client = client.WithAuthToken(accessToken)
+	}
 
 	pr, _, err := client.PullRequests.Get(ctx, "go-gitea", "gitea", prNum)
 	if err != nil {

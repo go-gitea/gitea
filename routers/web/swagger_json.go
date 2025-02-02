@@ -4,22 +4,10 @@
 package web
 
 import (
-	"net/http"
-
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
 )
-
-// tplSwaggerV1Json swagger v1 json template
-const tplSwaggerV1Json base.TplName = "swagger/v1_json"
 
 // SwaggerV1Json render swagger v1 json
 func SwaggerV1Json(ctx *context.Context) {
-	t := ctx.Render.TemplateLookup(string(tplSwaggerV1Json))
-	ctx.Resp.Header().Set("Content-Type", "application/json")
-	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
-		log.Error("%v", err)
-		ctx.Error(http.StatusInternalServerError)
-	}
+	ctx.JSONTemplate("swagger/v1_json")
 }

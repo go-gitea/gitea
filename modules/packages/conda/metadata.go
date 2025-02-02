@@ -13,8 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
-
-	"github.com/klauspost/compress/zstd"
+	"code.gitea.io/gitea/modules/zstd"
 )
 
 var (
@@ -27,7 +26,7 @@ const (
 	PropertyName     = "conda.name"
 	PropertyChannel  = "conda.channel"
 	PropertySubdir   = "conda.subdir"
-	PropertyMetadata = "conda.metdata"
+	PropertyMetadata = "conda.metadata"
 )
 
 // Package represents a Conda package

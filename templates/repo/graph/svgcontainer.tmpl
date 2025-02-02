@@ -1,22 +1,22 @@
 <div id="rel-container">
-	<svg viewbox="{{Mul .Graph.MinColumn 5}} {{Mul .Graph.MinRow 12}} {{Add (Mul .Graph.Width 5) 5}} {{Mul .Graph.Height 12}}" width="{{Add (Mul .Graph.Width 10) 10}}px">
+	<svg viewbox="{{Eval .Graph.MinColumn "*" 5}} {{Eval .Graph.MinRow "*" 12}} {{Eval .Graph.Width "*" 5 "+" 5}} {{Eval .Graph.Height "*" 12}}" width="{{Eval .Graph.Width "*" 10 "+" 10}}px">
 		{{range $flowid, $flow := .Graph.Flows}}
 			<g id="flow-{{$flow.ID}}" class="flow-group flow-color-{{$flow.ColorNumber}} flow-color-16-{{$flow.Color16}}" data-flow="{{$flow.ID}}" data-color="{{$flow.ColorNumber}}">
 				<path d="{{range $i, $glyph := $flow.Glyphs -}}
 					{{- if or (eq $glyph.Glyph '*') (eq $glyph.Glyph '|') -}}
-						M {{Add (Mul $glyph.Column 5) 5}} {{Add (Mul $glyph.Row 12) 0}} v 12 {{/* */ -}}
+						M {{Eval $glyph.Column "*" 5 "+" 5}} {{Eval $glyph.Row "*" 12 "+" 0}} v 12 {{/* */ -}}
 					{{- else if eq $glyph.Glyph '/' -}}
-						M {{Add (Mul $glyph.Column 5) 10}} {{Add (Mul $glyph.Row 12) 0}} l -10 12 {{/* */ -}}
+						M {{Eval $glyph.Column "*" 5 "+" 10}} {{Eval $glyph.Row "*" 12 "+" 0}} l -10 12 {{/* */ -}}
 					{{- else if eq $glyph.Glyph '\\' -}}
-						M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 12) 0}} l 10 12 {{/* */ -}}
+						M {{Eval $glyph.Column "*" 5 "+" 0}} {{Eval $glyph.Row "*" 12 "+" 0}} l 10 12 {{/* */ -}}
 					{{- else if or (eq $glyph.Glyph '-') (eq $glyph.Glyph '.') -}}
-						M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 12) 12}} h 5 {{/* */ -}}
+						M {{Eval $glyph.Column "*" 5 "+" 0}} {{Eval $glyph.Row "*" 12 "+" 12}} h 5 {{/* */ -}}
 					{{- else if eq $glyph.Glyph '_' -}}
-						M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 12) 12}} h 10 {{/* */ -}}
+						M {{Eval $glyph.Column "*" 5 "+" 0}} {{Eval $glyph.Row "*" 12 "+" 12}} h 10 {{/* */ -}}
 					{{- end -}}
-				{{- end}}" stroke-width="1" fill="none" id="flow-{{$flow.ID}}-path" stroke-linecap="round"/>
+				{{- end}}" stroke-width="1" fill="none" id="flow-{{$flow.ID}}-path" stroke-linecap="round"></path>
 				{{range $flow.Commits}}
-					<circle class="flow-commit" cx="{{Add (Mul .Column 5) 5}}" cy="{{Add (Mul .Row 12) 6}}" r="2.5" stroke="none" id="flow-commit-{{.Rev}}" data-rev="{{.Rev}}"/>
+					<circle class="flow-commit" cx="{{Eval .Column "*" 5 "+" 5}}" cy="{{Eval .Row "*" 12 "+" 6}}" r="2.5" stroke="none" id="flow-commit-{{.Rev}}" data-rev="{{.Rev}}"></circle>
 				{{end}}
 			</g>
 		{{end}}

@@ -5,50 +5,14 @@ package graceful
 
 import (
 	"context"
-	"time"
 )
 
-// ChannelContext is a context that wraps a channel and error as a context
-type ChannelContext struct {
-	done <-chan struct{}
-	err  error
-}
-
-// NewChannelContext creates a ChannelContext from a channel and error
-func NewChannelContext(done <-chan struct{}, err error) *ChannelContext {
-	return &ChannelContext{
-		done: done,
-		err:  err,
-	}
-}
-
-// Deadline returns the time when work done on behalf of this context
-// should be canceled. There is no Deadline for a ChannelContext
-func (ctx *ChannelContext) Deadline() (deadline time.Time, ok bool) {
-	return deadline, ok
-}
-
-// Done returns the channel provided at the creation of this context.
-// When closed, work done on behalf of this context should be canceled.
-func (ctx *ChannelContext) Done() <-chan struct{} {
-	return ctx.done
-}
-
-// Err returns nil, if Done is not closed. If Done is closed,
-// Err returns the error provided at the creation of this context
-func (ctx *ChannelContext) Err() error {
-	select {
-	case <-ctx.done:
-		return ctx.err
-	default:
-		return nil
-	}
-}
-
-// Value returns nil for all calls as no values are or can be associated with this context
-func (ctx *ChannelContext) Value(key interface{}) interface{} {
-	return nil
-}
+// Shutdown procedure:
+// * cancel ShutdownContext: the registered context consumers have time to do their cleanup (they could use the hammer context)
+// * cancel HammerContext: the all context consumers have limited time to do their cleanup (wait for a few seconds)
+// * cancel TerminateContext: the registered context consumers have time to do their cleanup (but they shouldn't use shutdown/hammer context anymore)
+// * cancel manager context
+// If the shutdown is triggered again during the shutdown procedure, the hammer context will be canceled immediately to force to shut down.
 
 // ShutdownContext returns a context.Context that is Done at shutdown
 // Callers using this context should ensure that they are registered as a running server

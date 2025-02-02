@@ -41,7 +41,7 @@ func (s Status) String() string {
 
 // LocaleString returns the locale string name of the Status
 func (s Status) LocaleString(lang translation.Locale) string {
-	return lang.Tr("actions.status." + s.String())
+	return lang.TrString("actions.status." + s.String())
 }
 
 // IsDone returns whether the Status is final
@@ -80,6 +80,10 @@ func (s Status) IsWaiting() bool {
 
 func (s Status) IsRunning() bool {
 	return s == StatusRunning
+}
+
+func (s Status) IsBlocked() bool {
+	return s == StatusBlocked
 }
 
 // In returns whether s is one of the given statuses

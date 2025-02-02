@@ -26,7 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/go-chi/session"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 // RedisStore represents a redis session store implementation.
@@ -35,11 +35,11 @@ type RedisStore struct {
 	prefix, sid string
 	duration    time.Duration
 	lock        sync.RWMutex
-	data        map[interface{}]interface{}
+	data        map[any]any
 }
 
 // NewRedisStore creates and returns a redis session store.
-func NewRedisStore(c redis.UniversalClient, prefix, sid string, dur time.Duration, kv map[interface{}]interface{}) *RedisStore {
+func NewRedisStore(c redis.UniversalClient, prefix, sid string, dur time.Duration, kv map[any]any) *RedisStore {
 	return &RedisStore{
 		c:        c,
 		prefix:   prefix,
@@ -50,7 +50,7 @@ func NewRedisStore(c redis.UniversalClient, prefix, sid string, dur time.Duratio
 }
 
 // Set sets value to given key in session.
-func (s *RedisStore) Set(key, val interface{}) error {
+func (s *RedisStore) Set(key, val any) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -59,7 +59,7 @@ func (s *RedisStore) Set(key, val interface{}) error {
 }
 
 // Get gets value by given key in session.
-func (s *RedisStore) Get(key interface{}) interface{} {
+func (s *RedisStore) Get(key any) any {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -67,7 +67,7 @@ func (s *RedisStore) Get(key interface{}) interface{} {
 }
 
 // Delete delete a key from session.
-func (s *RedisStore) Delete(key interface{}) error {
+func (s *RedisStore) Delete(key any) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -100,7 +100,7 @@ func (s *RedisStore) Flush() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.data = make(map[interface{}]interface{})
+	s.data = make(map[any]any)
 	return nil
 }
 
@@ -141,13 +141,13 @@ func (p *RedisProvider) Read(sid string) (session.RawStore, error) {
 		}
 	}
 
-	var kv map[interface{}]interface{}
+	var kv map[any]any
 	kvs, err := p.c.Get(graceful.GetManager().HammerContext(), psid).Result()
 	if err != nil {
 		return nil, err
 	}
 	if len(kvs) == 0 {
-		kv = make(map[interface{}]interface{})
+		kv = make(map[any]any)
 	} else {
 		kv, err = session.DecodeGob([]byte(kvs))
 		if err != nil {
@@ -183,18 +183,23 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 		}
 	}
 
-	if err = p.c.Rename(graceful.GetManager().HammerContext(), poldsid, psid).Err(); err != nil {
-		return nil, err
-	}
-
-	var kv map[interface{}]interface{}
-	kvs, err := p.c.Get(graceful.GetManager().HammerContext(), psid).Result()
+	// do not use Rename here, because the old sid and new sid may be in different redis cluster slot.
+	kvs, err := p.c.Get(graceful.GetManager().HammerContext(), poldsid).Result()
 	if err != nil {
 		return nil, err
 	}
 
+	if err = p.c.Del(graceful.GetManager().HammerContext(), poldsid).Err(); err != nil {
+		return nil, err
+	}
+
+	if err = p.c.Set(graceful.GetManager().HammerContext(), psid, kvs, p.duration).Err(); err != nil {
+		return nil, err
+	}
+
+	var kv map[any]any
 	if len(kvs) == 0 {
-		kv = make(map[interface{}]interface{})
+		kv = make(map[any]any)
 	} else {
 		kv, err = session.DecodeGob([]byte(kvs))
 		if err != nil {

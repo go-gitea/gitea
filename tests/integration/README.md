@@ -6,7 +6,6 @@ appropriate backends, namely:
 make test-sqlite
 make test-pgsql
 make test-mysql
-make test-mysql8
 make test-mssql
 ```
 
@@ -15,9 +14,26 @@ Make sure to perform a clean build before running tests:
 make clean build
 ```
 
-## Run all tests via local drone
+## Run tests via local act_runner
+
+### Run all jobs
+
 ```
-drone exec --local --build-event "pull_request"
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
+```
+
+Warning: This file defines many jobs, so it will be resource-intensive and therefor not recommended.
+
+### Run single job
+
+```SHELL
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
+```
+
+You can list all job names via:
+
+```SHELL
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
 ```
 
 ## Run sqlite integration tests
@@ -40,11 +56,15 @@ TEST_MYSQL_HOST=localhost:3306 TEST_MYSQL_DBNAME=test TEST_MYSQL_USERNAME=root T
 ## Run pgsql integration tests
 Setup a pgsql database inside docker
 ```
-docker run -e "POSTGRES_DB=test" -p 5432:5432 --rm --name pgsql postgres:latest #(just ctrl-c to stop db and clean the container)
+docker run -e "POSTGRES_DB=test" -e "POSTGRES_USER=postgres" -e "POSTGRES_PASSWORD=postgres" -p 5432:5432 --rm --name pgsql postgres:latest #(just ctrl-c to stop db and clean the container)
+```
+Setup minio inside docker
+```
+docker run --rm -p 9000:9000 -e MINIO_ROOT_USER=123456 -e MINIO_ROOT_PASSWORD=12345678 --name minio bitnami/minio:2023.8.31
 ```
 Start tests based on the database container
 ```
-TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=test TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-pgsql
+TEST_MINIO_ENDPOINT=localhost:9000 TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=postgres TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-pgsql
 ```
 
 ## Run mssql integration tests
@@ -67,7 +87,7 @@ For SQLite:
 make test-sqlite#GPG
 ```
 
-For other databases(replace `mssql` to `mysql`, `mysql8` or `pgsql`):
+For other databases(replace `mssql` to `mysql`, or `pgsql`):
 
 ```
 TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql#GPG
@@ -79,18 +99,8 @@ We appreciate that some testing machines may not be very powerful and
 the default timeouts for declaring a slow test or a slow clean-up flush
 may not be appropriate.
 
-You can either:
-
-* Within the test ini file set the following section:
-
-```ini
-[integration-tests]
-SLOW_TEST = 10s ; 10s is the default value
-SLOW_FLUSH = 5S ; 5s is the default value
-```
-
-* Set the following environment variables:
+You can set the following environment variables:
 
 ```bash
-GITEA_SLOW_TEST_TIME="10s" GITEA_SLOW_FLUSH_TIME="5s" make test-sqlite
+GITEA_TEST_SLOW_RUN="10s" GITEA_TEST_SLOW_FLUSH="1s" make test-sqlite
 ```

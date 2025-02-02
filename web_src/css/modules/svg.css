@@ -1,0 +1,41 @@
+.svg {
+  display: inline-block;
+  vertical-align: text-top;
+  fill: currentcolor;
+}
+
+.middle .svg {
+  vertical-align: middle;
+}
+
+/* prevent SVGs from shrinking, like in space-starved flexboxes. the sizes
+   here are cherry-picked for our use cases, feel free to add more. after
+   https://developer.mozilla.org/en-US/docs/Web/CSS/attr#type-or-unit is
+   supported in browsers, use `attr(width px)` instead for a generic
+   solution. */
+
+.svg[height="12"] { min-height: 12px; }
+.svg[height="13"] { min-height: 13px; }
+.svg[height="14"] { min-height: 14px; }
+.svg[height="15"] { min-height: 15px; }
+.svg[height="16"] { min-height: 16px; }
+.svg[height="18"] { min-height: 18px; }
+.svg[height="20"] { min-height: 20px; }
+.svg[height="22"] { min-height: 22px; }
+.svg[height="24"] { min-height: 24px; }
+.svg[height="36"] { min-height: 36px; }
+.svg[height="48"] { min-height: 48px; }
+.svg[height="56"] { min-height: 56px; }
+
+.svg[width="12"] { min-width: 12px; }
+.svg[width="13"] { min-width: 13px; }
+.svg[width="14"] { min-width: 14px; }
+.svg[width="15"] { min-width: 15px; }
+.svg[width="16"] { min-width: 16px; }
+.svg[width="18"] { min-width: 18px; }
+.svg[width="20"] { min-width: 20px; }
+.svg[width="22"] { min-width: 22px; }
+.svg[width="24"] { min-width: 24px; }
+.svg[width="36"] { min-width: 36px; }
+.svg[width="48"] { min-width: 48px; }
+.svg[width="56"] { min-width: 56px; }

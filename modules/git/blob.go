@@ -20,17 +20,18 @@ func (b *Blob) Name() string {
 	return b.name
 }
 
-// GetBlobContent Gets the content of the blob as raw text
-func (b *Blob) GetBlobContent() (string, error) {
+// GetBlobContent Gets the limited content of the blob as raw text
+func (b *Blob) GetBlobContent(limit int64) (string, error) {
+	if limit <= 0 {
+		return "", nil
+	}
 	dataRc, err := b.DataAsync()
 	if err != nil {
 		return "", err
 	}
 	defer dataRc.Close()
-	buf := make([]byte, 1024)
-	n, _ := util.ReadAtMost(dataRc, buf)
-	buf = buf[:n]
-	return string(buf), nil
+	buf, err := util.ReadWithLimit(dataRc, int(limit))
+	return string(buf), err
 }
 
 // GetBlobLineCount gets line count of the blob

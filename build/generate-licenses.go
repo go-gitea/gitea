@@ -1,3 +1,6 @@
+// Copyright 2017 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 //go:build ignore
 
 package main
@@ -5,6 +8,8 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"crypto/md5"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -15,6 +20,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/build/license"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -77,7 +84,7 @@ func main() {
 	}
 
 	tr := tar.NewReader(gz)
-
+	aliasesFiles := make(map[string][]string)
 	for {
 		hdr, err := tr.Next()
 
@@ -97,25 +104,72 @@ func main() {
 			continue
 		}
 
-		if strings.HasPrefix(filepath.Base(hdr.Name), "README") {
+		fileBaseName := filepath.Base(hdr.Name)
+		licenseName := strings.TrimSuffix(fileBaseName, ".txt")
+
+		if strings.HasPrefix(fileBaseName, "README") {
 			continue
 		}
 
-		if strings.HasPrefix(filepath.Base(hdr.Name), "deprecated_") {
+		if strings.HasPrefix(fileBaseName, "deprecated_") {
 			continue
 		}
-		out, err := os.Create(path.Join(destination, strings.TrimSuffix(filepath.Base(hdr.Name), ".txt")))
+		out, err := os.Create(path.Join(destination, licenseName))
 		if err != nil {
 			log.Fatalf("Failed to create new file. %s", err)
 		}
 
 		defer out.Close()
 
-		if _, err := io.Copy(out, tr); err != nil {
+		// some license files have same content, so we need to detect these files and create a convert map into a json file
+		// Later we use this convert map to avoid adding same license content with different license name
+		h := md5.New()
+		// calculate md5 and write file in the same time
+		r := io.TeeReader(tr, h)
+		if _, err := io.Copy(out, r); err != nil {
 			log.Fatalf("Failed to write new file. %s", err)
 		} else {
 			fmt.Printf("Written %s\n", out.Name())
+
+			md5 := hex.EncodeToString(h.Sum(nil))
+			aliasesFiles[md5] = append(aliasesFiles[md5], licenseName)
 		}
+	}
+
+	// generate convert license name map
+	licenseAliases := make(map[string]string)
+	for _, fileNames := range aliasesFiles {
+		if len(fileNames) > 1 {
+			licenseName := license.GetLicenseNameFromAliases(fileNames)
+			if licenseName == "" {
+				// license name should not be empty as expected
+				// if it is empty, we need to rewrite the logic of GetLicenseNameFromAliases
+				log.Fatalf("GetLicenseNameFromAliases: license name is empty")
+			}
+			for _, fileName := range fileNames {
+				licenseAliases[fileName] = licenseName
+			}
+		}
+	}
+	// save convert license name map to file
+	b, err := json.Marshal(licenseAliases)
+	if err != nil {
+		log.Fatalf("Failed to create json bytes. %s", err)
+	}
+
+	licenseAliasesDestination := filepath.Join(destination, "etc", "license-aliases.json")
+	if err := os.MkdirAll(filepath.Dir(licenseAliasesDestination), 0o755); err != nil {
+		log.Fatalf("Failed to create directory for license aliases json file. %s", err)
+	}
+
+	f, err := os.Create(licenseAliasesDestination)
+	if err != nil {
+		log.Fatalf("Failed to create license aliases json file. %s", err)
+	}
+	defer f.Close()
+
+	if _, err = f.Write(b); err != nil {
+		log.Fatalf("Failed to write license aliases json file. %s", err)
 	}
 
 	fmt.Println("Done")

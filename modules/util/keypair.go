@@ -4,8 +4,10 @@
 package util
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 )
@@ -13,10 +15,7 @@ import (
 // GenerateKeyPair generates a public and private keypair
 func GenerateKeyPair(bits int) (string, string, error) {
 	priv, _ := rsa.GenerateKey(rand.Reader, bits)
-	privPem, err := pemBlockForPriv(priv)
-	if err != nil {
-		return "", "", err
-	}
+	privPem := pemBlockForPriv(priv)
 	pubPem, err := pemBlockForPub(&priv.PublicKey)
 	if err != nil {
 		return "", "", err
@@ -24,12 +23,12 @@ func GenerateKeyPair(bits int) (string, string, error) {
 	return privPem, pubPem, nil
 }
 
-func pemBlockForPriv(priv *rsa.PrivateKey) (string, error) {
+func pemBlockForPriv(priv *rsa.PrivateKey) string {
 	privBytes := pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(priv),
 	})
-	return string(privBytes), nil
+	return string(privBytes)
 }
 
 func pemBlockForPub(pub *rsa.PublicKey) (string, error) {
@@ -42,4 +41,17 @@ func pemBlockForPub(pub *rsa.PublicKey) (string, error) {
 		Bytes: pubASN1,
 	})
 	return string(pubBytes), nil
+}
+
+// CreatePublicKeyFingerprint creates a fingerprint of the given key.
+// The fingerprint is the sha256 sum of the PKIX structure of the key.
+func CreatePublicKeyFingerprint(key crypto.PublicKey) ([]byte, error) {
+	bytes, err := x509.MarshalPKIXPublicKey(key)
+	if err != nil {
+		return nil, err
+	}
+
+	checksum := sha256.Sum256(bytes)
+
+	return checksum[:], nil
 }

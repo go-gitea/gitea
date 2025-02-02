@@ -20,7 +20,7 @@ func AddPackageTables(x *xorm.Engine) error {
 		SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(Package)); err != nil {
+	if err := x.Sync(new(Package)); err != nil {
 		return err
 	}
 
@@ -36,7 +36,7 @@ func AddPackageTables(x *xorm.Engine) error {
 		DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	if err := x.Sync2(new(PackageVersion)); err != nil {
+	if err := x.Sync(new(PackageVersion)); err != nil {
 		return err
 	}
 
@@ -48,7 +48,7 @@ func AddPackageTables(x *xorm.Engine) error {
 		Value   string `xorm:"TEXT NOT NULL"`
 	}
 
-	if err := x.Sync2(new(PackageProperty)); err != nil {
+	if err := x.Sync(new(PackageProperty)); err != nil {
 		return err
 	}
 
@@ -63,7 +63,7 @@ func AddPackageTables(x *xorm.Engine) error {
 		CreatedUnix  timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	}
 
-	if err := x.Sync2(new(PackageFile)); err != nil {
+	if err := x.Sync(new(PackageFile)); err != nil {
 		return err
 	}
 
@@ -77,7 +77,7 @@ func AddPackageTables(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	}
 
-	if err := x.Sync2(new(PackageBlob)); err != nil {
+	if err := x.Sync(new(PackageBlob)); err != nil {
 		return err
 	}
 
@@ -89,5 +89,5 @@ func AddPackageTables(x *xorm.Engine) error {
 		UpdatedUnix    timeutil.TimeStamp `xorm:"updated INDEX NOT NULL"`
 	}
 
-	return x.Sync2(new(PackageBlobUpload))
+	return x.Sync(new(PackageBlobUpload))
 }

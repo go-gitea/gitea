@@ -30,14 +30,6 @@ func IsTeamMember(ctx context.Context, orgID, teamID, userID int64) (bool, error
 		Exist()
 }
 
-// GetTeamUsersByTeamID returns team users for a team
-func GetTeamUsersByTeamID(ctx context.Context, teamID int64) ([]*TeamUser, error) {
-	teamUsers := make([]*TeamUser, 0, 10)
-	return teamUsers, db.GetEngine(ctx).
-		Where("team_id=?", teamID).
-		Find(&teamUsers)
-}
-
 // SearchMembersOptions holds the search options
 type SearchMembersOptions struct {
 	db.ListOptions
@@ -63,8 +55,8 @@ func GetTeamMembers(ctx context.Context, opts *SearchMembersOptions) ([]*user_mo
 				Where(builder.Eq{"team_id": opts.TeamID}),
 		)
 	}
-	if opts.PageSize > 0 && opts.Page > -1 {
-		sess = sess.Limit(opts.PageSize, opts.Page*opts.PageSize)
+	if opts.PageSize > 0 && opts.Page > 0 {
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	if err := sess.OrderBy("full_name, name").Find(&members); err != nil {
 		return nil, err
@@ -78,9 +70,9 @@ func IsUserInTeams(ctx context.Context, userID int64, teamIDs []int64) (bool, er
 }
 
 // UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
-func UsersInTeamsCount(userIDs, teamIDs []int64) (int64, error) {
+func UsersInTeamsCount(ctx context.Context, userIDs, teamIDs []int64) (int64, error) {
 	var ids []int64
-	if err := db.GetEngine(db.DefaultContext).In("uid", userIDs).In("team_id", teamIDs).
+	if err := db.GetEngine(ctx).In("uid", userIDs).In("team_id", teamIDs).
 		Table("team_user").
 		Cols("uid").GroupBy("uid").Find(&ids); err != nil {
 		return 0, err

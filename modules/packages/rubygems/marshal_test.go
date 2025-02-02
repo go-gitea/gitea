@@ -12,7 +12,7 @@ import (
 
 func TestMinimalEncoder(t *testing.T) {
 	cases := []struct {
-		Value    interface{}
+		Value    any
 		Expected []byte
 		Error    error
 	}{
@@ -73,7 +73,7 @@ func TestMinimalEncoder(t *testing.T) {
 		{
 			Value: &RubyObject{
 				Name: "Test",
-				Member: map[string]interface{}{
+				Member: map[string]any{
 					"test": 4,
 				},
 			},

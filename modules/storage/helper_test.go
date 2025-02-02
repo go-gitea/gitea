@@ -37,12 +37,12 @@ func Test_discardStorage(t *testing.T) {
 				assert.Error(t, err, string(tt))
 			}
 			{
-				got, err := tt.URL("path", "name")
+				got, err := tt.URL("path", "name", nil)
 				assert.Nil(t, got)
 				assert.Errorf(t, err, string(tt))
 			}
 			{
-				err := tt.IterateObjects(func(_ string, _ Object) error { return nil })
+				err := tt.IterateObjects("", func(_ string, _ Object) error { return nil })
 				assert.Error(t, err, string(tt))
 			}
 		})

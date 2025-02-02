@@ -12,11 +12,13 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
-	"unsafe"
 
 	"code.gitea.io/gitea/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
+	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
@@ -40,19 +42,42 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name             string
+	prog             string
 	args             []string
 	parentContext    context.Context
-	desc             string
 	globalArgsLength int
 	brokenArgs       []string
 }
 
-func (c *Command) String() string {
-	if len(c.args) == 0 {
-		return c.name
+func logArgSanitize(arg string) string {
+	if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
+		return util.SanitizeCredentialURLs(arg)
+	} else if filepath.IsAbs(arg) {
+		base := filepath.Base(arg)
+		dir := filepath.Dir(arg)
+		return ".../" + filepath.Join(filepath.Base(dir), base)
 	}
-	return fmt.Sprintf("%s %s", c.name, strings.Join(c.args, " "))
+	return arg
+}
+
+func (c *Command) LogString() string {
+	// WARNING: this function is for debugging purposes only. It's much better than old code (which only joins args with space),
+	// It's impossible to make a simple and 100% correct implementation of argument quoting for different platforms here.
+	debugQuote := func(s string) string {
+		if strings.ContainsAny(s, " `'\"\t\r\n") {
+			return fmt.Sprintf("%q", s)
+		}
+		return s
+	}
+	a := make([]string, 0, len(c.args)+1)
+	a = append(a, debugQuote(c.prog))
+	if c.globalArgsLength > 0 {
+		a = append(a, "...global...")
+	}
+	for i := c.globalArgsLength; i < len(c.args); i++ {
+		a = append(a, debugQuote(logArgSanitize(c.args[i])))
+	}
+	return strings.Join(a, " ")
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
@@ -67,7 +92,7 @@ func NewCommand(ctx context.Context, args ...internal.CmdArg) *Command {
 		cargs = append(cargs, string(arg))
 	}
 	return &Command{
-		name:             GitExecutable,
+		prog:             GitExecutable,
 		args:             cargs,
 		parentContext:    ctx,
 		globalArgsLength: len(globalCommandArgs),
@@ -82,7 +107,7 @@ func NewCommandContextNoGlobals(ctx context.Context, args ...internal.CmdArg) *C
 		cargs = append(cargs, string(arg))
 	}
 	return &Command{
-		name:          GitExecutable,
+		prog:          GitExecutable,
 		args:          cargs,
 		parentContext: ctx,
 	}
@@ -91,12 +116,6 @@ func NewCommandContextNoGlobals(ctx context.Context, args ...internal.CmdArg) *C
 // SetParentContext sets the parent context for this command
 func (c *Command) SetParentContext(ctx context.Context) *Command {
 	c.parentContext = ctx
-	return c
-}
-
-// SetDescription sets the description for this command which be returned on c.String()
-func (c *Command) SetDescription(desc string) *Command {
-	c.desc = desc
 	return c
 }
 
@@ -179,7 +198,7 @@ func (c *Command) AddDashesAndList(list ...string) *Command {
 }
 
 // ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
-// In most cases, it shouldn't be used. Use AddXxx function instead
+// In most cases, it shouldn't be used. Use NewCommand().AddXxx() function instead
 func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 	ret := make(TrustedCmdArgs, len(args))
 	for i, arg := range args {
@@ -193,17 +212,41 @@ type RunOpts struct {
 	Env               []string
 	Timeout           time.Duration
 	UseContextTimeout bool
-	Dir               string
-	Stdout, Stderr    io.Writer
-	Stdin             io.Reader
-	PipelineFunc      func(context.Context, context.CancelFunc) error
+
+	// Dir is the working dir for the git command, however:
+	// FIXME: this could be incorrect in many cases, for example:
+	// * /some/path/.git
+	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
+	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
+	// The correct approach is to use `--git-dir" global argument
+	Dir string
+
+	Stdout, Stderr io.Writer
+
+	// Stdin is used for passing input to the command
+	// The caller must make sure the Stdin writer is closed properly to finish the Run function.
+	// Otherwise, the Run function may hang for long time or forever, especially when the Git's context deadline is not the same as the caller's.
+	// Some common mistakes:
+	// * `defer stdinWriter.Close()` then call `cmd.Run()`: the Run() would never return if the command is killed by timeout
+	// * `go { case <- parentContext.Done(): stdinWriter.Close() }` with `cmd.Run(DefaultTimeout)`: the command would have been killed by timeout but the Run doesn't return until stdinWriter.Close()
+	// * `go { if stdoutReader.Read() err != nil: stdinWriter.Close() }` with `cmd.Run()`: the stdoutReader may never return error if the command is killed by timeout
+	// In the future, ideally the git module itself should have full control of the stdin, to avoid such problems and make it easier to refactor to a better architecture.
+	Stdin io.Reader
+
+	PipelineFunc func(context.Context, context.CancelFunc) error
 }
 
 func commonBaseEnvs() []string {
-	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
 	envs := []string{
-		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
-		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+		// Make Gitea use internal git config only, to prevent conflicts with user's git config
+		// It's better to use GIT_CONFIG_GLOBAL, but it requires git >= 2.32, so we still use HOME at the moment.
+		"HOME=" + HomeDir(),
+		// Avoid using system git config, it would cause problems (eg: use macOS osxkeychain to show a modal dialog, auto installing lfs hooks)
+		// This might be a breaking change in 1.24, because some users said that they have put some configs like "receive.certNonceSeed" in "/etc/gitconfig"
+		// For these users, they need to migrate the necessary configs to Gitea's git config file manually.
+		"GIT_CONFIG_NOSYSTEM=1",
+		// Ignore replace references (https://git-scm.com/docs/git-replace)
+		"GIT_NO_REPLACE_OBJECTS=1",
 	}
 
 	// some environment variables should be passed to git command
@@ -235,8 +278,12 @@ var ErrBrokenCommand = errors.New("git command is broken")
 
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
+	return c.run(1, opts)
+}
+
+func (c *Command) run(skip int, opts *RunOpts) error {
 	if len(c.brokenArgs) != 0 {
-		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
+		log.Error("git command is broken: %s, broken args: %s", c.LogString(), strings.Join(c.brokenArgs, " "))
 		return ErrBrokenCommand
 	}
 	if opts == nil {
@@ -249,30 +296,19 @@ func (c *Command) Run(opts *RunOpts) error {
 		timeout = defaultCommandExecutionTimeout
 	}
 
-	if len(opts.Dir) == 0 {
-		log.Debug("%s", c)
-	} else {
-		log.Debug("%s: %v", opts.Dir, c)
+	cmdLogString := c.LogString()
+	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + skip /* parent */)
+	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
+		callerInfo = callerInfo[pos+1:]
 	}
+	// these logs are for debugging purposes only, so no guarantee of correctness or stability
+	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), cmdLogString)
+	log.Debug("git.Command: %s", desc)
 
-	desc := c.desc
-	if desc == "" {
-		args := c.args[c.globalArgsLength:]
-		var argSensitiveURLIndexes []int
-		for i, arg := range c.args {
-			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
-				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
-			}
-		}
-		if len(argSensitiveURLIndexes) > 0 {
-			args = make([]string, len(c.args))
-			copy(args, c.args)
-			for _, urlArgIndex := range argSensitiveURLIndexes {
-				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
-			}
-		}
-		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
-	}
+	_, span := gtprof.GetTracer().Start(c.parentContext, gtprof.TraceSpanGitRun)
+	defer span.End()
+	span.SetAttributeString(gtprof.TraceAttrFuncCaller, callerInfo)
+	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
 	var ctx context.Context
 	var cancel context.CancelFunc
@@ -285,7 +321,9 @@ func (c *Command) Run(opts *RunOpts) error {
 	}
 	defer finished()
 
-	cmd := exec.CommandContext(ctx, c.name, c.args...)
+	startTime := time.Now()
+
+	cmd := exec.CommandContext(ctx, c.prog, c.args...)
 	if opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {
@@ -311,7 +349,24 @@ func (c *Command) Run(opts *RunOpts) error {
 		}
 	}
 
-	if err := cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
+	err := cmd.Wait()
+	elapsed := time.Since(startTime)
+	if elapsed > time.Second {
+		log.Debug("slow git.Command.Run: %s (%s)", c, elapsed)
+	}
+
+	// We need to check if the context is canceled by the program on Windows.
+	// This is because Windows does not have signal checking when terminating the process.
+	// It always returns exit code 1, unlike Linux, which has many exit codes for signals.
+	if runtime.GOOS == "windows" &&
+		err != nil &&
+		err.Error() == "" &&
+		cmd.ProcessState.ExitCode() == 1 &&
+		ctx.Err() == context.Canceled {
+		return ctx.Err()
+	}
+
+	if err != nil && ctx.Err() != context.DeadlineExceeded {
 		return err
 	}
 
@@ -322,7 +377,6 @@ type RunStdError interface {
 	error
 	Unwrap() error
 	Stderr() string
-	IsExitCode(code int) bool
 }
 
 type runStdError struct {
@@ -347,23 +401,19 @@ func (r *runStdError) Stderr() string {
 	return r.stderr
 }
 
-func (r *runStdError) IsExitCode(code int) bool {
+func IsErrorExitCode(err error, code int) bool {
 	var exitError *exec.ExitError
-	if errors.As(r.err, &exitError) {
+	if errors.As(err, &exitError) {
 		return exitError.ExitCode() == code
 	}
 	return false
 }
 
-func bytesToString(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b)) // that's what Golang's strings.Builder.String() does (go/src/strings/builder.go)
-}
-
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
-	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
-	stdout = bytesToString(stdoutBytes)
-	stderr = bytesToString(stderrBytes)
+	stdoutBytes, stderrBytes, err := c.runStdBytes(opts)
+	stdout = util.UnsafeBytesToString(stdoutBytes)
+	stderr = util.UnsafeBytesToString(stderrBytes)
 	if err != nil {
 		return stdout, stderr, &runStdError{err: err, stderr: stderr}
 	}
@@ -373,6 +423,10 @@ func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr Run
 
 // RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+	return c.runStdBytes(opts)
+}
+
+func (c *Command) runStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
 	if opts == nil {
 		opts = &RunOpts{}
 	}
@@ -395,10 +449,10 @@ func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 		PipelineFunc:      opts.PipelineFunc,
 	}
 
-	err := c.Run(newOpts)
+	err := c.run(2, newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
-		return nil, stderr, &runStdError{err: err, stderr: bytesToString(stderr)}
+		return nil, stderr, &runStdError{err: err, stderr: util.UnsafeBytesToString(stderr)}
 	}
 	// even if there is no err, there could still be some stderr output
 	return stdoutBuf.Bytes(), stderr, nil

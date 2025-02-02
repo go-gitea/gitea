@@ -13,5 +13,5 @@ func AddProjectIssueSorting(x *xorm.Engine) error {
 		Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync2(new(ProjectIssue))
+	return x.Sync(new(ProjectIssue))
 }

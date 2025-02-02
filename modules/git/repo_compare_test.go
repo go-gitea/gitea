@@ -28,7 +28,7 @@ func TestGetFormatPatch(t *testing.T) {
 	defer repo.Close()
 
 	rd := &bytes.Buffer{}
-	err = repo.GetPatch("8d92fc95^", "8d92fc95", rd)
+	err = repo.GetPatch("8d92fc95^...8d92fc95", rd)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -72,7 +72,7 @@ func TestReadPatch(t *testing.T) {
 	assert.Empty(t, noFile)
 	assert.Empty(t, noCommit)
 	assert.Len(t, oldCommit, 40)
-	assert.True(t, oldCommit == "6e8e2a6f9efd71dbe6917816343ed8415ad696c3")
+	assert.Equal(t, "6e8e2a6f9efd71dbe6917816343ed8415ad696c3", oldCommit)
 }
 
 func TestReadWritePullHead(t *testing.T) {
@@ -113,9 +113,51 @@ func TestReadWritePullHead(t *testing.T) {
 	}
 
 	assert.Len(t, headContents, 40)
-	assert.True(t, headContents == newCommit)
+	assert.Equal(t, headContents, newCommit)
 
 	// Remove file after the test
 	err = repo.RemoveReference(PullPrefix + "1/head")
 	assert.NoError(t, err)
+}
+
+func TestGetCommitFilesChanged(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	assert.NoError(t, err)
+	defer repo.Close()
+
+	objectFormat, err := repo.GetObjectFormat()
+	assert.NoError(t, err)
+
+	testCases := []struct {
+		base, head string
+		files      []string
+	}{
+		{
+			objectFormat.EmptyObjectID().String(),
+			"95bb4d39648ee7e325106df01a621c530863a653",
+			[]string{"file1.txt"},
+		},
+		{
+			objectFormat.EmptyObjectID().String(),
+			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+			[]string{"file2.txt"},
+		},
+		{
+			"95bb4d39648ee7e325106df01a621c530863a653",
+			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+			[]string{"file2.txt"},
+		},
+		{
+			objectFormat.EmptyTree().String(),
+			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
+			[]string{"file1.txt", "file2.txt"},
+		},
+	}
+
+	for _, tc := range testCases {
+		changedFiles, err := repo.GetFilesChangedBetween(tc.base, tc.head)
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, tc.files, changedFiles)
+	}
 }

@@ -1,42 +1,48 @@
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestGetRefURL(t *testing.T) {
-	kases := []struct {
-		refURL     string
-		prefixURL  string
-		parentPath string
-		SSHDomain  string
-		expect     string
-	}{
-		{"git://github.com/user1/repo1", "/", "user1/repo2", "", "http://github.com/user1/repo1"},
-		{"https://localhost/user1/repo1.git", "/", "user1/repo2", "", "https://localhost/user1/repo1"},
-		{"http://localhost/user1/repo1.git", "/", "owner/reponame", "", "http://localhost/user1/repo1"},
-		{"git@github.com:user1/repo1.git", "/", "owner/reponame", "", "http://github.com/user1/repo1"},
-		{"ssh://git@git.zefie.net:2222/zefie/lge_g6_kernel_scripts.git", "/", "zefie/lge_g6_kernel", "", "http://git.zefie.net/zefie/lge_g6_kernel_scripts"},
-		{"git@git.zefie.net:2222/zefie/lge_g6_kernel_scripts.git", "/", "zefie/lge_g6_kernel", "", "http://git.zefie.net/2222/zefie/lge_g6_kernel_scripts"},
-		{"git@try.gitea.io:go-gitea/gitea", "https://try.gitea.io/", "go-gitea/sdk", "", "https://try.gitea.io/go-gitea/gitea"},
-		{"ssh://git@try.gitea.io:9999/go-gitea/gitea", "https://try.gitea.io/", "go-gitea/sdk", "", "https://try.gitea.io/go-gitea/gitea"},
-		{"git://git@try.gitea.io:9999/go-gitea/gitea", "https://try.gitea.io/", "go-gitea/sdk", "", "https://try.gitea.io/go-gitea/gitea"},
-		{"ssh://git@127.0.0.1:9999/go-gitea/gitea", "https://127.0.0.1:3000/", "go-gitea/sdk", "", "https://127.0.0.1:3000/go-gitea/gitea"},
-		{"https://gitea.com:3000/user1/repo1.git", "https://127.0.0.1:3000/", "user/repo2", "", "https://gitea.com:3000/user1/repo1"},
-		{"https://example.gitea.com/gitea/user1/repo1.git", "https://example.gitea.com/gitea/", "", "user/repo2", "https://example.gitea.com/gitea/user1/repo1"},
-		{"https://username:password@github.com/username/repository.git", "/", "username/repository2", "", "https://username:password@github.com/username/repository"},
-		{"somethingbad", "https://127.0.0.1:3000/go-gitea/gitea", "/", "", ""},
-		{"git@localhost:user/repo", "https://localhost/", "user2/repo1", "", "https://localhost/user/repo"},
-		{"../path/to/repo.git/", "https://localhost/", "user/repo2", "", "https://localhost/user/path/to/repo.git"},
-		{"ssh://git@ssh.gitea.io:2222/go-gitea/gitea", "https://try.gitea.io/", "go-gitea/sdk", "ssh.gitea.io", "https://try.gitea.io/go-gitea/gitea"},
-	}
+func TestGetTemplateSubmoduleCommits(t *testing.T) {
+	testRepoPath := filepath.Join(testReposDir, "repo4_submodules")
+	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, testRepoPath)
+	require.NoError(t, err)
 
-	for _, kase := range kases {
-		assert.EqualValues(t, kase.expect, getRefURL(kase.refURL, kase.prefixURL, kase.parentPath, kase.SSHDomain))
-	}
+	assert.Len(t, submodules, 2)
+
+	assert.EqualValues(t, "<°)))><", submodules[0].Path)
+	assert.EqualValues(t, "d2932de67963f23d43e1c7ecf20173e92ee6c43c", submodules[0].Commit)
+
+	assert.EqualValues(t, "libtest", submodules[1].Path)
+	assert.EqualValues(t, "1234567890123456789012345678901234567890", submodules[1].Commit)
+}
+
+func TestAddTemplateSubmoduleIndexes(t *testing.T) {
+	ctx := context.Background()
+	tmpDir := t.TempDir()
+	var err error
+	_, _, err = NewCommand(ctx, "init").RunStdString(&RunOpts{Dir: tmpDir})
+	require.NoError(t, err)
+	_ = os.Mkdir(filepath.Join(tmpDir, "new-dir"), 0o755)
+	err = AddTemplateSubmoduleIndexes(ctx, tmpDir, []TemplateSubmoduleCommit{{Path: "new-dir", Commit: "1234567890123456789012345678901234567890"}})
+	require.NoError(t, err)
+	_, _, err = NewCommand(ctx, "add", "--all").RunStdString(&RunOpts{Dir: tmpDir})
+	require.NoError(t, err)
+	_, _, err = NewCommand(ctx, "-c", "user.name=a", "-c", "user.email=b", "commit", "-m=test").RunStdString(&RunOpts{Dir: tmpDir})
+	require.NoError(t, err)
+	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, tmpDir)
+	require.NoError(t, err)
+	assert.Len(t, submodules, 1)
+	assert.EqualValues(t, "new-dir", submodules[0].Path)
+	assert.EqualValues(t, "1234567890123456789012345678901234567890", submodules[0].Commit)
 }

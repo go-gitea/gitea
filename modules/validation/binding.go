@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/binding"
 	"github.com/gobwas/glob"
@@ -31,6 +32,7 @@ const (
 // AddBindingRules adds additional binding rules
 func AddBindingRules() {
 	addGitRefNameBindingRule()
+	addValidURLListBindingRule()
 	addValidURLBindingRule()
 	addValidSiteURLBindingRule()
 	addGlobPatternRule()
@@ -44,9 +46,9 @@ func addGitRefNameBindingRule() {
 	// Git refname validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "GitRefName")
+			return rule == "GitRefName"
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
 
 			if !git.IsValidRefPattern(str) {
@@ -58,13 +60,40 @@ func addGitRefNameBindingRule() {
 	})
 }
 
+func addValidURLListBindingRule() {
+	// URL validation rule
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "ValidUrlList"
+		},
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+			if len(str) == 0 {
+				errs.Add([]string{name}, binding.ERR_URL, "Url")
+				return false, errs
+			}
+
+			ok := true
+			urls := util.SplitTrimSpace(str, "\n")
+			for _, u := range urls {
+				if !IsValidURL(u) {
+					ok = false
+					errs.Add([]string{name}, binding.ERR_URL, u)
+				}
+			}
+
+			return ok, errs
+		},
+	})
+}
+
 func addValidURLBindingRule() {
 	// URL validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "ValidUrl")
+			return rule == "ValidUrl"
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
 			if len(str) != 0 && !IsValidURL(str) {
 				errs.Add([]string{name}, binding.ERR_URL, "Url")
@@ -80,9 +109,9 @@ func addValidSiteURLBindingRule() {
 	// URL validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "ValidSiteUrl")
+			return rule == "ValidSiteUrl"
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
 			if len(str) != 0 && !IsValidSiteURL(str) {
 				errs.Add([]string{name}, binding.ERR_URL, "Url")
@@ -103,7 +132,7 @@ func addGlobPatternRule() {
 	})
 }
 
-func globPatternValidator(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+func globPatternValidator(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 	str := fmt.Sprintf("%v", val)
 
 	if len(str) != 0 {
@@ -125,7 +154,7 @@ func addRegexPatternRule() {
 	})
 }
 
-func regexPatternValidator(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+func regexPatternValidator(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 	str := fmt.Sprintf("%v", val)
 
 	if _, err := regexp.Compile(str); err != nil {
@@ -141,7 +170,7 @@ func addGlobOrRegexPatternRule() {
 		IsMatch: func(rule string) bool {
 			return rule == "GlobOrRegexPattern"
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := strings.TrimSpace(fmt.Sprintf("%v", val))
 
 			if len(str) >= 2 && strings.HasPrefix(str, "/") && strings.HasSuffix(str, "/") {
@@ -157,7 +186,7 @@ func addUsernamePatternRule() {
 		IsMatch: func(rule string) bool {
 			return rule == "Username"
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
 			if !IsValidUsername(str) {
 				errs.Add([]string{name}, ErrUsername, "invalid username")
@@ -171,9 +200,9 @@ func addUsernamePatternRule() {
 func addValidGroupTeamMapRule() {
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
-			return strings.HasPrefix(rule, "ValidGroupTeamMap")
+			return rule == "ValidGroupTeamMap"
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
 			_, err := auth.UnmarshalGroupTeamMapping(fmt.Sprintf("%v", val))
 			if err != nil {
 				errs.Add([]string{name}, ErrInvalidGroupTeamMap, err.Error())

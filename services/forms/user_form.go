@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 )
@@ -26,7 +26,6 @@ type InstallForm struct {
 	DbPasswd string
 	DbName   string
 	SSLMode  string
-	Charset  string `binding:"Required;In(utf8,utf8mb4)"`
 	DbPath   string
 	DbSchema string
 
@@ -78,7 +77,7 @@ type InstallForm struct {
 
 // Validate validates the fields
 func (f *InstallForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -99,31 +98,8 @@ type RegisterForm struct {
 
 // Validate validates the fields
 func (f *RegisterForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// IsEmailDomainListed checks whether the domain of an email address
-// matches a list of domains
-func IsEmailDomainListed(list []string, email string) bool {
-	if len(list) == 0 {
-		return false
-	}
-
-	n := strings.LastIndex(email, "@")
-	if n <= 0 {
-		return false
-	}
-
-	domain := strings.ToLower(email[n+1:])
-
-	for _, v := range list {
-		if strings.ToLower(v) == domain {
-			return true
-		}
-	}
-
-	return false
 }
 
 // IsEmailDomainAllowed validates that the email address
@@ -131,12 +107,8 @@ func IsEmailDomainListed(list []string, email string) bool {
 // The email is marked as allowed if it matches any of the
 // domains in the whitelist or if it doesn't match any of
 // domains in the blocklist, if any such list is not empty.
-func (f RegisterForm) IsEmailDomainAllowed() bool {
-	if len(setting.Service.EmailDomainWhitelist) == 0 {
-		return !IsEmailDomainListed(setting.Service.EmailDomainBlocklist, f.Email)
-	}
-
-	return IsEmailDomainListed(setting.Service.EmailDomainWhitelist, f.Email)
+func (f *RegisterForm) IsEmailDomainAllowed() bool {
+	return user_model.IsEmailDomainAllowed(f.Email)
 }
 
 // MustChangePasswordForm form for updating your password after account creation
@@ -148,7 +120,7 @@ type MustChangePasswordForm struct {
 
 // Validate validates the fields
 func (f *MustChangePasswordForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -162,7 +134,7 @@ type SignInForm struct {
 
 // Validate validates the fields
 func (f *SignInForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -182,13 +154,14 @@ type AuthorizationForm struct {
 
 // Validate validates the fields
 func (f *AuthorizationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // GrantApplicationForm form for authorizing oauth2 clients
 type GrantApplicationForm struct {
 	ClientID    string `binding:"Required"`
+	Granted     bool
 	RedirectURI string
 	State       string
 	Scope       string
@@ -197,7 +170,7 @@ type GrantApplicationForm struct {
 
 // Validate validates the fields
 func (f *GrantApplicationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -216,7 +189,7 @@ type AccessTokenForm struct {
 
 // Validate validates the fields
 func (f *AccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -227,7 +200,7 @@ type IntrospectTokenForm struct {
 
 // Validate validates the fields
 func (f *IntrospectTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -252,7 +225,7 @@ type UpdateProfileForm struct {
 
 // Validate validates the fields
 func (f *UpdateProfileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -263,7 +236,7 @@ type UpdateLanguageForm struct {
 
 // Validate validates the fields
 func (f *UpdateLanguageForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -283,7 +256,7 @@ type AvatarForm struct {
 
 // Validate validates the fields
 func (f *AvatarForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -294,33 +267,19 @@ type AddEmailForm struct {
 
 // Validate validates the fields
 func (f *AddEmailForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // UpdateThemeForm form for updating a users' theme
 type UpdateThemeForm struct {
-	Theme string `binding:"Required;MaxSize(30)"`
+	Theme string `binding:"Required;MaxSize(255)"`
 }
 
 // Validate validates the field
 func (f *UpdateThemeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// IsThemeExists checks if the theme is a theme available in the config.
-func (f UpdateThemeForm) IsThemeExists() bool {
-	var exists bool
-
-	for _, v := range setting.UI.Themes {
-		if strings.EqualFold(v, f.Theme) {
-			exists = true
-			break
-		}
-	}
-
-	return exists
 }
 
 // ChangePasswordForm form for changing password
@@ -332,7 +291,7 @@ type ChangePasswordForm struct {
 
 // Validate validates the fields
 func (f *ChangePasswordForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -343,7 +302,7 @@ type AddOpenIDForm struct {
 
 // Validate validates the fields
 func (f *AddOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -360,31 +319,41 @@ type AddKeyForm struct {
 
 // Validate validates the fields
 func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AddSecretForm for adding secrets
 type AddSecretForm struct {
-	Title   string `binding:"Required;MaxSize(50)"`
-	Content string `binding:"Required"`
+	Name string `binding:"Required;MaxSize(255)"`
+	Data string `binding:"Required;MaxSize(65535)"`
 }
 
 // Validate validates the fields
 func (f *AddSecretForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type EditVariableForm struct {
+	Name string `binding:"Required;MaxSize(255)"`
+	Data string `binding:"Required;MaxSize(65535)"`
+}
+
+func (f *EditVariableForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name  string `binding:"Required;MaxSize(255)"`
+	Name  string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
 	Scope []string
 }
 
 // Validate validates the fields
 func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -396,14 +365,15 @@ func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
 type EditOAuth2ApplicationForm struct {
-	Name               string `binding:"Required;MaxSize(255)" form:"application_name"`
-	RedirectURI        string `binding:"Required" form:"redirect_uri"`
-	ConfidentialClient bool   `form:"confidential_client"`
+	Name                       string `binding:"Required;MaxSize(255)" form:"application_name"`
+	RedirectURIs               string `binding:"Required;ValidUrlList" form:"redirect_uris"`
+	ConfidentialClient         bool   `form:"confidential_client"`
+	SkipSecondaryAuthorization bool   `form:"skip_secondary_authorization"`
 }
 
 // Validate validates the fields
 func (f *EditOAuth2ApplicationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -414,7 +384,7 @@ type TwoFactorAuthForm struct {
 
 // Validate validates the fields
 func (f *TwoFactorAuthForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -425,7 +395,7 @@ type TwoFactorScratchAuthForm struct {
 
 // Validate validates the fields
 func (f *TwoFactorScratchAuthForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -436,7 +406,7 @@ type WebauthnRegistrationForm struct {
 
 // Validate validates the fields
 func (f *WebauthnRegistrationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -447,7 +417,7 @@ type WebauthnDeleteForm struct {
 
 // Validate validates the fields
 func (f *WebauthnDeleteForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
@@ -459,6 +429,17 @@ type PackageSettingForm struct {
 
 // Validate validates the fields
 func (f *PackageSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+type BlockUserForm struct {
+	Action  string `binding:"Required;In(block,unblock,note)"`
+	Blockee string `binding:"Required"`
+	Note    string
+}
+
+func (f *BlockUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

@@ -7,17 +7,21 @@ package org
 import (
 	"net/http"
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	feed_service "code.gitea.io/gitea/services/feed"
 	"code.gitea.io/gitea/services/org"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
@@ -29,14 +33,9 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 		UserID:         u.ID,
 		IncludePrivate: showPrivate,
 	}
-	orgs, err := organization.FindOrgs(opts)
+	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindOrgs", err)
-		return
-	}
-	maxResults, err := organization.CountOrgs(opts)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CountOrgs", err)
+		ctx.Error(http.StatusInternalServerError, "db.FindAndCount[organization.Organization]", err)
 		return
 	}
 
@@ -69,6 +68,8 @@ func ListMyOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserOrgs(ctx, ctx.Doer)
 }
@@ -97,6 +98,8 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	listUserOrgs(ctx, ctx.ContextUser)
 }
@@ -128,7 +131,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	var o *user_model.User
-	if o = user.GetUserByParamsName(ctx, ":org"); o == nil {
+	if o = user.GetUserByPathParam(ctx, "org"); o == nil {
 		return
 	}
 
@@ -140,7 +143,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	}
 
 	org := organization.OrgFromUser(o)
-	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx.ContextUser.ID)
+	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrgUserAuthorizeLevel", err)
 		return
@@ -159,7 +162,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 		op.IsOwner = true
 	}
 
-	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx.ContextUser.ID)
+	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 		return
@@ -189,7 +192,7 @@ func GetAll(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OrganizationList"
 
 	vMode := []api.VisibleType{api.VisibleTypePublic}
-	if ctx.IsSigned {
+	if ctx.IsSigned && !ctx.PublicOnly {
 		vMode = append(vMode, api.VisibleTypeLimited)
 		if ctx.Doer.IsAdmin {
 			vMode = append(vMode, api.VisibleTypePrivate)
@@ -198,7 +201,7 @@ func GetAll(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	publicOrgs, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		ListOptions: listOptions,
 		Type:        user_model.UserTypeOrganization,
@@ -254,6 +257,7 @@ func Create(ctx *context.APIContext) {
 	org := &organization.Organization{
 		Name:                      form.UserName,
 		FullName:                  form.FullName,
+		Email:                     form.Email,
 		Description:               form.Description,
 		Website:                   form.Website,
 		Location:                  form.Location,
@@ -262,7 +266,7 @@ func Create(ctx *context.APIContext) {
 		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
-	if err := organization.CreateOrganization(org, ctx.Doer); err != nil {
+	if err := organization.CreateOrganization(ctx, org, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
@@ -293,12 +297,60 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
+
+	org := convert.ToOrganization(ctx, ctx.Org.Organization)
+
+	// Don't show Mail, when User is not logged in
+	if ctx.Doer == nil {
+		org.Email = ""
+	}
+
+	ctx.JSON(http.StatusOK, org)
+}
+
+func Rename(ctx *context.APIContext) {
+	// swagger:operation POST /orgs/{org}/rename organization renameOrg
+	// ---
+	// summary: Rename an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: existing org name
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/RenameOrgOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm(ctx).(*api.RenameOrgOption)
+	orgUser := ctx.Org.Organization.AsUser()
+	if err := user_service.RenameUser(ctx, orgUser, form.NewName); err != nil {
+		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "RenameOrg", err)
+		} else {
+			ctx.ServerError("RenameOrg", err)
+		}
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }
 
 // Edit change an organization's information
@@ -324,27 +376,32 @@ func Edit(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	form := web.GetForm(ctx).(*api.EditOrgOption)
-	org := ctx.Org.Organization
-	org.FullName = form.FullName
-	org.Description = form.Description
-	org.Website = form.Website
-	org.Location = form.Location
-	if form.Visibility != "" {
-		org.Visibility = api.VisibilityModes[form.Visibility]
+
+	if form.Email != "" {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Org.Organization.AsUser(), form.Email); err != nil {
+			ctx.Error(http.StatusInternalServerError, "ReplacePrimaryEmailAddress", err)
+			return
+		}
 	}
-	if form.RepoAdminChangeTeamAccess != nil {
-		org.RepoAdminChangeTeamAccess = *form.RepoAdminChangeTeamAccess
+
+	opts := &user_service.UpdateOptions{
+		FullName:                  optional.Some(form.FullName),
+		Description:               optional.Some(form.Description),
+		Website:                   optional.Some(form.Website),
+		Location:                  optional.Some(form.Location),
+		Visibility:                optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
+		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
-	if err := user_model.UpdateUserCols(ctx, org.AsUser(),
-		"full_name", "description", "website", "location",
-		"visibility", "repo_admin_change_team_access",
-	); err != nil {
-		ctx.Error(http.StatusInternalServerError, "EditOrganization", err)
+	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, org))
+	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
 }
 
 // Delete an organization
@@ -363,10 +420,78 @@ func Delete(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
+	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+func ListOrgActivityFeeds(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/activities/feeds organization orgListActivityFeeds
+	// ---
+	// summary: List an organization's activity feeds
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the org
+	//   type: string
+	//   required: true
+	// - name: date
+	//   in: query
+	//   description: the date of the activities to be found
+	//   type: string
+	//   format: date
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActivityFeedsList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	includePrivate := false
+	if ctx.IsSigned {
+		if ctx.Doer.IsAdmin {
+			includePrivate = true
+		} else {
+			org := organization.OrgFromUser(ctx.ContextUser)
+			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
+				return
+			}
+			includePrivate = isMember
+		}
+	}
+
+	listOptions := utils.GetListOptions(ctx)
+
+	opts := activities_model.GetFeedsOptions{
+		RequestedUser:  ctx.ContextUser,
+		Actor:          ctx.Doer,
+		IncludePrivate: includePrivate,
+		Date:           ctx.FormString("date"),
+		ListOptions:    listOptions,
+	}
+
+	feeds, count, err := feed_service.GetFeeds(ctx, opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
+		return
+	}
+	ctx.SetTotalCountHeader(count)
+
+	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
 }

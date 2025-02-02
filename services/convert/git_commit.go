@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	ctx "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -72,8 +73,22 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 	}
 }
 
+type ToCommitOptions struct {
+	Stat         bool
+	Verification bool
+	Files        bool
+}
+
+func ParseCommitOptions(ctx *ctx.APIContext) ToCommitOptions {
+	return ToCommitOptions{
+		Stat:         ctx.FormString("stat") == "" || ctx.FormBool("stat"),
+		Files:        ctx.FormString("files") == "" || ctx.FormBool("files"),
+		Verification: ctx.FormString("verification") == "" || ctx.FormBool("verification"),
+	}
+}
+
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat bool) (*api.Commit, error) {
+func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, opts ToCommitOptions) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
@@ -162,36 +177,46 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 				SHA:     commit.ID.String(),
 				Created: commit.Committer.When,
 			},
-			Verification: ToVerification(ctx, commit),
 		},
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
 	}
 
+	// Retrieve verification for commit
+	if opts.Verification {
+		res.RepoCommit.Verification = ToVerification(ctx, commit)
+	}
+
 	// Retrieve files affected by the commit
-	if stat {
+	if opts.Files {
 		fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
 		if err != nil {
 			return nil, err
 		}
+
 		affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
-		for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
+		for filestatus, files := range map[string][]string{"added": fileStatus.Added, "removed": fileStatus.Removed, "modified": fileStatus.Modified} {
 			for _, filename := range files {
 				affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
 					Filename: filename,
+					Status:   filestatus,
 				})
 			}
 		}
 
-		diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+		res.Files = affectedFileList
+	}
+
+	// Get diff stats for commit
+	if opts.Stat {
+		diff, err := gitdiff.GetDiff(ctx, gitRepo, &gitdiff.DiffOptions{
 			AfterCommitID: commit.ID.String(),
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		res.Files = affectedFileList
 		res.Stats = &api.CommitStats{
 			Total:     diff.TotalAddition + diff.TotalDeletion,
 			Additions: diff.TotalAddition,

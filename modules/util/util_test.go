@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/optional"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -119,9 +121,9 @@ func Test_NormalizeEOL(t *testing.T) {
 }
 
 func Test_RandomInt(t *testing.T) {
-	int, err := CryptoRandomInt(255)
-	assert.True(t, int >= 0)
-	assert.True(t, int <= 255)
+	randInt, err := CryptoRandomInt(255)
+	assert.GreaterOrEqual(t, randInt, int64(0))
+	assert.LessOrEqual(t, randInt, int64(255))
 	assert.NoError(t, err)
 }
 
@@ -173,17 +175,17 @@ func Test_RandomBytes(t *testing.T) {
 	assert.NotEqual(t, bytes3, bytes4)
 }
 
-func Test_OptionalBool(t *testing.T) {
-	assert.Equal(t, OptionalBoolNone, OptionalBoolParse(""))
-	assert.Equal(t, OptionalBoolNone, OptionalBoolParse("x"))
+func TestOptionalBoolParse(t *testing.T) {
+	assert.Equal(t, optional.None[bool](), OptionalBoolParse(""))
+	assert.Equal(t, optional.None[bool](), OptionalBoolParse("x"))
 
-	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("0"))
-	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("f"))
-	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("False"))
+	assert.Equal(t, optional.Some(false), OptionalBoolParse("0"))
+	assert.Equal(t, optional.Some(false), OptionalBoolParse("f"))
+	assert.Equal(t, optional.Some(false), OptionalBoolParse("False"))
 
-	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("1"))
-	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("t"))
-	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("True"))
+	assert.Equal(t, optional.Some(true), OptionalBoolParse("1"))
+	assert.Equal(t, optional.Some(true), OptionalBoolParse("t"))
+	assert.Equal(t, optional.Some(true), OptionalBoolParse("True"))
 }
 
 // Test case for any function which accepts and returns a single string.
@@ -221,13 +223,33 @@ func BenchmarkToUpper(b *testing.B) {
 }
 
 func TestToTitleCase(t *testing.T) {
-	assert.Equal(t, ToTitleCase(`foo bar baz`), `Foo Bar Baz`)
-	assert.Equal(t, ToTitleCase(`FOO BAR BAZ`), `Foo Bar Baz`)
+	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`foo bar baz`))
+	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`FOO BAR BAZ`))
 }
 
-func TestDedent(t *testing.T) {
-	assert.Equal(t, Dedent(`
-		foo
-			bar
-	`), "foo\n\tbar")
+func TestToPointer(t *testing.T) {
+	assert.Equal(t, "abc", *ToPointer("abc"))
+	assert.Equal(t, 123, *ToPointer(123))
+	abc := "abc"
+	assert.NotSame(t, &abc, ToPointer(abc))
+	val123 := 123
+	assert.NotSame(t, &val123, ToPointer(val123))
+}
+
+func TestReserveLineBreakForTextarea(t *testing.T) {
+	assert.Equal(t, "test\ndata", ReserveLineBreakForTextarea("test\r\ndata"))
+	assert.Equal(t, "test\ndata\n", ReserveLineBreakForTextarea("test\r\ndata\r\n"))
+}
+
+func TestOptionalArg(t *testing.T) {
+	foo := func(_ any, optArg ...int) int {
+		return OptionalArg(optArg)
+	}
+	bar := func(_ any, optArg ...int) int {
+		return OptionalArg(optArg, 42)
+	}
+	assert.Equal(t, 0, foo(nil))
+	assert.Equal(t, 100, foo(nil, 100))
+	assert.Equal(t, 42, bar(nil))
+	assert.Equal(t, 100, bar(nil, 100))
 }

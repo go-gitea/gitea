@@ -14,7 +14,7 @@ import (
 )
 
 func UnwrapLDAPSourceCfg(x *xorm.Engine) error {
-	jsonUnmarshalHandleDoubleEncode := func(bs []byte, v interface{}) error {
+	jsonUnmarshalHandleDoubleEncode := func(bs []byte, v any) error {
 		err := json.Unmarshal(bs, v)
 		if err != nil {
 			ok := true
@@ -54,11 +54,11 @@ func UnwrapLDAPSourceCfg(x *xorm.Engine) error {
 	const dldapType = 5
 
 	type WrappedSource struct {
-		Source map[string]interface{}
+		Source map[string]any
 	}
 
 	// change lower_email as unique
-	if err := x.Sync2(new(LoginSource)); err != nil {
+	if err := x.Sync(new(LoginSource)); err != nil {
 		return err
 	}
 
@@ -77,13 +77,13 @@ func UnwrapLDAPSourceCfg(x *xorm.Engine) error {
 
 		for _, source := range sources {
 			wrapped := &WrappedSource{
-				Source: map[string]interface{}{},
+				Source: map[string]any{},
 			}
 			err := jsonUnmarshalHandleDoubleEncode([]byte(source.Cfg), &wrapped)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal %s: %w", source.Cfg, err)
 			}
-			if wrapped.Source != nil && len(wrapped.Source) > 0 {
+			if len(wrapped.Source) > 0 {
 				bs, err := json.Marshal(wrapped.Source)
 				if err != nil {
 					return err

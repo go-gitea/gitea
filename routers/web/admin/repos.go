@@ -11,31 +11,30 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/explore"
+	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplRepos          base.TplName = "admin/repo/list"
-	tplUnadoptedRepos base.TplName = "admin/repo/unadopted"
+	tplRepos          templates.TplName = "admin/repo/list"
+	tplUnadoptedRepos templates.TplName = "admin/repo/unadopted"
 )
 
 // Repos show all the repositories
 func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
-		Private:  true,
-		PageSize: setting.UI.Admin.RepoPagingNum,
-		TplName:  tplRepos,
+		Private:          true,
+		PageSize:         setting.UI.Admin.RepoPagingNum,
+		TplName:          tplRepos,
+		OnlyShowRelevant: false,
 	})
 }
 
@@ -58,15 +57,12 @@ func DeleteRepo(ctx *context.Context) {
 	log.Trace("Repository deleted: %s", repo.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/repos?page=" + url.QueryEscape(ctx.FormString("page")) + "&sort=" + url.QueryEscape(ctx.FormString("sort")),
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/repos?page=" + url.QueryEscape(ctx.FormString("page")) + "&sort=" + url.QueryEscape(ctx.FormString("sort")))
 }
 
 // UnadoptedRepos lists the unadopted repositories
 func UnadoptedRepos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
-	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
 
 	opts := db.ListOptions{
@@ -87,22 +83,21 @@ func UnadoptedRepos(ctx *context.Context) {
 
 	if !doSearch {
 		pager := context.NewPagination(0, opts.PageSize, opts.Page, 5)
-		pager.SetDefaultParams(ctx)
-		pager.AddParam(ctx, "search", "search")
+		pager.AddParamFromRequest(ctx.Req)
 		ctx.Data["Page"] = pager
 		ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 		return
 	}
 
 	ctx.Data["Keyword"] = q
-	repoNames, count, err := repo_service.ListUnadoptedRepositories(q, &opts)
+	repoNames, count, err := repo_service.ListUnadoptedRepositories(ctx, q, &opts)
 	if err != nil {
 		ctx.ServerError("ListUnadoptedRepositories", err)
+		return
 	}
 	ctx.Data["Dirs"] = repoNames
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "search", "search")
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 }
@@ -116,7 +111,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 
 	dirSplit := strings.SplitN(dir, "/", 2)
 	if len(dirSplit) != 2 {
-		ctx.Redirect(setting.AppSubURL + "/admin/repos")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/repos")
 		return
 	}
 
@@ -124,7 +119,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			log.Debug("User does not exist: %s", dirSplit[0])
-			ctx.Redirect(setting.AppSubURL + "/admin/repos")
+			ctx.Redirect(setting.AppSubURL + "/-/admin/repos")
 			return
 		}
 		ctx.ServerError("GetUserByName", err)
@@ -134,7 +129,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	repoName := dirSplit[1]
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
+	has, err := repo_model.IsRepositoryModelExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
@@ -147,7 +142,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
-		if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
+		if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
 			Name:      dirSplit[1],
 			IsPrivate: true,
 		}); err != nil {
@@ -156,11 +151,11 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.adopt_preexisting_success", dir))
 	} else if action == "delete" {
-		if err := repo_service.DeleteUnadoptedRepository(ctx.Doer, ctxUser, dirSplit[1]); err != nil {
+		if err := repo_service.DeleteUnadoptedRepository(ctx, ctx.Doer, ctxUser, dirSplit[1]); err != nil {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}
 		ctx.Flash.Success(ctx.Tr("repo.delete_preexisting_success", dir))
 	}
-	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + url.QueryEscape(page))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + url.QueryEscape(page))
 }

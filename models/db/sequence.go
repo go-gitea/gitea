@@ -13,15 +13,15 @@ import (
 
 // CountBadSequences looks for broken sequences from recreate-table mistakes
 func CountBadSequences(_ context.Context) (int64, error) {
-	if !setting.Database.UsePostgreSQL {
+	if !setting.Database.Type.IsPostgreSQL() {
 		return 0, nil
 	}
 
-	sess := x.NewSession()
+	sess := xormEngine.NewSession()
 	defer sess.Close()
 
 	var sequences []string
-	schema := x.Dialect().URI().Schema
+	schema := xormEngine.Dialect().URI().Schema
 
 	sess.Engine().SetSchema("")
 	if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE 'tmp_recreate__%_id_seq%' AND sequence_catalog = ?", setting.Database.Name).Find(&sequences); err != nil {
@@ -34,11 +34,11 @@ func CountBadSequences(_ context.Context) (int64, error) {
 
 // FixBadSequences fixes for broken sequences from recreate-table mistakes
 func FixBadSequences(_ context.Context) error {
-	if !setting.Database.UsePostgreSQL {
+	if !setting.Database.Type.IsPostgreSQL() {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := xormEngine.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

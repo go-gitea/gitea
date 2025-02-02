@@ -22,17 +22,21 @@ import (
 // UTF8BOM is the utf-8 byte-order marker
 var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
 
+type ConvertOpts struct {
+	KeepBOM bool
+}
+
 // ToUTF8WithFallbackReader detects the encoding of content and converts to UTF-8 reader if possible
-func ToUTF8WithFallbackReader(rd io.Reader) io.Reader {
+func ToUTF8WithFallbackReader(rd io.Reader, opts ConvertOpts) io.Reader {
 	buf := make([]byte, 2048)
 	n, err := util.ReadAtMost(rd, buf)
 	if err != nil {
-		return io.MultiReader(bytes.NewReader(RemoveBOMIfPresent(buf[:n])), rd)
+		return io.MultiReader(bytes.NewReader(MaybeRemoveBOM(buf[:n], opts)), rd)
 	}
 
 	charsetLabel, err := DetectEncoding(buf[:n])
 	if err != nil || charsetLabel == "UTF-8" {
-		return io.MultiReader(bytes.NewReader(RemoveBOMIfPresent(buf[:n])), rd)
+		return io.MultiReader(bytes.NewReader(MaybeRemoveBOM(buf[:n], opts)), rd)
 	}
 
 	encoding, _ := charset.Lookup(charsetLabel)
@@ -42,20 +46,20 @@ func ToUTF8WithFallbackReader(rd io.Reader) io.Reader {
 
 	return transform.NewReader(
 		io.MultiReader(
-			bytes.NewReader(RemoveBOMIfPresent(buf[:n])),
+			bytes.NewReader(MaybeRemoveBOM(buf[:n], opts)),
 			rd,
 		),
 		encoding.NewDecoder(),
 	)
 }
 
-// ToUTF8WithErr converts content to UTF8 encoding
-func ToUTF8WithErr(content []byte) (string, error) {
+// ToUTF8 converts content to UTF8 encoding
+func ToUTF8(content []byte, opts ConvertOpts) (string, error) {
 	charsetLabel, err := DetectEncoding(content)
 	if err != nil {
 		return "", err
 	} else if charsetLabel == "UTF-8" {
-		return string(RemoveBOMIfPresent(content)), nil
+		return string(MaybeRemoveBOM(content, opts)), nil
 	}
 
 	encoding, _ := charset.Lookup(charsetLabel)
@@ -70,28 +74,22 @@ func ToUTF8WithErr(content []byte) (string, error) {
 		result = append(result, content[n:]...)
 	}
 
-	result = RemoveBOMIfPresent(result)
+	result = MaybeRemoveBOM(result, opts)
 
 	return string(result), err
 }
 
 // ToUTF8WithFallback detects the encoding of content and converts to UTF-8 if possible
-func ToUTF8WithFallback(content []byte) []byte {
-	bs, _ := io.ReadAll(ToUTF8WithFallbackReader(bytes.NewReader(content)))
+func ToUTF8WithFallback(content []byte, opts ConvertOpts) []byte {
+	bs, _ := io.ReadAll(ToUTF8WithFallbackReader(bytes.NewReader(content), opts))
 	return bs
 }
 
-// ToUTF8 converts content to UTF8 encoding and ignore error
-func ToUTF8(content string) string {
-	res, _ := ToUTF8WithErr([]byte(content))
-	return res
-}
-
 // ToUTF8DropErrors makes sure the return string is valid utf-8; attempts conversion if possible
-func ToUTF8DropErrors(content []byte) []byte {
+func ToUTF8DropErrors(content []byte, opts ConvertOpts) []byte {
 	charsetLabel, err := DetectEncoding(content)
 	if err != nil || charsetLabel == "UTF-8" {
-		return RemoveBOMIfPresent(content)
+		return MaybeRemoveBOM(content, opts)
 	}
 
 	encoding, _ := charset.Lookup(charsetLabel)
@@ -117,11 +115,14 @@ func ToUTF8DropErrors(content []byte) []byte {
 		}
 	}
 
-	return RemoveBOMIfPresent(decoded)
+	return MaybeRemoveBOM(decoded, opts)
 }
 
-// RemoveBOMIfPresent removes a UTF-8 BOM from a []byte
-func RemoveBOMIfPresent(content []byte) []byte {
+// MaybeRemoveBOM removes a UTF-8 BOM from a []byte when opts.KeepBOM is false
+func MaybeRemoveBOM(content []byte, opts ConvertOpts) []byte {
+	if opts.KeepBOM {
+		return content
+	}
 	if len(content) > 2 && bytes.Equal(content[0:3], UTF8BOM) {
 		return content[3:]
 	}

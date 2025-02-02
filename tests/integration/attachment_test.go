@@ -29,7 +29,7 @@ func generateImg() bytes.Buffer {
 	return buff
 }
 
-func createAttachment(t *testing.T, session *TestSession, repoURL, filename string, buff bytes.Buffer, expectedStatus int) string {
+func createAttachment(t *testing.T, session *TestSession, csrf, repoURL, filename string, buff bytes.Buffer, expectedStatus int) string {
 	body := &bytes.Buffer{}
 
 	// Setup multi-part
@@ -40,8 +40,6 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 	assert.NoError(t, err)
 	err = writer.Close()
 	assert.NoError(t, err)
-
-	csrf := GetCSRF(t, session, repoURL)
 
 	req := NewRequestWithBody(t, "POST", repoURL+"/issues/attachments", body)
 	req.Header.Add("X-Csrf-Token", csrf)
@@ -59,14 +57,14 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 func TestCreateAnonymousAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := emptyTestSession(t)
-	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusSeeOther)
+	createAttachment(t, session, GetAnonymousCSRFToken(t, session), "user2/repo1", "image.png", generateImg(), http.StatusSeeOther)
 }
 
 func TestCreateIssueAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const repoURL = "user2/repo1"
 	session := loginUser(t, "user2")
-	uuid := createAttachment(t, session, repoURL, "image.png", generateImg(), http.StatusOK)
+	uuid := createAttachment(t, session, GetUserCSRFToken(t, session), repoURL, "image.png", generateImg(), http.StatusOK)
 
 	req := NewRequest(t, "GET", repoURL+"/issues/new")
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -83,12 +81,15 @@ func TestCreateIssueAttachment(t *testing.T) {
 	}
 
 	req = NewRequestWithValues(t, "POST", link, postData)
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	test.RedirectURL(resp) // check that redirect URL exists
 
 	// Validate that attachment is available
 	req = NewRequest(t, "GET", "/attachments/"+uuid)
 	session.MakeRequest(t, req, http.StatusOK)
+
+	// anonymous visit should be allowed because user2/repo1 is a public repository
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestGetAttachment(t *testing.T) {

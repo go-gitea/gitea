@@ -14,14 +14,6 @@ import (
 // BranchPrefix base dir of the branch information file store on git
 const BranchPrefix = "refs/heads/"
 
-// AGit Flow
-
-// PullRequestPrefix special ref to create a pull request: refs/for/<targe-branch>/<topic-branch>
-// or refs/for/<targe-branch> -o topic='<topic-branch>'
-const PullRequestPrefix = "refs/for/"
-
-// TODO: /refs/for-review for suggest change interface
-
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(ctx context.Context, repoPath, name string) bool {
 	_, _, err := NewCommand(ctx, "show-ref", "--verify").AddDashesAndList(name).RunStdString(&RunOpts{Dir: repoPath})
@@ -63,15 +55,8 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	}, nil
 }
 
-// SetDefaultBranch sets default branch of repository.
-func (repo *Repository) SetDefaultBranch(name string) error {
-	_, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").AddDynamicArguments(BranchPrefix + name).RunStdString(&RunOpts{Dir: repo.Path})
-	return err
-}
-
-// GetDefaultBranch gets default branch of repository.
-func (repo *Repository) GetDefaultBranch() (string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunStdString(&RunOpts{Dir: repo.Path})
+func GetDefaultBranch(ctx context.Context, repoPath string) (string, error) {
+	stdout, _, err := NewCommand(ctx, "symbolic-ref", "HEAD").RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return "", err
 	}
@@ -92,18 +77,6 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 		Name:    branch,
 		gitRepo: repo,
 	}, nil
-}
-
-// GetBranchesByPath returns a branch by it's path
-// if limit = 0 it will not limit
-func GetBranchesByPath(ctx context.Context, path string, skip, limit int) ([]*Branch, int, error) {
-	gitRepo, err := OpenRepository(ctx, path)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer gitRepo.Close()
-
-	return gitRepo.GetBranches(skip, limit)
 }
 
 // GetBranches returns a slice of *git.Branch

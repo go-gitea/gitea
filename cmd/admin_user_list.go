@@ -10,15 +10,15 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var microcmdUserList = cli.Command{
+var microcmdUserList = &cli.Command{
 	Name:   "list",
 	Usage:  "List users",
 	Action: runListUsers,
 	Flags: []cli.Flag{
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "admin",
 			Usage: "List only admin users",
 		},
@@ -33,7 +33,7 @@ func runListUsers(c *cli.Context) error {
 		return err
 	}
 
-	users, err := user_model.GetAllUsers()
+	users, err := user_model.GetAllUsers(ctx)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func runListUsers(c *cli.Context) error {
 			}
 		}
 	} else {
-		twofa := user_model.UserList(users).GetTwoFaStatus()
+		twofa := user_model.UserList(users).GetTwoFaStatus(ctx)
 		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\t2FA\n")
 		for _, u := range users {
 			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin, twofa[u.ID])

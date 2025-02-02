@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func TestAddLdapBindDn(t *testing.T) {
@@ -210,15 +210,15 @@ func TestAddLdapBindDn(t *testing.T) {
 			initDB: func(context.Context) error {
 				return nil
 			},
-			createAuthSource: func(authSource *auth.Source) error {
+			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
 				createdAuthSource = authSource
 				return nil
 			},
-			updateAuthSource: func(authSource *auth.Source) error {
+			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
 				assert.FailNow(t, "case %d: should not call updateAuthSource", n)
 				return nil
 			},
-			getAuthSourceByID: func(id int64) (*auth.Source, error) {
+			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
 				assert.FailNow(t, "case %d: should not call getAuthSourceByID", n)
 				return nil, nil
 			},
@@ -226,7 +226,7 @@ func TestAddLdapBindDn(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.NewApp()
-		app.Flags = cmdAuthAddLdapBindDn.Flags
+		app.Flags = microcmdAuthAddLdapBindDn.Flags
 		app.Action = service.addLdapBindDn
 
 		// Run it
@@ -441,15 +441,15 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 			initDB: func(context.Context) error {
 				return nil
 			},
-			createAuthSource: func(authSource *auth.Source) error {
+			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
 				createdAuthSource = authSource
 				return nil
 			},
-			updateAuthSource: func(authSource *auth.Source) error {
+			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
 				assert.FailNow(t, "case %d: should not call updateAuthSource", n)
 				return nil
 			},
-			getAuthSourceByID: func(id int64) (*auth.Source, error) {
+			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
 				assert.FailNow(t, "case %d: should not call getAuthSourceByID", n)
 				return nil, nil
 			},
@@ -457,7 +457,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.NewApp()
-		app.Flags = cmdAuthAddLdapSimpleAuth.Flags
+		app.Flags = microcmdAuthAddLdapSimpleAuth.Flags
 		app.Action = service.addLdapSimpleAuth
 
 		// Run it
@@ -896,15 +896,15 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			initDB: func(context.Context) error {
 				return nil
 			},
-			createAuthSource: func(authSource *auth.Source) error {
+			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
 				assert.FailNow(t, "case %d: should not call createAuthSource", n)
 				return nil
 			},
-			updateAuthSource: func(authSource *auth.Source) error {
+			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
 				updatedAuthSource = authSource
 				return nil
 			},
-			getAuthSourceByID: func(id int64) (*auth.Source, error) {
+			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
 				if c.id != 0 {
 					assert.Equal(t, c.id, id, "case %d: wrong id", n)
 				}
@@ -920,7 +920,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.NewApp()
-		app.Flags = cmdAuthUpdateLdapBindDn.Flags
+		app.Flags = microcmdAuthUpdateLdapBindDn.Flags
 		app.Action = service.updateLdapBindDn
 
 		// Run it
@@ -1286,15 +1286,15 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			initDB: func(context.Context) error {
 				return nil
 			},
-			createAuthSource: func(authSource *auth.Source) error {
+			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
 				assert.FailNow(t, "case %d: should not call createAuthSource", n)
 				return nil
 			},
-			updateAuthSource: func(authSource *auth.Source) error {
+			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
 				updatedAuthSource = authSource
 				return nil
 			},
-			getAuthSourceByID: func(id int64) (*auth.Source, error) {
+			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
 				if c.id != 0 {
 					assert.Equal(t, c.id, id, "case %d: wrong id", n)
 				}
@@ -1310,7 +1310,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.NewApp()
-		app.Flags = cmdAuthUpdateLdapSimpleAuth.Flags
+		app.Flags = microcmdAuthUpdateLdapSimpleAuth.Flags
 		app.Action = service.updateLdapSimpleAuth
 
 		// Run it

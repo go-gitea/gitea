@@ -6,6 +6,7 @@ package structs
 import (
 	"fmt"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -26,8 +27,10 @@ const (
 
 // PullRequestMeta PR info if an issue is a PR
 type PullRequestMeta struct {
-	HasMerged bool       `json:"merged"`
-	Merged    *time.Time `json:"merged_at"`
+	HasMerged        bool       `json:"merged"`
+	Merged           *time.Time `json:"merged_at"`
+	IsWorkInProgress bool       `json:"draft"`
+	HTMLURL          string     `json:"html_url"`
 }
 
 // RepositoryMeta basic repository information
@@ -75,6 +78,8 @@ type Issue struct {
 
 	PullRequest *PullRequestMeta `json:"pull_request"`
 	Repo        *RepositoryMeta  `json:"repository"`
+
+	PinOrder int `json:"pin_order"`
 }
 
 // CreateIssueOption options to create one issue
@@ -138,28 +143,54 @@ const (
 // IssueFormField represents a form field
 // swagger:model
 type IssueFormField struct {
-	Type        IssueFormFieldType     `json:"type" yaml:"type"`
-	ID          string                 `json:"id" yaml:"id"`
-	Attributes  map[string]interface{} `json:"attributes" yaml:"attributes"`
-	Validations map[string]interface{} `json:"validations" yaml:"validations"`
+	Type        IssueFormFieldType      `json:"type" yaml:"type"`
+	ID          string                  `json:"id" yaml:"id"`
+	Attributes  map[string]any          `json:"attributes" yaml:"attributes"`
+	Validations map[string]any          `json:"validations" yaml:"validations"`
+	Visible     []IssueFormFieldVisible `json:"visible,omitempty"`
 }
+
+func (iff IssueFormField) VisibleOnForm() bool {
+	if len(iff.Visible) == 0 {
+		return true
+	}
+	return slices.Contains(iff.Visible, IssueFormFieldVisibleForm)
+}
+
+func (iff IssueFormField) VisibleInContent() bool {
+	if len(iff.Visible) == 0 {
+		// we have our markdown exception
+		return iff.Type != IssueFormFieldTypeMarkdown
+	}
+	return slices.Contains(iff.Visible, IssueFormFieldVisibleContent)
+}
+
+// IssueFormFieldVisible defines issue form field visible
+// swagger:model
+type IssueFormFieldVisible string
+
+const (
+	IssueFormFieldVisibleForm    IssueFormFieldVisible = "form"
+	IssueFormFieldVisibleContent IssueFormFieldVisible = "content"
+)
 
 // IssueTemplate represents an issue template for a repository
 // swagger:model
 type IssueTemplate struct {
-	Name     string              `json:"name" yaml:"name"`
-	Title    string              `json:"title" yaml:"title"`
-	About    string              `json:"about" yaml:"about"` // Using "description" in a template file is compatible
-	Labels   IssueTemplateLabels `json:"labels" yaml:"labels"`
-	Ref      string              `json:"ref" yaml:"ref"`
-	Content  string              `json:"content" yaml:"-"`
-	Fields   []*IssueFormField   `json:"body" yaml:"body"`
-	FileName string              `json:"file_name" yaml:"-"`
+	Name      string                   `json:"name" yaml:"name"`
+	Title     string                   `json:"title" yaml:"title"`
+	About     string                   `json:"about" yaml:"about"` // Using "description" in a template file is compatible
+	Labels    IssueTemplateStringSlice `json:"labels" yaml:"labels"`
+	Assignees IssueTemplateStringSlice `json:"assignees" yaml:"assignees"`
+	Ref       string                   `json:"ref" yaml:"ref"`
+	Content   string                   `json:"content" yaml:"-"`
+	Fields    []*IssueFormField        `json:"body" yaml:"body"`
+	FileName  string                   `json:"file_name" yaml:"-"`
 }
 
-type IssueTemplateLabels []string
+type IssueTemplateStringSlice []string
 
-func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
+func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 	var labels []string
 	if value.IsZero() {
 		*l = labels
@@ -187,7 +218,23 @@ func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
 		*l = labels
 		return nil
 	}
-	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateLabels", value.Line, value.ShortTag())
+	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateStringSlice", value.Line, value.ShortTag())
+}
+
+type IssueConfigContactLink struct {
+	Name  string `json:"name" yaml:"name"`
+	URL   string `json:"url" yaml:"url"`
+	About string `json:"about" yaml:"about"`
+}
+
+type IssueConfig struct {
+	BlankIssuesEnabled bool                     `json:"blank_issues_enabled" yaml:"blank_issues_enabled"`
+	ContactLinks       []IssueConfigContactLink `json:"contact_links" yaml:"contact_links"`
+}
+
+type IssueConfigValidation struct {
+	Valid   bool   `json:"valid"`
+	Message string `json:"message"`
 }
 
 // IssueTemplateType defines issue template type
@@ -210,4 +257,12 @@ func (it IssueTemplate) Type() IssueTemplateType {
 		return IssueTemplateTypeYaml
 	}
 	return ""
+}
+
+// IssueMeta basic issue information
+// swagger:model
+type IssueMeta struct {
+	Index int64  `json:"index"`
+	Owner string `json:"owner"`
+	Name  string `json:"repo"`
 }

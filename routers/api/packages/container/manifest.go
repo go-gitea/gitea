@@ -20,6 +20,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/util"
+	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	digest "github.com/opencontainers/go-digest"
@@ -49,7 +50,7 @@ type manifestCreationInfo struct {
 	Properties map[string]string
 }
 
-func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
+func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	var index oci.Index
 	if err := json.NewDecoder(buf).Decode(&index); err != nil {
 		return "", err
@@ -71,16 +72,14 @@ func processManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffe
 	}
 
 	if isImageManifestMediaType(mci.MediaType) {
-		d, err := processImageManifest(mci, buf)
-		return d, err
+		return processImageManifest(ctx, mci, buf)
 	} else if isImageIndexMediaType(mci.MediaType) {
-		d, err := processImageManifestIndex(mci, buf)
-		return d, err
+		return processImageManifestIndex(ctx, mci, buf)
 	}
 	return "", errManifestInvalid
 }
 
-func processImageManifest(mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
+func processImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	manifestDigest := ""
 
 	err := func() error {
@@ -93,7 +92,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext(ctx)
 		if err != nil {
 			return err
 		}
@@ -182,6 +181,10 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 			return err
 		}
 
+		if err := notifyPackageCreate(ctx, mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -193,7 +196,7 @@ func processImageManifest(mci *manifestCreationInfo, buf *packages_module.Hashed
 	return manifestDigest, nil
 }
 
-func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
+func processImageManifestIndex(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
 	manifestDigest := ""
 
 	err := func() error {
@@ -206,7 +209,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext(ctx)
 		if err != nil {
 			return err
 		}
@@ -214,7 +217,7 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 
 		metadata := &container_module.Metadata{
 			Type:      container_module.TypeOCI,
-			MultiArch: make(map[string]string),
+			Manifests: make([]*container_module.Manifest, 0, len(index.Manifests)),
 		}
 
 		for _, manifest := range index.Manifests {
@@ -230,20 +233,31 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 				}
 			}
 
-			_, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
+			pfd, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
 				OwnerID:    mci.Owner.ID,
 				Image:      mci.Image,
 				Digest:     string(manifest.Digest),
 				IsManifest: true,
 			})
 			if err != nil {
-				if err == container_model.ErrContainerBlobNotExist {
+				if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 					return errManifestBlobUnknown
 				}
 				return err
 			}
 
-			metadata.MultiArch[platform] = string(manifest.Digest)
+			size, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
+				VersionID: pfd.File.VersionID,
+			})
+			if err != nil {
+				return err
+			}
+
+			metadata.Manifests = append(metadata.Manifests, &container_module.Manifest{
+				Platform: platform,
+				Digest:   string(manifest.Digest),
+				Size:     size,
+			})
 		}
 
 		pv, err := createPackageAndVersion(ctx, mci, metadata)
@@ -271,6 +285,10 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 			return err
 		}
 
+		if err := notifyPackageCreate(ctx, mci.Creator, pv); err != nil {
+			return err
+		}
+
 		manifestDigest = digest
 
 		return nil
@@ -280,6 +298,17 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 	}
 
 	return manifestDigest, nil
+}
+
+func notifyPackageCreate(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+	if err != nil {
+		return err
+	}
+
+	notify_service.PackageCreate(ctx, doer, pd)
+
+	return nil
 }
 
 func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, metadata *container_module.Metadata) (*packages_model.PackageVersion, error) {
@@ -292,12 +321,11 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	}
 	var err error
 	if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-		if err == packages_model.ErrDuplicatePackage {
-			created = false
-		} else {
+		if !errors.Is(err, packages_model.ErrDuplicatePackage) {
 			log.Error("Error inserting package: %v", err)
 			return nil, err
 		}
+		created = false
 	}
 
 	if created {
@@ -323,21 +351,23 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	}
 	var pv *packages_model.PackageVersion
 	if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
-			if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-				return nil, err
-			}
+		if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
+			log.Error("Error inserting package: %v", err)
+			return nil, err
+		}
 
-			// keep download count on overwrite
-			_pv.DownloadCount = pv.DownloadCount
+		if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
+			return nil, err
+		}
 
-			if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
+		// keep download count on overwrite
+		_pv.DownloadCount = pv.DownloadCount
+
+		if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
+			if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
 				log.Error("Error inserting package: %v", err)
 				return nil, err
 			}
-		} else {
-			log.Error("Error inserting package: %v", err)
-			return nil, err
 		}
 	}
 
@@ -351,8 +381,8 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			return nil, err
 		}
 	}
-	for _, digest := range metadata.MultiArch {
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, digest); err != nil {
+	for _, manifest := range metadata.Manifests {
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
 			log.Error("Error setting package version property: %v", err)
 			return nil, err
 		}
@@ -388,7 +418,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 	var err error
 	if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
-		if err == packages_model.ErrDuplicatePackageFile {
+		if errors.Is(err, packages_model.ErrDuplicatePackageFile) {
 			// Skip this blob because the manifest contains the same filesystem layer multiple times.
 			return nil
 		}

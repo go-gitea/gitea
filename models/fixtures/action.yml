@@ -64,3 +64,12 @@
   repo_id: 1700 # dangling intentional
   is_private: false
   created_unix: 1603011541
+
+- id: 9
+  user_id: 34
+  op_type: 12 # close issue
+  act_user_id: 34
+  repo_id: 1 # public
+  is_private: false
+  created_unix: 1680454039
+  content: '4|' # issueId 5

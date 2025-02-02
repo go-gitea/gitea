@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 )
 
 // GetGitAllRefs get ref or an list all the refs of a repository
@@ -71,7 +71,7 @@ func GetGitRefs(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	getGitRefsInternal(ctx, ctx.Params("*"))
+	getGitRefsInternal(ctx, ctx.PathParam("*"))
 }
 
 func getGitRefsInternal(ctx *context.APIContext, filter string) {

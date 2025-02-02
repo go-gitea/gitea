@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -13,10 +12,10 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setting.LoadForTest()
-	setting.NewQueueService()
 	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", "..", ".."),
-		SetUp:         webhook_service.Init,
+		SetUp: func() error {
+			setting.LoadQueueSettings()
+			return webhook_service.Init()
+		},
 	})
 }

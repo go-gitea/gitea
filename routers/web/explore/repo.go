@@ -8,33 +8,35 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sitemap"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplExploreRepos explore repositories page template
-	tplExploreRepos        base.TplName = "explore/repos"
-	relevantReposOnlyParam string       = "no_filter"
+	tplExploreRepos        templates.TplName = "explore/repos"
+	relevantReposOnlyParam string            = "only_show_relevant"
 )
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	OwnerID    int64
-	Private    bool
-	Restricted bool
-	PageSize   int
-	TplName    base.TplName
+	OwnerID          int64
+	Private          bool
+	Restricted       bool
+	PageSize         int
+	OnlyShowRelevant bool
+	TplName          templates.TplName
 }
 
 // RenderRepoSearch render repositories search page
+// This function is also used to render the Admin Repository Management page.
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	// Sitemap index for sitemap paths
-	page := int(ctx.ParamsInt64("idx"))
-	isSitemap := ctx.Params("idx") != ""
+	page := int(ctx.PathParamInt64("idx"))
+	isSitemap := ctx.PathParam("idx") != ""
 	if page <= 1 {
 		page = ctx.FormInt("page")
 	}
@@ -48,53 +50,49 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 
 	var (
-		repos            []*repo_model.Repository
-		count            int64
-		err              error
-		orderBy          db.SearchOrderBy
-		onlyShowRelevant bool
+		repos   []*repo_model.Repository
+		count   int64
+		err     error
+		orderBy db.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.FormString("sort")
-	switch ctx.FormString("sort") {
-	case "newest":
-		orderBy = db.SearchOrderByNewest
-	case "oldest":
-		orderBy = db.SearchOrderByOldest
-	case "leastupdate":
-		orderBy = db.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = db.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = db.SearchOrderByAlphabetically
-	case "reversesize":
-		orderBy = db.SearchOrderBySizeReverse
-	case "size":
-		orderBy = db.SearchOrderBySize
-	case "moststars":
-		orderBy = db.SearchOrderByStarsReverse
-	case "feweststars":
-		orderBy = db.SearchOrderByStars
-	case "mostforks":
-		orderBy = db.SearchOrderByForksReverse
-	case "fewestforks":
-		orderBy = db.SearchOrderByForks
-	default:
-		ctx.Data["SortType"] = "recentupdate"
-		orderBy = db.SearchOrderByRecentUpdated
+	sortOrder := ctx.FormString("sort")
+	if sortOrder == "" {
+		sortOrder = setting.UI.ExploreDefaultSort
 	}
 
-	onlyShowRelevant = !ctx.FormBool(relevantReposOnlyParam)
+	if order, ok := repo_model.OrderByFlatMap[sortOrder]; ok {
+		orderBy = order
+	} else {
+		sortOrder = "recentupdate"
+		orderBy = db.SearchOrderByRecentUpdated
+	}
+	ctx.Data["SortType"] = sortOrder
 
 	keyword := ctx.FormTrim("q")
 
-	ctx.Data["OnlyShowRelevant"] = onlyShowRelevant
+	ctx.Data["OnlyShowRelevant"] = opts.OnlyShowRelevant
 
 	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
 
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
+
+	archived := ctx.FormOptionalBool("archived")
+	ctx.Data["IsArchived"] = archived
+
+	fork := ctx.FormOptionalBool("fork")
+	ctx.Data["IsFork"] = fork
+
+	mirror := ctx.FormOptionalBool("mirror")
+	ctx.Data["IsMirror"] = mirror
+
+	template := ctx.FormOptionalBool("template")
+	ctx.Data["IsTemplate"] = template
+
+	private := ctx.FormOptionalBool("private")
+	ctx.Data["IsPrivate"] = private
 
 	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
@@ -111,7 +109,12 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		TopicOnly:          topicOnly,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
-		OnlyShowRelevant:   onlyShowRelevant,
+		OnlyShowRelevant:   opts.OnlyShowRelevant,
+		Archived:           archived,
+		Fork:               fork,
+		Mirror:             mirror,
+		Template:           template,
+		IsPrivate:          private,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
@@ -135,10 +138,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "topic", "TopicOnly")
-	pager.AddParam(ctx, "language", "Language")
-	pager.AddParamString(relevantReposOnlyParam, ctx.FormString(relevantReposOnlyParam))
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)
@@ -146,7 +146,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 // Repos render explore repositories page
 func Repos(ctx *context.Context) {
-	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["UsersPageIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["OrganizationsPageIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
+	ctx.Data["CodePageIsDisabled"] = setting.Service.Explore.DisableCodePage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreRepositories"] = true
@@ -157,10 +159,18 @@ func Repos(ctx *context.Context) {
 		ownerID = ctx.Doer.ID
 	}
 
+	onlyShowRelevant := setting.UI.OnlyShowRelevantRepos
+
+	_ = ctx.Req.ParseForm() // parse the form first, to prepare the ctx.Req.Form field
+	if len(ctx.Req.Form[relevantReposOnlyParam]) != 0 {
+		onlyShowRelevant = ctx.FormBool(relevantReposOnlyParam)
+	}
+
 	RenderRepoSearch(ctx, &RepoSearchOptions{
-		PageSize: setting.UI.ExplorePagingNum,
-		OwnerID:  ownerID,
-		Private:  ctx.Doer != nil,
-		TplName:  tplExploreRepos,
+		PageSize:         setting.UI.ExplorePagingNum,
+		OwnerID:          ownerID,
+		Private:          ctx.Doer != nil,
+		TplName:          tplExploreRepos,
+		OnlyShowRelevant: onlyShowRelevant,
 	})
 }

@@ -22,7 +22,7 @@ func init() {
 	db.RegisterModel(new(RepoTopic))
 }
 
-var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
+var topicPattern = regexp.MustCompile(`^[a-z0-9][-.a-z0-9]*$`)
 
 // Topic represents a topic of repositories
 type Topic struct {
@@ -92,9 +92,9 @@ func SanitizeAndValidateTopics(topics []string) (validTopics, invalidTopics []st
 }
 
 // GetTopicByName retrieves topic by name
-func GetTopicByName(name string) (*Topic, error) {
+func GetTopicByName(ctx context.Context, name string) (*Topic, error) {
 	var topic Topic
-	if has, err := db.GetEngine(db.DefaultContext).Where("name = ?", name).Get(&topic); err != nil {
+	if has, err := db.GetEngine(ctx).Where("name = ?", name).Get(&topic); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrTopicNotExist{name}
@@ -178,7 +178,7 @@ type FindTopicOptions struct {
 	Keyword string
 }
 
-func (opts *FindTopicOptions) toConds() builder.Cond {
+func (opts *FindTopicOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_topic.repo_id": opts.RepoID})
@@ -191,27 +191,24 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 	return cond
 }
 
-// FindTopics retrieves the topics via FindTopicOptions
-func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Select("topic.*").Where(opts.toConds())
+func (opts *FindTopicOptions) ToOrders() string {
+	orderBy := "topic.repo_count DESC"
 	if opts.RepoID > 0 {
-		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+		orderBy = "topic.name" // when render topics for a repo, it's better to sort them by name, to get consistent result
 	}
-	if opts.PageSize != 0 && opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
-	}
-	topics := make([]*Topic, 0, 10)
-	total, err := sess.Desc("topic.repo_count").FindAndCount(&topics)
-	return topics, total, err
+	return orderBy
 }
 
-// CountTopics counts the number of topics matching the FindTopicOptions
-func CountTopics(opts *FindTopicOptions) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds())
-	if opts.RepoID > 0 {
-		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+func (opts *FindTopicOptions) ToJoins() []db.JoinFunc {
+	if opts.RepoID <= 0 {
+		return nil
 	}
-	return sess.Count(new(Topic))
+	return []db.JoinFunc{
+		func(e db.Engine) error {
+			e.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+			return nil
+		},
+	}
 }
 
 // GetRepoTopicByName retrieves topic from name for a repo if it exist
@@ -229,8 +226,8 @@ func GetRepoTopicByName(ctx context.Context, repoID int64, topicName string) (*T
 }
 
 // AddTopic adds a topic name to a repository (if it does not already have it)
-func AddTopic(repoID int64, topicName string) (*Topic, error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func AddTopic(ctx context.Context, repoID int64, topicName string) (*Topic, error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -251,16 +248,7 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, err
 	}
 
-	topicNames := make([]string, 0, 25)
-	if err := sess.Select("name").Table("topic").
-		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
-		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
-		return nil, err
-	}
-
-	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
-		Topics: topicNames,
-	}); err != nil {
+	if err = syncTopicsInRepository(sess, repoID); err != nil {
 		return nil, err
 	}
 
@@ -268,8 +256,8 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 }
 
 // DeleteTopic removes a topic name from a repository (if it has it)
-func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
-	topic, err := GetRepoTopicByName(db.DefaultContext, repoID, topicName)
+func DeleteTopic(ctx context.Context, repoID int64, topicName string) (*Topic, error) {
+	topic, err := GetRepoTopicByName(ctx, repoID, topicName)
 	if err != nil {
 		return nil, err
 	}
@@ -278,21 +266,26 @@ func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, nil
 	}
 
-	err = removeTopicFromRepo(db.DefaultContext, repoID, topic)
+	err = removeTopicFromRepo(ctx, repoID, topic)
+	if err != nil {
+		return nil, err
+	}
+
+	err = syncTopicsInRepository(db.GetEngine(ctx), repoID)
 
 	return topic, err
 }
 
 // SaveTopics save topics to a repository
-func SaveTopics(repoID int64, topicNames ...string) error {
-	topics, _, err := FindTopics(&FindTopicOptions{
+func SaveTopics(ctx context.Context, repoID int64, topicNames ...string) error {
+	topics, err := db.Find[Topic](ctx, &FindTopicOptions{
 		RepoID: repoID,
 	})
 	if err != nil {
 		return err
 	}
 
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -345,16 +338,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		}
 	}
 
-	topicNames = make([]string, 0, 25)
-	if err := sess.Table("topic").Cols("name").
-		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
-		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
-		return err
-	}
-
-	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
-		Topics: topicNames,
-	}); err != nil {
+	if err := syncTopicsInRepository(sess, repoID); err != nil {
 		return err
 	}
 
@@ -368,5 +352,33 @@ func GenerateTopics(ctx context.Context, templateRepo, generateRepo *Repository)
 			return err
 		}
 	}
+
+	return syncTopicsInRepository(db.GetEngine(ctx), generateRepo.ID)
+}
+
+// syncTopicsInRepository makes sure topics in the topics table are copied into the topics field of the repository
+func syncTopicsInRepository(sess db.Engine, repoID int64) error {
+	topicNames := make([]string, 0, 25)
+	if err := sess.Table("topic").Cols("name").
+		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
+		Where("repo_topic.repo_id = ?", repoID).Asc("topic.name").Find(&topicNames); err != nil {
+		return err
+	}
+
+	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
+		Topics: topicNames,
+	}); err != nil {
+		return err
+	}
 	return nil
+}
+
+// CountOrphanedAttachments returns the number of topics that don't belong to any repository.
+func CountOrphanedTopics(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_count = 0").Count(new(Topic))
+}
+
+// DeleteOrphanedAttachments delete all topics that don't belong to any repository.
+func DeleteOrphanedTopics(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Where("repo_count = 0").Delete(new(Topic))
 }

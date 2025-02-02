@@ -63,7 +63,7 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 					return err
 				}
 
-				buf, err := packages.CreateHashedBufferFromReader(f, 32*1024*1024)
+				buf, err := packages.CreateHashedBufferFromReader(f)
 
 				f.Close()
 

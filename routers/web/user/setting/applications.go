@@ -8,21 +8,24 @@ import (
 	"net/http"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
 const (
-	tplSettingsApplications base.TplName = "user/settings/applications"
+	tplSettingsApplications templates.TplName = "user/settings/applications"
 )
 
 // Applications render manage access token page
 func Applications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.applications")
 	ctx.Data["PageIsSettingsApplications"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	loadApplicationsData(ctx)
 
@@ -34,6 +37,7 @@ func ApplicationsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewAccessTokenForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	if ctx.HasError() {
 		loadApplicationsData(ctx)
@@ -53,7 +57,7 @@ func ApplicationsPost(ctx *context.Context) {
 		Scope: scope,
 	}
 
-	exist, err := auth_model.AccessTokenByNameExists(t)
+	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
 	if err != nil {
 		ctx.ServerError("AccessTokenByNameExists", err)
 		return
@@ -64,7 +68,7 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth_model.NewAccessToken(t); err != nil {
+	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		ctx.ServerError("NewAccessToken", err)
 		return
 	}
@@ -77,27 +81,29 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	if err := auth_model.DeleteAccessTokenByID(ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
+	if err := auth_model.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/user/settings/applications",
-	})
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
 }
 
 func loadApplicationsData(ctx *context.Context) {
-	tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
+	ctx.Data["AccessTokenScopePublicOnly"] = auth_model.AccessTokenScopePublicOnly
+	tokens, err := db.Find[auth_model.AccessToken](ctx, auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
 	}
 	ctx.Data["Tokens"] = tokens
-	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
-	if setting.OAuth2.Enable {
-		ctx.Data["Applications"], err = auth_model.GetOAuth2ApplicationsByUserID(ctx, ctx.Doer.ID)
+	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enabled
+	ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
+	if setting.OAuth2.Enabled {
+		ctx.Data["Applications"], err = db.Find[auth_model.OAuth2Application](ctx, auth_model.FindOAuth2ApplicationsOptions{
+			OwnerID: ctx.Doer.ID,
+		})
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return

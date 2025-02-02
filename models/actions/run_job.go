@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -107,57 +108,79 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return 0, err
 	}
 
-	if affected == 0 || (!util.SliceContains(cols, "status") && job.Status == 0) {
+	if affected == 0 || (!slices.Contains(cols, "status") && job.Status == 0) {
 		return affected, nil
+	}
+
+	if affected != 0 && slices.Contains(cols, "status") && job.Status.IsWaiting() {
+		// if the status of job changes to waiting again, increase tasks version.
+		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
+			return 0, err
+		}
 	}
 
 	if job.RunID == 0 {
 		var err error
 		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
-			return affected, err
+			return 0, err
 		}
 	}
 
-	jobs, err := GetRunJobsByRunID(ctx, job.RunID)
-	if err != nil {
-		return affected, err
+	{
+		// Other goroutines may aggregate the status of the run and update it too.
+		// So we need load the run and its jobs before updating the run.
+		run, err := GetRunByID(ctx, job.RunID)
+		if err != nil {
+			return 0, err
+		}
+		jobs, err := GetRunJobsByRunID(ctx, job.RunID)
+		if err != nil {
+			return 0, err
+		}
+		run.Status = AggregateJobStatus(jobs)
+		if run.Started.IsZero() && run.Status.IsRunning() {
+			run.Started = timeutil.TimeStampNow()
+		}
+		if run.Stopped.IsZero() && run.Status.IsDone() {
+			run.Stopped = timeutil.TimeStampNow()
+		}
+		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
+			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
+		}
 	}
 
-	runStatus := aggregateJobStatus(jobs)
-
-	run := &ActionRun{
-		ID:     job.RunID,
-		Status: runStatus,
-	}
-	if runStatus.IsDone() {
-		run.Stopped = timeutil.TimeStampNow()
-	}
-	return affected, UpdateRun(ctx, run)
+	return affected, nil
 }
 
-func aggregateJobStatus(jobs []*ActionRunJob) Status {
-	allDone := true
-	allWaiting := true
-	hasFailure := false
+func AggregateJobStatus(jobs []*ActionRunJob) Status {
+	allSuccessOrSkipped := len(jobs) != 0
+	allSkipped := len(jobs) != 0
+	var hasFailure, hasCancelled, hasWaiting, hasRunning, hasBlocked bool
 	for _, job := range jobs {
-		if !job.Status.IsDone() {
-			allDone = false
-		}
-		if job.Status != StatusWaiting {
-			allWaiting = false
-		}
-		if job.Status == StatusFailure || job.Status == StatusCancelled {
-			hasFailure = true
-		}
+		allSuccessOrSkipped = allSuccessOrSkipped && (job.Status == StatusSuccess || job.Status == StatusSkipped)
+		allSkipped = allSkipped && job.Status == StatusSkipped
+		hasFailure = hasFailure || job.Status == StatusFailure
+		hasCancelled = hasCancelled || job.Status == StatusCancelled
+		hasWaiting = hasWaiting || job.Status == StatusWaiting
+		hasRunning = hasRunning || job.Status == StatusRunning
+		hasBlocked = hasBlocked || job.Status == StatusBlocked
 	}
-	if allDone {
-		if hasFailure {
-			return StatusFailure
-		}
+	switch {
+	case allSkipped:
+		return StatusSkipped
+	case allSuccessOrSkipped:
 		return StatusSuccess
-	}
-	if allWaiting {
+	case hasCancelled:
+		return StatusCancelled
+	case hasFailure:
+		return StatusFailure
+	case hasRunning:
+		return StatusRunning
+	case hasWaiting:
 		return StatusWaiting
+	case hasBlocked:
+		return StatusBlocked
+	default:
+		return StatusUnknown // it shouldn't happen
 	}
-	return StatusRunning
 }

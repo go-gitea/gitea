@@ -18,7 +18,7 @@ func ConvertTopicNameFrom25To50(x *xorm.Engine) error {
 		UpdatedUnix int64 `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(Topic)); err != nil {
+	if err := x.Sync(new(Topic)); err != nil {
 		return err
 	}
 

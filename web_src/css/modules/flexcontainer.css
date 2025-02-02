@@ -1,0 +1,33 @@
+/* container for full-page content with sidebar on left */
+
+.flex-container {
+  display: flex !important;
+  gap: var(--page-spacing);
+  margin-top: var(--page-spacing);
+}
+
+/* small options menu on the left, used in settings/admin pages */
+.flex-container-nav {
+  width: 240px;
+}
+
+/* wide sidebar on the right, used in frontpage */
+.flex-container-sidebar {
+  width: 35%;
+}
+
+.flex-container-main {
+  flex: 1;
+  min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
+}
+
+@media (max-width: 767.98px) {
+  .flex-container {
+    flex-direction: column;
+  }
+  .flex-container-nav,
+  .flex-container-sidebar {
+    order: -1;
+    width: auto;
+  }
+}

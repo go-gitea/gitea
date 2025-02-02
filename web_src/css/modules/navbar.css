@@ -1,0 +1,152 @@
+#navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-nav-bg);
+  border-bottom: 1px solid var(--color-secondary);
+  padding: 0 10px;
+}
+
+#navbar .navbar-left,
+#navbar .navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 49px; /* +1px border-bottom */
+}
+
+.navbar-left > .item,
+.navbar-right > .item,
+.navbar-mobile-right > .item {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  color: var(--color-nav-text);
+  position: relative;
+  text-decoration: none;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 3px 13px;
+  border-radius: 4px;
+}
+
+#navbar .item.active {
+  background: var(--color-active);
+}
+
+#navbar a.item:hover,
+#navbar button.item:hover {
+  background: var(--color-nav-hover-bg);
+}
+
+#navbar .item.ui.dropdown {
+  padding-right: 5px;
+}
+
+@media (max-width: 767.98px) {
+  #navbar {
+    align-items: stretch;
+  }
+  /* hide all items */
+  #navbar .navbar-left > .item,
+  #navbar .navbar-right > .item {
+    display: none;
+  }
+  #navbar #navbar-logo {
+    display: flex;
+  }
+  /* show the first navbar item (logo and its mobile right items) */
+  #navbar .navbar-left {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+  }
+  #navbar .navbar-mobile-right {
+    display: flex;
+    margin: 0 0 0 auto;
+    width: auto;
+  }
+  #navbar .navbar-mobile-right > .item {
+    display: flex;
+    width: auto;
+  }
+  /* show items if the navbar is open */
+  #navbar.navbar-menu-open {
+    padding-bottom: 8px;
+  }
+  #navbar.navbar-menu-open,
+  #navbar.navbar-menu-open .navbar-right {
+    flex-direction: column;
+  }
+  #navbar.navbar-menu-open .navbar-left {
+    flex-wrap: wrap;
+  }
+  #navbar.navbar-menu-open .navbar-left > .item,
+  #navbar.navbar-menu-open .navbar-right > .item {
+    display: flex;
+    width: 100%;
+  }
+  #navbar.navbar-menu-open .navbar-left #navbar-logo {
+    justify-content: flex-start;
+    width: auto;
+  }
+  #navbar.navbar-menu-open .navbar-left .navbar-mobile-right {
+    justify-content: flex-end;
+    width: 50%;
+    min-height: 49px;
+  }
+  #navbar #mobile-stopwatch-icon,
+  #navbar #mobile-notifications-icon {
+    margin-right: 6px;
+  }
+}
+
+#navbar .ui.dropdown .navbar-profile-admin {
+  display: block;
+  position: absolute;
+  font-size: 9px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-nav-bg);
+  background: var(--color-primary);
+  padding: 2px 3px;
+  border-radius: 10px;
+  top: -1px;
+  left: 18px;
+}
+
+#navbar a.item:hover .notification_count,
+#navbar a.item:hover .header-stopwatch-dot {
+  border-color: var(--color-nav-hover-bg);
+}
+
+#navbar a.item .notification_count,
+#navbar a.item .header-stopwatch-dot {
+  color: var(--color-nav-bg);
+  padding: 0 3.75px;
+  font-size: 12px;
+  line-height: 12px;
+  font-weight: var(--font-weight-bold);
+  background: var(--color-primary);
+  border: 2px solid var(--color-nav-bg);
+  position: absolute;
+  left: 6px;
+  top: -9px;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 11px; /* (height + 2 * borderThickness) / 2 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1; /* prevent menu button background from overlaying icon */
+  user-select: none;
+  white-space: nowrap;
+}
+
+.secondary-nav {
+  background: var(--color-secondary-nav-bg) !important; /* important because of .ui.secondary.menu */
+}
+
+.issue-navbar {
+  display: flex;
+  justify-content: space-between;
+}

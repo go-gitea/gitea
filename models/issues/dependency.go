@@ -127,14 +127,14 @@ const (
 )
 
 // CreateIssueDependency creates a new dependency for an issue
-func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func CreateIssueDependency(ctx context.Context, user *user_model.User, issue, dep *Issue) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	// Check if it aleready exists
+	// Check if it already exists
 	exists, err := issueDepExists(ctx, issue.ID, dep.ID)
 	if err != nil {
 		return err
@@ -168,8 +168,8 @@ func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
 }
 
 // RemoveIssueDependency removes a dependency from an issue
-func RemoveIssueDependency(user *user_model.User, issue, dep *Issue, depType DependencyType) (err error) {
-	ctx, committer, err := db.TxContext(db.DefaultContext)
+func RemoveIssueDependency(ctx context.Context, user *user_model.User, issue, dep *Issue, depType DependencyType) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}

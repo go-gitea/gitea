@@ -38,12 +38,12 @@ type Package struct {
 
 // Metadata represents the metadata of a Pub package
 type Metadata struct {
-	Description      string      `json:"description,omitempty"`
-	ProjectURL       string      `json:"project_url,omitempty"`
-	RepositoryURL    string      `json:"repository_url,omitempty"`
-	DocumentationURL string      `json:"documentation_url,omitempty"`
-	Readme           string      `json:"readme,omitempty"`
-	Pubspec          interface{} `json:"pubspec"`
+	Description      string `json:"description,omitempty"`
+	ProjectURL       string `json:"project_url,omitempty"`
+	RepositoryURL    string `json:"repository_url,omitempty"`
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	Readme           string `json:"readme,omitempty"`
+	Pubspec          any    `json:"pubspec"`
 }
 
 type pubspecPackage struct {
@@ -134,7 +134,7 @@ func ParsePubspecMetadata(r io.Reader) (*Package, error) {
 		p.Repository = ""
 	}
 
-	var pubspec interface{}
+	var pubspec any
 	if err := yaml.Unmarshal(buf, &pubspec); err != nil {
 		return nil, err
 	}
