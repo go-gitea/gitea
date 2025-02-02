@@ -252,7 +252,7 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{$timeStr := .RenderedContent}} {{/* compatibility with time comments made before v1.21 */}}
-					{{if not $timeStr}}{{$timeStr = .Content|Sec2Time}}{{end}}
+					{{if not $timeStr}}{{$timeStr = .Content|Sec2Hour}}{{end}}
 					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $timeStr $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
@@ -264,7 +264,7 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{$timeStr := .RenderedContent}} {{/* compatibility with time comments made before v1.21 */}}
-					{{if not $timeStr}}{{$timeStr = .Content|Sec2Time}}{{end}}
+					{{if not $timeStr}}{{$timeStr = .Content|Sec2Hour}}{{end}}
 					{{ctx.Locale.Tr "repo.issues.add_time_history" $timeStr $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
@@ -506,7 +506,7 @@
 						{{/* compatibility with time comments made before v1.21 */}}
 						<span class="text grey muted-links">{{.RenderedContent}}</span>
 					{{else}}
-						<span class="text grey muted-links">- {{.Content|Sec2Time}}</span>
+						<span class="text grey muted-links">- {{.Content|Sec2Hour}}</span>
 					{{end}}
 				</div>
 			</div>
