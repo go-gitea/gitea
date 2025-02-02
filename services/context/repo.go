@@ -653,7 +653,7 @@ func RepoAssignment(ctx *Context) {
 
 		ctx.Data["RepoTransfer"] = repoTransfer
 		if ctx.Doer != nil {
-			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer)
+			ctx.Data["CanUserAcceptOrRejectTransfer"] = repoTransfer.CanUserAcceptOrRejectTransfer(ctx, ctx.Doer)
 		}
 	}
 
@@ -686,24 +686,24 @@ func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool
 	return ""
 }
 
-func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (string, git.RefType) {
+func getRefNameLegacy(ctx *Base, repo *Repository, reqPath, extraRef string) (refName string, refType git.RefType, fallbackDefaultBranch bool) {
 	reqRefPath := path.Join(extraRef, reqPath)
 	reqRefPathParts := strings.Split(reqRefPath, "/")
 	if refName := getRefName(ctx, repo, reqRefPath, git.RefTypeBranch); refName != "" {
-		return refName, git.RefTypeBranch
+		return refName, git.RefTypeBranch, false
 	}
 	if refName := getRefName(ctx, repo, reqRefPath, git.RefTypeTag); refName != "" {
-		return refName, git.RefTypeTag
+		return refName, git.RefTypeTag, false
 	}
 	if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.Repository.ObjectFormatName), reqRefPathParts[0]) {
 		// FIXME: this logic is different from other types. Ideally, it should also try to GetCommit to check if it exists
 		repo.TreePath = strings.Join(reqRefPathParts[1:], "/")
-		return reqRefPathParts[0], git.RefTypeCommit
+		return reqRefPathParts[0], git.RefTypeCommit, false
 	}
 	// FIXME: the old code falls back to default branch if "ref" doesn't exist, there could be an edge case:
 	// "README?ref=no-such" would read the README file from the default branch, but the user might expect a 404
 	repo.TreePath = reqPath
-	return repo.Repository.DefaultBranch, git.RefTypeBranch
+	return repo.Repository.DefaultBranch, git.RefTypeBranch, true
 }
 
 func getRefName(ctx *Base, repo *Repository, path string, refType git.RefType) string {
@@ -795,6 +795,9 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 	return func(ctx *Context) {
 		var err error
 		refType := detectRefType
+		if ctx.Repo.Repository.IsBeingCreated() {
+			return // no git repo, so do nothing, users will see a "migrating" UI provided by "migrate/migrating.tmpl"
+		}
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
 			// assume the user is viewing the (non-existent) default branch
@@ -835,8 +838,9 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			}
 		} else { // there is a path in request
 			guessLegacyPath := refType == ""
+			fallbackDefaultBranch := false
 			if guessLegacyPath {
-				refShortName, refType = getRefNameLegacy(ctx.Base, ctx.Repo, reqPath, "")
+				refShortName, refType, fallbackDefaultBranch = getRefNameLegacy(ctx.Base, ctx.Repo, reqPath, "")
 			} else {
 				refShortName = getRefName(ctx.Base, ctx.Repo, reqPath, refType)
 			}
@@ -894,12 +898,24 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 			if guessLegacyPath {
 				// redirect from old URL scheme to new URL scheme
-				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.PathParam("*"))), strings.ToLower(ctx.Repo.RepoLink))
-				redirect := path.Join(
-					ctx.Repo.RepoLink,
-					util.PathEscapeSegments(prefix),
-					ctx.Repo.RefTypeNameSubURL(),
-					util.PathEscapeSegments(ctx.Repo.TreePath))
+				// * /user2/repo1/commits/master => /user2/repo1/commits/branch/master
+				// * /user2/repo1/src/master => /user2/repo1/src/branch/master
+				// * /user2/repo1/src/README.md => /user2/repo1/src/branch/master/README.md (fallback to default branch)
+				var redirect string
+				refSubPath := "src"
+				// remove the "/subpath/owner/repo/" prefix, the names are case-insensitive
+				remainingLowerPath, cut := strings.CutPrefix(setting.AppSubURL+strings.ToLower(ctx.Req.URL.Path), strings.ToLower(ctx.Repo.RepoLink)+"/")
+				if cut {
+					refSubPath, _, _ = strings.Cut(remainingLowerPath, "/") // it could be "src" or "commits"
+				}
+				if fallbackDefaultBranch {
+					redirect = fmt.Sprintf("%s/%s/%s/%s/%s", ctx.Repo.RepoLink, refSubPath, refType, util.PathEscapeSegments(refShortName), ctx.PathParamRaw("*"))
+				} else {
+					redirect = fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, refSubPath, refType, ctx.PathParamRaw("*"))
+				}
+				if ctx.Req.URL.RawQuery != "" {
+					redirect += "?" + ctx.Req.URL.RawQuery
+				}
 				ctx.Redirect(redirect)
 				return
 			}

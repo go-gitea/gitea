@@ -52,9 +52,9 @@ func cleanExpiredArtifacts(taskCtx context.Context) error {
 		}
 		if err := storage.ActionsArtifacts.Delete(artifact.StoragePath); err != nil {
 			log.Error("Cannot delete artifact %d: %v", artifact.ID, err)
-			continue
+			// go on
 		}
-		log.Info("Artifact %d set expired", artifact.ID)
+		log.Info("Artifact %d is deleted (due to expiration)", artifact.ID)
 	}
 	return nil
 }
@@ -76,9 +76,9 @@ func cleanNeedDeleteArtifacts(taskCtx context.Context) error {
 			}
 			if err := storage.ActionsArtifacts.Delete(artifact.StoragePath); err != nil {
 				log.Error("Cannot delete artifact %d: %v", artifact.ID, err)
-				continue
+				// go on
 			}
-			log.Info("Artifact %d set deleted", artifact.ID)
+			log.Info("Artifact %d is deleted (due to pending deletion)", artifact.ID)
 		}
 		if len(artifacts) < deleteArtifactBatchSize {
 			log.Debug("No more artifacts pending deletion")
@@ -103,8 +103,7 @@ func CleanupLogs(ctx context.Context) error {
 		for _, task := range tasks {
 			if err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename); err != nil {
 				log.Error("Failed to remove log %s (in storage %v) of task %v: %v", task.LogFilename, task.LogInStorage, task.ID, err)
-				// do not return error here, continue to next task
-				continue
+				// do not return error here, go on
 			}
 			task.LogIndexes = nil // clear log indexes since it's a heavy field
 			task.LogExpired = true

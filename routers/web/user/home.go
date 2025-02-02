@@ -41,8 +41,8 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
-	"github.com/keybase/go-crypto/openpgp"
-	"github.com/keybase/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"xorm.io/builder"
 )
 
@@ -732,7 +732,7 @@ func UsernameSubRoute(ctx *context.Context) {
 	switch {
 	case strings.HasSuffix(username, ".png"):
 		if reloadParam(".png") {
-			AvatarByUserName(ctx)
+			AvatarByUsernameSize(ctx)
 		}
 	case strings.HasSuffix(username, ".keys"):
 		if reloadParam(".keys") {

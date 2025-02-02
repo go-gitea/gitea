@@ -45,6 +45,11 @@
 			</a>
 			{{end}}
 			{{if .IsOrganizationOwner}}
+			<a class="{{if $.PageIsOrgTimes}}active{{end}} item" href="{{$.OrgLink}}/worktime">
+				{{svg "octicon-clock"}} {{ctx.Locale.Tr "org.worktime"}}
+			</a>
+			{{end}}
+			{{if .IsOrganizationOwner}}
 			<span class="item-flex-space"></span>
 			<a class="{{if .PageIsOrgSettings}}active {{end}}item" href="{{.OrgLink}}/settings">
 				{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}

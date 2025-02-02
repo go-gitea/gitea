@@ -50,6 +50,11 @@ func WebAuthn(ctx *context.Context) {
 
 // WebAuthnPasskeyAssertion submits a WebAuthn challenge for the passkey login to the browser
 func WebAuthnPasskeyAssertion(ctx *context.Context) {
+	if !setting.Service.EnablePasskeyAuth {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
+
 	assertion, sessionData, err := wa.WebAuthn.BeginDiscoverableLogin()
 	if err != nil {
 		ctx.ServerError("webauthn.BeginDiscoverableLogin", err)
@@ -66,6 +71,11 @@ func WebAuthnPasskeyAssertion(ctx *context.Context) {
 
 // WebAuthnPasskeyLogin handles the WebAuthn login process using a Passkey
 func WebAuthnPasskeyLogin(ctx *context.Context) {
+	if !setting.Service.EnablePasskeyAuth {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
+
 	sessionData, okData := ctx.Session.Get("webauthnPasskeyAssertion").(*webauthn.SessionData)
 	if !okData || sessionData == nil {
 		ctx.ServerError("ctx.Session.Get", errors.New("not in WebAuthn session"))

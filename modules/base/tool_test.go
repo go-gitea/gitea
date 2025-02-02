@@ -86,13 +86,10 @@ JWT_SECRET = %s
 		verifyDataCode := func(c string) bool {
 			return VerifyTimeLimitCode(now, "data", 2, c)
 		}
-		code1 := CreateTimeLimitCode("data", 2, now, sha1.New())
-		code2 := CreateTimeLimitCode("data", 2, now, nil)
-		assert.True(t, verifyDataCode(code1))
-		assert.True(t, verifyDataCode(code2))
+		code := CreateTimeLimitCode("data", 2, now, nil)
+		assert.True(t, verifyDataCode(code))
 		initGeneralSecret("000_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko")
-		assert.False(t, verifyDataCode(code1))
-		assert.False(t, verifyDataCode(code2))
+		assert.False(t, verifyDataCode(code))
 	})
 }
 
@@ -137,5 +134,3 @@ func TestInt64sToStrings(t *testing.T) {
 		Int64sToStrings([]int64{1, 4, 16, 64, 256}),
 	)
 }
-
-// TODO: Test EntryIcon

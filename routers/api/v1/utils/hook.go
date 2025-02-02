@@ -185,26 +185,28 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		HookEvent: &webhook_module.HookEvent{
 			ChooseEvents: true,
 			HookEvents: webhook_module.HookEvents{
-				Create:                   util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true),
-				Delete:                   util.SliceContainsString(form.Events, string(webhook_module.HookEventDelete), true),
-				Fork:                     util.SliceContainsString(form.Events, string(webhook_module.HookEventFork), true),
-				Issues:                   issuesHook(form.Events, "issues_only"),
-				IssueAssign:              issuesHook(form.Events, string(webhook_module.HookEventIssueAssign)),
-				IssueLabel:               issuesHook(form.Events, string(webhook_module.HookEventIssueLabel)),
-				IssueMilestone:           issuesHook(form.Events, string(webhook_module.HookEventIssueMilestone)),
-				IssueComment:             issuesHook(form.Events, string(webhook_module.HookEventIssueComment)),
-				Push:                     util.SliceContainsString(form.Events, string(webhook_module.HookEventPush), true),
-				PullRequest:              pullHook(form.Events, "pull_request_only"),
-				PullRequestAssign:        pullHook(form.Events, string(webhook_module.HookEventPullRequestAssign)),
-				PullRequestLabel:         pullHook(form.Events, string(webhook_module.HookEventPullRequestLabel)),
-				PullRequestMilestone:     pullHook(form.Events, string(webhook_module.HookEventPullRequestMilestone)),
-				PullRequestComment:       pullHook(form.Events, string(webhook_module.HookEventPullRequestComment)),
-				PullRequestReview:        pullHook(form.Events, "pull_request_review"),
-				PullRequestReviewRequest: pullHook(form.Events, string(webhook_module.HookEventPullRequestReviewRequest)),
-				PullRequestSync:          pullHook(form.Events, string(webhook_module.HookEventPullRequestSync)),
-				Wiki:                     util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true),
-				Repository:               util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true),
-				Release:                  util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true),
+				webhook_module.HookEventCreate:                   util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true),
+				webhook_module.HookEventDelete:                   util.SliceContainsString(form.Events, string(webhook_module.HookEventDelete), true),
+				webhook_module.HookEventFork:                     util.SliceContainsString(form.Events, string(webhook_module.HookEventFork), true),
+				webhook_module.HookEventIssues:                   issuesHook(form.Events, "issues_only"),
+				webhook_module.HookEventIssueAssign:              issuesHook(form.Events, string(webhook_module.HookEventIssueAssign)),
+				webhook_module.HookEventIssueLabel:               issuesHook(form.Events, string(webhook_module.HookEventIssueLabel)),
+				webhook_module.HookEventIssueMilestone:           issuesHook(form.Events, string(webhook_module.HookEventIssueMilestone)),
+				webhook_module.HookEventIssueComment:             issuesHook(form.Events, string(webhook_module.HookEventIssueComment)),
+				webhook_module.HookEventPush:                     util.SliceContainsString(form.Events, string(webhook_module.HookEventPush), true),
+				webhook_module.HookEventPullRequest:              pullHook(form.Events, "pull_request_only"),
+				webhook_module.HookEventPullRequestAssign:        pullHook(form.Events, string(webhook_module.HookEventPullRequestAssign)),
+				webhook_module.HookEventPullRequestLabel:         pullHook(form.Events, string(webhook_module.HookEventPullRequestLabel)),
+				webhook_module.HookEventPullRequestMilestone:     pullHook(form.Events, string(webhook_module.HookEventPullRequestMilestone)),
+				webhook_module.HookEventPullRequestComment:       pullHook(form.Events, string(webhook_module.HookEventPullRequestComment)),
+				webhook_module.HookEventPullRequestReview:        pullHook(form.Events, "pull_request_review"),
+				webhook_module.HookEventPullRequestReviewRequest: pullHook(form.Events, string(webhook_module.HookEventPullRequestReviewRequest)),
+				webhook_module.HookEventPullRequestSync:          pullHook(form.Events, string(webhook_module.HookEventPullRequestSync)),
+				webhook_module.HookEventWiki:                     util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true),
+				webhook_module.HookEventRepository:               util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true),
+				webhook_module.HookEventRelease:                  util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true),
+				webhook_module.HookEventPackage:                  util.SliceContainsString(form.Events, string(webhook_module.HookEventPackage), true),
+				webhook_module.HookEventStatus:                   util.SliceContainsString(form.Events, string(webhook_module.HookEventStatus), true),
 			},
 			BranchFilter: form.BranchFilter,
 		},
@@ -356,14 +358,13 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.PushOnly = false
 	w.SendEverything = false
 	w.ChooseEvents = true
-	w.Create = util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true)
-	w.Push = util.SliceContainsString(form.Events, string(webhook_module.HookEventPush), true)
-	w.Create = util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true)
-	w.Delete = util.SliceContainsString(form.Events, string(webhook_module.HookEventDelete), true)
-	w.Fork = util.SliceContainsString(form.Events, string(webhook_module.HookEventFork), true)
-	w.Repository = util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true)
-	w.Wiki = util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true)
-	w.Release = util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true)
+	w.HookEvents[webhook_module.HookEventCreate] = util.SliceContainsString(form.Events, string(webhook_module.HookEventCreate), true)
+	w.HookEvents[webhook_module.HookEventPush] = util.SliceContainsString(form.Events, string(webhook_module.HookEventPush), true)
+	w.HookEvents[webhook_module.HookEventDelete] = util.SliceContainsString(form.Events, string(webhook_module.HookEventDelete), true)
+	w.HookEvents[webhook_module.HookEventFork] = util.SliceContainsString(form.Events, string(webhook_module.HookEventFork), true)
+	w.HookEvents[webhook_module.HookEventRepository] = util.SliceContainsString(form.Events, string(webhook_module.HookEventRepository), true)
+	w.HookEvents[webhook_module.HookEventWiki] = util.SliceContainsString(form.Events, string(webhook_module.HookEventWiki), true)
+	w.HookEvents[webhook_module.HookEventRelease] = util.SliceContainsString(form.Events, string(webhook_module.HookEventRelease), true)
 	w.BranchFilter = form.BranchFilter
 
 	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
@@ -373,21 +374,21 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	}
 
 	// Issues
-	w.Issues = issuesHook(form.Events, "issues_only")
-	w.IssueAssign = issuesHook(form.Events, string(webhook_module.HookEventIssueAssign))
-	w.IssueLabel = issuesHook(form.Events, string(webhook_module.HookEventIssueLabel))
-	w.IssueMilestone = issuesHook(form.Events, string(webhook_module.HookEventIssueMilestone))
-	w.IssueComment = issuesHook(form.Events, string(webhook_module.HookEventIssueComment))
+	w.HookEvents[webhook_module.HookEventIssues] = issuesHook(form.Events, "issues_only")
+	w.HookEvents[webhook_module.HookEventIssueAssign] = issuesHook(form.Events, string(webhook_module.HookEventIssueAssign))
+	w.HookEvents[webhook_module.HookEventIssueLabel] = issuesHook(form.Events, string(webhook_module.HookEventIssueLabel))
+	w.HookEvents[webhook_module.HookEventIssueMilestone] = issuesHook(form.Events, string(webhook_module.HookEventIssueMilestone))
+	w.HookEvents[webhook_module.HookEventIssueComment] = issuesHook(form.Events, string(webhook_module.HookEventIssueComment))
 
 	// Pull requests
-	w.PullRequest = pullHook(form.Events, "pull_request_only")
-	w.PullRequestAssign = pullHook(form.Events, string(webhook_module.HookEventPullRequestAssign))
-	w.PullRequestLabel = pullHook(form.Events, string(webhook_module.HookEventPullRequestLabel))
-	w.PullRequestMilestone = pullHook(form.Events, string(webhook_module.HookEventPullRequestMilestone))
-	w.PullRequestComment = pullHook(form.Events, string(webhook_module.HookEventPullRequestComment))
-	w.PullRequestReview = pullHook(form.Events, "pull_request_review")
-	w.PullRequestReviewRequest = pullHook(form.Events, string(webhook_module.HookEventPullRequestReviewRequest))
-	w.PullRequestSync = pullHook(form.Events, string(webhook_module.HookEventPullRequestSync))
+	w.HookEvents[webhook_module.HookEventPullRequest] = pullHook(form.Events, "pull_request_only")
+	w.HookEvents[webhook_module.HookEventPullRequestAssign] = pullHook(form.Events, string(webhook_module.HookEventPullRequestAssign))
+	w.HookEvents[webhook_module.HookEventPullRequestLabel] = pullHook(form.Events, string(webhook_module.HookEventPullRequestLabel))
+	w.HookEvents[webhook_module.HookEventPullRequestMilestone] = pullHook(form.Events, string(webhook_module.HookEventPullRequestMilestone))
+	w.HookEvents[webhook_module.HookEventPullRequestComment] = pullHook(form.Events, string(webhook_module.HookEventPullRequestComment))
+	w.HookEvents[webhook_module.HookEventPullRequestReview] = pullHook(form.Events, "pull_request_review")
+	w.HookEvents[webhook_module.HookEventPullRequestReviewRequest] = pullHook(form.Events, string(webhook_module.HookEventPullRequestReviewRequest))
+	w.HookEvents[webhook_module.HookEventPullRequestSync] = pullHook(form.Events, string(webhook_module.HookEventPullRequestSync))
 
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
