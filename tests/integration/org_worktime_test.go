@@ -1,56 +1,48 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package organization_test
+package integration_test
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	_ "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
-
-	_ "code.gitea.io/gitea/models/issues"
 
 	"github.com/stretchr/testify/assert"
 )
 
-// TestTimesPrepareDB prepares the database for the following tests.
-func TestTimesPrepareDB(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-}
-
 // TestTimesByRepos tests TimesByRepos functionality
-func TestTimesByRepos(t *testing.T) {
+func testTimesByRepos(t *testing.T) {
 	kases := []struct {
 		name     string
 		unixfrom int64
 		unixto   int64
 		orgname  int64
-		expected []organization.ResultTimesByRepos
+		expected []organization.WorktimeSumByRepos
 	}{
 		{
 			name:     "Full sum for org 1",
 			unixfrom: 0,
 			unixto:   9223372036854775807,
 			orgname:  1,
-			expected: []organization.ResultTimesByRepos(nil),
+			expected: []organization.WorktimeSumByRepos(nil),
 		},
 		{
 			name:     "Full sum for org 2",
 			unixfrom: 0,
 			unixto:   9223372036854775807,
 			orgname:  2,
-			expected: []organization.ResultTimesByRepos{
+			expected: []organization.WorktimeSumByRepos{
 				{
-					Name:    "repo1",
-					SumTime: 4083,
+					RepoName: "repo1",
+					SumTime:  4083,
 				},
 				{
-					Name:    "repo2",
-					SumTime: 75,
+					RepoName: "repo2",
+					SumTime:  75,
 				},
 			},
 		},
@@ -59,10 +51,10 @@ func TestTimesByRepos(t *testing.T) {
 			unixfrom: 946684801,
 			unixto:   946684802,
 			orgname:  2,
-			expected: []organization.ResultTimesByRepos{
+			expected: []organization.WorktimeSumByRepos{
 				{
-					Name:    "repo1",
-					SumTime: 3662,
+					RepoName: "repo1",
+					SumTime:  3662,
 				},
 			},
 		},
@@ -71,10 +63,10 @@ func TestTimesByRepos(t *testing.T) {
 			unixfrom: 946684801,
 			unixto:   946684801,
 			orgname:  2,
-			expected: []organization.ResultTimesByRepos{
+			expected: []organization.WorktimeSumByRepos{
 				{
-					Name:    "repo1",
-					SumTime: 3661,
+					RepoName: "repo1",
+					SumTime:  3661,
 				},
 			},
 		},
@@ -83,10 +75,10 @@ func TestTimesByRepos(t *testing.T) {
 			unixfrom: 947688814,
 			unixto:   947688815,
 			orgname:  2,
-			expected: []organization.ResultTimesByRepos{
+			expected: []organization.WorktimeSumByRepos{
 				{
-					Name:    "repo2",
-					SumTime: 71,
+					RepoName: "repo2",
+					SumTime:  71,
 				},
 			},
 		},
@@ -97,7 +89,7 @@ func TestTimesByRepos(t *testing.T) {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
 			assert.NoError(t, err)
-			results, err := organization.GetTimesByRepos(org, kase.unixfrom, kase.unixto)
+			results, err := organization.GetWorktimeByRepos(org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)
 			assert.Equal(t, kase.expected, results)
 		})
@@ -105,47 +97,47 @@ func TestTimesByRepos(t *testing.T) {
 }
 
 // TestTimesByMilestones tests TimesByMilestones functionality
-func TestTimesByMilestones(t *testing.T) {
+func testTimesByMilestones(t *testing.T) {
 	kases := []struct {
 		name     string
 		unixfrom int64
 		unixto   int64
 		orgname  int64
-		expected []organization.ResultTimesByMilestones
+		expected []organization.WorktimeSumByMilestones
 	}{
 		{
 			name:     "Full sum for org 1",
 			unixfrom: 0,
 			unixto:   9223372036854775807,
 			orgname:  1,
-			expected: []organization.ResultTimesByMilestones(nil),
+			expected: []organization.WorktimeSumByMilestones(nil),
 		},
 		{
 			name:     "Full sum for org 2",
 			unixfrom: 0,
 			unixto:   9223372036854775807,
 			orgname:  2,
-			expected: []organization.ResultTimesByMilestones{
+			expected: []organization.WorktimeSumByMilestones{
 				{
-					RepoName:     "repo1",
-					Name:         "",
-					ID:           "",
-					SumTime:      401,
-					HideRepoName: false,
+					RepoName:      "repo1",
+					MilestoneName: "",
+					MilestoneID:   0,
+					SumTime:       401,
+					HideRepoName:  false,
 				},
 				{
-					RepoName:     "repo1",
-					Name:         "milestone1",
-					ID:           "1",
-					SumTime:      3682,
-					HideRepoName: false,
+					RepoName:      "repo1",
+					MilestoneName: "milestone1",
+					MilestoneID:   1,
+					SumTime:       3682,
+					HideRepoName:  true,
 				},
 				{
-					RepoName:     "repo2",
-					Name:         "",
-					ID:           "",
-					SumTime:      75,
-					HideRepoName: false,
+					RepoName:      "repo2",
+					MilestoneName: "",
+					MilestoneID:   0,
+					SumTime:       75,
+					HideRepoName:  false,
 				},
 			},
 		},
@@ -154,13 +146,13 @@ func TestTimesByMilestones(t *testing.T) {
 			unixfrom: 946684801,
 			unixto:   946684802,
 			orgname:  2,
-			expected: []organization.ResultTimesByMilestones{
+			expected: []organization.WorktimeSumByMilestones{
 				{
-					RepoName:     "repo1",
-					Name:         "milestone1",
-					ID:           "1",
-					SumTime:      3662,
-					HideRepoName: false,
+					RepoName:      "repo1",
+					MilestoneName: "milestone1",
+					MilestoneID:   1,
+					SumTime:       3662,
+					HideRepoName:  false,
 				},
 			},
 		},
@@ -169,13 +161,13 @@ func TestTimesByMilestones(t *testing.T) {
 			unixfrom: 946684801,
 			unixto:   946684801,
 			orgname:  2,
-			expected: []organization.ResultTimesByMilestones{
+			expected: []organization.WorktimeSumByMilestones{
 				{
-					RepoName:     "repo1",
-					Name:         "milestone1",
-					ID:           "1",
-					SumTime:      3661,
-					HideRepoName: false,
+					RepoName:      "repo1",
+					MilestoneName: "milestone1",
+					MilestoneID:   1,
+					SumTime:       3661,
+					HideRepoName:  false,
 				},
 			},
 		},
@@ -184,13 +176,13 @@ func TestTimesByMilestones(t *testing.T) {
 			unixfrom: 947688814,
 			unixto:   947688815,
 			orgname:  2,
-			expected: []organization.ResultTimesByMilestones{
+			expected: []organization.WorktimeSumByMilestones{
 				{
-					RepoName:     "repo2",
-					Name:         "",
-					ID:           "",
-					SumTime:      71,
-					HideRepoName: false,
+					RepoName:      "repo2",
+					MilestoneName: "",
+					MilestoneID:   0,
+					SumTime:       71,
+					HideRepoName:  false,
 				},
 			},
 		},
@@ -201,7 +193,7 @@ func TestTimesByMilestones(t *testing.T) {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
 			assert.NoError(t, err)
-			results, err := organization.GetTimesByMilestones(org, kase.unixfrom, kase.unixto)
+			results, err := organization.GetWorktimeByMilestones(org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)
 			assert.Equal(t, kase.expected, results)
 		})
@@ -209,20 +201,20 @@ func TestTimesByMilestones(t *testing.T) {
 }
 
 // TestTimesByMembers tests TimesByMembers functionality
-func TestTimesByMembers(t *testing.T) {
+func testTimesByMembers(t *testing.T) {
 	kases := []struct {
 		name     string
 		unixfrom int64
 		unixto   int64
 		orgname  int64
-		expected []organization.ResultTimesByMembers
+		expected []organization.WorktimeSumByMembers
 	}{
 		{
 			name:     "Full sum for org 1",
 			unixfrom: 0,
 			unixto:   9223372036854775807,
 			orgname:  1,
-			expected: []organization.ResultTimesByMembers(nil),
+			expected: []organization.WorktimeSumByMembers(nil),
 		},
 		{
 			// Test case: Sum of times forever in org no. 2
@@ -230,14 +222,14 @@ func TestTimesByMembers(t *testing.T) {
 			unixfrom: 0,
 			unixto:   9223372036854775807,
 			orgname:  2,
-			expected: []organization.ResultTimesByMembers{
+			expected: []organization.WorktimeSumByMembers{
 				{
-					Name:    "user2",
-					SumTime: 3666,
+					UserName: "user2",
+					SumTime:  3666,
 				},
 				{
-					Name:    "user1",
-					SumTime: 491,
+					UserName: "user1",
+					SumTime:  491,
 				},
 			},
 		},
@@ -246,10 +238,10 @@ func TestTimesByMembers(t *testing.T) {
 			unixfrom: 946684801,
 			unixto:   946684802,
 			orgname:  2,
-			expected: []organization.ResultTimesByMembers{
+			expected: []organization.WorktimeSumByMembers{
 				{
-					Name:    "user2",
-					SumTime: 3662,
+					UserName: "user2",
+					SumTime:  3662,
 				},
 			},
 		},
@@ -258,10 +250,10 @@ func TestTimesByMembers(t *testing.T) {
 			unixfrom: 946684801,
 			unixto:   946684801,
 			orgname:  2,
-			expected: []organization.ResultTimesByMembers{
+			expected: []organization.WorktimeSumByMembers{
 				{
-					Name:    "user2",
-					SumTime: 3661,
+					UserName: "user2",
+					SumTime:  3661,
 				},
 			},
 		},
@@ -270,10 +262,10 @@ func TestTimesByMembers(t *testing.T) {
 			unixfrom: 947688814,
 			unixto:   947688815,
 			orgname:  2,
-			expected: []organization.ResultTimesByMembers{
+			expected: []organization.WorktimeSumByMembers{
 				{
-					Name:    "user1",
-					SumTime: 71,
+					UserName: "user1",
+					SumTime:  71,
 				},
 			},
 		},
@@ -284,9 +276,17 @@ func TestTimesByMembers(t *testing.T) {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
 			assert.NoError(t, err)
-			results, err := organization.GetTimesByMembers(org, kase.unixfrom, kase.unixto)
+			results, err := organization.GetWorktimeByMembers(org, kase.unixfrom, kase.unixto)
 			assert.NoError(t, err)
 			assert.Equal(t, kase.expected, results)
 		})
 	}
+}
+
+func TestOrgWorktime(t *testing.T) {
+	// we need to run these tests in integration test because there are complex SQL queries
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	testTimesByRepos(t)
+	testTimesByMilestones(t)
+	testTimesByMembers(t)
 }

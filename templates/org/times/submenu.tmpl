@@ -1,7 +1,0 @@
-<div class="ui column">
-	<div class="ui compact small menu">
-		<a class="{{if .TabIsByRepos}}active{{end}} item" href="{{$.Org.OrganisationLink}}/times/by_repos?from={{.RangeFrom}}&to={{.RangeTo}}">{{svg "octicon-repo" 16 "gt-mr-2"}} {{$.locale.Tr "org.times.by_repositories"}}</a>
-		<a class="{{if .TabIsByMilestones}}active{{end}} item" href="{{$.Org.OrganisationLink}}/times/by_milestones?from={{.RangeFrom}}&to={{.RangeTo}}">{{svg "octicon-milestone" 16 "gt-mr-2"}} {{$.locale.Tr "org.times.by_milestones"}}</a>
-		<a class="{{if .TabIsByMembers}}active{{end}} item" href="{{$.Org.OrganisationLink}}/times/by_members?from={{.RangeFrom}}&to={{.RangeTo}}">{{svg "octicon-people" 16 "gt-mr-2"}} {{$.locale.Tr "org.times.by_members"}}</a>
-	</div>
-</div>
