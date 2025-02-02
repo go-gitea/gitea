@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestTimesByRepos tests TimesByRepos functionality
@@ -191,10 +192,11 @@ func testTimesByMilestones(t *testing.T) {
 	for _, kase := range kases {
 		t.Run(kase.name, func(t *testing.T) {
 			org, err := organization.GetOrgByID(db.DefaultContext, kase.orgname)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			results, err := organization.GetWorktimeByMilestones(org, kase.unixfrom, kase.unixto)
-			assert.NoError(t, err)
-			assert.Equal(t, kase.expected, results)
+			if assert.NoError(t, err) {
+				assert.Equal(t, kase.expected, results)
+			}
 		})
 	}
 }
@@ -285,7 +287,7 @@ func testTimesByMembers(t *testing.T) {
 func TestOrgWorktime(t *testing.T) {
 	// we need to run these tests in integration test because there are complex SQL queries
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	testTimesByRepos(t)
-	testTimesByMilestones(t)
-	testTimesByMembers(t)
+	t.Run("ByRepos", testTimesByRepos)
+	t.Run("ByMilestones", testTimesByMilestones)
+	t.Run("ByMembers", testTimesByMembers)
 }
