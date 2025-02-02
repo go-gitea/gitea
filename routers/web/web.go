@@ -118,7 +118,7 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 		ar, err := common.AuthShared(ctx.Base, ctx.Session, authMethod)
 		if err != nil {
 			log.Error("Failed to verify user: %v", err)
-			ctx.Error(http.StatusUnauthorized, "Verify")
+			ctx.Error(http.StatusUnauthorized, "Failed to authenticate user")
 			return
 		}
 		ctx.Doer = ar.Doer
@@ -1428,7 +1428,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
-			m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
+			m.Delete("/artifacts/{artifact_name}", reqRepoActionsWriter, actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 		})
 		m.Group("/workflows/{workflow_name}", func() {

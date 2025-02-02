@@ -137,5 +137,3 @@ func TestInt64sToStrings(t *testing.T) {
 		Int64sToStrings([]int64{1, 4, 16, 64, 256}),
 	)
 }
-
-// TODO: Test EntryIcon
