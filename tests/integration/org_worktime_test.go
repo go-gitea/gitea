@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	_ "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 
