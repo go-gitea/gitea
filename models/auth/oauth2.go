@@ -73,6 +73,11 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 		DisplayName:  "tea",
 		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
 	}
+	m["9c0c7633-de85-4b51-938b-9fabc8cb7099"] = &BuiltinOAuth2Application{
+		ConfigName:   "gh-tea",
+		DisplayName:  "gh-tea",
+		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+	}
 	return m
 }
 

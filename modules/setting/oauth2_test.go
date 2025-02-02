@@ -62,7 +62,7 @@ func TestGetGeneralSigningSecretSave(t *testing.T) {
 func TestOauth2DefaultApplications(t *testing.T) {
 	cfg, _ := NewConfigProviderFromData(``)
 	loadOAuth2From(cfg)
-	assert.Equal(t, []string{"git-credential-oauth", "git-credential-manager", "tea"}, OAuth2.DefaultApplications)
+	assert.Equal(t, []string{"git-credential-oauth", "git-credential-manager", "tea", "gh-tea"}, OAuth2.DefaultApplications)
 
 	cfg, _ = NewConfigProviderFromData(`[oauth2]
 DEFAULT_APPLICATIONS = tea
