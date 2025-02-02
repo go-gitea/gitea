@@ -913,6 +913,8 @@ func registerRoutes(m *web.Router) {
 			m.Post("/teams/{team}/edit", web.Bind(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
 
+			m.Get("/worktime", context.OrgAssignment(false, true), org.Worktime)
+
 			m.Group("/settings", func() {
 				m.Combo("").Get(org.Settings).
 					Post(web.Bind(forms.UpdateOrgSettingForm{}), org.SettingsPost)
