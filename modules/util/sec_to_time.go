@@ -22,7 +22,7 @@ func SecToHours(durationVal any) string {
 	formattedTime = formatTime(minutes, "minute", formattedTime)
 
 	// The formatTime() function always appends a space at the end. This will be trimmed
-	if formattedTime == "" {
+	if formattedTime == "" && seconds > 0 {
 		formattedTime = formatTime(seconds, "second", "")
 	}
 	return strings.TrimRight(formattedTime, " ")
