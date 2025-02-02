@@ -4,6 +4,8 @@
 package organization
 
 import (
+	"sort"
+
 	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/builder"
@@ -31,16 +33,17 @@ func GetWorktimeByRepos(org *Organization, unitFrom, unixTo int64) (results []Wo
 }
 
 type WorktimeSumByMilestones struct {
-	RepoName      string
-	MilestoneName string
-	MilestoneID   int64
-	SumTime       int64
-	HideRepoName  bool
+	RepoName          string
+	MilestoneName     string
+	MilestoneID       int64
+	MilestoneDeadline int64
+	SumTime           int64
+	HideRepoName      bool
 }
 
 func GetWorktimeByMilestones(org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByMilestones, err error) {
 	err = db.GetEngine(db.DefaultContext).
-		Select("repository.name AS repo_name, milestone.name AS milestone_name, milestone.id AS milestone_id, SUM(tracked_time.time) AS sum_time").
+		Select("repository.name AS repo_name, milestone.name AS milestone_name, milestone.id AS milestone_id, milestone.deadline_unix as milestone_deadline, SUM(tracked_time.time) AS sum_time").
 		Table("tracked_time").
 		Join("INNER", "issue", "tracked_time.issue_id = issue.id").
 		Join("INNER", "repository", "issue.repo_id = repository.id").
@@ -52,10 +55,23 @@ func GetWorktimeByMilestones(org *Organization, unitFrom, unixTo int64) (results
 		GroupBy("repository.name, milestone.name, milestone.deadline_unix, milestone.id").
 		OrderBy("repository.name, milestone.deadline_unix, milestone.id").
 		Find(&results)
+
+	// TODO: pgsql: NULL values are sorted last in default ascending order, so we need to sort them manually again.
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].RepoName != results[j].RepoName {
+			return results[i].RepoName < results[j].RepoName
+		}
+		if results[i].MilestoneDeadline != results[j].MilestoneDeadline {
+			return results[i].MilestoneDeadline < results[j].MilestoneDeadline
+		}
+		return results[i].MilestoneID < results[j].MilestoneID
+	})
+
 	// Show only the first RepoName, for nicer output.
 	prevRepoName := ""
 	for i := 0; i < len(results); i++ {
 		res := &results[i]
+		res.MilestoneDeadline = 0 // clear the deadline because we do not really need it
 		if prevRepoName == res.RepoName {
 			res.HideRepoName = true
 		}
