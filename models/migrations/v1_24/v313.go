@@ -14,7 +14,7 @@ func MovePinOrderToTableIssuePin(x *xorm.Engine) error {
 		ID       int64 `xorm:"pk autoincr"`
 		RepoID   int64 `xorm:"UNIQUE(s) NOT NULL"`
 		IssueID  int64 `xorm:"UNIQUE(s) NOT NULL"`
-		IsPull   bool  `xorm:"INDEX NOT NULL"`
+		IsPull   bool  `xorm:"NOT NULL"`
 		PinOrder int   `xorm:"DEFAULT 0"`
 	}
 
