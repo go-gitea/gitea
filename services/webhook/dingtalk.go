@@ -190,3 +190,7 @@ func newDingtalkRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_
 	var pc payloadConvertor[DingtalkPayload] = dingtalkConvertor{}
 	return newJSONRequest(pc, w, t, true)
 }
+
+func init() {
+	RegisterWebhookRequester(webhook_module.DINGTALK, newDingtalkRequest)
+}

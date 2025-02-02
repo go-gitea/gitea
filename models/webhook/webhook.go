@@ -299,6 +299,11 @@ func (w *Webhook) HasPackageEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Package)
 }
 
+func (w *Webhook) HasStatusEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Status)
+}
+
 // HasPullRequestReviewRequestEvent returns true if hook enabled pull request review request event.
 func (w *Webhook) HasPullRequestReviewRequestEvent() bool {
 	return w.SendEverything ||
@@ -337,6 +342,7 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasReleaseEvent, webhook_module.HookEventRelease},
 		{w.HasPackageEvent, webhook_module.HookEventPackage},
 		{w.HasPullRequestReviewRequestEvent, webhook_module.HookEventPullRequestReviewRequest},
+		{w.HasStatusEvent, webhook_module.HookEventStatus},
 	}
 }
 
