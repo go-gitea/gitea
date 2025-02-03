@@ -4,7 +4,10 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -181,101 +184,155 @@ func TestEditFileToNewBranch(t *testing.T) {
 	})
 }
 
-func TestEditFileCommitEmail(t *testing.T) {
+func TestWebGitCommitEmail(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		assert.True(t, user.KeepEmailPrivate)
+		require.True(t, user.KeepEmailPrivate)
 
-		session := loginUser(t, user.Name)
-		link := "/user2/repo1/_edit/master/README.md"
-
-		getLastCommitID := func(t *testing.T) string {
-			req := NewRequest(t, "GET", link)
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-			lastCommit := htmlDoc.GetInputValueByName("last_commit")
-			require.NotEmpty(t, lastCommit)
-			return lastCommit
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
+		defer gitRepo.Close()
+		getLastCommit := func(t *testing.T) *git.Commit {
+			c, err := gitRepo.GetBranchCommit("master")
+			require.NoError(t, err)
+			return c
 		}
 
-		newReq := func(t *testing.T, session *TestSession, email, content string) *RequestWrapper {
-			req := NewRequestWithValues(t, "POST", link, map[string]string{
-				"_csrf":         GetUserCSRFToken(t, session),
-				"last_commit":   getLastCommitID(t),
-				"tree_path":     "README.md",
-				"content":       content,
-				"commit_choice": "direct",
-				"commit_email":  email,
-			})
-			return req
+		session := loginUser(t, user.Name)
+
+		makeReq := func(t *testing.T, link string, params map[string]string, expectedUserName, expectedEmail string) *httptest.ResponseRecorder {
+			lastCommit := getLastCommit(t)
+			params["_csrf"] = GetUserCSRFToken(t, session)
+			params["last_commit"] = lastCommit.ID.String()
+			params["commit_choice"] = "direct"
+			req := NewRequestWithValues(t, "POST", link, params)
+			resp := session.MakeRequest(t, req, NoExpectedStatus)
+			newCommit := getLastCommit(t)
+			if expectedUserName == "" {
+				require.Equal(t, lastCommit.ID.String(), newCommit.ID.String())
+				htmlDoc := NewHTMLParser(t, resp.Body)
+				errMsg := htmlDoc.doc.Find(".ui.negative.message").Text()
+				assert.Contains(t, errMsg, translation.NewLocale("en-US").Tr("repo.editor.invalid_commit_email"))
+			} else {
+				require.NotEqual(t, lastCommit.ID.String(), newCommit.ID.String())
+				assert.EqualValues(t, expectedUserName, newCommit.Author.Name)
+				assert.EqualValues(t, expectedEmail, newCommit.Author.Email)
+				assert.EqualValues(t, expectedUserName, newCommit.Committer.Name)
+				assert.EqualValues(t, expectedEmail, newCommit.Committer.Email)
+			}
+			return resp
+		}
+
+		uploadFile := func(t *testing.T, name, content string) string {
+			body := &bytes.Buffer{}
+			uploadForm := multipart.NewWriter(body)
+			file, _ := uploadForm.CreateFormFile("file", name)
+			_, _ = io.Copy(file, bytes.NewBufferString(content))
+			_ = uploadForm.WriteField("_csrf", GetUserCSRFToken(t, session))
+			_ = uploadForm.Close()
+
+			req := NewRequestWithBody(t, "POST", "/user2/repo1/upload-file", body)
+			req.Header.Add("Content-Type", uploadForm.FormDataContentType())
+			resp := session.MakeRequest(t, req, http.StatusOK)
+
+			respMap := map[string]string{}
+			DecodeJSON(t, resp, &respMap)
+			return respMap["uuid"]
 		}
 
 		t.Run("EmailInactive", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			email := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{ID: 35, UID: user.ID})
-			assert.False(t, email.IsActivated)
-
-			req := newReq(t, session, email.Email, "test content")
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-			assert.Contains(t,
-				htmlDoc.doc.Find(".ui.negative.message").Text(),
-				translation.NewLocale("en-US").Tr("repo.editor.invalid_commit_email"),
-			)
+			require.False(t, email.IsActivated)
+			makeReq(t, "/user2/repo1/_edit/master/README.md", map[string]string{
+				"tree_path":    "README.md",
+				"content":      "test content",
+				"commit_email": email.Email,
+			}, "", "")
 		})
 
 		t.Run("EmailInvalid", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			email := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{ID: 1, IsActivated: true})
-			assert.NotEqualValues(t, email.UID, user.ID)
+			require.NotEqualValues(t, email.UID, user.ID)
+			makeReq(t, "/user2/repo1/_edit/master/README.md", map[string]string{
+				"tree_path":    "README.md",
+				"content":      "test content",
+				"commit_email": email.Email,
+			}, "", "")
+		})
 
-			req := newReq(t, session, email.Email, "test content")
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-			assert.Contains(t,
-				htmlDoc.doc.Find(".ui.negative.message").Text(),
-				translation.NewLocale("en-US").Tr("repo.editor.invalid_commit_email"),
+		testWebGit := func(t *testing.T, linkForKeepPrivate string, paramsForKeepPrivate map[string]string, linkForChosenEmail string, paramsForChosenEmail map[string]string) (resp1, resp2 *httptest.ResponseRecorder) {
+			t.Run("DefaultEmailKeepPrivate", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+				paramsForKeepPrivate["commit_email"] = ""
+				resp1 = makeReq(t, linkForKeepPrivate, paramsForKeepPrivate, "User Two", "user2@noreply.example.org")
+			})
+			t.Run("ChooseEmail", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+				paramsForChosenEmail["commit_email"] = "user2@example.com"
+				resp2 = makeReq(t, linkForChosenEmail, paramsForChosenEmail, "User Two", "user2@example.com")
+			})
+			return resp1, resp2
+		}
+
+		t.Run("Edit", func(t *testing.T) {
+			testWebGit(t,
+				"/user2/repo1/_edit/master/README.md", map[string]string{"tree_path": "README.md", "content": "for keep private"},
+				"/user2/repo1/_edit/master/README.md", map[string]string{"tree_path": "README.md", "content": "for chosen email"},
 			)
 		})
 
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
-		defer gitRepo.Close()
-
-		t.Run("DefaultEmailKeepPrivate", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-			req := newReq(t, session, "", "privacy email")
-			session.MakeRequest(t, req, http.StatusSeeOther)
-
-			commit, err := gitRepo.GetCommitByPath("README.md")
-			assert.NoError(t, err)
-
-			fileContent, err := commit.GetFileContent("README.md", 64)
-			assert.NoError(t, err)
-			assert.EqualValues(t, "privacy email", fileContent)
-			assert.EqualValues(t, "User Two", commit.Author.Name)
-			assert.EqualValues(t, "user2@noreply.example.org", commit.Author.Email)
-			assert.EqualValues(t, "User Two", commit.Committer.Name)
-			assert.EqualValues(t, "user2@noreply.example.org", commit.Committer.Email)
+		t.Run("UploadDelete", func(t *testing.T) {
+			file1UUID := uploadFile(t, "file1", "File 1")
+			file2UUID := uploadFile(t, "file2", "File 2")
+			testWebGit(t,
+				"/user2/repo1/_upload/master", map[string]string{"files": file1UUID},
+				"/user2/repo1/_upload/master", map[string]string{"files": file2UUID},
+			)
+			testWebGit(t,
+				"/user2/repo1/_delete/master/file1", map[string]string{},
+				"/user2/repo1/_delete/master/file2", map[string]string{},
+			)
 		})
 
-		t.Run("ChooseEmail", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
+		t.Run("ApplyPatchCherryPick", func(t *testing.T) {
+			testWebGit(t,
+				"/user2/repo1/_diffpatch/master", map[string]string{
+					"tree_path": "__dummy__",
+					"content": `diff --git a/patch-file-1.txt b/patch-file-1.txt
+new file mode 100644
+index 0000000000..aaaaaaaaaa
+--- /dev/null
++++ b/patch-file-1.txt
+@@ -0,0 +1 @@
++File 1
+`,
+				},
+				"/user2/repo1/_diffpatch/master", map[string]string{
+					"tree_path": "__dummy__",
+					"content": `diff --git a/patch-file-2.txt b/patch-file-2.txt
+new file mode 100644
+index 0000000000..bbbbbbbbbb
+--- /dev/null
++++ b/patch-file-2.txt
+@@ -0,0 +1 @@
++File 2
+`,
+				},
+			)
 
-			email := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{ID: 3, UID: user.ID, IsActivated: true})
-			req := newReq(t, session, email.Email, "chosen email")
-			session.MakeRequest(t, req, http.StatusSeeOther)
+			commit1, err := gitRepo.GetCommitByPath("patch-file-1.txt")
+			require.NoError(t, err)
+			commit2, err := gitRepo.GetCommitByPath("patch-file-2.txt")
+			require.NoError(t, err)
+			resp1, _ := testWebGit(t,
+				"/user2/repo1/_cherrypick/"+commit1.ID.String()+"/master", map[string]string{"revert": "true"},
+				"/user2/repo1/_cherrypick/"+commit2.ID.String()+"/master", map[string]string{"revert": "true"},
+			)
 
-			commit, err := gitRepo.GetCommitByPath("README.md")
-			assert.NoError(t, err)
-
-			fileContent, err := commit.GetFileContent("README.md", 64)
-			assert.NoError(t, err)
-			assert.EqualValues(t, "chosen email", fileContent)
-			assert.EqualValues(t, "User Two", commit.Author.Name)
-			assert.EqualValues(t, email.Email, commit.Author.Email)
-			assert.EqualValues(t, "User Two", commit.Committer.Name)
-			assert.EqualValues(t, email.Email, commit.Committer.Email)
+			// By the way, test the "cherrypick" page: a successful revert redirects to the main branch
+			assert.EqualValues(t, "/user2/repo1/src/branch/master", resp1.Header().Get("Location"))
 		})
 	})
 }

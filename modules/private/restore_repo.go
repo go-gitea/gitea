@@ -24,7 +24,7 @@ type RestoreParams struct {
 func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units []string, validation bool) ResponseExtra {
 	reqURL := setting.LocalURL + "api/internal/restore_repo"
 
-	req := newInternalRequest(ctx, reqURL, "POST", RestoreParams{
+	req := newInternalRequestAPI(ctx, reqURL, "POST", RestoreParams{
 		RepoDir:    repoDir,
 		OwnerName:  ownerName,
 		RepoName:   repoName,

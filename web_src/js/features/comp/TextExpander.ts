@@ -6,7 +6,7 @@ import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts'
 import {getIssueColor, getIssueIcon} from '../issue.ts';
 import {debounce} from 'perfect-debounce';
 import type TextExpanderElement from '@github/text-expander-element';
-import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element/dist/text-expander-element.d.ts';
+import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
 
 async function fetchIssueSuggestions(key: string, text: string): Promise<TextExpanderResult> {
   const issuePathInfo = parseIssueHref(window.location.href);
