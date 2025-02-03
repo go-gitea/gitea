@@ -239,10 +239,10 @@ func LinkPackage(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// - name: repo_name
-	//   in: query
-	//   description: Name of the repository to link.
+	//   in: path
+	//   description: name of the repository to link.
 	//   type: string
-	//   required: false
+	//   required: true
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/empty"
