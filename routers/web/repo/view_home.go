@@ -311,21 +311,21 @@ func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 }
 
 func handleRepoHomeFeed(ctx *context.Context) bool {
-	if setting.Other.EnableFeed {
-		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam("reponame"), ctx.Req)
-		if isFeed {
-			switch {
-			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
-				feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
-			case ctx.Repo.TreePath == "":
-				feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
-			case ctx.Repo.TreePath != "":
-				feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
-			}
-			return true
-		}
+	if !setting.Other.EnableFeed {
+		return false
 	}
-	return false
+	isFeed, showFeedType := feed.GetFeedType(ctx.PathParam("reponame"), ctx.Req)
+	if !isFeed {
+		return false
+	}
+	if ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType) {
+		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else if ctx.Repo.TreePath == "" {
+		feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else {
+		feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+	}
+	return true
 }
 
 // Home render repository home page
@@ -411,4 +411,21 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplRepoHome)
+}
+
+func RedirectRepoTreeToSrc(ctx *context.Context) {
+	// Redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*",
+	// then use the deprecated "/src/*" handler to guess the ref type and render a file list page.
+	// This is done intentionally so that Gitea's repo URL structure matches other forges (GitHub/GitLab) provide,
+	// allowing us to construct submodule URLs across forges easily.
+	// For example, when viewing a submodule, we can simply construct the link as:
+	// * "https://gitea/owner/repo/tree/{CommitID}"
+	// * "https://github/owner/repo/tree/{CommitID}"
+	// * "https://gitlab/owner/repo/tree/{CommitID}"
+	// Then no matter which forge the submodule is using, the link works.
+	redirect := ctx.Repo.RepoLink + "/src/" + ctx.PathParamRaw("*")
+	if ctx.Req.URL.RawQuery != "" {
+		redirect += "?" + ctx.Req.URL.RawQuery
+	}
+	ctx.Redirect(redirect)
 }

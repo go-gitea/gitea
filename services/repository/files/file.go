@@ -11,7 +11,6 @@ import (
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -109,51 +108,6 @@ func GetFileCommitResponse(repo *repo_model.Repository, commit *git.Commit) (*ap
 		Parents: parents,
 	}
 	return fileCommit, nil
-}
-
-// GetAuthorAndCommitterUsers Gets the author and committer user objects from the IdentityOptions
-func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *user_model.User) (authorUser, committerUser *user_model.User) {
-	// Committer and author are optional. If they are not the doer (not same email address)
-	// then we use bogus User objects for them to store their FullName and Email.
-	// If only one of the two are provided, we set both of them to it.
-	// If neither are provided, both are the doer.
-	if committer != nil && committer.Email != "" {
-		if doer != nil && strings.EqualFold(doer.Email, committer.Email) {
-			committerUser = doer // the committer is the doer, so will use their user object
-			if committer.Name != "" {
-				committerUser.FullName = committer.Name
-			}
-		} else {
-			committerUser = &user_model.User{
-				FullName: committer.Name,
-				Email:    committer.Email,
-			}
-		}
-	}
-	if author != nil && author.Email != "" {
-		if doer != nil && strings.EqualFold(doer.Email, author.Email) {
-			authorUser = doer // the author is the doer, so will use their user object
-			if authorUser.Name != "" {
-				authorUser.FullName = author.Name
-			}
-		} else {
-			authorUser = &user_model.User{
-				FullName: author.Name,
-				Email:    author.Email,
-			}
-		}
-	}
-	if authorUser == nil {
-		if committerUser != nil {
-			authorUser = committerUser // No valid author was given so use the committer
-		} else if doer != nil {
-			authorUser = doer // No valid author was given and no valid committer so use the doer
-		}
-	}
-	if committerUser == nil {
-		committerUser = authorUser // No valid committer so use the author as the committer (was set to a valid user above)
-	}
-	return authorUser, committerUser
 }
 
 // ErrFilenameInvalid represents a "FilenameInvalid" kind of error.

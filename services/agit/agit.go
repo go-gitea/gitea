@@ -153,7 +153,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				OriginalRef:       opts.RefFullNames[i],
 				OldOID:            objectFormat.EmptyObjectID().String(),
 				NewOID:            opts.NewCommitIDs[i],
-				IsCreatePR:        true,
+				IsCreatePR:        false, // AGit always creates a pull request so there is no point in prompting user to create one
 				URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
 				ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 				HeadBranch:        headBranch,

@@ -81,12 +81,12 @@ func TestPullRequestTargetEvent(t *testing.T) {
 			OldBranch: "main",
 			NewBranch: "main",
 			Author: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -109,12 +109,12 @@ func TestPullRequestTargetEvent(t *testing.T) {
 			OldBranch: "main",
 			NewBranch: "fork-branch-1",
 			Author: &files_service.IdentityOptions{
-				Name:  user4.Name,
-				Email: user4.Email,
+				GitUserName:  user4.Name,
+				GitUserEmail: user4.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user4.Name,
-				Email: user4.Email,
+				GitUserName:  user4.Name,
+				GitUserEmail: user4.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -164,12 +164,12 @@ func TestPullRequestTargetEvent(t *testing.T) {
 			OldBranch: "main",
 			NewBranch: "fork-branch-2",
 			Author: &files_service.IdentityOptions{
-				Name:  user4.Name,
-				Email: user4.Email,
+				GitUserName:  user4.Name,
+				GitUserEmail: user4.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user4.Name,
-				Email: user4.Email,
+				GitUserName:  user4.Name,
+				GitUserEmail: user4.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -237,12 +237,12 @@ func TestSkipCI(t *testing.T) {
 			OldBranch: "master",
 			NewBranch: "master",
 			Author: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -268,12 +268,12 @@ func TestSkipCI(t *testing.T) {
 			OldBranch: "master",
 			NewBranch: "master",
 			Author: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -299,12 +299,12 @@ func TestSkipCI(t *testing.T) {
 			OldBranch: "master",
 			NewBranch: "test-skip-ci",
 			Author: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -356,12 +356,12 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 			OldBranch: "main",
 			NewBranch: "main",
 			Author: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -470,12 +470,12 @@ func TestPullRequestCommitStatusEvent(t *testing.T) {
 			OldBranch: "main",
 			NewBranch: "main",
 			Author: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
@@ -576,12 +576,12 @@ func TestPullRequestCommitStatusEvent(t *testing.T) {
 			OldBranch: testBranch,
 			NewBranch: testBranch,
 			Author: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				Name:  user2.Name,
-				Email: user2.Email,
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),

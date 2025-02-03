@@ -477,26 +477,16 @@ func RenameUser(ctx *context.APIContext) {
 		return
 	}
 
-	oldName := ctx.ContextUser.Name
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
 
-	// Check if user name has been changed
+	// Check if username has been changed
 	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
-		switch {
-		case user_model.IsErrUserAlreadyExist(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))
-		case db.IsErrNameReserved(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_reserved", newName))
-		case db.IsErrNamePatternNotAllowed(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_pattern_not_allowed", newName))
-		case db.IsErrNameCharsNotAllowed(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_chars_not_allowed", newName))
-		default:
+		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+		} else {
 			ctx.ServerError("ChangeUserName", err)
 		}
 		return
 	}
-
-	log.Trace("User name changed: %s -> %s", oldName, newName)
 	ctx.Status(http.StatusNoContent)
 }

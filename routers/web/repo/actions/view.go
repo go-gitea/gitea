@@ -281,84 +281,98 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
-		steps := actions.FullSteps(task)
-
-		for _, v := range steps {
-			resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &ViewJobStep{
-				Summary:  v.Name,
-				Duration: v.Duration().String(),
-				Status:   v.Status.String(),
-			})
+		steps, logs, err := convertToViewModel(ctx, req.LogCursors, task)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
 		}
-
-		for _, cursor := range req.LogCursors {
-			if !cursor.Expanded {
-				continue
-			}
-
-			step := steps[cursor.Step]
-
-			// if task log is expired, return a consistent log line
-			if task.LogExpired {
-				if cursor.Cursor == 0 {
-					resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
-						Step:   cursor.Step,
-						Cursor: 1,
-						Lines: []*ViewStepLogLine{
-							{
-								Index:   1,
-								Message: ctx.Locale.TrString("actions.runs.expire_log_message"),
-								// Timestamp doesn't mean anything when the log is expired.
-								// Set it to the task's updated time since it's probably the time when the log has expired.
-								Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
-							},
-						},
-						Started: int64(step.Started),
-					})
-				}
-				continue
-			}
-
-			logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
-
-			index := step.LogIndex + cursor.Cursor
-			validCursor := cursor.Cursor >= 0 &&
-				// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
-				// So return the same cursor and empty lines to let the frontend retry.
-				cursor.Cursor < step.LogLength &&
-				// !(index < task.LogIndexes[index]) when task data is older than step data.
-				// It can be fixed by making sure write/read tasks and steps in the same transaction,
-				// but it's easier to just treat it as fetching the next line before it's ready.
-				index < int64(len(task.LogIndexes))
-
-			if validCursor {
-				length := step.LogLength - cursor.Cursor
-				offset := task.LogIndexes[index]
-				logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
-				if err != nil {
-					ctx.ServerError("actions.ReadLogs", err)
-					return
-				}
-
-				for i, row := range logRows {
-					logLines = append(logLines, &ViewStepLogLine{
-						Index:     cursor.Cursor + int64(i) + 1, // start at 1
-						Message:   row.Content,
-						Timestamp: float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
-					})
-				}
-			}
-
-			resp.Logs.StepsLog = append(resp.Logs.StepsLog, &ViewStepLog{
-				Step:    cursor.Step,
-				Cursor:  cursor.Cursor + int64(len(logLines)),
-				Lines:   logLines,
-				Started: int64(step.Started),
-			})
-		}
+		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, steps...)
+		resp.Logs.StepsLog = append(resp.Logs.StepsLog, logs...)
 	}
 
 	ctx.JSON(http.StatusOK, resp)
+}
+
+func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
+	var viewJobs []*ViewJobStep
+	var logs []*ViewStepLog
+
+	steps := actions.FullSteps(task)
+
+	for _, v := range steps {
+		viewJobs = append(viewJobs, &ViewJobStep{
+			Summary:  v.Name,
+			Duration: v.Duration().String(),
+			Status:   v.Status.String(),
+		})
+	}
+
+	for _, cursor := range cursors {
+		if !cursor.Expanded {
+			continue
+		}
+
+		step := steps[cursor.Step]
+
+		// if task log is expired, return a consistent log line
+		if task.LogExpired {
+			if cursor.Cursor == 0 {
+				logs = append(logs, &ViewStepLog{
+					Step:   cursor.Step,
+					Cursor: 1,
+					Lines: []*ViewStepLogLine{
+						{
+							Index:   1,
+							Message: ctx.Locale.TrString("actions.runs.expire_log_message"),
+							// Timestamp doesn't mean anything when the log is expired.
+							// Set it to the task's updated time since it's probably the time when the log has expired.
+							Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
+						},
+					},
+					Started: int64(step.Started),
+				})
+			}
+			continue
+		}
+
+		logLines := make([]*ViewStepLogLine, 0) // marshal to '[]' instead fo 'null' in json
+
+		index := step.LogIndex + cursor.Cursor
+		validCursor := cursor.Cursor >= 0 &&
+			// !(cursor.Cursor < step.LogLength) when the frontend tries to fetch next line before it's ready.
+			// So return the same cursor and empty lines to let the frontend retry.
+			cursor.Cursor < step.LogLength &&
+			// !(index < task.LogIndexes[index]) when task data is older than step data.
+			// It can be fixed by making sure write/read tasks and steps in the same transaction,
+			// but it's easier to just treat it as fetching the next line before it's ready.
+			index < int64(len(task.LogIndexes))
+
+		if validCursor {
+			length := step.LogLength - cursor.Cursor
+			offset := task.LogIndexes[index]
+			logRows, err := actions.ReadLogs(ctx, task.LogInStorage, task.LogFilename, offset, length)
+			if err != nil {
+				return nil, nil, fmt.Errorf("actions.ReadLogs: %w", err)
+			}
+
+			for i, row := range logRows {
+				logLines = append(logLines, &ViewStepLogLine{
+					Index:     cursor.Cursor + int64(i) + 1, // start at 1
+					Message:   row.Content,
+					Timestamp: float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
+				})
+			}
+		}
+
+		logs = append(logs, &ViewStepLog{
+			Step:    cursor.Step,
+			Cursor:  cursor.Cursor + int64(len(logLines)),
+			Lines:   logLines,
+			Started: int64(step.Started),
+		})
+	}
+
+	return viewJobs, logs, nil
 }
 
 // Rerun will rerun jobs in the given run
@@ -614,11 +628,6 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 }
 
 func ArtifactsDeleteView(ctx *context_module.Context) {
-	if !ctx.Repo.CanWrite(unit.TypeActions) {
-		ctx.Error(http.StatusForbidden, "no permission")
-		return
-	}
-
 	runIndex := getRunIndex(ctx)
 	artifactName := ctx.PathParam("artifact_name")
 

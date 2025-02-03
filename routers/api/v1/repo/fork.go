@@ -132,13 +132,15 @@ func CreateFork(ctx *context.APIContext) {
 			}
 			return
 		}
-		isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
-			return
-		} else if !isMember {
-			ctx.Error(http.StatusForbidden, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
-			return
+		if !ctx.Doer.IsAdmin {
+			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
+				return
+			} else if !isMember {
+				ctx.Error(http.StatusForbidden, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
+				return
+			}
 		}
 		forker = org.AsUser()
 	}

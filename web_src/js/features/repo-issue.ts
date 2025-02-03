@@ -421,13 +421,11 @@ export function initRepoPullRequestReview() {
   // The following part is only for diff views
   if (!$('.repository.pull.diff').length) return;
 
-  const $reviewBtn = $('.js-btn-review');
-  const $panel = $reviewBtn.parent().find('.review-box-panel');
-  const $closeBtn = $panel.find('.close');
-
-  if ($reviewBtn.length && $panel.length) {
-    const tippy = createTippy($reviewBtn[0], {
-      content: $panel[0],
+  const elReviewBtn = document.querySelector('.js-btn-review');
+  const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
+  if (elReviewBtn && elReviewPanel) {
+    const tippy = createTippy(elReviewBtn, {
+      content: elReviewPanel,
       theme: 'default',
       placement: 'bottom',
       trigger: 'click',
@@ -435,11 +433,7 @@ export function initRepoPullRequestReview() {
       interactive: true,
       hideOnClick: true,
     });
-
-    $closeBtn.on('click', (e) => {
-      e.preventDefault();
-      tippy.hide();
-    });
+    elReviewPanel.querySelector('.close').addEventListener('click', () => tippy.hide());
   }
 
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
