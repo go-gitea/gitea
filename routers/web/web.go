@@ -1600,7 +1600,7 @@ func registerRoutes(m *web.Router) {
 	// end "/{username}/{reponame}": repo code
 
 	m.Group("/{username}/{reponame}", func() {
-		m.Get("/stars", repo.Stars, starsEnabled)
+		m.Get("/stars", starsEnabled, repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
 		m.Post("/action/{action}", reqSignIn, repo.Action)
