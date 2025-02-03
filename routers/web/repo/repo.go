@@ -376,11 +376,7 @@ func Action(ctx *context.Context) {
 	case "watch", "unwatch":
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	case "star", "unstar":
-		if setting.Repository.DisableStars {
-			ctx.Data["IsStaringRepo"] = false
-		} else {
-			ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
-		}
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
 	}
 
 	// see the `hx-trigger="refreshUserCards ..."` comments in tmpl
