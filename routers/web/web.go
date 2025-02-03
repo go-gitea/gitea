@@ -851,6 +851,12 @@ func registerRoutes(m *web.Router) {
 		}
 	}
 
+	reqStarsEnabled := func(ctx *context.Context) {
+		if setting.Repository.DisableStars {
+			ctx.Error(http.StatusForbidden, "stars are disabled")
+		}
+	}
+
 	individualPermsChecker := func(ctx *context.Context) {
 		// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 		if ctx.ContextUser.IsIndividual() {
@@ -1603,7 +1609,9 @@ func registerRoutes(m *web.Router) {
 		m.Get("/stars", starsEnabled, repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
-		m.Post("/action/{action}", reqSignIn, repo.Action)
+		m.Post("/action/{action:star|unstar}", reqSignIn, reqStarsEnabled, repo.Action)
+		m.Post("/action/{action:watch|unwatch}", reqSignIn, repo.Action)
+		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.Action)
 	}, optSignIn, context.RepoAssignment)
 
 	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
