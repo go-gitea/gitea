@@ -346,10 +346,6 @@ func Watchers(ctx *context.Context) {
 
 // Stars render repository's starred users
 func Stars(ctx *context.Context) {
-	if setting.Repository.DisableStars {
-		ctx.NotFound("Stars disabled", nil)
-		return
-	}
 	ctx.Data["Title"] = ctx.Tr("repo.stargazers")
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
 	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {

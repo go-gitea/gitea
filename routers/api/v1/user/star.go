@@ -11,7 +11,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -70,11 +69,6 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
-		return
-	}
-
 	private := ctx.ContextUser.ID == ctx.Doer.ID
 	repos, err := getStarredRepos(ctx, ctx.ContextUser, private)
 	if err != nil {
@@ -107,11 +101,6 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
-	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
-		return
-	}
 
 	repos, err := getStarredRepos(ctx, ctx.Doer, true)
 	if err != nil {
@@ -146,11 +135,6 @@ func IsStarring(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
-		return
-	}
-
 	if repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
@@ -181,11 +165,6 @@ func Star(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
-		return
-	}
 
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
@@ -222,11 +201,6 @@ func Unstar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
-	if setting.Repository.DisableStars {
-		ctx.Error(http.StatusForbidden, "StarsDisabled", "Stars are disabled.")
-		return
-	}
 
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	if err != nil {

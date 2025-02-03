@@ -347,6 +347,13 @@ func registerRoutes(m *web.Router) {
 		}
 	}
 
+	starsEnabled := func(ctx *context.Context) {
+		if setting.Repository.DisableStars {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+	}
+
 	lfsServerEnabled := func(ctx *context.Context) {
 		if !setting.LFS.StartServer {
 			ctx.Error(http.StatusNotFound)
@@ -1593,7 +1600,7 @@ func registerRoutes(m *web.Router) {
 	// end "/{username}/{reponame}": repo code
 
 	m.Group("/{username}/{reponame}", func() {
-		m.Get("/stars", repo.Stars)
+		m.Get("/stars", repo.Stars, starsEnabled)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
 		m.Post("/action/{action}", reqSignIn, repo.Action)
