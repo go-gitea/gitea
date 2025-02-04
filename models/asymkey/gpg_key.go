@@ -13,8 +13,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/keybase/go-crypto/openpgp"
-	"github.com/keybase/go-crypto/openpgp/packet"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"xorm.io/builder"
 )
 
@@ -141,7 +141,11 @@ func parseGPGKey(ctx context.Context, ownerID int64, e *openpgp.Entity, verified
 	// Parse Subkeys
 	subkeys := make([]*GPGKey, len(e.Subkeys))
 	for i, k := range e.Subkeys {
-		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, expiry)
+		subkeyExpiry := expiry
+		if k.Sig.KeyLifetimeSecs != nil {
+			subkeyExpiry = k.PublicKey.CreationTime.Add(time.Duration(*k.Sig.KeyLifetimeSecs) * time.Second)
+		}
+		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, subkeyExpiry)
 		if err != nil {
 			return nil, ErrGPGKeyParsing{ParseError: err}
 		}
@@ -156,7 +160,7 @@ func parseGPGKey(ctx context.Context, ownerID int64, e *openpgp.Entity, verified
 
 	emails := make([]*user_model.EmailAddress, 0, len(e.Identities))
 	for _, ident := range e.Identities {
-		if ident.Revocation != nil {
+		if ident.Revoked(time.Now()) {
 			continue
 		}
 		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))

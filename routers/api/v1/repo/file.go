@@ -489,12 +489,12 @@ func ChangeFiles(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files_service.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
@@ -586,12 +586,12 @@ func CreateFile(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files_service.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
@@ -689,12 +689,12 @@ func UpdateFile(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files_service.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
@@ -848,12 +848,12 @@ func DeleteFile(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files_service.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
