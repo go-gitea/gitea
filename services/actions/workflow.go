@@ -187,24 +187,26 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 
 	var workflow *jobparser.SingleWorkflow
 	for _, entry := range entries {
-		if entry.Name() == workflowID {
-			content, err := actions.GetContentFromEntry(entry)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "WorkflowGetContentError", err.Error())
-				return
-			}
-			workflows, err := jobparser.Parse(content)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "WorkflowParseError", err.Error())
-				return
-			}
-			if len(workflows) == 0 {
-				ctx.Error(http.StatusNotFound, "WorkflowNotFound", fmt.Sprintf("workflow '%s' is not found", workflowID))
-				return
-			}
-			workflow = workflows[0]
-			break
+		if entry.Name() != workflowID {
+			continue
 		}
+
+		content, err := actions.GetContentFromEntry(entry)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "WorkflowGetContentError", err.Error())
+			return
+		}
+		workflows, err := jobparser.Parse(content)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "WorkflowParseError", err.Error())
+			return
+		}
+		if len(workflows) == 0 {
+			ctx.Error(http.StatusNotFound, "WorkflowNotFound", fmt.Sprintf("workflow '%s' is not found", workflowID))
+			return
+		}
+		workflow = workflows[0]
+		break
 	}
 
 	// Process workflow inputs

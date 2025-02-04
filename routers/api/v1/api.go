@@ -917,17 +917,16 @@ func Routes() *web.Router {
 
 	addActionsWorkflowRoutes := func(
 		m *web.Router,
-		reqChecker func(ctx *context.APIContext),
 		actw actions.WorkflowAPI,
 	) {
 		m.Group("/actions", func() {
 			m.Group("/workflows", func() {
-				m.Get("", reqToken(), reqChecker, actw.ListRepositoryWorkflows)
-				m.Get("/{workflow_id}", reqToken(), reqChecker, actw.GetWorkflow)
-				m.Put("/{workflow_id}/disable", reqToken(), reqChecker, actw.DisableWorkflow)
-				m.Post("/{workflow_id}/dispatches", reqToken(), reqChecker, bind(api.CreateActionWorkflowDispatch{}), actw.DispatchWorkflow)
-				m.Put("/{workflow_id}/enable", reqToken(), reqChecker, actw.EnableWorkflow)
-			}, context.ReferencesGitRepo(), reqRepoWriter(unit.TypeActions))
+				m.Get("", reqToken(), actw.ListRepositoryWorkflows)
+				m.Get("/{workflow_id}", reqToken(), actw.GetWorkflow)
+				m.Put("/{workflow_id}/disable", reqToken(), reqRepoWriter(unit.TypeActions), actw.DisableWorkflow)
+				m.Post("/{workflow_id}/dispatches", reqToken(), reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), actw.DispatchWorkflow)
+				m.Put("/{workflow_id}/enable", reqToken(), reqRepoWriter(unit.TypeActions), actw.EnableWorkflow)
+			}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeActions))
 		})
 	}
 
@@ -1178,7 +1177,6 @@ func Routes() *web.Router {
 				)
 				addActionsWorkflowRoutes(
 					m,
-					reqRepoWriter(unit.TypeActions),
 					repo.NewActionWorkflow(),
 				)
 				m.Group("/hooks/git", func() {

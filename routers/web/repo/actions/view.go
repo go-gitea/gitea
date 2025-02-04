@@ -831,19 +831,21 @@ func Run(ctx *context_module.Context) {
 	// find workflow from commit
 	var workflows []*jobparser.SingleWorkflow
 	for _, entry := range entries {
-		if entry.Name() == workflowID {
-			content, err := actions.GetContentFromEntry(entry)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err.Error())
-				return
-			}
-			workflows, err = jobparser.Parse(content)
-			if err != nil {
-				ctx.ServerError("workflow", err)
-				return
-			}
-			break
+		if entry.Name() != workflowID {
+			continue
 		}
+
+		content, err := actions.GetContentFromEntry(entry)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+		workflows, err = jobparser.Parse(content)
+		if err != nil {
+			ctx.ServerError("workflow", err)
+			return
+		}
+		break
 	}
 
 	if len(workflows) == 0 {
