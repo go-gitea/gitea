@@ -307,6 +307,18 @@ func getPackagePayloadInfo(p *api.PackagePayload, linkFormatter linkFormatter, w
 	return text, color
 }
 
+func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
+	refLink := linkFormatter(p.TargetURL, p.Context+"["+p.SHA+"]:"+p.Description)
+
+	text = fmt.Sprintf("Commit Status changed: %s", refLink)
+	color = greenColor
+	if withSender {
+		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+	}
+
+	return text, color
+}
+
 // ToHook convert models.Webhook to api.Hook
 // This function is not part of the convert package to prevent an import cycle
 func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
