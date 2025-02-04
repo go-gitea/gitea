@@ -4,6 +4,49 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.23.2](https://github.com/go-gitea/gitea/releases/tag/1.23.2) - 2025-02-04
+
+* BREAKING
+  * Add tests for webhook and fix some webhook bugs (#33396) (#33442)
+    * Package webhook’s Organization was incorrectly used as the User struct. This PR fixes the issue.
+* ENHANCEMENTS
+  * Clone button enhancements (#33362) (#33404)
+  * Repo homepage styling tweaks (#33289) (#33381)
+  * Add a confirm dialog for "sync fork" (#33270) (#33273)
+  * Make tracked time representation display as hours (#33315) (#33334)
+  * Improve sync fork behavior (#33319) (#33332)
+* BUGFIXES
+  * Fix code button alignment (#33345) (#33351)
+  * Correct bot label `vertical-align` (#33477) (#33480)
+  * Fix SSH LFS memory usage (#33455) (#33460)
+  * Fix issue sidebar dropdown keyboard support (#33447) (#33450)
+  * Fix user avatar (#33439)
+  * Fix `GetCommitBranchStart` bug (#33298) (#33421)
+  * Add pubdate for repository rss and add some tests (#33411) (#33416)
+  * Add missed auto merge feed message on dashboard (#33309) (#33405)
+  * Fix issue suggestion bug (#33389) (#33391)
+  * Make issue suggestion work for all editors (#33340) (#33342)
+  * Fix issue count (#33338) (#33341)
+  * Fix Account linking page (#33325) (#33327)
+  * Fix closed dependency title (#33285) (#33287)
+  * Fix sidebar milestone link (#33269) (#33272)
+  * Fix missing license when sync mirror (#33255) (#33258)
+  * Fix upload file form (#33230) (#33233)
+  * Fix mirror bug (#33224) (#33225)
+  * Fix system admin cannot fork or get private fork with API (#33401) (#33417)
+  * Fix push message behavior (#33215) (#33317)
+  * Trivial fixes (#33304) (#33312)
+  * Fix "stop time tracking button" on navbar (#33084) (#33300)
+  * Fix tag route and empty repo (#33253)
+  * Fix cache test triggered by non memory cache (#33220) (#33221)
+  * Revert empty lfs ref name (#33454) (#33457)
+  * Fix flex width (#33414) (#33418)
+  * Fix commit status events (#33320) #33493
+* MISC
+  * Use ProtonMail/go-crypto to replace keybase/go-crypto (#33402) (#33410)
+  * Update katex to latest version (#33361)
+  * Update go tool dependencies (#32916) (#33355)
+
 ## [1.23.1](https://github.com/go-gitea/gitea/releases/tag/v1.23.1) - 2025-01-09
 
 * ENHANCEMENTS
