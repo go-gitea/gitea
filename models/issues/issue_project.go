@@ -41,7 +41,7 @@ func (issue *Issue) projectID(ctx context.Context) int64 {
 func (issue *Issue) ProjectColumnID(ctx context.Context) (int64, error) {
 	var ip project_model.ProjectIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
-	if err != nil  {
+	if err != nil {
 		return 0, err
 	} else if !has {
 		return 0, nil
