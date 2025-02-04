@@ -126,8 +126,6 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
-
 	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		log.Error("NewTemporaryUploadRepository failed: %v", err)
@@ -187,12 +185,21 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	}
 
 	// Now commit the tree
-	var commitHash string
-	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate("HEAD", author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
-	} else {
-		commitHash, err = t.CommitTree("HEAD", author, committer, treeHash, message, opts.Signoff)
+	commitOpts := &CommitTreeUserOptions{
+		ParentCommitID:    "HEAD",
+		TreeHash:          treeHash,
+		CommitMessage:     message,
+		SignOff:           opts.Signoff,
+		DoerUser:          doer,
+		AuthorIdentity:    opts.Author,
+		AuthorTime:        nil,
+		CommitterIdentity: opts.Committer,
+		CommitterTime:     nil,
 	}
+	if opts.Dates != nil {
+		commitOpts.AuthorTime, commitOpts.CommitterTime = &opts.Dates.Author, &opts.Dates.Committer
+	}
+	commitHash, err := t.CommitTree(commitOpts)
 	if err != nil {
 		return nil, err
 	}

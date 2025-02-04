@@ -51,7 +51,7 @@ func MustBeNotEmpty(ctx *context.Context) {
 
 // MustBeEditable check that repo can be edited
 func MustBeEditable(ctx *context.Context) {
-	if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {
+	if !ctx.Repo.Repository.CanEnableEditor() {
 		ctx.NotFound("", nil)
 		return
 	}
@@ -309,6 +309,36 @@ const (
 	tplStarUnstar   templates.TplName = "repo/star_unstar"
 )
 
+func acceptTransfer(ctx *context.Context) {
+	err := repo_service.AcceptTransferOwnership(ctx, ctx.Repo.Repository, ctx.Doer)
+	if err == nil {
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
+		ctx.Redirect(ctx.Repo.Repository.Link())
+		return
+	}
+	handleActionError(ctx, err)
+}
+
+func rejectTransfer(ctx *context.Context) {
+	err := repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
+	if err == nil {
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
+		ctx.Redirect(ctx.Repo.Repository.Link())
+		return
+	}
+	handleActionError(ctx, err)
+}
+
+func handleActionError(ctx *context.Context, err error) {
+	if errors.Is(err, user_model.ErrBlockedUser) {
+		ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
+	} else if errors.Is(err, util.ErrPermissionDenied) {
+		ctx.Error(http.StatusNotFound)
+	} else {
+		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
+	}
+}
+
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
@@ -322,9 +352,11 @@ func Action(ctx *context.Context) {
 	case "unstar":
 		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
 	case "accept_transfer":
-		err = acceptOrRejectRepoTransfer(ctx, true)
+		acceptTransfer(ctx)
+		return
 	case "reject_transfer":
-		err = acceptOrRejectRepoTransfer(ctx, false)
+		rejectTransfer(ctx)
+		return
 	case "desc": // FIXME: this is not used
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(http.StatusNotFound)
@@ -337,12 +369,8 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
-		} else {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
-			return
-		}
+		handleActionError(ctx, err)
+		return
 	}
 
 	switch ctx.PathParam("action") {
@@ -375,41 +403,6 @@ func Action(ctx *context.Context) {
 	}
 
 	ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
-}
-
-func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
-	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
-	if err != nil {
-		return err
-	}
-
-	if err := repoTransfer.LoadAttributes(ctx); err != nil {
-		return err
-	}
-
-	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
-		return errors.New("user does not have enough permissions")
-	}
-
-	if accept {
-		if ctx.Repo.GitRepo != nil {
-			ctx.Repo.GitRepo.Close()
-			ctx.Repo.GitRepo = nil
-		}
-
-		if err := repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
-			return err
-		}
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
-	} else {
-		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
-			return err
-		}
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
-	}
-
-	ctx.Redirect(ctx.Repo.Repository.Link())
-	return nil
 }
 
 // RedirectDownload return a file based on the following infos:
@@ -463,13 +456,7 @@ func RedirectDownload(ctx *context.Context) {
 
 // Download an archive of a repository
 func Download(ctx *context.Context) {
-	uri := ctx.PathParam("*")
-	ext, tp, err := archiver_service.ParseFileName(uri)
-	if err != nil {
-		ctx.ServerError("ParseFileName", err)
-		return
-	}
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, err.Error())
@@ -527,15 +514,9 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
-	uri := ctx.PathParam("*")
-	ext, tp, err := archiver_service.ParseFileName(uri)
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
-		ctx.ServerError("ParseFileName", err)
-		return
-	}
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
-	if err != nil {
-		ctx.ServerError("archiver_service.NewRequest", err)
+		ctx.Error(http.StatusBadRequest, "invalid archive request")
 		return
 	}
 	if aReq == nil {

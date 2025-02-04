@@ -24,30 +24,19 @@
 				{{template "repo/sub_menu" .}}
 				<div class="repo-button-row">
 					<div class="repo-button-row-left">
-						{{- /* for repo home (default branch) and /owner/repo/src/branch/the-name */ -}}
-						{{- $branchDropdownCurrentRefType := "branch" -}}
-						{{- $branchDropdownCurrentRefShortName := .BranchName -}}
-						{{- if .IsViewTag -}}
-							{{- /* for /owner/repo/src/tag/the-name */ -}}
-							{{- $branchDropdownCurrentRefType = "tag" -}}
-							{{- $branchDropdownCurrentRefShortName = .TagName -}}
-						{{- else if .IsViewCommit -}}
-							{{- /* for /owner/repo/src/commit/000000 */ -}}
-							{{- $branchDropdownCurrentRefType = "commit" -}}
-							{{- $branchDropdownCurrentRefShortName = ShortSha .CommitID -}}
-						{{- end -}}
+						{{- /* for repo home (default branch) and /owner/repo/src/{RefType}/{RefShortName} */ -}}
 						{{- template "repo/branch_dropdown" dict
 							"Repository" .Repository
 							"ShowTabBranches" true
 							"ShowTabTags" true
-							"CurrentRefType" $branchDropdownCurrentRefType
-							"CurrentRefShortName" $branchDropdownCurrentRefShortName
+							"CurrentRefType" .RefFullName.RefType
+							"CurrentRefShortName" .RefFullName.ShortName
 							"CurrentTreePath" .TreePath
 							"RefLinkTemplate" "{RepoLink}/src/{RefType}/{RefShortName}/{TreePath}"
 							"AllowCreateNewRef" .CanCreateBranch
 							"ShowViewAllRefsEntry" true
 						-}}
-						{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
+						{{if and .CanCompareOrPull .RefFullName.IsBranch (not .Repository.IsArchived)}}
 							{{$cmpBranch := ""}}
 							{{if ne .Repository.ID .BaseRepo.ID}}
 								{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
@@ -62,10 +51,10 @@
 
 						<!-- Show go to file if on home page -->
 						{{if $isTreePathRoot}}
-							<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
+							<a href="{{.Repository.Link}}/find/{{.RefTypeNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
 						{{end}}
 
-						{{if and .CanWriteCode .IsViewBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
+						{{if and .CanWriteCode .RefFullName.IsBranch (not .Repository.IsMirror) (not .Repository.IsArchived) (not .IsViewFile)}}
 							<button class="ui dropdown basic compact jump button"{{if not .Repository.CanEnableEditor}} disabled{{end}}>
 								{{ctx.Locale.Tr "repo.editor.add_file"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -94,7 +83,7 @@
 						{{if not $isTreePathRoot}}
 							{{$treeNameIdxLast := Eval $treeNamesLen "-" 1}}
 							<span class="breadcrumb repo-path tw-ml-1">
-								<a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
+								<a class="section" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}" title="{{.Repository.Name}}">{{StringUtils.EllipsisString .Repository.Name 30}}</a>
 								{{- range $i, $v := .TreeNames -}}
 									<span class="breadcrumb-divider">/</span>
 									{{- if eq $i $treeNameIdxLast -}}
@@ -114,7 +103,7 @@
 							{{template "repo/clone_panel" .}}
 						{{end}}
 						{{if and (not $isTreePathRoot) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
-							<a class="ui button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
+							<a class="ui button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
 								{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
 							</a>
 						{{end}}

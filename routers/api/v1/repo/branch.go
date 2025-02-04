@@ -12,12 +12,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -442,7 +444,14 @@ func UpdateBranch(ctx *context.APIContext) {
 
 	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, oldName, opt.Name)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
+		switch {
+		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
+			ctx.Error(http.StatusForbidden, "", "User must be a repo or site admin to rename default or protected branches.")
+		case errors.Is(err, git_model.ErrBranchIsProtected):
+			ctx.Error(http.StatusForbidden, "", "Branch is protected by glob-based protection rules.")
+		default:
+			ctx.Error(http.StatusInternalServerError, "RenameBranch", err)
+		}
 		return
 	}
 	if msg == "target_exist" {
@@ -1185,4 +1194,48 @@ func UpdateBranchProtectionPriories(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func MergeUpstream(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/merge-upstream repository repoMergeUpstream
+	// ---
+	// summary: Merge a branch from upstream
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/MergeUpstreamRequest"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/MergeUpstreamResponse"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	form := web.GetForm(ctx).(*api.MergeUpstreamRequest)
+	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch)
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.Error(http.StatusBadRequest, "MergeUpstream", err)
+			return
+		} else if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "MergeUpstream", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "MergeUpstream", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, &api.MergeUpstreamResponse{MergeStyle: mergeStyle})
 }

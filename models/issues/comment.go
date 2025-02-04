@@ -112,8 +112,8 @@ const (
 	CommentTypePRScheduledToAutoMerge   // 34 pr was scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge // 35 pr was un scheduled to auto merge when checks succeed
 
-	CommentTypePin   // 36 pin Issue
-	CommentTypeUnpin // 37 unpin Issue
+	CommentTypePin   // 36 pin Issue/PullRequest
+	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
 )
