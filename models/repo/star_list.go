@@ -11,8 +11,8 @@ import (
 // StarList ...
 type StarList struct {
 	ID   int64 `xorm:"pk autoincr"`
-	UID  int64 `xorm:INDEX uid`
-	SID  int64 `xorm:INDEX sid`
+	UID  int64 `xorm:"INDEX"`
+	SID  int64 `xorm:"INDEX"`
 	Name string
 	Desc string
 
