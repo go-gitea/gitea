@@ -907,10 +907,11 @@ func registerRoutes(m *web.Router) {
 			m.Post("/teams/{team}/action/repo/{action}", org.TeamsRepoAction)
 		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
 
-		// require admin permission
+		// require member/team-admin permission (old logic is: requireMember=true, requireTeamAdmin=true)
+		// but it doesn't seem right: requireTeamAdmin does nothing
 		m.Group("/{org}", func() {
 			m.Get("/teams/-/search", org.SearchTeam)
-		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireOwner: true}))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamAdmin: true}))
 
 		// require owner permission
 		m.Group("/{org}", func() {
