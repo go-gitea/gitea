@@ -16,6 +16,7 @@ type Star struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UID         int64              `xorm:"UNIQUE(s)"`
 	RepoID      int64              `xorm:"UNIQUE(s)"`
+	StarListID  int64              `xorm:"UNIQUE(s)"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
