@@ -822,7 +822,7 @@ func registerRoutes(m *web.Router) {
 		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), repo.GetAttachment)
 	}, optSignIn)
 
-	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), user.Action)
+	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), user.ActionUserFollow)
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireUnitWriter(unit.TypeCode)
@@ -872,7 +872,7 @@ func registerRoutes(m *web.Router) {
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
 			m.Get("/members", org.Members)
-		}, context.OrgAssignment())
+		}, context.OrgAssignment(context.OrgAssignmentOptions{}))
 	}, optSignIn)
 	// end "/org": members
 
@@ -898,19 +898,20 @@ func registerRoutes(m *web.Router) {
 			m.Get("/milestones/{team}", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Post("/members/action/{action}", org.MembersAction)
 			m.Get("/teams", org.Teams)
-		}, context.OrgAssignment(true, false, true))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
 
 		m.Group("/{org}", func() {
 			m.Get("/teams/{team}", org.TeamMembers)
 			m.Get("/teams/{team}/repositories", org.TeamRepositories)
 			m.Post("/teams/{team}/action/{action}", org.TeamsAction)
 			m.Post("/teams/{team}/action/repo/{action}", org.TeamsRepoAction)
-		}, context.OrgAssignment(true, false, true))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
 
-		// require admin permission
+		// require member/team-admin permission (old logic is: requireMember=true, requireTeamAdmin=true)
+		// but it doesn't seem right: requireTeamAdmin does nothing
 		m.Group("/{org}", func() {
 			m.Get("/teams/-/search", org.SearchTeam)
-		}, context.OrgAssignment(true, false, false, true))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamAdmin: true}))
 
 		// require owner permission
 		m.Group("/{org}", func() {
@@ -920,7 +921,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/teams/{team}/edit", web.Bind(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
 
-			m.Get("/worktime", context.OrgAssignment(false, true), org.Worktime)
+			m.Get("/worktime", context.OrgAssignment(context.OrgAssignmentOptions{RequireOwner: true}), org.Worktime)
 
 			m.Group("/settings", func() {
 				m.Combo("").Get(org.Settings).
@@ -989,7 +990,7 @@ func registerRoutes(m *web.Router) {
 					m.Post("", web.Bind(forms.BlockUserForm{}), org.BlockedUsersPost)
 				})
 			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
-		}, context.OrgAssignment(true, true))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireOwner: true}))
 	}, reqSignIn)
 	// end "/org": most org routes
 
@@ -1059,7 +1060,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
-	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment())
+	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{}))
 	// end "/{username}/-": packages, projects, code
 
 	m.Group("/{username}/{reponame}/-", func() {
@@ -1603,9 +1604,9 @@ func registerRoutes(m *web.Router) {
 		m.Get("/stars", starsEnabled, repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
-		m.Post("/action/{action:star|unstar}", reqSignIn, starsEnabled, repo.Action)
-		m.Post("/action/{action:watch|unwatch}", reqSignIn, repo.Action)
-		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.Action)
+		m.Post("/action/{action:star|unstar}", reqSignIn, starsEnabled, repo.ActionStar)
+		m.Post("/action/{action:watch|unwatch}", reqSignIn, repo.ActionWatch)
+		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
 
 	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
