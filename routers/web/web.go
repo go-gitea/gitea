@@ -347,6 +347,13 @@ func registerRoutes(m *web.Router) {
 		}
 	}
 
+	starsEnabled := func(ctx *context.Context) {
+		if setting.Repository.DisableStars {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+	}
+
 	lfsServerEnabled := func(ctx *context.Context) {
 		if !setting.LFS.StartServer {
 			ctx.Error(http.StatusNotFound)
@@ -1593,10 +1600,12 @@ func registerRoutes(m *web.Router) {
 	// end "/{username}/{reponame}": repo code
 
 	m.Group("/{username}/{reponame}", func() {
-		m.Get("/stars", repo.Stars)
+		m.Get("/stars", starsEnabled, repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
-		m.Post("/action/{action}", reqSignIn, repo.Action)
+		m.Post("/action/{action:star|unstar}", reqSignIn, starsEnabled, repo.Action)
+		m.Post("/action/{action:watch|unwatch}", reqSignIn, repo.Action)
+		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.Action)
 	}, optSignIn, context.RepoAssignment)
 
 	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
