@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -809,7 +809,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 			return
 		}
 		repoName := ctx.Repo.Repository.FullName()
-		url := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/repos/" + repoName + "/actions/artifacts/" + fmt.Sprintf("%d", art.ID) + "/zip/raw"
+		url := httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+repoName+"/actions/artifacts/"+fmt.Sprintf("%d", art.ID)+"/zip/raw")
 		ctx.Redirect(url, http.StatusFound)
 		return
 	}
