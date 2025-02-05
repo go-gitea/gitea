@@ -740,21 +740,8 @@ func GetArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	artifactID := ctx.PathParamInt64("artifact_id")
-
-	art, ok, err := db.GetByID[actions_model.ActionArtifact](ctx, artifactID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error(), err)
-		return
-	}
+	art, ok := getArtifactByID(ctx)
 	if !ok {
-		ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
-		return
-	}
-
-	// if artifacts status is not uploaded-confirmed or expired, treat it as not found
-	if art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) && art.Status != int64(actions_model.ArtifactStatusExpired) {
-		ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
 		return
 	}
 
@@ -805,21 +792,14 @@ func DownloadArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	artifactID := ctx.PathParamInt64("artifact_id")
-
-	art, ok, err := db.GetByID[actions_model.ActionArtifact](ctx, artifactID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error(), err)
-		return
-	}
+	art, ok := getArtifactByID(ctx)
 	if !ok {
-		ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
 		return
 	}
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
-	if art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) {
-		ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
+	if art.Status == int64(actions_model.ArtifactStatusExpired) {
+		ctx.Error(http.StatusNotFound, "artifact has expired", fmt.Errorf("artifact has expired"))
 		return
 	}
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
@@ -876,21 +856,14 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	artifactID := ctx.PathParamInt64("artifact_id")
-
-	art, ok, err := db.GetByID[actions_model.ActionArtifact](ctx, artifactID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error(), err)
-		return
-	}
+	art, ok := getArtifactByID(ctx)
 	if !ok {
-		ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
 		return
 	}
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
-	if art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) {
-		ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
+	if art.Status == int64(actions_model.ArtifactStatusExpired) {
+		ctx.Error(http.StatusNotFound, "artifact has expired", fmt.Errorf("artifact has expired"))
 		return
 	}
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
@@ -916,4 +889,21 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	}
 	// v3 not supported due to not having one unique id
 	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
+}
+
+// Try to get the artifact by ID and check access
+func getArtifactByID(ctx *context.APIContext) (*actions_model.ActionArtifact, bool) {
+	artifactID := ctx.PathParamInt64("artifact_id")
+
+	art, ok, err := db.GetByID[actions_model.ActionArtifact](ctx, artifactID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error(), err)
+		return nil, false
+	}
+	// if artifacts status is not uploaded-confirmed, treat it as not found
+	if !ok || art.RepoID != ctx.Repo.Repository.ID || art.OwnerID != ctx.Repo.Repository.OwnerID || art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) && art.Status != int64(actions_model.ArtifactStatusExpired) {
+		ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
+		return nil, false
+	}
+	return art, true
 }
