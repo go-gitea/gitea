@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {checkAppUrl} from '../common-page.ts';
 import {hideElem, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
+import {initCompCropper} from '../comp/Cropper.ts';
 
 const {appSubUrl} = window.config;
 
@@ -257,5 +258,13 @@ export function initAdminCommon(): void {
       await POST(this.getAttribute('data-link'), {data});
       window.location.href = this.getAttribute('data-redirect');
     });
+  }
+
+  // Avatar Cropper
+  if (document.querySelector<HTMLDivElement>('.admin.edit.user')) {
+    const fileInput = document.querySelector<HTMLInputElement>('#new-avatar');
+    const container = document.querySelector<HTMLElement>('.admin.edit.user .cropper-panel');
+    const imageSource = container.querySelector<HTMLImageElement>('.cropper-source');
+    initCompCropper({container, fileInput, imageSource});
   }
 }
