@@ -831,14 +831,14 @@ func DownloadArtifact(ctx *context.APIContext) {
 		if setting.Actions.ArtifactStorage.ServeDirect() {
 			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, nil)
 			if u != nil && err == nil {
-				ctx.Redirect(u.String(), 302)
+				ctx.Redirect(u.String(), http.StatusFound)
 				return
 			}
 		}
 		// ##[error]Unable to download artifact(s): Unable to download artifact. Unexpected status: 200
 		repoName := ctx.Repo.Repository.FullName()
 		url := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/repos/" + repoName + "/actions/artifacts/" + fmt.Sprintf("%d", art.ID) + "/zip/raw"
-		ctx.Redirect(url, 302)
+		ctx.Redirect(url, http.StatusFound)
 		return
 	}
 	// v3 not supported due to not having one unique id
