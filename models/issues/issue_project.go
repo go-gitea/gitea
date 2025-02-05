@@ -38,13 +38,15 @@ func (issue *Issue) projectID(ctx context.Context) int64 {
 }
 
 // ProjectColumnID return project column id if issue was assigned to one
-func (issue *Issue) ProjectColumnID(ctx context.Context) int64 {
+func (issue *Issue) ProjectColumnID(ctx context.Context) (int64, error) {
 	var ip project_model.ProjectIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
-	if err != nil || !has {
-		return 0
+	if err != nil {
+		return 0, err
+	} else if !has {
+		return 0, nil
 	}
-	return ip.ProjectColumnID
+	return ip.ProjectColumnID, nil
 }
 
 // LoadIssuesFromColumn load issues assigned to this column
