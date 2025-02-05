@@ -40,6 +40,7 @@ type Secret struct {
 	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
 	Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
 	Data        string             `xorm:"LONGTEXT"` // encrypted data
+	Description string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 
@@ -57,7 +58,7 @@ func (err ErrSecretNotFound) Unwrap() error {
 }
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
-func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data string) (*Secret, error) {
+func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data string, description string) (*Secret, error) {
 	if ownerID != 0 && repoID != 0 {
 		// It's trying to create a secret that belongs to a repository, but OwnerID has been set accidentally.
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
@@ -72,10 +73,11 @@ func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, dat
 		return nil, err
 	}
 	secret := &Secret{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    strings.ToUpper(name),
-		Data:    encrypted,
+		OwnerID:     ownerID,
+		RepoID:      repoID,
+		Name:        strings.ToUpper(name),
+		Data:        encrypted,
+		Description: description,
 	}
 	return secret, db.Insert(ctx, secret)
 }

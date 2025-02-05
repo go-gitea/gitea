@@ -14,7 +14,7 @@ import (
 	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
-func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data string) (*actions_model.ActionVariable, error) {
+func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data string, description string) (*actions_model.ActionVariable, error) {
 	if err := secret_service.ValidateName(name); err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data strin
 		return nil, err
 	}
 
-	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.ReserveLineBreakForTextarea(data))
+	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, name, util.ReserveLineBreakForTextarea(data), description)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data strin
 	return v, nil
 }
 
-func UpdateVariable(ctx context.Context, variableID int64, name, data string) (bool, error) {
+func UpdateVariable(ctx context.Context, variableID int64, name, data string, description string) (bool, error) {
 	if err := secret_service.ValidateName(name); err != nil {
 		return false, err
 	}
@@ -41,9 +41,10 @@ func UpdateVariable(ctx context.Context, variableID int64, name, data string) (b
 	}
 
 	return actions_model.UpdateVariable(ctx, &actions_model.ActionVariable{
-		ID:   variableID,
-		Name: strings.ToUpper(name),
-		Data: util.ReserveLineBreakForTextarea(data),
+		ID:          variableID,
+		Name:        strings.ToUpper(name),
+		Data:        util.ReserveLineBreakForTextarea(data),
+		Description: description,
 	})
 }
 

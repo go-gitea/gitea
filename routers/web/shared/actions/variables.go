@@ -28,7 +28,7 @@ func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
 func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	v, err := actions_service.CreateVariable(ctx, ownerID, repoID, form.Name, form.Data)
+	v, err := actions_service.CreateVariable(ctx, ownerID, repoID, form.Name, form.Data, form.Description)
 	if err != nil {
 		log.Error("CreateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
@@ -43,7 +43,7 @@ func UpdateVariable(ctx *context.Context, redirectURL string) {
 	id := ctx.PathParamInt64("variable_id")
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	if ok, err := actions_service.UpdateVariable(ctx, id, form.Name, form.Data); err != nil || !ok {
+	if ok, err := actions_service.UpdateVariable(ctx, id, form.Name, form.Data, form.Description); err != nil || !ok {
 		log.Error("UpdateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
 		return
