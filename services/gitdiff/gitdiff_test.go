@@ -5,6 +5,7 @@
 package gitdiff
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -628,23 +629,25 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepository(git.DefaultContext, "./testdata/academic-module")
+	gitRepo, err := git.OpenRepository(context.Background(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
 	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
-		diffs, err := GetDiff(db.DefaultContext, gitRepo,
+		diffs, err := GetDiff(context.Background(), gitRepo,
 			&DiffOptions{
-				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",
-				BeforeCommitID:     "559c156f8e0178b71cb44355428f24001b08fc68",
+				AfterCommitID:      "d8e0bbb45f200e67d9a784ce55bd90821af45ebd",
+				BeforeCommitID:     "72866af952e98d02a73003501836074b286a78f6",
 				MaxLines:           setting.Git.MaxGitDiffLines,
 				MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-				MaxFiles:           setting.Git.MaxGitDiffFiles,
+				MaxFiles:           1,
 				WhitespaceBehavior: behavior,
 			})
-		assert.NoError(t, err, "Error when diff with %s", behavior)
+		require.NoError(t, err, "Error when diff with WhitespaceBehavior=%s", behavior)
+		assert.True(t, diffs.IsIncomplete)
+		assert.Len(t, diffs.Files, 1)
 		for _, f := range diffs.Files {
-			assert.NotEmpty(t, f.Sections, "%s should have sections", f.Name)
+			assert.NotEmpty(t, f.Sections, "Diff file %q should have sections", f.Name)
 		}
 	}
 }
