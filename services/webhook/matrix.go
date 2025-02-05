@@ -244,6 +244,13 @@ func (m matrixConvertor) Package(p *api.PackagePayload) (MatrixPayload, error) {
 	return m.newPayload(text)
 }
 
+func (m matrixConvertor) Status(p *api.CommitStatusPayload) (MatrixPayload, error) {
+	refLink := htmlLinkFormatter(p.TargetURL, p.Context+"["+p.SHA+"]:"+p.Description)
+	text := fmt.Sprintf("Commit Status changed: %s", refLink)
+
+	return m.newPayload(text)
+}
+
 var urlRegex = regexp.MustCompile(`<a [^>]*?href="([^">]*?)">(.*?)</a>`)
 
 func getMessageBody(htmlText string) string {
