@@ -44,6 +44,8 @@ func ListStargazers(ctx *context.APIContext) {
 	//     "$ref": "#/responses/UserList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 
 	stargazers, err := repo_model.GetStargazers(ctx, ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
