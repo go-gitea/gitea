@@ -588,7 +588,7 @@ func ListActionTasks(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
-// GetArtifacts Lists all artifacts for a repository
+// GetArtifacts Lists all artifacts for a repository.
 func GetArtifactsOfRun(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifactsOfRun
 	// ---
@@ -650,7 +650,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
-// GetArtifacts Lists all artifacts for a repository
+// GetArtifacts Lists all artifacts for a repository.
 func GetArtifacts(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifacts
 	// ---
@@ -713,7 +713,7 @@ func GetArtifacts(ctx *context.APIContext) {
 func GetArtifact(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id} repository getArtifact
 	// ---
-	// summary: Gets a specific artifact for a workflow run.
+	// summary: Gets a specific artifact for a workflow run
 	// produces:
 	// - application/json
 	// parameters:
@@ -778,7 +778,7 @@ func GetArtifact(ctx *context.APIContext) {
 func DownloadArtifact(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip repository downloadArtifact
 	// ---
-	// summary: Downloads a specific artifact for a workflow run redirects to blob url.
+	// summary: Downloads a specific artifact for a workflow run redirects to blob url
 	// produces:
 	// - application/json
 	// parameters:
@@ -849,7 +849,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 func DownloadArtifactRaw(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip/raw repository downloadArtifactRaw
 	// ---
-	// summary: Downloads a specific artifact for a workflow run directly.
+	// summary: Downloads a specific artifact for a workflow run directly
 	// produces:
 	// - application/json
 	// parameters:
