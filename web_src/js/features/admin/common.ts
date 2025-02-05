@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {checkAppUrl} from '../common-page.ts';
-import {hideElem, showElem, toggleElem} from '../../utils/dom.ts';
+import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
 import {initAvatarUploaderWithCropper} from '../comp/Cropper.ts';
 
@@ -260,5 +260,5 @@ export function initAdminCommon(): void {
     });
   }
 
-  initAvatarUploaderWithCropper(document.querySelector('.admin.edit.user input[name="avatar"]'));
+  queryElems(document, '.avatar-file-with-cropper', initAvatarUploaderWithCropper);
 }

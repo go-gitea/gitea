@@ -1,5 +1,5 @@
 import {initCompLabelEdit} from './comp/LabelEdit.ts';
-import {toggleElem} from '../utils/dom.ts';
+import {queryElems, toggleElem} from '../utils/dom.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 
 export function initCommonOrganization() {
@@ -15,5 +15,5 @@ export function initCommonOrganization() {
   // Labels
   initCompLabelEdit('.page-content.organization.settings.labels');
 
-  initAvatarUploaderWithCropper(document.querySelector('.organization.settings.options input[name="avatar"]'));
+  queryElems(document, '.avatar-file-with-cropper', initAvatarUploaderWithCropper);
 }

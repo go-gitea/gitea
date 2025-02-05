@@ -158,5 +158,5 @@ export function initRepoSettings() {
   initRepoSettingsGitHook();
   initRepoSettingsBranchesDrag();
 
-  initAvatarUploaderWithCropper(document.querySelector('.repository.settings.options input[name="avatar"]'));
+  queryElems(document, '.avatar-file-with-cropper', initAvatarUploaderWithCropper);
 }

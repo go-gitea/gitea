@@ -39,8 +39,7 @@ async function initCompCropper({container, fileInput, imageSource}: CropperOpts)
   });
 }
 
-export async function initAvatarUploaderWithCropper(fileInput?: HTMLInputElement) {
-  if (!fileInput) return;
+export async function initAvatarUploaderWithCropper(fileInput: HTMLInputElement) {
   const panel = fileInput.nextElementSibling as HTMLElement;
   if (!panel?.matches('.cropper-panel')) throw new Error('Missing cropper panel for avatar uploader');
   const imageSource = panel.querySelector<HTMLImageElement>('.cropper-source');
