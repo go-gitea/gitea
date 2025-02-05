@@ -590,7 +590,7 @@ func ListActionTasks(ctx *context.APIContext) {
 
 // GetArtifacts Lists all artifacts for a repository
 func GetArtifactsOfRun(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifacts
+	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifactsOfRun
 	// ---
 	// summary: Lists all artifacts for a repository run
 	// produces:
@@ -608,7 +608,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     description: response when getting the artifacts
+	//     "$ref": "#/responses/ArtifactsList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -670,7 +670,7 @@ func GetArtifacts(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     description: response when getting the artifacts
+	//     "$ref": "#/responses/ArtifactsList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -709,9 +709,9 @@ func GetArtifacts(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
-// DownloadArtifact Gets a specific artifact for a workflow run.
+// GetArtifact Gets a specific artifact for a workflow run.
 func GetArtifact(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip repository downloadArtifact
+	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id} repository getArtifact
 	// ---
 	// summary: Gets a specific artifact for a workflow run.
 	// produces:
@@ -734,7 +734,7 @@ func GetArtifact(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     description: response when getting the artifacts
+	//     "$ref": "#/responses/Artifact"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -774,11 +774,11 @@ func GetArtifact(ctx *context.APIContext) {
 	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
 }
 
-// DownloadArtifact Gets a specific artifact for a workflow run.
+// DownloadArtifact Downloads a specific artifact for a workflow run redirects to blob url.
 func DownloadArtifact(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip repository downloadArtifact
 	// ---
-	// summary: Gets a specific artifact for a workflow run redirects to blob url.
+	// summary: Downloads a specific artifact for a workflow run redirects to blob url.
 	// produces:
 	// - application/json
 	// parameters:
@@ -798,8 +798,8 @@ func DownloadArtifact(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//   "200":
-	//     description: response when getting the artifacts
+	//   "302":
+	//     description: redirect to the blob download
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -845,11 +845,11 @@ func DownloadArtifact(ctx *context.APIContext) {
 	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
 }
 
-// DownloadArtifactRaw Gets a specific artifact for a workflow run.
+// DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
 func DownloadArtifactRaw(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip/raw repository downloadArtifactRaw
 	// ---
-	// summary: Gets a specific artifact for a workflow run direct download.
+	// summary: Downloads a specific artifact for a workflow run directly.
 	// produces:
 	// - application/json
 	// parameters:
@@ -870,7 +870,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     description: response when getting the artifacts
+	//     description: the artifact content
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":

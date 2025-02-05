@@ -33,7 +33,7 @@ type ActionTaskResponse struct {
 	TotalCount int64         `json:"total_count"`
 }
 
-// ActionTask represents a ActionTask
+// ActionArtifact represents a ActionArtifact
 type ActionArtifact struct {
 	ID                 int64              `json:"id"`
 	Name               string             `json:"name"`
@@ -51,13 +51,14 @@ type ActionArtifact struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
+// ActionWorkflowRun represents a WorkflowRun
 type ActionWorkflowRun struct {
 	ID           int64  `json:"id"`
 	RepositoryID int64  `json:"repository_id"`
 	HeadSha      string `json:"head_sha"`
 }
 
-// ActionArtifactsResponse returns a ActionTask
+// ActionArtifactsResponse returns ActionArtifacts
 type ActionArtifactsResponse struct {
 	Entries    []*ActionArtifact `json:"artifacts"`
 	TotalCount int64             `json:"total_count"`
