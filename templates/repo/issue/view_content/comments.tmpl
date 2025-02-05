@@ -26,7 +26,7 @@
 				</a>
 			{{end}}
 				<div class="content comment-container">
-					<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between" role="heading" aria-level="3">
+					<div class="comment-header" role="heading" aria-level="3">
 						<div class="comment-header-left tw-flex tw-items-center">
 							{{if .OriginalAuthor}}
 								<span class="text black tw-font-semibold tw-mr-1">
@@ -252,7 +252,7 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{$timeStr := .RenderedContent}} {{/* compatibility with time comments made before v1.21 */}}
-					{{if not $timeStr}}{{$timeStr = .Content|Sec2Time}}{{end}}
+					{{if not $timeStr}}{{$timeStr = .Content|Sec2Hour}}{{end}}
 					{{ctx.Locale.Tr "repo.issues.stop_tracking_history" $timeStr $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
@@ -264,7 +264,7 @@
 				<span class="text grey muted-links">
 					{{template "shared/user/authorlink" .Poster}}
 					{{$timeStr := .RenderedContent}} {{/* compatibility with time comments made before v1.21 */}}
-					{{if not $timeStr}}{{$timeStr = .Content|Sec2Time}}{{end}}
+					{{if not $timeStr}}{{$timeStr = .Content|Sec2Hour}}{{end}}
 					{{ctx.Locale.Tr "repo.issues.add_time_history" $timeStr $createdStr}}
 				</span>
 				{{template "repo/issue/view_content/comments_delete_time" dict "ctxData" $ "comment" .}}
@@ -393,7 +393,7 @@
 				{{if or .Content .Attachments}}
 				<div class="timeline-item comment">
 					<div class="content comment-container">
-						<div class="ui top attached header comment-header tw-flex tw-items-center tw-justify-between">
+						<div class="comment-header">
 							<div class="comment-header-left tw-flex tw-items-center">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
@@ -506,7 +506,7 @@
 						{{/* compatibility with time comments made before v1.21 */}}
 						<span class="text grey muted-links">{{.RenderedContent}}</span>
 					{{else}}
-						<span class="text grey muted-links">- {{.Content|Sec2Time}}</span>
+						<span class="text grey muted-links">- {{.Content|Sec2Hour}}</span>
 					{{end}}
 				</div>
 			</div>
@@ -633,8 +633,8 @@
 				</div>
 				{{if .Content}}
 					<div class="timeline-item comment">
-						<div class="content">
-							<div class="ui top attached header comment-header-left tw-flex tw-items-center arrow-top">
+						<div class="content comment-container">
+							<div class="comment-header arrow-top">
 								{{if gt .Poster.ID 0}}
 									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
 										{{ctx.AvatarUtils.Avatar .Poster 24}}
@@ -644,7 +644,7 @@
 									{{ctx.Locale.Tr "action.review_dismissed_reason"}}
 								</span>
 							</div>
-							<div class="ui attached segment">
+							<div class="ui attached segment comment-body">
 								<div class="render-content markup">
 									{{if .RenderedContent}}
 										{{.RenderedContent}}

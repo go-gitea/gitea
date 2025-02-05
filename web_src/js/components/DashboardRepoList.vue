@@ -136,12 +136,12 @@ export default defineComponent({
   },
 
   methods: {
-    changeTab(t) {
-      this.tab = t;
+    changeTab(tab: string) {
+      this.tab = tab;
       this.updateHistory();
     },
 
-    changeReposFilter(filter) {
+    changeReposFilter(filter: string) {
       this.reposFilter = filter;
       this.repos = [];
       this.page = 1;
@@ -224,7 +224,7 @@ export default defineComponent({
       this.searchRepos();
     },
 
-    changePage(page) {
+    changePage(page: number) {
       this.page = page;
       if (this.page > this.finalPage) {
         this.page = this.finalPage;
@@ -262,7 +262,7 @@ export default defineComponent({
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data.map((webSearchRepo) => {
+        this.repos = json.data.map((webSearchRepo: any) => {
           return {
             ...webSearchRepo.repository,
             latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
@@ -270,7 +270,7 @@ export default defineComponent({
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
           };
         });
-        const count = parseInt(response.headers.get('X-Total-Count'));
+        const count = Number(response.headers.get('X-Total-Count'));
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
         }
@@ -281,7 +281,7 @@ export default defineComponent({
       }
     },
 
-    repoIcon(repo) {
+    repoIcon(repo: any) {
       if (repo.fork) {
         return 'octicon-repo-forked';
       } else if (repo.mirror) {
@@ -304,7 +304,7 @@ export default defineComponent({
       return commitStatus[status].color;
     },
 
-    reposFilterKeyControl(e) {
+    reposFilterKeyControl(e: KeyboardEvent) {
       switch (e.key) {
         case 'Enter':
           document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();

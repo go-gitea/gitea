@@ -272,9 +272,9 @@ func MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo
 }
 
 // TransferRepository notifies create repository to notifiers
-func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, newOwnerName string) {
+func TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
 	for _, notifier := range notifiers {
-		notifier.TransferRepository(ctx, doer, repo, newOwnerName)
+		notifier.TransferRepository(ctx, doer, repo, oldOwnerName)
 	}
 }
 

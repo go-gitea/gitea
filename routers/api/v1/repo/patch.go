@@ -58,12 +58,12 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
