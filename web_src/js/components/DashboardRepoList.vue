@@ -567,7 +567,7 @@ ul li:not(:last-child) {
 }
 
 .empty-placeholder p {
-  margin: 1rem auto !important;
+  margin: 1em auto !important;
   color: var(--color-placeholder-text);
 }
 </style>
