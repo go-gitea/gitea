@@ -1,4 +1,4 @@
-import {showElem, type DOMEvent, queryElemSiblings} from '../../utils/dom.ts';
+import {showElem, type DOMEvent} from '../../utils/dom.ts';
 
 type CropperOpts = {
   container: HTMLElement,
@@ -41,8 +41,8 @@ async function initCompCropper({container, fileInput, imageSource}: CropperOpts)
 
 export async function initAvatarUploaderWithCropper(fileInput?: HTMLInputElement) {
   if (!fileInput) return;
-  const panel = queryElemSiblings(fileInput, '.cropper-panel')[0] as HTMLElement;
-  if (!panel) return;
+  const panel = fileInput.nextElementSibling as HTMLElement;
+  if (!panel?.matches('.cropper-panel')) throw new Error('Missing cropper panel for avatar uploader');
   const imageSource = panel.querySelector<HTMLImageElement>('.cropper-source');
   await initCompCropper({container: panel, fileInput, imageSource});
 }
