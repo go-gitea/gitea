@@ -318,6 +318,8 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/nektos/act => gitea.com/gitea/act v0.261.3
 
+replace github.com/gogs/go-gogs-client => github.com/TheFox0x7/go-gogs-client v0.0.0-20250205203315-0e70fbf458bf
+
 // TODO: the only difference is in `PutObject`: the fork doesn't use `NewVerifyingReader(r, sha256.New(), oid, expectedSize)`, need to figure out why
 replace github.com/charmbracelet/git-lfs-transfer => gitea.com/gitea/git-lfs-transfer v0.2.0
 
