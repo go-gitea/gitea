@@ -25,11 +25,6 @@ type StarListRepo struct {
 	RepoID     int64 `xorm:"UNIQUE(s)"`
 }
 
-// TableName return database table name for xorm
-func (StarList) TableName() string {
-	return "star_list"
-}
-
 func AddStarList(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
