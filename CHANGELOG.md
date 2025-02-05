@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * BREAKING
   * Add tests for webhook and fix some webhook bugs (#33396) (#33442)
     * Package webhook’s Organization was incorrectly used as the User struct. This PR fixes the issue.
+    * This changelog is just a hint. The change is not really breaking because most fields are the same, most users are not affected.
 * ENHANCEMENTS
   * Clone button enhancements (#33362) (#33404)
   * Repo homepage styling tweaks (#33289) (#33381)
