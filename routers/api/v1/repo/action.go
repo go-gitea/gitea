@@ -623,7 +623,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 		RepoID:       repoID,
 		RunID:        runID,
 		ArtifactName: artifactName,
-		//Status:       int(actions_model.ArtifactStatusUploadConfirmed),
+		// Status:       int(actions_model.ArtifactStatusUploadConfirmed),
 		FinalizedArtifactsV2: true,
 		ListOptions:          utils.GetListOptions(ctx),
 	})
@@ -682,7 +682,7 @@ func GetArtifacts(ctx *context.APIContext) {
 	artifacts, total, err := db.FindAndCount[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
 		RepoID:       repoID,
 		ArtifactName: artifactName,
-		//Status:       int(actions_model.ArtifactStatusUploadConfirmed),
+		// Status:       int(actions_model.ArtifactStatusUploadConfirmed),
 		FinalizedArtifactsV2: true,
 		ListOptions:          utils.GetListOptions(ctx),
 	})
