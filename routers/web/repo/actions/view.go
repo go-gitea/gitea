@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
@@ -682,23 +681,12 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
 
-	// Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
-	// The v4 backend enshures ContentEncoding is set to "application/zip", which is not the case for the old backend
-	if len(artifacts) == 1 && artifacts[0].ArtifactName+".zip" == artifacts[0].ArtifactPath && artifacts[0].ContentEncoding == "application/zip" {
-		art := artifacts[0]
-		if setting.Actions.ArtifactStorage.ServeDirect() {
-			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, nil)
-			if u != nil && err == nil {
-				ctx.Redirect(u.String())
-				return
-			}
-		}
-		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
+	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
+		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
-		_, _ = io.Copy(ctx.Resp, f)
 		return
 	}
 

@@ -6,7 +6,6 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,8 +13,8 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -620,11 +619,10 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	runID := ctx.PathParamInt64("run")
 
 	artifacts, total, err := db.FindAndCount[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
-		RepoID:       repoID,
-		RunID:        runID,
-		ArtifactName: artifactName,
-		// Status:       int(actions_model.ArtifactStatusUploadConfirmed),
-		FinalizedArtifactsV2: true,
+		RepoID:               repoID,
+		RunID:                runID,
+		ArtifactName:         artifactName,
+		FinalizedArtifactsV4: true,
 		ListOptions:          utils.GetListOptions(ctx),
 	})
 	if err != nil {
@@ -680,10 +678,9 @@ func GetArtifacts(ctx *context.APIContext) {
 	artifactName := ctx.PathParam("artifact_name")
 
 	artifacts, total, err := db.FindAndCount[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
-		RepoID:       repoID,
-		ArtifactName: artifactName,
-		// Status:       int(actions_model.ArtifactStatusUploadConfirmed),
-		FinalizedArtifactsV2: true,
+		RepoID:               repoID,
+		ArtifactName:         artifactName,
+		FinalizedArtifactsV4: true,
 		ListOptions:          utils.GetListOptions(ctx),
 	})
 	if err != nil {
@@ -745,9 +742,7 @@ func GetArtifact(ctx *context.APIContext) {
 		return
 	}
 
-	// Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
-	// The v4 backend enshures ContentEncoding is set to "application/zip", which is not the case for the old backend
-	if art.ArtifactName+".zip" == art.ArtifactPath && art.ContentEncoding == "application/zip" {
+	if actions.IsArtifactV4(art) {
 		repoName := ctx.Repo.Repository.FullName()
 		convertedArtifact, err := convert.ToActionArtifact(ctx, repoName, art)
 		if err != nil {
@@ -804,18 +799,15 @@ func DownloadArtifact(ctx *context.APIContext) {
 	}
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
 
-	// Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
-	// The v4 backend enshures ContentEncoding is set to "application/zip", which is not the case for the old backend
-	if art.ArtifactName+".zip" == art.ArtifactPath && art.ContentEncoding == "application/zip" {
-		art := art
-		if setting.Actions.ArtifactStorage.ServeDirect() {
-			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, nil)
-			if u != nil && err == nil {
-				ctx.Redirect(u.String(), http.StatusFound)
-				return
-			}
+	if actions.IsArtifactV4(art) {
+		ok, err := actions.DownloadArtifactV4ServeDirectOnly(ctx.Base, art)
+		if ok {
+			return
 		}
-		// ##[error]Unable to download artifact(s): Unable to download artifact. Unexpected status: 200
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error(), err)
+			return
+		}
 		repoName := ctx.Repo.Repository.FullName()
 		url := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/repos/" + repoName + "/actions/artifacts/" + fmt.Sprintf("%d", art.ID) + "/zip/raw"
 		ctx.Redirect(url, http.StatusFound)
@@ -868,24 +860,12 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	}
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
 
-	// Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
-	// The v4 backend enshures ContentEncoding is set to "application/zip", which is not the case for the old backend
-	if art.ArtifactName+".zip" == art.ArtifactPath && art.ContentEncoding == "application/zip" {
-		art := art
-		if setting.Actions.ArtifactStorage.ServeDirect() {
-			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, nil)
-			if u != nil && err == nil {
-				ctx.Redirect(u.String())
-				return
-			}
-		}
-		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
+	if actions.IsArtifactV4(art) {
+		err := actions.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error(), err)
+			ctx.Error(http.StatusInternalServerError, "artifact has expired", fmt.Errorf("artifact has expired"))
 			return
 		}
-		_, _ = io.Copy(ctx.Resp, f)
-		return
 	}
 	// v3 not supported due to not having one unique id
 	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))

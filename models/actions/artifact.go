@@ -112,7 +112,7 @@ type FindArtifactsOptions struct {
 	RunID                int64
 	ArtifactName         string
 	Status               int
-	FinalizedArtifactsV2 bool
+	FinalizedArtifactsV4 bool
 }
 
 func (opts FindArtifactsOptions) ToConds() builder.Cond {
@@ -129,7 +129,7 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	if opts.Status > 0 {
 		cond = cond.And(builder.Eq{"status": opts.Status})
 	}
-	if opts.FinalizedArtifactsV2 {
+	if opts.FinalizedArtifactsV4 {
 		cond = cond.And(builder.Eq{"status": ArtifactStatusUploadConfirmed}.Or(builder.Eq{"status": ArtifactStatusExpired}))
 		cond = cond.And(builder.Eq{"content_encoding": "application/zip"})
 	}
