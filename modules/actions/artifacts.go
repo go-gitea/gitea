@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"io"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -33,7 +32,7 @@ func DownloadArtifactV4Fallback(ctx *context.Base, art *actions_model.ActionArti
 		return err
 	}
 	defer f.Close()
-	_, _ = io.Copy(ctx.Resp, f)
+	http.ServeContent(ctx.Resp, ctx.Req, art.ArtifactName+".zip", art.CreatedUnix.AsLocalTime(), f)
 	return nil
 }
 
