@@ -3,6 +3,7 @@ import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.ts';
 import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
+import {initCompCropper} from './comp/Cropper.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 
 const {appSubUrl, csrfToken} = window.config;
@@ -156,4 +157,12 @@ export function initRepoSettings() {
   initRepoSettingsSearchTeamBox();
   initRepoSettingsGitHook();
   initRepoSettingsBranchesDrag();
+
+  // Avatar Cropper
+  if (document.querySelector<HTMLDivElement>('.repository.settings.options')) {
+    const fileInput = document.querySelector<HTMLInputElement>('#new-avatar');
+    const container = document.querySelector<HTMLElement>('.repository.settings.options .cropper-panel');
+    const imageSource = container.querySelector<HTMLImageElement>('.cropper-source');
+    initCompCropper({container, fileInput, imageSource});
+  }
 }

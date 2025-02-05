@@ -1,7 +1,9 @@
 @import "cropperjs/dist/cropper.css";
 
-.page-content.user.profile .cropper-panel .cropper-wrapper,
-.page-content.admin.edit.user .cropper-panel .cropper-wrapper {
+.page-content.admin.edit.user .cropper-panel .cropper-wrapper,
+.page-content.organization.settings.options .cropper-panel .cropper-wrapper,
+.page-content.repository.settings.options .cropper-panel .cropper-wrapper,
+.page-content.user.profile .cropper-panel .cropper-wrapper {
   max-width: 400px;
   max-height: 400px;
 }
