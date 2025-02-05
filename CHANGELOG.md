@@ -43,6 +43,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Revert empty lfs ref name (#33454) (#33457)
   * Fix flex width (#33414) (#33418)
   * Fix commit status events (#33320) #33493
+  * Fix unnecessary comment when moving issue on the same project column (#33496) #33499
+  * Add timetzdata build tag to binary releases (#33463) #33503
 * MISC
   * Use ProtonMail/go-crypto to replace keybase/go-crypto (#33402) (#33410)
   * Update katex to latest version (#33361)
