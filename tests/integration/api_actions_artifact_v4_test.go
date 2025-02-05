@@ -351,7 +351,7 @@ func TestActionsArtifactV4RunDownloadSinglePublicApi(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	// confirm artifact upload via rest api
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/run/792/artifacts?name=artifact-v4-download", repo.FullName()), nil).
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/792/artifacts?name=artifact-v4-download", repo.FullName()), nil).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var listResp api.ActionArtifactsResponse
@@ -363,7 +363,12 @@ func TestActionsArtifactV4RunDownloadSinglePublicApi(t *testing.T) {
 	req = NewRequestWithBody(t, "GET", listResp.Entries[0].ArchiveDownloadURL, nil).
 		AddTokenAuth(token)
 
+	resp = MakeRequest(t, req, http.StatusFound)
+
+	req = NewRequestWithBody(t, "GET", resp.Header().Get("Location"), nil).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
+
 	body := strings.Repeat("D", 1024)
 	assert.Equal(t, body, resp.Body.String())
 }
@@ -389,6 +394,10 @@ func TestActionsArtifactV4DownloadSinglePublicApi(t *testing.T) {
 	req = NewRequestWithBody(t, "GET", listResp.Entries[0].ArchiveDownloadURL, nil).
 		AddTokenAuth(token)
 
+	resp = MakeRequest(t, req, http.StatusFound)
+
+	req = NewRequestWithBody(t, "GET", resp.Header().Get("Location"), nil).
+		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	body := strings.Repeat("D", 1024)
 	assert.Equal(t, body, resp.Body.String())
@@ -411,8 +420,8 @@ func TestActionsArtifactV4ListAndGetPublicApi(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, artifact := range listResp.Entries {
-		assert.Contains(t, fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), artifact.ID), artifact.URL)
-		assert.Contains(t, fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), artifact.ID), artifact.ArchiveDownloadURL)
+		assert.Contains(t, artifact.URL, fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), artifact.ID))
+		assert.Contains(t, artifact.ArchiveDownloadURL, fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), artifact.ID))
 		req = NewRequestWithBody(t, "GET", listResp.Entries[0].URL, nil).
 			AddTokenAuth(token)
 

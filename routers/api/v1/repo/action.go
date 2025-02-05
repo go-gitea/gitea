@@ -866,6 +866,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, err.Error(), err)
 			return
 		}
+		return
 	}
 	// v3 not supported due to not having one unique id
 	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
