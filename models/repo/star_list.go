@@ -10,15 +10,13 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// StarList ...
 type StarList struct {
 	ID   int64 `xorm:"pk autoincr"`
 	UID  int64 `xorm:"INDEX"`
 	Name string
 	Desc string
 
-	StarIDs []int64      `xorm:"-"`
-	Repos   []Repository `xorm:"-"`
+	Repos []Repository `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -28,40 +26,33 @@ func init() {
 	db.RegisterModel(new(StarList))
 }
 
-func (list *StarList) GetCount() int64 {
-	var star Star
-	count, err := db.GetEngine(context.Background()).Where("star_list_id = ?", list.ID).Count(star)
-	if err != nil {
-		return 0
-	}
-	return count
+func InsertStarList(ctx context.Context, starList *StarList) error {
+	_, err := db.GetEngine(ctx).Insert(starList)
+	return err
 }
 
-func (list *StarList) LoadStars() {
-	var star []Star
-	err := db.GetEngine(context.Background()).Where("star_list_id = ?", list.ID).Find(&star)
-	if err != nil {
-		return
-	}
-	for _, star := range star {
-		list.StarIDs = append(list.StarIDs, star.ID)
-	}
+func UpdateStarList(ctx context.Context, starList *StarList) error {
+	_, err := db.GetEngine(ctx).Where("id = ?", starList.ID).AllCols().Update(starList)
+	return err
 }
 
-func GetStarListByUID(ctx context.Context, uid int64) ([]*StarList, error) {
-	var list []*StarList
-	err := db.GetEngine(ctx).Where("uid = ?", uid).Find(&list)
-	if err != nil {
+func DeleteStarListByID(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).Delete(&StarList{ID: id})
+	return err
+}
+
+func GetStarListByID(ctx context.Context, id int64) (*StarList, error) {
+	starList := new(StarList)
+	if has, err := db.GetEngine(ctx).Where("id = ?", id).Get(starList); err != nil {
 		return nil, err
+	} else if !has {
+		return nil, nil
 	}
-	return list, nil
+	return starList, nil
 }
 
-func GetReposByStarListID(ctx context.Context, starListID int64) ([]*Repository, error) {
-	repos := make([]*Repository, 0, 100)
-	err := db.GetEngine(ctx).Where("star_list_id = ?", starListID).Find(&repos)
-	if err != nil {
-		return nil, err
-	}
-	return repos, nil
+func GetStarListsForUser(ctx context.Context, id int64) ([]*StarList, error) {
+	starLists := make([]*StarList, 0, 10)
+	err := db.GetEngine(ctx).Where("uid = ?", id).Find(&starLists)
+	return starLists, err
 }

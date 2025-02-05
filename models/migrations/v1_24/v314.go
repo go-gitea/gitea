@@ -9,10 +9,6 @@ import (
 	"xorm.io/xorm"
 )
 
-type Star struct {
-	StarListID int64 `xorm:"UNIQUE(s)"`
-}
-
 type StarList struct {
 	ID   int64 `xorm:"pk autoincr"`
 	UID  int64 `xorm:"INDEX"`
@@ -21,6 +17,12 @@ type StarList struct {
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+}
+
+type StarListRepo struct {
+	UID        int64 `xorm:"UNIQUE(s)"`
+	StarListID int64 `xorm:"UNIQUE(s)"`
+	RepoID     int64 `xorm:"UNIQUE(s)"`
 }
 
 // TableName return database table name for xorm
@@ -34,11 +36,11 @@ func AddStarList(x *xorm.Engine) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	err := sess.Sync(new(Star))
+	err := sess.Sync(new(StarList))
 	if err != nil {
 		return err
 	}
-	err = sess.Sync(new(StarList))
+	err = sess.Sync(new(StarListRepo))
 	if err != nil {
 		return err
 	}
