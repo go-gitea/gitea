@@ -304,31 +304,6 @@ func CreatePost(ctx *context.Context) {
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
 }
 
-const (
-	tplWatchUnwatch templates.TplName = "repo/watch_unwatch"
-	tplStarUnstar   templates.TplName = "repo/star_unstar"
-)
-
-func acceptTransfer(ctx *context.Context) {
-	err := repo_service.AcceptTransferOwnership(ctx, ctx.Repo.Repository, ctx.Doer)
-	if err == nil {
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
-		ctx.Redirect(ctx.Repo.Repository.Link())
-		return
-	}
-	handleActionError(ctx, err)
-}
-
-func rejectTransfer(ctx *context.Context) {
-	err := repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
-	if err == nil {
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
-		ctx.Redirect(ctx.Repo.Repository.Link())
-		return
-	}
-	handleActionError(ctx, err)
-}
-
 func handleActionError(ctx *context.Context, err error) {
 	if errors.Is(err, user_model.ErrBlockedUser) {
 		ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
@@ -337,72 +312,6 @@ func handleActionError(ctx *context.Context, err error) {
 	} else {
 		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 	}
-}
-
-// Action response for actions to a repository
-func Action(ctx *context.Context) {
-	var err error
-	switch ctx.PathParam("action") {
-	case "watch":
-		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
-	case "unwatch":
-		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
-	case "star":
-		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
-	case "unstar":
-		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
-	case "accept_transfer":
-		acceptTransfer(ctx)
-		return
-	case "reject_transfer":
-		rejectTransfer(ctx)
-		return
-	case "desc": // FIXME: this is not used
-		if !ctx.Repo.IsOwner() {
-			ctx.Error(http.StatusNotFound)
-			return
-		}
-
-		ctx.Repo.Repository.Description = ctx.FormString("desc")
-		ctx.Repo.Repository.Website = ctx.FormString("site")
-		err = repo_service.UpdateRepository(ctx, ctx.Repo.Repository, false)
-	}
-
-	if err != nil {
-		handleActionError(ctx, err)
-		return
-	}
-
-	switch ctx.PathParam("action") {
-	case "watch", "unwatch":
-		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
-	case "star", "unstar":
-		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
-	}
-
-	// see the `hx-trigger="refreshUserCards ..."` comments in tmpl
-	ctx.RespHeader().Add("hx-trigger", "refreshUserCards")
-
-	switch ctx.PathParam("action") {
-	case "watch", "unwatch", "star", "unstar":
-		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
-		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
-		if err != nil {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
-			return
-		}
-	}
-
-	switch ctx.PathParam("action") {
-	case "watch", "unwatch":
-		ctx.HTML(http.StatusOK, tplWatchUnwatch)
-		return
-	case "star", "unstar":
-		ctx.HTML(http.StatusOK, tplStarUnstar)
-		return
-	}
-
-	ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
 }
 
 // RedirectDownload return a file based on the following infos:

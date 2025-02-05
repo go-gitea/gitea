@@ -313,8 +313,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	ctx.Data["Page"] = pager
 }
 
-// Action response for follow/unfollow user request
-func Action(ctx *context.Context) {
+// ActionUserFollow is for follow/unfollow user request
+func ActionUserFollow(ctx *context.Context) {
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
@@ -339,6 +339,6 @@ func Action(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplFollowUnfollow)
 		return
 	}
-	log.Error("Failed to apply action %q: unsupport context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
+	log.Error("Failed to apply action %q: unsupported context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
 	ctx.Error(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 }
