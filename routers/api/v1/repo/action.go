@@ -614,7 +614,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repoID := ctx.Repo.Repository.ID
-	artifactName := ctx.PathParam("artifact_name")
+	artifactName := ctx.Req.URL.Query().Get("name")
 
 	runID := ctx.PathParamInt64("run")
 
@@ -675,7 +675,7 @@ func GetArtifacts(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repoID := ctx.Repo.Repository.ID
-	artifactName := ctx.PathParam("artifact_name")
+	artifactName := ctx.Req.URL.Query().Get("name")
 
 	artifacts, total, err := db.FindAndCount[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
 		RepoID:               repoID,
@@ -863,7 +863,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	if actions.IsArtifactV4(art) {
 		err := actions.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "artifact has expired", fmt.Errorf("artifact has expired"))
+			ctx.Error(http.StatusInternalServerError, err.Error(), err)
 			return
 		}
 	}
