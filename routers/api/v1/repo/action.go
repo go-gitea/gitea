@@ -69,8 +69,9 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	apiSecrets := make([]*api.Secret, len(secrets))
 	for k, v := range secrets {
 		apiSecrets[k] = &api.Secret{
-			Name:    v.Name,
-			Created: v.CreatedUnix.AsTime(),
+			Name:        v.Name,
+			Description: v.Description,
+			Created:     v.CreatedUnix.AsTime(),
 		}
 	}
 
@@ -121,7 +122,8 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data)
+	_, created, err := secret_service.CreateOrUpdateSecret(
+		ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
@@ -234,10 +236,11 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	}
 
 	variable := &api.ActionVariable{
-		OwnerID: v.OwnerID,
-		RepoID:  v.RepoID,
-		Name:    v.Name,
-		Data:    v.Data,
+		OwnerID:     v.OwnerID,
+		RepoID:      v.RepoID,
+		Name:        v.Name,
+		Data:        v.Data,
+		Description: v.Description,
 	}
 
 	ctx.JSON(http.StatusOK, variable)
@@ -347,7 +350,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.CreateVariable(ctx, 0, repoID, variableName, opt.Value); err != nil {
+	if _, err := actions_service.CreateVariable(ctx, 0, repoID, variableName, opt.Value, opt.Description); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "CreateVariable", err)
 		} else {
@@ -414,7 +417,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	if opt.Name == "" {
 		opt.Name = ctx.PathParam("variablename")
 	}
-	if _, err := actions_service.UpdateVariable(ctx, v.ID, opt.Name, opt.Value); err != nil {
+	if _, err := actions_service.UpdateVariable(ctx, v.ID, opt.Name, opt.Value, opt.Description); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
 		} else {
@@ -472,9 +475,11 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	variables := make([]*api.ActionVariable, len(vars))
 	for i, v := range vars {
 		variables[i] = &api.ActionVariable{
-			OwnerID: v.OwnerID,
-			RepoID:  v.RepoID,
-			Name:    v.Name,
+			OwnerID:     v.OwnerID,
+			RepoID:      v.RepoID,
+			Name:        v.Name,
+			Data:        v.Data,
+			Description: v.Description,
 		}
 	}
 

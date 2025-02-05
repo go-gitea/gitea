@@ -32,6 +32,7 @@ type ActionVariable struct {
 	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name)"`
 	Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
 	Data        string             `xorm:"LONGTEXT NOT NULL"`
+	Description string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
@@ -40,7 +41,7 @@ func init() {
 	db.RegisterModel(new(ActionVariable))
 }
 
-func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data string) (*ActionVariable, error) {
+func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data, description string) (*ActionVariable, error) {
 	if ownerID != 0 && repoID != 0 {
 		// It's trying to create a variable that belongs to a repository, but OwnerID has been set accidentally.
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
@@ -48,10 +49,11 @@ func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data strin
 	}
 
 	variable := &ActionVariable{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    strings.ToUpper(name),
-		Data:    data,
+		OwnerID:     ownerID,
+		RepoID:      repoID,
+		Name:        strings.ToUpper(name),
+		Data:        data,
+		Description: description,
 	}
 	return variable, db.Insert(ctx, variable)
 }
@@ -86,10 +88,11 @@ func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariab
 }
 
 func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error) {
-	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("name", "data").
+	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("name", "data", "description").
 		Update(&ActionVariable{
-			Name: variable.Name,
-			Data: variable.Data,
+			Name:        variable.Name,
+			Data:        variable.Data,
+			Description: variable.Description,
 		})
 	return count != 0, err
 }
