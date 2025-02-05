@@ -25,6 +25,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestIsUsableUsername(t *testing.T) {
+	assert.NoError(t, user_model.IsUsableUsername("a"))
+	assert.NoError(t, user_model.IsUsableUsername("foo.wiki"))
+	assert.NoError(t, user_model.IsUsableUsername("foo.git"))
+
+	assert.Error(t, user_model.IsUsableUsername("a--b"))
+	assert.Error(t, user_model.IsUsableUsername("-1_."))
+	assert.Error(t, user_model.IsUsableUsername(".profile"))
+	assert.Error(t, user_model.IsUsableUsername("-"))
+	assert.Error(t, user_model.IsUsableUsername("🌞"))
+	assert.Error(t, user_model.IsUsableUsername("the..repo"))
+	assert.Error(t, user_model.IsUsableUsername("foo.RSS"))
+	assert.Error(t, user_model.IsUsableUsername("foo.PnG"))
+}
+
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
@@ -318,14 +333,14 @@ func TestGetUserIDsByNames(t *testing.T) {
 func TestGetMaileableUsersByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	results, err := user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
+	results, err := user_model.GetMailableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	if len(results) > 1 {
 		assert.Equal(t, 1, results[0].ID)
 	}
 
-	results, err = user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
+	results, err = user_model.GetMailableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	if len(results) > 2 {

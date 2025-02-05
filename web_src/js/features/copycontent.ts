@@ -50,7 +50,7 @@ export function initTargetCopyContent(target: ParentNode) {
       showTemporaryTooltip(btn, i18n.copy_success);
     } else {
       if (isRasterImage) {
-        const success = await clippie(await convertImage(content, 'image/png'));
+        const success = await clippie(await convertImage(content as Blob, 'image/png'));
         showTemporaryTooltip(btn, success ? i18n.copy_success : i18n.copy_error);
       } else {
         showTemporaryTooltip(btn, i18n.copy_error);

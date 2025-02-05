@@ -217,10 +217,28 @@ func prepareRecentlyPushedNewBranches(ctx *context.Context) {
 		if !opts.Repo.IsMirror && !opts.BaseRepo.IsMirror &&
 			opts.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests) &&
 			baseRepoPerm.CanRead(unit_model.TypePullRequests) {
-			ctx.Data["RecentlyPushedNewBranches"], err = git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
+			var finalBranches []*git_model.RecentlyPushedNewBranch
+			branches, err := git_model.FindRecentlyPushedNewBranches(ctx, ctx.Doer, opts)
 			if err != nil {
 				log.Error("FindRecentlyPushedNewBranches failed: %v", err)
 			}
+
+			for _, branch := range branches {
+				divergingInfo, err := repo_service.GetBranchDivergingInfo(ctx,
+					branch.BranchRepo, branch.BranchName, // "base" repo for diverging info
+					opts.BaseRepo, opts.BaseRepo.DefaultBranch, // "head" repo for diverging info
+				)
+				if err != nil {
+					log.Error("GetBranchDivergingInfo failed: %v", err)
+					continue
+				}
+				branchRepoHasNewCommits := divergingInfo.BaseHasNewCommits
+				baseRepoCommitsBehind := divergingInfo.HeadCommitsBehind
+				if branchRepoHasNewCommits || baseRepoCommitsBehind > 0 {
+					finalBranches = append(finalBranches, branch)
+				}
+			}
+			ctx.Data["RecentlyPushedNewBranches"] = finalBranches
 		}
 	}
 }
@@ -295,21 +313,21 @@ func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 }
 
 func handleRepoHomeFeed(ctx *context.Context) bool {
-	if setting.Other.EnableFeed {
-		isFeed, _, showFeedType := feed.GetFeedType(ctx.PathParam("reponame"), ctx.Req)
-		if isFeed {
-			switch {
-			case ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType):
-				feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
-			case ctx.Repo.TreePath == "":
-				feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
-			case ctx.Repo.TreePath != "":
-				feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
-			}
-			return true
-		}
+	if !setting.Other.EnableFeed {
+		return false
 	}
-	return false
+	isFeed, showFeedType := feed.GetFeedType(ctx.PathParam("reponame"), ctx.Req)
+	if !isFeed {
+		return false
+	}
+	if ctx.Link == fmt.Sprintf("%s.%s", ctx.Repo.RepoLink, showFeedType) {
+		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else if ctx.Repo.TreePath == "" {
+		feed.ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
+	} else {
+		feed.ShowFileFeed(ctx, ctx.Repo.Repository, showFeedType)
+	}
+	return true
 }
 
 func prepareHomeTreeSideBarSwitch(ctx *context.Context) {
@@ -416,4 +434,21 @@ func Home(ctx *context.Context) {
 	} else {
 		ctx.HTML(http.StatusOK, tplRepoHome)
 	}
+}
+
+func RedirectRepoTreeToSrc(ctx *context.Context) {
+	// Redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*",
+	// then use the deprecated "/src/*" handler to guess the ref type and render a file list page.
+	// This is done intentionally so that Gitea's repo URL structure matches other forges (GitHub/GitLab) provide,
+	// allowing us to construct submodule URLs across forges easily.
+	// For example, when viewing a submodule, we can simply construct the link as:
+	// * "https://gitea/owner/repo/tree/{CommitID}"
+	// * "https://github/owner/repo/tree/{CommitID}"
+	// * "https://gitlab/owner/repo/tree/{CommitID}"
+	// Then no matter which forge the submodule is using, the link works.
+	redirect := ctx.Repo.RepoLink + "/src/" + ctx.PathParamRaw("*")
+	if ctx.Req.URL.RawQuery != "" {
+		redirect += "?" + ctx.Req.URL.RawQuery
+	}
+	ctx.Redirect(redirect)
 }

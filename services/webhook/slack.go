@@ -167,6 +167,12 @@ func (s slackConvertor) Package(p *api.PackagePayload) (SlackPayload, error) {
 	return s.createPayload(text, nil), nil
 }
 
+func (s slackConvertor) Status(p *api.CommitStatusPayload) (SlackPayload, error) {
+	text, _ := getStatusPayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 // Push implements payloadConvertor Push method
 func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 	// n new commits
@@ -293,6 +299,10 @@ func newSlackRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mod
 		Color:    meta.Color,
 	}
 	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.SLACK, newSlackRequest)
 }
 
 var slackChannel = regexp.MustCompile(`^#?[a-z0-9_-]{1,80}$`)
