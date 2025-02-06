@@ -5,6 +5,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -19,6 +20,8 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	secret_service "code.gitea.io/gitea/services/secrets"
+
+	"github.com/nektos/act/pkg/model"
 )
 
 // ListActionsSecrets list an repo's actions secrets
@@ -793,7 +796,40 @@ func (a ActionWorkflow) DispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	actions_service.DispatchActionWorkflow(ctx, workflowID, opt)
+	err := actions_service.DispatchActionWorkflow(&context.Context{
+		Base: ctx.Base,
+		Doer: ctx.Doer,
+		Repo: ctx.Repo,
+	}, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs *map[string]any) error {
+		if workflowDispatch != nil {
+			// TODO figure out why the inputs map is empty for url form encoding workaround
+			if opt.Inputs == nil {
+				for name, config := range workflowDispatch.Inputs {
+					value := ctx.FormString("inputs["+name+"]", config.Default)
+					(*inputs)[name] = value
+				}
+			} else {
+				for name, config := range workflowDispatch.Inputs {
+					value, ok := opt.Inputs[name]
+					if ok {
+						(*inputs)[name] = value
+					} else {
+						(*inputs)[name] = config.Default
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		if terr, ok := err.(*actions_service.TranslateableError); ok {
+			msg := ctx.Locale.TrString(terr.Translation, terr.Args...)
+			ctx.Error(terr.GetCode(), msg, fmt.Errorf("%s", msg))
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, err.Error(), err)
+		return
+	}
 
 	ctx.Status(http.StatusNoContent)
 }
