@@ -25,7 +25,7 @@
 					{{.Name}}
 				</div>
 				<div class="flex-item-body">
-					{{.Description}}
+					{{if .Description}} {{.Description}} {{else}} - {{end}}
 				</div>
 				<div class="flex-item-body">
 					{{.Data}}
