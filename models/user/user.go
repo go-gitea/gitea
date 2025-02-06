@@ -1153,6 +1153,51 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []
 	return newCommits
 }
 
+func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, error) {
+	if len(emails) == 0 {
+		return nil, nil
+	}
+
+	needCheckEmails := make(container.Set[string])
+	needCheckUserNames := make(container.Set[string])
+	for _, email := range emails {
+		if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
+			username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+			needCheckUserNames.Add(username)
+		} else {
+			needCheckEmails.Add(strings.ToLower(email))
+		}
+	}
+
+	emailAddresses := make([]*EmailAddress, 0, len(needCheckEmails))
+	if err := db.GetEngine(ctx).In("lower_email", needCheckEmails.Values()).
+		And("is_activated=?", true).
+		Find(&emailAddresses); err != nil {
+		return nil, err
+	}
+	userIDs := make(container.Set[int64])
+	for _, email := range emailAddresses {
+		userIDs.Add(email.UID)
+	}
+	users, err := GetUsersByIDs(ctx, userIDs.Values())
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[string]*User, len(emails))
+	for _, user := range users {
+		results[user.Email] = user
+	}
+	users = make([]*User, 0, len(needCheckUserNames))
+	if err := db.GetEngine(ctx).In("lower_name=?", needCheckUserNames.Values()).Find(users); err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
+	}
+	return results, nil
+}
+
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	if len(email) == 0 {
