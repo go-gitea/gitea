@@ -89,9 +89,17 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 	}
 
 	for _, c := range oldCommits {
+		committer, ok := emailUsers[c.Committer.Email]
+		if !ok && c.Committer != nil {
+			committer = &user_model.User{
+				Name:  c.Committer.Name,
+				Email: c.Committer.Email,
+			}
+		}
+
 		signCommit := &SignCommit{
 			UserCommit:   c,
-			Verification: parseCommitWithSignatureCommitter(ctx, c.Commit, emailUsers[c.Committer.Email]),
+			Verification: parseCommitWithSignatureCommitter(ctx, c.Commit, committer),
 		}
 
 		_ = CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)

@@ -523,9 +523,13 @@ func hashCommitStatusContext(context string) string {
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
 func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) ([]*SignCommitWithStatuses, error) {
+	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	if err != nil {
+		return nil, err
+	}
 	signedCommits, err := asymkey_model.ParseCommitsWithSignature(
 		ctx,
-		user_model.ValidateCommitsWithEmails(ctx, commits),
+		validatedCommits,
 		repo.GetTrustModel(),
 		func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)

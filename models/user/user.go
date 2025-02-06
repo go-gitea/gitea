@@ -1129,28 +1129,29 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []*UserCommit {
+func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
 	var (
-		emails     = make(map[string]*User)
 		newCommits = make([]*UserCommit, 0, len(oldCommits))
+		emailSet   = make(container.Set[string])
 	)
 	for _, c := range oldCommits {
-		var u *User
 		if c.Author != nil {
-			if v, ok := emails[c.Author.Email]; !ok {
-				u, _ = GetUserByEmail(ctx, c.Author.Email)
-				emails[c.Author.Email] = u
-			} else {
-				u = v
-			}
+			emailSet.Add(c.Author.Email)
 		}
+	}
 
+	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range oldCommits {
 		newCommits = append(newCommits, &UserCommit{
-			User:   u,
+			User:   emailUserMap[c.Author.Email],
 			Commit: c,
 		})
 	}
-	return newCommits
+	return newCommits, nil
 }
 
 func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, error) {
