@@ -164,8 +164,8 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 	case refName.IsBranch():
 		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
 	default:
-		ctx.Error(http.StatusInternalServerError, "WorkflowRefNameError", fmt.Sprintf("%s must be a well-formed Git reference name.", opt.Ref))
-		return
+		refName = git.RefNameFromBranch(opt.Ref)
+		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.Ref)
 	}
 
 	if err != nil {
@@ -234,7 +234,7 @@ func DispatchActionWorkflow(ctx *context.APIContext, workflowID string, opt *api
 		OwnerID:           ctx.Repo.Repository.Owner.ID,
 		WorkflowID:        workflowID,
 		TriggerUserID:     ctx.Doer.ID,
-		Ref:               opt.Ref,
+		Ref:               string(refName),
 		CommitSHA:         runTargetCommit.ID.String(),
 		IsForkPullRequest: false,
 		Event:             "workflow_dispatch",
