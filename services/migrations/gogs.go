@@ -67,7 +67,6 @@ type GogsDownloader struct {
 	token              string
 	openIssuesFinished bool
 	openIssuesPages    int
-	transport          http.RoundTripper
 }
 
 // String implements Stringer
