@@ -5,6 +5,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -19,6 +20,8 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	secret_service "code.gitea.io/gitea/services/secrets"
+
+	"github.com/nektos/act/pkg/model"
 )
 
 // ListActionsSecrets list an repo's actions secrets
@@ -580,4 +583,79 @@ func ListActionTasks(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, &res)
+}
+
+// DispatchWorkflow Dispatches a specific workflow as a workflow run.
+func DispatchWorkflow(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches repository dispatchWorkflow
+	// ---
+	// summary: Dispatches a specific workflow as a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: name of the owner
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: name of the workflow yaml
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: "No Content"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	opt := web.GetForm(ctx).(*api.ActionWorkflowDispatchOption)
+
+	workflowID := ctx.PathParam("workflow_id")
+	if len(workflowID) == 0 {
+		ctx.ServerError("workflow", nil)
+		return
+	}
+
+	ref := opt.Ref
+	if len(ref) == 0 {
+		ctx.ServerError("ref", nil)
+		return
+	}
+
+	err := actions_service.DispatchWorkflow(&context.Context{
+		Base: ctx.Base,
+		Doer: ctx.Doer,
+		Repo: ctx.Repo,
+	}, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs *map[string]any) error {
+		if workflowDispatch != nil {
+			for name, config := range workflowDispatch.Inputs {
+				value, ok := opt.Inputs[name]
+				if ok {
+					(*inputs)[name] = value
+				} else {
+					(*inputs)[name] = config.Default
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		if terr, ok := err.(*actions_service.TranslateableError); ok {
+			msg := ctx.Locale.TrString(terr.Translation, terr.Args...)
+			ctx.Error(terr.GetCode(), msg, fmt.Errorf("%s", msg))
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, err.Error(), err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

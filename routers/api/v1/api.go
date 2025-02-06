@@ -1235,6 +1235,7 @@ func Routes() *web.Router {
 				}, reqToken(), reqAdmin())
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
+					m.Post("/workflows/{workflow_id}/dispatches", bind(api.ActionWorkflowDispatchOption{}), reqRepoWriter(unit.TypeActions), repo.DispatchWorkflow)
 				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).

@@ -213,4 +213,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UpdateVariableOption api.UpdateVariableOption
+
+	// in:body
+	ActionWorkflowDispatchOption api.ActionWorkflowDispatchOption
 }

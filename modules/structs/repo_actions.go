@@ -32,3 +32,9 @@ type ActionTaskResponse struct {
 	Entries    []*ActionTask `json:"workflow_runs"`
 	TotalCount int64         `json:"total_count"`
 }
+
+// ActionWorkflowDispatchOption represents a WorkflowDispatch invocation
+type ActionWorkflowDispatchOption struct {
+	Ref    string            `json:"ref"`
+	Inputs map[string]string `json:"inputs"`
+}
