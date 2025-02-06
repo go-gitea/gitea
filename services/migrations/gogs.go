@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/gogs/go-gogs-client"
@@ -60,12 +59,12 @@ func (f *GogsDownloaderFactory) GitServiceType() structs.GitServiceType {
 // from gogs via API
 type GogsDownloader struct {
 	base.NullDownloader
-	client             *gogs.Client
 	baseURL            string
 	repoOwner          string
 	repoName           string
 	userName           string
 	password           string
+	token              string
 	openIssuesFinished bool
 	openIssuesPages    int
 	transport          http.RoundTripper
@@ -89,32 +88,39 @@ func NewGogsDownloader(_ context.Context, baseURL, userName, password, token, re
 		baseURL:   baseURL,
 		userName:  userName,
 		password:  password,
+		token:     token,
 		repoOwner: repoOwner,
 		repoName:  repoName,
 	}
-
-	var client *gogs.Client
-	if len(token) != 0 {
-		client = gogs.NewClient(baseURL, token)
-		downloader.userName = token
-	} else {
-		transport := NewMigrationHTTPTransport()
-		transport.Proxy = func(req *http.Request) (*url.URL, error) {
-			req.SetBasicAuth(userName, password)
-			return proxy.Proxy()(req)
-		}
-		downloader.transport = transport
-
-		client = gogs.NewClient(baseURL, "")
-	}
-
-	downloader.client = client
 	return &downloader
+}
+
+type roundTripperFunc func(req *http.Request) (*http.Response, error)
+
+func (rt roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return rt(r)
+}
+
+func (g *GogsDownloader) client(ctx context.Context) *gogs.Client {
+	// Gogs client lacks the context support, so we use a custom transport
+	// Then each request uses a dedicated client with its own context
+	httpTransport := NewMigrationHTTPTransport()
+	gogsClient := gogs.NewClient(g.baseURL, g.token)
+	gogsClient.SetHTTPClient(&http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if g.password != "" {
+				// Gogs client lacks the support for basic auth, this is the only way to set it
+				req.SetBasicAuth(g.userName, g.password)
+			}
+			return httpTransport.RoundTrip(req.WithContext(ctx))
+		}),
+	})
+	return gogsClient
 }
 
 // GetRepoInfo returns a repository information
 func (g *GogsDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, error) {
-	gr, err := g.client.GetRepo(ctx, g.repoOwner, g.repoName)
+	gr, err := g.client(ctx).GetRepo(g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +142,7 @@ func (g *GogsDownloader) GetMilestones(ctx context.Context) ([]*base.Milestone, 
 	perPage := 100
 	milestones := make([]*base.Milestone, 0, perPage)
 
-	ms, err := g.client.ListRepoMilestones(ctx, g.repoOwner, g.repoName)
+	ms, err := g.client(ctx).ListRepoMilestones(g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +164,7 @@ func (g *GogsDownloader) GetMilestones(ctx context.Context) ([]*base.Milestone, 
 func (g *GogsDownloader) GetLabels(ctx context.Context) ([]*base.Label, error) {
 	perPage := 100
 	labels := make([]*base.Label, 0, perPage)
-	ls, err := g.client.ListRepoLabels(ctx, g.repoOwner, g.repoName)
+	ls, err := g.client(ctx).ListRepoLabels(g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +205,7 @@ func (g *GogsDownloader) GetIssues(ctx context.Context, page, _ int) ([]*base.Is
 func (g *GogsDownloader) getIssues(ctx context.Context, page int, state string) ([]*base.Issue, bool, error) {
 	allIssues := make([]*base.Issue, 0, 10)
 
-	issues, err := g.client.ListRepoIssues(ctx, g.repoOwner, g.repoName, gogs.ListIssueOption{
+	issues, err := g.client(ctx).ListRepoIssues(g.repoOwner, g.repoName, gogs.ListIssueOption{
 		Page:  page,
 		State: state,
 	})
@@ -221,7 +227,7 @@ func (g *GogsDownloader) getIssues(ctx context.Context, page int, state string) 
 func (g *GogsDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	allComments := make([]*base.Comment, 0, 100)
 
-	comments, err := g.client.ListIssueComments(ctx, g.repoOwner, g.repoName, commentable.GetForeignIndex())
+	comments, err := g.client(ctx).ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex())
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
