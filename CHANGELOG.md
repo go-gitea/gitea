@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.23.3](https://github.com/go-gitea/gitea/releases/tag/1.23.2) - 2025-02-05
 
 * Security
-  Build Gitea with Golang v1.23.6 to fix security bugs
+  * Build Gitea with Golang v1.23.6 to fix security bugs
 * BUGFIXES
   * Fix a bug caused by status webhook template #33512
 
