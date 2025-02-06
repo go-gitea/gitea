@@ -67,6 +67,7 @@
 							<td><a href="{{.OrganisationLink}}/settings" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
+					{{template "shared/no_results_found" (dict "rst" .Users "colspan" 7)}}
 				</tbody>
 			</table>
 		</div>
