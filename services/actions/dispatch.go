@@ -68,6 +68,7 @@ func DispatchWorkflow(ctx *context.Context, workflowID, ref string, processInput
 	} else if refName.IsBranch() {
 		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
 	} else {
+		refName = git.RefNameFromBranch(ref)
 		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ref)
 	}
 	if err != nil {
@@ -139,7 +140,7 @@ func DispatchWorkflow(ctx *context.Context, workflowID, ref string, processInput
 		OwnerID:           ctx.Repo.Repository.OwnerID,
 		WorkflowID:        workflowID,
 		TriggerUserID:     ctx.Doer.ID,
-		Ref:               ref,
+		Ref:               string(refName),
 		CommitSHA:         runTargetCommit.ID.String(),
 		IsForkPullRequest: false,
 		Event:             "workflow_dispatch",

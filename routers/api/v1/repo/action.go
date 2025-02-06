@@ -636,12 +636,20 @@ func DispatchWorkflow(ctx *context.APIContext) {
 		Repo: ctx.Repo,
 	}, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs *map[string]any) error {
 		if workflowDispatch != nil {
-			for name, config := range workflowDispatch.Inputs {
-				value, ok := opt.Inputs[name]
-				if ok {
+			// TODO figure out why the inputs map is empty for url form encoding workaround
+			if opt.Inputs == nil {
+				for name, config := range workflowDispatch.Inputs {
+					value := ctx.FormString("inputs["+name+"]", config.Default)
 					(*inputs)[name] = value
-				} else {
-					(*inputs)[name] = config.Default
+				}
+			} else {
+				for name, config := range workflowDispatch.Inputs {
+					value, ok := opt.Inputs[name]
+					if ok {
+						(*inputs)[name] = value
+					} else {
+						(*inputs)[name] = config.Default
+					}
 				}
 			}
 		}
