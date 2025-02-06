@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -294,28 +293,6 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	CreateCommitStatus(ctx, alljobs...)
 
 	return nil
-}
-
-func processWorkflowInputs(opt *api.CreateActionWorkflowDispatch, workflow *model.Workflow) map[string]any {
-	inputs := make(map[string]any)
-	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
-		for name, config := range workflowDispatch.Inputs {
-			value, exists := opt.Inputs[name]
-			if !exists {
-				continue
-			}
-			if value == "" {
-				value = config.Default
-			}
-			switch config.Type {
-			case "boolean":
-				inputs[name] = strconv.FormatBool(value == "on")
-			default:
-				inputs[name] = value
-			}
-		}
-	}
-	return inputs
 }
 
 func EnableActionWorkflow(ctx *context.APIContext, workflowID string) error {
