@@ -34,6 +34,13 @@ type DiffTreeRecord struct {
 	BaseBlobID string
 }
 
+func (d *DiffTreeRecord) Path() string {
+	if d.HeadPath != "" {
+		return d.HeadPath
+	}
+	return d.BasePath
+}
+
 // GetDiffTree returns the list of path of the files that have changed between the two commits.
 // If useMergeBase is true, the diff will be calculated using the merge base of the two commits.
 // This is the same behavior as using a three-dot diff in git diff.
