@@ -381,15 +381,15 @@ func (u *User) SetPassword(passwd string) (err error) {
 
 // ValidatePassword checks if the given password matches the one belonging to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	return hash.Parse(u.PasswdHashAlgo).VerifyPassword(passwd, u.Passwd, u.Salt)
+	return u.IsPasswordSet() && hash.Parse(u.PasswdHashAlgo).VerifyPassword(passwd, u.Passwd, u.Salt)
 }
 
-// IsPasswordSet checks if the password is set or left empty
+// IsPasswordSet checks if the user allows to use password and the password is set
 func (u *User) IsPasswordSet() bool {
-	return len(u.Passwd) != 0
+	return u.IsIndividual() && u.Passwd != ""
 }
 
-// IsOrganization returns true if user is actually a organization.
+// IsOrganization returns true if user is actually an organization.
 func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
@@ -399,13 +399,14 @@ func (u *User) IsIndividual() bool {
 	return u.Type == UserTypeIndividual
 }
 
-func (u *User) IsUser() bool {
-	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
+// IsTypeBot returns whether the user is of type bot
+func (u *User) IsTypeBot() bool {
+	return u.Type == UserTypeBot
 }
 
-// IsBot returns whether or not the user is of type bot
-func (u *User) IsBot() bool {
-	return u.Type == UserTypeBot
+// IsTokenAccessAllowed returns whether the user is an individual or a bot (which allows for token access)
+func (u *User) IsTokenAccessAllowed() bool {
+	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
 }
 
 // DisplayName returns full name if it's not empty,
@@ -636,7 +637,6 @@ type CreateUserOverwriteOptions struct {
 	Theme                        *string
 	IsRestricted                 optional.Option[bool]
 	IsActive                     optional.Option[bool]
-	Type                         *UserType
 }
 
 // CreateUser creates record of a new user.
@@ -696,9 +696,6 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 		}
 		if overwrite.IsActive.Has() {
 			u.IsActive = overwrite.IsActive.Value()
-		}
-		if overwrite.Type != nil {
-			u.Type = *overwrite.Type
 		}
 	}
 
