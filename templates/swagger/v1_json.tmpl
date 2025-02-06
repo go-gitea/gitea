@@ -18660,6 +18660,11 @@
           "type": "string",
           "x-go-name": "Data"
         },
+        "description": {
+          "description": "the description of the variable",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "name": {
           "description": "the name of the variable",
           "type": "string",
@@ -20230,6 +20235,11 @@
           "description": "Data of the secret to update",
           "type": "string",
           "x-go-name": "Data"
+        },
+        "description": {
+          "description": "Description of the secret to update",
+          "type": "string",
+          "x-go-name": "Description"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -20740,6 +20750,11 @@
         "value"
       ],
       "properties": {
+        "description": {
+          "description": "Description of the variable to create",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "value": {
           "description": "Value of the variable to create",
           "type": "string",
@@ -24701,6 +24716,11 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "description": {
+          "description": "the secret's description",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "name": {
           "description": "the secret's name",
           "type": "string",
@@ -25276,6 +25296,11 @@
         "value"
       ],
       "properties": {
+        "description": {
+          "description": "Description of the variable to update",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "name": {
           "description": "New name for the variable. If the field is empty, the variable name won't be updated.",
           "type": "string",
