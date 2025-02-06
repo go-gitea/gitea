@@ -756,6 +756,54 @@ func GetArtifact(ctx *context.APIContext) {
 	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
 }
 
+// DeleteArtifact Deletes a specific artifact for a workflow run.
+func DeleteArtifact(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/artifacts/{artifact_id} repository deleteArtifact
+	// ---
+	// summary: Deletes a specific artifact for a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: name of the owner
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: artifact_id
+	//   in: path
+	//   description: id of the artifact
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: "No Content"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	art, ok := getArtifactByID(ctx)
+	if !ok {
+		return
+	}
+
+	if actions.IsArtifactV4(art) {
+		if err := actions_model.SetArtifactNeedDelete(ctx, art.RunID, art.ArtifactName); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error(), err)
+			return
+		}
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+	// v3 not supported due to not having one unique id
+	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
+}
+
 // DownloadArtifact Downloads a specific artifact for a workflow run redirects to blob url.
 func DownloadArtifact(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip repository downloadArtifact

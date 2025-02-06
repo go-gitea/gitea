@@ -4002,6 +4002,50 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Deletes a specific artifact for a workflow run",
+        "operationId": "deleteArtifact",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the artifact",
+            "name": "artifact_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip": {

@@ -477,7 +477,7 @@ func TestActionsArtifactV4DownloadArtifactCorrectRepoOwnerFound(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	// confirm artifacts of wrong owner or repo is not visible
+	// confirm artifacts of correct owner and repo is visible
 	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusFound)
@@ -513,4 +513,52 @@ func TestActionsArtifactV4Delete(t *testing.T) {
 	var deleteResp actions.DeleteArtifactResponse
 	protojson.Unmarshal(resp.Body.Bytes(), &deleteResp)
 	assert.True(t, deleteResp.Ok)
+}
+
+func TestActionsArtifactV4DeletePublicApi(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifacts exists
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	// delete artifact by id
+	req = NewRequestWithBody(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// confirm artifacts has been deleted
+	req = NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestActionsArtifactV4DeletePublicApiNotAllowedReadScope(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	// confirm artifacts exists
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	// try delete artifact by id
+	req = NewRequestWithBody(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// confirm artifacts has not been deleted
+	req = NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 }
