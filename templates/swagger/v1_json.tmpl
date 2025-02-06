@@ -4421,6 +4421,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Dispatches a specific workflow as a workflow run",
+        "operationId": "dispatchWorkflow",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the workflow yaml",
+            "name": "workflow_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/activities/feeds": {
       "get": {
         "produces": [
@@ -18680,6 +18726,24 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActionWorkflowDispatchOption": {
+      "description": "ActionWorkflowDispatchOption represents a WorkflowDispatch invocation",
+      "type": "object",
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Inputs"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Activity": {
       "type": "object",
       "properties": {
@@ -26702,7 +26766,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UpdateVariableOption"
+        "$ref": "#/definitions/ActionWorkflowDispatchOption"
       }
     },
     "redirect": {
