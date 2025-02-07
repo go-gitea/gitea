@@ -381,12 +381,12 @@ func (u *User) SetPassword(passwd string) (err error) {
 
 // ValidatePassword checks if the given password matches the one belonging to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	return u.IsPasswordSet() && hash.Parse(u.PasswdHashAlgo).VerifyPassword(passwd, u.Passwd, u.Salt)
+	return hash.Parse(u.PasswdHashAlgo).VerifyPassword(passwd, u.Passwd, u.Salt)
 }
 
-// IsPasswordSet checks if the user allows to use password and the password is set
+// IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
-	return u.IsIndividual() && u.Passwd != ""
+	return u.Passwd != ""
 }
 
 // IsOrganization returns true if user is actually an organization.
