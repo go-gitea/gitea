@@ -184,6 +184,7 @@ func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
 			webhook_module.HookEventWiki:                     form.Wiki,
 			webhook_module.HookEventRepository:               form.Repository,
 			webhook_module.HookEventPackage:                  form.Package,
+			webhook_module.HookEventStatus:                   form.Status,
 		},
 		BranchFilter: form.BranchFilter,
 	}

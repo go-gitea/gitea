@@ -1695,19 +1695,6 @@
   close_issues_via_commit_in_any_branch: false
 
 -
-  id: 59
-  owner_id: 2
-  owner_name: user2
-  lower_name: test_commit_revert
-  name: test_commit_revert
-  default_branch: main
-  is_empty: false
-  is_archived: false
-  is_private: true
-  status: 0
-  num_issues: 0
-
--
   id: 60
   owner_id: 40
   owner_name: user40

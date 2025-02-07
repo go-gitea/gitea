@@ -55,22 +55,29 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 				continue
 			}
 
-			_, err = db.Exec(ctx, "UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
+			projectColumnID, err := curIssue.ProjectColumnID(ctx)
 			if err != nil {
 				return err
 			}
 
-			// add timeline to issue
-			if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-				Type:               issues_model.CommentTypeProjectColumn,
-				Doer:               doer,
-				Repo:               curIssue.Repo,
-				Issue:              curIssue,
-				ProjectID:          column.ProjectID,
-				ProjectTitle:       project.Title,
-				ProjectColumnID:    column.ID,
-				ProjectColumnTitle: column.Title,
-			}); err != nil {
+			if projectColumnID != column.ID {
+				// add timeline to issue
+				if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+					Type:               issues_model.CommentTypeProjectColumn,
+					Doer:               doer,
+					Repo:               curIssue.Repo,
+					Issue:              curIssue,
+					ProjectID:          column.ProjectID,
+					ProjectTitle:       project.Title,
+					ProjectColumnID:    column.ID,
+					ProjectColumnTitle: column.Title,
+				}); err != nil {
+					return err
+				}
+			}
+
+			_, err = db.Exec(ctx, "UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
+			if err != nil {
 				return err
 			}
 		}

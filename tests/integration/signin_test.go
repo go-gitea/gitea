@@ -79,7 +79,7 @@ func TestSigninWithRememberMe(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	c := session.GetCookie(setting.CookieRememberName)
+	c := session.GetRawCookie(setting.CookieRememberName)
 	assert.NotNil(t, c)
 
 	session = emptyTestSession(t)
