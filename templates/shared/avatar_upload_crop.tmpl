@@ -1,0 +1,8 @@
+{{- /* we do not need to set for/id here, global aria init code will add them automatically */ -}}
+<label>{{.LabelText}}</label>
+<input class="avatar-file-with-cropper" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+{{- /* the cropper-panel must be next sibling of the input "avatar" */ -}}
+<div class="cropper-panel tw-hidden">
+	<div class="tw-my-2">{{ctx.Locale.Tr "settings.cropper_prompt"}}</div>
+	<div class="cropper-wrapper"><img class="cropper-source" src alt></div>
+</div>
