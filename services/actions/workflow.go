@@ -209,17 +209,19 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	// find workflow from commit
 	var workflows []*jobparser.SingleWorkflow
 	for _, entry := range entries {
-		if entry.Name() == workflowID {
-			content, err := actions.GetContentFromEntry(entry)
-			if err != nil {
-				return err
-			}
-			workflows, err = jobparser.Parse(content)
-			if err != nil {
-				return err
-			}
-			break
+		if entry.Name() != workflowID {
+			continue
 		}
+
+		content, err := actions.GetContentFromEntry(entry)
+		if err != nil {
+			return err
+		}
+		workflows, err = jobparser.Parse(content)
+		if err != nil {
+			return err
+		}
+		break
 	}
 
 	if len(workflows) == 0 {
