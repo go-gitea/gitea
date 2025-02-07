@@ -75,7 +75,7 @@
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.Version.ID}}" data-name="{{.Package.Name}}" data-data-version="{{.Version.Version}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}
-					{{template "shared/no_results_found" (dict "rst" .PackageDescriptors "colspan" 10)}}
+					{{template "shared/no_results_found" (dict "results" .PackageDescriptors "colspan" 10)}}
 				</tbody>
 			</table>
 		</div>

@@ -25,7 +25,7 @@
 						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>
 					</tr>
 				{{end}}
-				{{template "shared/no_results_found" (dict "rst" .Notices "colspan" 6)}}
+				{{template "shared/no_results_found" (dict "results" .Notices "colspan" 6)}}
 			</tbody>
 			{{if .Notices}}
 				<tfoot>

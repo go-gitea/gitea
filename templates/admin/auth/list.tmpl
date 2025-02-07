@@ -31,7 +31,7 @@
 							<td><a href="{{AppSubUrl}}/-/admin/auths/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
-					{{template "shared/no_results_found" (dict "rst" .Sources "colspan" 7)}}
+					{{template "shared/no_results_found" (dict "results" .Sources "colspan" 7)}}
 				</tbody>
 			</table>
 		</div>
