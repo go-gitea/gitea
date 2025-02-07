@@ -385,6 +385,7 @@ func (u *User) ValidatePassword(passwd string) bool {
 }
 
 // IsPasswordSet checks if the password is set or left empty
+// TODO: It's better to clarify the "password" behavior for different types (individual, bot)
 func (u *User) IsPasswordSet() bool {
 	return u.Passwd != ""
 }

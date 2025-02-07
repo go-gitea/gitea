@@ -91,6 +91,9 @@ func runCreateUser(c *cli.Context) error {
 		return fmt.Errorf("invalid user type: %s", c.String("user-type"))
 	}
 	if userType != user_model.UserTypeIndividual {
+		// Some other commands like "change-password" also only support individual users.
+		// It needs to clarify the "password" behavior for bot users in the future.
+		// At the moment, we do not allow setting password for bot users.
 		if c.IsSet("password") || c.IsSet("random-password") {
 			return errors.New("password can only be set for individual users")
 		}
