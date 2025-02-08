@@ -59,6 +59,7 @@ func InitSettings() {
 	_ = hash.Register("dummy", hash.NewDummyHasher)
 
 	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
+	setting.InitGiteaEnvVarsForTesting()
 }
 
 // TestOptions represents test options
@@ -83,6 +84,7 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 
 	setting.IsInTesting = true
 	setting.AppURL = "https://try.gitea.io/"
+	setting.Domain = "try.gitea.io"
 	setting.RunUser = "runuser"
 	setting.SSH.User = "sshuser"
 	setting.SSH.BuiltinServerUser = "builtinuser"

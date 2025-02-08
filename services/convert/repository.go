@@ -33,7 +33,9 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		permissionInRepo.SetUnitsWithDefaultAccessMode(repo.Units, permissionInRepo.AccessMode)
 	}
 
-	cloneLink := repo.CloneLink()
+	// TODO: ideally we should pass "doer" into "ToRepo" to to make CloneLink could generate user-related links
+	// And passing "doer" in will also fix other FIXMEs in this file.
+	cloneLink := repo.CloneLinkGeneral(ctx) // no doer at the moment
 	permission := &api.Permission{
 		Admin: permissionInRepo.AccessMode >= perm.AccessModeAdmin,
 		Push:  permissionInRepo.UnitAccessMode(unit_model.TypeCode) >= perm.AccessModeWrite,

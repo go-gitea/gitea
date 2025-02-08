@@ -213,7 +213,7 @@ func NormalRoutes() *web.Router {
 	}
 
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		routing.UpdateFuncInfo(req.Context(), routing.GetFuncInfo(http.NotFound, "GlobalNotFound"))
+		defer routing.RecordFuncInfo(req.Context(), routing.GetFuncInfo(http.NotFound, "GlobalNotFound"))()
 		http.NotFound(w, req)
 	})
 	return r

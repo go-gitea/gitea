@@ -268,12 +268,12 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 				return
 			}
 		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryUser):
-			if ctx.ContextUser != nil && ctx.ContextUser.IsUser() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+			if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
 				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public users")
 				return
 			}
 		case auth_model.ContainsCategory(requiredScopeCategories, auth_model.AccessTokenScopeCategoryActivityPub):
-			if ctx.ContextUser != nil && ctx.ContextUser.IsUser() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
+			if ctx.ContextUser != nil && ctx.ContextUser.IsTokenAccessAllowed() && ctx.ContextUser.Visibility != api.VisibleTypePublic {
 				ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public activitypub")
 				return
 			}
@@ -575,6 +575,16 @@ func reqWebhooksEnabled() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if setting.DisableWebhooks {
 			ctx.Error(http.StatusForbidden, "", "webhooks disabled by administrator")
+			return
+		}
+	}
+}
+
+// reqStarsEnabled requires Starring to be enabled in the config.
+func reqStarsEnabled() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if setting.Repository.DisableStars {
+			ctx.Error(http.StatusForbidden, "", "stars disabled by administrator")
 			return
 		}
 	}
@@ -995,7 +1005,7 @@ func Routes() *web.Router {
 					m.Get("/{target}", user.CheckFollowing)
 				})
 
-				m.Get("/starred", user.GetStarredRepos)
+				m.Get("/starred", reqStarsEnabled(), user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
 			}, context.UserAssignmentAPI(), checkTokenPublicOnly())
@@ -1086,7 +1096,7 @@ func Routes() *web.Router {
 					m.Put("", user.Star)
 					m.Delete("", user.Unstar)
 				}, repoAssignment(), checkTokenPublicOnly())
-			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+			}, reqStarsEnabled(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 			m.Get("/times", repo.ListMyTrackedTimes)
 			m.Get("/stopwatches", repo.GetStopwatches)
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
@@ -1190,6 +1200,7 @@ func Routes() *web.Router {
 				m.Get("/archive/*", reqRepoReader(unit.TypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
 					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
+				m.Post("/merge-upstream", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), bind(api.MergeUpstreamRequest{}), repo.MergeUpstream)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", repo.GetBranch)
@@ -1247,7 +1258,7 @@ func Routes() *web.Router {
 				m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
 				m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
 				m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
-				m.Get("/stargazers", repo.ListStargazers)
+				m.Get("/stargazers", reqStarsEnabled(), repo.ListStargazers)
 				m.Get("/subscribers", repo.ListSubscribers)
 				m.Group("/subscription", func() {
 					m.Get("", user.IsWatching)
@@ -1529,6 +1540,7 @@ func Routes() *web.Router {
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
+			m.Post("/rename", reqToken(), reqOrgOwnership(), bind(api.RenameOrgOption{}), org.Rename)
 			m.Combo("/repos").Get(user.ListOrgRepos).
 				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
 			m.Group("/members", func() {

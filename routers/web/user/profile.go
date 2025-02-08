@@ -74,8 +74,7 @@ func userProfile(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	profileDbRepo, _ /*profileGitRepo*/, profileReadmeBlob, profileClose := shared_user.FindUserProfileReadme(ctx, ctx.Doer)
-	defer profileClose()
+	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileReadmeBlob)
@@ -96,7 +95,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		}
 	}
 	ctx.Data["TabName"] = tab
-	ctx.Data["HasProfileReadme"] = profileReadme != nil
+	ctx.Data["HasUserProfileReadme"] = profileReadme != nil
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
@@ -254,7 +253,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
 			} else {
-				ctx.Data["ProfileReadme"] = profileContent
+				ctx.Data["ProfileReadmeContent"] = profileContent
 			}
 		}
 	case "organizations":
@@ -314,8 +313,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	ctx.Data["Page"] = pager
 }
 
-// Action response for follow/unfollow user request
-func Action(ctx *context.Context) {
+// ActionUserFollow is for follow/unfollow user request
+func ActionUserFollow(ctx *context.Context) {
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
@@ -340,6 +339,6 @@ func Action(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplFollowUnfollow)
 		return
 	}
-	log.Error("Failed to apply action %q: unsupport context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
+	log.Error("Failed to apply action %q: unsupported context user type: %s", ctx.FormString("action"), ctx.ContextUser.Type)
 	ctx.Error(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 }

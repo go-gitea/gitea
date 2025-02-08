@@ -1,7 +1,7 @@
 import {
   basename, extname, isObject, stripTags, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,
-  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseIssueNewHref,
+  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
 } from './utils.ts';
 
 test('basename', () => {
@@ -45,11 +45,14 @@ test('parseIssueHref', () => {
   expect(parseIssueHref('')).toEqual({ownerName: undefined, repoName: undefined, type: undefined, index: undefined});
 });
 
-test('parseIssueNewHref', () => {
-  expect(parseIssueNewHref('/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues'});
-  expect(parseIssueNewHref('/owner/repo/issues/new?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues'});
-  expect(parseIssueNewHref('/sub/owner/repo/issues/new#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues'});
-  expect(parseIssueNewHref('/sub/owner/repo/compare/feature/branch-1...fix/branch-2')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls'});
+test('parseRepoOwnerPathInfo', () => {
+  expect(parseRepoOwnerPathInfo('/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
+  expect(parseRepoOwnerPathInfo('/owner/repo/releases')).toEqual({ownerName: 'owner', repoName: 'repo'});
+  expect(parseRepoOwnerPathInfo('/other')).toEqual({});
+  window.config.appSubUrl = '/sub';
+  expect(parseRepoOwnerPathInfo('/sub/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
+  expect(parseRepoOwnerPathInfo('/sub/owner/repo/compare/feature/branch-1...fix/branch-2')).toEqual({ownerName: 'owner', repoName: 'repo'});
+  window.config.appSubUrl = '';
 });
 
 test('parseUrl', () => {

@@ -2,8 +2,7 @@
 import './bootstrap.ts';
 import './htmx.ts';
 
-import {initDashboardRepoList} from './components/DashboardRepoList.vue';
-
+import {initDashboardRepoList} from './features/dashboard.ts';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
 import {initContextPopups} from './features/contextpopup.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
@@ -34,14 +33,13 @@ import {
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initAdminCommon} from './features/admin/common.ts';
-import {initRepoTemplateSearch} from './features/repo-template.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
 import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
-import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.ts';
+import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
@@ -54,7 +52,7 @@ import {initRepoWikiForm} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
-import {initRepositoryActionView} from './components/RepoActionView.vue';
+import {initRepositoryActionView} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
 import {initSubmitEventPolyfill, onDomReady} from './utils/dom.ts';
@@ -167,8 +165,7 @@ onDomReady(() => {
     initNotificationCount,
     initNotificationsTable,
 
-    initOrgTeamSearchRepoBox,
-    initOrgTeamSettings,
+    initOrgTeam,
 
     initRepoActivityTopAuthorsChart,
     initRepoArchiveLinks,
@@ -193,7 +190,6 @@ onDomReady(() => {
     initRepoPullRequestReview,
     initRepoRelease,
     initRepoReleaseNew,
-    initRepoTemplateSearch,
     initRepoTopicBar,
     initRepoWikiForm,
     initRepository,

@@ -250,8 +250,9 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 	issueRefURLs := make(map[int64]string, len(issues))
 	for _, issue := range issues {
 		if issue.Ref != "" {
-			issueRefEndNames[issue.ID] = git.RefName(issue.Ref).ShortName()
-			issueRefURLs[issue.ID] = git.RefURL(repoLink, issue.Ref)
+			ref := git.RefName(issue.Ref)
+			issueRefEndNames[issue.ID] = ref.ShortName()
+			issueRefURLs[issue.ID] = repoLink + "/src/" + ref.RefWebLinkPath()
 		}
 	}
 	return issueRefEndNames, issueRefURLs

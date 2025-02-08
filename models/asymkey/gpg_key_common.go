@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/keybase/go-crypto/openpgp"
-	"github.com/keybase/go-crypto/openpgp/armor"
-	"github.com/keybase/go-crypto/openpgp/packet"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 //   __________________  ________   ____  __.
@@ -80,7 +80,7 @@ func base64DecPubKey(content string) (*packet.PublicKey, error) {
 	return pkey, nil
 }
 
-// getExpiryTime extract the expire time of primary key based on sig
+// getExpiryTime extract the expiry time of primary key based on sig
 func getExpiryTime(e *openpgp.Entity) time.Time {
 	expiry := time.Time{}
 	// Extract self-sign for expire date based on : https://github.com/golang/crypto/blob/master/openpgp/keys.go#L165
@@ -88,12 +88,12 @@ func getExpiryTime(e *openpgp.Entity) time.Time {
 	for _, ident := range e.Identities {
 		if selfSig == nil {
 			selfSig = ident.SelfSignature
-		} else if ident.SelfSignature.IsPrimaryId != nil && *ident.SelfSignature.IsPrimaryId {
+		} else if ident.SelfSignature != nil && ident.SelfSignature.IsPrimaryId != nil && *ident.SelfSignature.IsPrimaryId {
 			selfSig = ident.SelfSignature
 			break
 		}
 	}
-	if selfSig.KeyLifetimeSecs != nil {
+	if selfSig != nil && selfSig.KeyLifetimeSecs != nil {
 		expiry = e.PrimaryKey.CreationTime.Add(time.Duration(*selfSig.KeyLifetimeSecs) * time.Second)
 	}
 	return expiry

@@ -72,9 +72,9 @@ func (at ActionType) String() string {
 	case ActionRenameRepo:
 		return "rename_repo"
 	case ActionStarRepo:
-		return "star_repo"
+		return "star_repo" // will not displayed in feeds.tmpl
 	case ActionWatchRepo:
-		return "watch_repo"
+		return "watch_repo" // will not displayed in feeds.tmpl
 	case ActionCommitRepo:
 		return "commit_repo"
 	case ActionCreateIssue:
@@ -355,7 +355,7 @@ func (a *Action) GetBranch() string {
 
 // GetRefLink returns the action's ref link.
 func (a *Action) GetRefLink(ctx context.Context) string {
-	return git.RefURL(a.GetRepoLink(ctx), a.RefName)
+	return a.GetRepoLink(ctx) + "/src/" + git.RefName(a.RefName).RefWebLinkPath()
 }
 
 // GetTag returns the action's repository tag.

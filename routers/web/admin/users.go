@@ -313,6 +313,8 @@ func editUserCommon(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+	ctx.Data["DisableGitHooks"] = setting.DisableGitHooks
+	ctx.Data["DisableImportLocal"] = !setting.ImportLocalPaths
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
 }

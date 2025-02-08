@@ -372,7 +372,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
 
 		// Gitea 1.23.0-rc0 ends at migration ID number 311 (database version 312)
-		newMigration(312, "Add table issue_dev_link", v1_24.CreateTableIssueDevLink),
+		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_24.AddDeleteBranchAfterMergeForAutoMerge),
+		newMigration(313, "Add table issue_dev_link", v1_24.CreateTableIssueDevLink),
 	}
 	return preparedMigrations
 }

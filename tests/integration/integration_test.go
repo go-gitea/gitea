@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers"
 	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
@@ -88,18 +89,6 @@ func TestMain(m *testing.M) {
 	tests.InitTest(true)
 	testWebRoutes = routers.NormalRoutes()
 
-	os.Unsetenv("GIT_AUTHOR_NAME")
-	os.Unsetenv("GIT_AUTHOR_EMAIL")
-	os.Unsetenv("GIT_AUTHOR_DATE")
-	os.Unsetenv("GIT_COMMITTER_NAME")
-	os.Unsetenv("GIT_COMMITTER_EMAIL")
-	os.Unsetenv("GIT_COMMITTER_DATE")
-
-	// Avoid loading the default system config. On MacOS, this config
-	// sets the osxkeychain credential helper, which will cause tests
-	// to freeze with a dialog.
-	os.Setenv("GIT_CONFIG_NOSYSTEM", "true")
-
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
 			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
@@ -130,18 +119,31 @@ type TestSession struct {
 	jar http.CookieJar
 }
 
-func (s *TestSession) GetCookie(name string) *http.Cookie {
+func (s *TestSession) GetRawCookie(name string) *http.Cookie {
 	baseURL, err := url.Parse(setting.AppURL)
 	if err != nil {
 		return nil
 	}
-
 	for _, c := range s.jar.Cookies(baseURL) {
 		if c.Name == name {
 			return c
 		}
 	}
 	return nil
+}
+
+func (s *TestSession) GetSiteCookie(name string) string {
+	c := s.GetRawCookie(name)
+	if c != nil {
+		v, _ := url.QueryUnescape(c.Value)
+		return v
+	}
+	return ""
+}
+
+func (s *TestSession) GetCookieFlashMessage() *middleware.Flash {
+	cookie := s.GetSiteCookie(gitea_context.CookieNameFlash)
+	return middleware.ParseCookieFlashMessage(cookie)
 }
 
 func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
@@ -470,9 +472,9 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 // GetUserCSRFToken returns CSRF token for current user
 func GetUserCSRFToken(t testing.TB, session *TestSession) string {
 	t.Helper()
-	cookie := session.GetCookie("_csrf")
+	cookie := session.GetSiteCookie("_csrf")
 	require.NotEmpty(t, cookie)
-	return cookie.Value
+	return cookie
 }
 
 // GetUserCSRFToken returns CSRF token for anonymous user (not logged in)

@@ -9,6 +9,7 @@
 
 .ui.label.commit-id-short {
   font-family: var(--fonts-monospace);
+  height: 24px;
 }
 
 .ui.label.commit-id-short > .commit-sign-badge {
@@ -16,7 +17,7 @@
   padding: 0;
   border: 0 !important;
   border-radius: 0;
-  background: transparent;
+  background: transparent !important;
 }
 
 .ui.label.commit-id-short > .commit-sign-badge:hover {

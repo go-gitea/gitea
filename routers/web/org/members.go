@@ -54,9 +54,9 @@ func Members(ctx *context.Context) {
 		return
 	}
 
-	err = shared_user.RenderOrgHeader(ctx)
+	_, err = shared_user.PrepareOrgHeader(ctx)
 	if err != nil {
-		ctx.ServerError("RenderOrgHeader", err)
+		ctx.ServerError("PrepareOrgHeader", err)
 		return
 	}
 

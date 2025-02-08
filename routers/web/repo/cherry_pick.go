@@ -57,7 +57,7 @@ func CherryPick(ctx *context.Context) {
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
 	ctx.HTML(200, tplCherryPick)
 }
@@ -85,7 +85,7 @@ func CherryPickPost(ctx *context.Context) {
 	ctx.Data["new_branch_name"] = form.NewBranchName
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplCherryPick)
@@ -114,11 +114,19 @@ func CherryPickPost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
+	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
+	if !valid {
+		ctx.Data["Err_CommitEmail"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplCherryPick, &form)
+		return
+	}
 	opts := &files.ApplyDiffPatchOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
 		Message:      message,
+		Author:       gitCommitter,
+		Committer:    gitCommitter,
 	}
 
 	// First lets try the simple plain read-tree -m approach

@@ -95,7 +95,7 @@
 		<a class="{{if .PageIsAdminNotices}}active {{end}}item" href="{{AppSubUrl}}/-/admin/notices">
 			{{ctx.Locale.Tr "admin.notices"}}
 		</a>
-		<details class="item toggleable-item" {{if or .PageIsAdminMonitorStats .PageIsAdminMonitorCron .PageIsAdminMonitorQueue .PageIsAdminMonitorStacktrace}}open{{end}}>
+		<details class="item toggleable-item" {{if or .PageIsAdminMonitorStats .PageIsAdminMonitorCron .PageIsAdminMonitorQueue .PageIsAdminMonitorTrace}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "admin.monitor"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsAdminMonitorStats}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/stats">
@@ -107,8 +107,8 @@
 				<a class="{{if .PageIsAdminMonitorQueue}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/queue">
 					{{ctx.Locale.Tr "admin.monitor.queues"}}
 				</a>
-				<a class="{{if .PageIsAdminMonitorStacktrace}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/stacktrace">
-					{{ctx.Locale.Tr "admin.monitor.stacktrace"}}
+				<a class="{{if .PageIsAdminMonitorTrace}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/stacktrace">
+					{{ctx.Locale.Tr "admin.monitor.trace"}}
 				</a>
 			</div>
 		</details>
