@@ -91,12 +91,6 @@ export default defineComponent({
       }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
       }`;
     },
-    isRepoEmpty() {
-      return !this.isLoading && !this.reposTotalCount;
-    },
-    isOrgEmpty() {
-      return !this.isLoading && !this.organizations.length;
-    },
     repoTypeCount() {
       return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
     },
@@ -360,7 +354,7 @@ export default defineComponent({
         </a>
       </h4>
       <div v-if="isLoading && !reposTotalCount" class="ui attached segment" :class="{'is-loading': isLoading}"/>
-      <div v-if="isRepoEmpty" class="ui attached segment empty-placeholder">
+      <div v-if="!isLoading && !reposTotalCount" class="ui attached segment empty-placeholder">
         <svg-icon name="octicon-git-branch" :size="24" class-name="empty-placeholder-icon"/>
         <p>{{ textNoRepo }}</p>
       </div>
@@ -478,7 +472,7 @@ export default defineComponent({
         </a>
       </h4>
       <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
-      <div v-if="isOrgEmpty" class="ui attached segment empty-placeholder">
+      <div v-if="!isLoading && !organizations.length" class="ui attached segment empty-placeholder">
         <svg-icon name="octicon-organization" :size="24" class-name="empty-placeholder-icon"/>
         <p>{{ textNoOrg }}</p>
       </div>
