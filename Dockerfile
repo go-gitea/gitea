@@ -69,8 +69,7 @@ RUN addgroup \
     -s /bin/bash \
     -u 1000 \
     -G git \
-    git && \
-  echo "git:*" | chpasswd -e
+    git 
 
 ENV USER=git
 ENV GITEA_CUSTOM=/data/gitea
