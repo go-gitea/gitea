@@ -104,19 +104,20 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
 	// if nothing is outputted on stdout.
 	_, _ = fmt.Fprintln(os.Stdout, "")
-	_, _ = fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
+	// add extra empty lines to separate our message from other git errors to get more attention
+	_, _ = fmt.Fprintln(os.Stderr, "error:")
+	_, _ = fmt.Fprintln(os.Stderr, "error:", userMessage)
+	_, _ = fmt.Fprintln(os.Stderr, "error:")
 
 	if logMsgFmt != "" {
 		logMsg := fmt.Sprintf(logMsgFmt, args...)
 		if !setting.IsProd {
 			_, _ = fmt.Fprintln(os.Stderr, "Gitea:", logMsg)
 		}
-		if userMessage != "" {
-			if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
-				logMsg = userMessage + " " + logMsg
-			} else {
-				logMsg = userMessage + ". " + logMsg
-			}
+		if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
+			logMsg = userMessage + " " + logMsg
+		} else {
+			logMsg = userMessage + ". " + logMsg
 		}
 		_ = private.SSHLog(ctx, true, logMsg)
 	}
@@ -288,10 +289,10 @@ func runServ(c *cli.Context) error {
 	if allowedCommands.Contains(verb) {
 		if allowedCommandsLfs.Contains(verb) {
 			if !setting.LFS.StartServer {
-				return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
+				return fail(ctx, "LFS Server is not enabled", "")
 			}
 			if verb == verbLfsTransfer && !setting.LFS.AllowPureSSH {
-				return fail(ctx, "Unknown git command", "LFS SSH transfer connection denied, pure SSH protocol is disabled")
+				return fail(ctx, "LFS SSH transfer is not enabled", "")
 			}
 			if len(words) > 2 {
 				lfsVerb = words[2]

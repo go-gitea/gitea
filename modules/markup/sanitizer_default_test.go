@@ -19,7 +19,7 @@ func TestSanitizer(t *testing.T) {
 		// Code highlighting class
 		`<code class="random string"></code>`, `<code></code>`,
 		`<code class="language-random ui tab active menu attached animating sidebar following bar center"></code>`, `<code></code>`,
-		`<code class="language-go"></code>`, `<code class="language-go"></code>`,
+		`<span class="k"></span><span class="nb"></span>`, `<span class="k"></span><span class="nb"></span>`,
 
 		// Input checkbox
 		`<input type="hidden">`, ``,
@@ -38,10 +38,8 @@ func TestSanitizer(t *testing.T) {
 		// <kbd> tags
 		`<kbd>Ctrl + C</kbd>`, `<kbd>Ctrl + C</kbd>`,
 		`<i class="dropdown icon">NAUGHTY</i>`, `<i>NAUGHTY</i>`,
-		`<i class="icon dropdown"></i>`, `<i class="icon dropdown"></i>`,
 		`<input type="checkbox" disabled=""/>unchecked`, `<input type="checkbox" disabled=""/>unchecked`,
 		`<span class="emoji dropdown">NAUGHTY</span>`, `<span>NAUGHTY</span>`,
-		`<span class="emoji">contents</span>`, `<span class="emoji">contents</span>`,
 
 		// Color property
 		`<span style="color: red">Hello World</span>`, `<span style="color: red">Hello World</span>`,

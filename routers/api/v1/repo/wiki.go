@@ -136,7 +136,7 @@ func EditWikiPage(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
-	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw(":pageName"))
+	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
 
 	if len(newWikiName) == 0 {
@@ -242,7 +242,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw(":pageName"))
+	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 
 	if err := wiki_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName); err != nil {
 		if err.Error() == "file does not exist" {
@@ -308,7 +308,7 @@ func ListWikiPages(ctx *context.APIContext) {
 	}
 
 	skip := (page - 1) * limit
-	max := page * limit
+	maxNum := page * limit
 
 	entries, err := commit.ListEntries()
 	if err != nil {
@@ -317,7 +317,7 @@ func ListWikiPages(ctx *context.APIContext) {
 	}
 	pages := make([]*api.WikiPageMetaData, 0, len(entries))
 	for i, entry := range entries {
-		if i < skip || i >= max || !entry.IsRegular() {
+		if i < skip || i >= maxNum || !entry.IsRegular() {
 			continue
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
@@ -370,7 +370,7 @@ func GetWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	// get requested pagename
-	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw(":pageName"))
+	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 
 	wikiPage := getWikiPage(ctx, pageName)
 	if !ctx.Written() {
@@ -420,7 +420,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get requested pagename
-	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw(":pageName"))
+	pageName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}

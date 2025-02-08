@@ -1,9 +1,9 @@
-{{template "base/head" .}}
+{{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	{{template "base/alert" .}}
 	<div class="modal-buttons flex-text-block tw-flex-wrap"></div>
 	<script type="module">
-		for (const el of $('.ui.modal')) {
+		for (const el of $('.ui.modal:not([data-skip-button])')) {
 			const $btn = $('<button class="ui button">').text(`${el.id}`).on('click', () => {
 				$(el).modal({onApprove() {alert('confirmed')}}).modal('show');
 			});
@@ -69,5 +69,27 @@
 		<div class="content">hello, this is the modal dialog content, this is a dangerous operation</div>
 		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" "I know and must do  this is dangerous operation")}}
 	</div>
+
+	<div class="divider"></div>
+
+	<button class="show-modal" data-modal="#test-modal-fill-values"
+		data-modal-fill-by-id="value for id"
+		data-modal-fill-by-name="value for name"
+		data-modal-fill-by-class="value for class"
+		data-modal-p="value for tag"
+		data-modal-a.text-content="fill with attr"
+	>test-modal-fill-values</button>
+
+	<div id="test-modal-fill-values" class="ui mini modal" data-skip-button>
+		<div class="header">Modal dialog (fill values)</div>
+		<form class="content">
+			<div id="fill-by-id"></div>
+			<input name="fill-by-name">
+			<div class="fill-by-class"></div>
+			<p></p>
+			<a href="#">link</a>
+			{{template "base/modal_actions_confirm" dict}}
+		</form>
+	</div>
 </div>
-{{template "base/footer" .}}
+{{template "devtest/devtest-footer"}}

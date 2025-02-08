@@ -120,7 +120,7 @@ func TestAPINotification(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &newStruct)
-	assert.True(t, newStruct.New > 0)
+	assert.Positive(t, newStruct.New)
 
 	// -- mark notifications as read --
 	req = NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
@@ -154,7 +154,7 @@ func TestAPINotification(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &newStruct)
-	assert.True(t, newStruct.New == 0)
+	assert.Zero(t, newStruct.New)
 }
 
 func TestAPINotificationPUT(t *testing.T) {

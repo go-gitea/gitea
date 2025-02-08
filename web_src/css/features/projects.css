@@ -51,10 +51,6 @@
   color: inherit;
 }
 
-.project-column-title-label {
-  flex: 1;
-}
-
 .project-column > .cards {
   flex: 1;
   display: flex;

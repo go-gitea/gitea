@@ -1,119 +1,66 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
-// Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
 
 import (
+	"bufio"
+	"context"
 	"fmt"
-	"net"
-	"net/url"
-	"path"
-	"regexp"
-	"strings"
+	"os"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
-var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
-
-// SubModule submodule is a reference on git repository
-type SubModule struct {
-	Name string
-	URL  string
+type TemplateSubmoduleCommit struct {
+	Path   string
+	Commit string
 }
 
-// SubModuleFile represents a file with submodule type.
-type SubModuleFile struct {
-	*Commit
-
-	refURL string
-	refID  string
-}
-
-// NewSubModuleFile create a new submodule file
-func NewSubModuleFile(c *Commit, refURL, refID string) *SubModuleFile {
-	return &SubModuleFile{
-		Commit: c,
-		refURL: refURL,
-		refID:  refID,
-	}
-}
-
-func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
-	if refURL == "" {
-		return ""
-	}
-
-	refURI := strings.TrimSuffix(refURL, ".git")
-
-	prefixURL, _ := url.Parse(urlPrefix)
-	urlPrefixHostname, _, err := net.SplitHostPort(prefixURL.Host)
+// GetTemplateSubmoduleCommits returns a list of submodules paths and their commits from a repository
+// This function is only for generating new repos based on existing template, the template couldn't be too large.
+func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submoduleCommits []TemplateSubmoduleCommit, _ error) {
+	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		urlPrefixHostname = prefixURL.Host
+		return nil, err
 	}
+	opts := &RunOpts{
+		Dir:    repoPath,
+		Stdout: stdoutWriter,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+			_ = stdoutWriter.Close()
+			defer stdoutReader.Close()
 
-	urlPrefix = strings.TrimSuffix(urlPrefix, "/")
-
-	// FIXME: Need to consider branch - which will require changes in modules/git/commit.go:GetSubModules
-	// Relative url prefix check (according to git submodule documentation)
-	if strings.HasPrefix(refURI, "./") || strings.HasPrefix(refURI, "../") {
-		return urlPrefix + path.Clean(path.Join("/", repoFullName, refURI))
-	}
-
-	if !strings.Contains(refURI, "://") {
-		// scp style syntax which contains *no* port number after the : (and is not parsed by net/url)
-		// ex: git@try.gitea.io:go-gitea/gitea
-		match := scpSyntax.FindAllStringSubmatch(refURI, -1)
-		if len(match) > 0 {
-			m := match[0]
-			refHostname := m[2]
-			pth := m[3]
-
-			if !strings.HasPrefix(pth, "/") {
-				pth = "/" + pth
-			}
-
-			if urlPrefixHostname == refHostname || refHostname == sshDomain {
-				return urlPrefix + path.Clean(path.Join("/", pth))
-			}
-			return "http://" + refHostname + pth
-		}
-	}
-
-	ref, err := url.Parse(refURI)
-	if err != nil {
-		return ""
-	}
-
-	refHostname, _, err := net.SplitHostPort(ref.Host)
-	if err != nil {
-		refHostname = ref.Host
-	}
-
-	supportedSchemes := []string{"http", "https", "git", "ssh", "git+ssh"}
-
-	for _, scheme := range supportedSchemes {
-		if ref.Scheme == scheme {
-			if ref.Scheme == "http" || ref.Scheme == "https" {
-				if len(ref.User.Username()) > 0 {
-					return ref.Scheme + "://" + fmt.Sprintf("%v", ref.User) + "@" + ref.Host + ref.Path
+			scanner := bufio.NewScanner(stdoutReader)
+			for scanner.Scan() {
+				entry, err := parseLsTreeLine(scanner.Bytes())
+				if err != nil {
+					cancel()
+					return err
 				}
-				return ref.Scheme + "://" + ref.Host + ref.Path
-			} else if urlPrefixHostname == refHostname || refHostname == sshDomain {
-				return urlPrefix + path.Clean(path.Join("/", ref.Path))
+				if entry.EntryMode == EntryModeCommit {
+					submoduleCommits = append(submoduleCommits, TemplateSubmoduleCommit{Path: entry.Name, Commit: entry.ID.String()})
+				}
 			}
-			return "http://" + refHostname + ref.Path
+			return scanner.Err()
+		},
+	}
+	err = NewCommand(ctx, "ls-tree", "-r", "--", "HEAD").Run(opts)
+	if err != nil {
+		return nil, fmt.Errorf("GetTemplateSubmoduleCommits: error running git ls-tree: %v", err)
+	}
+	return submoduleCommits, nil
+}
+
+// AddTemplateSubmoduleIndexes Adds the given submodules to the git index.
+// It is only for generating new repos based on existing template, requires the .gitmodules file to be already present in the work dir.
+func AddTemplateSubmoduleIndexes(ctx context.Context, repoPath string, submodules []TemplateSubmoduleCommit) error {
+	for _, submodule := range submodules {
+		cmd := NewCommand(ctx, "update-index", "--add", "--cacheinfo", "160000").AddDynamicArguments(submodule.Commit, submodule.Path)
+		if stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath}); err != nil {
+			log.Error("Unable to add %s as submodule to repo %s: stdout %s\nError: %v", submodule.Path, repoPath, stdout, err)
+			return err
 		}
 	}
-
-	return ""
-}
-
-// RefURL guesses and returns reference URL.
-func (sf *SubModuleFile) RefURL(urlPrefix, repoFullName, sshDomain string) string {
-	return getRefURL(sf.refURL, urlPrefix, repoFullName, sshDomain)
-}
-
-// RefID returns reference ID.
-func (sf *SubModuleFile) RefID() string {
-	return sf.refID
+	return nil
 }

@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -42,9 +43,12 @@ func TestTeam_GetRepositories(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, team.LoadRepositories(db.DefaultContext))
-		assert.Len(t, team.Repos, team.NumRepos)
-		for _, repo := range team.Repos {
+		repos, err := repo_model.GetTeamRepositories(db.DefaultContext, &repo_model.SearchTeamRepoOptions{
+			TeamID: team.ID,
+		})
+		assert.NoError(t, err)
+		assert.Len(t, repos, team.NumRepos)
+		for _, repo := range repos {
 			unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repo.ID})
 		}
 	}
@@ -196,4 +200,9 @@ func TestUsersInTeamsCount(t *testing.T) {
 	test([]int64{2}, []int64{1, 2, 3, 4}, 1)          // only userid 2
 	test([]int64{1, 2, 3, 4, 5}, []int64{2, 5}, 2)    // userid 2,4
 	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3) // userid 2,4,5
+}
+
+func TestIsUsableTeamName(t *testing.T) {
+	assert.NoError(t, organization.IsUsableTeamName("usable"))
+	assert.True(t, db.IsErrNameReserved(organization.IsUsableTeamName("new")))
 }

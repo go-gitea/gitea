@@ -102,17 +102,9 @@
   cursor: pointer;
 }
 
-.comment-code-cloud .ui.active.tab {
-  padding: 0.5em;
-}
-
 .comment-code-cloud .ui.active.tab.markup {
   padding: 1em;
   min-height: 168px;
-}
-
-.comment-code-cloud .ui.tabular.menu {
-  margin: 0.5em;
 }
 
 .comment-code-cloud .editor-statusbar {
@@ -121,23 +113,6 @@
 
 .comment-code-cloud .footer {
   padding: 10px 0;
-}
-
-.comment-code-cloud .footer .markup-info {
-  display: inline-block;
-  margin: 5px 0;
-  font-size: 12px;
-  color: var(--color-text-light);
-}
-
-.comment-code-cloud .footer .ui.right.floated {
-  padding-top: 6px;
-}
-
-.comment-code-cloud .footer::after {
-  clear: both;
-  content: "";
-  display: block;
 }
 
 .diff-file-body .comment-form {

@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_23"
+	"code.gitea.io/gitea/models/migrations/v1_24"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -366,6 +367,12 @@ func prepareMigrationTasks() []*migration {
 		newMigration(306, "Add BlockAdminMergeOverride to ProtectedBranch", v1_23.AddBlockAdminMergeOverrideBranchProtection),
 		newMigration(307, "Fix milestone deadline_unix when there is no due date", v1_23.FixMilestoneNoDueDate),
 		newMigration(308, "Add index(user_id, is_deleted) for action table", v1_23.AddNewIndexForUserDashboard),
+		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
+		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
+		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
+
+		// Gitea 1.23.0-rc0 ends at migration ID number 311 (database version 312)
+		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_24.AddDeleteBranchAfterMergeForAutoMerge),
 	}
 	return preparedMigrations
 }

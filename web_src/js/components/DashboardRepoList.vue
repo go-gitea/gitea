@@ -1,13 +1,22 @@
 <script lang="ts">
-import {createApp, nextTick} from 'vue';
-import $ from 'jquery';
+import {nextTick, defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
+type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
+
+type CommitStatusMap = {
+  [status in CommitStatus]: {
+    name: string,
+    color: string,
+  };
+};
+
 // make sure this matches templates/repo/commit_status.tmpl
-const commitStatus = {
+const commitStatus: CommitStatusMap = {
   pending: {name: 'octicon-dot-fill', color: 'yellow'},
   success: {name: 'octicon-check', color: 'green'},
   error: {name: 'gitea-exclamation', color: 'red'},
@@ -15,7 +24,7 @@ const commitStatus = {
   warning: {name: 'gitea-exclamation', color: 'yellow'},
 };
 
-const sfc = {
+export default defineComponent({
   components: {SvgIcon},
   data() {
     const params = new URLSearchParams(window.location.search);
@@ -102,7 +111,7 @@ const sfc = {
   mounted() {
     const el = document.querySelector('#dashboard-repo-list');
     this.changeReposFilter(this.reposFilter);
-    $(el).find('.dropdown').dropdown();
+    fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
     nextTick(() => {
       this.$refs.search.focus();
     });
@@ -121,12 +130,12 @@ const sfc = {
   },
 
   methods: {
-    changeTab(t) {
-      this.tab = t;
+    changeTab(tab: string) {
+      this.tab = tab;
       this.updateHistory();
     },
 
-    changeReposFilter(filter) {
+    changeReposFilter(filter: string) {
       this.reposFilter = filter;
       this.repos = [];
       this.page = 1;
@@ -209,7 +218,7 @@ const sfc = {
       this.searchRepos();
     },
 
-    changePage(page) {
+    changePage(page: number) {
       this.page = page;
       if (this.page > this.finalPage) {
         this.page = this.finalPage;
@@ -247,7 +256,7 @@ const sfc = {
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data.map((webSearchRepo) => {
+        this.repos = json.data.map((webSearchRepo: any) => {
           return {
             ...webSearchRepo.repository,
             latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
@@ -255,7 +264,7 @@ const sfc = {
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
           };
         });
-        const count = response.headers.get('X-Total-Count');
+        const count = Number(response.headers.get('X-Total-Count'));
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
         }
@@ -266,7 +275,7 @@ const sfc = {
       }
     },
 
-    repoIcon(repo) {
+    repoIcon(repo: any) {
       if (repo.fork) {
         return 'octicon-repo-forked';
       } else if (repo.mirror) {
@@ -281,18 +290,18 @@ const sfc = {
       return 'octicon-repo';
     },
 
-    statusIcon(status) {
+    statusIcon(status: CommitStatus) {
       return commitStatus[status].name;
     },
 
-    statusColor(status) {
+    statusColor(status: CommitStatus) {
       return commitStatus[status].color;
     },
 
-    reposFilterKeyControl(e) {
+    reposFilterKeyControl(e: KeyboardEvent) {
       switch (e.key) {
         case 'Enter':
-          document.querySelector('.repo-owner-name-list li.active a')?.click();
+          document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
           break;
         case 'ArrowUp':
           if (this.activeIndex > 0) {
@@ -326,16 +335,8 @@ const sfc = {
       }
     },
   },
-};
+});
 
-export function initDashboardRepoList() {
-  const el = document.querySelector('#dashboard-repo-list');
-  if (el) {
-    createApp(sfc).mount(el);
-  }
-}
-
-export default sfc; // activate the IDE's Vue plugin
 </script>
 <template>
   <div>
@@ -471,7 +472,7 @@ export default sfc; // activate the IDE's Vue plugin
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
-              <div class="text truncate">{{ org.name }}</div>
+              <div class="text truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}

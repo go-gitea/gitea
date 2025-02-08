@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
 	"code.gitea.io/gitea/modules/log"
@@ -247,7 +249,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
-		if models.IsErrDeleteLastAdminUser(err) {
+		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.Error(http.StatusBadRequest, "LastAdmin", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
@@ -299,10 +301,10 @@ func DeleteUser(ctx *context.APIContext) {
 	}
 
 	if err := user_service.DeleteUser(ctx, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
-		if models.IsErrUserOwnRepos(err) ||
-			models.IsErrUserHasOrgs(err) ||
-			models.IsErrUserOwnPackages(err) ||
-			models.IsErrDeleteLastAdminUser(err) {
+		if repo_model.IsErrUserOwnRepos(err) ||
+			org_model.IsErrUserHasOrgs(err) ||
+			packages_model.IsErrUserOwnPackages(err) ||
+			user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteUser", err)
@@ -373,7 +375,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.PathParamInt64(":id")); err != nil {
+	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.PathParamInt64("id")); err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if asymkey_model.IsErrKeyAccessDenied(err) {
@@ -475,26 +477,16 @@ func RenameUser(ctx *context.APIContext) {
 		return
 	}
 
-	oldName := ctx.ContextUser.Name
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
 
-	// Check if user name has been changed
+	// Check if username has been changed
 	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
-		switch {
-		case user_model.IsErrUserAlreadyExist(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))
-		case db.IsErrNameReserved(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_reserved", newName))
-		case db.IsErrNamePatternNotAllowed(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_pattern_not_allowed", newName))
-		case db.IsErrNameCharsNotAllowed(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_chars_not_allowed", newName))
-		default:
+		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+		} else {
 			ctx.ServerError("ChangeUserName", err)
 		}
 		return
 	}
-
-	log.Trace("User name changed: %s -> %s", oldName, newName)
 	ctx.Status(http.StatusNoContent)
 }

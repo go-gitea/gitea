@@ -1,7 +1,9 @@
 import {htmlEscape} from 'escape-goat';
 
+type Processor = (el: HTMLElement) => string | HTMLElement | void;
+
 type Processors = {
-  [tagName: string]: (el: HTMLElement) => string | HTMLElement | void;
+  [tagName: string]: Processor;
 }
 
 type ProcessorContext = {
@@ -11,22 +13,21 @@ type ProcessorContext = {
 }
 
 function prepareProcessors(ctx:ProcessorContext): Processors {
-  const processors = {
-    H1(el) {
+  const processors: Processors = {
+    H1(el: HTMLElement) {
       const level = parseInt(el.tagName.slice(1));
       el.textContent = `${'#'.repeat(level)} ${el.textContent.trim()}`;
     },
-    STRONG(el) {
+    STRONG(el: HTMLElement) {
       return `**${el.textContent}**`;
     },
-    EM(el) {
+    EM(el: HTMLElement) {
       return `_${el.textContent}_`;
     },
-    DEL(el) {
+    DEL(el: HTMLElement) {
       return `~~${el.textContent}~~`;
     },
-
-    A(el) {
+    A(el: HTMLElement) {
       const text = el.textContent || 'link';
       const href = el.getAttribute('href');
       if (/^https?:/.test(text) && text === href) {
@@ -34,7 +35,7 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
       }
       return href ? `[${text}](${href})` : text;
     },
-    IMG(el) {
+    IMG(el: HTMLElement) {
       const alt = el.getAttribute('alt') || 'image';
       const src = el.getAttribute('src');
       const widthAttr = el.hasAttribute('width') ? ` width="${htmlEscape(el.getAttribute('width') || '')}"` : '';
@@ -44,32 +45,29 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
       }
       return `![${alt}](${src})`;
     },
-
-    P(el) {
+    P(el: HTMLElement) {
       el.textContent = `${el.textContent}\n`;
     },
-    BLOCKQUOTE(el) {
+    BLOCKQUOTE(el: HTMLElement) {
       el.textContent = `${el.textContent.replace(/^/mg, '> ')}\n`;
     },
-
-    OL(el) {
+    OL(el: HTMLElement) {
       const preNewLine = ctx.listNestingLevel ? '\n' : '';
       el.textContent = `${preNewLine}${el.textContent}\n`;
     },
-    LI(el) {
-      const parent = el.parentNode;
+    LI(el: HTMLElement) {
+      const parent = el.parentNode as HTMLElement;
       const bullet = parent.tagName === 'OL' ? `1. ` : '* ';
       const nestingIdentLevel = Math.max(0, ctx.listNestingLevel - 1);
       el.textContent = `${' '.repeat(nestingIdentLevel * 4)}${bullet}${el.textContent}${ctx.elementIsLast ? '' : '\n'}`;
       return el;
     },
-    INPUT(el) {
-      return el.checked ? '[x] ' : '[ ] ';
+    INPUT(el: HTMLElement) {
+      return (el as HTMLInputElement).checked ? '[x] ' : '[ ] ';
     },
-
-    CODE(el) {
+    CODE(el: HTMLElement) {
       const text = el.textContent;
-      if (el.parentNode && el.parentNode.tagName === 'PRE') {
+      if (el.parentNode && (el.parentNode as HTMLElement).tagName === 'PRE') {
         el.textContent = `\`\`\`\n${text}\n\`\`\`\n`;
         return el;
       }
@@ -86,7 +84,7 @@ function prepareProcessors(ctx:ProcessorContext): Processors {
   return processors;
 }
 
-function processElement(ctx :ProcessorContext, processors: Processors, el: HTMLElement) {
+function processElement(ctx :ProcessorContext, processors: Processors, el: HTMLElement): string | void {
   if (el.hasAttribute('data-markdown-generated-content')) return el.textContent;
   if (el.tagName === 'A' && el.children.length === 1 && el.children[0].tagName === 'IMG') {
     return processElement(ctx, processors, el.children[0] as HTMLElement);

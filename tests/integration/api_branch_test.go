@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -49,7 +50,7 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 	return nil
 }
 
-func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) {
+func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPriority, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
 		RuleName: branchName,
@@ -60,6 +61,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTP
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
 		assert.EqualValues(t, branchName, branchProtection.RuleName)
+		assert.EqualValues(t, expectedPriority, branchProtection.Priority)
 	}
 }
 
@@ -185,17 +187,81 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 	return resp.Result().StatusCode == status
 }
 
+func TestAPIUpdateBranch(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		t.Run("UpdateBranchWithEmptyRepo", func(t *testing.T) {
+			testAPIUpdateBranch(t, "user10", "user10", "repo6", "master", "test", http.StatusNotFound)
+		})
+		t.Run("UpdateBranchWithSameBranchNames", func(t *testing.T) {
+			resp := testAPIUpdateBranch(t, "user2", "user2", "repo1", "master", "master", http.StatusUnprocessableEntity)
+			assert.Contains(t, resp.Body.String(), "Cannot rename a branch using the same name or rename to a branch that already exists.")
+		})
+		t.Run("UpdateBranchThatAlreadyExists", func(t *testing.T) {
+			resp := testAPIUpdateBranch(t, "user2", "user2", "repo1", "master", "branch2", http.StatusUnprocessableEntity)
+			assert.Contains(t, resp.Body.String(), "Cannot rename a branch using the same name or rename to a branch that already exists.")
+		})
+		t.Run("UpdateBranchWithNonExistentBranch", func(t *testing.T) {
+			resp := testAPIUpdateBranch(t, "user2", "user2", "repo1", "i-dont-exist", "new-branch-name", http.StatusNotFound)
+			assert.Contains(t, resp.Body.String(), "Branch doesn't exist.")
+		})
+		t.Run("UpdateBranchWithNonAdminDoer", func(t *testing.T) {
+			// don't allow default branch renaming
+			resp := testAPIUpdateBranch(t, "user40", "user2", "repo1", "master", "new-branch-name", http.StatusForbidden)
+			assert.Contains(t, resp.Body.String(), "User must be a repo or site admin to rename default or protected branches.")
+
+			// don't allow protected branch renaming
+			token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branches", &api.CreateBranchRepoOption{
+				BranchName: "protected-branch",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+			testAPICreateBranchProtection(t, "protected-branch", 1, http.StatusCreated)
+			resp = testAPIUpdateBranch(t, "user40", "user2", "repo1", "protected-branch", "new-branch-name", http.StatusForbidden)
+			assert.Contains(t, resp.Body.String(), "User must be a repo or site admin to rename default or protected branches.")
+		})
+		t.Run("UpdateBranchWithGlobedBasedProtectionRulesAndAdminAccess", func(t *testing.T) {
+			// don't allow branch that falls under glob-based protection rules to be renamed
+			token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
+				RuleName:   "protected/**",
+				EnablePush: true,
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+
+			from := "protected/1"
+			req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branches", &api.CreateBranchRepoOption{
+				BranchName: from,
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+
+			resp := testAPIUpdateBranch(t, "user2", "user2", "repo1", from, "new-branch-name", http.StatusForbidden)
+			assert.Contains(t, resp.Body.String(), "Branch is protected by glob-based protection rules.")
+		})
+		t.Run("UpdateBranchNormalScenario", func(t *testing.T) {
+			testAPIUpdateBranch(t, "user2", "user2", "repo1", "branch2", "new-branch-name", http.StatusNoContent)
+		})
+	})
+}
+
+func testAPIUpdateBranch(t *testing.T, doerName, ownerName, repoName, from, to string, expectedHTTPStatus int) *httptest.ResponseRecorder {
+	token := getUserToken(t, doerName, auth_model.AccessTokenScopeWriteRepository)
+	req := NewRequestWithJSON(t, "PATCH", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.UpdateBranchRepoOption{
+		Name: to,
+	}).AddTokenAuth(token)
+	return MakeRequest(t, req, expectedHTTPStatus)
+}
+
 func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// Branch protection  on branch that not exist
-	testAPICreateBranchProtection(t, "master/doesnotexist", http.StatusCreated)
+	testAPICreateBranchProtection(t, "master/doesnotexist", 1, http.StatusCreated)
 	// Get branch protection on branch that exist but not branch protection
 	testAPIGetBranchProtection(t, "master", http.StatusNotFound)
 
-	testAPICreateBranchProtection(t, "master", http.StatusCreated)
+	testAPICreateBranchProtection(t, "master", 2, http.StatusCreated)
 	// Can only create once
-	testAPICreateBranchProtection(t, "master", http.StatusForbidden)
+	testAPICreateBranchProtection(t, "master", 0, http.StatusForbidden)
 
 	// Can't delete a protected branch
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
@@ -211,7 +277,7 @@ func TestAPIBranchProtection(t *testing.T) {
 		StatusCheckContexts: []string{"test1"},
 	}, http.StatusOK)
 	bp := testAPIGetBranchProtection(t, "master", http.StatusOK)
-	assert.Equal(t, true, bp.EnableStatusCheck)
+	assert.True(t, bp.EnableStatusCheck)
 	assert.Equal(t, []string{"test1"}, bp.StatusCheckContexts)
 
 	// disable status checks, clear the list of required checks
@@ -220,7 +286,7 @@ func TestAPIBranchProtection(t *testing.T) {
 		StatusCheckContexts: []string{},
 	}, http.StatusOK)
 	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
-	assert.Equal(t, false, bp.EnableStatusCheck)
+	assert.False(t, bp.EnableStatusCheck)
 	assert.Equal(t, []string{}, bp.StatusCheckContexts)
 
 	testAPIDeleteBranchProtection(t, "master", http.StatusNoContent)

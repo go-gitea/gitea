@@ -110,6 +110,10 @@ func (pc packagistConvertor) Package(_ *api.PackagePayload) (PackagistPayload, e
 	return PackagistPayload{}, nil
 }
 
+func (pc packagistConvertor) Status(_ *api.CommitStatusPayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
+}
+
 func newPackagistRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &PackagistMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
@@ -119,4 +123,8 @@ func newPackagistRequest(_ context.Context, w *webhook_model.Webhook, t *webhook
 		PackageURL: meta.PackageURL,
 	}
 	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.PACKAGIST, newPackagistRequest)
 }

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -16,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -101,14 +101,14 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if ctx.Repo.GitRepo != nil {
-		ctx.Repo.GitRepo.Close()
+		_ = ctx.Repo.GitRepo.Close()
 		ctx.Repo.GitRepo = nil
 	}
 
 	oldFullname := ctx.Repo.Repository.FullName()
 
 	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
-		if models.IsErrRepoTransferInProgress(err) {
+		if repo_model.IsErrRepoTransferInProgress(err) {
 			ctx.Error(http.StatusConflict, "StartRepositoryTransfer", err)
 			return
 		}
@@ -162,12 +162,16 @@ func AcceptTransfer(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := acceptOrRejectRepoTransfer(ctx, true)
-	if ctx.Written() {
-		return
-	}
+	err := repo_service.AcceptTransferOwnership(ctx, ctx.Repo.Repository, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "acceptOrRejectRepoTransfer", err)
+		switch {
+		case repo_model.IsErrNoPendingTransfer(err):
+			ctx.Error(http.StatusNotFound, "AcceptTransferOwnership", err)
+		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.Error(http.StatusForbidden, "AcceptTransferOwnership", err)
+		default:
+			ctx.Error(http.StatusInternalServerError, "AcceptTransferOwnership", err)
+		}
 		return
 	}
 
@@ -200,40 +204,18 @@ func RejectTransfer(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := acceptOrRejectRepoTransfer(ctx, false)
-	if ctx.Written() {
-		return
-	}
+	err := repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "acceptOrRejectRepoTransfer", err)
+		switch {
+		case repo_model.IsErrNoPendingTransfer(err):
+			ctx.Error(http.StatusNotFound, "RejectRepositoryTransfer", err)
+		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.Error(http.StatusForbidden, "RejectRepositoryTransfer", err)
+		default:
+			ctx.Error(http.StatusInternalServerError, "RejectRepositoryTransfer", err)
+		}
 		return
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
-}
-
-func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
-	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
-	if err != nil {
-		if models.IsErrNoPendingTransfer(err) {
-			ctx.NotFound()
-			return nil
-		}
-		return err
-	}
-
-	if err := repoTransfer.LoadAttributes(ctx); err != nil {
-		return err
-	}
-
-	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
-		ctx.Error(http.StatusForbidden, "CanUserAcceptTransfer", nil)
-		return fmt.Errorf("user does not have permissions to do this")
-	}
-
-	if accept {
-		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
-	}
-
-	return repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository)
 }
