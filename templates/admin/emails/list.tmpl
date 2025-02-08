@@ -67,8 +67,9 @@
 								>{{svg "octicon-trash"}}</a>
 							</td>
 						</tr>
+					{{else}}
+						<tr class="no-results-row"><td class="tw-text-center" colspan="6">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
-					{{template "shared/no_results_found" (dict "results" .Emails "colspan" 6)}}
 				</tbody>
 			</table>
 		</div>
