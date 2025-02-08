@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/actions"
@@ -17,17 +18,17 @@ import (
 )
 
 func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
-	if runner.Ephemaral {
+	if runner.Ephemeral {
 		var task actions_model.ActionTask
 		has, err := db.GetEngine(ctx).Where("runner_id = ?", runner.ID).Get(&task)
 		if err == nil && has {
-			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked
+			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
 				return nil, false, nil
 			}
 			return nil, false, fmt.Errorf("runner has been removed")
 		}
 	}
-	
+
 	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
