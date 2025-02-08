@@ -1112,7 +1112,7 @@ func TestWorkflowApi(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		workflows := &api.ActionWorkflowResponse{}
 		json.NewDecoder(resp.Body).Decode(workflows)
-		assert.Len(t, workflows.Workflows, 0)
+		assert.Empty(t, workflows.Workflows)
 
 		// add workflow file to the repo
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
