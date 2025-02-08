@@ -9,6 +9,7 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -16,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// Cleanup removes expired actions logs, data and artifacts
+// Cleanup removes expired actions logs, data, artifacts and used ephemeral runners
 func Cleanup(ctx context.Context) error {
 	// clean up expired artifacts
 	if err := CleanupArtifacts(ctx); err != nil {
@@ -26,6 +27,11 @@ func Cleanup(ctx context.Context) error {
 	// clean up old logs
 	if err := CleanupLogs(ctx); err != nil {
 		return fmt.Errorf("cleanup logs: %w", err)
+	}
+
+	// clean up old ephemeral runners
+	if err := CleanupEphemeralRunners(ctx); err != nil {
+		return fmt.Errorf("cleanup old ephemeral runners: %w", err)
 	}
 
 	return nil
@@ -121,5 +127,23 @@ func CleanupLogs(ctx context.Context) error {
 	}
 
 	log.Info("Removed %d logs", count)
+	return nil
+}
+
+const deleteEphemeralRunnerBatchSize = 100
+
+// CleanupEphemeralRunners removes used ephemeral runners which are no longer able to process jobs
+func CleanupEphemeralRunners(ctx context.Context) error {
+
+	runners := []*actions_model.ActionRunner{}
+	err := db.GetEngine(ctx).Join("INNER", "action_task", "action_task.runner_id = action_runner.id").Where("action_runner.ephemeral").Limit(deleteEphemeralRunnerBatchSize).Find(&runners)
+	if err != nil {
+		return fmt.Errorf("find runners: %w", err)
+	}
+	count, err := db.GetEngine(ctx).Delete(&runners)
+	if err != nil {
+		return fmt.Errorf("delete runners: %w", err)
+	}
+	log.Info("Removed %d runners", count)
 	return nil
 }
