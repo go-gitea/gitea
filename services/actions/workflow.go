@@ -6,7 +6,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
-	"os"
+	"path"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -53,14 +53,14 @@ func getActionWorkflowPath(commit *git.Commit) string {
 	return ""
 }
 
-func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, entry *git.TreeEntry) *api.ActionWorkflow {
+func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
 	defaultBranch, _ := commit.GetBranchName()
 
 	URL := fmt.Sprintf("%s/actions/workflows/%s", ctx.Repo.Repository.APIURL(), entry.Name())
-	HTMLURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", ctx.Repo.Repository.HTMLURL(ctx), defaultBranch, getActionWorkflowPath(commit), entry.Name())
+	HTMLURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", ctx.Repo.Repository.HTMLURL(ctx), defaultBranch, folder, entry.Name())
 	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", ctx.Repo.Repository.HTMLURL(ctx), entry.Name(), ctx.Repo.Repository.DefaultBranch)
 
 	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
@@ -75,13 +75,6 @@ func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, entry *
 		state = "disabled_manually"
 	}
 
-	// Currently, the NodeID returns the hostname of the server since, as far as I know, Gitea does not have a parameter
-	// similar to an instance ID.
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "unknown"
-	}
-
 	// The CreatedAt and UpdatedAt fields currently reflect the timestamp of the latest commit, which can later be refined
 	// by retrieving the first and last commits for the file history. The first commit would indicate the creation date,
 	// while the last commit would represent the modification date. The DeletedAt could be determined by identifying
@@ -92,9 +85,8 @@ func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, entry *
 
 	return &api.ActionWorkflow{
 		ID:        entry.Name(),
-		NodeID:    hostname,
 		Name:      entry.Name(),
-		Path:      entry.Name(),
+		Path:      path.Join(folder, entry.Name()),
 		State:     state,
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
@@ -135,9 +127,11 @@ func ListActionWorkflows(ctx *context.APIContext) ([]*api.ActionWorkflow, error)
 		return nil, err
 	}
 
+	folder := getActionWorkflowPath(defaultBranchCommit)
+
 	workflows := make([]*api.ActionWorkflow, len(entries))
 	for i, entry := range entries {
-		workflows[i] = getActionWorkflowEntry(ctx, defaultBranchCommit, entry)
+		workflows[i] = getActionWorkflowEntry(ctx, defaultBranchCommit, folder, entry)
 	}
 
 	return workflows, nil

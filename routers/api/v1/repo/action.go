@@ -630,13 +630,7 @@ func (a ActionWorkflow) ListRepositoryWorkflows(ctx *context.APIContext) {
 		return
 	}
 
-	if len(workflows) == 0 {
-		ctx.Error(http.StatusNotFound, "ListActionWorkflows", err)
-		return
-	}
-
-	ctx.SetTotalCountHeader(int64(len(workflows)))
-	ctx.JSON(http.StatusOK, workflows)
+	ctx.JSON(http.StatusOK, &api.ActionWorkflowResponse{Workflows: workflows, TotalCount: int64(len(workflows))})
 }
 
 func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {

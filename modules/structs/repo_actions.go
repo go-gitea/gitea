@@ -45,11 +45,10 @@ type CreateActionWorkflowDispatch struct {
 
 // ActionWorkflow represents a ActionWorkflow
 type ActionWorkflow struct {
-	ID     string `json:"id"`
-	NodeID string `json:"node_id"`
-	Name   string `json:"name"`
-	Path   string `json:"path"`
-	State  string `json:"state"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Path  string `json:"path"`
+	State string `json:"state"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -58,7 +57,7 @@ type ActionWorkflow struct {
 	HTMLURL   string    `json:"html_url"`
 	BadgeURL  string    `json:"badge_url"`
 	// swagger:strfmt date-time
-	DeletedAt time.Time `json:"deleted_at"`
+	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }
 
 // ActionWorkflowResponse returns a ActionWorkflow
