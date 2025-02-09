@@ -1254,6 +1254,14 @@ func Routes() *web.Router {
 				}, reqToken(), reqAdmin())
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
+					m.Get("/runs/{run}/artifacts", repo.GetArtifactsOfRun)
+					m.Get("/artifacts", repo.GetArtifacts)
+					m.Group("/artifacts/{artifact_id}", func() {
+						m.Get("", repo.GetArtifact)
+						m.Delete("", reqRepoWriter(unit.TypeActions), repo.DeleteArtifact)
+					})
+					m.Get("/artifacts/{artifact_id}/zip", repo.DownloadArtifact)
+					m.Get("/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
 				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).

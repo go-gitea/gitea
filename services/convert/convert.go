@@ -24,6 +24,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -226,6 +227,28 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
 		RunStartedAt: t.Started.AsLocalTime(),
+	}, nil
+}
+
+// ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
+func ToActionArtifact(ctx context.Context, repoName string, art *actions_model.ActionArtifact) (*api.ActionArtifact, error) {
+	url := httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+repoName+"/actions/artifacts/"+fmt.Sprintf("%d", art.ID))
+
+	return &api.ActionArtifact{
+		ID:                 art.ID,
+		Name:               art.ArtifactName,
+		SizeInBytes:        art.FileSize,
+		Expired:            art.Status == int64(actions_model.ArtifactStatusExpired),
+		URL:                url,
+		ArchiveDownloadURL: url + "/zip",
+		CreatedAt:          art.CreatedUnix.AsLocalTime(),
+		UpdatedAt:          art.UpdatedUnix.AsLocalTime(),
+		ExpiresAt:          art.ExpiredUnix.AsLocalTime(),
+		WorkflowRun: &api.ActionWorkflowRun{
+			ID:           art.RunID,
+			RepositoryID: art.RepoID,
+			HeadSha:      art.CommitSHA,
+		},
 	}, nil
 }
 
