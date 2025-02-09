@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -501,8 +502,35 @@ func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	return issue, nil
 }
 
-func FindIssuesWithIndexPrefix(ctx context.Context, repoID, index int64, pageSize int) ([]*Issue, error) {
+func isPullToCond(isPull optional.Option[bool]) builder.Cond {
+	if isPull.Has() {
+		return builder.Eq{"is_pull": isPull.Value()}
+	}
+	return builder.NewCond()
+}
+
+func FindLatestIssues(ctx context.Context, repoID int64, isPull optional.Option[bool], pageSize int) (IssueList, error) {
 	issues := make([]*Issue, 0, pageSize)
+	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
+		And(isPullToCond(isPull)).
+		OrderBy("created_unix DESC").
+		Limit(pageSize).
+		Find(&issues)
+	return issues, err
+}
+
+func FindIssuesTitleKeywords(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], pageSize int) (IssueList, error) {
+	issues := make([]*Issue, 0, pageSize)
+	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
+		And(isPullToCond(isPull)).
+		And("name LIKE ?", "%"+keyword+"%").
+		OrderBy("created_unix DESC").
+		Limit(pageSize).
+		Find(&issues)
+	return issues, err
+}
+
+func FindIssuesWithIndexPrefix(ctx context.Context, repoID, index int64, isPull optional.Option[bool], pageSize int) (IssueList, error) {
 	var cond string
 	switch {
 	case setting.Database.Type.IsSQLite3():
@@ -515,9 +543,10 @@ func FindIssuesWithIndexPrefix(ctx context.Context, repoID, index int64, pageSiz
 		cond = "CAST([index] AS VARCHAR) LIKE ?"
 	}
 
+	issues := make([]*Issue, 0, pageSize)
 	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
-		And("`index` <> ?", index).
-		And(cond, fmt.Sprintf("%d%%", index)).
+		And(isPullToCond(isPull)).
+		Where(cond, fmt.Sprintf("%d%%", index)).
 		OrderBy("`index` ASC").
 		Limit(pageSize).
 		Find(&issues)
