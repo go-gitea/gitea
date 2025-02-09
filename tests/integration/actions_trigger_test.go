@@ -5,6 +5,7 @@ package integration
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -22,6 +23,7 @@ import (
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -650,4 +652,626 @@ func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha, targetURL,
 		Context:   context,
 	})
 	assert.NoError(t, err)
+}
+
+func TestWorkflowDispatchPublicApi(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		// create the repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "workflow-dispatch-event",
+			Description:   "test workflow-dispatch ci event",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		// Get the commit ID of the default branch
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
+		assert.NoError(t, err)
+		values := url.Values{}
+		values.Set("ref", "main")
+		req := NewRequestWithURLValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), values).
+			AddTokenAuth(token)
+		_ = MakeRequest(t, req, http.StatusNoContent)
+
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "workflow_dispatch",
+			Ref:        "refs/heads/main",
+			WorkflowID: "dispatch.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+	})
+}
+
+func TestWorkflowDispatchPublicApiWithInputs(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		// create the repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "workflow-dispatch-event",
+			Description:   "test workflow-dispatch ci event",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		// Get the commit ID of the default branch
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
+		assert.NoError(t, err)
+		values := url.Values{}
+		values.Set("ref", "main")
+		values.Set("inputs[myinput]", "val0")
+		values.Set("inputs[myinput3]", "true")
+		req := NewRequestWithURLValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), values).
+			AddTokenAuth(token)
+		_ = MakeRequest(t, req, http.StatusNoContent)
+
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "workflow_dispatch",
+			Ref:        "refs/heads/main",
+			WorkflowID: "dispatch.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+		dispatchPayload := &api.WorkflowDispatchPayload{}
+		err = json.Unmarshal([]byte(run.EventPayload), dispatchPayload)
+		assert.NoError(t, err)
+		assert.Contains(t, dispatchPayload.Inputs, "myinput")
+		assert.Contains(t, dispatchPayload.Inputs, "myinput2")
+		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
+		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
+		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
+		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+	})
+}
+
+func TestWorkflowDispatchPublicApiJSON(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		// create the repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "workflow-dispatch-event",
+			Description:   "test workflow-dispatch ci event",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		// Get the commit ID of the default branch
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
+		assert.NoError(t, err)
+		inputs := &api.CreateActionWorkflowDispatch{
+			Ref: "main",
+			Inputs: map[string]any{
+				"myinput":  "val0",
+				"myinput3": "true",
+			},
+		}
+
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), inputs).
+			AddTokenAuth(token)
+		_ = MakeRequest(t, req, http.StatusNoContent)
+
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "workflow_dispatch",
+			Ref:        "refs/heads/main",
+			WorkflowID: "dispatch.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+	})
+}
+
+func TestWorkflowDispatchPublicApiWithInputsJSON(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		// create the repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "workflow-dispatch-event",
+			Description:   "test workflow-dispatch ci event",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		// Get the commit ID of the default branch
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
+		assert.NoError(t, err)
+		inputs := &api.CreateActionWorkflowDispatch{
+			Ref: "main",
+			Inputs: map[string]any{
+				"myinput":  "val0",
+				"myinput3": "true",
+			},
+		}
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), inputs).
+			AddTokenAuth(token)
+		_ = MakeRequest(t, req, http.StatusNoContent)
+
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "workflow_dispatch",
+			Ref:        "refs/heads/main",
+			WorkflowID: "dispatch.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+		dispatchPayload := &api.WorkflowDispatchPayload{}
+		err = json.Unmarshal([]byte(run.EventPayload), dispatchPayload)
+		assert.NoError(t, err)
+		assert.Contains(t, dispatchPayload.Inputs, "myinput")
+		assert.Contains(t, dispatchPayload.Inputs, "myinput2")
+		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
+		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
+		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
+		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+	})
+}
+
+func TestWorkflowDispatchPublicApiWithInputsNonDefaultBranchJSON(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		// create the repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "workflow-dispatch-event",
+			Description:   "test workflow-dispatch ci event",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err = files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "update",
+					TreePath:      ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "dispatch",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		// Get the commit ID of the dispatch branch
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		commit, err := gitRepo.GetBranchCommit("dispatch")
+		assert.NoError(t, err)
+		inputs := &api.CreateActionWorkflowDispatch{
+			Ref: "refs/heads/dispatch",
+			Inputs: map[string]any{
+				"myinput":  "val0",
+				"myinput3": "true",
+			},
+		}
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), inputs).
+			AddTokenAuth(token)
+		_ = MakeRequest(t, req, http.StatusNoContent)
+
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "workflow_dispatch",
+			Ref:        "refs/heads/dispatch",
+			WorkflowID: "dispatch.yml",
+			CommitSHA:  commit.ID.String(),
+		})
+		assert.NotNil(t, run)
+		dispatchPayload := &api.WorkflowDispatchPayload{}
+		err = json.Unmarshal([]byte(run.EventPayload), dispatchPayload)
+		assert.NoError(t, err)
+		assert.Contains(t, dispatchPayload.Inputs, "myinput")
+		assert.Contains(t, dispatchPayload.Inputs, "myinput2")
+		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
+		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
+		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
+		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+	})
+}
+
+func TestWorkflowApi(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+		// create the repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "workflow-api",
+			Description:   "test workflow apis",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/workflows", repo.FullName())).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+		workflows := &api.ActionWorkflowResponse{}
+		json.NewDecoder(resp.Body).Decode(workflows)
+		assert.Empty(t, workflows.Workflows)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/workflows", repo.FullName())).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		json.NewDecoder(resp.Body).Decode(workflows)
+		assert.Len(t, workflows.Workflows, 1)
+		assert.Equal(t, "dispatch.yml", workflows.Workflows[0].Name)
+		assert.Equal(t, ".gitea/workflows/dispatch.yml", workflows.Workflows[0].Path)
+		assert.Equal(t, ".gitea/workflows/dispatch.yml", workflows.Workflows[0].Path)
+		assert.Equal(t, "active", workflows.Workflows[0].State)
+
+		// Use a hardcoded api path
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/%s", repo.FullName(), workflows.Workflows[0].ID)).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		workflow := &api.ActionWorkflow{}
+		json.NewDecoder(resp.Body).Decode(workflow)
+		assert.Equal(t, workflows.Workflows[0].ID, workflow.ID)
+		assert.Equal(t, workflows.Workflows[0].Path, workflow.Path)
+		assert.Equal(t, workflows.Workflows[0].URL, workflow.URL)
+		assert.Equal(t, workflows.Workflows[0].HTMLURL, workflow.HTMLURL)
+		assert.Equal(t, workflows.Workflows[0].Name, workflow.Name)
+		assert.Equal(t, workflows.Workflows[0].State, workflow.State)
+
+		// Use the provided url instead of the hardcoded one
+		req = NewRequest(t, "GET", workflows.Workflows[0].URL).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		workflow = &api.ActionWorkflow{}
+		json.NewDecoder(resp.Body).Decode(workflow)
+		assert.Equal(t, workflows.Workflows[0].ID, workflow.ID)
+		assert.Equal(t, workflows.Workflows[0].Path, workflow.Path)
+		assert.Equal(t, workflows.Workflows[0].URL, workflow.URL)
+		assert.Equal(t, workflows.Workflows[0].HTMLURL, workflow.HTMLURL)
+		assert.Equal(t, workflows.Workflows[0].Name, workflow.Name)
+		assert.Equal(t, workflows.Workflows[0].State, workflow.State)
+
+		// Disable the workflow
+		req = NewRequest(t, "PUT", workflows.Workflows[0].URL+"/disable").
+			AddTokenAuth(token)
+		_ = MakeRequest(t, req, http.StatusNoContent)
+
+		// Use the provided url instead of the hardcoded one
+		req = NewRequest(t, "GET", workflows.Workflows[0].URL).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		workflow = &api.ActionWorkflow{}
+		json.NewDecoder(resp.Body).Decode(workflow)
+		assert.Equal(t, workflows.Workflows[0].ID, workflow.ID)
+		assert.Equal(t, workflows.Workflows[0].Path, workflow.Path)
+		assert.Equal(t, workflows.Workflows[0].URL, workflow.URL)
+		assert.Equal(t, workflows.Workflows[0].HTMLURL, workflow.HTMLURL)
+		assert.Equal(t, workflows.Workflows[0].Name, workflow.Name)
+		assert.Equal(t, "disabled_manually", workflow.State)
+
+		inputs := &api.CreateActionWorkflowDispatch{
+			Ref: "main",
+			Inputs: map[string]any{
+				"myinput":  "val0",
+				"myinput3": "true",
+			},
+		}
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), inputs).
+			AddTokenAuth(token)
+		// TODO which http code is expected here?
+		_ = MakeRequest(t, req, http.StatusInternalServerError)
+
+		// Enable the workflow again
+		req = NewRequest(t, "PUT", workflows.Workflows[0].URL+"/enable").
+			AddTokenAuth(token)
+		_ = MakeRequest(t, req, http.StatusNoContent)
+
+		// Use the provided url instead of the hardcoded one
+		req = NewRequest(t, "GET", workflows.Workflows[0].URL).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		workflow = &api.ActionWorkflow{}
+		json.NewDecoder(resp.Body).Decode(workflow)
+		assert.Equal(t, workflows.Workflows[0].ID, workflow.ID)
+		assert.Equal(t, workflows.Workflows[0].Path, workflow.Path)
+		assert.Equal(t, workflows.Workflows[0].URL, workflow.URL)
+		assert.Equal(t, workflows.Workflows[0].HTMLURL, workflow.HTMLURL)
+		assert.Equal(t, workflows.Workflows[0].Name, workflow.Name)
+		assert.Equal(t, workflows.Workflows[0].State, workflow.State)
+
+		req = NewRequest(t, "GET", workflows.Workflows[0].URL).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		workflow = &api.ActionWorkflow{}
+		json.NewDecoder(resp.Body).Decode(workflow)
+		assert.Equal(t, workflows.Workflows[0].ID, workflow.ID)
+		assert.Equal(t, workflows.Workflows[0].Path, workflow.Path)
+		assert.Equal(t, workflows.Workflows[0].URL, workflow.URL)
+		assert.Equal(t, workflows.Workflows[0].HTMLURL, workflow.HTMLURL)
+		assert.Equal(t, workflows.Workflows[0].Name, workflow.Name)
+		assert.Equal(t, workflows.Workflows[0].State, workflow.State)
+
+		// Get the commit ID of the default branch
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
+		assert.NoError(t, err)
+		inputs = &api.CreateActionWorkflowDispatch{
+			Ref: "main",
+			Inputs: map[string]any{
+				"myinput":  "val0",
+				"myinput3": "true",
+			},
+		}
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), inputs).
+			AddTokenAuth(token)
+		_ = MakeRequest(t, req, http.StatusNoContent)
+
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "add workflow",
+			RepoID:     repo.ID,
+			Event:      "workflow_dispatch",
+			Ref:        "refs/heads/main",
+			WorkflowID: "dispatch.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+		dispatchPayload := &api.WorkflowDispatchPayload{}
+		err = json.Unmarshal([]byte(run.EventPayload), dispatchPayload)
+		assert.NoError(t, err)
+		assert.Contains(t, dispatchPayload.Inputs, "myinput")
+		assert.Contains(t, dispatchPayload.Inputs, "myinput2")
+		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
+		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
+		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
+		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+	})
 }
