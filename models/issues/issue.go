@@ -501,6 +501,29 @@ func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	return issue, nil
 }
 
+func FindIssuesWithIndexPrefix(ctx context.Context, repoID, index int64, pageSize int) ([]*Issue, error) {
+	issues := make([]*Issue, 0, pageSize)
+	var cond string
+	switch {
+	case setting.Database.Type.IsSQLite3():
+		cond = "CAST(`index` AS TEXT) LIKE ?"
+	case setting.Database.Type.IsMySQL():
+		cond = "CAST(`index` AS CHAR) LIKE ?"
+	case setting.Database.Type.IsPostgreSQL():
+		cond = "index::TEXT LIKE ?"
+	case setting.Database.Type.IsMSSQL():
+		cond = "CAST([index] AS VARCHAR) LIKE ?"
+	}
+
+	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
+		And("`index` <> ?", index).
+		And(cond, fmt.Sprintf("%d%%", index)).
+		OrderBy("`index` ASC").
+		Limit(pageSize).
+		Find(&issues)
+	return issues, err
+}
+
 // GetIssueWithAttrsByIndex returns issue by index in a repository.
 func GetIssueWithAttrsByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	issue, err := GetIssueByIndex(ctx, repoID, index)
