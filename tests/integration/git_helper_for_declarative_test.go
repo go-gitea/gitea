@@ -187,7 +187,7 @@ func doGitCreateBranch(dstPath, branch string) func(*testing.T) {
 
 func doGitCheckoutBranch(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommandContextNoGlobals(git.AllowLFSFiltersArgs()...).AddArguments("checkout").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommandNoGlobals(git.AllowLFSFiltersArgs()...).AddArguments("checkout").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	}
 }
@@ -201,7 +201,7 @@ func doGitMerge(dstPath string, args ...string) func(*testing.T) {
 
 func doGitPull(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, _, err := git.NewCommandContextNoGlobals(git.AllowLFSFiltersArgs()...).AddArguments("pull").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommandNoGlobals(git.AllowLFSFiltersArgs()...).AddArguments("pull").AddArguments(git.ToTrustedCmdArgs(args)...).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	}
 }

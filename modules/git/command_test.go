@@ -11,7 +11,7 @@ import (
 
 func TestRunWithContextStd(t *testing.T) {
 	cmd := NewCommand("--version")
-	stdout, stderr, err := cmd.RunStdString(t/Context(), &RunOpts{})
+	stdout, stderr, err := cmd.RunStdString(t.Context(), &RunOpts{})
 	assert.NoError(t, err)
 	assert.Empty(t, stderr)
 	assert.Contains(t, stdout, "git version")
@@ -53,9 +53,9 @@ func TestGitArgument(t *testing.T) {
 }
 
 func TestCommandString(t *testing.T) {
-	cmd := NewCommandContextNoGlobals("a", "-m msg", "it's a test", `say "hello"`)
+	cmd := NewCommandNoGlobals("a", "-m msg", "it's a test", `say "hello"`)
 	assert.EqualValues(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.LogString())
 
-	cmd = NewCommandContextNoGlobals("url: https://a:b@c/", "/root/dir-a/dir-b")
+	cmd = NewCommandNoGlobals("url: https://a:b@c/", "/root/dir-a/dir-b")
 	assert.EqualValues(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
 }

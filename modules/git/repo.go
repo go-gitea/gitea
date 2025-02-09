@@ -129,7 +129,7 @@ func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, op
 		return err
 	}
 
-	cmd := NewCommandContextNoGlobals(args...).AddArguments("clone")
+	cmd := NewCommandNoGlobals(args...).AddArguments("clone")
 	if opts.SkipTLSVerify {
 		cmd.AddArguments("-c", "http.sslVerify=false")
 	}

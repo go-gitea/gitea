@@ -91,7 +91,7 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 
 // AddChangesWithArgs marks local changes to be ready for commit.
 func AddChangesWithArgs(repoPath string, globalArgs TrustedCmdArgs, all bool, files ...string) error {
-	cmd := NewCommandContextNoGlobals(globalArgs...).AddArguments("add")
+	cmd := NewCommandNoGlobals(globalArgs...).AddArguments("add")
 	if all {
 		cmd.AddArguments("--all")
 	}
@@ -118,7 +118,7 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 // CommitChangesWithArgs commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChangesWithArgs(repoPath string, args TrustedCmdArgs, opts CommitChangesOptions) error {
-	cmd := NewCommandContextNoGlobals(args...)
+	cmd := NewCommandNoGlobals(args...)
 	if opts.Committer != nil {
 		cmd.AddOptionValues("-c", "user.name="+opts.Committer.Name)
 		cmd.AddOptionValues("-c", "user.email="+opts.Committer.Email)

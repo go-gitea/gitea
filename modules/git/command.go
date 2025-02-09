@@ -42,9 +42,8 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	prog string
-	args []string
-	// parentContext    context.Context
+	prog             string
+	args             []string
 	globalArgsLength int
 	brokenArgs       []string
 }
@@ -92,16 +91,15 @@ func NewCommand(args ...internal.CmdArg) *Command {
 		cargs = append(cargs, string(arg))
 	}
 	return &Command{
-		prog: GitExecutable,
-		args: cargs,
-		// parentContext:    ctx,
+		prog:             GitExecutable,
+		args:             cargs,
 		globalArgsLength: len(globalCommandArgs),
 	}
 }
 
-// NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+// NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specified args and don't use global command args
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommandContextNoGlobals(args ...internal.CmdArg) *Command {
+func NewCommandNoGlobals(args ...internal.CmdArg) *Command {
 	cargs := make([]string, 0, len(args))
 	for _, arg := range args {
 		cargs = append(cargs, string(arg))
@@ -109,15 +107,8 @@ func NewCommandContextNoGlobals(args ...internal.CmdArg) *Command {
 	return &Command{
 		prog: GitExecutable,
 		args: cargs,
-		// parentContext: ctx,
 	}
 }
-
-// // SetParentContext sets the parent context for this command
-// func (c *Command) SetParentContext(ctx context.Context) *Command {
-// 	c.parentContext = ctx
-// 	return c
-// }
 
 // isSafeArgumentValue checks if the argument is safe to be used as a value (not an option)
 func isSafeArgumentValue(s string) bool {
