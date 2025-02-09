@@ -885,7 +885,7 @@ func (a ActionWorkflow) EnableWorkflow(ctx *context.APIContext) {
 
 // GetArtifacts Lists all artifacts for a repository.
 func GetArtifactsOfRun(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifactsOfRun
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/artifacts repository getArtifactsOfRun
 	// ---
 	// summary: Lists all artifacts for a repository run
 	// produces:
@@ -901,6 +901,16 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	//   description: name of the repository
 	//   type: string
 	//   required: true
+	// - name: run
+	//   in: path
+	//   description: runid of the workflow run
+	//   type: integer
+	//   required: true
+	// - name: name
+	//   in: query
+	//   description: name of the artifact
+	//   type: string
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ArtifactsList"
@@ -962,6 +972,11 @@ func GetArtifacts(ctx *context.APIContext) {
 	//   description: name of the repository
 	//   type: string
 	//   required: true
+	// - name: name
+	//   in: query
+	//   description: name of the artifact
+	//   type: string
+	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ArtifactsList"
