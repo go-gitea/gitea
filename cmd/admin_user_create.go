@@ -32,6 +32,11 @@ var microcmdUserCreate = &cli.Command{
 			Usage: "Username",
 		},
 		&cli.StringFlag{
+			Name:  "user-type",
+			Usage: "Set user's type: individual or bot",
+			Value: "individual",
+		},
+		&cli.StringFlag{
 			Name:  "password",
 			Usage: "User password",
 		},
@@ -77,6 +82,22 @@ func runCreateUser(c *cli.Context) error {
 		return err
 	}
 
+	userTypes := map[string]user_model.UserType{
+		"individual": user_model.UserTypeIndividual,
+		"bot":        user_model.UserTypeBot,
+	}
+	userType, ok := userTypes[c.String("user-type")]
+	if !ok {
+		return fmt.Errorf("invalid user type: %s", c.String("user-type"))
+	}
+	if userType != user_model.UserTypeIndividual {
+		// Some other commands like "change-password" also only support individual users.
+		// It needs to clarify the "password" behavior for bot users in the future.
+		// At the moment, we do not allow setting password for bot users.
+		if c.IsSet("password") || c.IsSet("random-password") {
+			return errors.New("password can only be set for individual users")
+		}
+	}
 	if c.IsSet("name") && c.IsSet("username") {
 		return errors.New("cannot set both --name and --username flags")
 	}
@@ -118,16 +139,19 @@ func runCreateUser(c *cli.Context) error {
 			return err
 		}
 		fmt.Printf("generated random password is '%s'\n", password)
-	} else {
+	} else if userType == user_model.UserTypeIndividual {
 		return errors.New("must set either password or random-password flag")
 	}
 
 	isAdmin := c.Bool("admin")
 	mustChangePassword := true // always default to true
 	if c.IsSet("must-change-password") {
+		if userType != user_model.UserTypeIndividual {
+			return errors.New("must-change-password flag can only be set for individual users")
+		}
 		// if the flag is set, use the value provided by the user
 		mustChangePassword = c.Bool("must-change-password")
-	} else {
+	} else if userType == user_model.UserTypeIndividual {
 		// check whether there are users in the database
 		hasUserRecord, err := db.IsTableNotEmpty(&user_model.User{})
 		if err != nil {
@@ -151,8 +175,9 @@ func runCreateUser(c *cli.Context) error {
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
-		Passwd:             password,
 		IsAdmin:            isAdmin,
+		Type:               userType,
+		Passwd:             password,
 		MustChangePassword: mustChangePassword,
 		Visibility:         visibility,
 	}

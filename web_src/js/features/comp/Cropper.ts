@@ -6,7 +6,7 @@ type CropperOpts = {
   fileInput: HTMLInputElement,
 }
 
-export async function initCompCropper({container, fileInput, imageSource}: CropperOpts) {
+async function initCompCropper({container, fileInput, imageSource}: CropperOpts) {
   const {default: Cropper} = await import(/* webpackChunkName: "cropperjs" */'cropperjs');
   let currentFileName = '';
   let currentFileLastModified = 0;
@@ -37,4 +37,11 @@ export async function initCompCropper({container, fileInput, imageSource}: Cropp
       showElem(container);
     }
   });
+}
+
+export async function initAvatarUploaderWithCropper(fileInput: HTMLInputElement) {
+  const panel = fileInput.nextElementSibling as HTMLElement;
+  if (!panel?.matches('.cropper-panel')) throw new Error('Missing cropper panel for avatar uploader');
+  const imageSource = panel.querySelector<HTMLImageElement>('.cropper-source');
+  await initCompCropper({container: panel, fileInput, imageSource});
 }
