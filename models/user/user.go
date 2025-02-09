@@ -1190,7 +1190,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 		results[user.Email] = user
 	}
 	users = make([]*User, 0, len(needCheckUserNames))
-	if err := db.GetEngine(ctx).In("lower_name=?", needCheckUserNames.Values()).Find(users); err != nil {
+	if err := db.GetEngine(ctx).In("lower_name", needCheckUserNames.Values()).Find(&users); err != nil {
 		return nil, err
 	}
 	for _, user := range users {
