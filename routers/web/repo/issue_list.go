@@ -749,7 +749,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 }
 
 // Issues render issues page
-func Issues(ctx *context.Context) {
+func Issues(_ http.ResponseWriter, request *http.Request) {
+	ctx := context.GetWebContext(request)
+	log.Info("Hi from less weird handler!")
 	isPullList := ctx.PathParam("type") == "pulls"
 	if isPullList {
 		MustAllowPulls(ctx)
