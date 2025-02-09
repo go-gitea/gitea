@@ -519,11 +519,14 @@ func FindLatestIssues(ctx context.Context, repoID int64, isPull optional.Option[
 	return issues, err
 }
 
-func FindIssuesTitleKeywords(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], pageSize int) (IssueList, error) {
+func FindIssuesTitleKeywords(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], nonIDs []int64, pageSize int) (IssueList, error) {
 	issues := make([]*Issue, 0, pageSize)
-	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
-		And(isPullToCond(isPull)).
-		And("name LIKE ?", "%"+keyword+"%").
+	sess := db.GetEngine(ctx).Where("repo_id = ?", repoID).
+		And(isPullToCond(isPull))
+	if len(nonIDs) > 0 {
+		sess.NotIn("id", nonIDs)
+	}
+	err := sess.And("name LIKE ?", "%"+keyword+"%").
 		OrderBy("created_unix DESC").
 		Limit(pageSize).
 		Find(&issues)

@@ -24,16 +24,20 @@ func GetSuggestion(ctx context.Context, repo *repo_model.Repository, isPull opti
 		}
 	} else {
 		indexKeyword, _ := strconv.ParseInt(keyword, 10, 64)
+		nonIDs := []int64{}
 		if indexKeyword > 0 {
 			issues, err = issues_model.FindIssuesWithIndexPrefix(ctx, repo.ID, indexKeyword, isPull, pageSize)
 			if err != nil {
 				return nil, err
 			}
+			for _, issue := range issues {
+				nonIDs = append(nonIDs, issue.ID)
+			}
 			pageSize -= len(issues)
 		}
 
 		if pageSize > 0 {
-			newIssues, err := issues_model.FindIssuesTitleKeywords(ctx, repo.ID, keyword, isPull, pageSize)
+			newIssues, err := issues_model.FindIssuesTitleKeywords(ctx, repo.ID, keyword, isPull, nonIDs, pageSize)
 			if err != nil {
 				return nil, err
 			}
