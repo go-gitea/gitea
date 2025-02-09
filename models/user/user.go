@@ -1146,8 +1146,15 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 	}
 
 	for _, c := range oldCommits {
+		user, ok := emailUserMap[c.Author.Email]
+		if !ok {
+			user = &User{
+				Name:  c.Author.Name,
+				Email: c.Author.Email,
+			}
+		}
 		newCommits = append(newCommits, &UserCommit{
-			User:   emailUserMap[c.Author.Email],
+			User:   user,
 			Commit: c,
 		})
 	}
@@ -1187,7 +1194,11 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 
 	results := make(map[string]*User, len(emails))
 	for _, user := range users {
-		results[user.Email] = user
+		if user.KeepEmailPrivate {
+			results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
+		} else {
+			results[user.Email] = user
+		}
 	}
 	users = make([]*User, 0, len(needCheckUserNames))
 	if err := db.GetEngine(ctx).In("lower_name", needCheckUserNames.Values()).Find(&users); err != nil {
