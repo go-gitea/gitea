@@ -225,6 +225,18 @@ func GetColumn(ctx context.Context, columnID int64) (*Column, error) {
 	return column, nil
 }
 
+func GetColumnByProjectIDAndColumnName(ctx context.Context, projectID int64, columnName string) (*Column, error) {
+	board := new(Column)
+	has, err := db.GetEngine(ctx).Where("project_id=? AND title=?", projectID, columnName).Get(board)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectColumnNotExist{ProjectID: projectID, Name: columnName}
+	}
+
+	return board, nil
+}
+
 // UpdateColumn updates a project column
 func UpdateColumn(ctx context.Context, column *Column) error {
 	var fieldToUpdate []string
