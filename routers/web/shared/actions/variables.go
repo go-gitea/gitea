@@ -23,6 +23,8 @@ func SetVariablesContext(ctx *context.Context, ownerID, repoID int64) {
 		return
 	}
 	ctx.Data["Variables"] = variables
+	ctx.Data["DataMaxLength"] = actions_model.VariableDataMaxLength
+	ctx.Data["DescriptionMaxLength"] = actions_model.VariableDescriptionMaxLength
 }
 
 func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL string) {

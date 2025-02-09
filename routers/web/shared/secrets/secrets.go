@@ -22,6 +22,8 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 	}
 
 	ctx.Data["Secrets"] = secrets
+	ctx.Data["DataMaxLength"] = secret_model.SecretDataMaxLength
+	ctx.Data["DescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
 }
 
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {

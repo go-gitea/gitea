@@ -7,6 +7,7 @@
 			data-modal-header="{{ctx.Locale.Tr "actions.variables.creation"}}"
 			data-modal-dialog-variable-name=""
 			data-modal-dialog-variable-data=""
+			data-modal-dialog-variable-description=""
 		>
 			{{ctx.Locale.Tr "actions.variables.creation"}}
 		</button>
@@ -76,7 +77,6 @@
 				<input autofocus required
 					name="name"
 					id="dialog-variable-name"
-					value="{{.name}}"
 					pattern="^(?!GITEA_|GITHUB_)[a-zA-Z_][a-zA-Z0-9_]*$"
 					placeholder="{{ctx.Locale.Tr "secrets.creation.name_placeholder"}}"
 				>
@@ -86,7 +86,7 @@
 				<input
 					name="description"
 					id="dialog-variable-description"
-					value="{{.description}}"
+					maxlength="{{.DescriptionMaxLength}}"
 					placeholder="{{ctx.Locale.Tr "secrets.creation.description_placeholder"}}"
 				>
 			</div>
@@ -95,6 +95,7 @@
 				<textarea required
 					name="data"
 					id="dialog-variable-data"
+					maxlength="{{.DataMaxLength}}"
 					placeholder="{{ctx.Locale.Tr "secrets.creation.value_placeholder"}}"
 				></textarea>
 			</div>

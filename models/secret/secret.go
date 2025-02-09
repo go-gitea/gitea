@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -44,6 +45,11 @@ type Secret struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 
+const (
+	SecretDataMaxLength        = 65536
+	SecretDescriptionMaxLength = 4096
+)
+
 // ErrSecretNotFound represents a "secret not found" error.
 type ErrSecretNotFound struct {
 	Name string
@@ -68,10 +74,19 @@ func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, dat
 		return nil, fmt.Errorf("%w: ownerID and repoID cannot be both zero, global secrets are not supported", util.ErrInvalidArgument)
 	}
 
+	if len(data) > SecretDataMaxLength {
+		data = data[:SecretDataMaxLength]
+	}
+
+	if utf8.RuneCountInString(description) > SecretDescriptionMaxLength {
+		description = string([]rune(description)[:SecretDescriptionMaxLength])
+	}
+
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return nil, err
 	}
+
 	secret := &Secret{
 		OwnerID:     ownerID,
 		RepoID:      repoID,

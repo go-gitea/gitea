@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"strings"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -37,6 +38,11 @@ type ActionVariable struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
+const (
+	VariableDataMaxLength        = 65536
+	VariableDescriptionMaxLength = 4096
+)
+
 func init() {
 	db.RegisterModel(new(ActionVariable))
 }
@@ -46,6 +52,14 @@ func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data, desc
 		// It's trying to create a variable that belongs to a repository, but OwnerID has been set accidentally.
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
 		ownerID = 0
+	}
+
+	if utf8.RuneCountInString(data) > VariableDataMaxLength {
+		data = string([]rune(data)[:VariableDataMaxLength])
+	}
+
+	if utf8.RuneCountInString(description) > VariableDescriptionMaxLength {
+		description = string([]rune(description)[:VariableDescriptionMaxLength])
 	}
 
 	variable := &ActionVariable{
