@@ -385,11 +385,12 @@ func (u *User) ValidatePassword(passwd string) bool {
 }
 
 // IsPasswordSet checks if the password is set or left empty
+// TODO: It's better to clarify the "password" behavior for different types (individual, bot)
 func (u *User) IsPasswordSet() bool {
-	return len(u.Passwd) != 0
+	return u.Passwd != ""
 }
 
-// IsOrganization returns true if user is actually a organization.
+// IsOrganization returns true if user is actually an organization.
 func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
@@ -399,13 +400,14 @@ func (u *User) IsIndividual() bool {
 	return u.Type == UserTypeIndividual
 }
 
-func (u *User) IsUser() bool {
-	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
+// IsTypeBot returns whether the user is of type bot
+func (u *User) IsTypeBot() bool {
+	return u.Type == UserTypeBot
 }
 
-// IsBot returns whether or not the user is of type bot
-func (u *User) IsBot() bool {
-	return u.Type == UserTypeBot
+// IsTokenAccessAllowed returns whether the user is an individual or a bot (which allows for token access)
+func (u *User) IsTokenAccessAllowed() bool {
+	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
 }
 
 // DisplayName returns full name if it's not empty,
