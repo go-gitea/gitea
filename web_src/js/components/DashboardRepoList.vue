@@ -353,11 +353,13 @@ export default defineComponent({
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div v-if="!reposTotalCount" class="ui attached segment" :class="{'is-loading': isLoading}">
+      <div v-if="!reposTotalCount" class="ui attached segment">
         <div v-if="!isLoading" class="empty-repo-or-org">
           <svg-icon name="octicon-git-branch" :size="24"/>
           <p>{{ textNoRepo }}</p>
         </div>
+        <!-- using the loading indicator here will cause more (unnecessary) page flickers, so at the moment, not use the loading indicator -->
+        <!-- <div v-else class="is-loading loading-icon-2px tw-min-h-16"/> -->
       </div>
       <div v-else class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
