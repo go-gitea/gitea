@@ -17,8 +17,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
 	"code.gitea.io/gitea/tests"
 
@@ -302,7 +300,6 @@ license = MIT`)
 	}
 	t.Run("KeepLastVersion", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		defer test.MockVariableValue(&setting.Packages.ShowLatestVersionArch, true)()
 		pkgVer1 := createPackage("gz", "gitea-test", "1.0.0", "aarch64")
 		pkgVer2 := createPackage("gz", "gitea-test", "1.0.1", "aarch64")
 		req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgVer1)).

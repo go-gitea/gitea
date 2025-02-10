@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -246,17 +245,12 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 			return err
 		}
 
-		if setting.Packages.ShowLatestVersionArch {
-			if old, ok := vpfs[current.Version.PackageID]; ok {
-				if compareVersions(old.Version.Version, current.Version.Version) == -1 {
-					vpfs[current.Version.PackageID] = current
-				}
-			} else {
+		if old, ok := vpfs[current.Version.PackageID]; ok {
+			if compareVersions(old.Version.Version, current.Version.Version) == -1 {
 				vpfs[current.Version.PackageID] = current
 			}
 		} else {
-			// keep all files
-			vpfs[current.File.ID] = current
+			vpfs[current.Version.PackageID] = current
 		}
 	}
 
