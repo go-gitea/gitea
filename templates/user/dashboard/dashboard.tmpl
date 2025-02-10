@@ -5,7 +5,11 @@
 		<div class="flex-container-main">
 			{{template "base/alert" .}}
 			{{template "user/heatmap" .}}
-			{{template "user/dashboard/feeds" .}}
+			{{if .Feeds}}
+				{{template "user/dashboard/feeds" .}}
+			{{else}}
+				{{template "user/dashboard/guide" .}}
+			{{end}}
 		</div>
 		{{template "user/dashboard/repolist" .}}
 	</div>
