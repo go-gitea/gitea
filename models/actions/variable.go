@@ -95,7 +95,8 @@ func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariab
 	return db.Find[ActionVariable](ctx, opts)
 }
 
-func UpdateVariable(ctx context.Context, variable *ActionVariable, cols ...string) (bool, error) {
+func UpdateVariableCols(ctx context.Context, variable *ActionVariable, cols ...string) (bool, error) {
+	variable.Name = strings.ToUpper(variable.Name)
 	count, err := db.GetEngine(ctx).
 		ID(variable.ID).
 		Cols(cols...).

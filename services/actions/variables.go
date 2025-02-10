@@ -30,7 +30,7 @@ func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data strin
 	return v, nil
 }
 
-func UpdateVariable(ctx context.Context, variable *actions_model.ActionVariable) (bool, error) {
+func UpdateVariableNameData(ctx context.Context, variable *actions_model.ActionVariable) (bool, error) {
 	if err := secret_service.ValidateName(variable.Name); err != nil {
 		return false, err
 	}
@@ -41,7 +41,7 @@ func UpdateVariable(ctx context.Context, variable *actions_model.ActionVariable)
 
 	variable.Data = util.ReserveLineBreakForTextarea(variable.Data)
 
-	return actions_model.UpdateVariable(ctx, variable, "name", "data")
+	return actions_model.UpdateVariableCols(ctx, variable, "name", "data")
 }
 
 func DeleteVariableByID(ctx context.Context, variableID int64) error {

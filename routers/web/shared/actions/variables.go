@@ -149,8 +149,8 @@ func VariableUpdate(ctx *context.Context) {
 
 	id := ctx.PathParamInt64("variable_id")
 
-	variable, ok := findVariable(ctx, id, vCtx)
-	if !ok {
+	variable := findActionsVariable(ctx, id, vCtx)
+	if ctx.Written() {
 		return
 	}
 
@@ -158,7 +158,7 @@ func VariableUpdate(ctx *context.Context) {
 	variable.Name = form.Name
 	variable.Data = form.Data
 
-	if ok, err := actions_service.UpdateVariable(ctx, variable); err != nil || !ok {
+	if ok, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil || !ok {
 		log.Error("UpdateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
 		return
@@ -167,31 +167,36 @@ func VariableUpdate(ctx *context.Context) {
 	ctx.JSONRedirect(vCtx.RedirectLink)
 }
 
-func findVariable(ctx *context.Context, id int64, vCtx *variablesCtx) (*actions_model.ActionVariable, bool) {
+func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *actions_model.ActionVariable {
 	opts := actions_model.FindVariablesOpts{
 		IDs: []int64{id},
 	}
 	switch {
 	case vCtx.IsRepo:
 		opts.RepoID = vCtx.RepoID
+		if opts.RepoID == 0 {
+			panic("RepoID is 0")
+		}
 	case vCtx.IsOrg, vCtx.IsUser:
 		opts.OwnerID = vCtx.OwnerID
+		if opts.OwnerID == 0 {
+			panic("OwnerID is 0")
+		}
 	case vCtx.IsGlobal:
 		// do nothing
 	default:
-		ctx.ServerError("findVariable", errors.New("unable to determine"))
-		return nil, false
+		panic("invalid actions variable")
 	}
 
 	got, err := actions_model.FindVariables(ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindVariables", err)
-		return nil, false
+		return nil
 	} else if len(got) == 0 {
 		ctx.NotFound("FindVariables", nil)
-		return nil, false
+		return nil
 	}
-	return got[0], true
+	return got[0]
 }
 
 func VariableDelete(ctx *context.Context) {
@@ -203,8 +208,8 @@ func VariableDelete(ctx *context.Context) {
 
 	id := ctx.PathParamInt64("variable_id")
 
-	variable, ok := findVariable(ctx, id, vCtx)
-	if !ok {
+	variable := findActionsVariable(ctx, id, vCtx)
+	if ctx.Written() {
 		return
 	}
 

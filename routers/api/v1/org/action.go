@@ -454,7 +454,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	v.Name = opt.Name
 	v.Data = opt.Value
 
-	if _, err := actions_service.UpdateVariable(ctx, v); err != nil {
+	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
 		} else {
