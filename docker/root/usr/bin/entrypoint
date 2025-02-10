@@ -30,6 +30,11 @@ if [ -n "${USER_UID}" ] && [ "${USER_UID}" != "`id -u ${USER}`" ]; then
     sed -i -e "s/^${USER}:\([^:]*\):[0-9]*:\([0-9]*\)/${USER}:\1:${USER_UID}:\2/" /etc/passwd
 fi
 
+# change password for git user
+if [ -z "${PASS}" ]; then
+  echo "git:${PASS}" | chpasswd -e
+fi
+
 for FOLDER in /data/gitea/conf /data/gitea/log /data/git /data/ssh; do
     mkdir -p ${FOLDER}
 done
