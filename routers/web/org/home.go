@@ -34,7 +34,7 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.SetPathParam("org", uname)
-	context.HandleOrgAssignment(ctx)
+	context.OrgAssignment(context.OrgAssignmentOptions{})(ctx)
 	if ctx.Written() {
 		return
 	}

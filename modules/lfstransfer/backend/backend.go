@@ -4,7 +4,6 @@
 package backend
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -29,7 +28,7 @@ var Capabilities = []string{
 	"locking",
 }
 
-var _ transfer.Backend = &GiteaBackend{}
+var _ transfer.Backend = (*GiteaBackend)(nil)
 
 // GiteaBackend is an adapter between git-lfs-transfer library and Gitea's internal LFS API
 type GiteaBackend struct {
@@ -78,17 +77,17 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
+	req := newInternalRequestLFS(g.ctx, url, http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
 	if err != nil {
 		g.logger.Log("http request error", err)
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		g.logger.Log("http statuscode error", resp.StatusCode, statusCodeToErr(resp.StatusCode))
 		return nil, statusCodeToErr(resp.StatusCode)
 	}
-	defer resp.Body.Close()
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		g.logger.Log("http read error", err)
@@ -158,8 +157,7 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 	return pointers, nil
 }
 
-// Download implements transfer.Backend. The returned reader must be closed by the
-// caller.
+// Download implements transfer.Backend. The returned reader must be closed by the caller.
 func (g *GiteaBackend) Download(oid string, args transfer.Args) (io.ReadCloser, int64, error) {
 	idMapStr, exists := args[argID]
 	if !exists {
@@ -187,25 +185,25 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (io.ReadCloser, 
 		headerGiteaInternalAuth: g.internalAuth,
 		headerAccept:            mimeOctetStream,
 	}
-	req := newInternalRequest(g.ctx, url, http.MethodGet, headers, nil)
+	req := newInternalRequestLFS(g.ctx, url, http.MethodGet, headers, nil)
 	resp, err := req.Response()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("failed to get response: %w", err)
 	}
+	// no need to close the body here by "defer resp.Body.Close()", see below
 	if resp.StatusCode != http.StatusOK {
 		return nil, 0, statusCodeToErr(resp.StatusCode)
 	}
-	defer resp.Body.Close()
-	respBytes, err := io.ReadAll(resp.Body)
+
+	respSize, err := strconv.ParseInt(resp.Header.Get("X-Gitea-LFS-Content-Length"), 10, 64)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("failed to parse content length: %w", err)
 	}
-	respSize := int64(len(respBytes))
-	respBuf := io.NopCloser(bytes.NewBuffer(respBytes))
-	return respBuf, respSize, nil
+	// transfer.Backend will check io.Closer interface and close this Body reader
+	return resp.Body, respSize, nil
 }
 
-// StartUpload implements transfer.Backend.
+// Upload implements transfer.Backend.
 func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer.Args) error {
 	idMapStr, exists := args[argID]
 	if !exists {
@@ -234,15 +232,14 @@ func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer
 		headerContentType:       mimeOctetStream,
 		headerContentLength:     strconv.FormatInt(size, 10),
 	}
-	reqBytes, err := io.ReadAll(r)
-	if err != nil {
-		return err
-	}
-	req := newInternalRequest(g.ctx, url, http.MethodPut, headers, reqBytes)
+
+	req := newInternalRequestLFS(g.ctx, url, http.MethodPut, headers, nil)
+	req.Body(r)
 	resp, err := req.Response()
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return statusCodeToErr(resp.StatusCode)
 	}
@@ -284,11 +281,12 @@ func (g *GiteaBackend) Verify(oid string, size int64, args transfer.Args) (trans
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
+	req := newInternalRequestLFS(g.ctx, url, http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
 	if err != nil {
 		return transfer.NewStatus(transfer.StatusInternalServerError), err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return transfer.NewStatus(uint32(resp.StatusCode), http.StatusText(resp.StatusCode)), statusCodeToErr(resp.StatusCode)
 	}
