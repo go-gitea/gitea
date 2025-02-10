@@ -585,16 +585,8 @@ func ListActionTasks(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
-// ActionWorkflow implements actions_service.WorkflowAPI
-type ActionWorkflow struct{}
-
-// NewActionWorkflow creates a new ActionWorkflow service
-func NewActionWorkflow() actions_service.WorkflowAPI {
-	return ActionWorkflow{}
-}
-
-func (a ActionWorkflow) ListRepositoryWorkflows(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows repository ListRepositoryWorkflows
+func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows repository ActionsListRepositoryWorkflows
 	// ---
 	// summary: List repository workflows
 	// produces:
@@ -633,8 +625,8 @@ func (a ActionWorkflow) ListRepositoryWorkflows(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &api.ActionWorkflowResponse{Workflows: workflows, TotalCount: int64(len(workflows))})
 }
 
-func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows/{workflow_id} repository GetWorkflow
+func ActionsGetWorkflow(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows/{workflow_id} repository ActionsGetWorkflow
 	// ---
 	// summary: Get a workflow
 	// produces:
@@ -689,8 +681,8 @@ func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, workflow)
 }
 
-func (a ActionWorkflow) DisableWorkflow(ctx *context.APIContext) {
-	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable repository DisableWorkflow
+func ActionsDisableWorkflow(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable repository ActionsDisableWorkflow
 	// ---
 	// summary: Disable a workflow
 	// produces:
@@ -738,8 +730,8 @@ func (a ActionWorkflow) DisableWorkflow(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func (a ActionWorkflow) DispatchWorkflow(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches repository DispatchWorkflow
+func ActionsDispatchWorkflow(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches repository ActionsDispatchWorkflow
 	// ---
 	// summary: Create a workflow dispatch event
 	// produces:
@@ -828,8 +820,8 @@ func (a ActionWorkflow) DispatchWorkflow(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func (a ActionWorkflow) EnableWorkflow(ctx *context.APIContext) {
-	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable repository EnableWorkflow
+func ActionsEnableWorkflow(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable repository ActionsEnableWorkflow
 	// ---
 	// summary: Enable a workflow
 	// produces:

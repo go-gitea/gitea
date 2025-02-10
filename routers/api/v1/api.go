@@ -915,21 +915,6 @@ func Routes() *web.Router {
 		})
 	}
 
-	addActionsWorkflowRoutes := func(
-		m *web.Router,
-		actw actions.WorkflowAPI,
-	) {
-		m.Group("/actions", func() {
-			m.Group("/workflows", func() {
-				m.Get("", reqToken(), actw.ListRepositoryWorkflows)
-				m.Get("/{workflow_id}", reqToken(), actw.GetWorkflow)
-				m.Put("/{workflow_id}/disable", reqToken(), reqRepoWriter(unit.TypeActions), actw.DisableWorkflow)
-				m.Post("/{workflow_id}/dispatches", reqToken(), reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), actw.DispatchWorkflow)
-				m.Put("/{workflow_id}/enable", reqToken(), reqRepoWriter(unit.TypeActions), actw.EnableWorkflow)
-			}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeActions))
-		})
-	}
-
 	m.Group("", func() {
 		// Miscellaneous (no scope required)
 		if setting.API.EnableSwagger {
@@ -1170,15 +1155,17 @@ func Routes() *web.Router {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
-				addActionsRoutes(
-					m,
-					reqOwner(),
-					repo.NewAction(),
-				)
-				addActionsWorkflowRoutes(
-					m,
-					repo.NewActionWorkflow(),
-				)
+
+				addActionsRoutes(m, reqOwner(), repo.NewAction()) // it adds the routes for secrets/variables and runner management
+
+				m.Group("/actions/workflows", func() {
+					m.Get("", reqToken(), repo.ActionsListRepositoryWorkflows)
+					m.Get("/{workflow_id}", reqToken(), repo.ActionsGetWorkflow)
+					m.Put("/{workflow_id}/disable", reqToken(), reqRepoWriter(unit.TypeActions), repo.ActionsDisableWorkflow)
+					m.Post("/{workflow_id}/dispatches", reqToken(), reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
+					m.Put("/{workflow_id}/enable", reqToken(), reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
+				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeActions))
+
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
