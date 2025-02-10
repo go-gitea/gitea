@@ -8,11 +8,11 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
-	shared "code.gitea.io/gitea/routers/web/shared/actions"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
@@ -97,10 +97,15 @@ func Variables(ctx *context.Context) {
 		return
 	}
 
-	shared.SetVariablesContext(ctx, vCtx.OwnerID, vCtx.RepoID)
-	if ctx.Written() {
+	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
+		OwnerID: vCtx.OwnerID,
+		RepoID:  vCtx.RepoID,
+	})
+	if err != nil {
+		ctx.ServerError("FindVariables", err)
 		return
 	}
+	ctx.Data["Variables"] = variables
 
 	ctx.HTML(http.StatusOK, vCtx.VariablesTemplate)
 }
@@ -117,7 +122,17 @@ func VariableCreate(ctx *context.Context) {
 		return
 	}
 
-	shared.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, vCtx.RedirectLink)
+	form := web.GetForm(ctx).(*forms.EditVariableForm)
+
+	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data)
+	if err != nil {
+		log.Error("CreateVariable: %v", err)
+		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", v.Name))
+	ctx.JSONRedirect(vCtx.RedirectLink)
 }
 
 func VariableUpdate(ctx *context.Context) {
@@ -134,6 +149,25 @@ func VariableUpdate(ctx *context.Context) {
 
 	id := ctx.PathParamInt64("variable_id")
 
+	variable, ok := findVariable(ctx, id, vCtx)
+	if !ok {
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	variable.Name = form.Name
+	variable.Data = form.Data
+
+	if ok, err := actions_service.UpdateVariable(ctx, variable); err != nil || !ok {
+		log.Error("UpdateVariable: %v", err)
+		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
+	ctx.JSONRedirect(vCtx.RedirectLink)
+}
+
+func findVariable(ctx *context.Context, id int64, vCtx *variablesCtx) (*actions_model.ActionVariable, bool) {
 	opts := actions_model.FindVariablesOpts{
 		IDs: []int64{id},
 	}
@@ -151,25 +185,14 @@ func VariableUpdate(ctx *context.Context) {
 	var variable *actions_model.ActionVariable
 	if got, err := actions_model.FindVariables(ctx, opts); err != nil {
 		ctx.ServerError("FindVariables", err)
-		return
+		return nil, false
 	} else if len(got) == 0 {
 		ctx.NotFound("FindVariables", nil)
-		return
+		return nil, false
 	} else {
 		variable = got[0]
 	}
-
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
-	variable.Name = form.Name
-	variable.Data = form.Data
-
-	if ok, err := actions_service.UpdateVariable(ctx, variable); err != nil || !ok {
-		log.Error("UpdateVariable: %v", err)
-		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
-		return
-	}
-	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
-	ctx.JSONRedirect(vCtx.RedirectLink)
+	return variable, true
 }
 
 func VariableDelete(ctx *context.Context) {
@@ -178,5 +201,19 @@ func VariableDelete(ctx *context.Context) {
 		ctx.ServerError("getVariablesCtx", err)
 		return
 	}
-	shared.DeleteVariable(ctx, vCtx.RedirectLink)
+
+	id := ctx.PathParamInt64("variable_id")
+
+	variable, ok := findVariable(ctx, id, vCtx)
+	if !ok {
+		return
+	}
+
+	if err := actions_service.DeleteVariableByID(ctx, variable.ID); err != nil {
+		log.Error("Delete variable [%d] failed: %v", id, err)
+		ctx.JSONError(ctx.Tr("actions.variables.deletion.failed"))
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("actions.variables.deletion.success"))
+	ctx.JSONRedirect(vCtx.RedirectLink)
 }
