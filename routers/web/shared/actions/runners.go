@@ -339,6 +339,9 @@ func findRunner(ctx *context.Context, rCtx *runnersCtx) (*actions_model.ActionRu
 		opts.OwnerID = rCtx.OwnerID
 	case rCtx.IsAdmin:
 		// do nothing
+	default:
+		ctx.ServerError("findRunner", errors.New("unable to determine"))
+		return nil, false
 	}
 
 	var runner *actions_model.ActionRunner
