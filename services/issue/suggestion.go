@@ -18,21 +18,21 @@ func GetSuggestion(ctx context.Context, repo *repo_model.Repository, isPull opti
 	var err error
 	pageSize := 5
 	if keyword == "" {
-		issues, err = issues_model.FindLatestIssues(ctx, repo.ID, isPull, pageSize)
+		issues, err = issues_model.FindLatestUpdatedIssues(ctx, repo.ID, isPull, pageSize)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		indexKeyword, _ := strconv.ParseInt(keyword, 10, 64)
-		var issue *issues_model.Issue
+		var issueByIndex *issues_model.Issue
 		var excludedID int64
 		if indexKeyword > 0 {
-			issue, err = issues_model.GetIssueByIndex(ctx, repo.ID, indexKeyword)
+			issueByIndex, err = issues_model.GetIssueByIndex(ctx, repo.ID, indexKeyword)
 			if err != nil && !issues_model.IsErrIssueNotExist(err) {
 				return nil, err
 			}
-			if issue != nil {
-				excludedID = issue.ID
+			if issueByIndex != nil {
+				excludedID = issueByIndex.ID
 				pageSize--
 			}
 		}
@@ -42,8 +42,8 @@ func GetSuggestion(ctx context.Context, repo *repo_model.Repository, isPull opti
 			return nil, err
 		}
 
-		if issue != nil {
-			issues = append([]*issues_model.Issue{issue}, issues...)
+		if issueByIndex != nil {
+			issues = append([]*issues_model.Issue{issueByIndex}, issues...)
 		}
 	}
 

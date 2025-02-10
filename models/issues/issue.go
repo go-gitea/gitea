@@ -509,7 +509,7 @@ func isPullToCond(isPull optional.Option[bool]) builder.Cond {
 	return builder.NewCond()
 }
 
-func FindLatestIssues(ctx context.Context, repoID int64, isPull optional.Option[bool], pageSize int) (IssueList, error) {
+func FindLatestUpdatedIssues(ctx context.Context, repoID int64, isPull optional.Option[bool], pageSize int) (IssueList, error) {
 	issues := make([]*Issue, 0, pageSize)
 	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
 		And(isPullToCond(isPull)).
@@ -524,7 +524,7 @@ func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword st
 	if excludedID > 0 {
 		cond = cond.And(builder.Neq{"`id`": excludedID})
 	}
-	cond = cond.And(builder.Expr("name LIKE ?", "%"+keyword+"%"))
+	cond = cond.And(db.BuildCaseInsensitiveLike("`name`", keyword))
 
 	issues := make([]*Issue, 0, pageSize)
 	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
