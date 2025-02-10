@@ -435,3 +435,56 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 }
 
 type ActionRunIndex db.ResourceIndex
+
+// DeleteActionRunAndChild delete action_task_step, action_task_output, action_task, action_run and action_run_job.
+func DeleteActionRunAndChild(ctx context.Context, runIDs, jobIDs, taskIDs []int64) error {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	_, err = db.GetEngine(ctx).In("task_id", taskIDs).
+		Delete(ActionTaskStep{})
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).In("task_id", taskIDs).
+		Delete(ActionTaskOutput{})
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).In("id", taskIDs).Delete(ActionTask{})
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).In("id", jobIDs).Delete(ActionRunJob{})
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).In("id", runIDs).Delete(ActionRun{})
+	if err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+// GetRunsByIDsAndTriggerUserID -- get all action run by trigger user with selected ids
+func GetRunsByIDsAndTriggerUserID(ctx context.Context, ids []int64, triggerUserID int64) ([]*ActionRun, error) {
+	var runs []*ActionRun
+	err := db.GetEngine(ctx).Where("trigger_user_id=?", triggerUserID).
+		In("id", ids).Find(&runs)
+	if err != nil {
+		return nil, err
+	}
+	if len(runs) < 1 {
+		return nil, fmt.Errorf("run with ids %d: %w", ids, util.ErrNotExist)
+	}
+
+	return runs, nil
+}

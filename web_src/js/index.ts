@@ -85,6 +85,7 @@ import {
   initGlobalEnterQuickSubmit,
   initGlobalFormDirtyLeaveConfirm,
 } from './features/common-form.ts';
+import {initRepoActionList} from './features/repo-action-list.ts';
 
 initGiteaFomantic();
 initDirAuto();
@@ -213,5 +214,6 @@ onDomReady(() => {
     initColorPickers,
 
     initOAuth2SettingsDisableCheckbox,
+    initRepoActionList,
   ]);
 });
