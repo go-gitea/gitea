@@ -463,7 +463,6 @@ img.ui.avatar,
 .ui.avatar svg {
   border-radius: var(--border-radius);
   object-fit: contain;
-  aspect-ratio: 1;
 }
 
 .ui.error.message .header,
