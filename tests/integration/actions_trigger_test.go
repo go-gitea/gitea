@@ -1203,10 +1203,10 @@ func TestWorkflowApi(t *testing.T) {
 				"myinput3": "true",
 			},
 		}
+		// Since the workflow is disabled, so the response code is 403 forbidden
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), inputs).
 			AddTokenAuth(token)
-		// TODO which http code is expected here?
-		_ = MakeRequest(t, req, http.StatusInternalServerError)
+		_ = MakeRequest(t, req, http.StatusForbidden)
 
 		// Enable the workflow again
 		req = NewRequest(t, "PUT", workflows.Workflows[0].URL+"/enable").
