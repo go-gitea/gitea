@@ -6,6 +6,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -29,9 +30,9 @@ import (
 
 func getActionWorkflowPath(commit *git.Commit) string {
 	paths := []string{".gitea/workflows", ".github/workflows"}
-	for _, path := range paths {
-		if _, err := commit.SubTree(path); err == nil {
-			return path
+	for _, treePath := range paths {
+		if _, err := commit.SubTree(treePath); err == nil {
+			return treePath
 		}
 	}
 	return ""
@@ -43,9 +44,9 @@ func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, folder 
 
 	defaultBranch, _ := commit.GetBranchName()
 
-	URL := fmt.Sprintf("%s/actions/workflows/%s", ctx.Repo.Repository.APIURL(), entry.Name())
-	HTMLURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", ctx.Repo.Repository.HTMLURL(ctx), defaultBranch, folder, entry.Name())
-	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", ctx.Repo.Repository.HTMLURL(ctx), entry.Name(), ctx.Repo.Repository.DefaultBranch)
+	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", ctx.Repo.Repository.APIURL(), url.PathEscape(entry.Name()))
+	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", ctx.Repo.Repository.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), url.PathEscape(entry.Name()))
+	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", ctx.Repo.Repository.HTMLURL(ctx), url.PathEscape(entry.Name()), url.QueryEscape(ctx.Repo.Repository.DefaultBranch))
 
 	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
 	// State types:
@@ -74,8 +75,8 @@ func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, folder 
 		State:     state,
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
-		URL:       URL,
-		HTMLURL:   HTMLURL,
+		URL:       workflowURL,
+		HTMLURL:   workflowRepoURL,
 		BadgeURL:  badgeURL,
 	}
 }
@@ -133,7 +134,7 @@ func GetActionWorkflow(ctx *context.APIContext, workflowID string) (*api.ActionW
 		}
 	}
 
-	return nil, fmt.Errorf("workflow '%s' not found", workflowID)
+	return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
 }
 
 func DisableActionWorkflow(ctx *context.APIContext, workflowID string) error {

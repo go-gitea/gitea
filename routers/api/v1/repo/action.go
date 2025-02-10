@@ -663,12 +663,11 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	workflowID := ctx.PathParam("workflow_id")
 	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetActionWorkflow", err)
-		return
-	}
-
-	if workflow == nil {
-		ctx.Error(http.StatusNotFound, "GetActionWorkflow", err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "GetActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetActionWorkflow", err)
+		}
 		return
 	}
 
@@ -712,7 +711,11 @@ func ActionsDisableWorkflow(ctx *context.APIContext) {
 	workflowID := ctx.PathParam("workflow_id")
 	err := actions_service.DisableActionWorkflow(ctx, workflowID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "DisableActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
+		}
 		return
 	}
 
@@ -842,7 +845,11 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	workflowID := ctx.PathParam("workflow_id")
 	err := actions_service.EnableActionWorkflow(ctx, workflowID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "EnableActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
+		}
 		return
 	}
 
