@@ -30,9 +30,9 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 	if cloneUser != "" {
 		u.User = url.UserPassword(cloneUser, clonePassword)
 	}
-
+	ctx := context.Background()
 	factory := &CodebaseDownloaderFactory{}
-	downloader, err := factory.New(context.Background(), base.MigrateOptions{
+	downloader, err := factory.New(ctx, base.MigrateOptions{
 		CloneAddr:    u.String(),
 		AuthUsername: apiUser,
 		AuthPassword: apiPassword,
@@ -40,7 +40,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating Codebase downloader: %v", err)
 	}
-	repo, err := downloader.GetRepoInfo()
+	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	assertRepositoryEqual(t, &base.Repository{
 		Name:        "test",
@@ -50,7 +50,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		OriginalURL: cloneAddr,
 	}, repo)
 
-	milestones, err := downloader.GetMilestones()
+	milestones, err := downloader.GetMilestones(ctx)
 	assert.NoError(t, err)
 	assertMilestonesEqual(t, []*base.Milestone{
 		{
@@ -65,11 +65,11 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		},
 	}, milestones)
 
-	labels, err := downloader.GetLabels()
+	labels, err := downloader.GetLabels(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, labels, 4)
 
-	issues, isEnd, err := downloader.GetIssues(1, 2)
+	issues, isEnd, err := downloader.GetIssues(ctx, 1, 2)
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
 	assertIssuesEqual(t, []*base.Issue{
@@ -106,7 +106,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(issues[0])
+	comments, _, err := downloader.GetComments(ctx, issues[0])
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
 		{
@@ -119,7 +119,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		},
 	}, comments)
 
-	prs, _, err := downloader.GetPullRequests(1, 1)
+	prs, _, err := downloader.GetPullRequests(ctx, 1, 1)
 	assert.NoError(t, err)
 	assertPullRequestsEqual(t, []*base.PullRequest{
 		{
@@ -144,7 +144,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(prs[0])
+	rvs, err := downloader.GetReviews(ctx, prs[0])
 	assert.NoError(t, err)
 	assert.Empty(t, rvs)
 }

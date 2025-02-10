@@ -66,6 +66,8 @@
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td><a href="{{.OrganisationLink}}/settings" data-tooltip-content="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
+					{{else}}
+						<tr><td class="tw-text-center" colspan="7">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>

@@ -279,7 +279,7 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		tr := htmlDoc.doc.Find("table.table tbody tr")
+		tr := htmlDoc.doc.Find("table.table tbody tr:not(.no-results-row)")
 		assert.Equal(t, 0, tr.Length())
 	}
 
