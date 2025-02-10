@@ -344,15 +344,14 @@ func findRunner(ctx *context.Context, rCtx *runnersCtx) (*actions_model.ActionRu
 		return nil, false
 	}
 
-	var runner *actions_model.ActionRunner
-	if got, err := db.Find[actions_model.ActionRunner](ctx, opts); err != nil {
+	got, err := db.Find[actions_model.ActionRunner](ctx, opts)
+	if err != nil {
 		ctx.ServerError("FindRunner", err)
 		return nil, false
 	} else if len(got) == 0 {
 		ctx.NotFound("FindRunner", errors.New("runner not found"))
 		return nil, false
-	} else {
-		runner = got[0]
 	}
-	return runner, true
+
+	return got[0], true
 }
