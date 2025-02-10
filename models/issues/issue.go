@@ -364,8 +364,8 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 
 // IsPinned returns if a Issue is pinned
 func (issue *Issue) IsPinned() bool {
-	if issue.PinOrder == 0 && (!setting.IsProd || setting.IsInTesting) {
-		log.Fatal("issue's pinorder has not been loaded")
+	if issue.PinOrder == 0 {
+		setting.PanicInDevOrTesting("issue's pinorder has not been loaded")
 	}
 	return issue.PinOrder > 0
 }

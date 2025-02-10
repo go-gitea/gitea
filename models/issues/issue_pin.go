@@ -70,11 +70,16 @@ func PinIssue(ctx context.Context, issue *Issue, user *user_model.User) error {
 			return ErrIssueMaxPinReached
 		}
 
+		pinnedIssuesMaxPinOrder, err := getPinnedIssuesMaxPinOrder(ctx, issue.RepoID, issue.IsPull)
+		if err != nil {
+			return err
+		}
+
 		if _, err = db.GetEngine(ctx).Insert(&IssuePin{
 			RepoID:   issue.RepoID,
 			IssueID:  issue.ID,
 			IsPull:   issue.IsPull,
-			PinOrder: pinnedIssuesNum + 1,
+			PinOrder: pinnedIssuesMaxPinOrder + 1,
 		}); err != nil {
 			return err
 		}
@@ -119,6 +124,12 @@ func getPinnedIssuesNum(ctx context.Context, repoID int64, isPull bool) (int, er
 	return pinnedIssuesNum, err
 }
 
+func getPinnedIssuesMaxPinOrder(ctx context.Context, repoID int64, isPull bool) (int, error) {
+	var maxPinnedIssuesMaxPinOrder int
+	_, err := db.GetEngine(ctx).SQL("SELECT max(pin_order) FROM issue_pin WHERE repo_id = ? AND is_pull = ?", repoID, isPull).Get(&maxPinnedIssuesMaxPinOrder)
+	return maxPinnedIssuesMaxPinOrder, err
+}
+
 // MovePin moves a Pinned Issue to a new Position
 func MovePin(ctx context.Context, issue *Issue, newPosition int) error {
 	if newPosition < 1 {
@@ -134,9 +145,9 @@ func MovePin(ctx context.Context, issue *Issue, newPosition int) error {
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if issuePin.PinOrder > newPosition {
+		if issuePin.PinOrder > newPosition { // move the issue to a lower position
 			_, err = db.GetEngine(ctx).Exec("UPDATE issue_pin SET pin_order = pin_order + 1 WHERE repo_id = ? AND is_pull = ? AND pin_order >= ? AND pin_order < ?", issue.RepoID, issue.IsPull, newPosition, issuePin.PinOrder)
-		} else {
+		} else { // move the issue to a higher position
 			// Lower the Position of all Pinned Issue that came after the current Position
 			_, err = db.GetEngine(ctx).Exec("UPDATE issue_pin SET pin_order = pin_order - 1 WHERE repo_id = ? AND is_pull = ? AND pin_order > ? AND pin_order <= ?", issue.RepoID, issue.IsPull, issuePin.PinOrder, newPosition)
 		}

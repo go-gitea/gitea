@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
@@ -92,7 +93,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		Deadline:       apiIssue.Deadline,
 		Created:        pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
-		PinOrder:       apiIssue.PinOrder,
+		PinOrder:       util.Iif(apiIssue.PinOrder == -1, 0, apiIssue.PinOrder),
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -366,7 +367,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			Deadline:       apiIssue.Deadline,
 			Created:        pr.Issue.CreatedUnix.AsTimePtr(),
 			Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
-			PinOrder:       apiIssue.PinOrder,
+			PinOrder:       util.Iif(apiIssue.PinOrder == -1, 0, apiIssue.PinOrder),
 
 			AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
