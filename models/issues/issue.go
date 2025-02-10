@@ -530,7 +530,7 @@ func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword st
 	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
 		And(isPullToCond(isPull)).
 		And(cond).
-		OrderBy("`index` DESC").
+		OrderBy("updated_unix DESC, `index` DESC").
 		Limit(pageSize).
 		Find(&issues)
 	return issues, err
