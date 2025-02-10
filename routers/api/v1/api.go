@@ -1159,12 +1159,12 @@ func Routes() *web.Router {
 				addActionsRoutes(m, reqOwner(), repo.NewAction()) // it adds the routes for secrets/variables and runner management
 
 				m.Group("/actions/workflows", func() {
-					m.Get("", reqToken(), repo.ActionsListRepositoryWorkflows)
-					m.Get("/{workflow_id}", reqToken(), repo.ActionsGetWorkflow)
-					m.Put("/{workflow_id}/disable", reqToken(), reqRepoWriter(unit.TypeActions), repo.ActionsDisableWorkflow)
-					m.Post("/{workflow_id}/dispatches", reqToken(), reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
-					m.Put("/{workflow_id}/enable", reqToken(), reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
-				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeActions))
+					m.Get("", repo.ActionsListRepositoryWorkflows)
+					m.Get("/{workflow_id}", repo.ActionsGetWorkflow)
+					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeActions), repo.ActionsDisableWorkflow)
+					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
+					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
+				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
 
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
