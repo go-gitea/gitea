@@ -73,6 +73,33 @@ func TestAPIRepoSecrets(t *testing.T) {
 		}
 	})
 
+	t.Run("CreateWithDescription", func(t *testing.T) {
+		cases := []struct {
+			Name           string
+			Description    string
+			ExpectedStatus int
+		}{
+			{
+				Name:           "no_description",
+				Description:    "",
+				ExpectedStatus: http.StatusCreated,
+			},
+			{
+				Name:           "description",
+				Description:    "some description",
+				ExpectedStatus: http.StatusCreated,
+			},
+		}
+
+		for _, c := range cases {
+			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), c.Name), api.CreateOrUpdateSecretOption{
+				Data:        "data",
+				Description: c.Description,
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, c.ExpectedStatus)
+		}
+	})
+
 	t.Run("Update", func(t *testing.T) {
 		name := "update_secret"
 		url := fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), name)
