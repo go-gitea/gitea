@@ -212,6 +212,10 @@ func UpdateVariable(ctx *context.APIContext) {
 	if opt.Name == "" {
 		opt.Name = ctx.PathParam("variablename")
 	}
+
+	v.Name = opt.Name
+	v.Data = opt.Value
+
 	if _, err := actions_service.UpdateVariable(ctx, v); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
