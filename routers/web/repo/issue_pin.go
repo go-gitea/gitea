@@ -43,8 +43,12 @@ func IssuePinOrUnpin(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		if issues_model.IsErrIssueMaxPinReached(err) {
+			ctx.JSONError(ctx.Tr("repo.issues.max_pinned"))
+		} else {
+			ctx.Status(http.StatusInternalServerError)
+			log.Error(err.Error())
+		}
 		return
 	}
 

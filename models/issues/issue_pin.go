@@ -208,6 +208,9 @@ func GetPinnedIssues(ctx context.Context, repoID int64, isPull bool) (IssueList,
 				break
 			}
 		}
+		if (!setting.IsProd || setting.IsInTesting) && issue.PinOrder == 0 {
+			panic("It should not happen that a pinned Issue has no PinOrder")
+		}
 	}
 	sort.Slice(issues, func(i, j int) bool {
 		return issues[i].PinOrder < issues[j].PinOrder

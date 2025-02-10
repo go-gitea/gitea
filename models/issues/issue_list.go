@@ -512,7 +512,7 @@ func (issues IssueList) LoadPinOrder(ctx context.Context) error {
 	}
 
 	issueIDs := container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
-		return issue.ID, issue.PinOrder == 0 && !issue.pinOrderLoaded
+		return issue.ID, issue.PinOrder == 0
 	})
 	if len(issueIDs) == 0 {
 		return nil
@@ -523,7 +523,7 @@ func (issues IssueList) LoadPinOrder(ctx context.Context) error {
 	}
 
 	for _, issue := range issues {
-		if issue.PinOrder > 0 || issue.pinOrderLoaded {
+		if issue.PinOrder != 0 {
 			continue
 		}
 		for _, pin := range issuePins {
@@ -531,6 +531,9 @@ func (issues IssueList) LoadPinOrder(ctx context.Context) error {
 				issue.PinOrder = pin.PinOrder
 				break
 			}
+		}
+		if issue.PinOrder == 0 {
+			issue.PinOrder = -1
 		}
 	}
 	return nil

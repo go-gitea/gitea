@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -95,8 +96,7 @@ type Issue struct {
 	// TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
 	Ref string
 
-	PinOrder       int  `xorm:"-"`
-	pinOrderLoaded bool `xorm:"-"`
+	PinOrder int `xorm:"-"` // 0 means not loaded, -1 means loaded but not pinned
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
@@ -291,16 +291,18 @@ func (issue *Issue) LoadMilestone(ctx context.Context) (err error) {
 }
 
 func (issue *Issue) LoadPinOrder(ctx context.Context) error {
-	if issue.pinOrderLoaded || issue.PinOrder > 0 {
+	if issue.PinOrder != 0 {
 		return nil
 	}
 	issuePin, err := GetIssuePin(ctx, issue)
 	if err != nil && !db.IsErrNotExist(err) {
 		return err
 	}
-	issue.pinOrderLoaded = true
+
 	if issuePin != nil {
 		issue.PinOrder = issuePin.PinOrder
+	} else {
+		issue.PinOrder = -1
 	}
 	return nil
 }
@@ -362,7 +364,10 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 
 // IsPinned returns if a Issue is pinned
 func (issue *Issue) IsPinned() bool {
-	return issue.PinOrder != 0
+	if issue.PinOrder == 0 && (!setting.IsProd || setting.IsInTesting) {
+		log.Fatal("issue's pinorder has not been loaded")
+	}
+	return issue.PinOrder > 0
 }
 
 func (issue *Issue) ResetAttributesLoaded() {
