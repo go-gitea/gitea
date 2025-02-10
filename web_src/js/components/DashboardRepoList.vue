@@ -355,7 +355,7 @@ export default defineComponent({
       </h4>
       <div v-if="isLoading && !reposTotalCount" class="ui attached segment" :class="{'is-loading': isLoading}"/>
       <div v-if="!isLoading && !reposTotalCount" class="ui attached segment empty-placeholder">
-        <svg-icon name="octicon-git-branch" :size="24" class-name="empty-placeholder-icon"/>
+        <svg-icon name="octicon-git-branch" :size="24" class="empty-placeholder-icon"/>
         <p>{{ textNoRepo }}</p>
       </div>
       <div v-if="reposTotalCount" class="ui attached segment repos-search">
@@ -371,7 +371,7 @@ export default defineComponent({
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
                   <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
-                    <svg-icon name="octicon-archive" :size="16" class-name="tw-mr-1"/>
+                    <svg-icon name="octicon-archive" :size="16" class="tw-mr-1"/>
                     {{ textShowArchived }}
                   </label>
                 </div>
@@ -380,7 +380,7 @@ export default defineComponent({
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
                   <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
-                    <svg-icon name="octicon-lock" :size="16" class-name="tw-mr-1"/>
+                    <svg-icon name="octicon-lock" :size="16" class="tw-mr-1"/>
                     {{ textShowPrivate }}
                   </label>
                 </div>
@@ -417,7 +417,7 @@ export default defineComponent({
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
-              <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
+              <svg-icon :name="repoIcon(repo)" :size="16" class="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
@@ -425,7 +425,7 @@ export default defineComponent({
             </a>
             <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class-name="'tw-ml-2 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
           </li>
         </ul>
@@ -436,26 +436,26 @@ export default defineComponent({
               class="item navigation tw-py-1" :class="{'disabled': page === 1}"
               @click="changePage(1)" :title="textFirstPage"
             >
-              <svg-icon name="gitea-double-chevron-left" :size="16" class-name="tw-mr-1"/>
+              <svg-icon name="gitea-double-chevron-left" :size="16" class="tw-mr-1"/>
             </a>
             <a
               class="item navigation tw-py-1" :class="{'disabled': page === 1}"
               @click="changePage(page - 1)" :title="textPreviousPage"
             >
-              <svg-icon name="octicon-chevron-left" :size="16" clsas-name="tw-mr-1"/>
+              <svg-icon name="octicon-chevron-left" :size="16" clsas="tw-mr-1"/>
             </a>
             <a class="active item tw-py-1">{{ page }}</a>
             <a
               class="item navigation" :class="{'disabled': page === finalPage}"
               @click="changePage(page + 1)" :title="textNextPage"
             >
-              <svg-icon name="octicon-chevron-right" :size="16" class-name="tw-ml-1"/>
+              <svg-icon name="octicon-chevron-right" :size="16" class="tw-ml-1"/>
             </a>
             <a
               class="item navigation tw-py-1" :class="{'disabled': page === finalPage}"
               @click="changePage(finalPage)" :title="textLastPage"
             >
-              <svg-icon name="gitea-double-chevron-right" :size="16" class-name="tw-ml-1"/>
+              <svg-icon name="gitea-double-chevron-right" :size="16" class="tw-ml-1"/>
             </a>
           </div>
         </div>
@@ -473,14 +473,14 @@ export default defineComponent({
       </h4>
       <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
       <div v-if="!isLoading && !organizations.length" class="ui attached segment empty-placeholder">
-        <svg-icon name="octicon-organization" :size="24" class-name="empty-placeholder-icon"/>
+        <svg-icon name="octicon-organization" :size="24" class="empty-placeholder-icon"/>
         <p>{{ textNoOrg }}</p>
       </div>
       <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
-              <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
+              <svg-icon name="octicon-organization" :size="16" class="repo-list-icon"/>
               <div class="text truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
@@ -490,7 +490,7 @@ export default defineComponent({
             </a>
             <div class="text light grey tw-flex tw-items-center tw-ml-2">
               {{ org.num_repos }}
-              <svg-icon name="octicon-repo" :size="16" class-name="tw-ml-1 tw-mt-0.5"/>
+              <svg-icon name="octicon-repo" :size="16" class="tw-ml-1 tw-mt-0.5"/>
             </div>
           </li>
         </ul>
