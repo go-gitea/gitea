@@ -5,7 +5,6 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -786,21 +785,21 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		Base: ctx.Base,
 		Doer: ctx.Doer,
 		Repo: ctx.Repo,
-	}, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs *map[string]any) error {
+	}, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		if workflowDispatch != nil {
 			// TODO figure out why the inputs map is empty for url form encoding workaround
 			if opt.Inputs == nil {
 				for name, config := range workflowDispatch.Inputs {
 					value := ctx.FormString("inputs["+name+"]", config.Default)
-					(*inputs)[name] = value
+					inputs[name] = value
 				}
 			} else {
 				for name, config := range workflowDispatch.Inputs {
 					value, ok := opt.Inputs[name]
 					if ok {
-						(*inputs)[name] = value
+						inputs[name] = value
 					} else {
-						(*inputs)[name] = config.Default
+						inputs[name] = config.Default
 					}
 				}
 			}
@@ -808,12 +807,13 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		return nil
 	})
 	if err != nil {
-		if terr, ok := err.(*actions_service.TranslateableError); ok {
-			msg := ctx.Locale.TrString(terr.Translation, terr.Args...)
-			ctx.Error(terr.GetCode(), msg, fmt.Errorf("%s", msg))
-			return
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "DispatchActionWorkflow", err)
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.Error(http.StatusForbidden, "DispatchActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DispatchActionWorkflow", err)
 		}
-		ctx.Error(http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 

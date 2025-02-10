@@ -19,29 +19,13 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 )
-
-type TranslateableError struct {
-	Translation string
-	Args        []any
-	Code        int
-}
-
-func (t TranslateableError) Error() string {
-	return t.Translation
-}
-
-func (t TranslateableError) GetCode() int {
-	if t.Code == 0 {
-		return http.StatusInternalServerError
-	}
-	return t.Code
-}
 
 func getActionWorkflowPath(commit *git.Commit) string {
 	paths := []string{".gitea/workflows", ".github/workflows"}
@@ -156,22 +140,29 @@ func DisableActionWorkflow(ctx *context.APIContext, workflowID string) error {
 	return disableOrEnableWorkflow(ctx, workflowID, false)
 }
 
-func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs *map[string]any) error) error {
-	if len(workflowID) == 0 {
-		return fmt.Errorf("workflowID is empty")
+func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) error {
+	if workflowID == "" {
+		return util.ErrWrapLocale(
+			util.NewNotExistErrorf("workflowID is empty"),
+			"actions.workflow.not_found", workflowID,
+		)
 	}
 
-	if len(ref) == 0 {
-		return fmt.Errorf("ref is empty")
+	if ref == "" {
+		return util.ErrWrapLocale(
+			util.NewNotExistErrorf("ref is empty"),
+			"form.target_ref_not_exist", ref,
+		)
 	}
 
 	// can not rerun job when workflow is disabled
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(workflowID) {
-		return &TranslateableError{
-			Translation: "actions.workflow.disabled",
-		}
+		return util.ErrWrapLocale(
+			util.NewPermissionDeniedErrorf("workflow is disabled"),
+			"actions.workflow.disabled",
+		)
 	}
 
 	// get target commit of run from specified ref
@@ -187,11 +178,10 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ref)
 	}
 	if err != nil {
-		return &TranslateableError{
-			Code:        http.StatusNotFound,
-			Translation: "form.target_ref_not_exist",
-			Args:        []any{ref},
-		}
+		return util.ErrWrapLocale(
+			util.NewNotExistErrorf("ref %q doesn't exist", ref),
+			"form.target_ref_not_exist", ref,
+		)
 	}
 
 	// get workflow entry from runTargetCommit
@@ -219,11 +209,10 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	}
 
 	if len(workflows) == 0 {
-		return &TranslateableError{
-			Code:        http.StatusNotFound,
-			Translation: "actions.workflow.not_found",
-			Args:        []any{workflowID},
-		}
+		return util.ErrWrapLocale(
+			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
+			"actions.workflow.not_found", workflowID,
+		)
 	}
 
 	// get inputs from post
@@ -232,7 +221,7 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	}
 	inputsWithDefaults := make(map[string]any)
 	workflowDispatch := workflow.WorkflowDispatchConfig()
-	if err := processInputs(workflowDispatch, &inputsWithDefaults); err != nil {
+	if err := processInputs(workflowDispatch, inputsWithDefaults); err != nil {
 		return err
 	}
 
@@ -279,14 +268,14 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 
 	// Insert the action run and its associated jobs into the database
 	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
-		return fmt.Errorf("workflow: %w", err)
+		return fmt.Errorf("InsertRun: %w", err)
 	}
 
-	alljobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
 	if err != nil {
 		log.Error("FindRunJobs: %v", err)
 	}
-	CreateCommitStatus(ctx, alljobs...)
+	CreateCommitStatus(ctx, allJobs...)
 
 	return nil
 }
