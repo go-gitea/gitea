@@ -70,11 +70,3 @@
 .dashboard .secondary-nav .ui.dropdown {
   max-width: 100%;
 }
-
-.dashboard .guide > svg, p {
-  color: var(--color-placeholder-text);
-}
-
-.dashboard .guide h3 {
-  margin: 1rem auto !important;
-}

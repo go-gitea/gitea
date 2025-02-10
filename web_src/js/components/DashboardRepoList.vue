@@ -353,12 +353,13 @@ export default defineComponent({
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div v-if="isLoading && !reposTotalCount" class="ui attached segment" :class="{'is-loading': isLoading}"/>
-      <div v-if="!isLoading && !reposTotalCount" class="ui attached segment empty-placeholder">
-        <svg-icon name="octicon-git-branch" :size="24" class="empty-placeholder-icon"/>
-        <p>{{ textNoRepo }}</p>
+      <div v-if="!reposTotalCount" class="ui attached segment" :class="{'is-loading': isLoading}">
+        <div v-if="!isLoading" class="empty-repo-or-org">
+          <svg-icon name="octicon-git-branch" :size="24"/>
+          <p>{{ textNoRepo }}</p>
+        </div>
       </div>
-      <div v-if="reposTotalCount" class="ui attached segment repos-search">
+      <div v-else class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
@@ -471,12 +472,13 @@ export default defineComponent({
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div v-if="isLoading" class="ui attached segment" :class="{'is-loading': isLoading}"/>
-      <div v-if="!isLoading && !organizations.length" class="ui attached segment empty-placeholder">
-        <svg-icon name="octicon-organization" :size="24" class="empty-placeholder-icon"/>
-        <p>{{ textNoOrg }}</p>
+      <div v-if="!organizations.length" class="ui attached segment">
+        <div class="empty-repo-or-org">
+          <svg-icon name="octicon-organization" :size="24"/>
+          <p>{{ textNoOrg }}</p>
+        </div>
       </div>
-      <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
+      <div v-else class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
@@ -556,12 +558,13 @@ ul li:not(:last-child) {
   background: var(--color-hover);
 }
 
-.empty-placeholder-icon {
+.empty-repo-or-org {
+  margin-top: 1em;
+  text-align: center;
   color: var(--color-placeholder-text);
 }
 
-.empty-placeholder p {
-  margin: 1em auto !important;
-  color: var(--color-placeholder-text);
+.empty-repo-or-org p {
+  margin: 1em auto;
 }
 </style>
