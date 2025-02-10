@@ -4,9 +4,12 @@
 package private
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
@@ -123,6 +126,8 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveTag(ourCtx, refFullName)
 		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
+		case git.DefaultFeatures().SupportProcReceive && refFullName.IsForReview():
+			preReceiveForReview(ourCtx, refFullName)
 		default:
 			ourCtx.AssertCanWriteCode()
 		}
@@ -463,6 +468,80 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 	if !baseBranchExist {
 		ctx.JSON(http.StatusForbidden, private.Response{
 			UserMsg: fmt.Sprintf("Unexpected ref: %s", refFullName),
+		})
+		return
+	}
+}
+
+func canUpdateAgitPull(ctx *preReceiveContext, pull *issues_model.PullRequest) error {
+	if pull.Flow != issues_model.PullRequestFlowAGit {
+		return errors.New("Pull request that are not created through agit cannot be updated using agit")
+	}
+
+	if ctx.opts.UserID == pull.Issue.PosterID {
+		return nil
+	}
+
+	if !pull.AllowMaintainerEdit {
+		return fmt.Errorf("The author does not allow maintainers to edit this pull request")
+	}
+
+	if !ctx.loadPusherAndPermission() {
+		return fmt.Errorf("Internal Server Error (no specific error)")
+	}
+
+	if ctx.userPerm.CanWrite(unit.TypeCode) {
+		return errors.New("You have no permission to update this pull request")
+	}
+	return nil
+}
+
+func preReceiveForReview(ctx *preReceiveContext, refFullName git.RefName) {
+	if !ctx.AssertCreatePullRequest() {
+		return
+	}
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "Can't create pull request for an empty repository.",
+		})
+		return
+	}
+
+	if ctx.opts.IsWiki {
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "Pull requests are not supported on the wiki.",
+		})
+		return
+	}
+
+	pullIndex, err := strconv.ParseInt(strings.TrimPrefix(string(refFullName), git.ForReviewPrefix), 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "Unknow pull request index.",
+		})
+		return
+	}
+	pull, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, pullIndex)
+	if err != nil {
+		log.Error("preReceiveForReview: GetPullRequestByIndex: err: %v", err)
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "Unknow pull request index.",
+		})
+		return
+	}
+	err = pull.LoadIssue(ctx)
+	if err != nil {
+		log.Error("preReceiveForReview: pull.LoadIssue: err: %v", err)
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "Unknow pull request.",
+		})
+		return
+	}
+
+	if err := canUpdateAgitPull(ctx, pull); err != nil {
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: err.Error(),
 		})
 		return
 	}

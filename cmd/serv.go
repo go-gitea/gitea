@@ -239,7 +239,8 @@ func runServ(c *cli.Context) error {
 		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
-				fmt.Print(`{"type":"gitea","version":1}`)
+				data := private.GetSSHInfo(ctx)
+				fmt.Println(data)
 				return nil
 			}
 		}
