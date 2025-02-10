@@ -183,17 +183,15 @@ func findVariable(ctx *context.Context, id int64, vCtx *variablesCtx) (*actions_
 		return nil, false
 	}
 
-	var variable *actions_model.ActionVariable
-	if got, err := actions_model.FindVariables(ctx, opts); err != nil {
+	got, err := actions_model.FindVariables(ctx, opts)
+	if err != nil {
 		ctx.ServerError("FindVariables", err)
 		return nil, false
 	} else if len(got) == 0 {
 		ctx.NotFound("FindVariables", nil)
 		return nil, false
-	} else {
-		variable = got[0]
 	}
-	return variable, true
+	return got[0], true
 }
 
 func VariableDelete(ctx *context.Context) {
