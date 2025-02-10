@@ -1248,7 +1248,6 @@ func Routes() *web.Router {
 						m.Delete("", reqRepoWriter(unit.TypeActions), repo.DeleteArtifact)
 					})
 					m.Get("/artifacts/{artifact_id}/zip", repo.DownloadArtifact)
-					m.Get("/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
 				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
@@ -1408,6 +1407,9 @@ func Routes() *web.Router {
 				m.Get("/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), repo.DownloadArchive)
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		// Artifacts direct download endpoint authenticates via signed url
+		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {

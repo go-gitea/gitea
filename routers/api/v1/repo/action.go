@@ -4,17 +4,24 @@
 package repo
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
+
+	go_context "context"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -1084,6 +1091,21 @@ func DeleteArtifact(ctx *context.APIContext) {
 	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
 }
 
+func buildSignature(endp, expires string, artifactID int64) []byte {
+	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
+	mac.Write([]byte(endp))
+	mac.Write([]byte(expires))
+	mac.Write([]byte(fmt.Sprint(artifactID)))
+	return mac.Sum(nil)
+}
+
+func buildSigURL(ctx go_context.Context, endp string, artifactID int64) string {
+	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
+	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") +
+		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(buildSignature(endp, expires, artifactID)) + "&expires=" + url.QueryEscape(expires)
+	return uploadURL
+}
+
 // DownloadArtifact Downloads a specific artifact for a workflow run redirects to blob url.
 func DownloadArtifact(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip repository downloadArtifact
@@ -1136,9 +1158,9 @@ func DownloadArtifact(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, err.Error(), err)
 			return
 		}
-		repoName := ctx.Repo.Repository.FullName()
-		url := httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+repoName+"/actions/artifacts/"+fmt.Sprintf("%d", art.ID)+"/zip/raw")
-		ctx.Redirect(url, http.StatusFound)
+
+		rurl := buildSigURL(ctx, "api/v1/repos/"+url.PathEscape(ctx.Repo.Repository.OwnerName)+"/"+url.PathEscape(ctx.Repo.Repository.Name)+"/actions/artifacts/"+fmt.Sprintf("%d", art.ID)+"/zip/raw", art.ID)
+		ctx.Redirect(rurl, http.StatusFound)
 		return
 	}
 	// v3 not supported due to not having one unique id
@@ -1147,34 +1169,26 @@ func DownloadArtifact(ctx *context.APIContext) {
 
 // DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
 func DownloadArtifactRaw(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip/raw repository downloadArtifactRaw
-	// ---
-	// summary: Downloads a specific artifact for a workflow run directly
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: name of the owner
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repository
-	//   type: string
-	//   required: true
-	// - name: artifact_id
-	//   in: path
-	//   description: id of the artifact
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     description: the artifact content
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	username := ctx.PathParam("username")
+	reponame := ctx.PathParam("reponame")
+	artifactID := ctx.PathParamInt64("artifact_id")
+	sig := ctx.Req.URL.Query().Get("sig")
+	expires := ctx.Req.URL.Query().Get("expires")
+	dsig, _ := base64.URLEncoding.DecodeString(sig)
+
+	endp := "api/v1/repos/" + url.PathEscape(username) + "/" + url.PathEscape(reponame) + "/actions/artifacts/" + fmt.Sprintf("%d", artifactID) + "/zip/raw"
+	expecedsig := buildSignature(endp, expires, artifactID)
+	if !hmac.Equal(dsig, expecedsig) {
+		log.Error("Error unauthorized")
+		ctx.Error(http.StatusUnauthorized, "Error unauthorized", nil)
+		return
+	}
+	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", expires)
+	if err != nil || t.Before(time.Now()) {
+		log.Error("Error link expired")
+		ctx.Error(http.StatusUnauthorized, "Error link expired", nil)
+		return
+	}
 
 	art, ok := getArtifactByID(ctx)
 	if !ok {
@@ -1210,7 +1224,8 @@ func getArtifactByID(ctx *context.APIContext) (*actions_model.ActionArtifact, bo
 		return nil, false
 	}
 	// if artifacts status is not uploaded-confirmed, treat it as not found
-	if !ok || art.RepoID != ctx.Repo.Repository.ID || art.OwnerID != ctx.Repo.Repository.OwnerID || art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) && art.Status != int64(actions_model.ArtifactStatusExpired) {
+	// ctx.Repo.Repository is nil for the raw download endpoint that checked this already
+	if !ok || ctx.Repo != nil && ctx.Repo.Repository != nil && (art.RepoID != ctx.Repo.Repository.ID || art.OwnerID != ctx.Repo.Repository.OwnerID) || art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) && art.Status != int64(actions_model.ArtifactStatusExpired) {
 		ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
 		return nil, false
 	}
