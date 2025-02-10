@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
+	shared_actions "code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/routers/web/shared/project"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -442,10 +443,10 @@ func registerRoutes(m *web.Router) {
 
 	addSettingsVariablesRoutes := func() {
 		m.Group("/variables", func() {
-			m.Get("", repo_setting.Variables)
-			m.Post("/new", web.Bind(forms.EditVariableForm{}), repo_setting.VariableCreate)
-			m.Post("/{variable_id}/edit", web.Bind(forms.EditVariableForm{}), repo_setting.VariableUpdate)
-			m.Post("/{variable_id}/delete", repo_setting.VariableDelete)
+			m.Get("", shared_actions.Variables)
+			m.Post("/new", web.Bind(forms.EditVariableForm{}), shared_actions.VariableCreate)
+			m.Post("/{variable_id}/edit", web.Bind(forms.EditVariableForm{}), shared_actions.VariableUpdate)
+			m.Post("/{variable_id}/delete", shared_actions.VariableDelete)
 		})
 	}
 
