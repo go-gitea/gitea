@@ -661,11 +661,6 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	workflowID := ctx.PathParam("workflow_id")
-	if len(workflowID) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
-		return
-	}
-
 	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetActionWorkflow", err)
@@ -715,11 +710,6 @@ func ActionsDisableWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
-	if len(workflowID) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
-		return
-	}
-
 	err := actions_service.DisableActionWorkflow(ctx, workflowID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
@@ -767,16 +757,9 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
-
 	workflowID := ctx.PathParam("workflow_id")
-	if len(workflowID) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
-		return
-	}
-
-	ref := opt.Ref
-	if len(ref) == 0 {
+	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
+	if opt.Ref == "" {
 		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("ref is required parameter"))
 		return
 	}
@@ -785,7 +768,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		Base: ctx.Base,
 		Doer: ctx.Doer,
 		Repo: ctx.Repo,
-	}, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+	}, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		if workflowDispatch != nil {
 			// TODO figure out why the inputs map is empty for url form encoding workaround
 			if opt.Inputs == nil {
@@ -857,11 +840,6 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
-	if len(workflowID) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
-		return
-	}
-
 	err := actions_service.EnableActionWorkflow(ctx, workflowID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
