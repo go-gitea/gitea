@@ -174,12 +174,13 @@ func findVariable(ctx *context.Context, id int64, vCtx *variablesCtx) (*actions_
 	switch {
 	case vCtx.IsRepo:
 		opts.RepoID = vCtx.RepoID
-	case vCtx.IsOrg:
-		opts.OwnerID = vCtx.OwnerID
-	case vCtx.IsUser:
+	case vCtx.IsOrg, vCtx.IsUser:
 		opts.OwnerID = vCtx.OwnerID
 	case vCtx.IsGlobal:
 		// do nothing
+	default:
+		ctx.ServerError("findVariable", errors.New("unable to determine"))
+		return nil, false
 	}
 
 	var variable *actions_model.ActionVariable
