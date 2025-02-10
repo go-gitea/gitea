@@ -10,7 +10,6 @@ import (
 	"html/template"
 	"regexp"
 	"slices"
-	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -520,13 +519,12 @@ func FindLatestIssues(ctx context.Context, repoID int64, isPull optional.Option[
 	return issues, err
 }
 
-func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], pageSize int) (IssueList, error) {
-	indexKeyword, _ := strconv.ParseInt(keyword, 10, 64)
+func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], nonID int64, pageSize int) (IssueList, error) {
 	cond := builder.NewCond()
-	if indexKeyword > 0 {
-		cond = cond.Or(builder.Eq{"`index`": indexKeyword})
+	if nonID > 0 {
+		cond = cond.And(builder.Neq{"`id`": nonID})
 	}
-	cond = cond.Or(builder.Expr("name LIKE ?", "%"+keyword+"%"))
+	cond = cond.And(builder.Expr("name LIKE ?", "%"+keyword+"%"))
 
 	issues := make([]*Issue, 0, pageSize)
 	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).

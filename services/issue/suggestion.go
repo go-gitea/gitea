@@ -5,7 +5,6 @@ package issue
 
 import (
 	"context"
-	"sort"
 	"strconv"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -24,21 +23,27 @@ func GetSuggestion(ctx context.Context, repo *repo_model.Repository, isPull opti
 			return nil, err
 		}
 	} else {
-		issues, err = issues_model.FindIssuesSuggestionByKeyword(ctx, repo.ID, keyword, isPull, pageSize)
+		indexKeyword, _ := strconv.ParseInt(keyword, 10, 64)
+		var issue *issues_model.Issue
+		var nonID int64
+		if indexKeyword > 0 {
+			issue, err = issues_model.GetIssueByIndex(ctx, repo.ID, indexKeyword)
+			if err != nil && !issues_model.IsErrIssueNotExist(err) {
+				return nil, err
+			}
+			if issue != nil {
+				nonID = issue.ID
+				pageSize--
+			}
+		}
+
+		issues, err = issues_model.FindIssuesSuggestionByKeyword(ctx, repo.ID, keyword, isPull, nonID, pageSize)
 		if err != nil {
 			return nil, err
 		}
-		indexKeyword, _ := strconv.ParseInt(keyword, 10, 64)
-		if indexKeyword > 0 {
-			sort.Slice(issues, func(i, j int) bool {
-				if issues[i].Index == indexKeyword {
-					return true
-				}
-				if issues[j].Index == indexKeyword {
-					return false
-				}
-				return issues[i].Index > issues[j].Index
-			})
+
+		if issue != nil {
+			issues = append([]*issues_model.Issue{issue}, issues...)
 		}
 	}
 
