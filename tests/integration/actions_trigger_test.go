@@ -865,7 +865,7 @@ func TestWorkflowDispatchPublicApiJSON(t *testing.T) {
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
@@ -943,7 +943,7 @@ func TestWorkflowDispatchPublicApiWithInputsJSON(t *testing.T) {
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
@@ -1057,7 +1057,7 @@ func TestWorkflowDispatchPublicApiWithInputsNonDefaultBranchJSON(t *testing.T) {
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "refs/heads/dispatch",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
@@ -1198,7 +1198,7 @@ func TestWorkflowApi(t *testing.T) {
 
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
@@ -1246,7 +1246,7 @@ func TestWorkflowApi(t *testing.T) {
 		assert.NoError(t, err)
 		inputs = &api.CreateActionWorkflowDispatch{
 			Ref: "main",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
