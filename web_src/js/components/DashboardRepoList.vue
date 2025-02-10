@@ -113,7 +113,7 @@ export default defineComponent({
     this.changeReposFilter(this.reposFilter);
     fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
     nextTick(() => {
-      this.$refs.search.focus();
+      this.$refs.search?.focus();
     });
 
     this.textArchivedFilterTitles = {
@@ -243,7 +243,7 @@ export default defineComponent({
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           response = await GET(totalCountSearchURL);
-          this.reposTotalCount = response.headers.get('X-Total-Count') ?? '?';
+          this.reposTotalCount = parseInt(response.headers.get('X-Total-Count') ?? '0');
         }
 
         response = await GET(searchedURL);
@@ -336,7 +336,6 @@ export default defineComponent({
     },
   },
 });
-
 </script>
 <template>
   <div>
@@ -354,7 +353,15 @@ export default defineComponent({
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div class="ui attached segment repos-search">
+      <div v-if="!reposTotalCount" class="ui attached segment">
+        <div v-if="!isLoading" class="empty-repo-or-org">
+          <svg-icon name="octicon-git-branch" :size="24"/>
+          <p>{{ textNoRepo }}</p>
+        </div>
+        <!-- using the loading indicator here will cause more (unnecessary) page flickers, so at the moment, not use the loading indicator -->
+        <!-- <div v-else class="is-loading loading-icon-2px tw-min-h-16"/> -->
+      </div>
+      <div v-else class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
@@ -438,7 +445,7 @@ export default defineComponent({
               class="item navigation tw-py-1" :class="{'disabled': page === 1}"
               @click="changePage(page - 1)" :title="textPreviousPage"
             >
-              <svg-icon name="octicon-chevron-left" :size="16" clsas-name="tw-mr-1"/>
+              <svg-icon name="octicon-chevron-left" :size="16" clsas="tw-mr-1"/>
             </a>
             <a class="active item tw-py-1">{{ page }}</a>
             <a
@@ -467,7 +474,13 @@ export default defineComponent({
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
+      <div v-if="!organizations.length" class="ui attached segment">
+        <div class="empty-repo-or-org">
+          <svg-icon name="octicon-organization" :size="24"/>
+          <p>{{ textNoOrg }}</p>
+        </div>
+      </div>
+      <div v-else class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
@@ -545,5 +558,15 @@ ul li:not(:last-child) {
 
 .repo-owner-name-list li.active {
   background: var(--color-hover);
+}
+
+.empty-repo-or-org {
+  margin-top: 1em;
+  text-align: center;
+  color: var(--color-placeholder-text);
+}
+
+.empty-repo-or-org p {
+  margin: 1em auto;
 }
 </style>
