@@ -23,6 +23,10 @@ type BaseContextKeyType struct{}
 
 var BaseContextKey BaseContextKeyType
 
+// Base is the base context for all web handlers
+// ATTENTION: This struct should never be manually constructed in routes/services,
+// it has many internal details which should be carefully prepared by the framework.
+// If it is abused, it would cause strange bugs like panic/resource-leak.
 type Base struct {
 	reqctx.RequestContext
 
