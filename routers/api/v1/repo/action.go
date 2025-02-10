@@ -772,21 +772,19 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		Doer: ctx.Doer,
 		Repo: ctx.Repo,
 	}, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
-		if workflowDispatch != nil {
-			// TODO figure out why the inputs map is empty for url form encoding workaround
-			if opt.Inputs == nil {
-				for name, config := range workflowDispatch.Inputs {
-					value := ctx.FormString("inputs["+name+"]", config.Default)
+		// TODO figure out why the inputs map is empty for url form encoding workaround
+		if opt.Inputs == nil {
+			for name, config := range workflowDispatch.Inputs {
+				value := ctx.FormString("inputs["+name+"]", config.Default)
+				inputs[name] = value
+			}
+		} else {
+			for name, config := range workflowDispatch.Inputs {
+				value, ok := opt.Inputs[name] // FIXME: the input value is "any", does GitHub Actions really work with "any" (eg: bool)?
+				if ok {
 					inputs[name] = value
-				}
-			} else {
-				for name, config := range workflowDispatch.Inputs {
-					value, ok := opt.Inputs[name] // FIXME: the input value is "any", does GitHub Actions really work with "any" (eg: bool)?
-					if ok {
-						inputs[name] = value
-					} else {
-						inputs[name] = config.Default
-					}
+				} else {
+					inputs[name] = config.Default
 				}
 			}
 		}

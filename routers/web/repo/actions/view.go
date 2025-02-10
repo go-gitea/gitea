@@ -788,16 +788,14 @@ func Run(ctx *context_module.Context) {
 		return
 	}
 	err := actions_service.DispatchActionWorkflow(ctx, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
-		if workflowDispatch != nil {
-			for name, config := range workflowDispatch.Inputs {
-				value := ctx.Req.PostFormValue(name)
-				if config.Type == "boolean" {
-					inputs[name] = strconv.FormatBool(ctx.FormBool(name))
-				} else if value != "" {
-					inputs[name] = value
-				} else {
-					inputs[name] = config.Default
-				}
+		for name, config := range workflowDispatch.Inputs {
+			value := ctx.Req.PostFormValue(name)
+			if config.Type == "boolean" {
+				inputs[name] = strconv.FormatBool(ctx.FormBool(name))
+			} else if value != "" {
+				inputs[name] = value
+			} else {
+				inputs[name] = config.Default
 			}
 		}
 		return nil

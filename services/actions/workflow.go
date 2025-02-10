@@ -221,9 +221,10 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 		RawOn: workflows[0].RawOn,
 	}
 	inputsWithDefaults := make(map[string]any)
-	workflowDispatch := workflow.WorkflowDispatchConfig()
-	if err := processInputs(workflowDispatch, inputsWithDefaults); err != nil {
-		return err
+	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
+		if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
+			return err
+		}
 	}
 
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
