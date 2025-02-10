@@ -4,6 +4,7 @@
 package repo
 
 import (
+	go_context "context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -13,8 +14,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	go_context "context"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
