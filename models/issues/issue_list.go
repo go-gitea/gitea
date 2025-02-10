@@ -506,6 +506,39 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 	return nil
 }
 
+func (issues IssueList) LoadPinOrder(ctx context.Context) error {
+	if len(issues) == 0 {
+		return nil
+	}
+
+	issueIDs := container.FilterSlice(issues, func(issue *Issue) (int64, bool) {
+		return issue.ID, issue.PinOrder == 0
+	})
+	if len(issueIDs) == 0 {
+		return nil
+	}
+	issuePins, err := GetIssuePinsByIssueIDs(ctx, issueIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, issue := range issues {
+		if issue.PinOrder != 0 {
+			continue
+		}
+		for _, pin := range issuePins {
+			if pin.IssueID == issue.ID {
+				issue.PinOrder = pin.PinOrder
+				break
+			}
+		}
+		if issue.PinOrder == 0 {
+			issue.PinOrder = -1
+		}
+	}
+	return nil
+}
+
 // loadAttributes loads all attributes, expect for attachments and comments
 func (issues IssueList) LoadAttributes(ctx context.Context) error {
 	if _, err := issues.LoadRepositories(ctx); err != nil {
