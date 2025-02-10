@@ -10,6 +10,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	actions_shared "code.gitea.io/gitea/routers/web/shared/actions"
@@ -179,9 +180,57 @@ func RunnerDeletePost(ctx *context.Context) {
 		ctx.ServerError("getRunnersCtx", err)
 		return
 	}
-	actions_shared.RunnerDeletePost(ctx, ctx.PathParamInt64("runnerid"), rCtx.RedirectLink, rCtx.RedirectLink+url.PathEscape(ctx.PathParam("runnerid")))
+
+	runner, ok := findRunner(ctx, rCtx)
+	if !ok {
+		return
+	}
+
+	successRedirectTo := rCtx.RedirectLink
+	failedRedirectTo := rCtx.RedirectLink + url.PathEscape(ctx.PathParam("runnerid"))
+
+	if err := actions_model.DeleteRunner(ctx, runner.ID); err != nil {
+		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
+		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
+
+		ctx.JSONRedirect(failedRedirectTo)
+		return
+	}
+
+	log.Info("DeleteRunnerPost success: %s", ctx.Req.URL)
+
+	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
+
+	ctx.JSONRedirect(successRedirectTo)
 }
 
 func RedirectToDefaultSetting(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions/runners")
+}
+
+func findRunner(ctx *context.Context, rCtx *runnersCtx) (*actions_model.ActionRunner, bool) {
+	runnerID := ctx.PathParamInt64("runnerid")
+	opts := &actions_model.FindRunnerOptions{
+		IDs: []int64{runnerID},
+	}
+	switch {
+	case rCtx.IsRepo:
+		opts.RepoID = rCtx.RepoID
+	case rCtx.IsOrg, rCtx.IsUser:
+		opts.OwnerID = rCtx.OwnerID
+	case rCtx.IsAdmin:
+		// do nothing
+	}
+
+	var runner *actions_model.ActionRunner
+	if got, err := db.Find[actions_model.ActionRunner](ctx, opts); err != nil {
+		ctx.ServerError("FindRunner", err)
+		return nil, false
+	} else if len(got) == 0 {
+		ctx.NotFound("FindRunner", errors.New("runner not found"))
+		return nil, false
+	} else {
+		runner = got[0]
+	}
+	return runner, true
 }

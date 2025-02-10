@@ -139,22 +139,3 @@ func RunnerResetRegistrationToken(ctx *context.Context, ownerID, repoID int64, r
 	ctx.Flash.Success(ctx.Tr("actions.runners.reset_registration_token_success"))
 	ctx.JSONRedirect(redirectTo)
 }
-
-// RunnerDeletePost response for deleting a runner
-func RunnerDeletePost(ctx *context.Context, runnerID int64,
-	successRedirectTo, failedRedirectTo string,
-) {
-	if err := actions_model.DeleteRunner(ctx, runnerID); err != nil {
-		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
-
-		ctx.JSONRedirect(failedRedirectTo)
-		return
-	}
-
-	log.Info("DeleteRunnerPost success: %s", ctx.Req.URL)
-
-	ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
-
-	ctx.JSONRedirect(successRedirectTo)
-}
