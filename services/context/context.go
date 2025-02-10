@@ -34,7 +34,10 @@ type Render interface {
 	HTML(w io.Writer, status int, name templates.TplName, data any, templateCtx context.Context) error
 }
 
-// Context represents context of a request.
+// Context represents context of a web request.
+// ATTENTION: This struct should never be manually constructed in routes/services,
+// it has many internal details which should be carefully prepared by the framework.
+// If it is abused, it would cause strange bugs like panic/resource-leak.
 type Context struct {
 	*Base
 
