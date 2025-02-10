@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/models/repo"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -231,7 +230,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 }
 
 // ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
-func ToActionArtifact(repo *repo.Repository, art *actions_model.ActionArtifact) (*api.ActionArtifact, error) {
+func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArtifact) (*api.ActionArtifact, error) {
 	url := fmt.Sprintf("%s/actions/artifacts/%d", repo.APIURL(), art.ID)
 
 	return &api.ActionArtifact{
