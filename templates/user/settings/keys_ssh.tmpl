@@ -82,7 +82,7 @@
 								<p><code>{{printf "echo -n '%s' | ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey" $.TokenToSign}}</code></p>
 								<details>
 									<summary>Windows PowerShell</summary>
-									<p><code>{{printf "cmd /c \"<NUL set /p =`\"%s`\"| ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey\"" $.TokenToSign}}</code></p>
+									<p><code>{{printf "cmd /c \"<NUL set /p=`\"%s`\"| ssh-keygen -Y sign -n gitea -f /path_to_PrivateKey_or_RelatedPublicKey\"" $.TokenToSign}}</code></p>
 								</details>
 								<br>
 								<details>
