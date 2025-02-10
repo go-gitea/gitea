@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -772,15 +773,16 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		Doer: ctx.Doer,
 		Repo: ctx.Repo,
 	}, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
-		// TODO figure out why the inputs map is empty for url form encoding workaround
-		if opt.Inputs == nil {
+		if strings.Contains(ctx.Req.Header.Get("Content-Type"), "form-urlencoded") {
+			// The chi framework's "Binding" doesn't support to bind the form map values into a map[string]string
+			// So we have to manually read the `inputs[key]` from the form
 			for name, config := range workflowDispatch.Inputs {
 				value := ctx.FormString("inputs["+name+"]", config.Default)
 				inputs[name] = value
 			}
 		} else {
 			for name, config := range workflowDispatch.Inputs {
-				value, ok := opt.Inputs[name] // FIXME: the input value is "any", does GitHub Actions really work with "any" (eg: bool)?
+				value, ok := opt.Inputs[name]
 				if ok {
 					inputs[name] = value
 				} else {
@@ -790,6 +792,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		}
 		return nil
 	})
+
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "DispatchActionWorkflow", err)
