@@ -39,19 +39,6 @@ func CreateVariable(ctx *context.Context, ownerID, repoID int64, redirectURL str
 	ctx.JSONRedirect(redirectURL)
 }
 
-func UpdateVariable(ctx *context.Context, redirectURL string) {
-	id := ctx.PathParamInt64("variable_id")
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
-
-	if ok, err := actions_service.UpdateVariable(ctx, id, form.Name, form.Data); err != nil || !ok {
-		log.Error("UpdateVariable: %v", err)
-		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
-		return
-	}
-	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
-	ctx.JSONRedirect(redirectURL)
-}
-
 func DeleteVariable(ctx *context.Context, redirectURL string) {
 	id := ctx.PathParamInt64("variable_id")
 

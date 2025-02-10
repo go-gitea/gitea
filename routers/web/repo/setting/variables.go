@@ -7,11 +7,16 @@ import (
 	"errors"
 	"net/http"
 
+	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/web"
 	shared "code.gitea.io/gitea/routers/web/shared/actions"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
+	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -127,7 +132,44 @@ func VariableUpdate(ctx *context.Context) {
 		return
 	}
 
-	shared.UpdateVariable(ctx, vCtx.RedirectLink)
+	id := ctx.PathParamInt64("variable_id")
+
+	opts := actions_model.FindVariablesOpts{
+		IDs: []int64{id},
+	}
+	switch {
+	case vCtx.IsRepo:
+		opts.RepoID = vCtx.RepoID
+	case vCtx.IsOrg:
+		opts.OwnerID = vCtx.OwnerID
+	case vCtx.IsUser:
+		opts.OwnerID = vCtx.OwnerID
+	case vCtx.IsGlobal:
+		// do nothing
+	}
+
+	var variable *actions_model.ActionVariable
+	if got, err := actions_model.FindVariables(ctx, opts); err != nil {
+		ctx.ServerError("FindVariables", err)
+		return
+	} else if len(got) == 0 {
+		ctx.NotFound("FindVariables", nil)
+		return
+	} else {
+		variable = got[0]
+	}
+
+	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	variable.Name = form.Name
+	variable.Data = form.Data
+
+	if ok, err := actions_service.UpdateVariable(ctx, variable); err != nil || !ok {
+		log.Error("UpdateVariable: %v", err)
+		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
+	ctx.JSONRedirect(vCtx.RedirectLink)
 }
 
 func VariableDelete(ctx *context.Context) {
