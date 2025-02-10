@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"regexp"
 	"slices"
+	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -519,38 +520,19 @@ func FindLatestIssues(ctx context.Context, repoID int64, isPull optional.Option[
 	return issues, err
 }
 
-func FindIssuesTitleKeywords(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], nonIDs []int64, pageSize int) (IssueList, error) {
-	issues := make([]*Issue, 0, pageSize)
-	sess := db.GetEngine(ctx).Where("repo_id = ?", repoID).
-		And(isPullToCond(isPull))
-	if len(nonIDs) > 0 {
-		sess.NotIn("id", nonIDs)
+func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], pageSize int) (IssueList, error) {
+	indexKeyword, _ := strconv.ParseInt(keyword, 10, 64)
+	cond := builder.NewCond()
+	if indexKeyword > 0 {
+		cond = cond.Or(builder.Eq{"`index`": indexKeyword})
 	}
-	err := sess.And("name LIKE ?", "%"+keyword+"%").
-		OrderBy("created_unix DESC").
-		Limit(pageSize).
-		Find(&issues)
-	return issues, err
-}
-
-func FindIssuesWithIndexPrefix(ctx context.Context, repoID, index int64, isPull optional.Option[bool], pageSize int) (IssueList, error) {
-	var cond string
-	switch {
-	case setting.Database.Type.IsSQLite3():
-		cond = "CAST(`index` AS TEXT) LIKE ?"
-	case setting.Database.Type.IsMySQL():
-		cond = "CAST(`index` AS CHAR) LIKE ?"
-	case setting.Database.Type.IsPostgreSQL():
-		cond = "index::TEXT LIKE ?"
-	case setting.Database.Type.IsMSSQL():
-		cond = "CAST([index] AS VARCHAR) LIKE ?"
-	}
+	cond = cond.Or(builder.Expr("name LIKE ?", "%"+keyword+"%"))
 
 	issues := make([]*Issue, 0, pageSize)
 	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
 		And(isPullToCond(isPull)).
-		Where(cond, fmt.Sprintf("%d%%", index)).
-		OrderBy("`index` ASC").
+		And(cond).
+		OrderBy("`index` DESC").
 		Limit(pageSize).
 		Find(&issues)
 	return issues, err
