@@ -40,7 +40,7 @@ type CreateActionWorkflowDispatch struct {
 	// example: refs/heads/main
 	Ref string `json:"ref" binding:"Required"`
 	// required: false
-	Inputs map[string]any `json:"inputs,omitempty"`
+	Inputs map[string]string `json:"inputs,omitempty"`
 }
 
 // ActionWorkflow represents a ActionWorkflow
