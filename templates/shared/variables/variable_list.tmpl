@@ -82,21 +82,22 @@
 				>
 			</div>
 			<div class="field">
-				<label for="dialog-variable-description">{{ctx.Locale.Tr "secrets.creation.description"}}</label>
-				<input
-					name="description"
-					id="dialog-variable-description"
-					maxlength="{{.DescriptionMaxLength}}"
-					placeholder="{{ctx.Locale.Tr "secrets.creation.description_placeholder"}}"
-				>
-			</div>
-			<div class="field">
 				<label for="dialog-variable-data">{{ctx.Locale.Tr "value"}}</label>
 				<textarea required
 					name="data"
 					id="dialog-variable-data"
 					maxlength="{{.DataMaxLength}}"
 					placeholder="{{ctx.Locale.Tr "secrets.creation.value_placeholder"}}"
+				></textarea>
+			</div>
+			<div class="field">
+				<label for="dialog-variable-description">{{ctx.Locale.Tr "secrets.creation.description"}}</label>
+				<textarea
+					name="description"
+					id="dialog-variable-description"
+					rows="2"
+					maxlength="{{.DescriptionMaxLength}}"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.description_placeholder"}}"
 				></textarea>
 			</div>
 		</div>
