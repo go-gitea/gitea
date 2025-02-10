@@ -25,19 +25,19 @@ func GetSuggestion(ctx context.Context, repo *repo_model.Repository, isPull opti
 	} else {
 		indexKeyword, _ := strconv.ParseInt(keyword, 10, 64)
 		var issue *issues_model.Issue
-		var nonID int64
+		var excludedID int64
 		if indexKeyword > 0 {
 			issue, err = issues_model.GetIssueByIndex(ctx, repo.ID, indexKeyword)
 			if err != nil && !issues_model.IsErrIssueNotExist(err) {
 				return nil, err
 			}
 			if issue != nil {
-				nonID = issue.ID
+				excludedID = issue.ID
 				pageSize--
 			}
 		}
 
-		issues, err = issues_model.FindIssuesSuggestionByKeyword(ctx, repo.ID, keyword, isPull, nonID, pageSize)
+		issues, err = issues_model.FindIssuesSuggestionByKeyword(ctx, repo.ID, keyword, isPull, excludedID, pageSize)
 		if err != nil {
 			return nil, err
 		}
