@@ -71,10 +71,6 @@
   max-width: 100%;
 }
 
-.dashboard #dashboard-repo-list.is-loading {
-  aspect-ratio: 5.415; /* the size is about 790 x 145 */
-}
-
 .dashboard .guide > svg, p {
   color: var(--color-placeholder-text);
 }
