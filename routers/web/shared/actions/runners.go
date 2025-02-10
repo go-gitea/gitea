@@ -300,8 +300,13 @@ func RunnerDeletePost(ctx *context.Context) {
 		return
 	}
 
-	runner, ok := findRunner(ctx, rCtx)
-	if !ok {
+	runner := findActionsRunner(ctx, rCtx)
+	if ctx.Written() {
+		return
+	}
+
+	if !runner.Editable(rCtx.OwnerID, rCtx.RepoID) {
+		ctx.NotFound("RunnerDeletePost", util.NewPermissionDeniedErrorf("no permission to delete this runner"))
 		return
 	}
 
@@ -327,7 +332,7 @@ func RedirectToDefaultSetting(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions/runners")
 }
 
-func findRunner(ctx *context.Context, rCtx *runnersCtx) (*actions_model.ActionRunner, bool) {
+func findActionsRunner(ctx *context.Context, rCtx *runnersCtx) *actions_model.ActionRunner {
 	runnerID := ctx.PathParamInt64("runnerid")
 	opts := &actions_model.FindRunnerOptions{
 		IDs: []int64{runnerID},
@@ -335,23 +340,28 @@ func findRunner(ctx *context.Context, rCtx *runnersCtx) (*actions_model.ActionRu
 	switch {
 	case rCtx.IsRepo:
 		opts.RepoID = rCtx.RepoID
+		if opts.RepoID == 0 {
+			panic("repoID is 0")
+		}
 	case rCtx.IsOrg, rCtx.IsUser:
 		opts.OwnerID = rCtx.OwnerID
+		if opts.OwnerID == 0 {
+			panic("ownerID is 0")
+		}
 	case rCtx.IsAdmin:
 		// do nothing
 	default:
-		ctx.ServerError("findRunner", errors.New("unable to determine"))
-		return nil, false
+		panic("invalid actions runner context")
 	}
 
 	got, err := db.Find[actions_model.ActionRunner](ctx, opts)
 	if err != nil {
 		ctx.ServerError("FindRunner", err)
-		return nil, false
+		return nil
 	} else if len(got) == 0 {
 		ctx.NotFound("FindRunner", errors.New("runner not found"))
-		return nil, false
+		return nil
 	}
 
-	return got[0], true
+	return got[0]
 }
