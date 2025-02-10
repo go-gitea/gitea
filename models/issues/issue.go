@@ -524,6 +524,11 @@ func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword st
 	if excludedID > 0 {
 		cond = cond.And(builder.Neq{"`id`": excludedID})
 	}
+
+	// It seems that GitHub searches both title and content (maybe sorting by the search engine's ranking system?)
+	// The first PR (https://github.com/go-gitea/gitea/pull/32327) uses "search indexer" to search "name(title) +  content"
+	// But it seems that searching "content" (especially LIKE by DB engine) generates worse (unusable) results.
+	// So now (https://github.com/go-gitea/gitea/pull/33538) it only searches "name(title)", leave the improvements to the future.
 	cond = cond.And(db.BuildCaseInsensitiveLike("`name`", keyword))
 
 	issues := make([]*Issue, 0, pageSize)
