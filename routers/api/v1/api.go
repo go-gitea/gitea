@@ -915,21 +915,6 @@ func Routes() *web.Router {
 		})
 	}
 
-	addActionsWorkflowRoutes := func(
-		m *web.Router,
-		actw actions.WorkflowAPI,
-	) {
-		m.Group("/actions", func() {
-			m.Group("/workflows", func() {
-				m.Get("", reqToken(), actw.ListRepositoryWorkflows)
-				m.Get("/{workflow_id}", reqToken(), actw.GetWorkflow)
-				m.Put("/{workflow_id}/disable", reqToken(), reqRepoWriter(unit.TypeActions), actw.DisableWorkflow)
-				m.Post("/{workflow_id}/dispatches", reqToken(), reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), actw.DispatchWorkflow)
-				m.Put("/{workflow_id}/enable", reqToken(), reqRepoWriter(unit.TypeActions), actw.EnableWorkflow)
-			}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeActions))
-		})
-	}
-
 	m.Group("", func() {
 		// Miscellaneous (no scope required)
 		if setting.API.EnableSwagger {
@@ -1174,10 +1159,6 @@ func Routes() *web.Router {
 					m,
 					reqOwner(),
 					repo.NewAction(),
-				)
-				addActionsWorkflowRoutes(
-					m,
-					repo.NewActionWorkflow(),
 				)
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
