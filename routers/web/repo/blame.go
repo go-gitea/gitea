@@ -234,7 +234,12 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 	}
 
 	// populate commit email addresses to later look up avatars.
-	for _, c := range user_model.ValidateCommitsWithEmails(ctx, commits) {
+	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	if err != nil {
+		ctx.ServerError("ValidateCommitsWithEmails", err)
+		return nil
+	}
+	for _, c := range validatedCommits {
 		commitNames[c.ID.String()] = c
 	}
 

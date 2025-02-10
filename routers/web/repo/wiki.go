@@ -437,7 +437,14 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return nil, nil
 	}
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
+	ctx.Data["Commits"], err = git_model.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
+	if err != nil {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
+		ctx.ServerError("ConvertFromGitCommit", err)
+		return nil, nil
+	}
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)

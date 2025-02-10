@@ -497,7 +497,7 @@ type SignCommitWithStatuses struct {
 }
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) []*SignCommitWithStatuses {
+func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) ([]*SignCommitWithStatuses, error) {
 	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
 
 	for _, c := range oldCommits {
@@ -506,15 +506,14 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		}
 		statuses, _, err := GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
 		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
-		} else {
-			commit.Statuses = statuses
-			commit.Status = CalcCommitStatus(statuses)
+			return nil, err
 		}
 
+		commit.Statuses = statuses
+		commit.Status = CalcCommitStatus(statuses)
 		newCommits = append(newCommits, commit)
 	}
-	return newCommits
+	return newCommits, nil
 }
 
 // hashCommitStatusContext hash context
@@ -523,18 +522,23 @@ func hashCommitStatusContext(context string) string {
 }
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
-	return ParseCommitsWithStatus(ctx,
-		asymkey_model.ParseCommitsWithSignature(
-			ctx,
-			user_model.ValidateCommitsWithEmails(ctx, commits),
-			repo.GetTrustModel(),
-			func(user *user_model.User) (bool, error) {
-				return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
-			},
-		),
-		repo,
+func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) ([]*SignCommitWithStatuses, error) {
+	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	if err != nil {
+		return nil, err
+	}
+	signedCommits, err := asymkey_model.ParseCommitsWithSignature(
+		ctx,
+		validatedCommits,
+		repo.GetTrustModel(),
+		func(user *user_model.User) (bool, error) {
+			return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
+		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCommitsWithStatus(ctx, signedCommits, repo)
 }
 
 // CommitStatusesHideActionsURL hide Gitea Actions urls
