@@ -710,7 +710,7 @@ func ActionsDisableWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
-	err := actions_service.DisableActionWorkflow(ctx, workflowID)
+	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, false)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "DisableActionWorkflow", err)
@@ -768,11 +768,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	err := actions_service.DispatchActionWorkflow(&context.Context{
-		Base: ctx.Base,
-		Doer: ctx.Doer,
-		Repo: ctx.Repo,
-	}, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+	err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		if strings.Contains(ctx.Req.Header.Get("Content-Type"), "form-urlencoded") {
 			// The chi framework's "Binding" doesn't support to bind the form map values into a map[string]string
 			// So we have to manually read the `inputs[key]` from the form
@@ -844,7 +840,7 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
-	err := actions_service.EnableActionWorkflow(ctx, workflowID)
+	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, true)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "EnableActionWorkflow", err)

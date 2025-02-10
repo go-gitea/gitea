@@ -787,7 +787,7 @@ func Run(ctx *context_module.Context) {
 		ctx.ServerError("ref", nil)
 		return
 	}
-	err := actions_service.DispatchActionWorkflow(ctx, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+	err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		for name, config := range workflowDispatch.Inputs {
 			value := ctx.Req.PostFormValue(name)
 			if config.Type == "boolean" {

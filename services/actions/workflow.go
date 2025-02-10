@@ -16,9 +16,11 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/reqctx"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
@@ -81,7 +83,7 @@ func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, folder 
 	}
 }
 
-func disableOrEnableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
+func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
 	workflow, err := GetActionWorkflow(ctx, workflowID)
 	if err != nil {
 		return err
@@ -137,11 +139,7 @@ func GetActionWorkflow(ctx *context.APIContext, workflowID string) (*api.ActionW
 	return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
 }
 
-func DisableActionWorkflow(ctx *context.APIContext, workflowID string) error {
-	return disableOrEnableWorkflow(ctx, workflowID, false)
-}
-
-func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) error {
+func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) error {
 	if workflowID == "" {
 		return util.ErrWrapLocale(
 			util.NewNotExistErrorf("workflowID is empty"),
@@ -157,7 +155,7 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	}
 
 	// can not rerun job when workflow is disabled
-	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
+	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(workflowID) {
 		return util.ErrWrapLocale(
@@ -171,12 +169,12 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	var runTargetCommit *git.Commit
 	var err error
 	if refName.IsTag() {
-		runTargetCommit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
+		runTargetCommit, err = gitRepo.GetTagCommit(refName.TagName())
 	} else if refName.IsBranch() {
-		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
+		runTargetCommit, err = gitRepo.GetBranchCommit(refName.BranchName())
 	} else {
 		refName = git.RefNameFromBranch(ref)
-		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ref)
+		runTargetCommit, err = gitRepo.GetBranchCommit(ref)
 	}
 	if err != nil {
 		return util.ErrWrapLocale(
@@ -233,9 +231,9 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	workflowDispatchPayload := &api.WorkflowDispatchPayload{
 		Workflow:   workflowID,
 		Ref:        ref,
-		Repository: convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository: convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		Inputs:     inputsWithDefaults,
-		Sender:     convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
+		Sender:     convert.ToUserWithAccessMode(ctx, doer, perm.AccessModeNone),
 	}
 	var eventPayload []byte
 	if eventPayload, err = workflowDispatchPayload.JSONPayload(); err != nil {
@@ -244,10 +242,10 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 
 	run := &actions_model.ActionRun{
 		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
-		RepoID:            ctx.Repo.Repository.ID,
-		OwnerID:           ctx.Repo.Repository.OwnerID,
+		RepoID:            repo.ID,
+		OwnerID:           repo.OwnerID,
 		WorkflowID:        workflowID,
-		TriggerUserID:     ctx.Doer.ID,
+		TriggerUserID:     doer.ID,
 		Ref:               string(refName),
 		CommitSHA:         runTargetCommit.ID.String(),
 		IsForkPullRequest: false,
@@ -280,8 +278,4 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	CreateCommitStatus(ctx, allJobs...)
 
 	return nil
-}
-
-func EnableActionWorkflow(ctx *context.APIContext, workflowID string) error {
-	return disableOrEnableWorkflow(ctx, workflowID, true)
 }
