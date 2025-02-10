@@ -788,7 +788,6 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		}
 		return nil
 	})
-
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Error(http.StatusNotFound, "DispatchActionWorkflow", err)
