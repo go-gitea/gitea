@@ -781,7 +781,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 				}
 			} else {
 				for name, config := range workflowDispatch.Inputs {
-					value, ok := opt.Inputs[name]
+					value, ok := opt.Inputs[name] // FIXME: the input value is "any", does GitHub Actions really work with "any" (eg: bool)?
 					if ok {
 						inputs[name] = value
 					} else {

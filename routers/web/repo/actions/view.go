@@ -792,7 +792,7 @@ func Run(ctx *context_module.Context) {
 			for name, config := range workflowDispatch.Inputs {
 				value := ctx.Req.PostFormValue(name)
 				if config.Type == "boolean" {
-					inputs[name] = ctx.FormBool(name)
+					inputs[name] = strconv.FormatBool(ctx.FormBool(name))
 				} else if value != "" {
 					inputs[name] = value
 				} else {
