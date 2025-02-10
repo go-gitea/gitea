@@ -941,7 +941,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionArtifact, len(artifacts))
 	for i := range artifacts {
-		convertedArtifact, err := convert.ToActionArtifact(ctx, ctx.Repo.Repository, artifacts[i])
+		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "ToActionArtifact", err)
 			return
@@ -1002,7 +1002,7 @@ func GetArtifacts(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionArtifact, len(artifacts))
 	for i := range artifacts {
-		convertedArtifact, err := convert.ToActionArtifact(ctx, ctx.Repo.Repository, artifacts[i])
+		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "ToActionArtifact", err)
 			return
@@ -1050,7 +1050,7 @@ func GetArtifact(ctx *context.APIContext) {
 	}
 
 	if actions.IsArtifactV4(art) {
-		convertedArtifact, err := convert.ToActionArtifact(ctx, ctx.Repo.Repository, art)
+		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, art)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "ToActionArtifact", err)
 			return
