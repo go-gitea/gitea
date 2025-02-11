@@ -167,6 +167,7 @@ func init() {
 
 type FindRunnerOptions struct {
 	db.ListOptions
+	IDs           []int64
 	RepoID        int64
 	OwnerID       int64 // it will be ignored if RepoID is set
 	Sort          string
@@ -177,6 +178,14 @@ type FindRunnerOptions struct {
 
 func (opts FindRunnerOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
+
+	if len(opts.IDs) > 0 {
+		if len(opts.IDs) == 1 {
+			cond = cond.And(builder.Eq{"id": opts.IDs[0]})
+		} else {
+			cond = cond.And(builder.In("id", opts.IDs))
+		}
+	}
 
 	if opts.RepoID > 0 {
 		c := builder.NewCond().And(builder.Eq{"repo_id": opts.RepoID})
