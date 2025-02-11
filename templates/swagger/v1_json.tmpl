@@ -4430,7 +4430,7 @@
           "repository"
         ],
         "summary": "List repository workflows",
-        "operationId": "ListRepositoryWorkflows",
+        "operationId": "ActionsListRepositoryWorkflows",
         "parameters": [
           {
             "type": "string",
@@ -4478,7 +4478,7 @@
           "repository"
         ],
         "summary": "Get a workflow",
-        "operationId": "GetWorkflow",
+        "operationId": "ActionsGetWorkflow",
         "parameters": [
           {
             "type": "string",
@@ -4533,7 +4533,7 @@
           "repository"
         ],
         "summary": "Disable a workflow",
-        "operationId": "DisableWorkflow",
+        "operationId": "ActionsDisableWorkflow",
         "parameters": [
           {
             "type": "string",
@@ -4585,7 +4585,7 @@
           "repository"
         ],
         "summary": "Create a workflow dispatch event",
-        "operationId": "DispatchWorkflow",
+        "operationId": "ActionsDispatchWorkflow",
         "parameters": [
           {
             "type": "string",
@@ -4644,7 +4644,7 @@
           "repository"
         ],
         "summary": "Enable a workflow",
-        "operationId": "EnableWorkflow",
+        "operationId": "ActionsEnableWorkflow",
         "parameters": [
           {
             "type": "string",
@@ -20016,7 +20016,9 @@
       "properties": {
         "inputs": {
           "type": "object",
-          "additionalProperties": {},
+          "additionalProperties": {
+            "type": "string"
+          },
           "x-go-name": "Inputs"
         },
         "ref": {

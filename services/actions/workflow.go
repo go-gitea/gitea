@@ -6,6 +6,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -15,10 +16,13 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/reqctx"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
@@ -26,28 +30,11 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
-type TranslateableError struct {
-	Translation string
-	Args        []any
-	Code        int
-}
-
-func (t TranslateableError) Error() string {
-	return t.Translation
-}
-
-func (t TranslateableError) GetCode() int {
-	if t.Code == 0 {
-		return http.StatusInternalServerError
-	}
-	return t.Code
-}
-
 func getActionWorkflowPath(commit *git.Commit) string {
 	paths := []string{".gitea/workflows", ".github/workflows"}
-	for _, path := range paths {
-		if _, err := commit.SubTree(path); err == nil {
-			return path
+	for _, treePath := range paths {
+		if _, err := commit.SubTree(treePath); err == nil {
+			return treePath
 		}
 	}
 	return ""
@@ -59,9 +46,9 @@ func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, folder 
 
 	defaultBranch, _ := commit.GetBranchName()
 
-	URL := fmt.Sprintf("%s/actions/workflows/%s", ctx.Repo.Repository.APIURL(), entry.Name())
-	HTMLURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", ctx.Repo.Repository.HTMLURL(ctx), defaultBranch, folder, entry.Name())
-	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", ctx.Repo.Repository.HTMLURL(ctx), entry.Name(), ctx.Repo.Repository.DefaultBranch)
+	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", ctx.Repo.Repository.APIURL(), url.PathEscape(entry.Name()))
+	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", ctx.Repo.Repository.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), url.PathEscape(entry.Name()))
+	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", ctx.Repo.Repository.HTMLURL(ctx), url.PathEscape(entry.Name()), url.QueryEscape(ctx.Repo.Repository.DefaultBranch))
 
 	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
 	// State types:
@@ -90,13 +77,13 @@ func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, folder 
 		State:     state,
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
-		URL:       URL,
-		HTMLURL:   HTMLURL,
+		URL:       workflowURL,
+		HTMLURL:   workflowRepoURL,
 		BadgeURL:  badgeURL,
 	}
 }
 
-func disableOrEnableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
+func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
 	workflow, err := GetActionWorkflow(ctx, workflowID)
 	if err != nil {
 		return err
@@ -149,29 +136,32 @@ func GetActionWorkflow(ctx *context.APIContext, workflowID string) (*api.ActionW
 		}
 	}
 
-	return nil, fmt.Errorf("workflow '%s' not found", workflowID)
+	return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
 }
 
-func DisableActionWorkflow(ctx *context.APIContext, workflowID string) error {
-	return disableOrEnableWorkflow(ctx, workflowID, false)
-}
-
-func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs *map[string]any) error) error {
-	if len(workflowID) == 0 {
-		return fmt.Errorf("workflowID is empty")
+func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) error {
+	if workflowID == "" {
+		return util.ErrWrapLocale(
+			util.NewNotExistErrorf("workflowID is empty"),
+			"actions.workflow.not_found", workflowID,
+		)
 	}
 
-	if len(ref) == 0 {
-		return fmt.Errorf("ref is empty")
+	if ref == "" {
+		return util.ErrWrapLocale(
+			util.NewNotExistErrorf("ref is empty"),
+			"form.target_ref_not_exist", ref,
+		)
 	}
 
 	// can not rerun job when workflow is disabled
-	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
+	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(workflowID) {
-		return &TranslateableError{
-			Translation: "actions.workflow.disabled",
-		}
+		return util.ErrWrapLocale(
+			util.NewPermissionDeniedErrorf("workflow is disabled"),
+			"actions.workflow.disabled",
+		)
 	}
 
 	// get target commit of run from specified ref
@@ -179,19 +169,18 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	var runTargetCommit *git.Commit
 	var err error
 	if refName.IsTag() {
-		runTargetCommit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
+		runTargetCommit, err = gitRepo.GetTagCommit(refName.TagName())
 	} else if refName.IsBranch() {
-		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
+		runTargetCommit, err = gitRepo.GetBranchCommit(refName.BranchName())
 	} else {
 		refName = git.RefNameFromBranch(ref)
-		runTargetCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ref)
+		runTargetCommit, err = gitRepo.GetBranchCommit(ref)
 	}
 	if err != nil {
-		return &TranslateableError{
-			Code:        http.StatusNotFound,
-			Translation: "form.target_ref_not_exist",
-			Args:        []any{ref},
-		}
+		return util.ErrWrapLocale(
+			util.NewNotExistErrorf("ref %q doesn't exist", ref),
+			"form.target_ref_not_exist", ref,
+		)
 	}
 
 	// get workflow entry from runTargetCommit
@@ -219,11 +208,10 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	}
 
 	if len(workflows) == 0 {
-		return &TranslateableError{
-			Code:        http.StatusNotFound,
-			Translation: "actions.workflow.not_found",
-			Args:        []any{workflowID},
-		}
+		return util.ErrWrapLocale(
+			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
+			"actions.workflow.not_found", workflowID,
+		)
 	}
 
 	// get inputs from post
@@ -231,9 +219,10 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 		RawOn: workflows[0].RawOn,
 	}
 	inputsWithDefaults := make(map[string]any)
-	workflowDispatch := workflow.WorkflowDispatchConfig()
-	if err := processInputs(workflowDispatch, &inputsWithDefaults); err != nil {
-		return err
+	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
+		if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
+			return err
+		}
 	}
 
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
@@ -242,9 +231,9 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 	workflowDispatchPayload := &api.WorkflowDispatchPayload{
 		Workflow:   workflowID,
 		Ref:        ref,
-		Repository: convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository: convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		Inputs:     inputsWithDefaults,
-		Sender:     convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
+		Sender:     convert.ToUserWithAccessMode(ctx, doer, perm.AccessModeNone),
 	}
 	var eventPayload []byte
 	if eventPayload, err = workflowDispatchPayload.JSONPayload(); err != nil {
@@ -253,10 +242,10 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 
 	run := &actions_model.ActionRun{
 		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
-		RepoID:            ctx.Repo.Repository.ID,
-		OwnerID:           ctx.Repo.Repository.OwnerID,
+		RepoID:            repo.ID,
+		OwnerID:           repo.OwnerID,
 		WorkflowID:        workflowID,
-		TriggerUserID:     ctx.Doer.ID,
+		TriggerUserID:     doer.ID,
 		Ref:               string(refName),
 		CommitSHA:         runTargetCommit.ID.String(),
 		IsForkPullRequest: false,
@@ -279,18 +268,14 @@ func DispatchActionWorkflow(ctx *context.Context, workflowID, ref string, proces
 
 	// Insert the action run and its associated jobs into the database
 	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
-		return fmt.Errorf("workflow: %w", err)
+		return fmt.Errorf("InsertRun: %w", err)
 	}
 
-	alljobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
 	if err != nil {
 		log.Error("FindRunJobs: %v", err)
 	}
-	CreateCommitStatus(ctx, alljobs...)
+	CreateCommitStatus(ctx, allJobs...)
 
 	return nil
-}
-
-func EnableActionWorkflow(ctx *context.APIContext, workflowID string) error {
-	return disableOrEnableWorkflow(ctx, workflowID, true)
 }

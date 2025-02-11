@@ -5,8 +5,8 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -417,7 +417,11 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	if opt.Name == "" {
 		opt.Name = ctx.PathParam("variablename")
 	}
-	if _, err := actions_service.UpdateVariable(ctx, v.ID, opt.Name, opt.Value); err != nil {
+
+	v.Name = opt.Name
+	v.Data = opt.Value
+
+	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
 		} else {
@@ -585,16 +589,8 @@ func ListActionTasks(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
-// ActionWorkflow implements actions_service.WorkflowAPI
-type ActionWorkflow struct{}
-
-// NewActionWorkflow creates a new ActionWorkflow service
-func NewActionWorkflow() actions_service.WorkflowAPI {
-	return ActionWorkflow{}
-}
-
-func (a ActionWorkflow) ListRepositoryWorkflows(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows repository ListRepositoryWorkflows
+func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows repository ActionsListRepositoryWorkflows
 	// ---
 	// summary: List repository workflows
 	// produces:
@@ -633,8 +629,8 @@ func (a ActionWorkflow) ListRepositoryWorkflows(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &api.ActionWorkflowResponse{Workflows: workflows, TotalCount: int64(len(workflows))})
 }
 
-func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows/{workflow_id} repository GetWorkflow
+func ActionsGetWorkflow(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows/{workflow_id} repository ActionsGetWorkflow
 	// ---
 	// summary: Get a workflow
 	// produces:
@@ -670,27 +666,21 @@ func (a ActionWorkflow) GetWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	workflowID := ctx.PathParam("workflow_id")
-	if len(workflowID) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
-		return
-	}
-
 	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetActionWorkflow", err)
-		return
-	}
-
-	if workflow == nil {
-		ctx.Error(http.StatusNotFound, "GetActionWorkflow", err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "GetActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetActionWorkflow", err)
+		}
 		return
 	}
 
 	ctx.JSON(http.StatusOK, workflow)
 }
 
-func (a ActionWorkflow) DisableWorkflow(ctx *context.APIContext) {
-	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable repository DisableWorkflow
+func ActionsDisableWorkflow(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable repository ActionsDisableWorkflow
 	// ---
 	// summary: Disable a workflow
 	// produces:
@@ -724,22 +714,21 @@ func (a ActionWorkflow) DisableWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
-	if len(workflowID) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
-		return
-	}
-
-	err := actions_service.DisableActionWorkflow(ctx, workflowID)
+	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, false)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "DisableActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
+		}
 		return
 	}
 
 	ctx.Status(http.StatusNoContent)
 }
 
-func (a ActionWorkflow) DispatchWorkflow(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches repository DispatchWorkflow
+func ActionsDispatchWorkflow(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches repository ActionsDispatchWorkflow
 	// ---
 	// summary: Create a workflow dispatch event
 	// produces:
@@ -776,60 +765,49 @@ func (a ActionWorkflow) DispatchWorkflow(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
-
 	workflowID := ctx.PathParam("workflow_id")
-	if len(workflowID) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
-		return
-	}
-
-	ref := opt.Ref
-	if len(ref) == 0 {
+	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
+	if opt.Ref == "" {
 		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("ref is required parameter"))
 		return
 	}
 
-	err := actions_service.DispatchActionWorkflow(&context.Context{
-		Base: ctx.Base,
-		Doer: ctx.Doer,
-		Repo: ctx.Repo,
-	}, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs *map[string]any) error {
-		if workflowDispatch != nil {
-			// TODO figure out why the inputs map is empty for url form encoding workaround
-			if opt.Inputs == nil {
-				for name, config := range workflowDispatch.Inputs {
-					value := ctx.FormString("inputs["+name+"]", config.Default)
-					(*inputs)[name] = value
-				}
-			} else {
-				for name, config := range workflowDispatch.Inputs {
-					value, ok := opt.Inputs[name]
-					if ok {
-						(*inputs)[name] = value
-					} else {
-						(*inputs)[name] = config.Default
-					}
+	err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+		if strings.Contains(ctx.Req.Header.Get("Content-Type"), "form-urlencoded") {
+			// The chi framework's "Binding" doesn't support to bind the form map values into a map[string]string
+			// So we have to manually read the `inputs[key]` from the form
+			for name, config := range workflowDispatch.Inputs {
+				value := ctx.FormString("inputs["+name+"]", config.Default)
+				inputs[name] = value
+			}
+		} else {
+			for name, config := range workflowDispatch.Inputs {
+				value, ok := opt.Inputs[name]
+				if ok {
+					inputs[name] = value
+				} else {
+					inputs[name] = config.Default
 				}
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		if terr, ok := err.(*actions_service.TranslateableError); ok {
-			msg := ctx.Locale.TrString(terr.Translation, terr.Args...)
-			ctx.Error(terr.GetCode(), msg, fmt.Errorf("%s", msg))
-			return
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "DispatchActionWorkflow", err)
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.Error(http.StatusForbidden, "DispatchActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DispatchActionWorkflow", err)
 		}
-		ctx.Error(http.StatusInternalServerError, err.Error(), err)
 		return
 	}
 
 	ctx.Status(http.StatusNoContent)
 }
 
-func (a ActionWorkflow) EnableWorkflow(ctx *context.APIContext) {
-	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable repository EnableWorkflow
+func ActionsEnableWorkflow(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable repository ActionsEnableWorkflow
 	// ---
 	// summary: Enable a workflow
 	// produces:
@@ -865,14 +843,13 @@ func (a ActionWorkflow) EnableWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
-	if len(workflowID) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("workflow_id is required parameter"))
-		return
-	}
-
-	err := actions_service.EnableActionWorkflow(ctx, workflowID)
+	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "EnableActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
+		}
 		return
 	}
 

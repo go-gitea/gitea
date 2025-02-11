@@ -787,33 +787,26 @@ func Run(ctx *context_module.Context) {
 		ctx.ServerError("ref", nil)
 		return
 	}
-	err := actions_service.DispatchActionWorkflow(ctx, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs *map[string]any) error {
-		if workflowDispatch != nil {
-			for name, config := range workflowDispatch.Inputs {
-				value := ctx.Req.PostFormValue(name)
-				if config.Type == "boolean" {
-					// https://www.w3.org/TR/html401/interact/forms.html
-					// https://stackoverflow.com/questions/11424037/do-checkbox-inputs-only-post-data-if-theyre-checked
-					// Checkboxes (and radio buttons) are on/off switches that may be toggled by the user.
-					// A switch is "on" when the control element's checked attribute is set.
-					// When a form is submitted, only "on" checkbox controls can become successful.
-					(*inputs)[name] = strconv.FormatBool(value == "on")
-				} else if value != "" {
-					(*inputs)[name] = value
-				} else {
-					(*inputs)[name] = config.Default
-				}
+	err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+		for name, config := range workflowDispatch.Inputs {
+			value := ctx.Req.PostFormValue(name)
+			if config.Type == "boolean" {
+				inputs[name] = strconv.FormatBool(ctx.FormBool(name))
+			} else if value != "" {
+				inputs[name] = value
+			} else {
+				inputs[name] = config.Default
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		if terr, ok := err.(*actions_service.TranslateableError); ok {
-			ctx.Flash.Error(ctx.Tr(terr.Translation, terr.Args...))
+		if errLocale := util.ErrAsLocale(err); errLocale != nil {
+			ctx.Flash.Error(ctx.Tr(errLocale.TrKey, errLocale.TrArgs...))
 			ctx.Redirect(redirectURL)
-			return
+		} else {
+			ctx.ServerError("DispatchActionWorkflow", err)
 		}
-		ctx.ServerError(err.Error(), err)
 		return
 	}
 

@@ -393,7 +393,7 @@ lint-templates: .venv node_modules ## lint template files
 
 .PHONY: lint-yaml
 lint-yaml: .venv ## lint yaml files
-	@poetry run yamllint .
+	@poetry run yamllint -s .
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild

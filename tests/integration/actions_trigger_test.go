@@ -74,9 +74,19 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, baseRepo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/pr.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  pull_request_target:\n    paths:\n      - 'file_*.txt'\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/pr.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  pull_request_target:
+    paths:
+      - 'file_*.txt'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -230,9 +240,19 @@ func TestSkipCI(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/pr.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  push:\n    branches: [master]\n  pull_request:\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/pr.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  push:
+    branches: [master]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -349,9 +369,17 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/createdelete.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  [create,delete]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/createdelete.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  [create,delete]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -463,9 +491,18 @@ func TestPullRequestCommitStatusEvent(t *testing.T) {
 		addWorkflow, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/pr.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  pull_request:\n    types: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, milestoned, demilestoned, review_requested, review_request_removed]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/pr.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  pull_request:
+    types: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, milestoned, demilestoned, review_requested, review_request_removed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -678,9 +715,17 @@ func TestWorkflowDispatchPublicApi(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -750,9 +795,17 @@ func TestWorkflowDispatchPublicApiWithInputs(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -833,9 +886,17 @@ func TestWorkflowDispatchPublicApiJSON(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -865,7 +926,7 @@ func TestWorkflowDispatchPublicApiJSON(t *testing.T) {
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
@@ -911,9 +972,17 @@ func TestWorkflowDispatchPublicApiWithInputsJSON(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -943,7 +1012,7 @@ func TestWorkflowDispatchPublicApiWithInputsJSON(t *testing.T) {
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
@@ -997,9 +1066,17 @@ func TestWorkflowDispatchPublicApiWithInputsNonDefaultBranchJSON(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -1025,9 +1102,17 @@ func TestWorkflowDispatchPublicApiWithInputsNonDefaultBranchJSON(t *testing.T) {
 		addWorkflowToBaseResp, err = files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "update",
-					TreePath:      ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "update",
+					TreePath:  ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -1057,7 +1142,7 @@ func TestWorkflowDispatchPublicApiWithInputsNonDefaultBranchJSON(t *testing.T) {
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "refs/heads/dispatch",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
@@ -1118,9 +1203,17 @@ func TestWorkflowApi(t *testing.T) {
 		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
-					Operation:     "create",
-					TreePath:      ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader("name: test\non:\n  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo helloworld\n"),
+					Operation: "create",
+					TreePath:  ".gitea/workflows/dispatch.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
 				},
 			},
 			Message:   "add workflow",
@@ -1198,15 +1291,15 @@ func TestWorkflowApi(t *testing.T) {
 
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
 		}
+		// Since the workflow is disabled, so the response code is 403 forbidden
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), inputs).
 			AddTokenAuth(token)
-		// TODO which http code is expected here?
-		_ = MakeRequest(t, req, http.StatusInternalServerError)
+		_ = MakeRequest(t, req, http.StatusForbidden)
 
 		// Enable the workflow again
 		req = NewRequest(t, "PUT", workflows.Workflows[0].URL+"/enable").
@@ -1246,7 +1339,7 @@ func TestWorkflowApi(t *testing.T) {
 		assert.NoError(t, err)
 		inputs = &api.CreateActionWorkflowDispatch{
 			Ref: "main",
-			Inputs: map[string]any{
+			Inputs: map[string]string{
 				"myinput":  "val0",
 				"myinput3": "true",
 			},
