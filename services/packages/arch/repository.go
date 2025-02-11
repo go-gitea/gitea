@@ -245,6 +245,9 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 			return err
 		}
 
+		// here we compare the versions but not using SearchLatestVersions because we shouldn't allow "downgrading" to a older version by "latest" one.
+		// https://wiki.archlinux.org/title/Downgrading_packages : randomly downgrading can mess up dependencies:
+		// If a downgrade involves a soname change, all dependencies may need downgrading or rebuilding too.
 		if old, ok := vpfs[current.Version.PackageID]; ok {
 			if compareVersions(old.Version.Version, current.Version.Version) == -1 {
 				vpfs[current.Version.PackageID] = current
