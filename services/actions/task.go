@@ -1,7 +1,7 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package runner
+package actions
 
 import (
 	"context"
@@ -10,13 +10,12 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	secret_model "code.gitea.io/gitea/models/secret"
-	actions_service "code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
+func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
 	var (
 		task *runnerv1.Task
 		job  *actions_model.ActionRunJob
@@ -74,18 +73,18 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
-	actions_service.CreateCommitStatus(ctx, job)
+	CreateCommitStatus(ctx, job)
 
 	return task, true, nil
 }
 
 func generateTaskContext(t *actions_model.ActionTask) (*structpb.Struct, error) {
-	giteaRuntimeToken, err := actions_service.CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
+	giteaRuntimeToken, err := CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
 	if err != nil {
 		return nil, err
 	}
 
-	gitCtx := actions_service.GenerateGiteaContext(t.Job.Run, t.Job)
+	gitCtx := GenerateGiteaContext(t.Job.Run, t.Job)
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
 
@@ -93,7 +92,7 @@ func generateTaskContext(t *actions_model.ActionTask) (*structpb.Struct, error) 
 }
 
 func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (map[string]*runnerv1.TaskNeed, error) {
-	taskNeeds, err := actions_service.FindTaskNeeds(ctx, taskJob)
+	taskNeeds, err := FindTaskNeeds(ctx, taskJob)
 	if err != nil {
 		return nil, err
 	}
