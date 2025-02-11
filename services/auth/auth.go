@@ -104,7 +104,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	middleware.SetLocaleCookie(resp, user.Language, 0)
 
 	// force to generate a new CSRF token
-	if ctx := gitea_context.GetWebContext(req); ctx != nil {
+	if ctx := gitea_context.GetWebContext(req.Context()); ctx != nil {
 		ctx.Csrf.PrepareForSessionUser(ctx)
 	}
 }
