@@ -20,8 +20,8 @@ func ProcessorHelper() *markup.RenderHelperFuncs {
 				return false
 			}
 
-			giteaCtx, ok := ctx.(*gitea_context.Context)
-			if !ok {
+			giteaCtx := gitea_context.GetWebContext(ctx)
+			if giteaCtx == nil {
 				// when using general context, use user's visibility to check
 				return mentionedUser.Visibility.IsPublic()
 			}

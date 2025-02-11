@@ -1635,7 +1635,7 @@ func registerRoutes(m *web.Router) {
 	}
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		ctx := context.GetWebContext(req)
+		ctx := context.GetWebContext(req.Context())
 		routing.UpdateFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))
 		ctx.NotFound("", nil)
 	})
