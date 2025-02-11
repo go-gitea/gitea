@@ -79,9 +79,9 @@ type webContextKeyType struct{}
 
 var WebContextKey = webContextKeyType{}
 
-func GetWebContext(req *http.Request) *Context {
-	ctx, _ := req.Context().Value(WebContextKey).(*Context)
-	return ctx
+func GetWebContext(ctx context.Context) *Context {
+	webCtx, _ := ctx.Value(WebContextKey).(*Context)
+	return webCtx
 }
 
 // ValidateContext is a special context for form validation middleware. It may be different from other contexts.
@@ -135,6 +135,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 	}
 	ctx.TemplateContext = NewTemplateContextForWeb(ctx)
 	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
+	ctx.SetContextValue(WebContextKey, ctx)
 	return ctx
 }
 
@@ -165,7 +166,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.PageData = map[string]any{}
 			ctx.Data["PageData"] = ctx.PageData
 
-			ctx.Base.SetContextValue(WebContextKey, ctx)
+			ctx.Base.SetContextValue(WebContextKey, ctx) // FIXME: this should be removed because NewWebContext should already set it
 			ctx.Csrf = NewCSRFProtector(csrfOpts)
 
 			// get the last flash message from cookie
