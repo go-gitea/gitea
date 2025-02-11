@@ -88,7 +88,7 @@ func Routes() *web.Router {
 		// Fortunately, the LFS handlers are able to handle requests without a complete web context
 		common.AddOwnerRepoGitLFSRoutes(r, func(ctx *context.PrivateContext) {
 			webContext := &context.Context{Base: ctx.Base}
-			ctx.SetContextValue(context.WebContextKey, webContext)
+			ctx.SetContextValue(context.WebContextKey, webContext) // FIXME: this is not ideal but no other way at the moment
 		})
 	})
 
