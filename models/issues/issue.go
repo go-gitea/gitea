@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -529,6 +530,45 @@ func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 		return nil, ErrIssueNotExist{0, repoID, index}
 	}
 	return issue, nil
+}
+
+func isPullToCond(isPull optional.Option[bool]) builder.Cond {
+	if isPull.Has() {
+		return builder.Eq{"is_pull": isPull.Value()}
+	}
+	return builder.NewCond()
+}
+
+func FindLatestUpdatedIssues(ctx context.Context, repoID int64, isPull optional.Option[bool], pageSize int) (IssueList, error) {
+	issues := make([]*Issue, 0, pageSize)
+	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
+		And(isPullToCond(isPull)).
+		OrderBy("updated_unix DESC").
+		Limit(pageSize).
+		Find(&issues)
+	return issues, err
+}
+
+func FindIssuesSuggestionByKeyword(ctx context.Context, repoID int64, keyword string, isPull optional.Option[bool], excludedID int64, pageSize int) (IssueList, error) {
+	cond := builder.NewCond()
+	if excludedID > 0 {
+		cond = cond.And(builder.Neq{"`id`": excludedID})
+	}
+
+	// It seems that GitHub searches both title and content (maybe sorting by the search engine's ranking system?)
+	// The first PR (https://github.com/go-gitea/gitea/pull/32327) uses "search indexer" to search "name(title) +  content"
+	// But it seems that searching "content" (especially LIKE by DB engine) generates worse (unusable) results.
+	// So now (https://github.com/go-gitea/gitea/pull/33538) it only searches "name(title)", leave the improvements to the future.
+	cond = cond.And(db.BuildCaseInsensitiveLike("`name`", keyword))
+
+	issues := make([]*Issue, 0, pageSize)
+	err := db.GetEngine(ctx).Where("repo_id = ?", repoID).
+		And(isPullToCond(isPull)).
+		And(cond).
+		OrderBy("updated_unix DESC, `index` DESC").
+		Limit(pageSize).
+		Find(&issues)
+	return issues, err
 }
 
 // GetIssueWithAttrsByIndex returns issue by index in a repository.
