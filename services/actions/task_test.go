@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package runner
+package actions
 
 import (
 	"context"
@@ -17,8 +17,9 @@ func Test_findTaskNeeds(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 51})
+	job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: task.JobID})
 
-	ret, err := findTaskNeeds(context.Background(), task)
+	ret, err := findTaskNeeds(context.Background(), job)
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Contains(t, ret, "job1")
