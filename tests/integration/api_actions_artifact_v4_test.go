@@ -398,12 +398,56 @@ func TestActionsArtifactV4DownloadSinglePublicApi(t *testing.T) {
 
 	resp = MakeRequest(t, req, http.StatusFound)
 
-	// confirm artifact can be downloaded and has expected content
-	req = NewRequestWithBody(t, "GET", resp.Header().Get("Location"), nil).
-		AddTokenAuth(token)
+	blobLocation := resp.Header().Get("Location")
+
+	// confirm artifact can be downloaded without token and has expected content
+	req = NewRequestWithBody(t, "GET", blobLocation, nil)
 	resp = MakeRequest(t, req, http.StatusOK)
 	body := strings.Repeat("D", 1024)
 	assert.Equal(t, body, resp.Body.String())
+
+	// confirm artifact can not be downloaded without query
+	req = NewRequestWithBody(t, "GET", blobLocation, nil)
+	req.URL.RawQuery = ""
+	_ = MakeRequest(t, req, http.StatusUnauthorized)
+}
+
+func TestActionsArtifactV4DownloadSinglePublicApiPrivateRepo(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifact can be listed and found by name
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts?name=artifact-v4-download", repo.FullName()), nil).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var listResp api.ActionArtifactsResponse
+	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(23), listResp.Entries[0].ID)
+	assert.NotEmpty(t, listResp.Entries[0].ArchiveDownloadURL)
+	assert.Equal(t, "artifact-v4-download", listResp.Entries[0].Name)
+
+	// confirm artifact blob storage url can be retrieved
+	req = NewRequestWithBody(t, "GET", listResp.Entries[0].ArchiveDownloadURL, nil).
+		AddTokenAuth(token)
+
+	resp = MakeRequest(t, req, http.StatusFound)
+
+	blobLocation := resp.Header().Get("Location")
+	// confirm artifact can be downloaded without token and has expected content
+	req = NewRequestWithBody(t, "GET", blobLocation, nil)
+	resp = MakeRequest(t, req, http.StatusOK)
+	body := strings.Repeat("D", 1024)
+	assert.Equal(t, body, resp.Body.String())
+
+	// confirm artifact can not be downloaded without query
+	req = NewRequestWithBody(t, "GET", blobLocation, nil)
+	req.URL.RawQuery = ""
+	_ = MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestActionsArtifactV4ListAndGetPublicApi(t *testing.T) {
@@ -483,7 +527,7 @@ func TestActionsArtifactV4DownloadArtifactCorrectRepoOwnerFound(t *testing.T) {
 	MakeRequest(t, req, http.StatusFound)
 }
 
-func TestActionsArtifactV4DownloadRawArtifactMismatchedRepoOwnerNotFound(t *testing.T) {
+func TestActionsArtifactV4DownloadRawArtifactMismatchedRepoOwnerMissingSignatureUnauthorized(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -494,7 +538,21 @@ func TestActionsArtifactV4DownloadRawArtifactMismatchedRepoOwnerNotFound(t *test
 	// confirm artifacts of wrong owner or repo is not visible
 	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusUnauthorized)
+}
+
+func TestActionsArtifactV4DownloadRawArtifactCorrectRepoOwnerMissingSignatureUnauthorized(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifacts of wrong owner or repo is not visible
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestActionsArtifactV4Delete(t *testing.T) {
