@@ -156,5 +156,8 @@ func CountWrongRepoLevelVariables(ctx context.Context) (int64, error) {
 
 func UpdateWrongRepoLevelVariables(ctx context.Context) (int64, error) {
 	result, err := db.GetEngine(ctx).Exec("UPDATE `action_variable` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0")
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
