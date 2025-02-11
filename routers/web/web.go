@@ -467,11 +467,11 @@ func registerRoutes(m *web.Router) {
 
 	addSettingsRunnersRoutes := func() {
 		m.Group("/runners", func() {
-			m.Get("", repo_setting.Runners)
-			m.Combo("/{runnerid}").Get(repo_setting.RunnersEdit).
-				Post(web.Bind(forms.EditRunnerForm{}), repo_setting.RunnersEditPost)
-			m.Post("/{runnerid}/delete", repo_setting.RunnerDeletePost)
-			m.Post("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
+			m.Get("", shared_actions.Runners)
+			m.Combo("/{runnerid}").Get(shared_actions.RunnersEdit).
+				Post(web.Bind(forms.EditRunnerForm{}), shared_actions.RunnersEditPost)
+			m.Post("/{runnerid}/delete", shared_actions.RunnerDeletePost)
+			m.Post("/reset_registration_token", shared_actions.ResetRunnerRegistrationToken)
 		})
 	}
 
@@ -1147,7 +1147,7 @@ func registerRoutes(m *web.Router) {
 			})
 		})
 		m.Group("/actions", func() {
-			m.Get("", repo_setting.RedirectToDefaultSetting)
+			m.Get("", shared_actions.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
