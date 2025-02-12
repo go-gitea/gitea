@@ -14,6 +14,7 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToRepo converts a Repository to api.Repository
@@ -242,7 +243,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
-		Topics:                        repo.Topics,
+		Topics:                        util.SliceNilAsEmpty(repo.Topics),
 		ObjectFormatName:              repo.ObjectFormatName,
 		Licenses:                      repoLicenses.StringList(),
 	}
