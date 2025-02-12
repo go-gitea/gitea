@@ -64,7 +64,6 @@ func Contexter() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base := context.NewBaseContext(resp, req)
 			ctx := context.NewWebContext(base, rnd, session.GetSession(req))
-			ctx.SetContextValue(context.WebContextKey, ctx) // FIXME: this should be removed because NewWebContext should already set it
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data.MergeFrom(reqctx.ContextData{
 				"Title":          ctx.Locale.Tr("install.install"),
