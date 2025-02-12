@@ -8,7 +8,7 @@
 				<button class="ui small icon button" data-clipboard-target=".repo-mailto-url" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}">
 					{{svg "octicon-copy" 14}}
 				</button>
-				<a data-tooltip-content="{{repo.issues.mailto_modal.send_mail}}" class="ui small icon button send-mail-link" href="{{.MailToIssueLink}}">
+				<a data-tooltip-content="{{ctx.Locale.Tr "repo.issues.mailto_modal.send_mail"}}" class="ui small icon button send-mail-link" href="{{.MailToIssueLink}}">
 					{{svg "octicon-mail"}}
 				</a>
 			</div>
