@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package runner
+package actions
 
 import (
 	"context"
@@ -16,50 +16,67 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
-	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
-	if err != nil {
-		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
+func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
+	var (
+		task *runnerv1.Task
+		job  *actions_model.ActionRunJob
+	)
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
+		if err != nil {
+			return fmt.Errorf("CreateTaskForRunner: %w", err)
+		}
+		if !ok {
+			return nil
+		}
+
+		if err := t.LoadAttributes(ctx); err != nil {
+			return fmt.Errorf("task LoadAttributes: %w", err)
+		}
+		job = t.Job
+
+		secrets, err := secret_model.GetSecretsOfTask(ctx, t)
+		if err != nil {
+			return fmt.Errorf("GetSecretsOfTask: %w", err)
+		}
+
+		vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
+		if err != nil {
+			return fmt.Errorf("GetVariablesOfRun: %w", err)
+		}
+
+		needs, err := findTaskNeeds(ctx, job)
+		if err != nil {
+			return fmt.Errorf("findTaskNeeds: %w", err)
+		}
+
+		taskContext := generateTaskContext(t)
+
+		task = &runnerv1.Task{
+			Id:              t.ID,
+			WorkflowPayload: t.Job.WorkflowPayload,
+			Context:         taskContext,
+			Secrets:         secrets,
+			Vars:            vars,
+			Needs:           needs,
+		}
+
+		return nil
+	}); err != nil {
+		return nil, false, err
 	}
-	if !ok {
+
+	if task == nil {
 		return nil, false, nil
 	}
 
-	secrets, err := secret_model.GetSecretsOfTask(ctx, t)
-	if err != nil {
-		return nil, false, fmt.Errorf("GetSecretsOfTask: %w", err)
-	}
-
-	vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
-	if err != nil {
-		return nil, false, fmt.Errorf("GetVariablesOfRun: %w", err)
-	}
-
-	actions.CreateCommitStatus(ctx, t.Job)
-
-	task := &runnerv1.Task{
-		Id:              t.ID,
-		WorkflowPayload: t.Job.WorkflowPayload,
-		Context:         generateTaskContext(t),
-		Secrets:         secrets,
-		Vars:            vars,
-	}
-
-	if needs, err := findTaskNeeds(ctx, t); err != nil {
-		log.Error("Cannot find needs for task %v: %v", t.ID, err)
-		// Go on with empty needs.
-		// If return error, the task will be wild, which means the runner will never get it when it has been assigned to the runner.
-		// In contrast, missing needs is less serious.
-		// And the task will fail and the runner will report the error in the logs.
-	} else {
-		task.Needs = needs
-	}
+	CreateCommitStatus(ctx, job)
 
 	return task, true, nil
 }
@@ -95,7 +112,7 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 
 	refName := git.RefName(ref)
 
-	giteaRuntimeToken, err := actions.CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
+	giteaRuntimeToken, err := CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
 	if err != nil {
 		log.Error("actions.CreateAuthorizationToken failed: %v", err)
 	}
@@ -148,16 +165,13 @@ func generateTaskContext(t *actions_model.ActionTask) *structpb.Struct {
 	return taskContext
 }
 
-func findTaskNeeds(ctx context.Context, task *actions_model.ActionTask) (map[string]*runnerv1.TaskNeed, error) {
-	if err := task.LoadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %w", err)
-	}
-	if len(task.Job.Needs) == 0 {
+func findTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*runnerv1.TaskNeed, error) {
+	if len(job.Needs) == 0 {
 		return nil, nil
 	}
-	needs := container.SetOf(task.Job.Needs...)
+	needs := container.SetOf(job.Needs...)
 
-	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: task.Job.RunID})
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: job.RunID})
 	if err != nil {
 		return nil, fmt.Errorf("FindRunJobs: %w", err)
 	}
