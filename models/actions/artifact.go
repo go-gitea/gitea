@@ -114,6 +114,12 @@ type FindArtifactsOptions struct {
 	Status       int
 }
 
+func (opts FindArtifactsOptions) ToOrders() string {
+	return "id"
+}
+
+var _ db.FindOptionsOrder = (*FindArtifactsOptions)(nil)
+
 func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
@@ -132,7 +138,7 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	return cond
 }
 
-// ActionArtifactMeta is the meta data of an artifact
+// ActionArtifactMeta is the meta-data of an artifact
 type ActionArtifactMeta struct {
 	ArtifactName string
 	FileSize     int64
