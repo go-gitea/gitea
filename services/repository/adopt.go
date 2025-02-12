@@ -98,7 +98,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		return nil
 	}(); err != nil {
 		if errDel := DeleteRepository(ctx, doer, repo, false /* no notify */); errDel != nil {
-			log.Error("Failed to delete adopt-failed repository %s: %v", repo.FullName(), errDel)
+			log.Error("Failed to delete repository %s that could not be adopted: %v", repo.FullName(), errDel)
 		}
 		return nil, err
 	}
