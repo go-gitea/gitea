@@ -134,7 +134,6 @@ const deleteEphemeralRunnerBatchSize = 100
 
 // CleanupEphemeralRunners removes used ephemeral runners which are no longer able to process jobs
 func CleanupEphemeralRunners(ctx context.Context) error {
-
 	runners := []*actions_model.ActionRunner{}
 	err := db.GetEngine(ctx).Join("INNER", "action_task", "action_task.runner_id = action_runner.id").Where("action_runner.ephemeral").Limit(deleteEphemeralRunnerBatchSize).Find(&runners)
 	if err != nil {

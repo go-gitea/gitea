@@ -22,9 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"connectrpc.com/connect"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 )
 
