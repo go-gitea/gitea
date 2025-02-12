@@ -25,6 +25,8 @@ func pickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
 				return nil, false, nil
 			}
+			// task has been finished, remove it
+			_, _ = db.GetEngine(ctx).Delete(runner)
 			return nil, false, fmt.Errorf("runner has been removed")
 		}
 	}
