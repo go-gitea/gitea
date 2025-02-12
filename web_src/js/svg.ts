@@ -201,7 +201,6 @@ export const SvgIcon = defineComponent({
   props: {
     name: {type: String as PropType<SvgName>, required: true},
     size: {type: Number, default: 16},
-    className: {type: String, default: ''},
     symbolId: {type: String},
   },
   render() {
@@ -216,15 +215,7 @@ export const SvgIcon = defineComponent({
     attrs[`^width`] = this.size;
     attrs[`^height`] = this.size;
 
-    // make the <SvgIcon class="foo" class-name="bar"> classes work together
-    const classes: Array<string> = [];
-    for (const cls of svgOuter.classList) {
-      classes.push(cls);
-    }
-    // TODO: drop the `className/class-name` prop in the future, only use "class" prop
-    if (this.className) {
-      classes.push(...this.className.split(/\s+/).filter(Boolean));
-    }
+    const classes = Array.from(svgOuter.classList);
     if (this.symbolId) {
       classes.push('tw-hidden', 'svg-symbol-container');
       svgInnerHtml = `<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${svgInnerHtml}</symbol>`;

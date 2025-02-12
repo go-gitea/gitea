@@ -32,7 +32,6 @@
 						<span class="text">{{svg "octicon-eye"}} {{ctx.Locale.Tr "org.view_as_role" $viewAsRole}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							{{/* TODO: does it really need to use CurrentURL with query parameters? Why not construct a new link with clear parameters */}}
 							<a href="?view_as=public" class="item {{if not .IsViewingOrgAsMember}}selected{{end}}">
 								{{svg "octicon-check" 14 (Iif (not .IsViewingOrgAsMember) "" "tw-invisible")}} {{ctx.Locale.Tr "settings.visibility.public"}}
 							</a>

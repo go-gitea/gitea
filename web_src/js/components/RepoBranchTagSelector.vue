@@ -226,7 +226,7 @@ export default defineComponent({
           <strong ref="dropdownRefName" class="tw-ml-2 tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
-      <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
+      <svg-icon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
     </div>
     <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
@@ -235,10 +235,10 @@ export default defineComponent({
       </div>
       <div v-if="showTabBranches" class="branch-tag-tab">
         <a class="branch-tag-item muted" :class="{active: selectedTab === 'branches'}" href="#" @click="handleTabSwitch('branches')">
-          <svg-icon name="octicon-git-branch" :size="16" class-name="tw-mr-1"/>{{ textBranches }}
+          <svg-icon name="octicon-git-branch" :size="16" class="tw-mr-1"/>{{ textBranches }}
         </a>
         <a v-if="showTabTags" class="branch-tag-item muted" :class="{active: selectedTab === 'tags'}" href="#" @click="handleTabSwitch('tags')">
-          <svg-icon name="octicon-tag" :size="16" class-name="tw-mr-1"/>{{ textTags }}
+          <svg-icon name="octicon-tag" :size="16" class="tw-mr-1"/>{{ textTags }}
         </a>
       </div>
       <div class="branch-tag-divider"/>
