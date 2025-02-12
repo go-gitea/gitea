@@ -12,7 +12,7 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
-	git "code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
