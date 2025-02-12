@@ -330,3 +330,5 @@ exclude github.com/gofrs/uuid v4.0.0+incompatible
 exclude github.com/goccy/go-json v0.4.11
 
 exclude github.com/satori/go.uuid v1.2.0
+
+replace code.gitea.io/actions-proto-go v0.4.0 => ../actions-proto-def/gen
