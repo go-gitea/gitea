@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/services/mailer/incoming"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -780,5 +781,36 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.CanWriteIssuesOrPulls(isPullList)
 
+	if !isPullList {
+		err := renderMailToIssue(ctx)
+		if err != nil {
+			ctx.ServerError("renderMailToIssue", err)
+			return
+		}
+	}
+
 	ctx.HTML(http.StatusOK, tplIssues)
+}
+
+func renderMailToIssue(ctx *context.Context) error {
+	if !setting.IncomingEmail.Enabled {
+		return nil
+	}
+
+	if !ctx.IsSigned {
+		return nil
+	}
+
+	token, mailToAddress, err := incoming.GenerateMailToRepoURL(ctx, ctx.Doer, ctx.Repo.Repository, user_model.RepositoryRandsTypeNewIssue)
+	if err != nil {
+		return err
+	}
+
+	ctx.Data["MailToIssueEnabled"] = true
+	ctx.Data["MailToIssueAddress"] = mailToAddress
+	ctx.Data["MailToIssueLink"] = fmt.Sprintf("mailto:%s", mailToAddress)
+	ctx.Data["MailToIssueToken"] = token
+	ctx.Data["MailToIssueTokenResetUrl"] = fmt.Sprintf("%s/user/settings/repo_mailto_rands_reset/%d", setting.AppSubURL, ctx.Repo.Repository.ID)
+
+	return nil
 }

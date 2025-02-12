@@ -683,6 +683,8 @@ func registerRoutes(m *web.Router) {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
 		})
+
+		m.Post("/repo_mailto_rands_reset/{repo_id}", user_setting.ResetRepoMailToRands)
 	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled))
 
 	m.Group("/user", func() {

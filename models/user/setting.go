@@ -210,3 +210,35 @@ func upsertUserSettingValue(ctx context.Context, userID int64, key, value string
 		return err
 	})
 }
+
+type RepositoryRandsType string
+
+const (
+	RepositoryRandsTypeNewIssue RepositoryRandsType = "new_issue"
+)
+
+func CreatRandsForRepository(ctx context.Context, userID, repoID int64, event RepositoryRandsType) (string, error) {
+	rand, err := GetUserSalt()
+	if err != nil {
+		return rand, err
+	}
+
+	return rand, SetUserSetting(ctx, userID, SettingsKeyUserRandsForRepo(repoID, string(event)), rand)
+}
+
+func GetRandsForRepository(ctx context.Context, userID, repoID int64, event RepositoryRandsType) (string, error) {
+	return GetSetting(ctx, userID, SettingsKeyUserRandsForRepo(repoID, string(event)))
+}
+
+func (u *User) GetOrCreateRandsForRepository(ctx context.Context, repoID int64, event RepositoryRandsType) (string, error) {
+	rand, err := GetRandsForRepository(ctx, u.ID, repoID, event)
+	if err != nil && !IsErrUserSettingIsNotExist(err) {
+		return "", err
+	}
+
+	if len(rand) == 0 || err != nil {
+		rand, err = CreatRandsForRepository(ctx, u.ID, repoID, event)
+	}
+
+	return rand, err
+}
