@@ -21,19 +21,23 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		job  *actions_model.ActionRunJob
 	)
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if runner.Ephemeral {
-			var task actions_model.ActionTask
-			has, err := db.GetEngine(ctx).Where("runner_id = ?", runner.ID).Get(&task)
-			if err == nil && has {
-				if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
-					return nil
-				}
-				// task has been finished, remove it
-				_, _ = db.GetEngine(ctx).Delete(runner)
-				return fmt.Errorf("runner has been removed")
+	if runner.Ephemeral {
+		var task actions_model.ActionTask
+		has, err := db.GetEngine(ctx).Where("runner_id = ?", runner.ID).Get(&task)
+		if err == nil && has {
+			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
+				return nil, false, nil
 			}
+			// task has been finished, remove it
+			_, err = db.GetEngine(ctx).Delete(runner)
+			if err != nil {
+				return nil, false, err
+			}
+			return nil, false, fmt.Errorf("runner has been removed")
 		}
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
 		if err != nil {
 			return fmt.Errorf("CreateTaskForRunner: %w", err)
