@@ -25,7 +25,7 @@ func PrepareCodeSearch(ctx *context.Context) (ret struct {
 	}
 	isFuzzy := ctx.FormOptionalBool("fuzzy").ValueOrDefault(fuzzyDefault)
 	if isFuzzy && !fuzzyAllow {
-		ctx.Flash.Info("Fuzzy search is disabled by default due to performance reasons")
+		ctx.Flash.Info("Fuzzy search is disabled by default due to performance reasons", true)
 		isFuzzy = false
 	}
 
