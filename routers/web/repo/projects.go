@@ -312,7 +312,7 @@ func ViewProject(ctx *context.Context) {
 
 	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
-	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
+	issuesMap, err := project_service.LoadIssuesFromColumnList(ctx, project, columns, &issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
 		AssigneeID: optional.Some(assigneeID),
 	})
