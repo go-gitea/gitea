@@ -57,11 +57,6 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	tree := commit.Tree
 
-	entries, err := tree.ListEntriesRecursiveWithSize()
-	if err != nil {
-		return nil, err
-	}
-
 	checker, deferable := repo.CheckAttributeReader(commitID)
 	defer deferable()
 
@@ -77,18 +72,12 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	firstExcludedLanguage := ""
 	firstExcludedLanguageSize := int64(0)
 
-	for _, f := range entries {
-		select {
-		case <-repo.Ctx.Done():
-			return sizes, repo.Ctx.Err()
-		default:
-		}
-
+	if err := tree.IterateEntriesRecursive(func(f *TreeEntry) error {
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 
 		if f.Size() == 0 {
-			continue
+			return nil
 		}
 
 		isVendored := optional.None[bool]()
@@ -101,22 +90,22 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			if err == nil {
 				isVendored = AttributeToBool(attrs, AttributeLinguistVendored)
 				if isVendored.ValueOrDefault(false) {
-					continue
+					return nil
 				}
 
 				isGenerated = AttributeToBool(attrs, AttributeLinguistGenerated)
 				if isGenerated.ValueOrDefault(false) {
-					continue
+					return nil
 				}
 
 				isDocumentation = AttributeToBool(attrs, AttributeLinguistDocumentation)
 				if isDocumentation.ValueOrDefault(false) {
-					continue
+					return nil
 				}
 
 				isDetectable = AttributeToBool(attrs, AttributeLinguistDetectable)
 				if !isDetectable.ValueOrDefault(true) {
-					continue
+					return nil
 				}
 
 				hasLanguage := TryReadLanguageAttribute(attrs)
@@ -131,7 +120,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 					// this language will always be added to the size
 					sizes[language] += f.Size()
-					continue
+					return nil
 				}
 			}
 		}
@@ -140,19 +129,19 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			enry.IsDotFile(f.Name()) ||
 			(!isDocumentation.Has() && enry.IsDocumentation(f.Name())) ||
 			enry.IsConfiguration(f.Name()) {
-			continue
+			return nil
 		}
 
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.Size() <= bigFileSize {
 			if err := writeID(f.ID.String()); err != nil {
-				return nil, err
+				return err
 			}
 			_, _, size, err := ReadBatchLine(batchReader)
 			if err != nil {
 				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
-				return nil, err
+				return err
 			}
 
 			sizeToRead := size
@@ -164,22 +153,22 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
 			if err != nil {
-				return nil, err
+				return err
 			}
 			content = contentBuf.Bytes()
 			if err := DiscardFull(batchReader, discard); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		if !isGenerated.Has() && enry.IsGenerated(f.Name(), content) {
-			continue
+			return nil
 		}
 
 		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
 		// - eg. do the all the detection tests using filename first before reading content.
 		language := analyze.GetCodeLanguage(f.Name(), content)
 		if language == "" {
-			continue
+			return nil
 		}
 
 		// group languages, such as Pug -> HTML; SCSS -> CSS
@@ -200,6 +189,9 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			firstExcludedLanguage = language
 			firstExcludedLanguageSize += f.Size()
 		}
+		return nil
+	}, TrustedCmdArgs{"--long"}); err != nil { // add --long to get size
+		return sizes, err
 	}
 
 	// If there are no included languages add the first excluded language

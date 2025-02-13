@@ -6,6 +6,7 @@
 package git
 
 import (
+	"bufio"
 	"io"
 	"strings"
 )
@@ -96,21 +97,17 @@ func (t *Tree) listEntriesRecursive(extraArgs TrustedCmdArgs) (Entries, error) {
 		return t.entriesRecursive, nil
 	}
 
-	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-r").
-		AddArguments(extraArgs...).
-		AddDynamicArguments(t.ID.String()).
-		RunStdBytes(&RunOpts{Dir: t.repo.Path})
-	if runErr != nil {
-		return nil, runErr
+	t.entriesRecursive = make([]*TreeEntry, 0)
+	if err := t.IterateEntriesRecursive(func(entry *TreeEntry) error {
+		t.entriesRecursive = append(t.entriesRecursive, entry)
+		return nil
+	}, extraArgs); err != nil {
+		t.entriesRecursive = nil
+		return nil, err
 	}
 
-	var err error
-	t.entriesRecursive, err = parseTreeEntries(stdout, t)
-	if err == nil {
-		t.entriesRecursiveParsed = true
-	}
-
-	return t.entriesRecursive, err
+	t.entriesRecursiveParsed = true
+	return t.entriesRecursive, nil
 }
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
@@ -121,4 +118,51 @@ func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
 func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 	return t.listEntriesRecursive(TrustedCmdArgs{"--long"})
+}
+
+// IterateEntriesRecursive returns iterate entries of current tree recursively including all subtrees
+// extraArgs could be "-l" to get the size, which is slower
+func (t *Tree) IterateEntriesRecursive(f func(entry *TreeEntry) error, extraArgs TrustedCmdArgs) error {
+	reader, writer := io.Pipe()
+	done := make(chan error)
+
+	go func(t *Tree, done chan error, writer *io.PipeWriter) {
+		runErr := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-r").
+			AddArguments(extraArgs...).
+			AddDynamicArguments(t.ID.String()).
+			Run(&RunOpts{
+				Dir:    t.repo.Path,
+				Stdout: writer,
+			})
+
+		_ = writer.Close()
+
+		done <- runErr
+	}(t, done, writer)
+
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+
+		data := scanner.Bytes()
+		if err := iterateTreeEntries(data, t, func(entry *TreeEntry) error {
+			if err := f(entry); err != nil {
+				return err
+			}
+
+			select {
+			case <-t.repo.Ctx.Done():
+				return t.repo.Ctx.Err()
+			case runErr := <-done:
+				return runErr
+			default:
+				return nil
+			}
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
