@@ -1,0 +1,3 @@
+This repository is a fork of `go-gitea/gitea` and is used to apply custom patches or to suggest changes upstream.
+
+The `ci` branch (the one you are currently viewing) is only used for storing the custom patch files in the `patches` directory and providing GitHub actions workflows to create branches based on upstream releases, trying to apply our custom patches on top, and then build and push our custom OCI image.

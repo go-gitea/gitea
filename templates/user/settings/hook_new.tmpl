@@ -1,7 +1,0 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings new webhook")}}
-	<div class="user-setting-content">
-		{{$CustomHeaderTitle := ctx.Locale.Tr "repo.settings.update_webhook"}}
-		{{if .PageIsSettingsHooksNew}}{{$CustomHeaderTitle = ctx.Locale.Tr "repo.settings.add_webhook"}}{{end}}
-		{{template "webhook/new" (dict "ctxData" . "CustomHeaderTitle" $CustomHeaderTitle)}}
-	</div>
-{{template "user/settings/layout_footer" .}}

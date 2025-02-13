@@ -1,5 +1,0 @@
-self-hosted-runner:
-  labels:
-    - actuated-4cpu-8gb
-    - actuated-4cpu-16gb
-    - nscloud
