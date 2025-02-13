@@ -784,15 +784,17 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		return
 	}
 
+	allComments := issues_model.CommentList{}
 	for _, file := range diff.Files {
 		for _, section := range file.Sections {
 			for _, line := range section.Lines {
-				if err := line.Comments.LoadAttachments(ctx); err != nil {
-					ctx.ServerError("LoadAttachments", err)
-					return
-				}
+				allComments = append(allComments, line.Comments...)
 			}
 		}
+	}
+	if err := allComments.LoadAttachments(ctx); err != nil {
+		ctx.ServerError("LoadAttachments", err)
+		return
 	}
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
