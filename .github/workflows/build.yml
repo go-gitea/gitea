@@ -1,0 +1,54 @@
+name: Build and Publish
+run-name: Build and publish Docker image for ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Ref to build'
+        required: true
+  push:
+    tags:
+      '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref_name }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch Go modules
+        run: make vendor
+
+      - name: Build and push rootless Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          file: Dockerfile.rootless
+          tags: ghcr.io/${{ github.repository }}:${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref_name }}
