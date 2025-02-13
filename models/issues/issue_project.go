@@ -55,6 +55,9 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 		o.ProjectColumnID = b.ID
 		o.ProjectID = b.ProjectID
 		o.SortType = "project-column-sorting"
+		o.AllPublic = opts.AllPublic
+		o.User = opts.User
+		o.Org = opts.Org
 	}))
 	if err != nil {
 		return nil, err
@@ -65,6 +68,9 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 			ProjectColumnID: db.NoConditionID,
 			ProjectID:       b.ProjectID,
 			SortType:        "project-column-sorting",
+			AllPublic:       opts.AllPublic,
+			User:            opts.User,
+			Org:             opts.Org,
 		})
 		if err != nil {
 			return nil, err

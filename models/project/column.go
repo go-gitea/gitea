@@ -57,20 +57,6 @@ func (Column) TableName() string {
 	return "project_board" // TODO: the legacy table name should be project_column
 }
 
-// NumIssues return counter of all issues assigned to the column
-func (c *Column) NumIssues(ctx context.Context) int {
-	total, err := db.GetEngine(ctx).Table("project_issue").
-		Where("project_id=?", c.ProjectID).
-		And("project_board_id=?", c.ID).
-		GroupBy("issue_id").
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		return 0
-	}
-	return int(total)
-}
-
 func (c *Column) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
 	issues := make([]*ProjectIssue, 0, 5)
 	if err := db.GetEngine(ctx).Where("project_id=?", c.ProjectID).

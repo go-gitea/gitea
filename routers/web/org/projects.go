@@ -327,6 +327,10 @@ func ViewProject(ctx *context.Context) {
 		ctx.NotFound("", nil)
 		return
 	}
+	if err := project.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
+		return
+	}
 
 	columns, err := project.GetColumns(ctx)
 	if err != nil {
@@ -340,9 +344,11 @@ func ViewProject(ctx *context.Context) {
 	}
 	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
-	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
+	issuesMap, err := project_service.LoadIssuesFromColumnList(ctx, project, columns, &issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
 		AssigneeID: optional.Some(assigneeID),
+		Org:        org_model.OrgFromUser(project.Owner),
+		User:       ctx.Doer,
 	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
