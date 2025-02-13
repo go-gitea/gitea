@@ -51,4 +51,6 @@ jobs:
           platforms: linux/amd64
           push: true
           file: Dockerfile.rootless
+          build-args: |
+            GOPROXY=https://proxy.golang.org,direct
           tags: ghcr.io/${{ github.repository }}:${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref_name }}
