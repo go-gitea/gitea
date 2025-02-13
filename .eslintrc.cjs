@@ -1,4 +1,4 @@
-const vitestPlugin = require("@vitest/eslint-plugin");
+const vitestPlugin = require('@vitest/eslint-plugin');
 const restrictedSyntax = ['WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'];
 
 module.exports = {
@@ -46,6 +46,13 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['**/*.cjs'],
+      rules: {
+        'import-x/no-commonjs': [0],
+        '@typescript-eslint/no-require-imports': [0],
+      },
+    },
+    {
       files: ['web_src/**/*'],
       globals: {
         __webpack_public_path__: true,
@@ -81,7 +88,7 @@ module.exports = {
     },
     {
       files: ['**/*.test.*', 'web_src/js/test/setup.ts'],
-      plugins: ["@vitest/eslint-plugin"],
+      plugins: ['@vitest/eslint-plugin'],
       globals: vitestPlugin.environments.env.globals,
       rules: {
         '@vitest/consistent-test-filename': [0],
@@ -161,7 +168,7 @@ module.exports = {
     {
       files: ['tests/e2e/**'],
       plugins: [
-        'eslint-plugin-playwright'
+        'eslint-plugin-playwright',
       ],
       extends: [
         'plugin:playwright/recommended',
