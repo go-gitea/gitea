@@ -787,11 +787,9 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	for _, file := range diff.Files {
 		for _, section := range file.Sections {
 			for _, line := range section.Lines {
-				for _, comment := range line.Comments {
-					if err := comment.LoadAttachments(ctx); err != nil {
-						ctx.ServerError("LoadAttachments", err)
-						return
-					}
+				if err := line.Comments.LoadAttachments(ctx); err != nil {
+					ctx.ServerError("LoadAttachments", err)
+					return
 				}
 			}
 		}
