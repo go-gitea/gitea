@@ -1,4 +1,4 @@
-From ff4fd9166ac3c8cc099ab35968e23096ec0525a4 Mon Sep 17 00:00:00 2001
+From f30536bba66c393e59822cbd9c194017d174a3b5 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:33:32 +0200
 Subject: [PATCH 04/14] BLENDER: Don't allow assigning large teams as reviewers
@@ -66,5 +66,5 @@ index bf0d8cb298..c3b0858aa3 100644
 +	return organization.FilterLargeTeams(organization.GetTeamsWithAccessToRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests))
  }
 -- 
-2.45.2
+2.47.1
 

@@ -1,4 +1,4 @@
-From 37d72a57067e955cdc886ddd527a55c371b01bde Mon Sep 17 00:00:00 2001
+From 4cf49edf4de94065e9ad6e24c4482c2054d6eece Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:32:53 +0200
 Subject: [PATCH 03/14] BLENDER: Workaround LFS files not being available in
@@ -25,10 +25,10 @@ index bb6361050a..83a2e7883d 100644
  		return count > 0, err
  	}
 diff --git a/services/lfs/server.go b/services/lfs/server.go
-index a77623fdc1..c45c1937ec 100644
+index c4866edaab..1fa2b7a67f 100644
 --- a/services/lfs/server.go
 +++ b/services/lfs/server.go
-@@ -251,6 +251,26 @@ func BatchHandler(ctx *context.Context) {
+@@ -253,6 +253,26 @@ func BatchHandler(ctx *context.Context) {
  			responseObject = buildObjectResponse(rc, p, false, !exists, err)
  		} else {
  			var err *lfs_module.ObjectError
@@ -56,5 +56,5 @@ index a77623fdc1..c45c1937ec 100644
  				err = &lfs_module.ObjectError{
  					Code:    http.StatusNotFound,
 -- 
-2.45.2
+2.47.1
 

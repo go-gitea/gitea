@@ -1,4 +1,4 @@
-From 6d833f20e2bff71d1a7bce47a934700fdfc15738 Mon Sep 17 00:00:00 2001
+From b7ab7d82754fd5d7ea154d31f991a5da206d96a1 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:58:05 +0200
 Subject: [PATCH 05/14] BLENDER: Support both exclusive and non-exclusive scope
@@ -113,13 +113,13 @@ index 88e2e43120..ee569b4fd0 100644
  				{{ctx.RenderUtils.RenderLabel .}}
  				<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
 diff --git a/templates/repo/issue/sidebar/label_list.tmpl b/templates/repo/issue/sidebar/label_list.tmpl
-index 9dd83ba188..124e3a1bc6 100644
+index 9b6195a8f4..c8310203c4 100644
 --- a/templates/repo/issue/sidebar/label_list.tmpl
 +++ b/templates/repo/issue/sidebar/label_list.tmpl
-@@ -18,23 +18,25 @@
- 				</div>
- 				<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
+@@ -19,23 +19,25 @@
  				<div class="scrolling menu">
+ 					<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
+ 					<div class="divider"></div>
 -					{{$previousExclusiveScope := "_no_scope"}}
 +					{{$previousScope := "_no_scope"}}
  					{{range $data.RepoLabels}}
@@ -149,5 +149,5 @@ index 9dd83ba188..124e3a1bc6 100644
  					{{end}}
  				</div>
 -- 
-2.45.2
+2.47.1
 

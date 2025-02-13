@@ -1,4 +1,4 @@
-From 86cfd732195d8ccf7168d4d8a20d08b74530afdb Mon Sep 17 00:00:00 2001
+From 207b6997764955732f8292e079dea0b2e14c3714 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:09:11 +0200
 Subject: [PATCH 12/14] BLENDER: Prefer creating PR for base, disable editing
@@ -70,5 +70,5 @@ index c050324e93..57b3a2f6f1 100644
  				<div class="field">
  					<div class="ui radio checkbox">
 -- 
-2.45.2
+2.47.1
 
