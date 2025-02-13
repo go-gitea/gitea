@@ -398,10 +398,11 @@ func CheckPRsForBaseBranch(ctx context.Context, baseRepo *repo_model.Repository,
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
 	prPatchCheckerQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_patch_checker", handler)
-
 	if prPatchCheckerQueue == nil {
 		return fmt.Errorf("unable to create pr_patch_checker queue")
 	}
+
+	notify_service.RegisterNotifier(newNotifier())
 
 	go graceful.GetManager().RunWithCancel(prPatchCheckerQueue)
 	go graceful.GetManager().RunWithShutdownContext(InitializePullRequests)
