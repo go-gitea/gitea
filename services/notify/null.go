@@ -6,6 +6,7 @@ package notify
 import (
 	"context"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -212,3 +213,7 @@ func (*NullNotifier) ChangeDefaultBranch(ctx context.Context, repo *repo_model.R
 
 func (*NullNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
 }
+
+
+// ActionRunFinished represents action run finished
+func (*NullNotifier) ActionRunFinished(ctx context.Context, run *actions_model.ActionRun) {}
