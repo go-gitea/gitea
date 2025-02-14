@@ -732,13 +732,6 @@ func (repo *Repository) MustNotBeArchived() error {
 	return nil
 }
 
-// __________                           .__  __
-// \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
-//  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
-//  |    |   \  ___/|  |_> >  <_> )___ \|  ||  | (  <_> )  | \/\___  |
-//  |____|_  /\___  >   __/ \____/____  >__||__|  \____/|__|   / ____|
-//         \/     \/|__|              \/                       \/
-
 // ErrRepoNotExist represents a "RepoNotExist" kind of error.
 type ErrRepoNotExist struct {
 	ID        int64

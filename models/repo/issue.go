@@ -11,13 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// ___________.__             ___________                     __
-// \__    ___/|__| _____   ___\__    ___/___________    ____ |  | __ ___________
-// |    |   |  |/     \_/ __ \|    |  \_  __ \__  \ _/ ___\|  |/ // __ \_  __ \
-// |    |   |  |  Y Y  \  ___/|    |   |  | \// __ \\  \___|    <\  ___/|  | \/
-// |____|   |__|__|_|  /\___  >____|   |__|  (____  /\___  >__|_ \\___  >__|
-// \/     \/                    \/     \/     \/    \/
-
 // CanEnableTimetracker returns true when the server admin enabled time tracking
 // This overrules IsTimetrackerEnabled
 func (repo *Repository) CanEnableTimetracker() bool {
