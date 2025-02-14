@@ -149,8 +149,15 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				log.Error("Expect two SHAs but not what found: %q", lines[i])
 				continue
 			}
+			var refFullName git.RefName
+			if strings.HasPrefix(refName, "refs/") {
+				refFullName = git.RefName(refName)
+			} else {
+				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
+			}
+
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/")),
+				refName:     refFullName,
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
