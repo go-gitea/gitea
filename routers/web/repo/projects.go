@@ -92,6 +92,11 @@ func Projects(ctx *context.Context) {
 		return
 	}
 
+	if err := project_service.LoadIssueNumbersForProjects(ctx, projects, ctx.Doer); err != nil {
+		ctx.ServerError("LoadIssueNumbersForProjects", err)
+		return
+	}
+
 	for i := range projects {
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, repo)
 		projects[i].RenderedContent, err = markdown.RenderString(rctx, projects[i].Description)
@@ -312,13 +317,17 @@ func ViewProject(ctx *context.Context) {
 
 	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
-	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
+	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
+		RepoIDs:    []int64{ctx.Repo.Repository.ID},
 		LabelIDs:   labelIDs,
 		AssigneeID: optional.Some(assigneeID),
 	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
 		return
+	}
+	for _, column := range columns {
+		column.NumIssues = int64(len(issuesMap[column.ID]))
 	}
 
 	if project.CardType != project_model.CardTypeTextOnly {

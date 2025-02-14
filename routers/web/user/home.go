@@ -417,7 +417,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		IsPull:     optional.Some(isPullList),
 		SortType:   sortType,
 		IsArchived: optional.Some(false),
-		User:       ctx.Doer,
+		AccessUser: ctx.Doer,
 	}
 	// --------------------------------------------------------------------------
 	// Build opts (IssuesOptions), which contains filter information.

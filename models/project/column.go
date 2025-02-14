@@ -48,6 +48,8 @@ type Column struct {
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
 
+	NumIssues int64 `xorm:"-"`
+
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
@@ -55,20 +57,6 @@ type Column struct {
 // TableName return the real table name
 func (Column) TableName() string {
 	return "project_board" // TODO: the legacy table name should be project_column
-}
-
-// NumIssues return counter of all issues assigned to the column
-func (c *Column) NumIssues(ctx context.Context) int {
-	total, err := db.GetEngine(ctx).Table("project_issue").
-		Where("project_id=?", c.ProjectID).
-		And("project_board_id=?", c.ID).
-		GroupBy("issue_id").
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		return 0
-	}
-	return int(total)
 }
 
 func (c *Column) GetIssues(ctx context.Context) ([]*ProjectIssue, error) {
