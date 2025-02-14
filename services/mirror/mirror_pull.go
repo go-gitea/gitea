@@ -126,7 +126,9 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 		case strings.HasPrefix(lines[i], " - "): // Delete reference
 			isTag := !strings.HasPrefix(refName, remoteName+"/")
 			var refFullName git.RefName
-			if isTag {
+			if strings.HasPrefix(refName, "refs/") {
+				refFullName = git.RefName(refName)
+			} else if isTag {
 				refFullName = git.RefNameFromTag(refName)
 			} else {
 				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
@@ -149,8 +151,15 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				log.Error("Expect two SHAs but not what found: %q", lines[i])
 				continue
 			}
+			var refFullName git.RefName
+			if strings.HasPrefix(refName, "refs/") {
+				refFullName = git.RefName(refName)
+			} else {
+				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
+			}
+
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/")),
+				refName:     refFullName,
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
