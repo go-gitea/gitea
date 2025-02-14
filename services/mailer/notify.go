@@ -216,9 +216,9 @@ func (m *mailNotifier) ActionRunFinished(ctx context.Context, run *actions_model
         return
     }
 
-    subject := fmt.Sprintf("[%s] Workflow run %s: %s", 
-        run.Repo.FullName(), 
-        run.WorkflowName, 
+    subject := fmt.Sprintf("[%s] Workflow run %s: %s",
+        run.Repo.FullName(),
+        run.WorkflowID,
         run.Status,
     )
 
@@ -236,11 +236,11 @@ Commit: %s
 Triggered by: %s
 
 View the run details here: %s`,
-        run.WorkflowName,
+        run.WorkflowID,
         run.Index,
         run.Status,
         run.Repo.FullName(),
-        run.RefName,
+        run.PrettyRef(),
         commitSHA,
         run.TriggerUser.Name,
         run.HTMLURL(),
@@ -249,17 +249,17 @@ View the run details here: %s`,
     // Send to repo owner if notifications enabled and email present
     if run.Repo.Owner.Email != "" &&
         run.Repo.Owner.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
-        if err := SendMail(ctx, []string{run.Repo.Owner.Email}, subject, body); err != nil {
+        if err := SendMailFrom(ctx, run.Repo.Owner.Email, subject, body); err != nil {
             log.Error("Failed to send email to repo owner %s: %v", run.Repo.Owner.Email, err)
         }
     }
 
-    // Send to commit author if different from trigger user and notifications enabled
-    if run.TriggerUser.ID != run.CommitAuthor.ID &&
-        run.CommitAuthor.Email != "" &&
-        run.CommitAuthor.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
-        if err := SendMail(ctx, []string{run.CommitAuthor.Email}, subject, body); err != nil {
-            log.Error("Failed to send email to commit author %s: %v", run.CommitAuthor.Email, err)
+    // Send to trigger user if different from owner and notifications enabled
+    if run.TriggerUser.ID != run.Repo.Owner.ID &&
+        run.TriggerUser.Email != "" &&
+        run.TriggerUser.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
+        if err := SendMailFrom(ctx, run.TriggerUser.Email, subject, body); err != nil {
+            log.Error("Failed to send email to trigger user %s: %v", run.TriggerUser.Email, err)
         }
     }
 }
