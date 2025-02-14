@@ -1,4 +1,4 @@
-<div class="flex-list run-list">
+<div id="action-actions" class="flex-list run-list">
 	{{if not .Runs}}
 	<div class="empty-placeholder">
 		{{svg "octicon-no-entry" 48}}
@@ -7,6 +7,7 @@
 	{{end}}
 	{{range .Runs}}
 		<div class="flex-item tw-items-center">
+			<input type="checkbox" autocomplete="off" class="action-checkbox tw-mr-4 tw-ml-4" data-action-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;"{{if or (eq .Status 6) (eq .Status 5)}}disabled{{end}}>
 			<div class="flex-item-leading">
 				{{template "repo/actions/status" (dict "status" .Status.String)}}
 			</div>
