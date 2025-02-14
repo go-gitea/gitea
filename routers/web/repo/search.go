@@ -5,11 +5,11 @@ package repo
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
+	"code.gitea.io/gitea/modules/indexer/code/gitgrep"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/routers/common"
@@ -17,16 +17,6 @@ import (
 )
 
 const tplSearch templates.TplName = "repo/search"
-
-func indexSettingToGitGrepPathspecList() (list []string) {
-	for _, expr := range setting.Indexer.IncludePatterns {
-		list = append(list, ":(glob)"+expr.PatternString())
-	}
-	for _, expr := range setting.Indexer.ExcludePatterns {
-		list = append(list, ":(glob,exclude)"+expr.PatternString())
-	}
-	return list
-}
 
 // Search render repository search page
 func Search(ctx *context.Context) {
@@ -67,37 +57,13 @@ func Search(ctx *context.Context) {
 			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
 		}
 	} else {
-		searchRefName := git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch) // BranchName should be default branch or the first existing branch
-		res, err := git.GrepSearch(ctx, ctx.Repo.GitRepo, prepareSearch.Keyword, git.GrepOptions{
-			ContextLineNumber: 1,
-			IsFuzzy:           prepareSearch.IsFuzzy,
-			RefName:           searchRefName.String(),
-			PathspecList:      indexSettingToGitGrepPathspecList(),
-		})
+		var err error
+		// ref should be default branch or the first existing branch
+		searchRef := git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
+		searchResults, total, err = gitgrep.PerformSearch(ctx, page, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, searchRef, prepareSearch.Keyword, prepareSearch.IsFuzzy)
 		if err != nil {
-			// TODO: if no branch exists, it reports: exit status 128, fatal: this operation must be run in a work tree.
-			ctx.ServerError("GrepSearch", err)
+			ctx.ServerError("gitgrep.PerformSearch", err)
 			return
-		}
-		commitID, err := ctx.Repo.GitRepo.GetRefCommitID(searchRefName.String())
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return
-		}
-		total = len(res)
-		pageStart := min((page-1)*setting.UI.RepoSearchPagingNum, len(res))
-		pageEnd := min(page*setting.UI.RepoSearchPagingNum, len(res))
-		res = res[pageStart:pageEnd]
-		for _, r := range res {
-			searchResults = append(searchResults, &code_indexer.Result{
-				RepoID:   ctx.Repo.Repository.ID,
-				Filename: r.Filename,
-				CommitID: commitID,
-				// UpdatedUnix: not supported yet
-				// Language:    not supported yet
-				// Color:       not supported yet
-				Lines: code_indexer.HighlightSearchResultCode(r.Filename, "", r.LineNumbers, strings.Join(r.LineCodes, "\n")),
-			})
 		}
 	}
 

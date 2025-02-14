@@ -260,17 +260,28 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	var (
 		indexerQuery query.Query
 		keywordQuery query.Query
+		contentQuery query.Query
 	)
 
 	pathQuery := bleve.NewPrefixQuery(strings.ToLower(opts.Keyword))
 	pathQuery.FieldVal = "Filename"
 	pathQuery.SetBoost(10)
 
-	contentQuery := bleve.NewMatchQuery(opts.Keyword)
-	contentQuery.FieldVal = "Content"
-
-	if opts.IsKeywordFuzzy {
-		contentQuery.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
+	keywordAsPhrase, isPhrase := internal.ParseKeywordAsPhrase(opts.Keyword)
+	if isPhrase {
+		q := bleve.NewMatchPhraseQuery(keywordAsPhrase)
+		q.FieldVal = "Content"
+		if opts.IsKeywordFuzzy {
+			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(keywordAsPhrase)
+		}
+		contentQuery = q
+	} else {
+		q := bleve.NewMatchQuery(opts.Keyword)
+		q.FieldVal = "Content"
+		if opts.IsKeywordFuzzy {
+			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
+		}
+		contentQuery = q
 	}
 
 	keywordQuery = bleve.NewDisjunctionQuery(contentQuery, pathQuery)
