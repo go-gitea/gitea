@@ -267,10 +267,13 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	pathQuery.FieldVal = "Filename"
 	pathQuery.SetBoost(10)
 
-	if strings.HasPrefix(opts.Keyword, "\"") && strings.HasSuffix(opts.Keyword, "\"") {
-		opts.Keyword = strings.Trim(opts.Keyword, "\"")
-		q := bleve.NewMatchPhraseQuery(opts.Keyword)
+	keywordAsPhrase, isPhrase := internal.ParseKeywordAsPhrase(opts.Keyword)
+	if isPhrase {
+		q := bleve.NewMatchPhraseQuery(keywordAsPhrase)
 		q.FieldVal = "Content"
+		if opts.IsKeywordFuzzy {
+			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(keywordAsPhrase)
+		}
 		contentQuery = q
 	} else {
 		q := bleve.NewMatchQuery(opts.Keyword)
