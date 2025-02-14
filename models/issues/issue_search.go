@@ -50,8 +50,9 @@ type IssuesOptions struct { //nolint
 	PriorityRepoID int64
 	IsArchived     optional.Option[bool]
 	Org            *organization.Organization // issues permission scope
+	Owner          *user_model.User           // issues permission scope
 	Team           *organization.Team         // issues permission scope
-	User           *user_model.User           // issues permission scope
+	AccessUser     *user_model.User           // issues permission scope
 }
 
 // Copy returns a copy of the options.
@@ -273,8 +274,8 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 
 	applyLabelsCondition(sess, opts)
 
-	if opts.User != nil {
-		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.Value()))
+	if opts.AccessUser != nil {
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.AccessUser.ID, opts.Org, opts.Owner, opts.Team, opts.IsPull.Value()))
 	}
 }
 
@@ -321,7 +322,7 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
-func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, team *organization.Team, isPull bool) builder.Cond {
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, owner *user_model.User, team *organization.Team, isPull bool) builder.Cond {
 	cond := builder.NewCond()
 	unitType := unit.TypeIssues
 	if isPull {
@@ -339,6 +340,9 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 			)
 		}
 	} else {
+		if owner != nil {
+			cond = cond.And(repo_model.UserOwnedRepoCond(owner.ID)) // owned repos
+		}
 		cond = cond.And(
 			builder.Or(
 				repo_model.UserOwnedRepoCond(userID),                          // owned repos

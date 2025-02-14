@@ -75,7 +75,8 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		IsArchived:         options.IsArchived,
 		Org:                nil,
 		Team:               nil,
-		User:               nil,
+		AccessUser:         nil,
+		Owner:              nil,
 	}
 
 	if len(options.MilestoneIDs) == 1 && options.MilestoneIDs[0] == 0 {

@@ -9,8 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	org_model "code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 )
 
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
@@ -85,46 +87,49 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 	})
 }
 
-func LoadIssuesFromColumnList(ctx context.Context, project *project_model.Project, bs project_model.ColumnList, opts *issues_model.IssuesOptions) (map[int64]issues_model.IssueList, error) {
-	if project.RepoID > 0 { // repo level project, just load all issues
-		return issues_model.LoadIssuesFromColumnList(ctx, bs, opts)
-	}
-
-	// for org level project, we need to filter issues according to the user's access
-	if opts.User == nil {
-		opts.AllPublic = true
-	}
-	return issues_model.LoadIssuesFromColumnList(ctx, bs, opts)
-}
-
-/*
-// NumIssues return counter of all issues assigned to the column
-func (c *Column) NumIssues(ctx context.Context) int {
-	total, err := db.GetEngine(ctx).Table("project_issue").
-		Where("project_id=?", c.ProjectID).
-		And("project_board_id=?", c.ID).
-		GroupBy("issue_id").
-		Cols("issue_id").
-		Count()
+// LoadIssuesFromProject load issues assigned to the project
+func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (map[int64]issues_model.IssueList, error) {
+	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
+		o.ProjectID = project.ID
+		o.SortType = "project-column-sorting"
+		o.AllPublic = opts.AllPublic
+		o.AccessUser = opts.AccessUser
+		o.Org = opts.Org
+		o.Owner = opts.Owner
+		o.LabelIDs = opts.LabelIDs
+		o.AssigneeID = opts.AssigneeID
+	}))
 	if err != nil {
-		return 0
+		return nil, err
 	}
-	return int(total)
-}
 
-// NumIssues return counter of all issues assigned to a project
-func (p *Project) NumIssues(ctx context.Context) int {
-	c, err := db.GetEngine(ctx).Table("project_issue").
-		Where("project_id=?", p.ID).
-		GroupBy("issue_id").
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumIssues: %v", err)
-		return 0
+	if err := issueList.LoadComments(ctx); err != nil {
+		return nil, err
 	}
-	return int(c)
-}*/
+
+	defaultColumn, err := project.GetDefaultColumn(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	issueColumnMap, err := issues_model.LoadProjectIssueColumnMap(ctx, project.ID, defaultColumn.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[int64]issues_model.IssueList)
+	for _, issue := range issueList {
+		projectColumnID, ok := issueColumnMap[issue.ID]
+		if !ok {
+			continue
+		}
+		if _, ok := results[projectColumnID]; !ok {
+			results[projectColumnID] = make(issues_model.IssueList, 0)
+		}
+		results[projectColumnID] = append(results[projectColumnID], issue)
+	}
+	return results, nil
+}
 
 // NumClosedIssues return counter of closed issues assigned to a project
 func loadNumClosedIssues(ctx context.Context, p *project_model.Project) error {
@@ -164,6 +169,7 @@ func LoadIssueNumbersForProjects(ctx context.Context, projects []*project_model.
 }
 
 func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Project, doer *user_model.User) error {
+	// for repository project, just get the numbers
 	if project.OwnerID == 0 {
 		if err := loadNumClosedIssues(ctx, project); err != nil {
 			return err
@@ -175,29 +181,47 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 		return nil
 	}
 
+	// for user or org projects, we need to check access permissions
+	opts := issues_model.IssuesOptions{
+		ProjectID:  project.ID,
+		AccessUser: doer,
+		AllPublic:  doer == nil,
+	}
 	if err := project.LoadOwner(ctx); err != nil {
 		return err
 	}
-	bs, err := project.GetColumns(ctx)
+	if project.Owner.IsOrganization() {
+		opts.Org = org_model.OrgFromUser(project.Owner)
+	} else {
+		opts.Owner = project.Owner
+	}
+
+	var err error
+	project.NumOpenIssues, err = issues_model.CountIssues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
+		o.ProjectID = opts.ProjectID
+		o.AllPublic = opts.AllPublic
+		o.AccessUser = opts.AccessUser
+		o.Org = opts.Org
+		o.Owner = opts.Owner
+		o.IsClosed = optional.Some(false)
+	}))
 	if err != nil {
 		return err
 	}
-	im, err := LoadIssuesFromColumnList(ctx, project, bs, &issues_model.IssuesOptions{
-		User: doer,
-		Org:  org.From(project.Owner),
-	})
+
+	project.NumClosedIssues, err = issues_model.CountIssues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
+		o.ProjectID = opts.ProjectID
+		o.AllPublic = opts.AllPublic
+		o.AccessUser = opts.AccessUser
+		o.Org = opts.Org
+		o.Owner = opts.Owner
+		o.IsClosed = optional.Some(true)
+	}))
 	if err != nil {
 		return err
 	}
-	for _, il := range im {
-		project.NumIssues += int64(len(il))
-		for _, issue := range il {
-			if issue.IsClosed {
-				project.NumClosedIssues++
-			} else {
-				project.NumOpenIssues++
-			}
-		}
-	}
+
+	project.NumIssues = project.NumClosedIssues + project.NumOpenIssues
+
 	return nil
 }
