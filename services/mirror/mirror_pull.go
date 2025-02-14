@@ -126,7 +126,9 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 		case strings.HasPrefix(lines[i], " - "): // Delete reference
 			isTag := !strings.HasPrefix(refName, remoteName+"/")
 			var refFullName git.RefName
-			if isTag {
+			if strings.HasPrefix(refName, "refs/") {
+				refFullName = git.RefName(refName)
+			} else if isTag {
 				refFullName = git.RefNameFromTag(refName)
 			} else {
 				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
