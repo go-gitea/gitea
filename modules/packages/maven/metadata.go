@@ -5,6 +5,7 @@ package maven
 
 import (
 	"encoding/xml"
+	"errors"
 	"io"
 
 	"code.gitea.io/gitea/modules/util"
@@ -61,6 +62,27 @@ type pomStruct struct {
 	} `xml:"dependencies>dependency"`
 }
 
+type MavenMetadata struct {
+	XMLName    xml.Name `xml:"metadata"`
+	GroupID    string   `xml:"groupId"`
+	ArtifactID string   `xml:"artifactId"`
+	Version    string   `xml:"version"`
+	Versioning struct {
+		LastUpdated string `xml:"lastUpdated"`
+		Snapshot    struct {
+			Timestamp   string `xml:"timestamp"`
+			BuildNumber string `xml:"buildNumber"`
+		} `xml:"snapshot"`
+		SnapshotVersions []struct {
+			SnapshotVersion struct {
+				Extension string `xml:"extension"`
+				Value     string `xml:"value"`
+				Updated   string `xml:"updated"`
+			} `xml:"snapshotVersion"`
+		} `xml:"snapshotVersions>snapshotVersion"`
+	} `xml:"versioning"`
+}
+
 // ParsePackageMetaData parses the metadata of a pom file
 func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
 	var pom pomStruct
@@ -108,4 +130,21 @@ func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
 		Licenses:     licenses,
 		Dependencies: dependencies,
 	}, nil
+}
+
+// ParseMavenMetadata parses the Maven metadata XML to extract the build number.
+func ParseMavenMetaData(r io.Reader) (string, error) {
+	var metadata MavenMetadata
+
+	dec := xml.NewDecoder(r)
+	dec.CharsetReader = charset.NewReaderLabel // Assuming charset.NewReaderLabel is a function you've set up to handle character encoding.
+	if err := dec.Decode(&metadata); err != nil {
+		return "", err
+	}
+
+	if metadata.Versioning.Snapshot.BuildNumber == "" {
+		return "", errors.New("no build number in snapshot metadata found")
+	}
+
+	return metadata.Versioning.Snapshot.BuildNumber, nil
 }
