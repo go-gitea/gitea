@@ -25,8 +25,7 @@ type SearchOptions struct {
 	Keyword  string
 	Language string
 
-	IsKeywordFuzzy   bool
-	IsKeywordLiteral bool
+	IsKeywordFuzzy bool
 
 	db.Paginator
 }

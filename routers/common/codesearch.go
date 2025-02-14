@@ -4,17 +4,14 @@
 package common
 
 import (
-	"strings"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/context"
 )
 
 func PrepareCodeSearch(ctx *context.Context) (ret struct {
-	Keyword   string
-	Language  string
-	IsFuzzy   bool
-	IsLiteral bool
+	Keyword  string
+	Language string
+	IsFuzzy  bool
 },
 ) {
 	ret.Language = ctx.FormTrim("l")
@@ -38,10 +35,5 @@ func PrepareCodeSearch(ctx *context.Context) (ret struct {
 	ctx.Data["IsFuzzy"] = isFuzzy
 
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-
-	if strings.HasPrefix(ret.Keyword, "\"") && strings.HasSuffix(ret.Keyword, "\"") {
-		ret.Keyword = strings.Trim(ret.Keyword, "\"")
-		ret.IsLiteral = true
-	}
 	return ret
 }

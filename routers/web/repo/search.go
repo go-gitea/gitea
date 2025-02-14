@@ -48,11 +48,10 @@ func Search(ctx *context.Context) {
 	if setting.Indexer.RepoIndexerEnabled {
 		var err error
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
-			RepoIDs:          []int64{ctx.Repo.Repository.ID},
-			Keyword:          prepareSearch.Keyword,
-			IsKeywordFuzzy:   prepareSearch.IsFuzzy,
-			IsKeywordLiteral: prepareSearch.IsLiteral,
-			Language:         prepareSearch.Language,
+			RepoIDs:        []int64{ctx.Repo.Repository.ID},
+			Keyword:        prepareSearch.Keyword,
+			IsKeywordFuzzy: prepareSearch.IsFuzzy,
+			Language:       prepareSearch.Language,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.UI.RepoSearchPagingNum,
