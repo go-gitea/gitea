@@ -215,6 +215,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
 		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
+		// TODO: add a test for repository field after link package to a repository via API is implemented
 		assert.Len(t, pkgs[0].Bin, 1)
 		assert.Equal(t, packageBin, pkgs[0].Bin[0])
 	})
