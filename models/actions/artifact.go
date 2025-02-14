@@ -108,10 +108,11 @@ func UpdateArtifactByID(ctx context.Context, id int64, art *ActionArtifact) erro
 
 type FindArtifactsOptions struct {
 	db.ListOptions
-	RepoID       int64
-	RunID        int64
-	ArtifactName string
-	Status       int
+	RepoID               int64
+	RunID                int64
+	ArtifactName         string
+	Status               int
+	FinalizedArtifactsV4 bool
 }
 
 func (opts FindArtifactsOptions) ToOrders() string {
@@ -133,6 +134,10 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	}
 	if opts.Status > 0 {
 		cond = cond.And(builder.Eq{"status": opts.Status})
+	}
+	if opts.FinalizedArtifactsV4 {
+		cond = cond.And(builder.Eq{"status": ArtifactStatusUploadConfirmed}.Or(builder.Eq{"status": ArtifactStatusExpired}))
+		cond = cond.And(builder.Eq{"content_encoding": "application/zip"})
 	}
 
 	return cond
