@@ -204,66 +204,62 @@ func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *
 	}
 }
 
-// func (m *mailNotifier) ActionRunFinished(ctx context.Context, run *actions_model.ActionRun) {
-//     // Check status first to avoid unnecessary processing
-//     if run.Status != actions_model.StatusSuccess && run.Status != actions_model.StatusFailure {
-//         return
-//     }
-
-//     // Load required attributes after status check
-//     if err := run.LoadAttributes(ctx); err != nil {
-//         log.Error("LoadAttributes: %v", err)
-//         return
-//     }
-
-//     subject := fmt.Sprintf("[%s] Workflow run %s: %s", 
-//         run.Repo.FullName(), 
-//         run.WorkflowName, 
-//         run.Status,
-//     )
-
-//     // Safely handle short commit SHA
-//     commitSHA := run.CommitSHA
-//     if len(commitSHA) > 7 {
-//         commitSHA = commitSHA[:7]
-//     }
-
-//     body := fmt.Sprintf(`Workflow "%s" run #%d has completed with status: %s
-
-// Repository: %s
-// Branch: %s
-// Commit: %s
-// Triggered by: %s
-
-// View the run details here: %s`,
-//         run.WorkflowName,
-//         run.Index,
-//         run.Status,
-//         run.Repo.FullName(),
-//         run.RefName,
-//         commitSHA,
-//         run.TriggerUser.Name,
-//         run.HTMLURL(),
-//     )
-
-//     // Send to repo owner if notifications enabled and email present
-//     if run.Repo.Owner.Email != "" &&
-//         run.Repo.Owner.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
-//         if err := SendMail(ctx, []string{run.Repo.Owner.Email}, subject, body); err != nil {
-//             log.Error("Failed to send email to repo owner %s: %v", run.Repo.Owner.Email, err)
-//         }
-//     }
-
-//     // Send to commit author if different from trigger user and notifications enabled
-//     if run.TriggerUser.ID != run.CommitAuthor.ID &&
-//         run.CommitAuthor.Email != "" &&
-//         run.CommitAuthor.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
-//         if err := SendMail(ctx, []string{run.CommitAuthor.Email}, subject, body); err != nil {
-//             log.Error("Failed to send email to commit author %s: %v", run.CommitAuthor.Email, err)
-//         }
-//     }
-// }
-
 func (m *mailNotifier) ActionRunFinished(ctx context.Context, run *actions_model.ActionRun) {
-	// TODO: send email to related users
+    // Check status first to avoid unnecessary processing
+    if run.Status != actions_model.StatusSuccess && run.Status != actions_model.StatusFailure {
+        return
+    }
+
+    // Load required attributes after status check
+    if err := run.LoadAttributes(ctx); err != nil {
+        log.Error("LoadAttributes: %v", err)
+        return
+    }
+
+    subject := fmt.Sprintf("[%s] Workflow run %s: %s", 
+        run.Repo.FullName(), 
+        run.WorkflowName, 
+        run.Status,
+    )
+
+    // Safely handle short commit SHA
+    commitSHA := run.CommitSHA
+    if len(commitSHA) > 7 {
+        commitSHA = commitSHA[:7]
+    }
+
+    body := fmt.Sprintf(`Workflow "%s" run #%d has completed with status: %s
+
+Repository: %s
+Branch: %s
+Commit: %s
+Triggered by: %s
+
+View the run details here: %s`,
+        run.WorkflowName,
+        run.Index,
+        run.Status,
+        run.Repo.FullName(),
+        run.RefName,
+        commitSHA,
+        run.TriggerUser.Name,
+        run.HTMLURL(),
+    )
+
+    // Send to repo owner if notifications enabled and email present
+    if run.Repo.Owner.Email != "" &&
+        run.Repo.Owner.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
+        if err := SendMail(ctx, []string{run.Repo.Owner.Email}, subject, body); err != nil {
+            log.Error("Failed to send email to repo owner %s: %v", run.Repo.Owner.Email, err)
+        }
+    }
+
+    // Send to commit author if different from trigger user and notifications enabled
+    if run.TriggerUser.ID != run.CommitAuthor.ID &&
+        run.CommitAuthor.Email != "" &&
+        run.CommitAuthor.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
+        if err := SendMail(ctx, []string{run.CommitAuthor.Email}, subject, body); err != nil {
+            log.Error("Failed to send email to commit author %s: %v", run.CommitAuthor.Email, err)
+        }
+    }
 }
