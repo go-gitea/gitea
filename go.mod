@@ -330,3 +330,6 @@ exclude github.com/gofrs/uuid v4.0.0+incompatible
 exclude github.com/goccy/go-json v0.4.11
 
 exclude github.com/satori/go.uuid v1.2.0
+
+// TODO remove before merge
+replace code.gitea.io/actions-proto-go v0.4.0 => gitea.com/ChristopherHX/actions-proto-go v0.4.1-0.20250212113254-35d54b458c4a

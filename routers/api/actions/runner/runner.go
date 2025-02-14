@@ -77,6 +77,7 @@ func (s *Service) Register(
 		RepoID:      runnerToken.RepoID,
 		Version:     req.Msg.Version,
 		AgentLabels: labels,
+		Ephemeral:   req.Msg.Ephemeral,
 	}
 	if err := runner.GenerateToken(); err != nil {
 		return nil, errors.New("can't generate token")
@@ -95,12 +96,13 @@ func (s *Service) Register(
 
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
-			Id:      runner.ID,
-			Uuid:    runner.UUID,
-			Token:   runner.Token,
-			Name:    runner.Name,
-			Version: runner.Version,
-			Labels:  runner.AgentLabels,
+			Id:        runner.ID,
+			Uuid:      runner.UUID,
+			Token:     runner.Token,
+			Name:      runner.Name,
+			Version:   runner.Version,
+			Labels:    runner.AgentLabels,
+			Ephemeral: runner.Ephemeral,
 		},
 	})
 
