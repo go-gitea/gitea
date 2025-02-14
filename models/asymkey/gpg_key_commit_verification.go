@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -71,21 +72,41 @@ const (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) []*SignCommit {
+func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) ([]*SignCommit, error) {
 	newCommits := make([]*SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
+	emails := make(container.Set[string])
 	for _, c := range oldCommits {
+		if c.Committer != nil {
+			emails.Add(c.Committer.Email)
+		}
+	}
+
+	emailUsers, err := user_model.GetUsersByEmails(ctx, emails.Values())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range oldCommits {
+		committer, ok := emailUsers[c.Committer.Email]
+		if !ok && c.Committer != nil {
+			committer = &user_model.User{
+				Name:  c.Committer.Name,
+				Email: c.Committer.Email,
+			}
+		}
+
 		signCommit := &SignCommit{
 			UserCommit:   c,
-			Verification: ParseCommitWithSignature(ctx, c.Commit),
+			Verification: parseCommitWithSignatureCommitter(ctx, c.Commit, committer),
 		}
 
 		_ = CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)
 
 		newCommits = append(newCommits, signCommit)
 	}
-	return newCommits
+	return newCommits, nil
 }
 
 // ParseCommitWithSignature check if signature is good against keystore.
@@ -113,6 +134,10 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *CommitVerific
 		}
 	}
 
+	return parseCommitWithSignatureCommitter(ctx, c, committer)
+}
+
+func parseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, committer *user_model.User) *CommitVerification {
 	// If no signature just report the committer
 	if c.Signature == nil {
 		return &CommitVerification{
