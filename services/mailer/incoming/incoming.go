@@ -255,6 +255,7 @@ loop:
 				}
 
 				content := getContentFromMailReader(env)
+				content.Subject = env.GetHeader("Subject")
 
 				if err := handler.Handle(ctx, content, user, payload); err != nil {
 					return fmt.Errorf("could not handle message: %w", err)
@@ -350,6 +351,7 @@ func searchTokenInAddresses(addresses []*net_mail.Address) string {
 type MailContent struct {
 	Content     string
 	Attachments []*Attachment
+	Subject     string
 }
 
 type Attachment struct {

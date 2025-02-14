@@ -63,7 +63,7 @@ func TestIncomingEmail(t *testing.T) {
 
 			payload := []byte{1, 2, 3, 4, 5}
 
-			token, err := token_service.CreateToken(token_service.ReplyHandlerType, user, payload)
+			token, err := token_service.CreateToken(db.DefaultContext, token_service.ReplyHandlerType, user, payload)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, token)
 
@@ -186,7 +186,7 @@ func TestIncomingEmail(t *testing.T) {
 
 				payload, err := incoming_payload.CreateReferencePayload(issue)
 				assert.NoError(t, err)
-				token, err := token_service.CreateToken(token_service.ReplyHandlerType, user, payload)
+				token, err := token_service.CreateToken(db.DefaultContext, token_service.ReplyHandlerType, user, payload)
 				assert.NoError(t, err)
 
 				msg := sender_service.NewMessageFrom(

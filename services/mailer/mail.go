@@ -325,7 +325,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 		if setting.IncomingEmail.Enabled {
 			if replyPayload != nil {
-				token, err := token.CreateToken(token.ReplyHandlerType, recipient, replyPayload)
+				token, err := token.CreateToken(ctx, token.ReplyHandlerType, recipient, replyPayload)
 				if err != nil {
 					log.Error("CreateToken failed: %v", err)
 				} else {
@@ -337,7 +337,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 				}
 			}
 
-			token, err := token.CreateToken(token.UnsubscribeHandlerType, recipient, unsubscribePayload)
+			token, err := token.CreateToken(ctx, token.UnsubscribeHandlerType, recipient, unsubscribePayload)
 			if err != nil {
 				log.Error("CreateToken failed: %v", err)
 			} else {
