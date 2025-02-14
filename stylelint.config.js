@@ -123,7 +123,6 @@ export default defineConfig({
     'declaration-block-no-redundant-longhand-properties': [true, {ignoreShorthands: ['flex-flow', 'overflow', 'grid-template']}],
     // @ts-expect-error - https://github.com/stylelint-types/stylelint-define-config/issues/1
     'declaration-property-unit-disallowed-list': {'line-height': ['em']},
-    // @ts-expect-error - https://github.com/stylelint-types/stylelint-define-config/issues/1
     'declaration-property-value-disallowed-list': {'word-break': ['break-word']},
     'font-family-name-quotes': 'always-where-recommended',
     'function-name-case': 'lower',
