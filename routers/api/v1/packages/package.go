@@ -272,9 +272,9 @@ func LinkPackage(ctx *context.APIContext) {
 	err = packages_service.LinkToRepository(ctx, pkg, repo, ctx.Doer)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetPackageByName", err)
+			ctx.Error(http.StatusNotFound, "LinkToRepository", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPackageByName", err)
+			ctx.Error(http.StatusInternalServerError, "LinkToRepository", err)
 		}
 		return
 	}
