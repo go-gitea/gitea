@@ -1,7 +1,11 @@
 import {htmlEscape} from 'escape-goat';
 
 export async function initPdfViewer() {
-  const els = document.querySelectorAll('.pdf-content');
+  initTargetPdfViewer(document);
+}
+
+export async function initTargetPdfViewer(target: ParentNode) {
+  const els = target.querySelectorAll('.pdf-content');
   if (!els.length) return;
 
   const pdfobject = await import(/* webpackChunkName: "pdfobject" */'pdfobject');
