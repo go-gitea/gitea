@@ -1,0 +1,13 @@
+/* FIXME: need to refactor the repo branches list page and move these styles to proper place */
+.ui.repository.branches .info {
+  font-size: 12px;
+  color: var(--color-text-light);
+  display: flex;
+  white-space: pre;
+}
+
+.ui.repository.branches .info .commit-message {
+  max-width: 72em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

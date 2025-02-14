@@ -1,0 +1,187 @@
+/* based on Fomantic UI list module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
+.ui.list {
+  list-style-type: none;
+  margin: 1em 0;
+  padding: 0;
+  font-size: 1em;
+}
+
+.ui.list:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.ui.list:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.ui.list > .item,
+.ui.list .list > .item {
+  display: list-item;
+  table-layout: fixed;
+  list-style-type: none;
+  list-style-position: outside;
+}
+
+.ui.list > .list > .item::after,
+.ui.list > .item::after {
+  content: "";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+
+.ui.list .list:not(.icon) {
+  clear: both;
+  margin: 0;
+  padding: 0.75em 0 0.25em 0.5em;
+}
+
+.ui.list .list > .item {
+  padding: 0.14285714em 0;
+}
+
+.ui.list .list > .item > i.icon,
+.ui.list > .item > i.icon {
+  display: table-cell;
+  min-width: 1.55em;
+  padding-top: 0;
+  transition: color 0.1s ease;
+  padding-right: 0.28571429em;
+  vertical-align: top;
+}
+.ui.list .list > .item > i.icon:only-child,
+.ui.list > .item > i.icon:only-child {
+  display: inline-block;
+  min-width: auto;
+  vertical-align: top;
+}
+
+.ui.list .list > .item > .image,
+.ui.list > .item > .image {
+  display: table-cell;
+  background-color: transparent;
+  vertical-align: top;
+}
+.ui.list .list > .item > .image:not(:only-child):not(img),
+.ui.list > .item > .image:not(:only-child):not(img) {
+  padding-right: 0.5em;
+}
+.ui.list .list > .item > .image img,
+.ui.list > .item > .image img {
+  vertical-align: top;
+}
+.ui.list .list > .item > img.image,
+.ui.list .list > .item > .image:only-child,
+.ui.list > .item > img.image,
+.ui.list > .item > .image:only-child {
+  display: inline-block;
+}
+
+.ui.list .list > .item > .content,
+.ui.list > .item > .content {
+  color: var(--color-text);
+}
+.ui.list .list > .item > .image + .content,
+.ui.list .list > .item > i.icon + .content,
+.ui.list > .item > .image + .content,
+.ui.list > .item > i.icon + .content {
+  display: table-cell;
+  width: 100%;
+  padding: 0 0 0 0.5em;
+  vertical-align: top;
+}
+.ui.list .list > .item > img.image + .content,
+.ui.list > .item > img.image + .content {
+  display: inline-block;
+  width: auto;
+}
+.ui.list .list > .item > .content > .list,
+.ui.list > .item > .content > .list {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.ui.list .list > .item .header,
+.ui.list > .item .header {
+  display: block;
+  margin: 0;
+  font-family: var(--fonts-regular);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-dark);
+}
+
+.ui.list .list > .item .description,
+.ui.list > .item .description {
+  display: block;
+  color: var(--color-text);
+}
+
+.ui.list > .item a,
+.ui.list .list > .item a {
+  cursor: pointer;
+}
+
+.ui.menu .ui.list > .item,
+.ui.menu .ui.list .list > .item {
+  display: list-item;
+  table-layout: fixed;
+  background-color: transparent;
+  list-style-type: none;
+  list-style-position: outside;
+  padding: 0.21428571em 0;
+}
+.ui.menu .ui.list .list > .item::before,
+.ui.menu .ui.list > .item::before {
+  border: none;
+  background: none;
+}
+.ui.menu .ui.list .list > .item:first-child,
+.ui.menu .ui.list > .item:first-child {
+  padding-top: 0;
+}
+.ui.menu .ui.list .list > .item:last-child,
+.ui.menu .ui.list > .item:last-child {
+  padding-bottom: 0;
+}
+
+.ui.list .list > .disabled.item,
+.ui.list > .disabled.item {
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
+.ui.list .list > a.item:hover > .icons,
+.ui.list > a.item:hover > .icons,
+.ui.list .list > a.item:hover > i.icon,
+.ui.list > a.item:hover > i.icon {
+  color: var(--color-text-dark);
+}
+
+.ui.divided.list > .item {
+  border-top: 1px solid var(--color-secondary);
+}
+.ui.divided.list .list > .item {
+  border-top: none;
+}
+.ui.divided.list .item .list > .item {
+  border-top: none;
+}
+.ui.divided.list .list > .item:first-child,
+.ui.divided.list > .item:first-child {
+  border-top: none;
+}
+.ui.divided.list .list > .item:first-child {
+  border-top-width: 1px;
+}
+
+.ui.relaxed.list > .item:not(:first-child) {
+  padding-top: 0.42857143em;
+}
+.ui.relaxed.list > .item:not(:last-child) {
+  padding-bottom: 0.42857143em;
+}

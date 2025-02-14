@@ -1,0 +1,40 @@
+{{if eq .HookType "gitea"}}
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://docs.gitea.com/usage/webhooks" (ctx.Locale.Tr "repo.settings.web_hook_name_gitea")}}</p>
+	<form class="ui form" action="{{.BaseLink}}/gitea/{{or .Webhook.ID "new"}}" method="post">
+		{{template "base/disable_form_autofill"}}
+		{{.CsrfTokenHtml}}
+		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
+			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>
+			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
+		</div>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "repo.settings.http_method"}}</label>
+			<div class="ui selection dropdown">
+				<input type="hidden" id="http_method" name="http_method" value="{{if .Webhook.HTTPMethod}}{{.Webhook.HTTPMethod}}{{else}}POST{{end}}">
+				<div class="default text"></div>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<div class="item" data-value="POST">POST</div>
+					<div class="item" data-value="GET">GET</div>
+				</div>
+			</div>
+		</div>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "repo.settings.content_type"}}</label>
+			<div class="ui selection dropdown">
+				<input type="hidden" id="content_type" name="content_type" value="{{if .Webhook.ContentType}}{{.Webhook.ContentType}}{{else}}1{{end}}">
+				<div class="default text"></div>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<div class="item" data-value="1">application/json</div>
+					<div class="item" data-value="2">application/x-www-form-urlencoded</div>
+				</div>
+			</div>
+		</div>
+		<div class="field {{if .Err_Secret}}error{{end}}">
+			<label for="secret">{{ctx.Locale.Tr "repo.settings.secret"}}</label>
+			<input id="secret" name="secret" type="password" value="{{.Webhook.Secret}}" autocomplete="off">
+		</div>
+		{{template "repo/settings/webhook/settings" .}}
+	</form>
+{{end}}

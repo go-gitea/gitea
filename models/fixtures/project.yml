@@ -1,0 +1,71 @@
+-
+  id: 1
+  title: First project
+  owner_id: 0
+  repo_id: 1
+  is_closed: false
+  creator_id: 2
+  board_type: 1
+  type: 2
+  created_unix: 1688973030
+  updated_unix: 1688973030
+
+-
+  id: 2
+  title: second project
+  owner_id: 0
+  repo_id: 3
+  is_closed: false
+  creator_id: 3
+  board_type: 1
+  type: 2
+  created_unix: 1688973010
+  updated_unix: 1688973010
+
+-
+  id: 3
+  title: project on repo with disabled project
+  owner_id: 0
+  repo_id: 4
+  is_closed: true
+  creator_id: 5
+  board_type: 1
+  type: 2
+  created_unix: 1688973020
+  updated_unix: 1688973020
+
+-
+  id: 4
+  title: project on user2
+  owner_id: 2
+  repo_id: 0
+  is_closed: false
+  creator_id: 2
+  board_type: 1
+  type: 2
+  created_unix: 1688973000
+  updated_unix: 1688973000
+
+-
+  id: 5
+  title: project without default column
+  owner_id: 2
+  repo_id: 0
+  is_closed: false
+  creator_id: 2
+  board_type: 1
+  type: 2
+  created_unix: 1688973000
+  updated_unix: 1688973000
+
+-
+  id: 6
+  title: project with multiple default columns
+  owner_id: 2
+  repo_id: 0
+  is_closed: false
+  creator_id: 2
+  board_type: 1
+  type: 2
+  created_unix: 1688973000
+  updated_unix: 1688973000

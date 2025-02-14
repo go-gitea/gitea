@@ -1,0 +1,16 @@
+[program:gitea]
+directory=/home/git/go/src/github.com/go-gitea/gitea/
+command=/home/git/go/src/github.com/go-gitea/gitea/gitea web
+autostart=true
+autorestart=true
+startsecs=10
+stdout_logfile=/var/log/gitea/stdout.log
+stdout_logfile_maxbytes=1MB
+stdout_logfile_backups=10
+stdout_capture_maxbytes=1MB
+stderr_logfile=/var/log/gitea/stderr.log
+stderr_logfile_maxbytes=1MB
+stderr_logfile_backups=10
+stderr_capture_maxbytes=1MB
+user = git
+environment = HOME="/home/git", USER="git"

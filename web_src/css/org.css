@@ -1,0 +1,71 @@
+.organization .head .ui.header .ui.right {
+  margin-top: 5px;
+}
+
+.page-content.organization .org-avatar {
+  margin-right: 15px;
+}
+
+.page-content.organization #org-info .ui.header {
+  display: flex;
+  align-items: center;
+  font-size: 36px;
+  margin-bottom: 0;
+}
+
+.page-content.organization #org-info .desc {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.page-content.organization #org-info .meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.page-content.organization .ui.top.header .ui.right {
+  margin-top: 0;
+}
+
+.page-content.organization .teams .item {
+  padding: 10px 15px;
+}
+
+.page-content.organization .members .ui.avatar {
+  margin-right: 5px;
+  margin-bottom: 5px;
+}
+
+.organization.invite #invite-box {
+  margin: 50px auto auto;
+  width: 500px !important;
+}
+
+.organization.invite #invite-box #search-user-box input {
+  margin-left: 0;
+  width: 300px;
+}
+
+.organization.invite #invite-box .ui.button {
+  margin-left: 5px;
+  margin-top: -3px;
+}
+
+.organization.invite .ui.avatar {
+  width: 100%;
+  height: 100%;
+}
+
+.organization.teams .detail .item {
+  padding: 10px 15px;
+}
+
+.organization.teams .detail .item:not(:last-child) {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.org-team-navbar .active.item {
+  background: var(--color-box-body) !important;
+}

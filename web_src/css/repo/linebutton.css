@@ -1,0 +1,18 @@
+.code-view .lines-num:hover {
+  color: var(--color-text-dark) !important;
+}
+
+.code-line-button {
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  padding: 1px 4px !important;
+  position: absolute;
+  font-family: var(--fonts-regular);
+  left: 0;
+  transform: translateX(calc(-50% + 6px));
+  cursor: pointer;
+}
+
+.code-line-button:hover {
+  background: var(--color-secondary) !important;
+}

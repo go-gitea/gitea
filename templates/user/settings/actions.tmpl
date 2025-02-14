@@ -1,0 +1,12 @@
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings actions")}}
+	<div class="user-setting-content">
+	{{if eq .PageType "secrets"}}
+		{{template "shared/secrets/add_list" .}}
+	{{else if eq .PageType "runners"}}
+		{{template "shared/actions/runner_list" .}}
+	{{else if eq .PageType "variables"}}
+		{{template "shared/variables/variable_list" .}}
+	{{end}}
+	</div>
+
+{{template "user/settings/layout_footer" .}}

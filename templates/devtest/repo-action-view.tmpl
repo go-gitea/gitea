@@ -1,0 +1,9 @@
+{{template "base/head" .}}
+<div class="page-content">
+	{{template "repo/actions/view_component" (dict
+		"RunIndex" 1
+		"JobIndex" 2
+		"ActionsURL" (print AppSubUrl "/devtest/actions-mock")
+	)}}
+</div>
+{{template "base/footer" .}}

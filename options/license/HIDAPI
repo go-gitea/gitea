@@ -1,0 +1,2 @@
+This software may be used by anyone for any reason so long
+as the copyright notice in the source files remains intact.

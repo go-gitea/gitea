@@ -1,0 +1,108 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository milestones">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+
+		<div class="list-header">
+			{{template "repo/issue/navbar" .}}
+			{{template "repo/issue/search" .}}
+			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
+				<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
+			{{end}}
+		</div>
+
+		{{template "repo/issue/filters" .}}
+
+		<!-- milestone list -->
+		<div class="milestone-list">
+			{{range .Milestones}}
+				<li class="milestone-card">
+					<div class="milestone-header">
+						<h3 class="flex-text-block tw-m-0">
+							{{svg "octicon-milestone" 16}}
+							<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+						</h3>
+						<div class="tw-flex tw-items-center">
+							<span class="tw-mr-2">{{.Completeness}}%</span>
+							<progress value="{{.Completeness}}" max="100"></progress>
+						</div>
+					</div>
+					<div class="milestone-toolbar">
+						<div class="group">
+							<div class="flex-text-block">
+								{{svg "octicon-issue-opened" 14}}
+								{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
+							</div>
+							<div class="flex-text-block">
+								{{svg "octicon-check" 14}}
+								{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
+							</div>
+							{{if .TotalTrackedTime}}
+								<div class="flex-text-block">
+									{{svg "octicon-clock"}}
+									{{.TotalTrackedTime|Sec2Hour}}
+								</div>
+							{{end}}
+							{{if .UpdatedUnix}}
+								<div class="flex-text-block">
+									{{svg "octicon-clock"}}
+									{{ctx.Locale.Tr "repo.milestones.update_ago" (DateUtils.TimeSince .UpdatedUnix)}}
+								</div>
+							{{end}}
+							<div class="flex-text-block">
+								{{if .IsClosed}}
+									{{$closedDate:= DateUtils.TimeSince .ClosedDateUnix}}
+									{{svg "octicon-clock" 14}}
+									{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
+								{{else}}
+									{{if .DeadlineString}}
+										<span class="flex-text-inline {{if .IsOverdue}}text red{{end}}">
+											{{svg "octicon-calendar" 14}}
+											{{DateUtils.AbsoluteShort (.DeadlineString|DateUtils.ParseLegacy)}}
+										</span>
+									{{else}}
+										{{svg "octicon-calendar" 14}}
+										{{ctx.Locale.Tr "repo.milestones.no_due_date"}}
+									{{end}}
+								{{end}}
+							</div>
+						</div>
+						{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
+							<div class="group">
+								<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
+								{{if .IsClosed}}
+									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.milestones.open"}}</a>
+								{{else}}
+									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 14}}{{ctx.Locale.Tr "repo.milestones.close"}}</a>
+								{{end}}
+								<a class="delete-button flex-text-inline" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+							</div>
+						{{end}}
+					</div>
+					{{if .Content}}
+						<div class="markup content">
+							{{.RenderedContent}}
+						</div>
+					{{end}}
+				</li>
+			{{end}}
+
+			{{template "base/paginate" .}}
+		</div>
+	</div>
+</div>
+
+{{if or .CanWriteIssues .CanWritePulls}}
+	<div class="ui g-modal-confirm delete modal">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{ctx.Locale.Tr "repo.milestones.deletion"}}
+		</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "repo.milestones.deletion_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</div>
+{{end}}
+{{template "base/footer" .}}

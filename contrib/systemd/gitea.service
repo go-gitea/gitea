@@ -1,0 +1,85 @@
+[Unit]
+Description=Gitea (Git with a cup of tea)
+After=network.target
+###
+# Don't forget to add the database service dependencies
+###
+#
+#Wants=mysql.service
+#After=mysql.service
+#
+#Wants=mariadb.service
+#After=mariadb.service
+#
+#Wants=postgresql.service
+#After=postgresql.service
+#
+#Wants=memcached.service
+#After=memcached.service
+#
+#Wants=redis.service
+#After=redis.service
+#
+###
+# If using socket activation for main http/s
+###
+#
+#After=gitea.main.socket
+#Requires=gitea.main.socket
+#
+###
+# (You can also provide gitea an http fallback and/or ssh socket too)
+#
+# An example of /etc/systemd/system/gitea.main.socket
+###
+##
+## [Unit]
+## Description=Gitea Web Socket
+## PartOf=gitea.service
+##
+## [Socket]
+## Service=gitea.service
+## ListenStream=<some_port>
+## NoDelay=true
+##
+## [Install]
+## WantedBy=sockets.target
+##
+###
+
+[Service]
+# Uncomment the next line if you have repos with lots of files and get a HTTP 500 error because of that
+# LimitNOFILE=524288:524288
+RestartSec=2s
+Type=simple
+User=git
+Group=git
+WorkingDirectory=/var/lib/gitea/
+# If using Unix socket: tells systemd to create the /run/gitea folder, which will contain the gitea.sock file
+# (manually creating /run/gitea doesn't work, because it would not persist across reboots)
+#RuntimeDirectory=gitea
+ExecStart=/usr/local/bin/gitea web --config /etc/gitea/app.ini
+Restart=always
+Environment=USER=git HOME=/home/git GITEA_WORK_DIR=/var/lib/gitea
+# If you install Git to directory prefix other than default PATH (which happens
+# for example if you install other versions of Git side-to-side with
+# distribution version), uncomment below line and add that prefix to PATH
+# Don't forget to place git-lfs binary on the PATH below if you want to enable
+# Git LFS support
+#Environment=PATH=/path/to/git/bin:/bin:/sbin:/usr/bin:/usr/sbin
+# If you want to bind Gitea to a port below 1024, uncomment
+# the two values below, or use socket activation to pass Gitea its ports as above
+###
+#CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+#AmbientCapabilities=CAP_NET_BIND_SERVICE
+###
+# In some cases, when using CapabilityBoundingSet and AmbientCapabilities option, you may want to
+# set the following value to false to allow capabilities to be applied on gitea process. The following
+# value if set to true sandboxes gitea service and prevent any processes from running with privileges
+# in the host user namespace.
+###
+#PrivateUsers=false
+###
+
+[Install]
+WantedBy=multi-user.target

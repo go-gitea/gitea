@@ -1,0 +1,54 @@
+-
+  id: 1
+  index: 1
+  repo_id: 1
+  state: "pending"
+  sha: "1234123412341234123412341234123412341234"
+  target_url: https://example.com/builds/
+  description: My awesome CI-service
+  context: ci/awesomeness
+  creator_id: 2
+
+-
+  id: 2
+  index: 2
+  repo_id: 1
+  state: "warning"
+  sha: "1234123412341234123412341234123412341234"
+  target_url: https://example.com/converage/
+  description: My awesome Coverage service
+  context: cov/awesomeness
+  creator_id: 2
+
+-
+  id: 3
+  index: 3
+  repo_id: 1
+  state: "success"
+  sha: "1234123412341234123412341234123412341234"
+  target_url: https://example.com/converage/
+  description: My awesome Coverage service
+  context: cov/awesomeness
+  creator_id: 2
+
+-
+  id: 4
+  index: 4
+  repo_id: 1
+  state: "failure"
+  sha: "1234123412341234123412341234123412341234"
+  target_url: https://example.com/builds/
+  description: My awesome CI-service
+  context: ci/awesomeness
+  creator_id: 2
+
+-
+  id: 5
+  index: 5
+  repo_id: 1
+  state: "error"
+  sha: "1234123412341234123412341234123412341234"
+  target_url: https://example.com/builds/
+  description: My awesome deploy service
+  context: deploy/awesomeness
+  creator_id: 2

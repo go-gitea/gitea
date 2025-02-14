@@ -1,0 +1,22 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+<div class="admin-setting-content">
+
+	{{template "admin/trace_tabs" .}}
+
+	<h4 class="ui top attached header">
+		{{printf "%d Goroutines" .GoroutineCount}}{{/* Goroutine is non-translatable*/}}
+		{{- if .ProcessCount -}}, {{ctx.Locale.Tr "admin.monitor.processes_count" .ProcessCount}}{{- end -}}
+	</h4>
+
+	{{if .ProcessStacks}}
+	<div class="ui attached segment">
+		<div class="ui relaxed divided list">
+			{{range .ProcessStacks}}
+				{{template "admin/stacktrace-row" dict "Process" . "root" $}}
+			{{end}}
+		</div>
+	</div>
+	{{end}}
+</div>
+
+{{template "admin/layout_footer" .}}

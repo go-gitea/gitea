@@ -1,0 +1,18 @@
+{{if eq .PackageDescriptor.Package.Type "vagrant"}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.vagrant.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>vagrant box add --box-version {{.PackageDescriptor.Version.Version}} "<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/vagrant/{{.PackageDescriptor.Package.Name}}"></origin-url>"</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Vagrant" "https://docs.gitea.com/usage/packages/vagrant/"}}</label>
+			</div>
+		</div>
+	</div>
+	{{if .PackageDescriptor.Metadata.Description}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>
+	{{end}}
+{{end}}

@@ -1,0 +1,14 @@
+{{if and .comment.Time (.ctxData.Repository.IsTimetrackerEnabled ctx)}} {{/* compatibility with time comments made before v1.14 */}}
+	{{if (not .comment.Time.Deleted)}}
+		{{if (or .ctxData.IsAdmin (and .ctxData.IsSigned (eq .ctxData.SignedUserID .comment.PosterID)))}}
+			<span class="tw-float-right">
+				<button class="ui icon button compact mini link-action" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.del_time"}}"
+								data-url="{{.ctxData.RepoLink}}/issues/{{.ctxData.Issue.Index}}/times/{{.comment.TimeID}}/delete?id={{.comment.Time.ID}}"
+								data-modal-confirm="{{ctx.Locale.Tr "repo.issues.del_time"}}"
+				>
+					{{svg "octicon-trash"}}
+				</button>
+			</span>
+		{{end}}
+	{{end}}
+{{end}}

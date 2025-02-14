@@ -1,0 +1,13 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository file editor delete">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<form class="ui form" method="post">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="last_commit" value="{{.last_commit}}">
+			{{template "repo/editor/commit_form" .}}
+		</form>
+	</div>
+</div>
+{{template "base/footer" .}}

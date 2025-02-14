@@ -1,0 +1,13 @@
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+djlint = "1.36.4"
+yamllint = "1.35.1"
+
+[tool.djlint]
+profile="golang"
+ignore="H005,H006,H013,H016,H020,H021,H030,H031"

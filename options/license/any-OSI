@@ -1,0 +1,3 @@
+Pick your favourite OSI approved license :)
+
+http://www.opensource.org/licenses/alphabetical

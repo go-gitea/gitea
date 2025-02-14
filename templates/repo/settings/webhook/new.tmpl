@@ -1,0 +1,7 @@
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings new webhook")}}
+	<div class="repo-setting-content">
+		{{$CustomHeaderTitle := ctx.Locale.Tr "repo.settings.update_webhook"}}
+		{{if .PageIsSettingsHooksNew}}{{$CustomHeaderTitle = ctx.Locale.Tr "repo.settings.add_webhook"}}{{end}}
+		{{template "webhook/new" (dict "ctxData" . "CustomHeaderTitle" $CustomHeaderTitle)}}
+	</div>
+{{template "repo/settings/layout_footer" .}}

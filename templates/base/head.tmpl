@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="{{ctx.Locale.Lang}}" data-theme="{{UserThemeName .SignedUser}}">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>{{if .Title}}{{.Title}} - {{end}}{{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
+	{{if .ManifestData}}<link rel="manifest" href="data:{{.ManifestData}}">{{end}}
+	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}">
+	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}">
+	<meta name="keywords" content="{{MetaKeywords}}">
+	<meta name="referrer" content="no-referrer">
+{{if .GoGetImport}}
+	<meta name="go-import" content="{{.GoGetImport}} git {{.RepoCloneLink.HTTPS}}">
+	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
+{{end}}
+{{if and .EnableFeed .FeedURL}}
+	<link rel="alternate" type="application/atom+xml" title="" href="{{.FeedURL}}.atom">
+	<link rel="alternate" type="application/rss+xml" title="" href="{{.FeedURL}}.rss">
+{{end}}
+	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
+	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
+	{{template "base/head_script" .}}
+	<noscript>
+		<style>
+			.dropdown:hover > .menu { display: block; }
+			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
+		</style>
+	</noscript>
+	{{template "base/head_opengraph" .}}
+	{{template "base/head_style" .}}
+	{{template "custom/header" .}}
+</head>
+<body hx-headers='{"x-csrf-token": "{{.CsrfToken}}"}' hx-swap="outerHTML" hx-ext="morph" hx-push-url="false">
+	{{template "custom/body_outer_pre" .}}
+
+	<div class="full height">
+		<noscript>{{ctx.Locale.Tr "enable_javascript"}}</noscript>
+
+		{{template "custom/body_inner_pre" .}}
+
+		{{if not .PageIsInstall}}
+			{{template "base/head_navbar" .}}
+		{{end}}
+
+{{if false}}
+	{{/* to make html structure "likely" complete to prevent IDE warnings */}}
+	</div>
+</body>
+</html>
+{{end}}

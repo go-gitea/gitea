@@ -1,0 +1,32 @@
+<div class="ui small modal" id="push-mirror-edit-modal">
+	<div class="header">
+		{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.edit_sync_time"}}
+	</div>
+	<div class="content">
+		<form class="ui form ignore-dirty" method="post">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="action" value="push-mirror-update">
+			<input type="hidden" name="push_mirror_id" id="push-mirror-edit-id">
+			<div class="field">
+				<label for="name">{{ctx.Locale.Tr "repo.settings.mirror_settings.mirrored_repository"}}</label>
+				<div class="ui small input">
+					<input id="push-mirror-edit-address" readonly>
+				</div>
+			</div>
+			<div class="inline field">
+				<label for="push-mirror-edit-interval">{{ctx.Locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
+				<input id="push-mirror-edit-interval" name="push_mirror_interval" autofocus>
+			</div>
+			<div class="actions">
+				<button class="ui small basic cancel button">
+					{{svg "octicon-x"}}
+					{{ctx.Locale.Tr "cancel"}}
+				</button>
+				<button class="ui primary small approve button">
+					{{svg "fontawesome-save"}}
+					{{ctx.Locale.Tr "save"}}
+				</button>
+			</div>
+		</form>
+	</div>
+</div>

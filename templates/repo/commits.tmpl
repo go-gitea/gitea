@@ -1,0 +1,28 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository commits">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "repo/sub_menu" .}}
+		<div class="repo-button-row">
+			<div class="repo-button-row-left">
+				{{- /* for /owner/repo/commits/{RefType}/{RefShortName} */ -}}
+				{{- template "repo/branch_dropdown" dict
+					"Repository" .Repository
+					"ShowTabBranches" true
+					"ShowTabTags" true
+					"CurrentRefType" .RefFullName.RefType
+					"CurrentRefShortName" .RefFullName.ShortName
+					"CurrentTreePath" .TreePath
+					"RefLinkTemplate" "{RepoLink}/commits/{RefType}/{RefShortName}/{TreePath}"
+					"AllowCreateNewRef" .CanCreateBranch
+				-}}
+				<a href="{{.RepoLink}}/graph" class="ui basic small compact button">
+					{{svg "octicon-git-branch"}}
+					{{ctx.Locale.Tr "repo.commit_graph"}}
+				</a>
+			</div>
+		</div>
+		{{template "repo/commits_table" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

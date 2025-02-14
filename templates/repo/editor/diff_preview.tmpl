@@ -1,0 +1,17 @@
+{{if .File}}
+<div class="diff-file-box">
+	<div class="ui attached table segment">
+		<div class="file-body file-code code-diff code-diff-unified unicode-escaped">
+			<table>
+				<tbody>
+					{{template "repo/diff/section_unified" dict "file" .File "root" $}}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+{{else}}
+<div class="tw-p-6 tw-text-center">
+	{{ctx.Locale.Tr "repo.editor.no_changes_to_show"}}
+</div>
+{{end}}

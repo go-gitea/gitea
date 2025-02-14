@@ -1,0 +1,42 @@
+<div class="dropzone-attachments">
+	{{if .Attachments}}
+		<div class="divider"></div>
+	{{end}}
+	{{$hasThumbnails := false}}
+	{{- range .Attachments -}}
+		<div class="tw-flex">
+			<div class="tw-flex-1 tw-p-2">
+				<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
+					{{if FilenameIsImage .Name}}
+						{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
+							{{$hasThumbnails = true}}
+						{{end}}
+						{{svg "octicon-file"}}
+					{{else}}
+						{{svg "octicon-desktop-download"}}
+					{{end}}
+					<span><strong>{{.Name}}</strong></span>
+				</a>
+			</div>
+			<div class="tw-p-2 tw-flex tw-items-center">
+				<span class="ui text grey">{{.Size | FileSize}}</span>
+			</div>
+		</div>
+	{{end -}}
+
+	{{if $hasThumbnails}}
+		<div class="divider"></div>
+		<div class="ui small thumbnails">
+			{{- range .Attachments -}}
+				{{if FilenameIsImage .Name}}
+					{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
+					<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+						<img alt="{{.Name}}" src="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
+					</a>
+					{{end}}
+				{{end}}
+			{{end -}}
+		</div>
+	{{end}}
+
+</div>

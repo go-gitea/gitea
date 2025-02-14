@@ -1,0 +1,37 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository wiki revisions">
+	{{template "repo/header" .}}
+	{{$title := .title}}
+	<div class="ui container">
+		<div class="ui stackable grid">
+			<div class="ui eight wide column">
+				<div class="ui header">
+					<a class="file-revisions-btn ui basic button" title="{{ctx.Locale.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}"><span>{{.revision}}</span> {{svg "octicon-home"}}</a>
+					{{$title}}
+					<div class="ui sub header tw-break-anywhere">
+						{{$timeSince := DateUtils.TimeSince .Author.When}}
+						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince}}
+					</div>
+				</div>
+			</div>
+			<div class="ui eight wide column text right">
+				{{template "repo/clone_panel" .}}
+			</div>
+		</div>
+		<h2 class="ui top header">{{ctx.Locale.Tr "repo.wiki.wiki_page_revisions"}}</h2>
+		<div class="tw-mt-4">
+			<h4 class="ui top attached header">
+				<div class="ui stackable grid">
+					<div class="sixteen wide column">
+						{{.CommitCount}} {{ctx.Locale.Tr "repo.commits.commits"}}
+					</div>
+				</div>
+			</h4>
+			{{if and .Commits (gt .CommitCount 0)}}
+				{{template "repo/commits_list" .}}
+			{{end}}
+			{{template "base/paginate" .}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

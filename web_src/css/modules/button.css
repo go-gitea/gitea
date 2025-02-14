@@ -1,0 +1,423 @@
+/* based on Fomantic UI checkbox module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
+.ui.button {
+  cursor: pointer;
+  display: inline-block;
+  min-height: 1em;
+  outline: none;
+  vertical-align: baseline;
+  font-family: var(--fonts-regular);
+  margin: 0 0.25em 0 0;
+  padding: 0.78571429em 1.5em;
+  font-weight: var(--font-weight-normal);
+  text-align: center;
+  text-decoration: none;
+  line-height: 1;
+  border-radius: 0.28571429rem;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  justify-content: center;
+  background: var(--color-button);
+  border: 1px solid var(--color-light-border);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.ui.button:focus-visible {
+  box-shadow: inset 0 0 0 2px currentcolor;
+}
+
+@media (max-width: 767.98px) {
+  .ui.button {
+    white-space: normal;
+  }
+}
+
+.ui.button:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.active.button,
+.ui.button:active,
+.ui.active.button:active,
+.ui.active.button:hover {
+  background: var(--color-active);
+  color: var(--color-text);
+}
+
+.ui.buttons .disabled.button:not(.basic),
+.ui.disabled.button,
+.ui.button:disabled,
+.ui.disabled.button:hover,
+.ui.disabled.active.button {
+  cursor: default;
+  opacity: var(--opacity-disabled) !important;
+  background-image: none;
+  pointer-events: none !important;
+}
+
+.ui.labeled.button:not(.icon) {
+  display: inline-flex;
+  flex-direction: row;
+  background: none;
+  padding: 0 !important;
+  border: none;
+}
+.ui.labeled.button > .button {
+  margin: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.ui.labeled.button > .label {
+  display: flex;
+  align-items: center;
+  margin: 0 0 0 -1px !important;
+  font-size: 1em;
+  border-color: var(--color-light-border);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.ui.labeled.button > .label:hover {
+  background: var(--color-hover);
+}
+.ui.labeled.button > .button:hover + .label {
+  border-left-color: var(--color-secondary-dark-2);
+}
+
+.ui.button > .icon:not(.button) {
+  height: auto;
+  opacity: 0.8;
+}
+.ui.button:not(.icon) > .icon:not(.button):not(.dropdown),
+.ui.button:not(.icon) > .icons:not(.button):not(.dropdown) {
+  margin: 0 0.42857143em 0 -0.21428571em;
+  vertical-align: baseline;
+}
+.ui.button:not(.icon) > .icons:not(.button):not(.dropdown) > .icon {
+  vertical-align: baseline;
+}
+.ui.button:not(.icon) > .right.icon:not(.button):not(.dropdown) {
+  margin: 0 -0.21428571em 0 0.42857143em;
+}
+
+.ui.compact.buttons .button,
+.ui.compact.button {
+  padding: 0.58928571em 1.125em;
+}
+.ui.compact.icon.buttons .button,
+.ui.compact.icon.button {
+  padding: 0.58928571em;
+}
+.ui.compact.labeled.icon.button {
+  padding: 0.58928571em 3.69642857em;
+}
+.ui.compact.labeled.icon.button > .icon {
+  padding: 0.58928571em 0;
+}
+
+.ui.buttons .button,
+.ui.button {
+  font-size: 1rem;
+}
+.ui.mini.buttons .dropdown,
+.ui.mini.buttons .dropdown .menu > .item,
+.ui.mini.buttons .button,
+.ui.ui.ui.ui.mini.button {
+  font-size: 0.78571429rem;
+}
+.ui.tiny.buttons .dropdown,
+.ui.tiny.buttons .dropdown .menu > .item,
+.ui.tiny.buttons .button,
+.ui.ui.ui.ui.tiny.button {
+  font-size: 0.85714286rem;
+}
+.ui.small.buttons .dropdown,
+.ui.small.buttons .dropdown .menu > .item,
+.ui.small.buttons .button,
+.ui.ui.ui.ui.small.button {
+  font-size: 0.92857143rem;
+}
+
+.ui.icon.buttons .button,
+.ui.icon.button:not(.compact) {
+  padding: 0.78571429em;
+}
+.ui.icon.buttons .button > .icon,
+.ui.icon.button > .icon {
+  margin: 0 !important;
+  vertical-align: top;
+}
+
+.ui.basic.buttons .button,
+.ui.basic.button {
+  border-radius: 0.28571429rem;
+  background: none;
+}
+.ui.basic.buttons {
+  border: 1px solid var(--color-secondary);
+  border-radius: 0.28571429rem;
+}
+.ui.basic.buttons .button {
+  border-radius: 0;
+  border-left: 1px solid var(--color-secondary);
+}
+
+.ui.labeled.button.disabled > .button,
+.ui.basic.buttons .button,
+.ui.basic.button {
+  color: var(--color-text-light);
+  background: var(--color-button);
+}
+
+.ui.basic.buttons .button:hover,
+.ui.basic.button:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+  border-color: var(--color-secondary-dark-2);
+}
+
+.ui.basic.buttons .button:active,
+.ui.basic.button:active,
+.ui.basic.buttons .active.button,
+.ui.basic.active.button,
+.ui.basic.buttons .active.button:hover,
+.ui.basic.active.button:hover {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
+.ui.labeled.icon.button {
+  position: relative;
+  padding-left: 4.07142857em !important;
+  padding-right: 1.5em !important;
+}
+
+.ui.labeled.icon.button > .icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  line-height: 1;
+  border-radius: 0;
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+  text-align: center;
+  animation: none;
+  padding: 0.78571429em 0;
+  margin: 0;
+  width: 2.57142857em;
+  background: var(--color-hover);
+}
+
+.ui.button.toggle.active {
+  background-color: var(--color-green);
+  color: var(--color-white);
+}
+.ui.button.toggle.active:hover {
+  background-color: var(--color-green-dark-1);
+  color: var(--color-white);
+}
+
+.ui.fluid.button {
+  width: 100%;
+  display: block;
+}
+
+.ui.primary.button,
+.ui.primary.buttons .button {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.ui.primary.button:hover,
+.ui.primary.buttons .button:hover {
+  background: var(--color-primary-hover);
+  color: var(--color-primary-contrast);
+}
+
+.ui.primary.button:active,
+.ui.primary.buttons .button:active {
+  background: var(--color-primary-active);
+}
+
+.ui.basic.primary.buttons .button,
+.ui.basic.primary.button {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: none;
+}
+
+.ui.basic.primary.buttons .button:hover,
+.ui.basic.primary.button:hover {
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.ui.basic.primary.buttons .button:active,
+.ui.basic.primary.button:active {
+  color: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+.ui.red.button,
+.ui.red.buttons .button {
+  color: var(--color-white);
+  background: var(--color-red);
+}
+
+.ui.red.button:hover,
+.ui.red.buttons .button:hover {
+  background: var(--color-red-dark-1);
+}
+
+.ui.red.button:active,
+.ui.red.buttons .button:active {
+  background: var(--color-red-dark-2);
+}
+
+.ui.basic.red.buttons .button,
+.ui.basic.red.button {
+  color: var(--color-red);
+  border-color: var(--color-red);
+  background: none;
+}
+
+.ui.basic.red.buttons .button:hover,
+.ui.basic.red.button:hover {
+  color: var(--color-red-dark-1);
+  border-color: var(--color-red-dark-1);
+}
+
+.ui.basic.red.buttons .button:active,
+.ui.basic.red.button:active {
+  color: var(--color-red-dark-2);
+  border-color: var(--color-red-dark-2);
+}
+
+.ui.green.button,
+.ui.green.buttons .button {
+  color: var(--color-white);
+  background: var(--color-green);
+}
+
+.ui.green.button:hover,
+.ui.green.buttons .button:hover {
+  background: var(--color-green-dark-1);
+}
+
+.ui.green.button:active,
+.ui.green.buttons .button:active {
+  background: var(--color-green-dark-2);
+}
+
+.ui.basic.green.buttons .button,
+.ui.basic.green.button {
+  color: var(--color-green);
+  border-color: var(--color-green);
+  background: none;
+}
+
+.ui.basic.green.buttons .button:hover,
+.ui.basic.green.button:hover {
+  color: var(--color-green-dark-1);
+  border-color: var(--color-green-dark-1);
+}
+
+.ui.basic.green.buttons .button:active,
+.ui.basic.green.button:active {
+  color: var(--color-green-dark-2);
+  border-color: var(--color-green-dark-2);
+}
+
+.ui.buttons {
+  display: inline-flex;
+  flex-direction: row;
+  font-size: 0;
+  vertical-align: baseline;
+  margin: 0 0.25em 0 0;
+}
+
+.delete-button,
+.delete-button:hover {
+  color: var(--color-red);
+}
+
+/* btn is a plain button without any opinionated styling, it only uses flex for vertical alignment like ".ui.button" in base.css */
+
+.btn {
+  background: transparent;
+  border-radius: var(--border-radius);
+  border: none;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+.btn:hover,
+.btn:active {
+  background: none;
+  border: none;
+}
+
+a.btn,
+a.btn:hover {
+  color: inherit;
+}
+
+/* By default, Fomantic UI doesn't support "bordered" buttons group, but Gitea would like to use it.
+And the default buttons always have borders now (not the same as Fomantic UI's default buttons, see above).
+It needs some tricks to tweak the left/right borders with active state */
+
+.ui.buttons .button {
+  border-right: none;
+  flex: 1 0 auto;
+  border-radius: 0;
+  margin: 0;
+}
+.ui.buttons .button:first-child {
+  border-left: none;
+  margin-left: 0;
+  border-top-left-radius: 0.28571429rem;
+  border-bottom-left-radius: 0.28571429rem;
+}
+.ui.buttons .button:last-child {
+  border-top-right-radius: 0.28571429rem;
+  border-bottom-right-radius: 0.28571429rem;
+}
+
+.ui.buttons .button:hover {
+  border-color: var(--color-secondary-dark-2);
+}
+
+.ui.buttons .button:hover + .button {
+  border-left: 1px solid var(--color-secondary-dark-2);
+}
+
+/* TODO: these "tw-hidden" selectors are only used by "blame.tmpl" buttons: Raw/Normal View/History/Unescape, need to be refactored to a clear solution later */
+.ui.buttons .button:first-child,
+.ui.buttons .button.tw-hidden:first-child + .button {
+  border-left: 1px solid var(--color-light-border);
+}
+
+.ui.buttons .button:last-child,
+.ui.buttons .button:nth-last-child(2):has(+ .button.tw-hidden) {
+  border-right: 1px solid var(--color-light-border);
+}
+
+.ui.buttons .button.active {
+  border-left: 1px solid var(--color-light-border);
+  border-right: 1px solid var(--color-light-border);
+}
+
+.ui.buttons .button.active + .button {
+  border-left: none;
+}
+
+/* apply the vertical padding of .compact to non-compact buttons when they contain a svg as they
+   would otherwise appear too large. Seen on "RSS Feed" button on repo releases tab. */
+.ui.small.button:not(.compact):has(.svg) {
+  padding-top: 0.58928571em;
+  padding-bottom: 0.58928571em;
+}

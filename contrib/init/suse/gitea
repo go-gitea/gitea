@@ -1,0 +1,115 @@
+#!/bin/sh
+#
+#       /etc/init.d/gitea
+#
+#       Runs the Gitea Git with a cup of tea.
+#
+
+### BEGIN INIT INFO
+# Provides:          gitea
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start gitea at boot time.
+# Description:       Control gitea.
+### END INIT INFO
+
+# Default values
+
+NAME=gitea
+GITEA_HOME=/var/lib/$NAME
+GITEA_PATH=/usr/local/bin/$NAME
+GITEA_USER=git
+SERVICENAME="Gitea - Git with a cup of tea"
+LOCKFILE=/var/lock/subsys/gitea
+LOGPATH=${GITEA_HOME}/log
+LOGFILE=${LOGPATH}/error.log
+# gitea creates its own gitea.log from stdout
+RETVAL=0
+
+# Read configuration from /etc/sysconfig/gitea to override defaults
+[ -r /etc/sysconfig/$NAME ] && . /etc/sysconfig/$NAME
+
+# Don't do anything if nothing is installed
+test -x ${GITEA_PATH} || { echo "$NAME not installed";
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+
+# exit if logpath dir is not created.
+test -r ${LOGPATH} || { echo "$LOGPATH not existing";
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 6; fi; }
+
+# Source function library.
+. /etc/rc.status
+
+# Reset status of this service
+rc_reset
+
+
+case "$1" in
+    start)
+		echo -n "Starting ${SERVICENAME} "
+
+		# As we can't use startproc, we have to check ourselves if the service is already running
+		/sbin/checkproc ${GITEA_PATH}
+		if [ $? -eq 0 ]; then
+			# return skipped as service is already running
+			(exit 5)
+		else
+			su - ${GITEA_USER} -c "USER=${GITEA_USER} GITEA_WORK_DIR=${GITEA_HOME} ${GITEA_PATH} web -c /etc/${NAME}/app.ini 2>&1 >>${LOGFILE} &"
+		fi
+
+		# Remember status and be verbose
+		rc_status -v
+	;;
+
+	stop)
+		echo -n "Shutting down ${SERVICENAME} "
+
+		## Stop daemon with killproc(8) and if this fails
+		## killproc sets the return value according to LSB.
+		/sbin/killproc ${GITEA_PATH}
+
+		# Remember status and be verbose
+		rc_status -v
+	;;
+
+	restart)
+		## Stop the service and regardless of whether it was
+		## running or not, start it again.
+		$0 stop
+		$0 start
+
+		# Remember status and be quiet
+		rc_status
+	;;
+
+	status)
+		echo -n "Checking for ${SERVICENAME} "
+		## Check status with checkproc(8), if process is running
+		## checkproc will return with exit status 0.
+
+		# Return value is slightly different for the status command:
+		# 0 - service up and running
+		# 1 - service dead, but /run/  pid  file exists
+		# 2 - service dead, but /var/lock/ lock file exists
+		# 3 - service not running (unused)
+		# 4 - service status unknown :-(
+		# 5--199 reserved (5--99 LSB, 100--149 distro, 150--199 appl.)
+
+		# NOTE: checkproc returns LSB compliant status values.
+		/sbin/checkproc ${GITEA_PATH}
+		# NOTE: rc_status knows that we called this init script with
+		# "status" option and adapts its messages accordingly.
+		rc_status -v
+	;;
+
+    *)
+		echo "Usage: $0 {start|stop|status|restart}"
+		exit 1
+	;;
+
+esac
+rc_exit
