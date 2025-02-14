@@ -10,15 +10,21 @@ import (
 )
 
 func TestParseKeywordAsPhrase(t *testing.T) {
-	phrase, isPhrase := ParseKeywordAsPhrase(`a`)
-	assert.Empty(t, phrase)
-	assert.False(t, isPhrase)
-
-	phrase, isPhrase = ParseKeywordAsPhrase(`"a"`)
-	assert.Equal(t, "a", phrase)
-	assert.True(t, isPhrase)
-
-	phrase, isPhrase = ParseKeywordAsPhrase(`""\"""`)
-	assert.Equal(t, `"\""`, phrase)
-	assert.True(t, isPhrase)
+	cases := []struct {
+		keyword  string
+		phrase   string
+		isPhrase bool
+	}{
+		{``, "", false},
+		{`a`, "", false},
+		{`"`, "", false},
+		{`"a`, "", false},
+		{`"a"`, "a", true},
+		{`""\"""`, `"\""`, true},
+	}
+	for _, c := range cases {
+		phrase, isPhrase := ParseKeywordAsPhrase(c.keyword)
+		assert.Equal(t, c.phrase, phrase, "keyword=%q", c.keyword)
+		assert.Equal(t, c.isPhrase, isPhrase, "keyword=%q", c.keyword)
+	}
 }

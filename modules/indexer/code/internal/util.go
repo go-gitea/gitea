@@ -50,7 +50,7 @@ func FilenameMatchIndexPos(content string) (int, int) {
 }
 
 func ParseKeywordAsPhrase(keyword string) (string, bool) {
-	if strings.HasPrefix(keyword, `"`) && strings.HasSuffix(keyword, `"`) {
+	if strings.HasPrefix(keyword, `"`) && strings.HasSuffix(keyword, `"`) && len(keyword) > 1 {
 		// only remove the prefix and suffix quotes, no need to decode the content at the moment
 		return keyword[1 : len(keyword)-1], true
 	}
