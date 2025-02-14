@@ -77,6 +77,11 @@ func Projects(ctx *context.Context) {
 		return
 	}
 
+	if err := project_service.LoadIssueNumbersForProjects(ctx, projects, ctx.Doer); err != nil {
+		ctx.ServerError("LoadIssueNumbersForProjects", err)
+		return
+	}
+
 	opTotal, err := db.Count[project_model.Project](ctx, project_model.SearchOptions{
 		OwnerID:  ctx.ContextUser.ID,
 		IsClosed: optional.Some(!isShowClosed),
@@ -344,15 +349,24 @@ func ViewProject(ctx *context.Context) {
 	}
 	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
-	issuesMap, err := project_service.LoadIssuesFromColumnList(ctx, project, columns, &issues_model.IssuesOptions{
+	opts := issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
 		AssigneeID: optional.Some(assigneeID),
-		Org:        org_model.OrgFromUser(project.Owner),
-		User:       ctx.Doer,
-	})
+		AccessUser: ctx.Doer,
+	}
+	if project.Owner.IsOrganization() {
+		opts.Org = org_model.OrgFromUser(project.Owner)
+	} else {
+		opts.Owner = project.Owner
+	}
+
+	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &opts)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
 		return
+	}
+	for _, column := range columns {
+		column.NumIssues = int64(len(issuesMap[column.ID]))
 	}
 
 	if project.CardType != project_model.CardTypeTextOnly {
