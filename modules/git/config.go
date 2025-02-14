@@ -40,35 +40,41 @@ func syncGitConfig() (err error) {
 	}
 
 	// Set git some configurations - these must be set to these values for gitea to work correctly
-	if err := configSet("core.quotePath", "false"); err != nil {
+	if err = configSet("core.quotePath", "false"); err != nil {
 		return err
 	}
 
 	if DefaultFeatures().CheckVersionAtLeast("2.10") {
-		if err := configSet("receive.advertisePushOptions", "true"); err != nil {
+		if err = configSet("receive.advertisePushOptions", "true"); err != nil {
 			return err
 		}
 	}
 
 	if DefaultFeatures().CheckVersionAtLeast("2.18") {
-		if err := configSet("core.commitGraph", "true"); err != nil {
+		if err = configSet("core.commitGraph", "true"); err != nil {
 			return err
 		}
-		if err := configSet("gc.writeCommitGraph", "true"); err != nil {
+		if err = configSet("gc.writeCommitGraph", "true"); err != nil {
 			return err
 		}
-		if err := configSet("fetch.writeCommitGraph", "true"); err != nil {
+		if err = configSet("fetch.writeCommitGraph", "true"); err != nil {
 			return err
 		}
 	}
 
 	if DefaultFeatures().SupportProcReceive {
 		// set support for AGit flow
-		if err := configAddNonExist("receive.procReceiveRefs", "refs/for"); err != nil {
+		if err = configAddNonExist("receive.procReceiveRefs", "refs/for"); err != nil {
+			return err
+		}
+		if err = configAddNonExist("receive.procReceiveRefs", "refs/for-review"); err != nil {
 			return err
 		}
 	} else {
-		if err := configUnsetAll("receive.procReceiveRefs", "refs/for"); err != nil {
+		if err = configUnsetAll("receive.procReceiveRefs", "refs/for"); err != nil {
+			return err
+		}
+		if err = configUnsetAll("receive.procReceiveRefs", "refs/for-review"); err != nil {
 			return err
 		}
 	}
