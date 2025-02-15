@@ -80,7 +80,11 @@ func Commits(ctx *context.Context) {
 		ctx.ServerError("CommitsByRange", err)
 		return
 	}
-	ctx.Data["Commits"] = processGitCommits(ctx, commits)
+	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	if err != nil {
+		ctx.ServerError("processGitCommits", err)
+		return
+	}
 	commitIDs := make([]string, 0, len(commits))
 	for _, c := range commits {
 		commitIDs = append(commitIDs, c.ID.String())
@@ -192,7 +196,11 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CommitCount"] = len(commits)
-	ctx.Data["Commits"] = processGitCommits(ctx, commits)
+	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	if err != nil {
+		ctx.ServerError("processGitCommits", err)
+		return
+	}
 
 	ctx.Data["Keyword"] = query
 	if all {
@@ -235,7 +243,11 @@ func FileHistory(ctx *context.Context) {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
-	ctx.Data["Commits"] = processGitCommits(ctx, commits)
+	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	if err != nil {
+		ctx.ServerError("processGitCommits", err)
+		return
+	}
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
@@ -416,13 +428,16 @@ func RawDiff(ctx *context.Context) {
 	}
 }
 
-func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) []*git_model.SignCommitWithStatuses {
-	commits := git_model.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_model.SignCommitWithStatuses, error) {
+	commits, err := git_model.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+	if err != nil {
+		return nil, err
+	}
 	if !ctx.Repo.CanRead(unit_model.TypeActions) {
 		for _, commit := range commits {
 			commit.Status.HideActionsURL(ctx)
 			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 		}
 	}
-	return commits
+	return commits, nil
 }
