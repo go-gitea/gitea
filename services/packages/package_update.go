@@ -33,7 +33,7 @@ func LinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *re
 	}
 
 	if err := packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID); err != nil {
-		return fmt.Errorf("error updating package: %w", err)
+		return fmt.Errorf("error while linking package '%v' to repo '%v' : %w", pkg.Name, repo.FullName(), err)
 	}
 	return nil
 }
