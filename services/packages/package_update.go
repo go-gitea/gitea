@@ -18,16 +18,18 @@ import (
 
 func LinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *repo_model.Repository, doer *user_model.User) error {
 	if pkg.OwnerID != repo.OwnerID {
-		return util.ErrNotExist
+		return util.ErrPermissionDenied
+	}
+	if pkg.RepoID > 0 {
+		return util.ErrInvalidArgument
 	}
 
 	perms, err := access_model.GetUserRepoPermission(ctx, repo, doer)
 	if err != nil {
 		return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
 	}
-
 	if !perms.CanWrite(unit.TypePackages) {
-		return fmt.Errorf("no permission to link this package and repository, or packages are disabled")
+		return util.ErrPermissionDenied
 	}
 
 	if err := packages_model.SetRepositoryLink(ctx, pkg.ID, repo.ID); err != nil {
@@ -37,21 +39,38 @@ func LinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *re
 }
 
 func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer *user_model.User) error {
+	if pkg.RepoID == 0 {
+		return util.ErrInvalidArgument
+	}
+
+	repo, err := repo_model.GetRepositoryByID(ctx, pkg.RepoID)
+	if err != nil {
+		return fmt.Errorf("error getting repository %d: %w", pkg.RepoID, err)
+	}
+
+	perms, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	if err != nil {
+		return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
+	}
+	if !perms.CanWrite(unit.TypePackages) {
+		return util.ErrPermissionDenied
+	}
+
 	user, err := user_model.GetUserByID(ctx, pkg.OwnerID)
 	if err != nil {
 		return err
 	}
-	if !user.IsAdmin {
+	if !doer.IsAdmin {
 		if !user.IsOrganization() {
 			if doer.ID != pkg.OwnerID {
-				return fmt.Errorf("No permission to unlink this package and repository, or packages are disabled")
+				return fmt.Errorf("no permission to unlink package '%v' from its repository, or packages are disabled", pkg.Name)
 			}
 		} else {
 			isOrgAdmin, err := org_model.OrgFromUser(user).IsOrgAdmin(ctx, doer.ID)
 			if err != nil {
 				return err
 			} else if !isOrgAdmin {
-				return fmt.Errorf("No permission to unlink this package and repository, or packages are disabled")
+				return fmt.Errorf("no permission to unlink package '%v' from its repository, or packages are disabled", pkg.Name)
 			}
 		}
 	}

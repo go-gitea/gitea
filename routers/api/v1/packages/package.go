@@ -271,9 +271,12 @@ func LinkPackage(ctx *context.APIContext) {
 
 	err = packages_service.LinkToRepository(ctx, pkg, repo, ctx.Doer)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "LinkToRepository", err)
-		} else {
+		switch {
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.Error(http.StatusBadRequest, "LinkToRepository", err)
+		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.Error(http.StatusForbidden, "LinkToRepository", err)
+		default:
 			ctx.Error(http.StatusInternalServerError, "LinkToRepository", err)
 		}
 		return
@@ -320,9 +323,12 @@ func UnlinkPackage(ctx *context.APIContext) {
 
 	err = packages_service.UnlinkFromRepository(ctx, pkg, ctx.Doer)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "UnlinkFromRepository", err)
-		} else {
+		switch {
+		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.Error(http.StatusForbidden, "UnlinkFromRepository", err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.Error(http.StatusBadRequest, "UnlinkFromRepository", err)
+		default:
 			ctx.Error(http.StatusInternalServerError, "UnlinkFromRepository", err)
 		}
 		return
