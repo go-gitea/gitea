@@ -1043,7 +1043,7 @@ func GetArtifact(ctx *context.APIContext) {
 		return
 	}
 	// v3 not supported due to not having one unique id
-	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
+	ctx.Error(http.StatusNotFound, "GetArtifact", "Artifact not found")
 }
 
 // DeleteArtifact Deletes a specific artifact for a workflow run.
@@ -1084,14 +1084,14 @@ func DeleteArtifact(ctx *context.APIContext) {
 
 	if actions.IsArtifactV4(art) {
 		if err := actions_model.SetArtifactNeedDelete(ctx, art.RunID, art.ArtifactName); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error(), err)
+			ctx.Error(http.StatusInternalServerError, "DeleteArtifact", err)
 			return
 		}
 		ctx.Status(http.StatusNoContent)
 		return
 	}
 	// v3 not supported due to not having one unique id
-	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
+	ctx.Error(http.StatusNotFound, "DeleteArtifact", "Artifact not found")
 }
 
 func buildSignature(endp, expires string, artifactID int64) []byte {
@@ -1100,6 +1100,10 @@ func buildSignature(endp, expires string, artifactID int64) []byte {
 	mac.Write([]byte(expires))
 	mac.Write([]byte(fmt.Sprint(artifactID)))
 	return mac.Sum(nil)
+}
+
+func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) string {
+	return fmt.Sprintf("api/v1/repos/%s/%s//actions/artifacts/%d/zip/raw", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), artifactID)
 }
 
 func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
@@ -1147,7 +1151,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
 	if art.Status == actions_model.ArtifactStatusExpired {
-		ctx.Error(http.StatusNotFound, "artifact has expired", fmt.Errorf("artifact has expired"))
+		ctx.Error(http.StatusNotFound, "DownloadArtifact", "Artifact has expired")
 		return
 	}
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
@@ -1158,16 +1162,16 @@ func DownloadArtifact(ctx *context.APIContext) {
 			return
 		}
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error(), err)
+			ctx.Error(http.StatusInternalServerError, "DownloadArtifactV4ServeDirectOnly", err)
 			return
 		}
 
-		rurl := buildSigURL(ctx, "api/v1/repos/"+url.PathEscape(ctx.Repo.Repository.OwnerName)+"/"+url.PathEscape(ctx.Repo.Repository.Name)+"/actions/artifacts/"+fmt.Sprintf("%d", art.ID)+"/zip/raw", art.ID)
-		ctx.Redirect(rurl, http.StatusFound)
+		redirectURL := buildSigURL(ctx, buildDownloadRawEndpoint(ctx.Repo.Repository, art.ID), art.ID)
+		ctx.Redirect(redirectURL, http.StatusFound)
 		return
 	}
 	// v3 not supported due to not having one unique id
-	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
+	ctx.Error(http.StatusNotFound, "DownloadArtifact", "Artifact not found")
 }
 
 // DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
@@ -1179,13 +1183,12 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 		return
 	}
 
-	sig := ctx.Req.URL.Query().Get("sig")
+	sigStr := ctx.Req.URL.Query().Get("sig")
 	expires := ctx.Req.URL.Query().Get("expires")
-	dsig, _ := base64.URLEncoding.DecodeString(sig)
+	sigBytes, _ := base64.URLEncoding.DecodeString(sigStr)
 
-	endp := "api/v1/repos/" + url.PathEscape(ctx.Repo.Repository.OwnerName) + "/" + url.PathEscape(ctx.Repo.Repository.Name) + "/actions/artifacts/" + fmt.Sprintf("%d", art.ID) + "/zip/raw"
-	expectedSig := buildSignature(endp, expires, art.ID)
-	if !hmac.Equal(dsig, expectedSig) {
+	expectedSig := buildSignature(buildDownloadRawEndpoint(ctx.Repo.Repository, art.ID), expires, art.ID)
+	if !hmac.Equal(sigBytes, expectedSig) {
 		ctx.Error(http.StatusUnauthorized, "DownloadArtifactRaw", "Error unauthorized")
 		return
 	}
@@ -1226,7 +1229,7 @@ func getArtifactByPathParam(ctx *context.APIContext, repo *repo_model.Repository
 	// if artifacts status is not uploaded-confirmed, treat it as not found
 	// FIXME: is the OwnerID check right? What if a repo is transferred to a new owner?
 	if !ok ||
-		(art.RepoID != ctx.Repo.Repository.ID || art.OwnerID != ctx.Repo.Repository.OwnerID) ||
+		(art.RepoID != repo.ID || art.OwnerID != repo.OwnerID) ||
 		art.Status != actions_model.ArtifactStatusUploadConfirmed && art.Status != actions_model.ArtifactStatusExpired {
 		ctx.Error(http.StatusNotFound, "getArtifactByPathParam", "artifact not found")
 		return nil
