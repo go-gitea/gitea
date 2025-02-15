@@ -274,7 +274,13 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 
 	applyLabelsCondition(sess, opts)
 
-	if opts.AccessUser != nil {
+	if opts.Org != nil {
+		sess.And(repo_model.UserOwnedRepoCond(opts.Org.ID))
+	} else if opts.Owner != nil {
+		sess.And(repo_model.UserOwnedRepoCond(opts.Owner.ID))
+	}
+
+	if opts.AccessUser != nil && !opts.AccessUser.IsAdmin {
 		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.AccessUser.ID, opts.Org, opts.Owner, opts.Team, opts.IsPull.Value()))
 	}
 }
@@ -340,9 +346,6 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 			)
 		}
 	} else {
-		if owner != nil {
-			cond = cond.And(repo_model.UserOwnedRepoCond(owner.ID)) // owned repos
-		}
 		cond = cond.And(
 			builder.Or(
 				repo_model.UserOwnedRepoCond(userID),                          // owned repos
