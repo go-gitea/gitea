@@ -1237,7 +1237,7 @@ func getArtifactByPathParam(ctx *context.APIContext, repo *repo_model.Repository
 		return nil
 	}
 	// if artifacts status is not uploaded-confirmed, treat it as not found
-	// Only check RepoID here, because the repository owner may change over the time
+	// only check RepoID here, because the repository owner may change over the time
 	if !ok ||
 		art.RepoID != repo.ID ||
 		art.Status != actions_model.ArtifactStatusUploadConfirmed && art.Status != actions_model.ArtifactStatusExpired {
