@@ -195,8 +195,7 @@
 				</div>
 
 				<div class="inline field tw-pl-4">
-					<label for="avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
-					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+					{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
 				</div>
 
 				<div class="field">

@@ -67,7 +67,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		if err := issue.LoadLabels(ctx); err != nil {
 			return &api.Issue{}
 		}
-		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
+		apiIssue.Labels = util.SliceNilAsEmpty(ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner))
 		apiIssue.Repo = &api.RepositoryMeta{
 			ID:       issue.Repo.ID,
 			Name:     issue.Repo.Name,

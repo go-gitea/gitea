@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -19,6 +20,8 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	secret_service "code.gitea.io/gitea/services/secrets"
+
+	"github.com/nektos/act/pkg/model"
 )
 
 // ListActionsSecrets list an repo's actions secrets
@@ -414,7 +417,11 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	if opt.Name == "" {
 		opt.Name = ctx.PathParam("variablename")
 	}
-	if _, err := actions_service.UpdateVariable(ctx, v.ID, opt.Name, opt.Value); err != nil {
+
+	v.Name = opt.Name
+	v.Data = opt.Value
+
+	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
 		} else {
@@ -580,4 +587,271 @@ func ListActionTasks(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, &res)
+}
+
+func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows repository ActionsListRepositoryWorkflows
+	// ---
+	// summary: List repository workflows
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActionWorkflowList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "500":
+	//     "$ref": "#/responses/error"
+
+	workflows, err := actions_service.ListActionWorkflows(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ListActionWorkflows", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, &api.ActionWorkflowResponse{Workflows: workflows, TotalCount: int64(len(workflows))})
+}
+
+func ActionsGetWorkflow(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/workflows/{workflow_id} repository ActionsGetWorkflow
+	// ---
+	// summary: Get a workflow
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActionWorkflow"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "500":
+	//     "$ref": "#/responses/error"
+
+	workflowID := ctx.PathParam("workflow_id")
+	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "GetActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetActionWorkflow", err)
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, workflow)
+}
+
+func ActionsDisableWorkflow(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable repository ActionsDisableWorkflow
+	// ---
+	// summary: Disable a workflow
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: No Content
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	workflowID := ctx.PathParam("workflow_id")
+	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, false)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "DisableActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+func ActionsDispatchWorkflow(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches repository ActionsDispatchWorkflow
+	// ---
+	// summary: Create a workflow dispatch event
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateActionWorkflowDispatch"
+	// responses:
+	//   "204":
+	//     description: No Content
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	workflowID := ctx.PathParam("workflow_id")
+	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
+	if opt.Ref == "" {
+		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("ref is required parameter"))
+		return
+	}
+
+	err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+		if strings.Contains(ctx.Req.Header.Get("Content-Type"), "form-urlencoded") {
+			// The chi framework's "Binding" doesn't support to bind the form map values into a map[string]string
+			// So we have to manually read the `inputs[key]` from the form
+			for name, config := range workflowDispatch.Inputs {
+				value := ctx.FormString("inputs["+name+"]", config.Default)
+				inputs[name] = value
+			}
+		} else {
+			for name, config := range workflowDispatch.Inputs {
+				value, ok := opt.Inputs[name]
+				if ok {
+					inputs[name] = value
+				} else {
+					inputs[name] = config.Default
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "DispatchActionWorkflow", err)
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.Error(http.StatusForbidden, "DispatchActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DispatchActionWorkflow", err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+func ActionsEnableWorkflow(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable repository ActionsEnableWorkflow
+	// ---
+	// summary: Enable a workflow
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: workflow_id
+	//   in: path
+	//   description: id of the workflow
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: No Content
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	workflowID := ctx.PathParam("workflow_id")
+	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, true)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.Error(http.StatusNotFound, "EnableActionWorkflow", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
