@@ -5,7 +5,6 @@ package issue
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -14,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/timeutil"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
