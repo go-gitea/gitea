@@ -1177,7 +1177,15 @@ func DownloadArtifact(ctx *context.APIContext) {
 // DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
 func DownloadArtifactRaw(ctx *context.APIContext) {
 	// TODO: if it needs to skip "repoAssignment" middleware, it could query the repo from path params: ctx.PathParam("username"), ctx.PathParam("reponame")
-	repo := ctx.Repo.Repository
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.PathParam("username"), ctx.PathParam("reponame"))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.NotFound()
+		} else {
+			ctx.InternalServerError(err)
+		}
+		return
+	}
 	art := getArtifactByPathParam(ctx, repo)
 	if ctx.Written() {
 		return
