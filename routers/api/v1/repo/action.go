@@ -1028,7 +1028,7 @@ func GetArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	art, ok := getArtifactByID(ctx)
+	art, ok := getArtifactByPathParam(ctx)
 	if !ok {
 		return
 	}
@@ -1077,8 +1077,8 @@ func DeleteArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	art, ok := getArtifactByID(ctx)
-	if !ok {
+	art := getArtifactByPathParam(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -1102,10 +1102,10 @@ func buildSignature(endp, expires string, artifactID int64) []byte {
 	return mac.Sum(nil)
 }
 
-func buildSigURL(ctx go_context.Context, endp string, artifactID int64) string {
+func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
+	// endPoint is a path like "api/v1/repos/owner/repo/actions/artifacts/1/zip/raw"
 	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
-	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") +
-		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(buildSignature(endp, expires, artifactID)) + "&expires=" + url.QueryEscape(expires)
+	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.URLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + url.QueryEscape(expires)
 	return uploadURL
 }
 
@@ -1140,8 +1140,8 @@ func DownloadArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	art, ok := getArtifactByID(ctx)
-	if !ok {
+	art := getArtifactByPathParam(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -1172,35 +1172,30 @@ func DownloadArtifact(ctx *context.APIContext) {
 
 // DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
 func DownloadArtifactRaw(ctx *context.APIContext) {
-	username := ctx.PathParam("username")
-	reponame := ctx.PathParam("reponame")
-	artifactID := ctx.PathParamInt64("artifact_id")
+	art := getArtifactByPathParam(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	sig := ctx.Req.URL.Query().Get("sig")
 	expires := ctx.Req.URL.Query().Get("expires")
 	dsig, _ := base64.URLEncoding.DecodeString(sig)
 
-	endp := "api/v1/repos/" + url.PathEscape(username) + "/" + url.PathEscape(reponame) + "/actions/artifacts/" + fmt.Sprintf("%d", artifactID) + "/zip/raw"
-	expecedsig := buildSignature(endp, expires, artifactID)
-	if !hmac.Equal(dsig, expecedsig) {
-		log.Error("Error unauthorized")
-		ctx.Error(http.StatusUnauthorized, "Error unauthorized", nil)
+	endp := "api/v1/repos/" + url.PathEscape(ctx.Repo.Repository.OwnerName) + "/" + url.PathEscape(ctx.Repo.Repository.Name) + "/actions/artifacts/" + fmt.Sprintf("%d", art.ID) + "/zip/raw"
+	expectedSig := buildSignature(endp, expires, art.ID)
+	if !hmac.Equal(dsig, expectedSig) {
+		ctx.Error(http.StatusUnauthorized, "DownloadArtifactRaw", "Error unauthorized")
 		return
 	}
 	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", expires)
 	if err != nil || t.Before(time.Now()) {
-		log.Error("Error link expired")
-		ctx.Error(http.StatusUnauthorized, "Error link expired", nil)
-		return
-	}
-
-	art, ok := getArtifactByID(ctx)
-	if !ok {
+		ctx.Error(http.StatusUnauthorized, "DownloadArtifactRaw", "Error link expired")
 		return
 	}
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
 	if art.Status == int64(actions_model.ArtifactStatusExpired) {
-		ctx.Error(http.StatusNotFound, "artifact has expired", fmt.Errorf("artifact has expired"))
+		ctx.Error(http.StatusNotFound, "DownloadArtifactRaw", "Artifact has expired")
 		return
 	}
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
@@ -1208,29 +1203,31 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	if actions.IsArtifactV4(art) {
 		err := actions.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error(), err)
+			ctx.Error(http.StatusInternalServerError, "DownloadArtifactV4", err)
 			return
 		}
 		return
 	}
 	// v3 not supported due to not having one unique id
-	ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
+	ctx.Error(http.StatusNotFound, "DownloadArtifactRaw", "artifact not found")
 }
 
 // Try to get the artifact by ID and check access
-func getArtifactByID(ctx *context.APIContext) (*actions_model.ActionArtifact, bool) {
+func getArtifactByPathParam(ctx *context.APIContext) *actions_model.ActionArtifact {
 	artifactID := ctx.PathParamInt64("artifact_id")
 
 	art, ok, err := db.GetByID[actions_model.ActionArtifact](ctx, artifactID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error(), err)
-		return nil, false
+		ctx.Error(http.StatusInternalServerError, "getArtifactByPathParam", err)
+		return nil
 	}
 	// if artifacts status is not uploaded-confirmed, treat it as not found
-	// ctx.Repo.Repository is nil for the raw download endpoint that checked this already
-	if !ok || ctx.Repo != nil && ctx.Repo.Repository != nil && (art.RepoID != ctx.Repo.Repository.ID || art.OwnerID != ctx.Repo.Repository.OwnerID) || art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) && art.Status != int64(actions_model.ArtifactStatusExpired) {
-		ctx.Error(http.StatusNotFound, "artifact not found", fmt.Errorf("artifact not found"))
-		return nil, false
+	// FIXME: is the OwnerID check right? What if a repo is transferred to a new owner?
+	if !ok ||
+		(art.RepoID != ctx.Repo.Repository.ID || art.OwnerID != ctx.Repo.Repository.OwnerID) ||
+		art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) && art.Status != int64(actions_model.ArtifactStatusExpired) {
+		ctx.Error(http.StatusNotFound, "getArtifactByPathParam", "artifact not found")
+		return nil
 	}
-	return art, true
+	return art
 }

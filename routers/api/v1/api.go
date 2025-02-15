@@ -1409,7 +1409,7 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		// Artifacts direct download endpoint authenticates via signed url
-		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
+		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repoAssignment(), repo.DownloadArtifactRaw)
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {
