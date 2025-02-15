@@ -277,6 +277,10 @@ func (p *Project) MustDefaultColumn(ctx context.Context) (*Column, error) {
 		return nil, err
 	}
 	if has {
+		column.Default = true
+		if _, err := db.GetEngine(ctx).ID(column.ID).Cols("`default`").Update(&column); err != nil {
+			return nil, err
+		}
 		return &column, nil
 	}
 

@@ -23,7 +23,7 @@ func TestGetDefaultColumn(t *testing.T) {
 	column, err := projectWithoutDefault.MustDefaultColumn(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(5), column.ProjectID)
-	assert.Equal(t, "Uncategorized", column.Title)
+	assert.Equal(t, "Done", column.Title)
 
 	projectWithMultipleDefaults, err := GetProjectByID(db.DefaultContext, 6)
 	assert.NoError(t, err)
