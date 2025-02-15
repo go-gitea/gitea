@@ -359,6 +359,8 @@ func applyAssigneeCondition(sess *xorm.Session, assigneeID optional.Option[int64
 	}
 	if assigneeID.Value() == db.NoConditionID {
 		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
+	} else if assigneeID.Value() == db.AnyConditionID {
+		sess.Where("issue.id IN (SELECT issue_id FROM issue_assignees)")
 	} else {
 		sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 			And("issue_assignees.assignee_id = ?", assigneeID.Value())
