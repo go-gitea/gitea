@@ -51,7 +51,7 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 =i9b7
 -----END PGP PUBLIC KEY BLOCK-----`
 
-	key, err := checkArmoredGPGKeyString(testGPGArmor)
+	key, err := CheckArmoredGPGKeyString(testGPGArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG public armored rsa key", key)
 	// TODO verify value of key
 }
@@ -72,7 +72,7 @@ OyjLLnFQiVmq7kEA/0z0CQe3ZQiQIq5zrs7Nh1XRkFAo8GlU/SGC9XFFi722
 =ZiSe
 -----END PGP PUBLIC KEY BLOCK-----`
 
-	key, err := checkArmoredGPGKeyString(testGPGArmor)
+	key, err := CheckArmoredGPGKeyString(testGPGArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG public armored brainpoolP256r1 key", key)
 	// TODO verify value of key
 }
@@ -108,14 +108,14 @@ Av844q/BfRuVsJsK1NDNG09LC30B0l3LKBqlrRmRTUMHtgchdX2dY+p7GPOoSzlR
 MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 =i9b7
 -----END PGP PUBLIC KEY BLOCK-----`
-	keys, err := checkArmoredGPGKeyString(testGPGArmor)
+	keys, err := CheckArmoredGPGKeyString(testGPGArmor)
 	require.NotEmpty(t, keys)
 
 	ekey := keys[0]
 	assert.NoError(t, err, "Could not parse a valid GPG armored key", ekey)
 
 	pubkey := ekey.PrimaryKey
-	content, err := base64EncPubKey(pubkey)
+	content, err := Base64EncPubKey(pubkey)
 	assert.NoError(t, err, "Could not base64 encode a valid PublicKey content", ekey)
 
 	key := &GPGKey{
@@ -176,9 +176,9 @@ committer Antoine GIRARD <sapk@sapk.fr> 1489013107 +0100
 Unknown GPG key with good email
 `
 	// Reading Sign
-	goodSig, err := extractSignature(testGoodSigArmor)
+	goodSig, err := ExtractSignature(testGoodSigArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testGoodSigArmor)
-	badSig, err := extractSignature(testBadSigArmor)
+	badSig, err := ExtractSignature(testBadSigArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testBadSigArmor)
 
 	// Generating hash of commit
@@ -386,7 +386,7 @@ epiDVQ==
 =VSKJ
 -----END PGP PUBLIC KEY BLOCK-----
 `
-	keys, err := checkArmoredGPGKeyString(testIssue6599)
+	keys, err := CheckArmoredGPGKeyString(testIssue6599)
 	assert.NoError(t, err)
 	if assert.NotEmpty(t, keys) {
 		ekey := keys[0]
@@ -396,11 +396,11 @@ epiDVQ==
 }
 
 func TestTryGetKeyIDFromSignature(t *testing.T) {
-	assert.Empty(t, tryGetKeyIDFromSignature(&packet.Signature{}))
-	assert.Equal(t, "038D1A3EADDBEA9C", tryGetKeyIDFromSignature(&packet.Signature{
+	assert.Empty(t, TryGetKeyIDFromSignature(&packet.Signature{}))
+	assert.Equal(t, "038D1A3EADDBEA9C", TryGetKeyIDFromSignature(&packet.Signature{
 		IssuerKeyId: util.ToPointer(uint64(0x38D1A3EADDBEA9C)),
 	}))
-	assert.Equal(t, "038D1A3EADDBEA9C", tryGetKeyIDFromSignature(&packet.Signature{
+	assert.Equal(t, "038D1A3EADDBEA9C", TryGetKeyIDFromSignature(&packet.Signature{
 		IssuerFingerprint: []uint8{0xb, 0x23, 0x24, 0xc7, 0xe6, 0xfe, 0x4f, 0x3a, 0x6, 0x26, 0xc1, 0x21, 0x3, 0x8d, 0x1a, 0x3e, 0xad, 0xdb, 0xea, 0x9c},
 	}))
 }
