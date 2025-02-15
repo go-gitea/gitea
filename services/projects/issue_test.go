@@ -26,19 +26,29 @@ func Test_Projects(t *testing.T) {
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
 	t.Run("User projects", func(t *testing.T) {
-		err := db.Insert(db.DefaultContext, &project_model.ProjectIssue{
+		pi1 := project_model.ProjectIssue{
 			ProjectID:       4,
 			IssueID:         1,
 			ProjectColumnID: 4,
-		})
+		}
+		err := db.Insert(db.DefaultContext, &pi1)
 		assert.NoError(t, err)
+		defer func() {
+			_, err = db.DeleteByID[project_model.ProjectIssue](db.DefaultContext, pi1.ID)
+			assert.NoError(t, err)
+		}()
 
-		err = db.Insert(db.DefaultContext, &project_model.ProjectIssue{
+		pi2 := project_model.ProjectIssue{
 			ProjectID:       4,
 			IssueID:         4,
 			ProjectColumnID: 4,
-		})
+		}
+		err = db.Insert(db.DefaultContext, &pi2)
 		assert.NoError(t, err)
+		defer func() {
+			_, err = db.DeleteByID[project_model.ProjectIssue](db.DefaultContext, pi2.ID)
+			assert.NoError(t, err)
+		}()
 
 		projects, err := db.Find[project_model.Project](db.DefaultContext, project_model.SearchOptions{
 			OwnerID: user2.ID,
@@ -86,6 +96,10 @@ func Test_Projects(t *testing.T) {
 		}
 		err := project_model.NewProject(db.DefaultContext, &project1)
 		assert.NoError(t, err)
+		defer func() {
+			err := project_model.DeleteProjectByID(db.DefaultContext, project1.ID)
+			assert.NoError(t, err)
+		}()
 
 		column1 := project_model.Column{
 			Title:     "column 1",
