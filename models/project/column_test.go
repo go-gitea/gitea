@@ -20,7 +20,7 @@ func TestGetDefaultColumn(t *testing.T) {
 	assert.NoError(t, err)
 
 	// check if default column was added
-	column, err := projectWithoutDefault.GetDefaultColumn(db.DefaultContext)
+	column, err := projectWithoutDefault.MustDefaultColumn(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(5), column.ProjectID)
 	assert.Equal(t, "Uncategorized", column.Title)
@@ -29,7 +29,7 @@ func TestGetDefaultColumn(t *testing.T) {
 	assert.NoError(t, err)
 
 	// check if multiple defaults were removed
-	column, err = projectWithMultipleDefaults.GetDefaultColumn(db.DefaultContext)
+	column, err = projectWithMultipleDefaults.MustDefaultColumn(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(6), column.ProjectID)
 	assert.Equal(t, int64(9), column.ID)

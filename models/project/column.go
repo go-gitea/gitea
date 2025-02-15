@@ -180,7 +180,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 	if err != nil {
 		return err
 	}
-	defaultColumn, err := project.GetDefaultColumn(ctx)
+	defaultColumn, err := project.MustDefaultColumn(ctx)
 	if err != nil {
 		return err
 	}
@@ -245,8 +245,8 @@ func (p *Project) GetColumns(ctx context.Context) (ColumnList, error) {
 	return columns, nil
 }
 
-// GetDefaultColumn return default column and ensure only one exists
-func (p *Project) GetDefaultColumn(ctx context.Context) (*Column, error) {
+// getDefaultColumn return default column and ensure only one exists
+func (p *Project) getDefaultColumn(ctx context.Context) (*Column, error) {
 	var column Column
 	has, err := db.GetEngine(ctx).
 		Where("project_id=? AND `default` = ?", p.ID, true).
@@ -255,6 +255,27 @@ func (p *Project) GetDefaultColumn(ctx context.Context) (*Column, error) {
 		return nil, err
 	}
 
+	if has {
+		return &column, nil
+	}
+	return nil, ErrProjectColumnNotExist{ColumnID: 0}
+}
+
+// MustDefaultColumn returns the default column for a project, get the first one if exist one and creating one if it does not exist
+func (p *Project) MustDefaultColumn(ctx context.Context) (*Column, error) {
+	c, err := p.getDefaultColumn(ctx)
+	if err != nil && !IsErrProjectColumnNotExist(err) {
+		return nil, err
+	}
+	if c != nil {
+		return c, nil
+	}
+
+	var column Column
+	has, err := db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting, id").Get(&column)
+	if err != nil {
+		return nil, err
+	}
 	if has {
 		return &column, nil
 	}

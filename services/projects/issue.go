@@ -107,7 +107,7 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 		return nil, err
 	}
 
-	defaultColumn, err := project.GetDefaultColumn(ctx)
+	defaultColumn, err := project.MustDefaultColumn(ctx)
 	if err != nil {
 		return nil, err
 	}
