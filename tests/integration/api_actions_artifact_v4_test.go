@@ -485,7 +485,7 @@ func TestActionsArtifactV4ListAndGetPublicApi(t *testing.T) {
 	}
 }
 
-func TestActionsArtifactV4GetArtifactMismatchedRepoOwnerNotFound(t *testing.T) {
+func TestActionsArtifactV4GetArtifactMismatchedRepoNotFound(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -493,13 +493,13 @@ func TestActionsArtifactV4GetArtifactMismatchedRepoOwnerNotFound(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	// confirm artifacts of wrong owner or repo is not visible
+	// confirm artifacts of wrong repo is not visible
 	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestActionsArtifactV4DownloadArtifactMismatchedRepoOwnerNotFound(t *testing.T) {
+func TestActionsArtifactV4DownloadArtifactMismatchedRepoNotFound(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -507,13 +507,13 @@ func TestActionsArtifactV4DownloadArtifactMismatchedRepoOwnerNotFound(t *testing
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	// confirm artifacts of wrong owner or repo is not visible
+	// confirm artifacts of wrong repo is not visible
 	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestActionsArtifactV4DownloadArtifactCorrectRepoOwnerFound(t *testing.T) {
+func TestActionsArtifactV4DownloadArtifactCorrectRepoFound(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
@@ -521,13 +521,13 @@ func TestActionsArtifactV4DownloadArtifactCorrectRepoOwnerFound(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	// confirm artifacts of correct owner and repo is visible
+	// confirm artifacts of correct repo is visible
 	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusFound)
 }
 
-func TestActionsArtifactV4DownloadRawArtifactCorrectRepoOwnerMissingSignatureUnauthorized(t *testing.T) {
+func TestActionsArtifactV4DownloadRawArtifactCorrectRepoMissingSignatureUnauthorized(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
@@ -535,7 +535,7 @@ func TestActionsArtifactV4DownloadRawArtifactCorrectRepoOwnerMissingSignatureUna
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	// confirm artifacts of wrong owner or repo is not visible
+	// confirm cannot use the raw artifact endpoint even with a correct access token
 	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnauthorized)
