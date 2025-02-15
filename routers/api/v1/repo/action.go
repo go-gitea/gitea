@@ -1203,7 +1203,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 		return
 	}
 	t := time.Unix(expires, 0)
-	if err != nil || t.Before(time.Now()) {
+	if t.Before(time.Now()) {
 		ctx.Error(http.StatusUnauthorized, "DownloadArtifactRaw", "Error link expired")
 		return
 	}
