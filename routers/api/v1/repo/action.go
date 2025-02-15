@@ -1195,7 +1195,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	expires := ctx.Req.URL.Query().Get("expires")
 	sigBytes, _ := base64.URLEncoding.DecodeString(sigStr)
 
-	expectedSig := buildSignature(buildDownloadRawEndpoint(ctx.Repo.Repository, art.ID), expires, art.ID)
+	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)
 	if !hmac.Equal(sigBytes, expectedSig) {
 		ctx.Error(http.StatusUnauthorized, "DownloadArtifactRaw", "Error unauthorized")
 		return

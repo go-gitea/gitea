@@ -536,9 +536,10 @@ func TestActionsArtifactV4DownloadRawArtifactMismatchedRepoOwnerMissingSignature
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	// confirm artifacts of wrong owner or repo is not visible
+	// TODO: is this test right? `zip/raw` endpoint doesn't use the token?
 	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnauthorized)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestActionsArtifactV4DownloadRawArtifactCorrectRepoOwnerMissingSignatureUnauthorized(t *testing.T) {
