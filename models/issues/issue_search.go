@@ -281,7 +281,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 	}
 
 	if opts.AccessUser != nil && !opts.AccessUser.IsAdmin {
-		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.AccessUser.ID, opts.Org, opts.Owner, opts.Team, opts.IsPull.Value()))
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.AccessUser.ID, opts.Org, opts.Team, opts.IsPull.Value()))
 	}
 }
 
@@ -328,7 +328,7 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
-func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, owner *user_model.User, team *organization.Team, isPull bool) builder.Cond {
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, team *organization.Team, isPull bool) builder.Cond {
 	cond := builder.NewCond()
 	unitType := unit.TypeIssues
 	if isPull {
