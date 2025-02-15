@@ -17,6 +17,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
@@ -1027,7 +1028,7 @@ func GetArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	art := getArtifactByPathParam(ctx)
+	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
 		return
 	}
@@ -1076,7 +1077,7 @@ func DeleteArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	art := getArtifactByPathParam(ctx)
+	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
 		return
 	}
@@ -1139,7 +1140,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	art := getArtifactByPathParam(ctx)
+	art := getArtifactByPathParam(ctx, ctx.Repo.Repository)
 	if ctx.Written() {
 		return
 	}
@@ -1171,7 +1172,9 @@ func DownloadArtifact(ctx *context.APIContext) {
 
 // DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
 func DownloadArtifactRaw(ctx *context.APIContext) {
-	art := getArtifactByPathParam(ctx)
+	// TODO: if it needs to skip "repoAssignment" middleware, it could query the repo from path params: ctx.PathParam("username"), ctx.PathParam("reponame")
+	repo := ctx.Repo.Repository
+	art := getArtifactByPathParam(ctx, repo)
 	if ctx.Written() {
 		return
 	}
@@ -1212,7 +1215,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 }
 
 // Try to get the artifact by ID and check access
-func getArtifactByPathParam(ctx *context.APIContext) *actions_model.ActionArtifact {
+func getArtifactByPathParam(ctx *context.APIContext, repo *repo_model.Repository) *actions_model.ActionArtifact {
 	artifactID := ctx.PathParamInt64("artifact_id")
 
 	art, ok, err := db.GetByID[actions_model.ActionArtifact](ctx, artifactID)
