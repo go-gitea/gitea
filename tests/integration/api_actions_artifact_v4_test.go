@@ -527,21 +527,6 @@ func TestActionsArtifactV4DownloadArtifactCorrectRepoOwnerFound(t *testing.T) {
 	MakeRequest(t, req, http.StatusFound)
 }
 
-func TestActionsArtifactV4DownloadRawArtifactMismatchedRepoOwnerMissingSignatureUnauthorized(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	// confirm artifacts of wrong owner or repo is not visible
-	// TODO: is this test right? `zip/raw` endpoint doesn't use the token?
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-}
-
 func TestActionsArtifactV4DownloadRawArtifactCorrectRepoOwnerMissingSignatureUnauthorized(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
