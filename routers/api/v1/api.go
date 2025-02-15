@@ -1409,7 +1409,7 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		// Artifacts direct download endpoint authenticates via signed url
-		// TODO: need to clarify whether to use repoAssignment or not
+		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
 		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
 
 		// Notifications (requires notifications scope)
