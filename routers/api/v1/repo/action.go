@@ -20,7 +20,6 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -1028,8 +1027,8 @@ func GetArtifact(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	art, ok := getArtifactByPathParam(ctx)
-	if !ok {
+	art := getArtifactByPathParam(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -1146,7 +1145,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 	}
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
-	if art.Status == int64(actions_model.ArtifactStatusExpired) {
+	if art.Status == actions_model.ArtifactStatusExpired {
 		ctx.Error(http.StatusNotFound, "artifact has expired", fmt.Errorf("artifact has expired"))
 		return
 	}
@@ -1194,7 +1193,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	}
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
-	if art.Status == int64(actions_model.ArtifactStatusExpired) {
+	if art.Status == actions_model.ArtifactStatusExpired {
 		ctx.Error(http.StatusNotFound, "DownloadArtifactRaw", "Artifact has expired")
 		return
 	}
@@ -1225,7 +1224,7 @@ func getArtifactByPathParam(ctx *context.APIContext) *actions_model.ActionArtifa
 	// FIXME: is the OwnerID check right? What if a repo is transferred to a new owner?
 	if !ok ||
 		(art.RepoID != ctx.Repo.Repository.ID || art.OwnerID != ctx.Repo.Repository.OwnerID) ||
-		art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) && art.Status != int64(actions_model.ArtifactStatusExpired) {
+		art.Status != actions_model.ArtifactStatusUploadConfirmed && art.Status != actions_model.ArtifactStatusExpired {
 		ctx.Error(http.StatusNotFound, "getArtifactByPathParam", "artifact not found")
 		return nil
 	}

@@ -668,7 +668,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
 	for _, art := range artifacts {
-		if art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) {
+		if art.Status != actions_model.ArtifactStatusUploadConfirmed {
 			ctx.Error(http.StatusNotFound, "artifact not found")
 			return
 		}

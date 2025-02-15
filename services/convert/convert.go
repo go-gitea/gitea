@@ -237,7 +237,7 @@ func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArti
 		ID:                 art.ID,
 		Name:               art.ArtifactName,
 		SizeInBytes:        art.FileSize,
-		Expired:            art.Status == int64(actions_model.ArtifactStatusExpired),
+		Expired:            art.Status == actions_model.ArtifactStatusExpired,
 		URL:                url,
 		ArchiveDownloadURL: url + "/zip",
 		CreatedAt:          art.CreatedUnix.AsLocalTime(),
