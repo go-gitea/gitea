@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1094,10 +1095,10 @@ func DeleteArtifact(ctx *context.APIContext) {
 	ctx.Error(http.StatusNotFound, "DeleteArtifact", "Artifact not found")
 }
 
-func buildSignature(endp, expires string, artifactID int64) []byte {
+func buildSignature(endp string, expires, artifactID int64) []byte {
 	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
 	mac.Write([]byte(endp))
-	mac.Write([]byte(expires))
+	mac.Write([]byte(fmt.Sprint(expires)))
 	mac.Write([]byte(fmt.Sprint(artifactID)))
 	return mac.Sum(nil)
 }
@@ -1108,8 +1109,8 @@ func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) str
 
 func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
 	// endPoint is a path like "api/v1/repos/owner/repo/actions/artifacts/1/zip/raw"
-	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
-	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.URLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + url.QueryEscape(expires)
+	expires := time.Now().Add(60 * time.Minute).Unix()
+	uploadURL := httplib.GuessCurrentAppURL(ctx) + endPoint + "?sig=" + base64.URLEncoding.EncodeToString(buildSignature(endPoint, expires, artifactID)) + "&expires=" + strconv.FormatInt(expires, 10)
 	return uploadURL
 }
 
@@ -1192,15 +1193,16 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	}
 
 	sigStr := ctx.Req.URL.Query().Get("sig")
-	expires := ctx.Req.URL.Query().Get("expires")
+	expiresStr := ctx.Req.URL.Query().Get("expires")
 	sigBytes, _ := base64.URLEncoding.DecodeString(sigStr)
+	expires, _ := strconv.ParseInt(expiresStr, 10, 64)
 
 	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)
 	if !hmac.Equal(sigBytes, expectedSig) {
 		ctx.Error(http.StatusUnauthorized, "DownloadArtifactRaw", "Error unauthorized")
 		return
 	}
-	t, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", expires)
+	t := time.Unix(expires, 0)
 	if err != nil || t.Before(time.Now()) {
 		ctx.Error(http.StatusUnauthorized, "DownloadArtifactRaw", "Error link expired")
 		return
@@ -1235,9 +1237,9 @@ func getArtifactByPathParam(ctx *context.APIContext, repo *repo_model.Repository
 		return nil
 	}
 	// if artifacts status is not uploaded-confirmed, treat it as not found
-	// FIXME: is the OwnerID check right? What if a repo is transferred to a new owner?
+	// Only check RepoID here, because the repository owner may change over the time
 	if !ok ||
-		(art.RepoID != repo.ID || art.OwnerID != repo.OwnerID) ||
+		art.RepoID != repo.ID ||
 		art.Status != actions_model.ArtifactStatusUploadConfirmed && art.Status != actions_model.ArtifactStatusExpired {
 		ctx.Error(http.StatusNotFound, "getArtifactByPathParam", "artifact not found")
 		return nil
