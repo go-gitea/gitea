@@ -71,7 +71,7 @@ func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, any)) (con
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, username); err == nil {
 					RedirectToUser(ctx, username, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
-					errCb(http.StatusNotFound, fmt.Errorf("LookupUserRedirect: %w", err))
+					errCb(http.StatusNotFound, err)
 				} else {
 					errCb(http.StatusInternalServerError, fmt.Errorf("LookupUserRedirect: %w", err))
 				}
