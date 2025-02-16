@@ -55,10 +55,12 @@
 			</h5>
 			<form id="scoped-access-form" class="ui form ignore-dirty" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<div class="field {{if .Err_Name}}error{{end}}">
-					<label for="name">{{ctx.Locale.Tr "settings.token_name"}}</label>
-					<input id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
-				</div>
+					<div class="field">
+						<label for="name">{{ctx.Locale.Tr "settings.token_name"}}</label>
+						<div id="scoped-access-token-name">
+							<input id="name" name="name" value="{{.name}}" autofocus required maxlength="255">
+						</div>
+					</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "settings.repo_and_org_access"}}</label>
 					<label class="tw-cursor-pointer">
@@ -90,6 +92,9 @@
 					{{ctx.Locale.Tr "settings.generate_token"}}
 				</button>
 			</form>{{/* Fomantic ".ui.form .warning.message" is hidden by default, so put the warning message out of the form*/}}
+			<div id="token-name-warning" class="ui warning message center tw-hidden">
+				{{ctx.Locale.Tr "settings.generate_token_name_required"}}
+			</div>
 			<div id="scoped-access-warning" class="ui warning message center tw-hidden">
 				{{ctx.Locale.Tr "settings.at_least_one_permission"}}
 			</div>

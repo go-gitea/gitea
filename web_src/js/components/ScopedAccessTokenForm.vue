@@ -38,20 +38,31 @@ onUnmounted(() => {
 function onClickSubmit(e: Event) {
   e.preventDefault();
 
+  const nameInput = document.querySelector<HTMLInputElement>('#name');
+  const nameWarning = document.querySelector('#token-name-warning');
+  if (!nameInput?.value.trim()) {
+    showElem(nameWarning);
+    return;
+  }
+  hideElem(nameWarning);
+
   const warningEl = document.querySelector('#scoped-access-warning');
-  // check that at least one scope has been selected
+  let hasSelectedScope = false;
+  
   for (const el of document.querySelectorAll<HTMLInputElement>('.access-token-select')) {
     if (el.value) {
-      // Hide the error if it was visible from previous attempt.
-      hideElem(warningEl);
-      // Submit the form.
-      document.querySelector<HTMLFormElement>('#scoped-access-form').submit();
-      // Don't show the warning.
-      return;
+      hasSelectedScope = true;
+      break;
     }
   }
-  // no scopes selected, show validation error
-  showElem(warningEl);
+
+  if (!hasSelectedScope) {
+    showElem(warningEl);
+    return;
+  }
+
+  hideElem(warningEl);
+  document.querySelector<HTMLFormElement>('#scoped-access-form')?.submit();
 }
 </script>
 
