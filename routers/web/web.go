@@ -119,7 +119,7 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 		ar, err := common.AuthShared(ctx.Base, ctx.Session, authMethod)
 		if err != nil {
 			log.Error("Failed to verify user: %v", err)
-			ctx.Error(http.StatusUnauthorized, "Failed to authenticate user")
+			ctx.HTTPError(http.StatusUnauthorized, "Failed to authenticate user")
 			return
 		}
 		ctx.Doer = ar.Doer
@@ -154,7 +154,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			if ctx.Doer.MustChangePassword {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
-						ctx.Error(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
+						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
@@ -211,7 +211,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 
 		if options.AdminRequired {
 			if !ctx.Doer.IsAdmin {
-				ctx.Error(http.StatusForbidden)
+				ctx.HTTPError(http.StatusForbidden)
 				return
 			}
 			ctx.Data["PageIsAdmin"] = true
@@ -307,35 +307,35 @@ func registerRoutes(m *web.Router) {
 
 	linkAccountEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enabled {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	openIDSignUpEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignUp {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	oauth2Enabled := func(ctx *context.Context) {
 		if !setting.OAuth2.Enabled {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	reqMilestonesDashboardPageEnabled := func(ctx *context.Context) {
 		if !setting.Service.ShowMilestonesDashboardPage {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
@@ -343,56 +343,56 @@ func registerRoutes(m *web.Router) {
 	// webhooksEnabled requires webhooks to be enabled by admin.
 	webhooksEnabled := func(ctx *context.Context) {
 		if setting.DisableWebhooks {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	starsEnabled := func(ctx *context.Context) {
 		if setting.Repository.DisableStars {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	lfsServerEnabled := func(ctx *context.Context) {
 		if !setting.LFS.StartServer {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
 
 	federationEnabled := func(ctx *context.Context) {
 		if !setting.Federation.Enabled {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
 
 	dlSourceEnabled := func(ctx *context.Context) {
 		if setting.Repository.DisableDownloadSourceArchives {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
 
 	sitemapEnabled := func(ctx *context.Context) {
 		if !setting.Other.EnableSitemap {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
 
 	packagesEnabled := func(ctx *context.Context) {
 		if !setting.Packages.Enabled {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	feedEnabled := func(ctx *context.Context) {
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
@@ -401,18 +401,18 @@ func registerRoutes(m *web.Router) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound("Repo unit is is disabled: "+unitType.LogString(), nil)
+				ctx.NotFound(nil)
 				return
 			}
 
 			if ctx.ContextUser == nil {
-				ctx.NotFound("ContextUser is nil", nil)
+				ctx.NotFound(nil)
 				return
 			}
 
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound("ContextUser is org but doer has no access to unit", nil)
+					ctx.NotFound(nil)
 					return
 				}
 			}
@@ -506,7 +506,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound("Repo unit code is disabled", nil)
+				ctx.NotFound(nil)
 				return
 			}
 		}, explore.Code)
@@ -847,7 +847,7 @@ func registerRoutes(m *web.Router) {
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
-				ctx.NotFound("", nil)
+				ctx.NotFound(nil)
 			}
 		}
 	}
@@ -858,12 +858,12 @@ func registerRoutes(m *web.Router) {
 			switch {
 			case ctx.ContextUser.Visibility == structs.VisibleTypePrivate:
 				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-					ctx.NotFound("Visit Project", nil)
+					ctx.NotFound(nil)
 					return
 				}
 			case ctx.ContextUser.Visibility == structs.VisibleTypeLimited:
 				if ctx.Doer == nil {
-					ctx.NotFound("Visit Project", nil)
+					ctx.NotFound(nil)
 					return
 				}
 			}
@@ -1052,7 +1052,7 @@ func registerRoutes(m *web.Router) {
 				})
 			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-					ctx.NotFound("NewProject", nil)
+					ctx.NotFound(nil)
 					return
 				}
 			})
@@ -1639,6 +1639,6 @@ func registerRoutes(m *web.Router) {
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.GetWebContext(req.Context())
 		defer routing.RecordFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))()
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 	})
 }

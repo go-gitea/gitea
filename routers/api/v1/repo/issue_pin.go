@@ -44,11 +44,11 @@ func PinIssue(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else if issues_model.IsErrIssueMaxPinReached(err) {
-			ctx.Error(http.StatusBadRequest, "MaxPinReached", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -56,13 +56,13 @@ func PinIssue(ctx *context.APIContext) {
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err = issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
 	err = issue.Pin(ctx, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "PinIssue", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -101,9 +101,9 @@ func UnpinIssue(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -111,13 +111,13 @@ func UnpinIssue(ctx *context.APIContext) {
 	// If we don't do this, it will crash when trying to add the unpin event to the comment history
 	err = issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
 	err = issue.Unpin(ctx, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "UnpinIssue", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -162,16 +162,16 @@ func MoveIssuePin(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 		}
 		return
 	}
 
 	err = issue.MovePin(ctx, int(ctx.PathParamInt64("position")))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "MovePin", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -203,7 +203,7 @@ func ListPinnedIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, false)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadPinnedIssues", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -235,29 +235,29 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	issues, err := issues_model.GetPinnedIssues(ctx, ctx.Repo.Repository.ID, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadPinnedPullRequests", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
 	apiPrs := make([]*api.PullRequest, len(issues))
 	if err := issues.LoadPullRequests(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadPullRequests", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 	for i, currentIssue := range issues {
 		pr := currentIssue.PullRequest
 		if err = pr.LoadAttributes(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 			return
 		}
 
 		if err = pr.LoadBaseRepo(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 			return
 		}
 
 		if err = pr.LoadHeadRepo(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 			return
 		}
 
@@ -295,13 +295,13 @@ func AreNewIssuePinsAllowed(ctx *context.APIContext) {
 
 	pinsAllowed.Issues, err = issues_model.IsNewPinAllowed(ctx, ctx.Repo.Repository.ID, false)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsNewIssuePinAllowed", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
 	pinsAllowed.PullRequests, err = issues_model.IsNewPinAllowed(ctx, ctx.Repo.Repository.ID, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsNewPullRequestPinAllowed", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 

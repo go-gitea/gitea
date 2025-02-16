@@ -64,13 +64,13 @@ func ListPackages(ctx *context.APIContext) {
 		Paginator:  &listOptions,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchVersions", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
 	pds, err := packages.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetPackageDescriptors", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -78,7 +78,7 @@ func ListPackages(ctx *context.APIContext) {
 	for _, pd := range pds {
 		apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 			return
 		}
 		apiPackages = append(apiPackages, apiPackage)
@@ -125,7 +125,7 @@ func GetPackage(ctx *context.APIContext) {
 
 	apiPackage, err := convert.ToPackage(ctx, ctx.Package.Descriptor, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -166,7 +166,7 @@ func DeletePackage(ctx *context.APIContext) {
 
 	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "RemovePackageVersion", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
