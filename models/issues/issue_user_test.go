@@ -22,7 +22,7 @@ func Test_NewIssueUsers(t *testing.T) {
 	newIssue := &issues_model.Issue{
 		RepoID:   repo.ID,
 		PosterID: 4,
-		Index:    6,
+		Index:    7,
 		Title:    "newTestIssueTitle",
 		Content:  "newTestIssueContent",
 	}

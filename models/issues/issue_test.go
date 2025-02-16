@@ -57,7 +57,7 @@ func Test_GetIssueIDsByRepoID(t *testing.T) {
 
 	ids, err := issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
-	assert.Len(t, ids, 5)
+	assert.Len(t, ids, 6)
 }
 
 func TestIssueAPIURL(t *testing.T) {
@@ -170,7 +170,7 @@ func TestIssues(t *testing.T) {
 					PageSize: 4,
 				},
 			},
-			[]int64{1, 2, 3, 5},
+			[]int64{1, 23, 2, 3},
 		},
 		{
 			issues_model.IssuesOptions{
@@ -249,11 +249,11 @@ func TestIssue_InsertIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// there are 5 issues and max index is 5 on repository 1, so this one should 6
-	issue := testInsertIssue(t, "my issue1", "special issue's comments?", 6)
+	issue := testInsertIssue(t, "my issue1", "special issue's comments?", 7)
 	_, err := db.DeleteByID[issues_model.Issue](db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 
-	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
+	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 8)
 	_, err = db.DeleteByID[issues_model.Issue](db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 }
@@ -380,7 +380,7 @@ func TestCountIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	count, err := issues_model.CountIssues(db.DefaultContext, &issues_model.IssuesOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 22, count)
+	assert.EqualValues(t, 23, count)
 }
 
 func TestIssueLoadAttributes(t *testing.T) {
