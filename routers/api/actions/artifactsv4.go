@@ -25,7 +25,7 @@ package actions
 // 1.3. Continue Upload Zip Content to Blobstorage (unauthenticated request), repeat until everything is uploaded
 // PUT: http://localhost:3000/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact?sig=mO7y35r4GyjN7fwg0DTv3-Fv1NDXD84KLEgLpoPOtDI=&expires=2024-01-23+21%3A48%3A37.20833956+%2B0100+CET&artifactName=test&taskID=75&comp=appendBlock
 // 1.4. BlockList xml payload to Blobstorage (unauthenticated request)
-// Files of about 800MB are parallel in parallel and / or out of order, this file is needed to enshure the correct order
+// Files of about 800MB are parallel in parallel and / or out of order, this file is needed to ensure the correct order
 // PUT: http://localhost:3000/twirp/github.actions.results.api.v1.ArtifactService/UploadArtifact?sig=mO7y35r4GyjN7fwg0DTv3-Fv1NDXD84KLEgLpoPOtDI=&expires=2024-01-23+21%3A48%3A37.20833956+%2B0100+CET&artifactName=test&taskID=75&comp=blockList
 // Request
 // <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
