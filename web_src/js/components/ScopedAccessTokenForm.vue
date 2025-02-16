@@ -48,7 +48,7 @@ function onClickSubmit(e: Event) {
 
   const warningEl = document.querySelector('#scoped-access-warning');
   let hasSelectedScope = false;
-  
+
   for (const el of document.querySelectorAll<HTMLInputElement>('.access-token-select')) {
     if (el.value) {
       hasSelectedScope = true;
