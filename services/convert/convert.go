@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -253,7 +254,7 @@ func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArti
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(ctx context.Context, c *git.Commit) *api.PayloadCommitVerification {
-	verif := asymkey_model.ParseCommitWithSignature(ctx, c)
+	verif := asymkey_service.ParseCommitWithSignature(ctx, c)
 	commitVerification := &api.PayloadCommitVerification{
 		Verified: verif.Verified,
 		Reason:   verif.Reason,
