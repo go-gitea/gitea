@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	org_model "code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
@@ -92,12 +91,6 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
 		o.ProjectID = project.ID
 		o.SortType = "project-column-sorting"
-		o.AllPublic = opts.AllPublic
-		o.AccessUser = opts.AccessUser
-		o.Org = opts.Org
-		o.Owner = opts.Owner
-		o.LabelIDs = opts.LabelIDs
-		o.AssigneeID = opts.AssigneeID
 	}))
 	if err != nil {
 		return nil, err
@@ -181,28 +174,20 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 		return nil
 	}
 
-	// for user or org projects, we need to check access permissions
-	opts := issues_model.IssuesOptions{
-		ProjectID:  project.ID,
-		AccessUser: doer,
-		AllPublic:  doer == nil,
-	}
 	if err := project.LoadOwner(ctx); err != nil {
 		return err
 	}
-	if project.Owner.IsOrganization() {
-		opts.Org = org_model.OrgFromUser(project.Owner)
-	} else {
-		opts.Owner = project.Owner
+
+	// for user or org projects, we need to check access permissions
+	opts := issues_model.IssuesOptions{
+		ProjectID: project.ID,
+		Doer:      doer,
+		AllPublic: doer == nil,
+		Owner:     project.Owner,
 	}
 
 	var err error
 	project.NumOpenIssues, err = issues_model.CountIssues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
-		o.ProjectID = opts.ProjectID
-		o.AllPublic = opts.AllPublic
-		o.AccessUser = opts.AccessUser
-		o.Org = opts.Org
-		o.Owner = opts.Owner
 		o.IsClosed = optional.Some(false)
 	}))
 	if err != nil {
@@ -210,11 +195,6 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 	}
 
 	project.NumClosedIssues, err = issues_model.CountIssues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
-		o.ProjectID = opts.ProjectID
-		o.AllPublic = opts.AllPublic
-		o.AccessUser = opts.AccessUser
-		o.Org = opts.Org
-		o.Owner = opts.Owner
 		o.IsClosed = optional.Some(true)
 	}))
 	if err != nil {

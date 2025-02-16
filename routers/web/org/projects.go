@@ -352,12 +352,8 @@ func ViewProject(ctx *context.Context) {
 	opts := issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
 		AssigneeID: optional.Some(assigneeID),
-		AccessUser: ctx.Doer,
-	}
-	if project.Owner.IsOrganization() {
-		opts.Org = org_model.OrgFromUser(project.Owner)
-	} else {
-		opts.Owner = project.Owner
+		Owner:      project.Owner,
+		Doer:       ctx.Doer,
 	}
 
 	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &opts)

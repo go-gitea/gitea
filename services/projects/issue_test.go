@@ -59,8 +59,8 @@ func Test_Projects(t *testing.T) {
 
 		t.Run("Authenticated user", func(t *testing.T) {
 			columnIssues, err := LoadIssuesFromProject(db.DefaultContext, projects[0], &issues_model.IssuesOptions{
-				Owner:      user2,
-				AccessUser: user2,
+				Owner: user2,
+				Doer:  user2,
 			})
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 1)    // 4 has 2 issues, 6 will not contains here because 0 issues
@@ -78,8 +78,8 @@ func Test_Projects(t *testing.T) {
 
 		t.Run("Authenticated user with no permission to the private repo", func(t *testing.T) {
 			columnIssues, err := LoadIssuesFromProject(db.DefaultContext, projects[0], &issues_model.IssuesOptions{
-				Owner:      user2,
-				AccessUser: user4,
+				Owner: user2,
+				Doer:  user4,
 			})
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 1)
@@ -134,8 +134,8 @@ func Test_Projects(t *testing.T) {
 
 		t.Run("Authenticated user", func(t *testing.T) {
 			columnIssues, err := LoadIssuesFromProject(db.DefaultContext, projects[0], &issues_model.IssuesOptions{
-				Org:        org3,
-				AccessUser: userAdmin,
+				Owner: org3.AsUser(),
+				Doer:  userAdmin,
 			})
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 1)             // column1 has 2 issues, 6 will not contains here because 0 issues
@@ -153,8 +153,8 @@ func Test_Projects(t *testing.T) {
 
 		t.Run("Authenticated user with no permission to the private repo", func(t *testing.T) {
 			columnIssues, err := LoadIssuesFromProject(db.DefaultContext, projects[0], &issues_model.IssuesOptions{
-				Org:        org3,
-				AccessUser: user2,
+				Owner: org3.AsUser(),
+				Doer:  user2,
 			})
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 1)
@@ -174,8 +174,8 @@ func Test_Projects(t *testing.T) {
 
 		t.Run("Authenticated user", func(t *testing.T) {
 			columnIssues, err := LoadIssuesFromProject(db.DefaultContext, projects[0], &issues_model.IssuesOptions{
-				RepoIDs:    []int64{repo1.ID},
-				AccessUser: userAdmin,
+				RepoIDs: []int64{repo1.ID},
+				Doer:    userAdmin,
 			})
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 3)
@@ -197,8 +197,8 @@ func Test_Projects(t *testing.T) {
 
 		t.Run("Authenticated user with no permission to the private repo", func(t *testing.T) {
 			columnIssues, err := LoadIssuesFromProject(db.DefaultContext, projects[0], &issues_model.IssuesOptions{
-				RepoIDs:    []int64{repo1.ID},
-				AccessUser: user2,
+				RepoIDs: []int64{repo1.ID},
+				Doer:    user2,
 			})
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 3)

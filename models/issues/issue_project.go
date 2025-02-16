@@ -70,25 +70,17 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 		o.ProjectColumnID = b.ID
 		o.ProjectID = b.ProjectID
 		o.SortType = "project-column-sorting"
-		o.AllPublic = opts.AllPublic
-		o.AccessUser = opts.AccessUser
-		o.Org = opts.Org
-		o.Owner = opts.Owner
 	}))
 	if err != nil {
 		return nil, err
 	}
 
 	if b.Default {
-		issues, err := Issues(ctx, &IssuesOptions{
-			ProjectColumnID: db.NoConditionID,
-			ProjectID:       b.ProjectID,
-			SortType:        "project-column-sorting",
-			AllPublic:       opts.AllPublic,
-			AccessUser:      opts.AccessUser,
-			Org:             opts.Org,
-			Owner:           opts.Owner,
-		})
+		issues, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
+			o.ProjectColumnID = db.NoConditionID
+			o.ProjectID = b.ProjectID
+			o.SortType = "project-column-sorting"
+		}))
 		if err != nil {
 			return nil, err
 		}
