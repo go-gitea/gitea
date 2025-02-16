@@ -1241,6 +1241,13 @@ func Routes() *web.Router {
 				}, reqToken(), reqAdmin())
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
+					m.Get("/runs/{run}/artifacts", repo.GetArtifactsOfRun)
+					m.Get("/artifacts", repo.GetArtifacts)
+					m.Group("/artifacts/{artifact_id}", func() {
+						m.Get("", repo.GetArtifact)
+						m.Delete("", reqRepoWriter(unit.TypeActions), repo.DeleteArtifact)
+					})
+					m.Get("/artifacts/{artifact_id}/zip", repo.DownloadArtifact)
 				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
@@ -1400,6 +1407,10 @@ func Routes() *web.Router {
 				m.Get("/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), repo.DownloadArchive)
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		// Artifacts direct download endpoint authenticates via signed url
+		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
+		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {
