@@ -67,7 +67,7 @@ func addGPGSubKey(ctx context.Context, key *GPGKey) (err error) {
 
 // AddGPGKey adds new public key to database.
 func AddGPGKey(ctx context.Context, ownerID int64, content, token, signature string) ([]*GPGKey, error) {
-	ekeys, err := checkArmoredGPGKeyString(content)
+	ekeys, err := CheckArmoredGPGKeyString(content)
 	if err != nil {
 		return nil, err
 	}

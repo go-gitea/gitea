@@ -10,9 +10,9 @@ import (
 	"io"
 	"os"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 // This file contains commit verification functions for refs passed across in hooks
@@ -96,7 +96,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 				if err != nil {
 					return err
 				}
-				verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+				verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 				if !verification.Verified {
 					cancel()
 					return &errUnverifiedCommit{
