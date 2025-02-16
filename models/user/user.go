@@ -1187,20 +1187,24 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 	for _, email := range emailAddresses {
 		userIDs.Add(email.UID)
 	}
-	users, err := GetUsersByIDs(ctx, userIDs.Values())
+	users, err := GetUsersMapByIDs(ctx, userIDs.Values())
 	if err != nil {
 		return nil, err
 	}
 
 	results := make(map[string]*User, len(emails))
-	for _, user := range users {
-		if user.KeepEmailPrivate {
-			results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
-		} else {
-			results[user.Email] = user
+	for _, email := range emailAddresses {
+		user := users[email.UID]
+		if user != nil {
+			if user.KeepEmailPrivate {
+				results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
+			} else {
+				results[email.Email] = user
+			}
 		}
 	}
-	users = make([]*User, 0, len(needCheckUserNames))
+
+	users = make(map[int64]*User, len(needCheckUserNames))
 	if err := db.GetEngine(ctx).In("lower_name", needCheckUserNames.Values()).Find(&users); err != nil {
 		return nil, err
 	}
