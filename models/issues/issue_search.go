@@ -277,7 +277,7 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 		sess.And(repo_model.UserOwnedRepoCond(opts.Owner.ID))
 	}
 
-	if opts.Doer != nil {
+	if opts.Doer != nil && !opts.Doer.IsAdmin {
 		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.Doer.ID, opts.Owner, opts.Team, opts.IsPull.Value()))
 	}
 }
