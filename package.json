@@ -112,7 +112,7 @@
     "updates": "16.4.2",
     "vite-string-plugin": "1.4.4",
     "vitest": "3.0.5",
-    "vue-tsc": "2.2.0"
+    "vue-tsc": "2.2.2"
   },
   "browserslist": [
     "defaults"
