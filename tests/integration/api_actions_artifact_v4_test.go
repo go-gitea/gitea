@@ -8,13 +8,20 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/storage"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/actions"
 	actions_service "code.gitea.io/gitea/services/actions"
 
@@ -334,6 +341,206 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 	assert.Equal(t, body, resp.Body.String())
 }
 
+func TestActionsArtifactV4RunDownloadSinglePublicApi(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifact can be listed and found by name
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/792/artifacts?name=artifact-v4-download", repo.FullName()), nil).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var listResp api.ActionArtifactsResponse
+	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, listResp.Entries[0].ArchiveDownloadURL)
+	assert.Equal(t, "artifact-v4-download", listResp.Entries[0].Name)
+
+	// confirm artifact blob storage url can be retrieved
+	req = NewRequestWithBody(t, "GET", listResp.Entries[0].ArchiveDownloadURL, nil).
+		AddTokenAuth(token)
+
+	resp = MakeRequest(t, req, http.StatusFound)
+
+	// confirm artifact can be downloaded and has expected content
+	req = NewRequestWithBody(t, "GET", resp.Header().Get("Location"), nil).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	body := strings.Repeat("D", 1024)
+	assert.Equal(t, body, resp.Body.String())
+}
+
+func TestActionsArtifactV4DownloadSinglePublicApi(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifact can be listed and found by name
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts?name=artifact-v4-download", repo.FullName()), nil).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var listResp api.ActionArtifactsResponse
+	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, listResp.Entries[0].ArchiveDownloadURL)
+	assert.Equal(t, "artifact-v4-download", listResp.Entries[0].Name)
+
+	// confirm artifact blob storage url can be retrieved
+	req = NewRequestWithBody(t, "GET", listResp.Entries[0].ArchiveDownloadURL, nil).
+		AddTokenAuth(token)
+
+	resp = MakeRequest(t, req, http.StatusFound)
+
+	blobLocation := resp.Header().Get("Location")
+
+	// confirm artifact can be downloaded without token and has expected content
+	req = NewRequestWithBody(t, "GET", blobLocation, nil)
+	resp = MakeRequest(t, req, http.StatusOK)
+	body := strings.Repeat("D", 1024)
+	assert.Equal(t, body, resp.Body.String())
+
+	// confirm artifact can not be downloaded without query
+	req = NewRequestWithBody(t, "GET", blobLocation, nil)
+	req.URL.RawQuery = ""
+	_ = MakeRequest(t, req, http.StatusUnauthorized)
+}
+
+func TestActionsArtifactV4DownloadSinglePublicApiPrivateRepo(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifact can be listed and found by name
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts?name=artifact-v4-download", repo.FullName()), nil).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var listResp api.ActionArtifactsResponse
+	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(23), listResp.Entries[0].ID)
+	assert.NotEmpty(t, listResp.Entries[0].ArchiveDownloadURL)
+	assert.Equal(t, "artifact-v4-download", listResp.Entries[0].Name)
+
+	// confirm artifact blob storage url can be retrieved
+	req = NewRequestWithBody(t, "GET", listResp.Entries[0].ArchiveDownloadURL, nil).
+		AddTokenAuth(token)
+
+	resp = MakeRequest(t, req, http.StatusFound)
+
+	blobLocation := resp.Header().Get("Location")
+	// confirm artifact can be downloaded without token and has expected content
+	req = NewRequestWithBody(t, "GET", blobLocation, nil)
+	resp = MakeRequest(t, req, http.StatusOK)
+	body := strings.Repeat("D", 1024)
+	assert.Equal(t, body, resp.Body.String())
+
+	// confirm artifact can not be downloaded without query
+	req = NewRequestWithBody(t, "GET", blobLocation, nil)
+	req.URL.RawQuery = ""
+	_ = MakeRequest(t, req, http.StatusUnauthorized)
+}
+
+func TestActionsArtifactV4ListAndGetPublicApi(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifact can be listed
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts", repo.FullName()), nil).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var listResp api.ActionArtifactsResponse
+	err := json.Unmarshal(resp.Body.Bytes(), &listResp)
+	assert.NoError(t, err)
+
+	for _, artifact := range listResp.Entries {
+		assert.Contains(t, artifact.URL, fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), artifact.ID))
+		assert.Contains(t, artifact.ArchiveDownloadURL, fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), artifact.ID))
+		req = NewRequestWithBody(t, "GET", listResp.Entries[0].URL, nil).
+			AddTokenAuth(token)
+
+		resp = MakeRequest(t, req, http.StatusOK)
+		var artifactResp api.ActionArtifact
+		err := json.Unmarshal(resp.Body.Bytes(), &artifactResp)
+		assert.NoError(t, err)
+
+		assert.Equal(t, artifact.ID, artifactResp.ID)
+		assert.Equal(t, artifact.Name, artifactResp.Name)
+		assert.Equal(t, artifact.SizeInBytes, artifactResp.SizeInBytes)
+		assert.Equal(t, artifact.URL, artifactResp.URL)
+		assert.Equal(t, artifact.ArchiveDownloadURL, artifactResp.ArchiveDownloadURL)
+	}
+}
+
+func TestActionsArtifactV4GetArtifactMismatchedRepoNotFound(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifacts of wrong repo is not visible
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestActionsArtifactV4DownloadArtifactMismatchedRepoNotFound(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifacts of wrong repo is not visible
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestActionsArtifactV4DownloadArtifactCorrectRepoFound(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifacts of correct repo is visible
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusFound)
+}
+
+func TestActionsArtifactV4DownloadRawArtifactCorrectRepoMissingSignatureUnauthorized(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm cannot use the raw artifact endpoint even with a correct access token
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnauthorized)
+}
+
 func TestActionsArtifactV4Delete(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
@@ -350,4 +557,52 @@ func TestActionsArtifactV4Delete(t *testing.T) {
 	var deleteResp actions.DeleteArtifactResponse
 	protojson.Unmarshal(resp.Body.Bytes(), &deleteResp)
 	assert.True(t, deleteResp.Ok)
+}
+
+func TestActionsArtifactV4DeletePublicApi(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// confirm artifacts exists
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	// delete artifact by id
+	req = NewRequestWithBody(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// confirm artifacts has been deleted
+	req = NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestActionsArtifactV4DeletePublicApiNotAllowedReadScope(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	// confirm artifacts exists
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	// try delete artifact by id
+	req = NewRequestWithBody(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// confirm artifacts has not been deleted
+	req = NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d", repo.FullName(), 22), nil).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 }
