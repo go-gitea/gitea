@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
-	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -226,7 +225,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		err = packages_model.SetRepositoryLink(db.DefaultContext, pvs[0].ID, repo1.ID)
+		err = packages.SetRepositoryLink(db.DefaultContext, pvs[0].ID, repo1.ID)
 		assert.NoError(t, err)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
