@@ -46,7 +46,7 @@ func ListLabels(ctx *context.APIContext) {
 
 	labels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -103,7 +103,7 @@ func CreateLabel(ctx *context.APIContext) {
 		Description: form.Description,
 	}
 	if err := issues_model.NewLabel(ctx, label); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -149,7 +149,7 @@ func GetLabel(ctx *context.APIContext) {
 		if issues_model.IsErrOrgLabelNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -195,7 +195,7 @@ func EditLabel(ctx *context.APIContext) {
 		if issues_model.IsErrOrgLabelNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -219,7 +219,7 @@ func EditLabel(ctx *context.APIContext) {
 	}
 	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -250,7 +250,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id")); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

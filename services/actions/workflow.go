@@ -104,7 +104,7 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 func ListActionWorkflows(ctx *context.APIContext) ([]*api.ActionWorkflow, error) {
 	defaultBranchCommit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err.Error())
+		ctx.APIErrorInternal(err)
 		return nil, err
 	}
 

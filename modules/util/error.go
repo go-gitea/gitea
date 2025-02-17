@@ -10,13 +10,16 @@ import (
 
 // Common Errors forming the base of our error system
 //
-// Many Errors returned by Gitea can be tested against these errors
-// using errors.Is.
+// Many Errors returned by Gitea can be tested against these errors using "errors.Is".
 var (
-	ErrInvalidArgument  = errors.New("invalid argument")
-	ErrPermissionDenied = errors.New("permission denied")
-	ErrAlreadyExist     = errors.New("resource already exists")
-	ErrNotExist         = errors.New("resource does not exist")
+	ErrInvalidArgument  = errors.New("invalid argument")        // also implies HTTP 400
+	ErrPermissionDenied = errors.New("permission denied")       // also implies HTTP 403
+	ErrNotExist         = errors.New("resource does not exist") // also implies HTTP 404
+	ErrAlreadyExist     = errors.New("resource already exists") // also implies HTTP 409
+
+	// ErrUnprocessableContent implies HTTP 422, syntax of the request content was correct,
+	// but server was unable to process the contained instructions
+	ErrUnprocessableContent = errors.New("unprocessable content")
 )
 
 // SilentWrap provides a simple wrapper for a wrapped error where the wrapped error message plays no part in the error message

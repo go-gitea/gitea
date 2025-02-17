@@ -5,6 +5,7 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	web_types "code.gitea.io/gitea/modules/web/types"
 )
@@ -108,7 +110,11 @@ type APIRepoArchivedError struct {
 
 // APIErrorInternal responds with error message, status is 500
 func (ctx *APIContext) APIErrorInternal(err error) {
-	log.ErrorWithSkip(1, "InternalServerError: %v", err)
+	ctx.apiErrorInternal(1, err)
+}
+
+func (ctx *APIContext) apiErrorInternal(skip int, err error) {
+	log.ErrorWithSkip(skip+1, "InternalServerError: %v", err)
 
 	var message string
 	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
@@ -273,7 +279,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) {
 			var err error
 			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 		}
@@ -344,12 +350,12 @@ func (ctx *APIContext) GetErrMsg() string {
 // NotFoundOrServerError use error check function to determine if the error
 // is about not found. It responds with 404 status code for not found error,
 // or error context description for logging purpose of 500 server error.
-func (ctx *APIContext) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
-	if errCheck(logErr) {
+func (ctx *APIContext) NotFoundOrServerError(err error) {
+	if errors.Is(err, util.ErrNotExist) {
 		ctx.JSON(http.StatusNotFound, nil)
 		return
 	}
-	ctx.APIError(http.StatusInternalServerError, logMsg)
+	ctx.APIErrorInternal(err)
 }
 
 // IsUserSiteAdmin returns true if current user is a site admin

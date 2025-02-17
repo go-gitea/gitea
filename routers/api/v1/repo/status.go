@@ -65,7 +65,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		Context:     form.Context,
 	}
 	if err := commitstatus_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -203,7 +203,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		State:       ctx.FormTrim("state"),
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %w", repo.FullName(), sha, ctx.FormInt("page"), err))
+		ctx.APIErrorInternal(fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %w", repo.FullName(), sha, ctx.FormInt("page"), err))
 		return
 	}
 
@@ -266,7 +266,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	statuses, count, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), sha, err))
+		ctx.APIErrorInternal(fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), sha, err))
 		return
 	}
 

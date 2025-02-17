@@ -59,14 +59,14 @@ func ListHooks(ctx *context.APIContext) {
 
 	sysHooks, err := webhook.GetSystemOrDefaultWebhooks(ctx, isSystemWebhook)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	hooks := make([]*api.Hook, len(sysHooks))
 	for i, hook := range sysHooks {
 		h, err := webhook_service.ToHook(setting.AppURL+"/-/admin", hook)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		hooks[i] = h
@@ -98,13 +98,13 @@ func GetHook(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 	h, err := webhook_service.ToHook("/-/admin/", hook)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, h)
@@ -188,7 +188,7 @@ func DeleteHook(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

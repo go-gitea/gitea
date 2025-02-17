@@ -82,7 +82,7 @@ func ListMembers(ctx *context.APIContext) {
 	if ctx.Doer != nil {
 		isMember, err = ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -150,12 +150,12 @@ func IsMember(ctx *context.APIContext) {
 	if ctx.Doer != nil {
 		userIsMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		} else if userIsMember || ctx.Doer.IsAdmin {
 			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(ctx, userToCheck.ID)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			} else if userToCheckIsMember {
 				ctx.Status(http.StatusNoContent)
 			} else {
@@ -200,7 +200,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	}
 	is, err := organization.IsPublicMembership(ctx, ctx.Org.Organization.ID, userToCheck.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if is {
@@ -246,7 +246,7 @@ func PublicizeMember(ctx *context.APIContext) {
 	}
 	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToPublicize.ID, true)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -288,7 +288,7 @@ func ConcealMember(ctx *context.APIContext) {
 	}
 	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToConceal.ID, false)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -323,7 +323,7 @@ func DeleteMember(ctx *context.APIContext) {
 		return
 	}
 	if err := org_service.RemoveOrgUser(ctx, ctx.Org.Organization, member); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	}
 	ctx.Status(http.StatusNoContent)
 }

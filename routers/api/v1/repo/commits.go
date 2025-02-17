@@ -79,13 +79,13 @@ func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.
 			ctx.APIErrorNotFound(identifier)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	json, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil, toCommitOpts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, json)
@@ -182,20 +182,20 @@ func GetAllCommits(ctx *context.APIContext) {
 			// no sha supplied - use default branch
 			head, err := ctx.Repo.GitRepo.GetHEADBranch()
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 
 			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head.Name)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 		} else {
 			// get commit specified by sha
 			baseCommit, err = ctx.Repo.GitRepo.GetCommit(sha)
 			if err != nil {
-				ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
+				ctx.NotFoundOrServerError(err)
 				return
 			}
 		}
@@ -207,14 +207,14 @@ func GetAllCommits(ctx *context.APIContext) {
 			Revision: []string{baseCommit.ID.String()},
 		})
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 
 		// Query commits
 		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	} else {
@@ -231,7 +231,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			})
 
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		} else if commitsCountTotal == 0 {
 			ctx.APIErrorNotFound("FileCommitsCount", nil)
@@ -246,7 +246,7 @@ func GetAllCommits(ctx *context.APIContext) {
 				Page:     listOptions.Page,
 			})
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -259,7 +259,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		// Create json struct
 		apiCommits[i], err = convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache, convert.ParseCommitOptions(ctx))
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -320,7 +320,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 			ctx.APIErrorNotFound(sha)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 }
@@ -359,17 +359,17 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = pr.LoadHeadRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))

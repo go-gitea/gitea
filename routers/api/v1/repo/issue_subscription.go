@@ -109,7 +109,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 
 		return
@@ -120,7 +120,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 
 		return
@@ -134,7 +134,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 
 	current, err := issues_model.CheckIssueWatch(ctx, user, issue)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -146,7 +146,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 
 	// Update watch state
 	if err := issues_model.CreateOrUpdateIssueWatch(ctx, user.ID, issue.ID, watch); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -190,7 +190,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 
 		return
@@ -256,7 +256,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 
 		return
@@ -264,7 +264,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 
 	iwl, err := issues_model.GetIssueWatchers(ctx, issue.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -275,7 +275,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 
 	users, err := user_model.GetUsersByIDs(ctx, userIDs)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	apiUsers := make([]*api.User, 0, len(users))
@@ -285,7 +285,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 
 	count, err := issues_model.CountIssueWatchers(ctx, issue.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

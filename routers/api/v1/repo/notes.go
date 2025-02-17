@@ -71,7 +71,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -82,7 +82,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 			ctx.APIErrorNotFound(identifier)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 			Files:        files,
 		})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	apiNote := api.Note{Message: string(note.Message), Commit: cmt}

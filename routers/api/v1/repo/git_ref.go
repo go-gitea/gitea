@@ -78,7 +78,7 @@ func GetGitRefs(ctx *context.APIContext) {
 func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	refs, lastMethodName, err := utils.GetGitRefs(ctx, filter)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, fmt.Errorf("%s: %w", lastMethodName, err))
+		ctx.APIErrorInternal(fmt.Errorf("%s: %w", lastMethodName, err))
 		return
 	}
 

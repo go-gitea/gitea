@@ -125,7 +125,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	t.Scope = scope
 
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, &api.AccessToken{
@@ -174,7 +174,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 			UserID: ctx.ContextUser.ID,
 		})
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 
@@ -190,7 +190,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		}
 	}
 	if tokenID == 0 {
-		ctx.APIError(http.StatusInternalServerError, nil)
+		ctx.APIErrorInternal(nil)
 		return
 	}
 
@@ -198,7 +198,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -273,7 +273,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 		OwnerID:     ctx.Doer.ID,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -311,7 +311,7 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 		if auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -344,7 +344,7 @@ func GetOauth2Application(ctx *context.APIContext) {
 		if auth_model.IsErrOauthClientIDInvalid(err) || auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -398,7 +398,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 		if auth_model.IsErrOauthClientIDInvalid(err) || auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

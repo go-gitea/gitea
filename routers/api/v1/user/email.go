@@ -29,7 +29,7 @@ func ListEmails(ctx *context.APIContext) {
 
 	emails, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	apiEmails := make([]*api.Email, len(emails))
@@ -78,14 +78,14 @@ func AddEmail(ctx *context.APIContext) {
 			errMsg := fmt.Sprintf("Email address %q invalid", email)
 			ctx.APIError(http.StatusUnprocessableEntity, errMsg)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	emails, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func DeleteEmail(ctx *context.APIContext) {
 		if user_model.IsErrEmailAddressNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

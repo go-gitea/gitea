@@ -170,7 +170,7 @@ func AcceptTransfer(ctx *context.APIContext) {
 		case errors.Is(err, util.ErrPermissionDenied):
 			ctx.APIError(http.StatusForbidden, err)
 		default:
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -212,7 +212,7 @@ func RejectTransfer(ctx *context.APIContext) {
 		case errors.Is(err, util.ErrPermissionDenied):
 			ctx.APIError(http.StatusForbidden, err)
 		default:
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

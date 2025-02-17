@@ -82,7 +82,7 @@ func NewWikiPage(ctx *context.APIContext) {
 		} else if repo_model.IsErrWikiAlreadyExist(err) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -155,7 +155,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	form.ContentBase64 = string(content)
 
 	if err := wiki_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, oldWikiName, newWikiName, form.ContentBase64, form.Message); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -198,7 +198,7 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil
 	}
 
@@ -249,7 +249,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 			ctx.APIErrorNotFound(err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -322,7 +322,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
@@ -330,7 +330,7 @@ func ListWikiPages(ctx *context.APIContext) {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		pages = append(pages, wiki_service.ToWikiPageMetaData(wikiName, c, ctx.Repo.Repository))
@@ -447,7 +447,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 			Page:     page,
 		})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -481,7 +481,7 @@ func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) 
 		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil, nil
 	}
@@ -491,7 +491,7 @@ func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) 
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return wikiRepo, nil
 	}
@@ -507,7 +507,7 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
 	}
 	content, err := blob.GetBlobContentBase64()
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return ""
 	}
 	return content

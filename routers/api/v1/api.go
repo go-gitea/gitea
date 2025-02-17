@@ -66,6 +66,7 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -118,7 +119,7 @@ func sudo() func(ctx *context.APIContext) {
 					if user_model.IsErrUserNotExist(err) {
 						ctx.APIErrorNotFound()
 					} else {
-						ctx.APIError(http.StatusInternalServerError, err)
+						ctx.APIErrorInternal(err)
 					}
 					return
 				}
@@ -156,10 +157,10 @@ func repoAssignment() func(ctx *context.APIContext) {
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.APIErrorNotFound("GetUserByName", err)
 					} else {
-						ctx.APIError(http.StatusInternalServerError, err)
+						ctx.APIErrorInternal(err)
 					}
 				} else {
-					ctx.APIError(http.StatusInternalServerError, err)
+					ctx.APIErrorInternal(err)
 				}
 				return
 			}
@@ -177,10 +178,10 @@ func repoAssignment() func(ctx *context.APIContext) {
 				} else if repo_model.IsErrRedirectNotExist(err) {
 					ctx.APIErrorNotFound()
 				} else {
-					ctx.APIError(http.StatusInternalServerError, err)
+					ctx.APIErrorInternal(err)
 				}
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -192,7 +193,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			taskID := ctx.Data["ActionsTaskID"].(int64)
 			task, err := actions_model.GetTaskByID(ctx, taskID)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			if task.RepoID != repo.ID {
@@ -207,14 +208,14 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 
 			if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.Repo.Permission.AccessMode)
 		} else {
 			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 		}
@@ -474,13 +475,14 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 		} else if ctx.Org.Team != nil {
 			orgID = ctx.Org.Team.OrgID
 		} else {
-			ctx.APIError(http.StatusInternalServerError, "reqOrgOwnership: unprepared context")
+			setting.PanicInDevOrTesting("reqOrgOwnership: unprepared context")
+			ctx.APIErrorInternal(errors.New("reqOrgOwnership: unprepared context"))
 			return
 		}
 
 		isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		} else if !isOwner {
 			if ctx.Org.Organization != nil {
@@ -500,26 +502,27 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 			return
 		}
 		if ctx.Org.Team == nil {
-			ctx.APIError(http.StatusInternalServerError, "reqTeamMembership: unprepared context")
+			setting.PanicInDevOrTesting("reqTeamMembership: unprepared context")
+			ctx.APIErrorInternal(errors.New("reqTeamMembership: unprepared context"))
 			return
 		}
 
 		orgID := ctx.Org.Team.OrgID
 		isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		} else if isOwner {
 			return
 		}
 
 		if isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		} else if !isTeamMember {
 			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			} else if isOrgMember {
 				ctx.APIError(http.StatusForbidden, "Must be a team member")
 			} else {
@@ -543,12 +546,13 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 		} else if ctx.Org.Team != nil {
 			orgID = ctx.Org.Team.OrgID
 		} else {
-			ctx.APIError(http.StatusInternalServerError, "reqOrgMembership: unprepared context")
+			setting.PanicInDevOrTesting("reqOrgMembership: unprepared context")
+			ctx.APIErrorInternal(errors.New("reqOrgMembership: unprepared context"))
 			return
 		}
 
 		if isMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		} else if !isMember {
 			if ctx.Org.Organization != nil {
@@ -615,10 +619,10 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.APIErrorNotFound("GetOrgByName", err)
 					} else {
-						ctx.APIError(http.StatusInternalServerError, err)
+						ctx.APIErrorInternal(err)
 					}
 				} else {
-					ctx.APIError(http.StatusInternalServerError, err)
+					ctx.APIErrorInternal(err)
 				}
 				return
 			}
@@ -631,7 +635,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.APIErrorNotFound()
 				} else {
-					ctx.APIError(http.StatusInternalServerError, err)
+					ctx.APIErrorInternal(err)
 				}
 				return
 			}

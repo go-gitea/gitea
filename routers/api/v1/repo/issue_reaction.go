@@ -56,13 +56,13 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -78,12 +78,12 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 
 	reactions, _, err := issues_model.FindCommentReactions(ctx, comment.IssueID, comment.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	_, err = reactions.LoadUsers(ctx, ctx.Repo.Repository)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -193,13 +193,13 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err = comment.LoadIssue(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -231,7 +231,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -245,7 +245,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		// DeleteIssueCommentReaction part
 		err = issues_model.DeleteCommentReaction(ctx, ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Reaction)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		// ToDo respond 204
@@ -300,7 +300,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -312,12 +312,12 @@ func GetIssueReactions(ctx *context.APIContext) {
 
 	reactions, count, err := issues_model.FindIssueReactions(ctx, issue.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	_, err = reactions.LoadUsers(ctx, ctx.Repo.Repository)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -424,7 +424,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -447,7 +447,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -461,7 +461,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		// DeleteIssueReaction part
 		err = issues_model.DeleteIssueReaction(ctx, ctx.Doer.ID, issue.ID, form.Reaction)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		// ToDo respond 204

@@ -83,7 +83,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 	}
 
 	if !canWriteFiles(ctx, apiOpts.BranchName) {
-		ctx.APIError(http.StatusInternalServerError, repo_model.ErrUserDoesNotHaveAccessToRepo{
+		ctx.APIErrorInternal(repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -105,7 +105,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 			ctx.APIError(http.StatusNotFound, err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	} else {
 		ctx.JSON(http.StatusCreated, fileResponse)
 	}

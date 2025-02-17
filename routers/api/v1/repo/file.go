@@ -84,7 +84,7 @@ func GetRawFile(ctx *context.APIContext) {
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	}
 }
 
@@ -231,7 +231,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil, nil, nil
 	}
@@ -243,7 +243,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 
 	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil, nil, nil
 	}
 	when := &latestCommit.Committer.When
@@ -284,7 +284,7 @@ func GetArchive(ctx *context.APIContext) {
 		var err error
 		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -389,7 +389,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -736,7 +736,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 		return
 	}
 
-	ctx.APIError(http.StatusInternalServerError, err)
+	ctx.APIErrorInternal(err)
 }
 
 // Called from both CreateFile or UpdateFile to handle both
@@ -887,7 +887,7 @@ func DeleteFile(ctx *context.APIContext) {
 			ctx.APIError(http.StatusForbidden, err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	} else {
 		fileResponse := files_service.GetFileResponseFromFilesResponse(filesResponse, 0)
 		ctx.JSON(http.StatusOK, fileResponse) // FIXME on APIv2: return http.StatusNoContent
@@ -929,7 +929,7 @@ func GetContents(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if !canReadFiles(ctx.Repo) {
-		ctx.APIError(http.StatusInternalServerError, repo_model.ErrUserDoesNotHaveAccessToRepo{
+		ctx.APIErrorInternal(repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -944,7 +944,7 @@ func GetContents(ctx *context.APIContext) {
 			ctx.APIErrorNotFound("GetContentsOrList", err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	} else {
 		ctx.JSON(http.StatusOK, fileList)
 	}

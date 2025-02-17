@@ -44,7 +44,7 @@ func UserIDAssignmentAPI() func(ctx *APIContext) {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.APIError(http.StatusNotFound, err)
 				} else {
-					ctx.APIError(http.StatusInternalServerError, err)
+					ctx.APIErrorInternal(err)
 				}
 			}
 		}
