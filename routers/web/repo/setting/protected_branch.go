@@ -340,7 +340,7 @@ func RenameBranchPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RenameBranchForm)
 
 	if !ctx.Repo.CanCreateBranch() {
-		ctx.NotFound("RenameBranch", nil)
+		ctx.NotFound(nil)
 		return
 	}
 

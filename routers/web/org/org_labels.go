@@ -64,7 +64,7 @@ func UpdateLabel(ctx *context.Context) {
 	if err != nil {
 		switch {
 		case issues_model.IsErrOrgLabelNotExist(err):
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
 		}

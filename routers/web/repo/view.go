@@ -216,7 +216,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound("Home", errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
+	ctx.NotFound(errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
 }
 
 // LastCommit returns lastCommit data for the provided branch/tag/commit and directory (in url) and filenames in body
