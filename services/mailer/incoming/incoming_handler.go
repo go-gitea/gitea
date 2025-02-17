@@ -6,11 +6,13 @@ package incoming
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,8 +30,10 @@ type MailHandler interface {
 }
 
 var handlers = map[token.HandlerType]MailHandler{
-	token.ReplyHandlerType:       &ReplyHandler{},
-	token.UnsubscribeHandlerType: &UnsubscribeHandler{},
+	token.ReplyHandlerType:          &ReplyHandler{},
+	token.UnsubscribeHandlerType:    &UnsubscribeHandler{},
+	token.NewIssueHandlerType:       &NewIssueHandler{},
+	token.NewPullRequestHandlerType: &NewPullRequest{},
 }
 
 // ReplyHandler handles incoming emails to create a reply from them
@@ -177,4 +181,80 @@ func (h *UnsubscribeHandler) Handle(ctx context.Context, _ *MailContent, doer *u
 	}
 
 	return fmt.Errorf("unsupported unsubscribe reference: %v", ref)
+}
+
+// NewIssueHandler handles new issues
+type NewIssueHandler struct{}
+
+func (h *NewIssueHandler) Handle(ctx context.Context, content *MailContent, doer *user_model.User, payload []byte) error {
+	if doer == nil {
+		return util.NewInvalidArgumentErrorf("doer can't be nil")
+	}
+
+	ref, err := incoming_payload.GetReferenceFromPayload(ctx, payload)
+	if err != nil {
+		return err
+	}
+
+	var repo *repo_model.Repository
+
+	switch r := ref.(type) {
+	case *repo_model.Repository:
+		repo = r
+	default:
+		return util.NewInvalidArgumentErrorf("unsupported reply reference: %v", ref)
+	}
+
+	if util.IsEmptyString(content.Subject) {
+		return nil
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	if err != nil {
+		return err
+	}
+	if !perm.CanRead(unit.TypeIssues) {
+		return nil
+	}
+
+	attachmentIDs := make([]string, 0, len(content.Attachments))
+	if setting.Attachment.Enabled {
+		for _, attachment := range content.Attachments {
+			a, err := attachment_service.UploadAttachment(ctx, bytes.NewReader(attachment.Content), setting.Attachment.AllowedTypes, int64(len(attachment.Content)), &repo_model.Attachment{
+				Name:       attachment.Name,
+				UploaderID: doer.ID,
+				RepoID:     repo.ID,
+			})
+			if err != nil {
+				if upload.IsErrFileTypeForbidden(err) {
+					log.Info("NewIssueHandler: Skipping disallowed attachment type: %s", attachment.Name)
+					continue
+				}
+				return err
+			}
+			attachmentIDs = append(attachmentIDs, a.UUID)
+		}
+	}
+
+	issue := &issues_model.Issue{
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    content.Subject,
+		PosterID: doer.ID,
+		Poster:   doer,
+		Content:  content.Content,
+	}
+
+	if err := issue_service.NewIssue(ctx, repo, issue, []int64{}, attachmentIDs, []int64{}, 0); err != nil {
+		log.Warn("NewIssueHandler: Failed to create issue: %v", err)
+	}
+
+	return nil
+}
+
+// NewPullRequest handles new pull requests
+type NewPullRequest struct{}
+
+func (h *NewPullRequest) Handle(ctx context.Context, _ *MailContent, doer *user_model.User, payload []byte) error {
+	return errors.New("not implemented")
 }

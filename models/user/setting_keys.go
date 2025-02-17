@@ -3,6 +3,8 @@
 
 package user
 
+import "fmt"
+
 const (
 	// SettingsKeyHiddenCommentTypes is the setting key for hidden comment types
 	SettingsKeyHiddenCommentTypes = "issue.hidden_comment_types"
@@ -19,3 +21,11 @@ const (
 	// SignupUserAgent is the user agent that the user signed up with
 	SignupUserAgent = "signup.user_agent"
 )
+
+func SettingsKeyUserRands(key string) string {
+	return "rands." + key
+}
+
+func SettingsKeyUserRandsForRepo(repoID int64, key string) string {
+	return SettingsKeyUserRands(fmt.Sprintf("repo.%d.%s", repoID, key))
+}

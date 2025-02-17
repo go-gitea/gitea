@@ -50,6 +50,9 @@
 			</div>
 		</div>
 		{{template "shared/issuelist" dict "." . "listType" "repo"}}
+		{{if and .PageIsIssueList .MailToIssueEnabled}}
+			{{template "repo/issue/mailto_module" dict "." .}}
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}

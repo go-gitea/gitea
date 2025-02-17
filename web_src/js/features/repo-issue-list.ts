@@ -223,6 +223,31 @@ async function initIssuePinSort() {
   });
 }
 
+function initGetMailToAddrModal() {
+  const modal = document.querySelector('.modal.get-mailto-addr');
+  if (modal === null) return;
+
+  const url = modal.getAttribute('data-reset-url');
+
+  const input = modal.querySelector<HTMLInputElement>('.repo-mailto-url');
+  const buttonReset = modal.querySelector<HTMLAnchorElement>('.reset-get-mailto-addr');
+  const sendMailLink = modal.querySelector<HTMLAnchorElement>('.send-mail-link');
+
+  buttonReset.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    const rsp = await POST(url);
+    if (rsp.status !== 200) {
+      return;
+    }
+
+    const data = await rsp.json();
+
+    input.value = data.url;
+    sendMailLink.href = `mailto:${data.url}`;
+  });
+}
+
 export function initRepoIssueList() {
   if (document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) {
     initRepoIssueListCheckboxes();
@@ -232,4 +257,5 @@ export function initRepoIssueList() {
     // user or org home: issue list, pull request list
     queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
   }
+  initGetMailToAddrModal();
 }

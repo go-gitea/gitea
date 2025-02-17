@@ -13,6 +13,7 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
+	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
 )
 
 // A token is a verifiable container describing an action.
@@ -34,6 +35,8 @@ const (
 	UnknownHandlerType HandlerType = iota
 	ReplyHandlerType
 	UnsubscribeHandlerType
+	NewIssueHandlerType
+	NewPullRequestHandlerType
 )
 
 var encodingWithoutPadding = base32.StdEncoding.WithPadding(base32.NoPadding)
@@ -51,7 +54,7 @@ func (err *ErrToken) Unwrap() error {
 }
 
 // CreateToken creates a token for the action/user tuple
-func CreateToken(ht HandlerType, user *user_model.User, data []byte) (string, error) {
+func CreateToken(ctx context.Context, ht HandlerType, user *user_model.User, data []byte) (string, error) {
 	payload, err := util.PackData(
 		time.Now().AddDate(tokenLifetimeInYears, 0, 0).Unix(),
 		ht,
@@ -63,7 +66,7 @@ func CreateToken(ht HandlerType, user *user_model.User, data []byte) (string, er
 
 	packagedData, err := util.PackData(
 		user.ID,
-		generateHmac([]byte(user.Rands), payload),
+		generateHmac(incoming_payload.GetRandsFromPayload(ctx, user, data), payload),
 		payload,
 	)
 	if err != nil {
@@ -100,15 +103,15 @@ func ExtractToken(ctx context.Context, token string) (HandlerType, *user_model.U
 		return UnknownHandlerType, nil, nil, err
 	}
 
-	if !crypto_hmac.Equal(hmac, generateHmac([]byte(user.Rands), payload)) {
-		return UnknownHandlerType, nil, nil, &ErrToken{"verification failed"}
-	}
-
 	var expiresUnix int64
 	var handlerType HandlerType
 	var innerPayload []byte
 	if err := util.UnpackData(payload, &expiresUnix, &handlerType, &innerPayload); err != nil {
 		return UnknownHandlerType, nil, nil, err
+	}
+
+	if !crypto_hmac.Equal(hmac, generateHmac(incoming_payload.GetRandsFromPayload(ctx, user, innerPayload), payload)) {
+		return UnknownHandlerType, nil, nil, &ErrToken{"verification failed"}
 	}
 
 	if time.Unix(expiresUnix, 0).Before(time.Now()) {
