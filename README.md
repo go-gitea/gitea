@@ -150,10 +150,64 @@ for the full license text.
 <details>
 <summary>Looking for an overview of the interface? Check it out!</summary>
 
-|![Dashboard](https://dl.gitea.com/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.com/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.com/screenshots/global_issues.png)|
-|:---:|:---:|:---:|
-|![Branches](https://dl.gitea.com/screenshots/branches.png)|![Web Editor](https://dl.gitea.com/screenshots/web_editor.png)|![Activity](https://dl.gitea.com/screenshots/activity.png)|
-|![New Migration](https://dl.gitea.com/screenshots/migration.png)|![Migrating](https://dl.gitea.com/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)|
-|![Pull Request Dark](https://dl.gitea.com/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.com/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.com/screenshots/diff_dark.png)|
+### Login/Register Page
+
+![Login](https://dl.gitea.com/screenshots/login.png)
+![Register](https://dl.gitea.com/screenshots/register.png)
+
+### User Dashboard
+
+![Home](https://dl.gitea.com/screenshots/home.png)
+![Issues](https://dl.gitea.com/screenshots/issues.png)
+![Pull Requests](https://dl.gitea.com/screenshots/pull_requests.png)
+![Milestones](https://dl.gitea.com/screenshots/milestones.png)
+
+### User Profile
+
+![Profile](https://dl.gitea.com/screenshots/user_profile.png)
+
+### Explore
+
+![Repos](https://dl.gitea.com/screenshots/explore_repos.png)
+![Users](https://dl.gitea.com/screenshots/explore_users.png)
+![Orgs](https://dl.gitea.com/screenshots/explore_orgs.png)
+
+### Repository
+
+![Home](https://dl.gitea.com/screenshots/repo_home.png)
+![Commits](https://dl.gitea.com/screenshots/repo_commits.png)
+![Branches](https://dl.gitea.com/screenshots/repo_branches.png)
+![Labels](https://dl.gitea.com/screenshots/repo_labels.png)
+![Milestones](https://dl.gitea.com/screenshots/repo_milestones.png)
+![Releases](https://dl.gitea.com/screenshots/repo_releases.png)
+![Tags](https://dl.gitea.com/screenshots/repo_tags.png)
+
+#### Repository Issue
+
+![List](https://dl.gitea.com/screenshots/repo_issues.png)
+![Issue](https://dl.gitea.com/screenshots/repo_issue.png)
+
+#### Repository Pull Requests
+
+![List](https://dl.gitea.com/screenshots/repo_pull_requests.png)
+![Pull Request](https://dl.gitea.com/screenshots/repo_pull_request.png)
+![File](https://dl.gitea.com/screenshots/repo_pull_request_file.png)
+![Commits](https://dl.gitea.com/screenshots/repo_pull_request_commits.png)
+
+#### Repository Actions
+
+![List](https://dl.gitea.com/screenshots/repo_actions.png)
+![Details](https://dl.gitea.com/screenshots/repo_actions_run.png)
+
+#### Repository Activity
+
+![Activity](https://dl.gitea.com/screenshots/repo_activity.png)
+![Contributors](https://dl.gitea.com/screenshots/repo_contributors.png)
+![Code Frequency](https://dl.gitea.com/screenshots/repo_code_frequency.png)
+![Recent Commits](https://dl.gitea.com/screenshots/repo_recent_commits.png)
+
+### Organization
+
+![Home](https://dl.gitea.com/screenshots/org_home.png)
 
 </details>
