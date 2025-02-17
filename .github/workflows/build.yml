@@ -16,8 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3  # Gets your code
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2  # Prepares Docker builder
+
 
       - name: Log in to DockerHub
         uses: docker/login-action@v2
