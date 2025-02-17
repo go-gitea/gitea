@@ -250,7 +250,7 @@ func (p *Project) getDefaultColumn(ctx context.Context) (*Column, error) {
 	var column Column
 	has, err := db.GetEngine(ctx).
 		Where("project_id=? AND `default` = ?", p.ID, true).
-		OrderBy("sorting, id").Get(&column)
+		Desc("id").Get(&column)
 	if err != nil {
 		return nil, err
 	}
