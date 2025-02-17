@@ -89,7 +89,7 @@ func (r *Repository) GetObjectFormat() git.ObjectFormat {
 func RepoMustNotBeArchived() func(ctx *Context) {
 	return func(ctx *Context) {
 		if ctx.Repo.Repository.IsArchived {
-			ctx.NotFound("IsArchived", errors.New(ctx.Locale.TrString("repo.archive.title")))
+			ctx.NotFound(errors.New(ctx.Locale.TrString("repo.archive.title")))
 		}
 	}
 }
@@ -315,7 +315,7 @@ func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	repo, err := repo_model.GetRepositoryByID(ctx, redirectRepoID)
 	if err != nil {
 		log.Error("GetRepositoryByID: %v", err)
-		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID")
+		ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID")
 		return
 	}
 
@@ -349,7 +349,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 			EarlyResponseForGoGetMeta(ctx)
 			return
 		}
-		ctx.NotFound("no access right", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["Permission"] = &ctx.Repo.Permission
@@ -402,7 +402,7 @@ func RepoAssignment(ctx *Context) {
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
 					RedirectToUser(ctx.Base, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
-					ctx.NotFound("GetUserByName", nil)
+					ctx.NotFound(nil)
 				} else {
 					ctx.ServerError("LookupUserRedirect", err)
 				}
@@ -447,7 +447,7 @@ func RepoAssignment(ctx *Context) {
 					EarlyResponseForGoGetMeta(ctx)
 					return
 				}
-				ctx.NotFound("GetRepositoryByName", nil)
+				ctx.NotFound(nil)
 			} else {
 				ctx.ServerError("LookupRepoRedirect", err)
 			}
@@ -870,7 +870,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refShortName)
 				if err != nil {
 					if git.IsErrNotExist(err) {
-						ctx.NotFound("GetTagCommit", err)
+						ctx.NotFound(err)
 						return
 					}
 					ctx.ServerError("GetTagCommit", err)
@@ -883,7 +883,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refShortName)
 				if err != nil {
-					ctx.NotFound("GetCommit", err)
+					ctx.NotFound(err)
 					return
 				}
 				// If short commit ID add canonical link header
@@ -892,7 +892,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 					ctx.RespHeader().Set("Link", fmt.Sprintf(`<%s>; rel="canonical"`, canonicalURL))
 				}
 			} else {
-				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refShortName))
+				ctx.NotFound(fmt.Errorf("branch or tag not exist: %s", refShortName))
 				return
 			}
 
@@ -945,7 +945,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 func GitHookService() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Doer.CanEditGitHook() {
-			ctx.NotFound("GitHookService", nil)
+			ctx.NotFound(nil)
 			return
 		}
 	}

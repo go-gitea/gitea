@@ -15,7 +15,7 @@ import (
 func RequireRepoAdmin() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || !ctx.Repo.IsAdmin() {
-			ctx.NotFound("RequireRepoAdmin denies the request", nil)
+			ctx.NotFound(nil)
 			return
 		}
 	}
@@ -25,7 +25,7 @@ func RequireRepoAdmin() func(ctx *Context) {
 func CanWriteToBranch() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
-			ctx.NotFound("CanWriteToBranch denies permission", nil)
+			ctx.NotFound(nil)
 			return
 		}
 	}
@@ -39,7 +39,7 @@ func RequireUnitWriter(unitTypes ...unit.Type) func(ctx *Context) {
 				return
 			}
 		}
-		ctx.NotFound("RequireUnitWriter denies the request", nil)
+		ctx.NotFound(nil)
 	}
 }
 
@@ -54,7 +54,7 @@ func RequireUnitReader(unitTypes ...unit.Type) func(ctx *Context) {
 				return
 			}
 		}
-		ctx.NotFound("RequireUnitReader denies the request", nil)
+		ctx.NotFound(nil)
 	}
 }
 
@@ -78,7 +78,7 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_
 		}
 
 		if publicOnly && repo.IsPrivate {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 
@@ -89,7 +89,7 @@ func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_
 		}
 
 		if !scopeMatched {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}

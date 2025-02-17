@@ -49,6 +49,6 @@ func SetDefaultBranchPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 	default:
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 	}
 }
