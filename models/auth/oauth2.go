@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"os"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/container"
@@ -57,21 +58,29 @@ type BuiltinOAuth2Application struct {
 }
 
 func BuiltinApplications() map[string]*BuiltinOAuth2Application {
+	redirectURIsEnv := os.Getenv("GITEA_OAUTH2_REDIRECT_URIS")
+	var redirectURIs []string
+	if redirectURIsEnv != "" {
+		redirectURIs = strings.Split(redirectURIsEnv, ",")
+	} else {
+		redirectURIs = []string{"http://127.0.0.1", "https://127.0.0.1"}
+	}
+
 	m := make(map[string]*BuiltinOAuth2Application)
 	m["a4792ccc-144e-407e-86c9-5e7d8d9c3269"] = &BuiltinOAuth2Application{
 		ConfigName:   "git-credential-oauth",
 		DisplayName:  "git-credential-oauth",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		RedirectURIs: redirectURIs,
 	}
 	m["e90ee53c-94e2-48ac-9358-a874fb9e0662"] = &BuiltinOAuth2Application{
 		ConfigName:   "git-credential-manager",
 		DisplayName:  "Git Credential Manager",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		RedirectURIs: redirectURIs,
 	}
 	m["d57cb8c4-630c-4168-8324-ec79935e18d4"] = &BuiltinOAuth2Application{
 		ConfigName:   "tea",
 		DisplayName:  "tea",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		RedirectURIs: redirectURIs,
 	}
 	return m
 }
