@@ -4,7 +4,25 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.23.3](https://github.com/go-gitea/gitea/releases/tag/1.23.2) - 2025-02-05
+## [1.23.4](https://github.com/go-gitea/gitea/releases/tag/v1.23.4) - 2025-02-16
+
+* SECURITY
+  * Enhance routers for the Actions variable operations (#33547) (#33553)
+  * Enhance routers for the Actions runner operations (#33549) (#33555)
+* PERFORMANCES
+  * Performance optimization for pull request files loading comments attachments (#33585) (#33592)
+* BUGFIXES
+  * Add a transaction to `pickTask` (#33543) (#33563)
+  * Fix mirror bug (#33597) (#33607)
+  * Use default Git timeout when checking repo health (#33593) (#33598)
+  * Fix PR's target branch dropdown (#33589) (#33591)
+  * Fix various problems (artifact order, api empty slice, assignee check, fuzzy prompt, mirror proxy, adopt git) (#33569) (#33577)
+  * Rework suggestion backend (#33538) (#33546)
+  * Fix context usage (#33554) (#33557)
+  * Only show the latest version in the Arch index (#33262) (#33580)
+  * Skip deletion error for action artifacts (#33476) (#33568)
+
+## [1.23.3](https://github.com/go-gitea/gitea/releases/tag/v1.23.2) - 2025-02-05
 
 * Security
   * Build Gitea with Golang v1.23.6 to fix security bugs
