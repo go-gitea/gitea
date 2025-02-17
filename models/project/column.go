@@ -261,7 +261,9 @@ func (p *Project) getDefaultColumn(ctx context.Context) (*Column, error) {
 	return nil, ErrProjectColumnNotExist{ColumnID: 0}
 }
 
-// MustDefaultColumn returns the default column for a project, get the first one if exist one and creating one if it does not exist
+// MustDefaultColumn returns the default column for a project.
+// If one exists, it is returned
+// If none exists, the first column will be elevated to the default column of this project
 func (p *Project) MustDefaultColumn(ctx context.Context) (*Column, error) {
 	c, err := p.getDefaultColumn(ctx)
 	if err != nil && !IsErrProjectColumnNotExist(err) {
