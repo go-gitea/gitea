@@ -60,7 +60,7 @@ func PinIssue(ctx *context.APIContext) {
 		return
 	}
 
-	err = issue.Pin(ctx, ctx.Doer)
+	err = issues_model.PinIssue(ctx, issue, ctx.Doer)
 	if err != nil {
 		ctx.APIError(http.StatusInternalServerError, err)
 		return
@@ -115,7 +115,7 @@ func UnpinIssue(ctx *context.APIContext) {
 		return
 	}
 
-	err = issue.Unpin(ctx, ctx.Doer)
+	err = issues_model.UnpinIssue(ctx, issue, ctx.Doer)
 	if err != nil {
 		ctx.APIError(http.StatusInternalServerError, err)
 		return
@@ -169,7 +169,7 @@ func MoveIssuePin(ctx *context.APIContext) {
 		return
 	}
 
-	err = issue.MovePin(ctx, int(ctx.PathParamInt64("position")))
+	err = issues_model.MovePin(ctx, issue, int(ctx.PathParamInt64("position")))
 	if err != nil {
 		ctx.APIError(http.StatusInternalServerError, err)
 		return
