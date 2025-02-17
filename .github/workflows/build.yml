@@ -29,9 +29,9 @@ jobs:
           go mod tidy
 
      # Step 4: Run only the specific test (TestIsValidUsername)
-      - name: Run specific test
+      - name: Run Password Test
         run: |
-          go test -run ^TestIsValidUsername$ ./... -v  # Run only TestIsValidUsername
+          go test -run TestPassword ./... -v  # Run only TestIsValidUsername
 
   docker:
     runs-on: ubuntu-latest
