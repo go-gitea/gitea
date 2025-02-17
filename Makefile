@@ -168,7 +168,6 @@ SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape}}/api/v1"|"basePath": "/api/v1"|g
 SWAGGER_EXCLUDE := code.gitea.io/sdk
-SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
@@ -273,8 +272,9 @@ generate-swagger: $(SWAGGER_SPEC) ## generate the swagger spec from code comment
 
 $(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
 	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) -e '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) -e 's/\r$$//' './$(SWAGGER_SPEC)' # convert crlf to lf
+	$(SED_INPLACE) -e '$$a\' './$(SWAGGER_SPEC)' # add final newline
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
@@ -287,9 +287,9 @@ swagger-check: generate-swagger
 
 .PHONY: swagger-validate
 swagger-validate: ## check if the swagger spec is valid
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) -e '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
 	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
+	$(SED_INPLACE) -e '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: checks
 checks: checks-frontend checks-backend ## run various consistency checks
