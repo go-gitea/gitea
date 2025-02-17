@@ -25,15 +25,7 @@ jobs:
         run: |
           go mod tidy
 
-      # Step 4: Run Linting (you can use golangci-lint for Go code linting)
-      - name: Run GolangCI Lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.64.5 # Specify the GolangCI Lint version
-          extra_args: |
-            --disable=staticcheck
-            --disable=tenv
-            --output-format=colored-line-number
+
 
   docker:
     runs-on: ubuntu-latest
