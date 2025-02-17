@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
+	shared_actions "code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/routers/web/shared/project"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -118,7 +119,7 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 		ar, err := common.AuthShared(ctx.Base, ctx.Session, authMethod)
 		if err != nil {
 			log.Error("Failed to verify user: %v", err)
-			ctx.Error(http.StatusUnauthorized, "Verify")
+			ctx.HTTPError(http.StatusUnauthorized, "Failed to authenticate user")
 			return
 		}
 		ctx.Doer = ar.Doer
@@ -153,7 +154,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			if ctx.Doer.MustChangePassword {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
-						ctx.Error(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
+						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
@@ -210,7 +211,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 
 		if options.AdminRequired {
 			if !ctx.Doer.IsAdmin {
-				ctx.Error(http.StatusForbidden)
+				ctx.HTTPError(http.StatusForbidden)
 				return
 			}
 			ctx.Data["PageIsAdmin"] = true
@@ -306,35 +307,35 @@ func registerRoutes(m *web.Router) {
 
 	linkAccountEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enabled {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	openIDSignUpEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignUp {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	oauth2Enabled := func(ctx *context.Context) {
 		if !setting.OAuth2.Enabled {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	reqMilestonesDashboardPageEnabled := func(ctx *context.Context) {
 		if !setting.Service.ShowMilestonesDashboardPage {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
@@ -342,49 +343,56 @@ func registerRoutes(m *web.Router) {
 	// webhooksEnabled requires webhooks to be enabled by admin.
 	webhooksEnabled := func(ctx *context.Context) {
 		if setting.DisableWebhooks {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
+			return
+		}
+	}
+
+	starsEnabled := func(ctx *context.Context) {
+		if setting.Repository.DisableStars {
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	lfsServerEnabled := func(ctx *context.Context) {
 		if !setting.LFS.StartServer {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
 
 	federationEnabled := func(ctx *context.Context) {
 		if !setting.Federation.Enabled {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
 
 	dlSourceEnabled := func(ctx *context.Context) {
 		if setting.Repository.DisableDownloadSourceArchives {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
 
 	sitemapEnabled := func(ctx *context.Context) {
 		if !setting.Other.EnableSitemap {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
 
 	packagesEnabled := func(ctx *context.Context) {
 		if !setting.Packages.Enabled {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}
 
 	feedEnabled := func(ctx *context.Context) {
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
@@ -393,18 +401,18 @@ func registerRoutes(m *web.Router) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
-				ctx.NotFound("Repo unit is is disabled: "+unitType.LogString(), nil)
+				ctx.NotFound(nil)
 				return
 			}
 
 			if ctx.ContextUser == nil {
-				ctx.NotFound("ContextUser is nil", nil)
+				ctx.NotFound(nil)
 				return
 			}
 
 			if ctx.ContextUser.IsOrganization() {
 				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
-					ctx.NotFound("ContextUser is org but doer has no access to unit", nil)
+					ctx.NotFound(nil)
 					return
 				}
 			}
@@ -442,10 +450,10 @@ func registerRoutes(m *web.Router) {
 
 	addSettingsVariablesRoutes := func() {
 		m.Group("/variables", func() {
-			m.Get("", repo_setting.Variables)
-			m.Post("/new", web.Bind(forms.EditVariableForm{}), repo_setting.VariableCreate)
-			m.Post("/{variable_id}/edit", web.Bind(forms.EditVariableForm{}), repo_setting.VariableUpdate)
-			m.Post("/{variable_id}/delete", repo_setting.VariableDelete)
+			m.Get("", shared_actions.Variables)
+			m.Post("/new", web.Bind(forms.EditVariableForm{}), shared_actions.VariableCreate)
+			m.Post("/{variable_id}/edit", web.Bind(forms.EditVariableForm{}), shared_actions.VariableUpdate)
+			m.Post("/{variable_id}/delete", shared_actions.VariableDelete)
 		})
 	}
 
@@ -459,11 +467,11 @@ func registerRoutes(m *web.Router) {
 
 	addSettingsRunnersRoutes := func() {
 		m.Group("/runners", func() {
-			m.Get("", repo_setting.Runners)
-			m.Combo("/{runnerid}").Get(repo_setting.RunnersEdit).
-				Post(web.Bind(forms.EditRunnerForm{}), repo_setting.RunnersEditPost)
-			m.Post("/{runnerid}/delete", repo_setting.RunnerDeletePost)
-			m.Post("/reset_registration_token", repo_setting.ResetRunnerRegistrationToken)
+			m.Get("", shared_actions.Runners)
+			m.Combo("/{runnerid}").Get(shared_actions.RunnersEdit).
+				Post(web.Bind(forms.EditRunnerForm{}), shared_actions.RunnersEditPost)
+			m.Post("/{runnerid}/delete", shared_actions.RunnerDeletePost)
+			m.Post("/reset_registration_token", shared_actions.ResetRunnerRegistrationToken)
 		})
 	}
 
@@ -498,7 +506,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", func(ctx *context.Context) {
 			if unit.TypeCode.UnitGlobalDisabled() {
-				ctx.NotFound("Repo unit code is disabled", nil)
+				ctx.NotFound(nil)
 				return
 			}
 		}, explore.Code)
@@ -681,7 +689,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/activate", auth.Activate)
 		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
-		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
+		m.Get("/avatar/{username}/{size}", user.AvatarByUsernameSize)
 		m.Get("/recover_account", auth.ResetPasswd)
 		m.Post("/recover_account", auth.ResetPasswdPost)
 		m.Get("/forgot_password", auth.ForgotPasswd)
@@ -815,7 +823,7 @@ func registerRoutes(m *web.Router) {
 		m.Methods("GET, OPTIONS", "/attachments/{uuid}", optionsCorsHandler(), repo.GetAttachment)
 	}, optSignIn)
 
-	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), user.Action)
+	m.Post("/{username}", reqSignIn, context.UserAssignmentWeb(), user.ActionUserFollow)
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireUnitWriter(unit.TypeCode)
@@ -839,7 +847,7 @@ func registerRoutes(m *web.Router) {
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
-				ctx.NotFound("", nil)
+				ctx.NotFound(nil)
 			}
 		}
 	}
@@ -850,12 +858,12 @@ func registerRoutes(m *web.Router) {
 			switch {
 			case ctx.ContextUser.Visibility == structs.VisibleTypePrivate:
 				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-					ctx.NotFound("Visit Project", nil)
+					ctx.NotFound(nil)
 					return
 				}
 			case ctx.ContextUser.Visibility == structs.VisibleTypeLimited:
 				if ctx.Doer == nil {
-					ctx.NotFound("Visit Project", nil)
+					ctx.NotFound(nil)
 					return
 				}
 			}
@@ -865,7 +873,7 @@ func registerRoutes(m *web.Router) {
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
 			m.Get("/members", org.Members)
-		}, context.OrgAssignment())
+		}, context.OrgAssignment(context.OrgAssignmentOptions{}))
 	}, optSignIn)
 	// end "/org": members
 
@@ -891,19 +899,20 @@ func registerRoutes(m *web.Router) {
 			m.Get("/milestones/{team}", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Post("/members/action/{action}", org.MembersAction)
 			m.Get("/teams", org.Teams)
-		}, context.OrgAssignment(true, false, true))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
 
 		m.Group("/{org}", func() {
 			m.Get("/teams/{team}", org.TeamMembers)
 			m.Get("/teams/{team}/repositories", org.TeamRepositories)
 			m.Post("/teams/{team}/action/{action}", org.TeamsAction)
 			m.Post("/teams/{team}/action/repo/{action}", org.TeamsRepoAction)
-		}, context.OrgAssignment(true, false, true))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamMember: true}))
 
-		// require admin permission
+		// require member/team-admin permission (old logic is: requireMember=true, requireTeamAdmin=true)
+		// but it doesn't seem right: requireTeamAdmin does nothing
 		m.Group("/{org}", func() {
 			m.Get("/teams/-/search", org.SearchTeam)
-		}, context.OrgAssignment(true, false, false, true))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireMember: true, RequireTeamAdmin: true}))
 
 		// require owner permission
 		m.Group("/{org}", func() {
@@ -912,6 +921,8 @@ func registerRoutes(m *web.Router) {
 			m.Get("/teams/{team}/edit", org.EditTeam)
 			m.Post("/teams/{team}/edit", web.Bind(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
+
+			m.Get("/worktime", context.OrgAssignment(context.OrgAssignmentOptions{RequireOwner: true}), org.Worktime)
 
 			m.Group("/settings", func() {
 				m.Combo("").Get(org.Settings).
@@ -980,7 +991,7 @@ func registerRoutes(m *web.Router) {
 					m.Post("", web.Bind(forms.BlockUserForm{}), org.BlockedUsersPost)
 				})
 			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
-		}, context.OrgAssignment(true, true))
+		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireOwner: true}))
 	}, reqSignIn)
 	// end "/org": most org routes
 
@@ -1041,7 +1052,7 @@ func registerRoutes(m *web.Router) {
 				})
 			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-					ctx.NotFound("NewProject", nil)
+					ctx.NotFound(nil)
 					return
 				}
 			})
@@ -1050,7 +1061,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
 		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
-	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment())
+	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{}))
 	// end "/{username}/-": packages, projects, code
 
 	m.Group("/{username}/{reponame}/-", func() {
@@ -1136,7 +1147,7 @@ func registerRoutes(m *web.Router) {
 			})
 		})
 		m.Group("/actions", func() {
-			m.Get("", repo_setting.RedirectToDefaultSetting)
+			m.Get("", shared_actions.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
@@ -1294,21 +1305,20 @@ func registerRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}", func() { // repo code
 		m.Group("", func() {
 			m.Group("", func() {
+				m.Post("/_preview/*", web.Bind(forms.EditPreviewDiffForm{}), repo.DiffPreviewPost)
 				m.Combo("/_edit/*").Get(repo.EditFile).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.EditFilePost)
 				m.Combo("/_new/*").Get(repo.NewFile).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewFilePost)
-				m.Post("/_preview/*", web.Bind(forms.EditPreviewDiffForm{}), repo.DiffPreviewPost)
 				m.Combo("/_delete/*").Get(repo.DeleteFile).
 					Post(web.Bind(forms.DeleteRepoFileForm{}), repo.DeleteFilePost)
-				m.Combo("/_upload/*", repo.MustBeAbleToUpload).
-					Get(repo.UploadFile).
+				m.Combo("/_upload/*", repo.MustBeAbleToUpload).Get(repo.UploadFile).
 					Post(web.Bind(forms.UploadRepoFileForm{}), repo.UploadFilePost)
 				m.Combo("/_diffpatch/*").Get(repo.NewDiffPatch).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
 				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,64})}/*").Get(repo.CherryPick).
 					Post(web.Bind(forms.CherryPickForm{}), repo.CherryPickPost)
-			}, context.RepoRefByType(git.RefTypeBranch), context.CanWriteToBranch())
+			}, context.RepoRefByType(git.RefTypeBranch), context.CanWriteToBranch(), repo.WebGitOperationCommonData)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
@@ -1429,7 +1439,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
-			m.Delete("/artifacts/{artifact_name}", actions.ArtifactsDeleteView)
+			m.Delete("/artifacts/{artifact_name}", reqRepoActionsWriter, actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 		})
 		m.Group("/workflows/{workflow_name}", func() {
@@ -1583,6 +1593,7 @@ func registerRoutes(m *web.Router) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.Home)
 			m.Get("/*", context.RepoRefByType(""), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
+		m.Get("/tree/*", repo.RedirectRepoTreeToSrc) // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
@@ -1591,10 +1602,12 @@ func registerRoutes(m *web.Router) {
 	// end "/{username}/{reponame}": repo code
 
 	m.Group("/{username}/{reponame}", func() {
-		m.Get("/stars", repo.Stars)
+		m.Get("/stars", starsEnabled, repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
-		m.Post("/action/{action}", reqSignIn, repo.Action)
+		m.Post("/action/{action:star|unstar}", reqSignIn, starsEnabled, repo.ActionStar)
+		m.Post("/action/{action:watch|unwatch}", reqSignIn, repo.ActionWatch)
+		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
 
 	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
@@ -1624,8 +1637,8 @@ func registerRoutes(m *web.Router) {
 	}
 
 	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		ctx := context.GetWebContext(req)
+		ctx := context.GetWebContext(req.Context())
 		defer routing.RecordFuncInfo(ctx, routing.GetFuncInfo(ctx.NotFound, "WebNotFound"))()
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 	})
 }

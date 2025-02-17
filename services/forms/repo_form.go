@@ -243,6 +243,7 @@ type WebhookForm struct {
 	Repository               bool
 	Release                  bool
 	Package                  bool
+	Status                   bool
 	Active                   bool
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
@@ -720,6 +721,7 @@ type EditRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -755,6 +757,7 @@ type CherryPickForm struct {
 	LastCommit    string
 	Revert        bool
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -780,6 +783,7 @@ type UploadRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	Files         []string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -814,6 +818,7 @@ type DeleteRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
