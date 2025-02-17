@@ -43,9 +43,11 @@ func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
 
 	switch t := item.(type) {
 	case *user_model.User:
-		src := t.AvatarLinkWithSize(au.ctx, size*setting.Avatar.RenderedSizeFactor)
-		if src != "" {
-			return AvatarHTML(src, size, class, t.DisplayName())
+		if t != nil && t.ID != 0 {
+			src := t.AvatarLinkWithSize(au.ctx, size*setting.Avatar.RenderedSizeFactor)
+			if src != "" {
+				return AvatarHTML(src, size, class, t.DisplayName())
+			}
 		}
 	case *repo_model.Collaborator:
 		src := t.AvatarLinkWithSize(au.ctx, size*setting.Avatar.RenderedSizeFactor)
