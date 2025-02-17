@@ -1129,28 +1129,89 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []*UserCommit {
+func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
 	var (
-		emails     = make(map[string]*User)
 		newCommits = make([]*UserCommit, 0, len(oldCommits))
+		emailSet   = make(container.Set[string])
 	)
 	for _, c := range oldCommits {
-		var u *User
 		if c.Author != nil {
-			if v, ok := emails[c.Author.Email]; !ok {
-				u, _ = GetUserByEmail(ctx, c.Author.Email)
-				emails[c.Author.Email] = u
-			} else {
-				u = v
+			emailSet.Add(c.Author.Email)
+		}
+	}
+
+	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range oldCommits {
+		user, ok := emailUserMap[c.Author.Email]
+		if !ok {
+			user = &User{
+				Name:  c.Author.Name,
+				Email: c.Author.Email,
 			}
 		}
-
 		newCommits = append(newCommits, &UserCommit{
-			User:   u,
+			User:   user,
 			Commit: c,
 		})
 	}
-	return newCommits
+	return newCommits, nil
+}
+
+func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, error) {
+	if len(emails) == 0 {
+		return nil, nil
+	}
+
+	needCheckEmails := make(container.Set[string])
+	needCheckUserNames := make(container.Set[string])
+	for _, email := range emails {
+		if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
+			username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+			needCheckUserNames.Add(username)
+		} else {
+			needCheckEmails.Add(strings.ToLower(email))
+		}
+	}
+
+	emailAddresses := make([]*EmailAddress, 0, len(needCheckEmails))
+	if err := db.GetEngine(ctx).In("lower_email", needCheckEmails.Values()).
+		And("is_activated=?", true).
+		Find(&emailAddresses); err != nil {
+		return nil, err
+	}
+	userIDs := make(container.Set[int64])
+	for _, email := range emailAddresses {
+		userIDs.Add(email.UID)
+	}
+	users, err := GetUsersMapByIDs(ctx, userIDs.Values())
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[string]*User, len(emails))
+	for _, email := range emailAddresses {
+		user := users[email.UID]
+		if user != nil {
+			if user.KeepEmailPrivate {
+				results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
+			} else {
+				results[email.Email] = user
+			}
+		}
+	}
+
+	users = make(map[int64]*User, len(needCheckUserNames))
+	if err := db.GetEngine(ctx).In("lower_name", needCheckUserNames.Values()).Find(&users); err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
+	}
+	return results, nil
 }
 
 // GetUserByEmail returns the user object by given e-mail if exists.

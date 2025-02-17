@@ -417,7 +417,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		IsPull:     optional.Some(isPullList),
 		SortType:   sortType,
 		IsArchived: optional.Some(false),
-		User:       ctx.Doer,
+		Doer:       ctx.Doer,
 	}
 	// --------------------------------------------------------------------------
 	// Build opts (IssuesOptions), which contains filter information.
@@ -429,7 +429,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Get repository IDs where User/Org/Team has access.
 	if ctx.Org != nil && ctx.Org.Organization != nil {
-		opts.Org = ctx.Org.Organization
+		opts.Owner = ctx.Org.Organization.AsUser()
 		opts.Team = ctx.Org.Team
 
 		issue.PrepareFilterIssueLabels(ctx, 0, ctx.Org.Organization.AsUser())
@@ -724,7 +724,7 @@ func UsernameSubRoute(ctx *context.Context) {
 
 		// check view permissions
 		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-			ctx.NotFound("user", fmt.Errorf("%s", ctx.ContextUser.Name))
+			ctx.NotFound(fmt.Errorf("%s", ctx.ContextUser.Name))
 			return false
 		}
 		return true
@@ -744,7 +744,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 	case strings.HasSuffix(username, ".rss"):
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if reloadParam(".rss") {
@@ -752,7 +752,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 	case strings.HasSuffix(username, ".atom"):
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if reloadParam(".atom") {
