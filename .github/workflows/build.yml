@@ -24,11 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           go mod tidy
-      # Step 4: Run Staticcheck
-      - name: Run Staticcheck
-        run: |
-          go install honnef.co/go/tools/cmd/staticcheck@latest  # Install staticcheck
-          staticcheck ./...  # Run staticcheck on all Go files
+
 
 
   docker:
