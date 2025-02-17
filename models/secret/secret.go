@@ -40,8 +40,14 @@ type Secret struct {
 	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
 	Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
 	Data        string             `xorm:"LONGTEXT"` // encrypted data
+	Description string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
+
+const (
+	SecretDataMaxLength        = 65536
+	SecretDescriptionMaxLength = 4096
+)
 
 // ErrSecretNotFound represents a "secret not found" error.
 type ErrSecretNotFound struct {
@@ -57,7 +63,7 @@ func (err ErrSecretNotFound) Unwrap() error {
 }
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
-func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data string) (*Secret, error) {
+func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data, description string) (*Secret, error) {
 	if ownerID != 0 && repoID != 0 {
 		// It's trying to create a secret that belongs to a repository, but OwnerID has been set accidentally.
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
@@ -67,15 +73,23 @@ func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, dat
 		return nil, fmt.Errorf("%w: ownerID and repoID cannot be both zero, global secrets are not supported", util.ErrInvalidArgument)
 	}
 
+	if len(data) > SecretDataMaxLength {
+		return nil, util.NewInvalidArgumentErrorf("data too long")
+	}
+
+	description = util.TruncateRunes(description, SecretDescriptionMaxLength)
+
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return nil, err
 	}
+
 	secret := &Secret{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    strings.ToUpper(name),
-		Data:    encrypted,
+		OwnerID:     ownerID,
+		RepoID:      repoID,
+		Name:        strings.ToUpper(name),
+		Data:        encrypted,
+		Description: description,
 	}
 	return secret, db.Insert(ctx, secret)
 }
@@ -114,16 +128,23 @@ func (opts FindSecretsOptions) ToConds() builder.Cond {
 }
 
 // UpdateSecret changes org or user reop secret.
-func UpdateSecret(ctx context.Context, secretID int64, data string) error {
+func UpdateSecret(ctx context.Context, secretID int64, data, description string) error {
+	if len(data) > SecretDataMaxLength {
+		return util.NewInvalidArgumentErrorf("data too long")
+	}
+
+	description = util.TruncateRunes(description, SecretDescriptionMaxLength)
+
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return err
 	}
 
 	s := &Secret{
-		Data: encrypted,
+		Data:        encrypted,
+		Description: description,
 	}
-	affected, err := db.GetEngine(ctx).ID(secretID).Cols("data").Update(s)
+	affected, err := db.GetEngine(ctx).ID(secretID).Cols("data", "description").Update(s)
 	if affected != 1 {
 		return ErrSecretNotFound{}
 	}
