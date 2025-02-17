@@ -41,6 +41,9 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	if err := issue.LoadAttachments(ctx); err != nil {
 		return &api.Issue{}
 	}
+	if err := issue.LoadPinOrder(ctx); err != nil {
+		return &api.Issue{}
+	}
 
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
@@ -55,7 +58,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		Comments:    issue.NumComments,
 		Created:     issue.CreatedUnix.AsTime(),
 		Updated:     issue.UpdatedUnix.AsTime(),
-		PinOrder:    issue.PinOrder,
+		PinOrder:    util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
 	}
 
 	if issue.Repo != nil {
@@ -122,6 +125,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 // ToIssueList converts an IssueList to API format
 func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
+	_ = il.LoadPinOrder(ctx)
 	for i := range il {
 		result[i] = ToIssue(ctx, doer, il[i])
 	}
@@ -131,6 +135,7 @@ func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.Iss
 // ToAPIIssueList converts an IssueList to API format
 func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
+	_ = il.LoadPinOrder(ctx)
 	for i := range il {
 		result[i] = ToAPIIssue(ctx, doer, il[i])
 	}
