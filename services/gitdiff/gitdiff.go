@@ -80,7 +80,7 @@ type DiffLine struct {
 	Match       int
 	Type        DiffLineType
 	Content     string
-	Comments    []*issues_model.Comment
+	Comments    issues_model.CommentList
 	SectionInfo *DiffLineSectionInfo
 }
 

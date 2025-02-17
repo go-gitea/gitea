@@ -12,7 +12,10 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/timeutil"
+	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -138,4 +141,41 @@ func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_m
 	notify_service.DeleteComment(ctx, doer, comment)
 
 	return nil
+}
+
+// LoadCommentPushCommits Load push commits
+func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) (err error) {
+	if c.Content == "" || c.Commits != nil || c.Type != issues_model.CommentTypePullRequestPush {
+		return nil
+	}
+
+	var data issues_model.PushActionContent
+	err = json.Unmarshal([]byte(c.Content), &data)
+	if err != nil {
+		return err
+	}
+
+	c.IsForcePush = data.IsForcePush
+
+	if c.IsForcePush {
+		if len(data.CommitIDs) != 2 {
+			return nil
+		}
+		c.OldCommit = data.CommitIDs[0]
+		c.NewCommit = data.CommitIDs[1]
+	} else {
+		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
+		if err != nil {
+			return err
+		}
+		defer closer.Close()
+
+		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
+		if err != nil {
+			return err
+		}
+		c.CommitsNum = int64(len(c.Commits))
+	}
+
+	return err
 }
