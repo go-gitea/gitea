@@ -67,13 +67,13 @@ func ListPackages(ctx *context.APIContext) {
 		Paginator:  &listOptions,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	pds, err := packages.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func ListPackages(ctx *context.APIContext) {
 	for _, pd := range pds {
 		apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		apiPackages = append(apiPackages, apiPackage)
@@ -128,7 +128,7 @@ func GetPackage(ctx *context.APIContext) {
 
 	apiPackage, err := convert.ToPackage(ctx, ctx.Package.Descriptor, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -169,7 +169,7 @@ func DeletePackage(ctx *context.APIContext) {
 
 	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

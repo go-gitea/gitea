@@ -81,7 +81,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	}
 
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -184,7 +184,7 @@ func GetPublicKey(ctx *context.APIContext) {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -280,7 +280,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -294,7 +294,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
