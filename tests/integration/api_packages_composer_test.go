@@ -13,6 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
@@ -215,8 +217,40 @@ func TestPackageComposer(t *testing.T) {
 		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
 		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
-		// TODO: add a test for repository field after link package to a repository via API is implemented
 		assert.Len(t, pkgs[0].Bin, 1)
 		assert.Equal(t, packageBin, pkgs[0].Bin[0])
+
+		// Test package linked to repository
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeComposer)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+
+		err = packages_model.SetRepositoryLink(db.DefaultContext, pvs[0].ID, repo1.ID)
+		assert.NoError(t, err)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		result = composer.PackageMetadataResponse{}
+		DecodeJSON(t, resp, &result)
+
+		assert.Contains(t, result.Packages, packageName)
+		pkgs = result.Packages[packageName]
+		assert.Len(t, pkgs, 1)
+		assert.Equal(t, packageName, pkgs[0].Name)
+		assert.Equal(t, packageVersion, pkgs[0].Version)
+		assert.Equal(t, packageType, pkgs[0].Type)
+		assert.Equal(t, packageDescription, pkgs[0].Description)
+		assert.Len(t, pkgs[0].Authors, 1)
+		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
+		assert.Equal(t, "zip", pkgs[0].Dist.Type)
+		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
+		assert.Len(t, pkgs[0].Bin, 1)
+		assert.Equal(t, packageBin, pkgs[0].Bin[0])
+		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
+		assert.Equal(t, "git", pkgs[0].Source.Type)
+		assert.Equal(t, packageVersion, pkgs[0].Source.Reference)
 	})
 }
