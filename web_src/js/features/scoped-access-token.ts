@@ -4,9 +4,9 @@ export async function initScopedAccessTokenCategories() {
   const el = document.querySelector('#scoped-access-token-selector');
   if (!el) return;
 
-  const {default: ScopedAccessTokenSelector} = await import(/* webpackChunkName: "scoped-access-token-selector" */'../components/ScopedAccessTokenSelector.vue');
+  const {default: ScopedAccessTokenForm} = await import(/* webpackChunkName: "scoped-access-token-form" */'../components/ScopedAccessTokenForm.vue');
   try {
-    const View = createApp(ScopedAccessTokenSelector, {
+    const View = createApp(ScopedAccessTokenForm, {
       isAdmin: JSON.parse(el.getAttribute('data-is-admin')),
       noAccessLabel: el.getAttribute('data-no-access-label'),
       readLabel: el.getAttribute('data-read-label'),
@@ -14,7 +14,7 @@ export async function initScopedAccessTokenCategories() {
     });
     View.mount(el);
   } catch (err) {
-    console.error('ScopedAccessTokenSelector failed to load', err);
+    console.error('ScopedAccessTokenForm failed to load', err);
     el.textContent = el.getAttribute('data-locale-component-failed-to-load');
   }
 }
