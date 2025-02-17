@@ -52,11 +52,11 @@
 				<div class="group">
 					<div class="flex-text-block">
 						{{svg "octicon-issue-opened" 14}}
-						{{ctx.Locale.PrettyNumber (.NumOpenIssues ctx)}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
+						{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 					</div>
 					<div class="flex-text-block">
 						{{svg "octicon-check" 14}}
-						{{ctx.Locale.PrettyNumber (.NumClosedIssues ctx)}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
+						{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 					</div>
 				</div>
 				{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
