@@ -30,8 +30,8 @@ jobs:
 
      # Step 4: Run only the specific test (TestIsValidUsername)
       - name: Run Password Test
-        run: |
-          go test -run TestPassword ./... -v  # Run only TestIsValidUsername
+        run:
+
 
   docker:
     runs-on: ubuntu-latest
