@@ -31,7 +31,7 @@ export function initCompLabelEdit(pageSelector: string) {
     const showExclusiveWarning = hasScope && elExclusiveInput.checked && elModal.hasAttribute('data-need-warn-exclusive');
     toggleElem(elExclusiveWarning, showExclusiveWarning);
     if (!hasScope) elExclusiveInput.checked = false;
-    toggleElem(elExclusiveOrderField, elExclusiveInput.checked)
+    toggleElem(elExclusiveOrderField, elExclusiveInput.checked);
   };
 
   const showLabelEditModal = (btn:HTMLElement) => {
