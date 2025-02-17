@@ -54,7 +54,7 @@ func GetOwnerHook(ctx *context.APIContext, ownerID, hookID int64) (*webhook.Webh
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*webhook.Webhoo
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	if ok {
 		h, err := webhook_service.ToHook(setting.AppSubURL+"/-/admin", hook)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		ctx.JSON(http.StatusCreated, h)
@@ -141,7 +141,7 @@ func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 func toAPIHook(ctx *context.APIContext, repoLink string, hook *webhook.Webhook) (*api.Hook, bool) {
 	apiHook, err := webhook_service.ToHook(repoLink, hook)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil, false
 	}
 	return apiHook, true
@@ -215,7 +215,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 	}
 	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil, false
 	}
 	if w.Type == webhook_module.SLACK {
@@ -238,17 +238,17 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 			Color:    form.Config["color"],
 		})
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return nil, false
 		}
 		w.Meta = string(meta)
 	}
 
 	if err := w.UpdateEvent(); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil, false
 	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil, false
 	}
 	return w, true
@@ -258,21 +258,21 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
 	hook, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if !editHook(ctx, form, hook) {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	updated, err := webhook.GetSystemOrDefaultWebhook(ctx, hookID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	h, err := webhook_service.ToHook(setting.AppURL+"/-/admin", updated)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, h)
@@ -343,7 +343,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 					Color:    form.Config["color"],
 				})
 				if err != nil {
-					ctx.APIError(http.StatusInternalServerError, err)
+					ctx.APIErrorInternal(err)
 					return false
 				}
 				w.Meta = string(meta)
@@ -369,7 +369,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 
 	err := w.SetHeaderAuthorization(form.AuthorizationHeader)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return false
 	}
 
@@ -391,7 +391,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.HookEvents[webhook_module.HookEventPullRequestSync] = pullHook(form.Events, string(webhook_module.HookEventPullRequestSync))
 
 	if err := w.UpdateEvent(); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return false
 	}
 
@@ -400,7 +400,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	}
 
 	if err := webhook.UpdateWebhook(ctx, w); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return false
 	}
 	return true
@@ -412,7 +412,7 @@ func DeleteOwnerHook(ctx *context.APIContext, owner *user_model.User, hookID int
 		if webhook.IsErrWebhookNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

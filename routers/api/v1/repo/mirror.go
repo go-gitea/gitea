@@ -66,7 +66,7 @@ func MirrorSync(ctx *context.APIContext) {
 			ctx.APIError(http.StatusBadRequest, "Repository is not a mirror")
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func PushMirrorSync(ctx *context.APIContext) {
 	for _, mirror := range pushMirrors {
 		ok := mirror_service.SyncPushMirror(ctx, mirror.ID)
 		if !ok {
-			ctx.APIError(http.StatusInternalServerError, "error occurred when syncing push mirror "+mirror.RemoteName)
+			ctx.APIErrorInternal(errors.New("error occurred when syncing push mirror " + mirror.RemoteName))
 			return
 		}
 	}
@@ -230,7 +230,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 		RemoteName: mirrorName,
 	}.ToConds())
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	} else if !exist {
 		ctx.APIError(http.StatusNotFound, nil)
