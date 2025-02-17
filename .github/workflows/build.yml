@@ -3,10 +3,8 @@ name: Gitea CI Workflow
 on:
   push:
     branches:
-      - main  # Trigger on push to the main branch
-  pull_request:
-    branches:
-      - main  # Trigger on pull requests to the main branch
+      - dev  # Trigger on push to the dev branch
+
 
 jobs:
   build:
@@ -27,8 +25,13 @@ jobs:
       - name: Install dependencies
         run: |
           go mod tidy
+    # Step 4: Run Linting (you can use golangci-lint for Go code linting)
+      - name: Run GolangCI Lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.64.5 # Make sure to use the right version for your setup
 
-     # Step 4: Run only the specific test (TestIsValidUsername)
+        # Step 4: Run only the specific test (TestIsValidUsername)
       #- name: Run Password Test
         #run:
 
