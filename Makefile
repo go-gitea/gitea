@@ -118,7 +118,7 @@ FOMANTIC_WORK_DIR := web_src/fomantic
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js tailwind.config.js
-WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
+WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css public/assets/css/theme-github.css
 WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
@@ -866,6 +866,8 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
 	@BROWSERSLIST_IGNORE_OLD_DATA=true npx webpack
+	@wget -c -O "public/assets/css/theme-github.css" \
+		"https://github.com/lutinglt/gitea-github-theme/releases/latest/download/theme-github.css"
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
