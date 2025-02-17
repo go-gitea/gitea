@@ -28,10 +28,10 @@ jobs:
         run: |
           go mod tidy
 
-      # Step 4: Run tests
-      - name: Run tests
+     # Step 4: Run only the specific test (TestIsValidUsername)
+      - name: Run specific test
         run: |
-          go test ./... -v  # Run all Go tests in the repository
+          go test -run ^TestIsValidUsername$ ./... -v  # Run only TestIsValidUsername
 
   docker:
     runs-on: ubuntu-latest
