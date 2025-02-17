@@ -32,7 +32,7 @@ func TestGetDefaultColumn(t *testing.T) {
 	column, err = projectWithMultipleDefaults.MustDefaultColumn(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(6), column.ProjectID)
-	assert.Equal(t, int64(9), column.ID)
+	assert.Equal(t, int64(8), column.ID) // sorted by sorting, id 8 is the first default column
 
 	// set 8 as default column
 	assert.NoError(t, SetDefaultColumn(db.DefaultContext, column.ProjectID, 8))
