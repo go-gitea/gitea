@@ -417,7 +417,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		IsPull:     optional.Some(isPullList),
 		SortType:   sortType,
 		IsArchived: optional.Some(false),
-		User:       ctx.Doer,
+		Doer:       ctx.Doer,
 	}
 	// --------------------------------------------------------------------------
 	// Build opts (IssuesOptions), which contains filter information.
@@ -429,7 +429,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Get repository IDs where User/Org/Team has access.
 	if ctx.Org != nil && ctx.Org.Organization != nil {
-		opts.Org = ctx.Org.Organization
+		opts.Owner = ctx.Org.Organization.AsUser()
 		opts.Team = ctx.Org.Team
 
 		issue.PrepareFilterIssueLabels(ctx, 0, ctx.Org.Organization.AsUser())
