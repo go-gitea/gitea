@@ -37,7 +37,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 
 	issueIDs, err := issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
-	assert.Len(t, issueIDs, 5)
+	assert.Len(t, issueIDs, 6)
 
 	issue := &issues_model.Issue{
 		RepoID: 1,
@@ -48,7 +48,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	issueIDs, err = issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
-	assert.Len(t, issueIDs, 4)
+	assert.Len(t, issueIDs, 5)
 
 	// check attachment removal
 	attachments, err := repo_model.GetAttachmentsByIssueID(db.DefaultContext, 4)

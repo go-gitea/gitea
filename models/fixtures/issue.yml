@@ -372,3 +372,20 @@
   created_unix: 1707270422
   updated_unix: 1707270422
   is_locked: false
+
+-
+  id: 23
+  repo_id: 1
+  index: 6
+  poster_id: 1
+  original_author_id: 0
+  name: issue23
+  content: 'content including this image: <image alt="gitea.png" src="attachments/1b267670-1793-4cd0-abc1-449269b7cff9" /> with some more content behind it'
+  milestone_id: 0
+  priority: 0
+  is_closed: false
+  is_pull: false
+  num_comments: 0
+  created_unix: 946684801
+  updated_unix: 978307201
+  is_locked: false

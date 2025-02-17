@@ -26,7 +26,7 @@ func Test_Suggestion(t *testing.T) {
 	}{
 		{
 			keyword:         "",
-			expectedIndexes: []int64{5, 1, 4, 2, 3},
+			expectedIndexes: []int64{5, 6, 1, 4, 2},
 		},
 		{
 			keyword:         "1",
@@ -34,7 +34,7 @@ func Test_Suggestion(t *testing.T) {
 		},
 		{
 			keyword:         "issue",
-			expectedIndexes: []int64{4, 1, 2, 3},
+			expectedIndexes: []int64{6, 4, 1, 2, 3},
 		},
 		{
 			keyword:         "pull",

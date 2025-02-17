@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io"
 	"mime/quotedprintable"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -23,6 +24,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
@@ -59,6 +61,7 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 
 	setting.MailService = &mailService
 	setting.Domain = "localhost"
+	setting.AppURL = "https://try.gitea.io/"
 
 	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer})
@@ -448,5 +451,134 @@ func TestFromDisplayName(t *testing.T) {
 		}()
 
 		assert.EqualValues(t, "Mister X (by Code IT on [code.it])", fromDisplayName(&user_model.User{FullName: "Mister X", Name: "tmp"}))
+	})
+}
+
+func PrepareAttachmentsStorage(t testing.TB) { // same as in test_utils.go
+	// prepare attachments directory and files
+	assert.NoError(t, storage.Clean(storage.Attachments))
+
+	s, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
+		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "attachments"),
+	})
+	assert.NoError(t, err)
+	assert.NoError(t, s.IterateObjects("", func(p string, obj storage.Object) error {
+		_, err = storage.Copy(storage.Attachments, p, s, p)
+		return err
+	}))
+}
+
+func TestEmbedBase64ImagesInEmail(t *testing.T) {
+	// Fake context setup
+	doer, repo, _, _ := prepareMailerTest(t)
+	PrepareAttachmentsStorage(t)
+	setting.MailService.Base64EmbedImages = true
+	setting.MailService.Base64EmbedImagesMaxSizePerEmail = 10 * 1024 * 1024
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 23, Repo: repo, Poster: doer})
+	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
+
+	subjectTemplates = texttmpl.Must(texttmpl.New("issue/new").Parse(subjectTpl))
+	bodyTemplates = template.Must(template.New("issue/new").Parse(bodyTpl))
+
+	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
+	msgs, err := composeIssueCommentMessages(&mailCommentContext{
+		Context: context.TODO(), // TODO: use a correct context
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
+		Content: strings.ReplaceAll(issue.Content, `src="`, `src="`+setting.AppURL),
+	}, "en-US", recipients, false, "issue create")
+
+	mailBody := msgs[0].Body
+	re := regexp.MustCompile(`(?s)<body>(.*?)</body>`)
+	matches := re.FindStringSubmatch(mailBody)
+	if len(matches) > 1 {
+		mailBody = matches[1]
+	}
+	// check if the mail body was correctly generated
+	assert.NoError(t, err)
+	assert.Contains(t, mailBody, "content including this image")
+
+	// check if an image was embedded
+	assert.Contains(t, mailBody, "data:image/png;base64,")
+
+	// check if the image was embedded only once
+	assert.Equal(t, 1, strings.Count(mailBody, "data:image/png;base64,"))
+
+	img2InternalBase64 := "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAxAQMAAAB3d7wRAAAABlBMVEVgmyF6qkqITHmkAAAAAXRSTlMBN+Ho8AAAAJhJREFUKM+V0DsOwyAQBNCxXLjkCFwk0t7McDQfhS4tpQuEzWc/iaUU2eo1zC4DUMWYF3DxVKzGTXjBGb2RsjJEo6ZhN1Zj+cEgi/9hBQl3YflkkIsbo5IO5glKTuhPpavM3Hp4C7WdjEWYrL5GMkp/R+s4GPlh/CZn4MEwv9aHHiyD3ujm5X22eaMyDa5yAm+O0B1TPa1l3W2qZWMg+KgtAAAAAElFTkSuQmCC"
+
+	// check if the image was embedded correctly
+	assert.Contains(t, mailBody, img2InternalBase64)
+}
+
+func TestEmbedBase64Images(t *testing.T) {
+	user, repo, _, _ := prepareMailerTest(t)
+	PrepareAttachmentsStorage(t)
+	setting.MailService.Base64EmbedImages = true
+	setting.MailService.Base64EmbedImagesMaxSizePerEmail = 10 * 1024 * 1024
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 23, Repo: repo, Poster: user})
+
+	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 13, IssueID: issue.ID, RepoID: repo.ID})
+	ctx0 := context.Background()
+
+	ctx := &mailCommentContext{Context: ctx0 /* TODO: use a correct context */, Issue: issue, Doer: user}
+
+	img1ExternalURL := "https://via.placeholder.com/10"
+	img1ExternalImg := "<img src=\"" + img1ExternalURL + "\"/>"
+
+	img2InternalURL := setting.AppURL + repo.Owner.Name + "/" + repo.Name + "/attachments/" + attachment.UUID
+	img2InternalImg := "<img src=\"" + img2InternalURL + "\"/>"
+	img2InternalBase64 := "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAxAQMAAAB3d7wRAAAABlBMVEVgmyF6qkqITHmkAAAAAXRSTlMBN+Ho8AAAAJhJREFUKM+V0DsOwyAQBNCxXLjkCFwk0t7McDQfhS4tpQuEzWc/iaUU2eo1zC4DUMWYF3DxVKzGTXjBGb2RsjJEo6ZhN1Zj+cEgi/9hBQl3YflkkIsbo5IO5glKTuhPpavM3Hp4C7WdjEWYrL5GMkp/R+s4GPlh/CZn4MEwv9aHHiyD3ujm5X22eaMyDa5yAm+O0B1TPa1l3W2qZWMg+KgtAAAAAElFTkSuQmCC"
+	img2InternalBase64Img := "<img src=\"" + img2InternalBase64 + "\"/>"
+
+	// 1st Test: convert internal image to base64
+	t.Run("replaceSpecifiedBase64ImagesInternal", func(t *testing.T) {
+		totalEmbeddedImagesSize := int64(0)
+
+		resultImg1Internal, err := AttachmentSrcToBase64DataURI(img2InternalURL, ctx, &totalEmbeddedImagesSize)
+		assert.NoError(t, err)
+		assert.Equal(t, img2InternalBase64, resultImg1Internal) // replace cause internal image
+	})
+
+	// 2nd Test: convert external image to base64 -> abort cause external image
+	t.Run("replaceSpecifiedBase64ImagesExternal", func(t *testing.T) {
+		totalEmbeddedImagesSize := int64(0)
+
+		resultImg1External, err := AttachmentSrcToBase64DataURI(img1ExternalURL, ctx, &totalEmbeddedImagesSize)
+		assert.Error(t, err)
+		assert.Equal(t, "", resultImg1External) // don't replace cause external image
+	})
+
+	// 3rd Test: generate email body with 1 internal and 1 external image, expect the result to have the internal image replaced with base64 data and the external not replaced
+	t.Run("generateEmailBody", func(t *testing.T) {
+		mailBody := "<html><head></head><body><p>Test1</p>" + img1ExternalImg + "<p>Test2</p>" + img2InternalImg + "<p>Test3</p></body></html>"
+		expectedMailBody := "<html><head></head><body><p>Test1</p>" + img1ExternalImg + "<p>Test2</p>" + img2InternalBase64Img + "<p>Test3</p></body></html>"
+		resultMailBody, err := Base64InlineImages(mailBody, ctx)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedMailBody, resultMailBody)
+	})
+
+	// 4th Test, generate email body with 2 internal images, but set Mailer.Base64EmbedImagesMaxSizePerEmail to the size of the first image (+1), expect the first image to be replaced and the second not
+	t.Run("generateEmailBodyWithMaxSize", func(t *testing.T) {
+		setting.MailService.Base64EmbedImagesMaxSizePerEmail = int64(len(img2InternalBase64) + 1)
+
+		mailBody := "<html><head></head><body><p>Test1</p>" + img2InternalImg + "<p>Test2</p>" + img2InternalImg + "<p>Test3</p></body></html>"
+		expectedMailBody := "<html><head></head><body><p>Test1</p>" + img2InternalBase64Img + "<p>Test2</p>" + img2InternalImg + "<p>Test3</p></body></html>"
+		resultMailBody, err := Base64InlineImages(mailBody, ctx)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedMailBody, resultMailBody)
+	})
+
+	// 5th Test, generate email body with 3 internal images, but set Mailer.Base64EmbedImagesMaxSizePerEmail to the size of all 3 images (+1), expect all images to be replaced
+	t.Run("generateEmailBodyWith3Images", func(t *testing.T) {
+		setting.MailService.Base64EmbedImagesMaxSizePerEmail = int64(len(img2InternalBase64)*3 + 1)
+
+		mailBody := "<html><head></head><body><p>Test1</p>" + img2InternalImg + "<p>Test2</p>" + img2InternalImg + "<p>Test3</p>" + img2InternalImg + "</body></html>"
+		expectedMailBody := "<html><head></head><body><p>Test1</p>" + img2InternalBase64Img + "<p>Test2</p>" + img2InternalBase64Img + "<p>Test3</p>" + img2InternalBase64Img + "</body></html>"
+		resultMailBody, err := Base64InlineImages(mailBody, ctx)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedMailBody, resultMailBody)
 	})
 }
