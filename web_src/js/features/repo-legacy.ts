@@ -21,12 +21,6 @@ import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 
-function initRepoBranchTagSelector(selector: string) {
-  for (const elRoot of document.querySelectorAll(selector)) {
-    createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
-  }
-}
-
 export function initBranchSelectorTabs() {
   const elSelectBranches = document.querySelectorAll('.ui.dropdown.select-branch');
   for (const elSelectBranch of elSelectBranches) {
@@ -39,11 +33,17 @@ export function initBranchSelectorTabs() {
   }
 }
 
+export function initTargetRepoBranchTagSelector(target: ParentNode, selector: string = '.js-branch-tag-selector') {
+  for (const elRoot of target.querySelectorAll(selector)) {
+    createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
+  }
+}
+
 export function initRepository() {
   const pageContent = document.querySelector('.page-content.repository');
   if (!pageContent) return;
 
-  initRepoBranchTagSelector('.js-branch-tag-selector');
+  initTargetRepoBranchTagSelector(document);
   initRepoCommentFormAndSidebar();
 
   // Labels
