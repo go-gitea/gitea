@@ -724,7 +724,7 @@ func UsernameSubRoute(ctx *context.Context) {
 
 		// check view permissions
 		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-			ctx.NotFound("user", fmt.Errorf("%s", ctx.ContextUser.Name))
+			ctx.NotFound(fmt.Errorf("%s", ctx.ContextUser.Name))
 			return false
 		}
 		return true
@@ -744,7 +744,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 	case strings.HasSuffix(username, ".rss"):
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if reloadParam(".rss") {
@@ -752,7 +752,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 	case strings.HasSuffix(username, ".atom"):
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if reloadParam(".atom") {

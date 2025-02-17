@@ -78,7 +78,7 @@ func GetHook(ctx *context.APIContext) {
 
 	apiHook, err := webhook_service.ToHook(ctx.ContextUser.HomeLink(), hook)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiHook)

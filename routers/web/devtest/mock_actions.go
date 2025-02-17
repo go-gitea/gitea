@@ -118,7 +118,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	}
 	if doErrorResponse {
 		if mathRand.Float64() > 0.5 {
-			ctx.Error(http.StatusInternalServerError, "devtest mock error response")
+			ctx.HTTPError(http.StatusInternalServerError, "devtest mock error response")
 			return
 		}
 	}

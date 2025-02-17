@@ -67,13 +67,13 @@ func ListPackages(ctx *context.APIContext) {
 		Paginator:  &listOptions,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchVersions", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
 	pds, err := packages.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetPackageDescriptors", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func ListPackages(ctx *context.APIContext) {
 	for _, pd := range pds {
 		apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 			return
 		}
 		apiPackages = append(apiPackages, apiPackage)
@@ -128,7 +128,7 @@ func GetPackage(ctx *context.APIContext) {
 
 	apiPackage, err := convert.ToPackage(ctx, ctx.Package.Descriptor, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -169,7 +169,7 @@ func DeletePackage(ctx *context.APIContext) {
 
 	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "RemovePackageVersion", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -252,9 +252,9 @@ func LinkPackage(ctx *context.APIContext) {
 	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetPackageByName", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPackageByName", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -262,9 +262,9 @@ func LinkPackage(ctx *context.APIContext) {
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ctx.PathParam("repo_name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetRepositoryByName", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetRepositoryByName", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -273,11 +273,11 @@ func LinkPackage(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.Error(http.StatusBadRequest, "LinkToRepository", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.Error(http.StatusForbidden, "LinkToRepository", err)
+			ctx.APIError(http.StatusForbidden, err)
 		default:
-			ctx.Error(http.StatusInternalServerError, "LinkToRepository", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -314,9 +314,9 @@ func UnlinkPackage(ctx *context.APIContext) {
 	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetPackageByName", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPackageByName", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -325,11 +325,11 @@ func UnlinkPackage(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.Error(http.StatusForbidden, "UnlinkFromRepository", err)
+			ctx.APIError(http.StatusForbidden, err)
 		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.Error(http.StatusBadRequest, "UnlinkFromRepository", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		default:
-			ctx.Error(http.StatusInternalServerError, "UnlinkFromRepository", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

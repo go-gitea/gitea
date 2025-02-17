@@ -36,7 +36,7 @@ const (
 // MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
-		ctx.NotFound("EnableProjects", nil)
+		ctx.NotFound(nil)
 		return
 	}
 }
@@ -227,7 +227,7 @@ func DeleteProject(ctx *context.Context) {
 		return
 	}
 	if p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -256,7 +256,7 @@ func RenderEditProject(ctx *context.Context) {
 		return
 	}
 	if p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -301,7 +301,7 @@ func EditProjectPost(ctx *context.Context) {
 		return
 	}
 	if p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -329,7 +329,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 	if project.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	if err := project.LoadOwner(ctx); err != nil {
@@ -609,7 +609,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 	if project.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("InvalidRepoID", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -620,7 +620,7 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	if column.ProjectID != project.ID {
-		ctx.NotFound("ColumnNotInProject", nil)
+		ctx.NotFound(nil)
 		return
 	}
 

@@ -200,7 +200,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 	if !runner.Editable(ownerID, repoID) {
 		err = errors.New("no permission to edit this runner")
-		ctx.NotFound("RunnerDetails", err)
+		ctx.NotFound(err)
 		return
 	}
 
@@ -252,7 +252,7 @@ func RunnersEditPost(ctx *context.Context) {
 		return
 	}
 	if !runner.Editable(ownerID, repoID) {
-		ctx.NotFound("RunnerDetailsEditPost.Editable", util.NewPermissionDeniedErrorf("no permission to edit this runner"))
+		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to edit this runner"))
 		return
 	}
 
@@ -306,7 +306,7 @@ func RunnerDeletePost(ctx *context.Context) {
 	}
 
 	if !runner.Editable(rCtx.OwnerID, rCtx.RepoID) {
-		ctx.NotFound("RunnerDeletePost", util.NewPermissionDeniedErrorf("no permission to delete this runner"))
+		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to delete this runner"))
 		return
 	}
 
@@ -359,7 +359,7 @@ func findActionsRunner(ctx *context.Context, rCtx *runnersCtx) *actions_model.Ac
 		ctx.ServerError("FindRunner", err)
 		return nil
 	} else if len(got) == 0 {
-		ctx.NotFound("FindRunner", errors.New("runner not found"))
+		ctx.NotFound(errors.New("runner not found"))
 		return nil
 	}
 
