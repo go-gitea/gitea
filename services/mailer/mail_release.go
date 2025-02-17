@@ -35,9 +35,9 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	recipients, err := user_model.GetMaileableUsersByIDs(ctx, watcherIDList, false)
+	recipients, err := user_model.GetMailableUsersByIDs(ctx, watcherIDList, false)
 	if err != nil {
-		log.Error("user_model.GetMaileableUsersByIDs: %v", err)
+		log.Error("user_model.GetMailableUsersByIDs: %v", err)
 		return
 	}
 

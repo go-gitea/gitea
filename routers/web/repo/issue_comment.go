@@ -53,7 +53,7 @@ func NewComment(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -224,17 +224,17 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Type.HasContentSupport() {
-		ctx.Error(http.StatusNoContent)
+		ctx.HTTPError(http.StatusNoContent)
 		return
 	}
 
@@ -302,15 +302,15 @@ func DeleteComment(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	} else if !comment.Type.HasContentSupport() {
-		ctx.Error(http.StatusNoContent)
+		ctx.HTTPError(http.StatusNoContent)
 		return
 	}
 
@@ -337,7 +337,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 
@@ -360,12 +360,12 @@ func ChangeCommentReaction(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Type.HasContentSupport() {
-		ctx.Error(http.StatusNoContent)
+		ctx.HTTPError(http.StatusNoContent)
 		return
 	}
 
@@ -403,7 +403,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for comment removed: %d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID)
 	default:
-		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam("action")), nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -442,12 +442,12 @@ func GetCommentAttachments(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.NotFound("CanReadIssuesOrPulls", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 

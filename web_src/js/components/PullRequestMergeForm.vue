@@ -36,17 +36,17 @@ const forceMerge = computed(() => {
 });
 
 watch(mergeStyle, (val) => {
-  mergeStyleDetail.value = mergeForm.value.mergeStyles.find((e) => e.name === val);
+  mergeStyleDetail.value = mergeForm.value.mergeStyles.find((e: any) => e.name === val);
   for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
     toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
   }
 });
 
 onMounted(() => {
-  mergeStyleAllowedCount.value = mergeForm.value.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
+  mergeStyleAllowedCount.value = mergeForm.value.mergeStyles.reduce((v: any, msd: any) => v + (msd.allowed ? 1 : 0), 0);
 
-  let mergeStyle = mergeForm.value.mergeStyles.find((e) => e.allowed && e.name === mergeForm.value.defaultMergeStyle)?.name;
-  if (!mergeStyle) mergeStyle = mergeForm.value.mergeStyles.find((e) => e.allowed)?.name;
+  let mergeStyle = mergeForm.value.mergeStyles.find((e: any) => e.allowed && e.name === mergeForm.value.defaultMergeStyle)?.name;
+  if (!mergeStyle) mergeStyle = mergeForm.value.mergeStyles.find((e: any) => e.allowed)?.name;
   switchMergeStyle(mergeStyle, !mergeForm.value.canMergeNow);
 
   document.addEventListener('mouseup', hideMergeStyleMenu);
@@ -68,7 +68,7 @@ function toggleActionForm(show: boolean) {
   mergeMessageFieldValue.value = mergeStyleDetail.value.mergeMessageFieldText;
 }
 
-function switchMergeStyle(name, autoMerge = false) {
+function switchMergeStyle(name: string, autoMerge = false) {
   mergeStyle.value = name;
   autoMergeWhenSucceed.value = autoMerge;
 }

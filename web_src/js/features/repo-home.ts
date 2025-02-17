@@ -89,10 +89,10 @@ export function initRepoTopicBar() {
       url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
       cache: false,
-      onResponse(res) {
+      onResponse(this: any, res: any) {
         const formattedResponse = {
           success: false,
-          results: [],
+          results: [] as Array<Record<string, any>>,
         };
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
@@ -134,12 +134,12 @@ export function initRepoTopicBar() {
         return formattedResponse;
       },
     },
-    onLabelCreate(value) {
+    onLabelCreate(value: string) {
       value = value.toLowerCase().trim();
       this.attr('data-value', value).contents().first().replaceWith(value);
       return fomanticQuery(this);
     },
-    onAdd(addedValue, _addedText, $addedChoice) {
+    onAdd(addedValue: string, _addedText: any, $addedChoice: any) {
       addedValue = addedValue.toLowerCase().trim();
       $addedChoice[0].setAttribute('data-value', addedValue);
       $addedChoice[0].setAttribute('data-text', addedValue);

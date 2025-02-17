@@ -22,16 +22,18 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitgraph"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
+	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/repository/gitgraph"
 )
 
 const (
@@ -57,16 +59,12 @@ func RefCommits(ctx *context.Context) {
 func Commits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	if ctx.Repo.Commit == nil {
-		ctx.NotFound("Commit not found", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["PageIsViewCode"] = true
 
-	commitsCount, err := ctx.Repo.GetCommitsCount()
-	if err != nil {
-		ctx.ServerError("GetCommitsCount", err)
-		return
-	}
+	commitsCount := ctx.Repo.CommitsCount
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -84,7 +82,11 @@ func Commits(ctx *context.Context) {
 		ctx.ServerError("CommitsByRange", err)
 		return
 	}
-	ctx.Data["Commits"] = processGitCommits(ctx, commits)
+	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	if err != nil {
+		ctx.ServerError("processGitCommits", err)
+		return
+	}
 	commitIDs := make([]string, 0, len(commits))
 	for _, c := range commits {
 		commitIDs = append(commitIDs, c.ID.String())
@@ -129,12 +131,6 @@ func Graph(ctx *context.Context) {
 	ctx.Data["SelectedBranches"] = realBranches
 	files := ctx.FormStrings("file")
 
-	commitsCount, err := ctx.Repo.GetCommitsCount()
-	if err != nil {
-		ctx.ServerError("GetCommitsCount", err)
-		return
-	}
-
 	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
 	if err != nil {
 		log.Warn("GetCommitGraphsCount error for generate graph exclude prs: %t branches: %s in %-v, Will Ignore branches and try again. Underlying Error: %v", hidePRRefs, branches, ctx.Repo.Repository, err)
@@ -171,7 +167,6 @@ func Graph(ctx *context.Context) {
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["CommitCount"] = commitsCount
 
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
 	paginator.AddParamFromRequest(ctx.Req)
@@ -203,7 +198,11 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CommitCount"] = len(commits)
-	ctx.Data["Commits"] = processGitCommits(ctx, commits)
+	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	if err != nil {
+		ctx.ServerError("processGitCommits", err)
+		return
+	}
 
 	ctx.Data["Keyword"] = query
 	if all {
@@ -227,7 +226,7 @@ func FileHistory(ctx *context.Context) {
 		ctx.ServerError("FileCommitsCount", err)
 		return
 	} else if commitsCount == 0 {
-		ctx.NotFound("FileCommitsCount", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -246,7 +245,11 @@ func FileHistory(ctx *context.Context) {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
-	ctx.Data["Commits"] = processGitCommits(ctx, commits)
+	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	if err != nil {
+		ctx.ServerError("processGitCommits", err)
+		return
+	}
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
@@ -294,7 +297,7 @@ func Diff(ctx *context.Context) {
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("Repo.GitRepo.GetCommit", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 		}
@@ -321,7 +324,7 @@ func Diff(ctx *context.Context) {
 		FileOnly:           fileOnly,
 	}, files...)
 	if err != nil {
-		ctx.NotFound("GetDiff", err)
+		ctx.NotFound(err)
 		return
 	}
 
@@ -329,7 +332,7 @@ func Diff(ctx *context.Context) {
 	for i := 0; i < commit.ParentCount(); i++ {
 		sha, err := commit.ParentID(i)
 		if err != nil {
-			ctx.NotFound("repo.Diff", err)
+			ctx.NotFound(err)
 			return
 		}
 		parents[i] = sha.String()
@@ -344,7 +347,7 @@ func Diff(ctx *context.Context) {
 	if commit.ParentCount() > 0 {
 		parentCommit, err = gitRepo.GetCommit(parents[0])
 		if err != nil {
-			ctx.NotFound("GetParentCommit", err)
+			ctx.NotFound(err)
 			return
 		}
 	}
@@ -364,7 +367,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
 	ctx.Data["Parents"] = parents
@@ -388,12 +391,6 @@ func Diff(ctx *context.Context) {
 			ctx.ServerError("PostProcessCommitMessage", err)
 			return
 		}
-	}
-
-	ctx.Data["BranchName"], err = commit.GetBranchName()
-	if err != nil {
-		ctx.ServerError("commit.GetBranchName", err)
-		return
 	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
@@ -424,8 +421,7 @@ func RawDiff(ctx *context.Context) {
 		ctx.Resp,
 	); err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetRawDiff",
-				errors.New("commit "+ctx.PathParam("sha")+" does not exist."))
+			ctx.NotFound(errors.New("commit " + ctx.PathParam("sha") + " does not exist."))
 			return
 		}
 		ctx.ServerError("GetRawDiff", err)
@@ -433,13 +429,16 @@ func RawDiff(ctx *context.Context) {
 	}
 }
 
-func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) []*git_model.SignCommitWithStatuses {
-	commits := git_model.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_model.SignCommitWithStatuses, error) {
+	commits, err := git_service.ConvertFromGitCommit(ctx, gitCommits, ctx.Repo.Repository)
+	if err != nil {
+		return nil, err
+	}
 	if !ctx.Repo.CanRead(unit_model.TypeActions) {
 		for _, commit := range commits {
 			commit.Status.HideActionsURL(ctx)
 			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 		}
 	}
-	return commits
+	return commits, nil
 }

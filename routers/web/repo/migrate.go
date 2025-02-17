@@ -35,7 +35,7 @@ const (
 // Migrate render migration of repository page
 func Migrate(ctx *context.Context) {
 	if setting.Repository.DisableMigrations {
-		ctx.Error(http.StatusForbidden, "Migrate: the site administrator has disabled migrations")
+		ctx.HTTPError(http.StatusForbidden, "Migrate: the site administrator has disabled migrations")
 		return
 	}
 
@@ -72,7 +72,7 @@ func Migrate(ctx *context.Context) {
 
 func handleMigrateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form *forms.MigrateRepoForm) {
 	if setting.Repository.DisableMigrations {
-		ctx.Error(http.StatusForbidden, "MigrateError: the site administrator has disabled migrations")
+		ctx.HTTPError(http.StatusForbidden, "MigrateError: the site administrator has disabled migrations")
 		return
 	}
 
@@ -152,12 +152,12 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl templates
 func MigratePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.MigrateRepoForm)
 	if setting.Repository.DisableMigrations {
-		ctx.Error(http.StatusForbidden, "MigratePost: the site administrator has disabled migrations")
+		ctx.HTTPError(http.StatusForbidden, "MigratePost: the site administrator has disabled migrations")
 		return
 	}
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
-		ctx.Error(http.StatusBadRequest, "MigratePost: the site administrator has disabled creation of new mirrors")
+		ctx.HTTPError(http.StatusBadRequest, "MigratePost: the site administrator has disabled creation of new mirrors")
 		return
 	}
 

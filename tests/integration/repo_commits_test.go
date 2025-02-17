@@ -12,11 +12,14 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,6 +36,44 @@ func TestRepoCommits(t *testing.T) {
 	commitURL, exists := doc.doc.Find("#commits-table .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
+}
+
+func Test_ReposGitCommitListNotMaster(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	// Login as User2.
+	session := loginUser(t, user.Name)
+
+	// Test getting commits (Page 1)
+	req := NewRequestf(t, "GET", "/%s/repo16/commits/branch/master", user.Name)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	doc := NewHTMLParser(t, resp.Body)
+	commits := []string{}
+	doc.doc.Find("#commits-table .commit-id-short").Each(func(i int, s *goquery.Selection) {
+		commitURL, exists := s.Attr("href")
+		assert.True(t, exists)
+		assert.NotEmpty(t, commitURL)
+		commits = append(commits, path.Base(commitURL))
+	})
+
+	assert.Len(t, commits, 3)
+	assert.EqualValues(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", commits[0])
+	assert.EqualValues(t, "27566bd5738fc8b4e3fef3c5e72cce608537bd95", commits[1])
+	assert.EqualValues(t, "5099b81332712fe655e34e8dd63574f503f61811", commits[2])
+
+	userNames := []string{}
+	doc.doc.Find("#commits-table .author-wrapper").Each(func(i int, s *goquery.Selection) {
+		userPath, exists := s.Attr("href")
+		assert.True(t, exists)
+		assert.NotEmpty(t, userPath)
+		userNames = append(userNames, path.Base(userPath))
+	})
+
+	assert.Len(t, userNames, 3)
+	assert.EqualValues(t, "User2", userNames[0])
+	assert.EqualValues(t, "user21", userNames[1])
+	assert.EqualValues(t, "User2", userNames[2])
 }
 
 func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {

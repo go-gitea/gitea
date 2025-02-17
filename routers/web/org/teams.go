@@ -74,7 +74,7 @@ func TeamsAction(ctx *context.Context) {
 	switch ctx.PathParam("action") {
 	case "join":
 		if !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = org_service.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer)
@@ -96,7 +96,7 @@ func TeamsAction(ctx *context.Context) {
 		return
 	case "remove":
 		if !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 
@@ -123,7 +123,7 @@ func TeamsAction(ctx *context.Context) {
 		return
 	case "add":
 		if !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		uname := strings.ToLower(ctx.FormString("uname"))
@@ -167,7 +167,7 @@ func TeamsAction(ctx *context.Context) {
 		page = "team"
 	case "remove_invite":
 		if !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 
@@ -228,7 +228,7 @@ func checkIsOrgMemberAndRedirect(ctx *context.Context, defaultRedirect string) {
 // TeamsRepoAction operate team's repository
 func TeamsRepoAction(ctx *context.Context) {
 	if !ctx.Org.IsOwner {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -568,7 +568,7 @@ func TeamInvite(ctx *context.Context) {
 	invite, org, team, inviter, err := getTeamInviteFromContext(ctx)
 	if err != nil {
 		if org_model.IsErrTeamInviteNotFound(err) {
-			ctx.NotFound("ErrTeamInviteNotFound", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("getTeamInviteFromContext", err)
 		}
@@ -589,7 +589,7 @@ func TeamInvitePost(ctx *context.Context) {
 	invite, org, team, _, err := getTeamInviteFromContext(ctx)
 	if err != nil {
 		if org_model.IsErrTeamInviteNotFound(err) {
-			ctx.NotFound("ErrTeamInviteNotFound", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("getTeamInviteFromContext", err)
 		}

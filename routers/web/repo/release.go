@@ -148,8 +148,6 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 func Releases(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
-	ctx.Data["IsViewBranch"] = false
-	ctx.Data["IsViewTag"] = true
 
 	listOptions := db.ListOptions{
 		Page:     ctx.FormInt("page"),
@@ -194,8 +192,6 @@ func Releases(ctx *context.Context) {
 func TagsList(ctx *context.Context) {
 	ctx.Data["PageIsTagList"] = true
 	ctx.Data["Title"] = ctx.Tr("repo.release.tags")
-	ctx.Data["IsViewBranch"] = false
-	ctx.Data["IsViewTag"] = true
 	ctx.Data["CanCreateRelease"] = ctx.Repo.CanWrite(unit.TypeReleases) && !ctx.Repo.Repository.IsArchived
 
 	namePattern := ctx.FormTrim("q")
@@ -289,7 +285,7 @@ func SingleRelease(ctx *context.Context) {
 		return
 	}
 	if len(releases) != 1 {
-		ctx.NotFound("SingleRelease", err)
+		ctx.NotFound(err)
 		return
 	}
 
@@ -299,6 +295,7 @@ func SingleRelease(ctx *context.Context) {
 	}
 
 	ctx.Data["PageIsSingleTag"] = release.IsTag
+	ctx.Data["SingleReleaseTagName"] = release.TagName
 	if release.IsTag {
 		ctx.Data["Title"] = release.TagName
 	} else {
@@ -314,7 +311,7 @@ func LatestRelease(ctx *context.Context) {
 	release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound("LatestRelease", err)
+			ctx.NotFound(err)
 			return
 		}
 		ctx.ServerError("GetLatestReleaseByRepoID", err)
@@ -528,7 +525,7 @@ func EditRelease(ctx *context.Context) {
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound("GetRelease", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetRelease", err)
 		}
@@ -571,14 +568,14 @@ func EditReleasePost(ctx *context.Context) {
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound("GetRelease", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetRelease", err)
 		}
 		return
 	}
 	if rel.IsTag {
-		ctx.NotFound("GetRelease", err)
+		ctx.NotFound(err)
 		return
 	}
 	ctx.Data["tag_name"] = rel.TagName
@@ -642,7 +639,7 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound("GetReleaseForRepoByID", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 			redirect()

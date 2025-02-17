@@ -17,18 +17,18 @@ function toggleFileList() {
   store.fileListIsVisible = !store.fileListIsVisible;
 }
 
-function diffTypeToString(pType) {
-  const diffTypes = {
-    1: 'add',
-    2: 'modify',
-    3: 'del',
-    4: 'rename',
-    5: 'copy',
+function diffTypeToString(pType: number) {
+  const diffTypes: Record<string, string> = {
+    '1': 'add',
+    '2': 'modify',
+    '3': 'del',
+    '4': 'rename',
+    '5': 'copy',
   };
-  return diffTypes[pType];
+  return diffTypes[String(pType)];
 }
 
-function diffStatsWidth(adds, dels) {
+function diffStatsWidth(adds: number, dels: number) {
   return `${adds / (adds + dels) * 100}%`;
 }
 

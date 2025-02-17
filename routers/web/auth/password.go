@@ -53,7 +53,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
-		ctx.NotFound("ForgotPasswdPost", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["IsResetRequest"] = true
@@ -122,7 +122,7 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	twofa, err := auth.GetTwoFactorByUID(ctx, u.ID)
 	if err != nil {
 		if !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.Error(http.StatusInternalServerError, "CommonResetPassword", err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, "CommonResetPassword", err.Error())
 			return nil, nil
 		}
 	} else {
@@ -181,7 +181,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			passcode := ctx.FormString("passcode")
 			ok, err := twofa.ValidateTOTP(passcode)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
+				ctx.HTTPError(http.StatusInternalServerError, "ValidateTOTP", err.Error())
 				return
 			}
 			if !ok || twofa.LastUsedPasscode == passcode {

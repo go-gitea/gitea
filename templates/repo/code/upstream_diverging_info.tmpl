@@ -1,16 +1,21 @@
-{{if and .UpstreamDivergingInfo (or .UpstreamDivergingInfo.BaseHasNewCommits .UpstreamDivergingInfo.CommitsBehind)}}
+{{if and .UpstreamDivergingInfo .UpstreamDivergingInfo.BaseBranchHasNewCommits}}
 <div class="ui message flex-text-block">
 	<div class="tw-flex-1">
-		{{$upstreamLink := printf "%s/src/branch/%s" .Repository.BaseRepo.Link (.Repository.BaseRepo.DefaultBranch|PathEscapeSegments)}}
-		{{$upstreamHtml := HTMLFormat `<a href="%s">%s:%s</a>` $upstreamLink .Repository.BaseRepo.FullName .Repository.BaseRepo.DefaultBranch}}
-		{{if .UpstreamDivergingInfo.CommitsBehind}}
-			{{ctx.Locale.TrN .UpstreamDivergingInfo.CommitsBehind "repo.pulls.upstream_diverging_prompt_behind_1" "repo.pulls.upstream_diverging_prompt_behind_n" .UpstreamDivergingInfo.CommitsBehind $upstreamHtml}}
+		{{$upstreamLink := printf "%s/src/branch/%s" .Repository.BaseRepo.Link (.UpstreamDivergingInfo.BaseBranchName|PathEscapeSegments)}}
+		{{$upstreamRepoBranchDisplay := HTMLFormat "%s:%s" .Repository.BaseRepo.FullName .UpstreamDivergingInfo.BaseBranchName}}
+		{{$thisRepoBranchDisplay := HTMLFormat "%s:%s" .Repository.FullName .BranchName}}
+		{{$upstreamHtml := HTMLFormat `<a href="%s">%s</a>` $upstreamLink $upstreamRepoBranchDisplay}}
+		{{if .UpstreamDivergingInfo.HeadBranchCommitsBehind}}
+			{{ctx.Locale.TrN .UpstreamDivergingInfo.HeadBranchCommitsBehind "repo.pulls.upstream_diverging_prompt_behind_1" "repo.pulls.upstream_diverging_prompt_behind_n" .UpstreamDivergingInfo.HeadBranchCommitsBehind $upstreamHtml}}
 		{{else}}
 			{{ctx.Locale.Tr "repo.pulls.upstream_diverging_prompt_base_newer" $upstreamHtml}}
 		{{end}}
 	</div>
 	{{if .CanWriteCode}}
-	<button class="ui compact primary button tw-m-0 link-action" data-url="{{.Repository.Link}}/branches/merge-upstream?branch={{.BranchName}}">
+	<button class="ui compact primary button tw-m-0 link-action"
+					data-modal-confirm-header="{{ctx.Locale.Tr "repo.pulls.upstream_diverging_merge"}}"
+					data-modal-confirm-content="{{ctx.Locale.Tr "repo.pulls.upstream_diverging_merge_confirm" $upstreamRepoBranchDisplay $thisRepoBranchDisplay}}"
+					data-url="{{.Repository.Link}}/branches/merge-upstream?branch={{.BranchName}}">
 		{{ctx.Locale.Tr "repo.pulls.upstream_diverging_merge"}}
 	</button>
 	{{end}}
