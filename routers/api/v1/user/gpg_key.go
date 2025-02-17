@@ -25,12 +25,12 @@ func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions)
 		OwnerID:     uid,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if err := asymkey_model.GPGKeyList(keys).LoadSubKeys(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -121,12 +121,12 @@ func GetGPGKey(ctx *context.APIContext) {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 	if err := key.LoadSubKeys(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToGPGKey(key))
@@ -208,7 +208,7 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: %s", token))
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	}
 
 	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
@@ -219,7 +219,7 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -284,7 +284,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 		if asymkey_model.IsErrGPGKeyAccessDenied(err) {
 			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -306,6 +306,6 @@ func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 	case asymkey_model.IsErrGPGInvalidTokenSignature(err):
 		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: %s", token))
 	default:
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 	}
 }
