@@ -1,33 +1,64 @@
-name: Build and Push Docker Image
+name: Gitea CI Workflow
 
 on:
   push:
     branches:
-      - main  # Runs when pushing to main branch
+      - main  # Trigger on push to the main branch
   pull_request:
     branches:
-      - main
+      - main  # Trigger on pull requests to the main branch
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Uses a Linux system
+    runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the code from the repository
       - name: Checkout repository
-        uses: actions/checkout@v3  # Gets your code
+        uses: actions/checkout@v2
 
+      # Step 2: Set up Go (Gitea is written in Go)
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.24.0'  # Use the Go version that Gitea supports
 
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          go mod tidy
 
-      - name: Log in to DockerHub
+      # Step 4: Run tests
+      - name: Run tests
+        run: |
+          go test ./... -v  # Run all Go tests in the repository
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: build  # This will wait until the 'build' job is finished
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Step 3: Log in to Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}  # Store your Docker username as a secret in GitHub
+          password: ${{ secrets.DOCKER_PASSWORD }}  # Store your Docker password as a secret in GitHub
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: your-dockerhub-username/gitea:latest
+      # Step 4: Build the Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t maias816/gitea:latest .
+
+      # Step 5: Push the Docker image to Docker Hub
+      - name: Push Docker image
+        run: |
+          docker push maias816/gitea:latest
