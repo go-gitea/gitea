@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"unicode/utf8"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -75,12 +74,10 @@ func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, dat
 	}
 
 	if len(data) > SecretDataMaxLength {
-		data = data[:SecretDataMaxLength]
+		return nil, util.NewInvalidArgumentErrorf("data too long")
 	}
 
-	if utf8.RuneCountInString(description) > SecretDescriptionMaxLength {
-		description = string([]rune(description)[:SecretDescriptionMaxLength])
-	}
+	description = util.TruncateRunes(description, SecretDescriptionMaxLength)
 
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
@@ -131,16 +128,23 @@ func (opts FindSecretsOptions) ToConds() builder.Cond {
 }
 
 // UpdateSecret changes org or user reop secret.
-func UpdateSecret(ctx context.Context, secretID int64, data string) error {
+func UpdateSecret(ctx context.Context, secretID int64, data, description string) error {
+	if len(data) > SecretDataMaxLength {
+		return util.NewInvalidArgumentErrorf("data too long")
+	}
+
+	description = util.TruncateRunes(description, SecretDescriptionMaxLength)
+
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, data)
 	if err != nil {
 		return err
 	}
 
 	s := &Secret{
-		Data: encrypted,
+		Data:        encrypted,
+		Description: description,
 	}
-	affected, err := db.GetEngine(ctx).ID(secretID).Cols("data").Update(s)
+	affected, err := db.GetEngine(ctx).ID(secretID).Cols("data", "description").Update(s)
 	if affected != 1 {
 		return ErrSecretNotFound{}
 	}

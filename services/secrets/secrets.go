@@ -32,7 +32,7 @@ func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data
 		return s, true, nil
 	}
 
-	if err := secret_model.UpdateSecret(ctx, s[0].ID, data); err != nil {
+	if err := secret_model.UpdateSecret(ctx, s[0].ID, data, description); err != nil {
 		return nil, false, err
 	}
 

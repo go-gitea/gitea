@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -55,12 +56,10 @@ func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data, desc
 	}
 
 	if utf8.RuneCountInString(data) > VariableDataMaxLength {
-		data = string([]rune(data)[:VariableDataMaxLength])
+		return nil, util.NewInvalidArgumentErrorf("data too long")
 	}
 
-	if utf8.RuneCountInString(description) > VariableDescriptionMaxLength {
-		description = string([]rune(description)[:VariableDescriptionMaxLength])
-	}
+	description = util.TruncateRunes(description, VariableDescriptionMaxLength)
 
 	variable := &ActionVariable{
 		OwnerID:     ownerID,
@@ -102,11 +101,17 @@ func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariab
 }
 
 func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error) {
+	if utf8.RuneCountInString(variable.Data) > VariableDataMaxLength {
+		return false, util.NewInvalidArgumentErrorf("data too long")
+	}
+
+	description := util.TruncateRunes(variable.Description, VariableDescriptionMaxLength)
+
 	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("name", "data", "description").
 		Update(&ActionVariable{
 			Name:        variable.Name,
 			Data:        variable.Data,
-			Description: variable.Description,
+			Description: description,
 		})
 	return count != 0, err
 }
