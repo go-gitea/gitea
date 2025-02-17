@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 // NewGraph creates a basic graph
@@ -114,7 +115,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 			}
 		}
 
-		c.Verification = asymkey_model.ParseCommitWithSignature(ctx, c.Commit)
+		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
 		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx, repository, user.ID)

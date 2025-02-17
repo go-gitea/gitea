@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -116,7 +117,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	// or of directory if not in root directory.
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
-		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
+		verification := asymkey_service.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
