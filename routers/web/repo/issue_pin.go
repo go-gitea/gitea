@@ -23,16 +23,14 @@ func IssuePinOrUnpin(ctx *context.Context) {
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err := issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("LoadRepo", err)
 		return
 	}
 
 	// PinOrUnpin pins or unpins a Issue
 	_, err = issues_model.GetIssuePin(ctx, issue)
 	if err != nil && !db.IsErrNotExist(err) {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("GetIssuePin", err)
 		return
 	}
 
@@ -46,8 +44,7 @@ func IssuePinOrUnpin(ctx *context.Context) {
 		if issues_model.IsErrIssueMaxPinReached(err) {
 			ctx.JSONError(ctx.Tr("repo.issues.max_pinned"))
 		} else {
-			ctx.Status(http.StatusInternalServerError)
-			log.Error(err.Error())
+			ctx.ServerError("Pin/Unpin failed", err)
 		}
 		return
 	}
@@ -59,23 +56,20 @@ func IssuePinOrUnpin(ctx *context.Context) {
 func IssueUnpin(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
 
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err = issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("LoadRepo", err)
 		return
 	}
 
 	err = issues_model.UnpinIssue(ctx, issue, ctx.Doer)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("UnpinIssue", err)
 		return
 	}
 
@@ -96,15 +90,13 @@ func IssuePinMove(ctx *context.Context) {
 
 	form := &movePinIssueForm{}
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("Decode", err)
 		return
 	}
 
 	issue, err := issues_model.GetIssueByID(ctx, form.ID)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("GetIssueByID", err)
 		return
 	}
 
@@ -116,8 +108,7 @@ func IssuePinMove(ctx *context.Context) {
 
 	err = issues_model.MovePin(ctx, issue, form.Position)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("MovePin", err)
 		return
 	}
 
