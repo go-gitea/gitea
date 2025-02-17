@@ -266,7 +266,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	pathQuery.FieldVal = "Filename"
 	pathQuery.SetBoost(10)
 
-	contentQuery := bleve.NewMatchQuery(opts.Keyword)
+	contentQuery := bleve.NewMatchPhraseQuery(opts.Keyword)
 	contentQuery.FieldVal = "Content"
 
 	if opts.IsKeywordFuzzy {
