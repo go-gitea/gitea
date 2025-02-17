@@ -5,6 +5,7 @@ package webhook
 
 import (
 	"context"
+	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -871,6 +872,14 @@ func (m *webhookNotifier) CreateCommitStatus(ctx context.Context, repo *repo_mod
 		return
 	}
 
+	// as a webhook url, target should be an absolute url. But for internal actions target url
+	// the target url is a url path with no host and port to make it easy to be visited
+	// from multiple hosts. So we need to convert it to an absolute url here.
+	target := status.TargetURL
+	if strings.HasPrefix(target, "/") {
+		target = setting.AppURL + strings.TrimPrefix(target, "/")
+	}
+
 	payload := api.CommitStatusPayload{
 		Context:     status.Context,
 		CreatedAt:   status.CreatedUnix.AsTime().UTC(),
@@ -878,7 +887,7 @@ func (m *webhookNotifier) CreateCommitStatus(ctx context.Context, repo *repo_mod
 		ID:          status.ID,
 		SHA:         commit.Sha1,
 		State:       status.State.String(),
-		TargetURL:   status.TargetURL,
+		TargetURL:   target,
 
 		Commit: apiCommit,
 		Repo:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
