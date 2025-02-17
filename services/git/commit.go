@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"fmt"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -18,9 +19,6 @@ import (
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
 func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) ([]*asymkey_model.SignCommit, error) {
-	newCommits := make([]*asymkey_model.SignCommit, 0, len(oldCommits))
-	keyMap := map[string]bool{}
-
 	emails := make(container.Set[string])
 	for _, c := range oldCommits {
 		if c.Committer != nil {
@@ -33,6 +31,9 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 		return nil, err
 	}
 
+	newCommits := make([]*asymkey_model.SignCommit, 0, len(oldCommits))
+	keyMap := map[string]bool{}
+	cachedVerifications := make(map[string]*asymkey_model.CommitVerification)
 	for _, c := range oldCommits {
 		committer, ok := emailUsers[c.Committer.Email]
 		if !ok && c.Committer != nil {
@@ -42,9 +43,19 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 			}
 		}
 
+		key := committer.Email
+		if c.Signature != nil {
+			key += fmt.Sprintf("-%s", c.Signature.Signature)
+		}
+		verification, ok := cachedVerifications[key]
+		if !ok {
+			verification = asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committer)
+			cachedVerifications[key] = verification
+		}
+
 		signCommit := &asymkey_model.SignCommit{
 			UserCommit:   c,
-			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committer),
+			Verification: verification,
 		}
 
 		_ = asymkey_model.CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)
