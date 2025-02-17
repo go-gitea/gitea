@@ -86,7 +86,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 	})
 }
 
-// LoadIssuesFromProject load issues assigned to the project
+// LoadIssuesFromProject load issues assigned to each project column inside the given project
 func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (map[int64]issues_model.IssueList, error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
 		o.ProjectID = project.ID
