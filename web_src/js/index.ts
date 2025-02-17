@@ -2,8 +2,7 @@
 import './bootstrap.ts';
 import './htmx.ts';
 
-import {initDashboardRepoList} from './components/DashboardRepoList.vue';
-
+import {initDashboardRepoList} from './features/dashboard.ts';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
 import {initContextPopups} from './features/contextpopup.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
@@ -53,7 +52,7 @@ import {initRepoWikiForm} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initCaptcha} from './features/captcha.ts';
-import {initRepositoryActionView} from './components/RepoActionView.vue';
+import {initRepositoryActionView} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
 import {initSubmitEventPolyfill, onDomReady} from './utils/dom.ts';

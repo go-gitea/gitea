@@ -39,16 +39,16 @@
 					{{if $.RepoTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
-							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
-								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+							<div data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
+								<button type="submit" class="ui basic button {{if $.CanUserAcceptOrRejectTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
 									{{ctx.Locale.Tr "repo.transfer.accept"}}
 								</button>
 							</div>
 						</form>
 						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
-							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
-								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+							<div data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
+								<button type="submit" class="ui basic button {{if $.CanUserAcceptOrRejectTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
 									{{ctx.Locale.Tr "repo.transfer.reject"}}
 								</button>
 							</div>
@@ -133,7 +133,7 @@
 			{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
 				<div class="overflow-menu-items">
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
-					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.BranchNameSubURL}}{{end}}">
+					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
 						{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
 					</a>
 					{{end}}

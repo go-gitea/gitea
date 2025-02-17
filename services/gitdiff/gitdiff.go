@@ -80,7 +80,7 @@ type DiffLine struct {
 	Match       int
 	Type        DiffLineType
 	Content     string
-	Comments    []*issues_model.Comment
+	Comments    issues_model.CommentList
 	SectionInfo *DiffLineSectionInfo
 }
 
@@ -1136,7 +1136,10 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	} else {
 		actualBeforeCommitID := opts.BeforeCommitID
 		if len(actualBeforeCommitID) == 0 {
-			parentCommit, _ := commit.Parent(0)
+			parentCommit, err := commit.Parent(0)
+			if err != nil {
+				return nil, err
+			}
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
 
@@ -1145,7 +1148,6 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 			AddDynamicArguments(actualBeforeCommitID, opts.AfterCommitID)
 		opts.BeforeCommitID = actualBeforeCommitID
 
-		var err error
 		beforeCommit, err = gitRepo.GetCommit(opts.BeforeCommitID)
 		if err != nil {
 			return nil, err

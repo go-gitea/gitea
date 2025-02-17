@@ -85,7 +85,7 @@ func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetTreeEntryByPath", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetTreeEntryByPath", err)
 		}
@@ -93,7 +93,7 @@ func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
-		ctx.NotFound("getBlobForEntry", nil)
+		ctx.NotFound(nil)
 		return nil, nil
 	}
 
@@ -136,7 +136,7 @@ func DownloadByID(ctx *context.Context) {
 	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetBlob", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetBlob", err)
 		}
@@ -152,7 +152,7 @@ func DownloadByIDOrLFS(ctx *context.Context) {
 	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetBlob", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetBlob", err)
 		}

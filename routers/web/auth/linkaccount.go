@@ -29,6 +29,7 @@ var tplLinkAccount templates.TplName = "user/auth/link_account"
 
 // LinkAccount shows the page where the user can decide to login or create a new account
 func LinkAccount(ctx *context.Context) {
+	// FIXME: these common template variables should be prepared in one common function, but not just copy-paste again and again.
 	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
@@ -43,13 +44,20 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["ShowRegistrationButton"] = false
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
 	gothUser, ok := ctx.Session.Get("linkAccountGothUser").(goth.User)
+
+	// If you'd like to quickly debug the "link account" page layout, just uncomment the blow line
+	// Don't worry, when the below line exists, the lint won't pass: ineffectual assignment to gothUser (ineffassign)
+	// gothUser, ok = goth.User{Email: "invalid-email", Name: "."}, true // intentionally use invalid data to avoid pass the registration check
+
 	if !ok {
 		// no account in session, so just redirect to the login page, then the user could restart the process
 		ctx.Redirect(setting.AppSubURL + "/user/login")
@@ -135,7 +143,10 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["ShowRegistrationButton"] = false
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
@@ -223,7 +234,10 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
+	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
 	ctx.Data["ShowRegistrationButton"] = false
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
@@ -246,7 +260,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyInternalRegistration {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

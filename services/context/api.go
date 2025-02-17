@@ -22,6 +22,9 @@ import (
 )
 
 // APIContext is a specific context for API service
+// ATTENTION: This struct should never be manually constructed in routes/services,
+// it has many internal details which should be carefully prepared by the framework.
+// If it is abused, it would cause strange bugs like panic/resource-leak.
 type APIContext struct {
 	*Base
 
@@ -103,38 +106,8 @@ type APIRepoArchivedError struct {
 	APIError
 }
 
-// ServerError responds with error message, status is 500
-func (ctx *APIContext) ServerError(title string, err error) {
-	ctx.Error(http.StatusInternalServerError, title, err)
-}
-
-// Error responds with an error message to client with given obj as the message.
-// If status is 500, also it prints error to log.
-func (ctx *APIContext) Error(status int, title string, obj any) {
-	var message string
-	if err, ok := obj.(error); ok {
-		message = err.Error()
-	} else {
-		message = fmt.Sprintf("%s", obj)
-	}
-
-	if status == http.StatusInternalServerError {
-		log.ErrorWithSkip(1, "%s: %s", title, message)
-
-		if setting.IsProd && !(ctx.Doer != nil && ctx.Doer.IsAdmin) {
-			message = ""
-		}
-	}
-
-	ctx.JSON(status, APIError{
-		Message: message,
-		URL:     setting.API.SwaggerURL,
-	})
-}
-
-// InternalServerError responds with an error message to the client with the error as a message
-// and the file and line of the caller.
-func (ctx *APIContext) InternalServerError(err error) {
+// APIErrorInternal responds with error message, status is 500
+func (ctx *APIContext) APIErrorInternal(err error) {
 	log.ErrorWithSkip(1, "InternalServerError: %v", err)
 
 	var message string
@@ -143,6 +116,30 @@ func (ctx *APIContext) InternalServerError(err error) {
 	}
 
 	ctx.JSON(http.StatusInternalServerError, APIError{
+		Message: message,
+		URL:     setting.API.SwaggerURL,
+	})
+}
+
+// APIError responds with an error message to client with given obj as the message.
+// If status is 500, also it prints error to log.
+func (ctx *APIContext) APIError(status int, obj any) {
+	var message string
+	if err, ok := obj.(error); ok {
+		message = err.Error()
+	} else {
+		message = fmt.Sprintf("%s", obj)
+	}
+
+	if status == http.StatusInternalServerError {
+		log.ErrorWithSkip(1, "APIError: %s", message)
+
+		if setting.IsProd && !(ctx.Doer != nil && ctx.Doer.IsAdmin) {
+			message = ""
+		}
+	}
+
+	ctx.JSON(status, APIError{
 		Message: message,
 		URL:     setting.API.SwaggerURL,
 	})
@@ -207,7 +204,7 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
-// APIContexter returns apicontext as middleware
+// APIContexter returns APIContext middleware
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -224,7 +221,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
 				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
-					ctx.InternalServerError(err)
+					ctx.APIErrorInternal(err)
 					return
 				}
 			}
@@ -237,9 +234,9 @@ func APIContexter() func(http.Handler) http.Handler {
 	}
 }
 
-// NotFound handles 404s for APIContext
+// APIErrorNotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
-func (ctx *APIContext) NotFound(objs ...any) {
+func (ctx *APIContext) APIErrorNotFound(objs ...any) {
 	message := ctx.Locale.TrString("error.not_found")
 	var errors []string
 	for _, obj := range objs {
@@ -276,7 +273,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) {
 			var err error
 			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, fmt.Sprintf("Open Repository %v failed", ctx.Repo.Repository.FullName()), err)
+				ctx.APIError(http.StatusInternalServerError, err)
 				return
 			}
 		}
@@ -289,24 +286,24 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		ctx := GetAPIContext(req)
 
 		if ctx.Repo.GitRepo == nil {
-			ctx.InternalServerError(fmt.Errorf("no open git repo"))
+			ctx.APIErrorInternal(fmt.Errorf("no open git repo"))
 			return
 		}
 
-		refName, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
+		refName, _, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 			if err != nil {
-				ctx.InternalServerError(err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 			if err != nil {
-				ctx.InternalServerError(err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
@@ -314,11 +311,11 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			ctx.Repo.CommitID = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 			if err != nil {
-				ctx.NotFound("GetCommit", err)
+				ctx.APIErrorNotFound("GetCommit", err)
 				return
 			}
 		} else {
-			ctx.NotFound(fmt.Errorf("not exist: '%s'", ctx.PathParam("*")))
+			ctx.APIErrorNotFound(fmt.Errorf("not exist: '%s'", ctx.PathParam("*")))
 			return
 		}
 
@@ -352,7 +349,7 @@ func (ctx *APIContext) NotFoundOrServerError(logMsg string, errCheck func(error)
 		ctx.JSON(http.StatusNotFound, nil)
 		return
 	}
-	ctx.Error(http.StatusInternalServerError, "NotFoundOrServerError", logMsg)
+	ctx.APIError(http.StatusInternalServerError, logMsg)
 }
 
 // IsUserSiteAdmin returns true if current user is a site admin
@@ -365,7 +362,7 @@ func (ctx *APIContext) IsUserRepoAdmin() bool {
 	return ctx.Repo.IsAdmin()
 }
 
-// IsUserRepoWriter returns true if current user has write privilege in current repo
+// IsUserRepoWriter returns true if current user has "write" privilege in current repo
 func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
 	for _, unitType := range unitTypes {
 		if ctx.Repo.CanWrite(unitType) {

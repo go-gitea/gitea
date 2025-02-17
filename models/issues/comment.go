@@ -19,8 +19,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/references"
@@ -112,8 +110,8 @@ const (
 	CommentTypePRScheduledToAutoMerge   // 34 pr was scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge // 35 pr was un scheduled to auto merge when checks succeed
 
-	CommentTypePin   // 36 pin Issue
-	CommentTypeUnpin // 37 unpin Issue
+	CommentTypePin   // 36 pin Issue/PullRequest
+	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
 )
@@ -772,41 +770,6 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 		return ""
 	}
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
-}
-
-// LoadPushCommits Load push commits
-func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
-	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullRequestPush {
-		return nil
-	}
-
-	var data PushActionContent
-
-	err = json.Unmarshal([]byte(c.Content), &data)
-	if err != nil {
-		return err
-	}
-
-	c.IsForcePush = data.IsForcePush
-
-	if c.IsForcePush {
-		if len(data.CommitIDs) != 2 {
-			return nil
-		}
-		c.OldCommit = data.CommitIDs[0]
-		c.NewCommit = data.CommitIDs[1]
-	} else {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
-		if err != nil {
-			return err
-		}
-		defer closer.Close()
-
-		c.Commits = git_model.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
-		c.CommitsNum = int64(len(c.Commits))
-	}
-
-	return err
 }
 
 // CreateComment creates comment with context

@@ -54,7 +54,7 @@ func CompareDiff(ctx *context.APIContext) {
 		var err error
 		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -65,15 +65,15 @@ func CompareDiff(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case user_model.IsErrUserNotExist(err):
-			ctx.NotFound("GetUserByName")
+			ctx.APIErrorNotFound("GetUserByName")
 		case repo_model.IsErrRepoNotExist(err):
-			ctx.NotFound("GetRepositoryByOwnerAndName")
+			ctx.APIErrorNotFound("GetRepositoryByOwnerAndName")
 		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.NotFound("ParseComparePathParams")
+			ctx.APIErrorNotFound("ParseComparePathParams")
 		case git.IsErrNotExist(err):
-			ctx.NotFound("ParseComparePathParams")
+			ctx.APIErrorNotFound("ParseComparePathParams")
 		default:
-			ctx.ServerError("GetRepositoryByOwnerAndName", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -81,7 +81,7 @@ func CompareDiff(ctx *context.APIContext) {
 
 	// remove the check when we support compare with carets
 	if ci.CaretTimes > 0 {
-		ctx.NotFound("Unsupported compare")
+		ctx.APIErrorNotFound("Unsupported compare")
 		return
 	}
 
@@ -89,7 +89,7 @@ func CompareDiff(ctx *context.APIContext) {
 		// user should have permission to read headrepo's codes
 		permHead, err := access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 			return
 		}
 		if !permHead.CanRead(unit.TypeCode) {
@@ -99,7 +99,7 @@ func CompareDiff(ctx *context.APIContext) {
 					ci.HeadRepo,
 					permHead)
 			}
-			ctx.NotFound("Can't read headRepo UnitTypeCode")
+			ctx.APIErrorNotFound("Can't read headRepo UnitTypeCode")
 			return
 		}
 	}
@@ -109,7 +109,7 @@ func CompareDiff(ctx *context.APIContext) {
 
 	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), ci.BaseOriRef, ci.HeadOriRef, false, false)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCompareInfo", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -126,7 +126,7 @@ func CompareDiff(ctx *context.APIContext) {
 				Files:        files,
 			})
 		if err != nil {
-			ctx.ServerError("toCommit", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		apiCommits = append(apiCommits, apiCommit)

@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
@@ -66,7 +67,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		if err := issue.LoadLabels(ctx); err != nil {
 			return &api.Issue{}
 		}
-		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
+		apiIssue.Labels = util.SliceNilAsEmpty(ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner))
 		apiIssue.Repo = &api.RepositoryMeta{
 			ID:       issue.Repo.ID,
 			Name:     issue.Repo.Name,
@@ -186,7 +187,7 @@ func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.Stop
 		result = append(result, api.StopWatch{
 			Created:       sw.CreatedUnix.AsTime(),
 			Seconds:       sw.Seconds(),
-			Duration:      sw.Duration(),
+			Duration:      util.SecToHours(sw.Seconds()),
 			IssueIndex:    issue.Index,
 			IssueTitle:    issue.Title,
 			RepoOwnerName: repo.OwnerName,

@@ -199,22 +199,22 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	if err != nil {
 		switch {
 		case user_model.IsErrUserNotExist(err):
-			ctx.NotFound("GetUserByName", nil)
+			ctx.NotFound(nil)
 		case repo_model.IsErrRepoNotExist(err):
-			ctx.NotFound("GetRepositoryByOwnerAndName", nil)
+			ctx.NotFound(nil)
 		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.NotFound("ParseComparePathParams", nil)
+			ctx.NotFound(nil)
 		case git.IsErrNotExist(err):
-			ctx.NotFound("ParseComparePathParams", nil)
+			ctx.NotFound(nil)
 		default:
-			ctx.ServerError("GetRepositoryByOwnerAndName", err)
+			ctx.ServerError("ParseComparePathParams", err)
 		}
 		return nil
 	}
 
 	// remove the check when we support compare with carets
 	if ci.CaretTimes > 0 {
-		ctx.NotFound("Unsupported compare", nil)
+		ctx.NotFound(nil)
 		return nil
 	}
 
@@ -242,7 +242,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 					ci.HeadRepo,
 					permHead)
 			}
-			ctx.NotFound("ParseCompareInfo", nil)
+			ctx.NotFound(nil)
 			return nil
 		}
 		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
@@ -363,7 +363,11 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := processGitCommits(ctx, ci.CompareInfo.Commits)
+	commits, err := processGitCommits(ctx, ci.CompareInfo.Commits)
+	if err != nil {
+		ctx.ServerError("processGitCommits", err)
+		return false
+	}
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
@@ -626,7 +630,7 @@ func ExcerptBlob(ctx *context.Context) {
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommit")
+		ctx.HTTPError(http.StatusInternalServerError, "GetCommit")
 		return
 	}
 	section := &gitdiff.DiffSection{
@@ -655,7 +659,7 @@ func ExcerptBlob(ctx *context.Context) {
 		idxRight = lastRight
 	}
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "getExcerptLines")
+		ctx.HTTPError(http.StatusInternalServerError, "getExcerptLines")
 		return
 	}
 	if idxRight > lastRight {
