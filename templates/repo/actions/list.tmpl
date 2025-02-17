@@ -25,7 +25,19 @@
 				</div>
 			</div>
 			<div class="twelve wide column content">
-				<div class="ui secondary filter menu tw-justify-end tw-flex tw-items-center">
+				<div id="action-filter" class="ui secondary filter menu tw-flex tw-items-center tw-justify-between">
+					<!-- Checkbox -->
+					<div class="action-list-toolbar-left">
+						<input type="checkbox" autocomplete="off" class="action-checkbox-all tw-mr-4 tw-ml-4" title="{{ctx.Locale.Tr "repo.issues.action_check_all"}}">
+					</div>
+					<div class="tw-flex tw-items-center">
+						{{if $.IsRepoAdmin}}
+							<div id="action-delete" class="ui jump item tw-hidden">
+								<button class="ui red button action-action" data-action="delete" data-url="{{$.RepoLink}}/actions/runs/delete" data-action-delete-confirm="{{ctx.Locale.Tr "confirm_delete_selected"}}">
+									{{ctx.Locale.Tr "repo.issues.delete"}}
+								</button>
+							</div>
+						{{end}}
 					<!-- Actor -->
 					<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
 						<span class="text">{{ctx.Locale.Tr "actions.runs.actor"}}</span>
@@ -62,6 +74,7 @@
 									{{.DisplayedStatus}}
 								</a>
 							{{end}}
+						</div>
 						</div>
 					</div>
 
