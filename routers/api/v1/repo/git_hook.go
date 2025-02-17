@@ -40,7 +40,7 @@ func ListGitHooks(ctx *context.APIContext) {
 
 	hooks, err := ctx.Repo.GitRepo.Hooks()
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Hooks", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -84,9 +84,9 @@ func GetGitHook(ctx *context.APIContext) {
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
 		if errors.Is(err, git.ErrNotValidHook) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetHook", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -131,16 +131,16 @@ func EditGitHook(ctx *context.APIContext) {
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
 		if errors.Is(err, git.ErrNotValidHook) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetHook", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 		}
 		return
 	}
 
 	hook.Content = form.Content
 	if err = hook.Update(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "hook.Update", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -180,16 +180,16 @@ func DeleteGitHook(ctx *context.APIContext) {
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
 		if errors.Is(err, git.ErrNotValidHook) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetHook", err)
+			ctx.APIError(http.StatusInternalServerError, err)
 		}
 		return
 	}
 
 	hook.Content = ""
 	if err = hook.Update(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "hook.Update", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 

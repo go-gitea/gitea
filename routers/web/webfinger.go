@@ -39,7 +39,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 	resource, err := url.Parse(ctx.FormTrim("resource"))
 	if err != nil {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -50,11 +50,11 @@ func WebfingerQuery(ctx *context.Context) {
 		// allow only the current host
 		parts := strings.SplitN(resource.Opaque, "@", 2)
 		if len(parts) != 2 {
-			ctx.Error(http.StatusBadRequest)
+			ctx.HTTPError(http.StatusBadRequest)
 			return
 		}
 		if parts[1] != appURL.Host {
-			ctx.Error(http.StatusBadRequest)
+			ctx.HTTPError(http.StatusBadRequest)
 			return
 		}
 
@@ -65,21 +65,21 @@ func WebfingerQuery(ctx *context.Context) {
 			err = user_model.ErrUserNotExist{}
 		}
 	default:
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 		} else {
 			log.Error("Error getting user: %s Error: %v", resource.Opaque, err)
-			ctx.Error(http.StatusInternalServerError)
+			ctx.HTTPError(http.StatusInternalServerError)
 		}
 		return
 	}
 
 	if !user_model.IsUserVisibleToViewer(ctx, u, ctx.Doer) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
