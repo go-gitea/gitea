@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -669,7 +668,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
 	for _, art := range artifacts {
-		if art.Status != int64(actions_model.ArtifactStatusUploadConfirmed) {
+		if art.Status != actions_model.ArtifactStatusUploadConfirmed {
 			ctx.Error(http.StatusNotFound, "artifact not found")
 			return
 		}
@@ -677,23 +676,12 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(artifactName), artifactName))
 
-	// Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
-	// The v4 backend enshures ContentEncoding is set to "application/zip", which is not the case for the old backend
-	if len(artifacts) == 1 && artifacts[0].ArtifactName+".zip" == artifacts[0].ArtifactPath && artifacts[0].ContentEncoding == "application/zip" {
-		art := artifacts[0]
-		if setting.Actions.ArtifactStorage.ServeDirect() {
-			u, err := storage.ActionsArtifacts.URL(art.StoragePath, art.ArtifactPath, nil)
-			if u != nil && err == nil {
-				ctx.Redirect(u.String())
-				return
-			}
-		}
-		f, err := storage.ActionsArtifacts.Open(art.StoragePath)
+	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
+		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, err.Error())
 			return
 		}
-		_, _ = io.Copy(ctx.Resp, f)
 		return
 	}
 
@@ -787,33 +775,26 @@ func Run(ctx *context_module.Context) {
 		ctx.ServerError("ref", nil)
 		return
 	}
-	err := actions_service.DispatchActionWorkflow(ctx, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs *map[string]any) error {
-		if workflowDispatch != nil {
-			for name, config := range workflowDispatch.Inputs {
-				value := ctx.Req.PostFormValue(name)
-				if config.Type == "boolean" {
-					// https://www.w3.org/TR/html401/interact/forms.html
-					// https://stackoverflow.com/questions/11424037/do-checkbox-inputs-only-post-data-if-theyre-checked
-					// Checkboxes (and radio buttons) are on/off switches that may be toggled by the user.
-					// A switch is "on" when the control element's checked attribute is set.
-					// When a form is submitted, only "on" checkbox controls can become successful.
-					(*inputs)[name] = strconv.FormatBool(value == "on")
-				} else if value != "" {
-					(*inputs)[name] = value
-				} else {
-					(*inputs)[name] = config.Default
-				}
+	err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+		for name, config := range workflowDispatch.Inputs {
+			value := ctx.Req.PostFormValue(name)
+			if config.Type == "boolean" {
+				inputs[name] = strconv.FormatBool(ctx.FormBool(name))
+			} else if value != "" {
+				inputs[name] = value
+			} else {
+				inputs[name] = config.Default
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		if terr, ok := err.(*actions_service.TranslateableError); ok {
-			ctx.Flash.Error(ctx.Tr(terr.Translation, terr.Args...))
+		if errLocale := util.ErrAsLocale(err); errLocale != nil {
+			ctx.Flash.Error(ctx.Tr(errLocale.TrKey, errLocale.TrArgs...))
 			ctx.Redirect(redirectURL)
-			return
+		} else {
+			ctx.ServerError("DispatchActionWorkflow", err)
 		}
-		ctx.ServerError(err.Error(), err)
 		return
 	}
 

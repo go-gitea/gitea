@@ -915,21 +915,6 @@ func Routes() *web.Router {
 		})
 	}
 
-	addActionsWorkflowRoutes := func(
-		m *web.Router,
-		actw actions.WorkflowAPI,
-	) {
-		m.Group("/actions", func() {
-			m.Group("/workflows", func() {
-				m.Get("", reqToken(), actw.ListRepositoryWorkflows)
-				m.Get("/{workflow_id}", reqToken(), actw.GetWorkflow)
-				m.Put("/{workflow_id}/disable", reqToken(), reqRepoWriter(unit.TypeActions), actw.DisableWorkflow)
-				m.Post("/{workflow_id}/dispatches", reqToken(), reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), actw.DispatchWorkflow)
-				m.Put("/{workflow_id}/enable", reqToken(), reqRepoWriter(unit.TypeActions), actw.EnableWorkflow)
-			}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeActions))
-		})
-	}
-
 	m.Group("", func() {
 		// Miscellaneous (no scope required)
 		if setting.API.EnableSwagger {
@@ -1170,15 +1155,17 @@ func Routes() *web.Router {
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
-				addActionsRoutes(
-					m,
-					reqOwner(),
-					repo.NewAction(),
-				)
-				addActionsWorkflowRoutes(
-					m,
-					repo.NewActionWorkflow(),
-				)
+
+				addActionsRoutes(m, reqOwner(), repo.NewAction()) // it adds the routes for secrets/variables and runner management
+
+				m.Group("/actions/workflows", func() {
+					m.Get("", repo.ActionsListRepositoryWorkflows)
+					m.Get("/{workflow_id}", repo.ActionsGetWorkflow)
+					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeActions), repo.ActionsDisableWorkflow)
+					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
+					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
+				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
+
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
@@ -1254,6 +1241,13 @@ func Routes() *web.Router {
 				}, reqToken(), reqAdmin())
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
+					m.Get("/runs/{run}/artifacts", repo.GetArtifactsOfRun)
+					m.Get("/artifacts", repo.GetArtifacts)
+					m.Group("/artifacts/{artifact_id}", func() {
+						m.Get("", repo.GetArtifact)
+						m.Delete("", reqRepoWriter(unit.TypeActions), repo.DeleteArtifact)
+					})
+					m.Get("/artifacts/{artifact_id}/zip", repo.DownloadArtifact)
 				}, reqRepoReader(unit.TypeActions), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
@@ -1414,6 +1408,10 @@ func Routes() *web.Router {
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
+		// Artifacts direct download endpoint authenticates via signed url
+		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
+		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
+
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {
 			m.Group("/{username}/{reponame}", func() {
@@ -1539,13 +1537,19 @@ func Routes() *web.Router {
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
-			m.Group("/{type}/{name}/{version}", func() {
-				m.Get("", reqToken(), packages.GetPackage)
-				m.Delete("", reqToken(), reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
-				m.Get("/files", reqToken(), packages.ListPackageFiles)
+			m.Group("/{type}/{name}", func() {
+				m.Group("/{version}", func() {
+					m.Get("", packages.GetPackage)
+					m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
+					m.Get("/files", packages.ListPackageFiles)
+				})
+
+				m.Post("/-/link/{repo_name}", reqPackageAccess(perm.AccessModeWrite), packages.LinkPackage)
+				m.Post("/-/unlink", reqPackageAccess(perm.AccessModeWrite), packages.UnlinkPackage)
 			})
-			m.Get("/", reqToken(), packages.ListPackages)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), checkTokenPublicOnly())
+
+			m.Get("/", packages.ListPackages)
+		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), checkTokenPublicOnly())
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), org.ListMyOrgs)
