@@ -41,7 +41,7 @@ func Members(ctx *context.Context) {
 	if ctx.Doer != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
+			ctx.HTTPError(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
 		opts.IsDoerMember = isMember
@@ -50,7 +50,7 @@ func Members(ctx *context.Context) {
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CountOrgMembers")
+		ctx.HTTPError(http.StatusInternalServerError, "CountOrgMembers")
 		return
 	}
 
@@ -93,19 +93,19 @@ func MembersAction(ctx *context.Context) {
 	switch ctx.PathParam("action") {
 	case "private":
 		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = organization.ChangeOrgUserStatus(ctx, org.ID, member.ID, false)
 	case "public":
 		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = organization.ChangeOrgUserStatus(ctx, org.ID, member.ID, true)
 	case "remove":
 		if !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = org_service.RemoveOrgUser(ctx, org, member)

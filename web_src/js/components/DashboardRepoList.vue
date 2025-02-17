@@ -445,7 +445,7 @@ export default defineComponent({
               class="item navigation tw-py-1" :class="{'disabled': page === 1}"
               @click="changePage(page - 1)" :title="textPreviousPage"
             >
-              <svg-icon name="octicon-chevron-left" :size="16" clsas="tw-mr-1"/>
+              <svg-icon name="octicon-chevron-left" :size="16" class="tw-mr-1"/>
             </a>
             <a class="active item tw-py-1">{{ page }}</a>
             <a

@@ -28,7 +28,7 @@ func CherryPick(ctx *context.Context) {
 	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("Missing Commit", err)
+			ctx.NotFound(err)
 			return
 		}
 		ctx.ServerError("GetCommit", err)
@@ -148,7 +148,7 @@ func CherryPickPost(ctx *context.Context) {
 		if form.Revert {
 			if err := git.GetReverseRawDiff(ctx, ctx.Repo.Repository.RepoPath(), sha, buf); err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.PathParam("sha")+" does not exist."))
+					ctx.NotFound(errors.New("commit " + ctx.PathParam("sha") + " does not exist."))
 					return
 				}
 				ctx.ServerError("GetRawDiff", err)
@@ -157,7 +157,7 @@ func CherryPickPost(ctx *context.Context) {
 		} else {
 			if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, git.RawDiffType("patch"), buf); err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.PathParam("sha")+" does not exist."))
+					ctx.NotFound(errors.New("commit " + ctx.PathParam("sha") + " does not exist."))
 					return
 				}
 				ctx.ServerError("GetRawDiff", err)

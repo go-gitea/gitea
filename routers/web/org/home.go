@@ -29,7 +29,7 @@ func Home(ctx *context.Context) {
 	uname := ctx.PathParam("username")
 
 	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 

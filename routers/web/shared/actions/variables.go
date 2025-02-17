@@ -193,7 +193,7 @@ func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *ac
 		ctx.ServerError("FindVariables", err)
 		return nil
 	} else if len(got) == 0 {
-		ctx.NotFound("FindVariables", nil)
+		ctx.NotFound(nil)
 		return nil
 	}
 	return got[0]
