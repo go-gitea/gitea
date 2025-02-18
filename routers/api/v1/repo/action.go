@@ -143,7 +143,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -197,7 +197,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -243,7 +243,7 @@ func (Action) GetVariable(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -299,7 +299,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -354,7 +354,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		Name:   variableName,
 	})
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if v != nil && v.ID > 0 {
@@ -366,7 +366,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -421,7 +421,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -437,7 +437,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -484,7 +484,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -581,7 +581,7 @@ func ListActionTasks(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -592,7 +592,7 @@ func ListActionTasks(ctx *context.APIContext) {
 	for i := range tasks {
 		convertedTask, err := convert.ToActionTask(ctx, tasks[i])
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		res.Entries[i] = convertedTask
@@ -634,7 +634,7 @@ func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
 
 	workflows, err := actions_service.ListActionWorkflows(ctx)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -683,7 +683,7 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -731,7 +731,7 @@ func ActionsDisableWorkflow(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -810,7 +810,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		} else if errors.Is(err, util.ErrPermissionDenied) {
 			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -860,7 +860,7 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -1218,7 +1218,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	if actions.IsArtifactV4(art) {
 		err := actions.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		return
