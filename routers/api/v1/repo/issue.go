@@ -172,7 +172,7 @@ func SearchIssues(ctx *context.APIContext) {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.APIError(http.StatusBadRequest, err)
 				} else {
-					ctx.APIError(http.StatusInternalServerError, err)
+					ctx.APIErrorInternal(err)
 				}
 				return
 			}
@@ -191,7 +191,7 @@ func SearchIssues(ctx *context.APIContext) {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.APIError(http.StatusBadRequest, err)
 				} else {
-					ctx.APIError(http.StatusInternalServerError, err)
+					ctx.APIErrorInternal(err)
 				}
 				return
 			}
@@ -204,7 +204,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		if len(repoIDs) == 0 {
@@ -237,7 +237,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		includedAnyLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -251,7 +251,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		includedMilestones, err = issues_model.GetMilestoneIDsByNames(ctx, includedMilestoneNames)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -312,12 +312,12 @@ func SearchIssues(ctx *context.APIContext) {
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -428,7 +428,7 @@ func ListIssues(ctx *context.APIContext) {
 	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
 		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, splitted)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -444,7 +444,7 @@ func ListIssues(ctx *context.APIContext) {
 				continue
 			}
 			if !issues_model.IsErrMilestoneNotExist(err) {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			id, err := strconv.ParseInt(part[i], 10, 64)
@@ -459,7 +459,7 @@ func ListIssues(ctx *context.APIContext) {
 			if issues_model.IsErrMilestoneNotExist(err) {
 				continue
 			}
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 	}
 
@@ -549,12 +549,12 @@ func ListIssues(ctx *context.APIContext) {
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -618,7 +618,7 @@ func GetIssue(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -693,7 +693,7 @@ func CreateIssue(ctx *context.APIContext) {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -702,13 +702,13 @@ func CreateIssue(ctx *context.APIContext) {
 		for _, aID := range assigneeIDs {
 			assignee, err := user_model.GetUserByID(ctx, aID)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 
 			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository, false)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			if !valid {
@@ -727,7 +727,7 @@ func CreateIssue(ctx *context.APIContext) {
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -738,7 +738,7 @@ func CreateIssue(ctx *context.APIContext) {
 				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue because it still has open dependencies")
 				return
 			}
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -746,7 +746,7 @@ func CreateIssue(ctx *context.APIContext) {
 	// Refetch from database to assign some automatic values
 	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
@@ -798,7 +798,7 @@ func EditIssue(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -807,7 +807,7 @@ func EditIssue(ctx *context.APIContext) {
 
 	err = issue.LoadAttributes(ctx)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -819,7 +819,7 @@ func EditIssue(ctx *context.APIContext) {
 	if len(form.Title) > 0 {
 		err = issue_service.ChangeTitle(ctx, issue, ctx.Doer, form.Title)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -831,14 +831,14 @@ func EditIssue(ctx *context.APIContext) {
 				return
 			}
 
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
 	if form.Ref != nil {
 		err = issue_service.ChangeIssueRef(ctx, issue, ctx.Doer, *form.Ref)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -860,7 +860,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 
 		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		issue.DeadlineUnix = deadlineUnix
@@ -885,7 +885,7 @@ func EditIssue(ctx *context.APIContext) {
 			if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.APIError(http.StatusForbidden, err)
 			} else {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -896,14 +896,14 @@ func EditIssue(ctx *context.APIContext) {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
 		if err = issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
 	if form.State != nil {
 		if issue.IsPull {
 			if err := issue.LoadPullRequest(ctx); err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			if issue.PullRequest.HasMerged {
@@ -965,13 +965,13 @@ func DeleteIssue(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err = issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -1021,7 +1021,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -1033,7 +1033,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 
 	deadlineUnix, _ := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
 	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -1052,12 +1052,12 @@ func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, stat
 				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue or pull request because it still has open dependencies")
 				return
 			}
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	} else if state == api.StateOpen && issue.IsClosed {
 		if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}

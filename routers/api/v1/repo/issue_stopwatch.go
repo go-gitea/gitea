@@ -55,7 +55,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.CreateIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.FinishIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -153,7 +153,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.CancelStopwatch(ctx, ctx.Doer, issue); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -166,7 +166,7 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*issues_m
 		if issues_model.IsErrIssueNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 
 		return nil, err
@@ -220,7 +220,7 @@ func GetStopwatches(ctx *context.APIContext) {
 
 	sws, err := issues_model.GetUserStopwatches(ctx, ctx.Doer.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -232,7 +232,7 @@ func GetStopwatches(ctx *context.APIContext) {
 
 	apiSWs, err := convert.ToStopWatches(ctx, sws)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
