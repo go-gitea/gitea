@@ -22,6 +22,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix context usage (#33554) (#33557)
   * Only show the latest version in the Arch index (#33262) (#33580)
   * Skip deletion error for action artifacts (#33476) (#33568)
+  * Make actions URL in commit status webhooks absolute (#33620) #33632
 
 ## [1.23.3](https://github.com/go-gitea/gitea/releases/tag/v1.23.3) - 2025-02-06
 
