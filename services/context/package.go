@@ -33,15 +33,15 @@ type packageAssignmentCtx struct {
 // PackageAssignment returns a middleware to handle Context.Package assignment
 func PackageAssignment() func(ctx *Context) {
 	return func(ctx *Context) {
-		errorFn := func(status int, title string, obj any) {
+		errorFn := func(status int, obj any) {
 			err, ok := obj.(error)
 			if !ok {
 				err = fmt.Errorf("%s", obj)
 			}
 			if status == http.StatusNotFound {
-				ctx.NotFound(title, err)
+				ctx.NotFound(err)
 			} else {
-				ctx.ServerError(title, err)
+				ctx.ServerError("PackageAssignment", err)
 			}
 		}
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
@@ -53,18 +53,18 @@ func PackageAssignment() func(ctx *Context) {
 func PackageAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
-		ctx.Package = packageAssignment(paCtx, ctx.Error)
+		ctx.Package = packageAssignment(paCtx, ctx.APIError)
 	}
 }
 
-func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) *Package {
+func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package {
 	pkg := &Package{
 		Owner: ctx.ContextUser,
 	}
 	var err error
 	pkg.AccessMode, err = determineAccessMode(ctx.Base, pkg, ctx.Doer)
 	if err != nil {
-		errCb(http.StatusInternalServerError, "determineAccessMode", err)
+		errCb(http.StatusInternalServerError, fmt.Errorf("determineAccessMode: %w", err))
 		return pkg
 	}
 
@@ -75,16 +75,16 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string, any)) 
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
 		if err != nil {
 			if err == packages_model.ErrPackageNotExist {
-				errCb(http.StatusNotFound, "GetVersionByNameAndVersion", err)
+				errCb(http.StatusNotFound, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
 			} else {
-				errCb(http.StatusInternalServerError, "GetVersionByNameAndVersion", err)
+				errCb(http.StatusInternalServerError, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
 			}
 			return pkg
 		}
 
 		pkg.Descriptor, err = packages_model.GetPackageDescriptor(ctx, pv)
 		if err != nil {
-			errCb(http.StatusInternalServerError, "GetPackageDescriptor", err)
+			errCb(http.StatusInternalServerError, fmt.Errorf("GetPackageDescriptor: %w", err))
 			return pkg
 		}
 	}
@@ -154,9 +154,9 @@ func PackageContexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base := NewBaseContext(resp, req)
-			// it is still needed when rendering 500 page in a package handler
+			// FIXME: web Context is still needed when rendering 500 page in a package handler
+			// It should be refactored to use new error handling mechanisms
 			ctx := NewWebContext(base, renderer, nil)
-			ctx.SetContextValue(WebContextKey, ctx)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}

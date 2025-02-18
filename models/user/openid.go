@@ -11,9 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// ErrOpenIDNotExist openid is not known
-var ErrOpenIDNotExist = util.NewNotExistErrorf("OpenID is unknown")
-
 // UserOpenID is the list of all OpenID identities of a user.
 // Since this is a middle table, name it OpenID is not suitable, so we ignore the lint here
 type UserOpenID struct { //revive:disable-line:exported
@@ -99,7 +96,7 @@ func DeleteUserOpenID(ctx context.Context, openid *UserOpenID) (err error) {
 	if err != nil {
 		return err
 	} else if deleted != 1 {
-		return ErrOpenIDNotExist
+		return util.NewNotExistErrorf("OpenID is unknown")
 	}
 	return nil
 }

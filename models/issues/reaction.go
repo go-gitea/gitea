@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -321,6 +322,11 @@ func valuesUser(m map[int64]*user_model.User) []*user_model.User {
 	return values
 }
 
+// newMigrationOriginalUser creates and returns a fake user for external user
+func newMigrationOriginalUser(name string) *user_model.User {
+	return &user_model.User{ID: 0, Name: name, LowerName: strings.ToLower(name)}
+}
+
 // LoadUsers loads reactions' all users
 func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Repository) ([]*user_model.User, error) {
 	if len(list) == 0 {
@@ -338,7 +344,7 @@ func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Reposit
 
 	for _, reaction := range list {
 		if reaction.OriginalAuthor != "" {
-			reaction.User = user_model.NewReplaceUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
+			reaction.User = newMigrationOriginalUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
 		} else if user, ok := userMaps[reaction.UserID]; ok {
 			reaction.User = user
 		} else {

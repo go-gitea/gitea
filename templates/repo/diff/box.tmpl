@@ -24,7 +24,7 @@
 			{{end}}
 		</div>
 		<div class="diff-detail-actions">
-			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived) (not .DiffNotAvailable)}}
+			{{if and .PageIsPullFiles $.SignedUserID (not .DiffNotAvailable)}}
 				<div class="not-mobile tw-flex tw-items-center tw-flex-col tw-whitespace-nowrap tw-mr-1">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
@@ -42,7 +42,7 @@
 					</div>
 				</div>
 			{{end}}
-			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
+			{{if and .PageIsPullFiles $.SignedUserID}}
 				{{template "repo/diff/new_review" .}}
 			{{end}}
 		</div>
@@ -105,7 +105,7 @@
 					{{$isCsv := (call $.IsCsvFile $file)}}
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
-					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.IsArchived) $.IsShowingAllCommits}}
+					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 						<h4 class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">

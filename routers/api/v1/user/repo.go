@@ -26,12 +26,12 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		OrderBy:     "id ASC",
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if err := repos.LoadAttributes(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "RepositoryList.LoadAttributes", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -39,7 +39,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	for i := range repos {
 		permission, err := access_model.GetUserRepoPermission(ctx, repos[i], ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.HasAnyUnitAccess() {
@@ -113,19 +113,19 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchRepository", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.LoadOwner(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadOwner", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			ctx.APIErrorInternal(err)
 		}
 		results[i] = convert.ToRepo(ctx, repo, permission)
 	}

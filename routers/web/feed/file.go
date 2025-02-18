@@ -55,6 +55,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 			},
 			Description: commit.Message(),
 			Content:     commit.Message(),
+			Created:     commit.Committer.When,
 		})
 	}
 

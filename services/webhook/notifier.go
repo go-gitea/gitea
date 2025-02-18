@@ -8,12 +8,14 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -870,6 +872,11 @@ func (m *webhookNotifier) CreateCommitStatus(ctx context.Context, repo *repo_mod
 		return
 	}
 
+	// as a webhook url, target should be an absolute url. But for internal actions target url
+	// the target url is a url path with no host and port to make it easy to be visited
+	// from multiple hosts. So we need to convert it to an absolute url here.
+	target := httplib.MakeAbsoluteURL(ctx, status.TargetURL)
+
 	payload := api.CommitStatusPayload{
 		Context:     status.Context,
 		CreatedAt:   status.CreatedUnix.AsTime().UTC(),
@@ -877,7 +884,7 @@ func (m *webhookNotifier) CreateCommitStatus(ctx context.Context, repo *repo_mod
 		ID:          status.ID,
 		SHA:         commit.Sha1,
 		State:       status.State.String(),
-		TargetURL:   status.TargetURL,
+		TargetURL:   target,
 
 		Commit: apiCommit,
 		Repo:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
@@ -920,10 +927,16 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		return
 	}
 
+	var org *api.Organization
+	if pd.Owner.IsOrganization() {
+		org = convert.ToOrganization(ctx, organization.OrgFromUser(pd.Owner))
+	}
+
 	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventPackage, &api.PackagePayload{
-		Action:  action,
-		Package: apiPackage,
-		Sender:  convert.ToUser(ctx, sender, nil),
+		Action:       action,
+		Package:      apiPackage,
+		Organization: org,
+		Sender:       convert.ToUser(ctx, sender, nil),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}

@@ -139,7 +139,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
-			ctx.NotFound("GetPackageByName", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetPackageByName", err)
 		}
@@ -155,7 +155,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 		return
 	}
 	if len(pvs) == 0 {
-		ctx.NotFound("", err)
+		ctx.NotFound(err)
 		return
 	}
 
@@ -317,7 +317,7 @@ func ListPackageVersions(ctx *context.Context) {
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
-			ctx.NotFound("GetPackageByName", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetPackageByName", err)
 		}
@@ -496,7 +496,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64("fileid"))
 	if err != nil {
 		if err == packages_model.ErrPackageFileNotExist {
-			ctx.NotFound("", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetFileForVersionByID", err)
 		}

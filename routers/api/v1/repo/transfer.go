@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -60,17 +61,17 @@ func Transfer(ctx *context.APIContext) {
 	newOwner, err := user_model.GetUserByName(ctx, opts.NewOwner)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
+			ctx.APIError(http.StatusNotFound, "The new owner does not exist or cannot be found")
 			return
 		}
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if newOwner.Type == user_model.UserTypeOrganization {
 		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization
-			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
+			ctx.APIError(http.StatusNotFound, "The new owner does not exist or cannot be found")
 			return
 		}
 	}
@@ -78,7 +79,7 @@ func Transfer(ctx *context.APIContext) {
 	var teams []*organization.Team
 	if opts.TeamIDs != nil {
 		if !newOwner.IsOrganization() {
-			ctx.Error(http.StatusUnprocessableEntity, "repoTransfer", "Teams can only be added to organization-owned repositories")
+			ctx.APIError(http.StatusUnprocessableEntity, "Teams can only be added to organization-owned repositories")
 			return
 		}
 
@@ -86,12 +87,12 @@ func Transfer(ctx *context.APIContext) {
 		for _, tID := range *opts.TeamIDs {
 			team, err := organization.GetTeamByID(ctx, tID)
 			if err != nil {
-				ctx.Error(http.StatusUnprocessableEntity, "team", fmt.Errorf("team %d not found", tID))
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("team %d not found", tID))
 				return
 			}
 
 			if team.OrgID != org.ID {
-				ctx.Error(http.StatusForbidden, "team", fmt.Errorf("team %d belongs not to org %d", tID, org.ID))
+				ctx.APIError(http.StatusForbidden, fmt.Errorf("team %d belongs not to org %d", tID, org.ID))
 				return
 			}
 
@@ -108,19 +109,19 @@ func Transfer(ctx *context.APIContext) {
 
 	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
 		if repo_model.IsErrRepoTransferInProgress(err) {
-			ctx.Error(http.StatusConflict, "StartRepositoryTransfer", err)
+			ctx.APIError(http.StatusConflict, err)
 			return
 		}
 
 		if repo_model.IsErrRepoAlreadyExist(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "StartRepositoryTransfer", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
 
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.InternalServerError(err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -161,12 +162,16 @@ func AcceptTransfer(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := acceptOrRejectRepoTransfer(ctx, true)
-	if ctx.Written() {
-		return
-	}
+	err := repo_service.AcceptTransferOwnership(ctx, ctx.Repo.Repository, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "acceptOrRejectRepoTransfer", err)
+		switch {
+		case repo_model.IsErrNoPendingTransfer(err):
+			ctx.APIError(http.StatusNotFound, err)
+		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.APIError(http.StatusForbidden, err)
+		default:
+			ctx.APIErrorInternal(err)
+		}
 		return
 	}
 
@@ -199,40 +204,18 @@ func RejectTransfer(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := acceptOrRejectRepoTransfer(ctx, false)
-	if ctx.Written() {
-		return
-	}
+	err := repo_service.RejectRepositoryTransfer(ctx, ctx.Repo.Repository, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "acceptOrRejectRepoTransfer", err)
+		switch {
+		case repo_model.IsErrNoPendingTransfer(err):
+			ctx.APIError(http.StatusNotFound, err)
+		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.APIError(http.StatusForbidden, err)
+		default:
+			ctx.APIErrorInternal(err)
+		}
 		return
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, ctx.Repo.Repository, ctx.Repo.Permission))
-}
-
-func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
-	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
-	if err != nil {
-		if repo_model.IsErrNoPendingTransfer(err) {
-			ctx.NotFound()
-			return nil
-		}
-		return err
-	}
-
-	if err := repoTransfer.LoadAttributes(ctx); err != nil {
-		return err
-	}
-
-	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
-		ctx.Error(http.StatusForbidden, "CanUserAcceptTransfer", nil)
-		return fmt.Errorf("user does not have permissions to do this")
-	}
-
-	if accept {
-		return repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
-	}
-
-	return repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository)
 }

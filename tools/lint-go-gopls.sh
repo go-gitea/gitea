@@ -8,7 +8,7 @@ IGNORE_PATTERNS=(
 )
 
 # lint all go files with 'gopls check' and look for lines starting with the
-# current absolute path, indicating a error was found. This is neccessary
+# current absolute path, indicating a error was found. This is necessary
 # because the tool does not set non-zero exit code when errors are found.
 # ref: https://github.com/golang/go/issues/67078
 ERROR_LINES=$("$GO" run "$GOPLS_PACKAGE" check "$@" 2>/dev/null | grep -E "^$PWD" | grep -vFf <(printf '%s\n' "${IGNORE_PATTERNS[@]}"));
