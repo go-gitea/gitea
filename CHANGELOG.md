@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * SECURITY
   * Enhance routers for the Actions variable operations (#33547) (#33553)
   * Enhance routers for the Actions runner operations (#33549) (#33555)
+  * Fix project issues list and counting (#33594) #33619
 * PERFORMANCES
   * Performance optimization for pull request files loading comments attachments (#33585) (#33592)
 * BUGFIXES
