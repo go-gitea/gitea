@@ -22,7 +22,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Only show the latest version in the Arch index (#33262) (#33580)
   * Skip deletion error for action artifacts (#33476) (#33568)
 
-## [1.23.3](https://github.com/go-gitea/gitea/releases/tag/v1.23.2) - 2025-02-05
+## [1.23.3](https://github.com/go-gitea/gitea/releases/tag/v1.23.3) - 2025-02-06
 
 * Security
   * Build Gitea with Golang v1.23.6 to fix security bugs
