@@ -16,10 +16,10 @@
 			{{if .ShowMemberAndTeamTab}}
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
-					<div class="center aligned tw-mb-4">
-						<a class="ui primary button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
+					<div class="tw-flex tw-flex-wrap tw-justify-center tw-gap-x-1 tw-gap-y-2 tw-mb-4">
+						<a class="ui primary button tw-grow" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
 						{{if not .DisableNewPullMirrors}}
-							<a class="ui primary button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
+							<a class="ui primary button tw-grow" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
 						{{end}}
 					</div>
 					<div class="divider"></div>
