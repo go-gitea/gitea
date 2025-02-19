@@ -158,7 +158,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		entries.Sort()
 		b.ResetTimer()
 		b.Run(benchmark.name, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				_, _, err := entries.GetCommitsInfo(b.Context(), commit, "")
 				if err != nil {
 					b.Fatal(err)
