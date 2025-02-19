@@ -4,8 +4,6 @@
 package user
 
 import (
-	"net/http"
-
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/context"
 )
@@ -23,7 +21,7 @@ func GetUserByPathParam(ctx *context.APIContext, name string) *user_model.User {
 				ctx.APIErrorNotFound("GetUserByName", err)
 			}
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}

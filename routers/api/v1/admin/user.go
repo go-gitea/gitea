@@ -42,7 +42,7 @@ func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64
 		if auth.IsErrSourceNotExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -145,7 +145,7 @@ func CreateUser(ctx *context.APIContext) {
 			db.IsErrNamePatternNotAllowed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -210,7 +210,7 @@ func EditUser(ctx *context.APIContext) {
 		case errors.Is(err, password.ErrIsPwned), password.IsErrIsPwnedRequest(err):
 			ctx.APIError(http.StatusBadRequest, err)
 		default:
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -223,7 +223,7 @@ func EditUser(ctx *context.APIContext) {
 			case user_model.IsErrEmailAlreadyUsed(err):
 				ctx.APIError(http.StatusBadRequest, err)
 			default:
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -252,7 +252,7 @@ func EditUser(ctx *context.APIContext) {
 		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -307,7 +307,7 @@ func DeleteUser(ctx *context.APIContext) {
 			user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -381,7 +381,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 		} else if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -432,7 +432,7 @@ func SearchUsers(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
