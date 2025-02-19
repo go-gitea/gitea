@@ -86,7 +86,7 @@
 			<div class="project-column"{{if .Color}} style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">
 					<div class="ui circular label project-column-issue-count">
-						{{.NumIssues ctx}}
+						{{.NumIssues}}
 					</div>
 					<div class="project-column-title-label gt-ellipsis">{{.Title}}</div>
 					{{if $canWriteProject}}
