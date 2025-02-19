@@ -1196,6 +1196,10 @@ func registerRoutes(m *web.Router) {
 			})
 		})
 	}
+	// FIXME: many "pulls" requests are sent to "issues" endpoints correctly, so the issue endpoints have to tolerate pull request permissions at the moment
+	m.Group("/{username}/{reponame}/{type:issues}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests))
+	m.Group("/{username}/{reponame}/{type:pulls}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, reqUnitPullsReader)
+
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/comments/{id}/attachments", repo.GetCommentAttachments)
 		m.Get("/labels", repo.RetrieveLabelsForList, repo.Labels)
@@ -1203,9 +1207,6 @@ func registerRoutes(m *web.Router) {
 		m.Get("/milestone/{id}", context.RepoRef(), repo.MilestoneIssuesAndPulls)
 		m.Get("/issues/suggestions", repo.IssueSuggestions)
 	}, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader) // issue/pull attachments, labels, milestones
-
-	m.Group("/{username}/{reponame}/{type:issues}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, reqUnitIssuesReader)
-	m.Group("/{username}/{reponame}/{type:pulls}", addIssuesPullsViewRoutes, optSignIn, context.RepoAssignment, reqUnitPullsReader)
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
 
 	m.Group("/{username}/{reponame}/{type:issues}", func() {
@@ -1224,7 +1225,7 @@ func registerRoutes(m *web.Router) {
 			m.Get("/search", repo.SearchRepoIssuesJSON)
 		}, reqUnitIssuesReader)
 
-		addIssuesPullsRoutes := func() {
+		addIssuesPullsUpdateRoutes := func() {
 			// for "/{username}/{reponame}/issues" or "/{username}/{reponame}/pulls"
 			m.Group("/{index}", func() {
 				m.Post("/title", repo.UpdateIssueTitle)
@@ -1267,8 +1268,9 @@ func registerRoutes(m *web.Router) {
 			m.Delete("/unpin/{index}", reqRepoAdmin, repo.IssueUnpin)
 			m.Post("/move_pin", reqRepoAdmin, repo.IssuePinMove)
 		}
-		m.Group("/{type:issues}", addIssuesPullsRoutes, reqUnitIssuesReader, context.RepoMustNotBeArchived())
-		m.Group("/{type:pulls}", addIssuesPullsRoutes, reqUnitPullsReader, context.RepoMustNotBeArchived())
+		// FIXME: many "pulls" requests are sent to "issues" endpoints incorrectly, so the issue endpoints have to tolerate pull request permissions at the moment
+		m.Group("/{type:issues}", addIssuesPullsUpdateRoutes, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests), context.RepoMustNotBeArchived())
+		m.Group("/{type:pulls}", addIssuesPullsUpdateRoutes, reqUnitPullsReader, context.RepoMustNotBeArchived())
 
 		m.Group("/comments/{id}", func() {
 			m.Post("", repo.UpdateCommentContent)
@@ -1292,7 +1294,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/delete", repo.DeleteMilestone)
 		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
 
-		// FIXME: need to move these routes to the proper place
+		// FIXME: many "pulls" requests are sent to "issues" endpoints incorrectly, need to move these routes to the proper place
 		m.Group("/issues", func() {
 			m.Post("/request_review", repo.UpdatePullReviewRequest)
 			m.Post("/dismiss_review", reqRepoAdmin, web.Bind(forms.DismissReviewForm{}), repo.DismissReview)
