@@ -59,7 +59,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
 	if util.IsEmptyString(form.Title) {
-		ctx.Error(http.StatusBadRequest, "emptyTitle", nil)
+		ctx.APIError(http.StatusBadRequest, nil)
 		return
 	}
 
@@ -71,18 +71,18 @@ func NewWikiPage(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "invalid base64 encoding of content", err)
+		ctx.APIError(http.StatusBadRequest, err)
 		return
 	}
 	form.ContentBase64 = string(content)
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.ContentBase64, form.Message); err != nil {
 		if repo_model.IsErrWikiReservedName(err) {
-			ctx.Error(http.StatusBadRequest, "IsErrWikiReservedName", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if repo_model.IsErrWikiAlreadyExist(err) {
-			ctx.Error(http.StatusBadRequest, "IsErrWikiAlreadyExists", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "AddWikiPage", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -149,13 +149,13 @@ func EditWikiPage(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "invalid base64 encoding of content", err)
+		ctx.APIError(http.StatusBadRequest, err)
 		return
 	}
 	form.ContentBase64 = string(content)
 
 	if err := wiki_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, oldWikiName, newWikiName, form.ContentBase64, form.Message); err != nil {
-		ctx.Error(http.StatusInternalServerError, "EditWikiPage", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -198,7 +198,7 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommitByPath", err)
+		ctx.APIErrorInternal(err)
 		return nil
 	}
 
@@ -246,10 +246,10 @@ func DeleteWikiPage(ctx *context.APIContext) {
 
 	if err := wiki_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName); err != nil {
 		if err.Error() == "file does not exist" {
-			ctx.NotFound(err)
+			ctx.APIErrorNotFound(err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "DeleteWikiPage", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -312,7 +312,7 @@ func ListWikiPages(ctx *context.APIContext) {
 
 	entries, err := commit.ListEntries()
 	if err != nil {
-		ctx.ServerError("ListEntries", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	pages := make([]*api.WikiPageMetaData, 0, len(entries))
@@ -322,7 +322,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
@@ -330,7 +330,7 @@ func ListWikiPages(ctx *context.APIContext) {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
-			ctx.Error(http.StatusInternalServerError, "WikiFilenameToName", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		pages = append(pages, wiki_service.ToWikiPageMetaData(wikiName, c, ctx.Repo.Repository))
@@ -447,7 +447,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 			Page:     page,
 		})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -479,9 +479,9 @@ func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) 
 	wikiRepo, err := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 	if err != nil {
 		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {
-			ctx.NotFound(err)
+			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil, nil
 	}
@@ -489,9 +489,9 @@ func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) 
 	commit, err := wikiRepo.GetBranchCommit("master")
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
+			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+			ctx.APIErrorInternal(err)
 		}
 		return wikiRepo, nil
 	}
@@ -507,7 +507,7 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
 	}
 	content, err := blob.GetBlobContentBase64()
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetBlobContentBase64", err)
+		ctx.APIErrorInternal(err)
 		return ""
 	}
 	return content
@@ -521,10 +521,10 @@ func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName wi
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			if !isSidebarOrFooter {
-				ctx.NotFound()
+				ctx.APIErrorNotFound()
 			}
 		} else {
-			ctx.ServerError("findEntryForFile", err)
+			ctx.APIErrorInternal(err)
 		}
 		return "", ""
 	}

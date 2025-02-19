@@ -56,7 +56,7 @@ func NewActionsUser() *User {
 		Email:                   ActionsUserEmail,
 		KeepEmailPrivate:        true,
 		LoginName:               ActionsUserName,
-		Type:                    UserTypeIndividual,
+		Type:                    UserTypeBot,
 		AllowCreateOrganization: true,
 		Visibility:              structs.VisibleTypePublic,
 	}

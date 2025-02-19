@@ -112,7 +112,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.PathParam("type"))
 	if !util.SliceContainsString(setting.Webhook.Types, hookType, true) {
-		ctx.NotFound("checkHookType", nil)
+		ctx.NotFound(nil)
 		return ""
 	}
 	return hookType
@@ -601,7 +601,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	}
 	if err != nil || w == nil {
 		if webhook.IsErrWebhookNotExist(err) {
-			ctx.NotFound("GetWebhookByID", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetWebhookByID", err)
 		}
@@ -718,7 +718,7 @@ func ReplayWebhook(ctx *context.Context) {
 
 	if err := webhook_service.ReplayHookTask(ctx, w, hookTaskUUID); err != nil {
 		if webhook.IsErrHookTaskNotExist(err) {
-			ctx.NotFound("ReplayHookTask", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("ReplayHookTask", err)
 		}

@@ -52,11 +52,11 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"), opt.Data)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "CreateOrUpdateSecret", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateOrUpdateSecret", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -94,11 +94,11 @@ func DeleteSecret(ctx *context.APIContext) {
 	err := secret_service.DeleteSecretByName(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DeleteSecret", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteSecret", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -145,19 +145,19 @@ func CreateVariable(ctx *context.APIContext) {
 		Name:    variableName,
 	})
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if v != nil && v.ID > 0 {
-		ctx.Error(http.StatusConflict, "VariableNameAlreadyExists", util.NewAlreadyExistErrorf("variable name %s already exists", variableName))
+		ctx.APIError(http.StatusConflict, util.NewAlreadyExistErrorf("variable name %s already exists", variableName))
 		return
 	}
 
 	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "CreateVariable", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -202,9 +202,9 @@ func UpdateVariable(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetVariable", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -212,11 +212,15 @@ func UpdateVariable(ctx *context.APIContext) {
 	if opt.Name == "" {
 		opt.Name = ctx.PathParam("variablename")
 	}
-	if _, err := actions_service.UpdateVariable(ctx, v.ID, opt.Name, opt.Value); err != nil {
+
+	v.Name = opt.Name
+	v.Data = opt.Value
+
+	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "UpdateVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -249,11 +253,11 @@ func DeleteVariable(ctx *context.APIContext) {
 
 	if err := actions_service.DeleteVariableByName(ctx, ctx.Doer.ID, 0, ctx.PathParam("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "DeleteVariableByName", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DeleteVariableByName", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteVariableByName", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -288,9 +292,9 @@ func GetVariable(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetVariable", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -334,7 +338,7 @@ func ListVariables(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindVariables", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

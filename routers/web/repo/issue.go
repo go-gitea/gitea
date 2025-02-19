@@ -91,7 +91,7 @@ func MustAllowUserComment(ctx *context.Context) {
 func MustEnableIssues(ctx *context.Context) {
 	if !ctx.Repo.CanRead(unit.TypeIssues) &&
 		!ctx.Repo.CanRead(unit.TypeExternalTracker) {
-		ctx.NotFound("MustEnableIssues", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -105,7 +105,7 @@ func MustEnableIssues(ctx *context.Context) {
 // MustAllowPulls check if repository enable pull requests and user have right to do that
 func MustAllowPulls(ctx *context.Context) {
 	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
-		ctx.NotFound("MustAllowPulls", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -201,7 +201,7 @@ func GetActionIssue(ctx *context.Context) *issues_model.Issue {
 func checkIssueRights(ctx *context.Context, issue *issues_model.Issue) {
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) ||
 		!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
-		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
+		ctx.NotFound(nil)
 	}
 }
 
@@ -229,11 +229,11 @@ func getActionIssues(ctx *context.Context) issues_model.IssueList {
 	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
 	for _, issue := range issues {
 		if issue.RepoID != ctx.Repo.Repository.ID {
-			ctx.NotFound("some issue's RepoID is incorrect", errors.New("some issue's RepoID is incorrect"))
+			ctx.NotFound(errors.New("some issue's RepoID is incorrect"))
 			return nil
 		}
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
-			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
+			ctx.NotFound(nil)
 			return nil
 		}
 		if err = issue.LoadAttributes(ctx); err != nil {
@@ -249,9 +249,9 @@ func GetIssueInfo(ctx *context.Context) {
 	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
 		}
 		return
 	}
@@ -259,13 +259,13 @@ func GetIssueInfo(ctx *context.Context) {
 	if issue.IsPull {
 		// Need to check if Pulls are enabled and we can read Pulls
 		if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	} else {
 		// Need to check if Issues are enabled and we can read Issues
 		if !ctx.Repo.CanRead(unit.TypeIssues) {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
@@ -284,13 +284,13 @@ func UpdateIssueTitle(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
 	title := ctx.FormTrim("title")
 	if len(title) == 0 {
-		ctx.Error(http.StatusNoContent)
+		ctx.HTTPError(http.StatusNoContent)
 		return
 	}
 
@@ -312,7 +312,7 @@ func UpdateIssueRef(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -336,7 +336,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -382,21 +382,21 @@ func UpdateIssueDeadline(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound("GetIssueByIndex", err)
+			ctx.NotFound(err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
 		}
 		return
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Error(http.StatusForbidden, "", "Not repo writer")
+		ctx.HTTPError(http.StatusForbidden, "", "Not repo writer")
 		return
 	}
 
 	deadlineUnix, _ := common.ParseDeadlineDateToEndOfDay(ctx.FormString("deadline"))
 	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, "UpdateIssueDeadline", err.Error())
 		return
 	}
 
@@ -497,7 +497,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -540,7 +540,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for issue removed: %d/%d", ctx.Repo.Repository.ID, issue.ID)
 	default:
-		ctx.NotFound(fmt.Sprintf("Unknown action %s", ctx.PathParam("action")), nil)
+		ctx.NotFound(nil)
 		return
 	}
 

@@ -55,7 +55,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.CreateIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.FinishIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -153,7 +153,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.CancelStopwatch(ctx, ctx.Doer, issue); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CancelStopwatch", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -164,9 +164,9 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*issues_m
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 
 		return nil, err
@@ -184,10 +184,10 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*issues_m
 
 	if issues_model.StopwatchExists(ctx, ctx.Doer.ID, issue.ID) != shouldExist {
 		if shouldExist {
-			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot stop/cancel a non existent stopwatch")
+			ctx.APIError(http.StatusConflict, "cannot stop/cancel a non existent stopwatch")
 			err = errors.New("cannot stop/cancel a non existent stopwatch")
 		} else {
-			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot start a stopwatch again if it already exists")
+			ctx.APIError(http.StatusConflict, "cannot start a stopwatch again if it already exists")
 			err = errors.New("cannot start a stopwatch again if it already exists")
 		}
 		return nil, err
@@ -220,19 +220,19 @@ func GetStopwatches(ctx *context.APIContext) {
 
 	sws, err := issues_model.GetUserStopwatches(ctx, ctx.Doer.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserStopwatches", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	count, err := issues_model.CountUserStopwatches(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	apiSWs, err := convert.ToStopWatches(ctx, sws)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "APIFormat", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

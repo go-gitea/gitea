@@ -42,7 +42,7 @@ type blameRow struct {
 func RefBlame(ctx *context.Context) {
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
-		ctx.NotFound("Blame FileName", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -108,7 +108,7 @@ func RefBlame(ctx *context.Context) {
 
 	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
 	if err != nil {
-		ctx.NotFound("GetBlobLineCount", err)
+		ctx.NotFound(err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func RefBlame(ctx *context.Context) {
 
 	result, err := performBlame(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Commit, fileName, bypassBlameIgnore)
 	if err != nil {
-		ctx.NotFound("CreateBlameReader", err)
+		ctx.NotFound(err)
 		return
 	}
 
@@ -230,7 +230,7 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 			commit, err = ctx.Repo.GitRepo.GetCommit(sha)
 			if err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("Repo.GitRepo.GetCommit", err)
+					ctx.NotFound(err)
 				} else {
 					ctx.ServerError("Repo.GitRepo.GetCommit", err)
 				}
@@ -243,7 +243,12 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 	}
 
 	// populate commit email addresses to later look up avatars.
-	for _, c := range user_model.ValidateCommitsWithEmails(ctx, commits) {
+	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	if err != nil {
+		ctx.ServerError("ValidateCommitsWithEmails", err)
+		return nil
+	}
+	for _, c := range validatedCommits {
 		commitNames[c.ID.String()] = c
 	}
 

@@ -47,14 +47,14 @@ const (
 // MustBeNotEmpty render when a repo is a empty git dir
 func MustBeNotEmpty(ctx *context.Context) {
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.NotFound("MustBeNotEmpty", nil)
+		ctx.NotFound(nil)
 	}
 }
 
 // MustBeEditable check that repo can be edited
 func MustBeEditable(ctx *context.Context) {
 	if !ctx.Repo.Repository.CanEnableEditor() {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 }
@@ -62,7 +62,7 @@ func MustBeEditable(ctx *context.Context) {
 // MustBeAbleToUpload check that repo can be uploaded to
 func MustBeAbleToUpload(ctx *context.Context) {
 	if !setting.Repository.Upload.Enabled {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 	}
 }
 
@@ -118,7 +118,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 
 	// Check ownership of organization.
 	if !org.IsOrganization() {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return nil
 	}
 	if !ctx.Doer.IsAdmin {
@@ -127,7 +127,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
 		} else if !canCreate {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return nil
 		}
 	} else {
@@ -310,7 +310,7 @@ func handleActionError(ctx *context.Context, err error) {
 	if errors.Is(err, user_model.ErrBlockedUser) {
 		ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
 	} else if errors.Is(err, util.ErrPermissionDenied) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 	} else {
 		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 	}
@@ -337,7 +337,7 @@ func RedirectDownload(ctx *context.Context) {
 		release := releases[0]
 		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if att != nil {
@@ -349,12 +349,12 @@ func RedirectDownload(ctx *context.Context) {
 		// We only fetch the latest release if the tag is "latest" and no release with the tag "latest" exists
 		release, err := repo_model.GetLatestReleaseByRepoID(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if att != nil {
@@ -362,7 +362,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 	}
-	ctx.Error(http.StatusNotFound)
+	ctx.HTTPError(http.StatusNotFound)
 }
 
 // Download an archive of a repository
@@ -370,9 +370,9 @@ func Download(ctx *context.Context) {
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
-			ctx.Error(http.StatusBadRequest, err.Error())
+			ctx.HTTPError(http.StatusBadRequest, err.Error())
 		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
-			ctx.Error(http.StatusNotFound, err.Error())
+			ctx.HTTPError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.ServerError("archiver_service.NewRequest", err)
 		}
@@ -427,11 +427,11 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 func InitiateDownload(ctx *context.Context) {
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "invalid archive request")
+		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")
 		return
 	}
 	if aReq == nil {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -503,7 +503,7 @@ func SearchRepo(ctx *context.Context) {
 		opts.Collaborate = optional.Some(true)
 	case "":
 	default:
-		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid search mode: \"%s\"", mode))
+		ctx.HTTPError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid search mode: \"%s\"", mode))
 		return
 	}
 
@@ -525,11 +525,11 @@ func SearchRepo(ctx *context.Context) {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {
-				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort mode: \"%s\"", sortMode))
+				ctx.HTTPError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort mode: \"%s\"", sortMode))
 				return
 			}
 		} else {
-			ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort order: \"%s\"", sortOrder))
+			ctx.HTTPError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort order: \"%s\"", sortOrder))
 			return
 		}
 	}

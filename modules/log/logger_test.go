@@ -116,6 +116,14 @@ func (t testLogString) LogString() string {
 	return "log-string"
 }
 
+type testLogStringPtrReceiver struct {
+	Field string
+}
+
+func (t *testLogStringPtrReceiver) LogString() string {
+	return "log-string-ptr-receiver"
+}
+
 func TestLoggerLogString(t *testing.T) {
 	logger := NewLoggerWithWriters(context.Background(), "test")
 
@@ -124,9 +132,13 @@ func TestLoggerLogString(t *testing.T) {
 	logger.AddWriters(w1)
 
 	logger.Info("%s %s %#v %v", testLogString{}, &testLogString{}, testLogString{Field: "detail"}, NewColoredValue(testLogString{}, FgRed))
+	logger.Info("%s %s %#v %v", testLogStringPtrReceiver{}, &testLogStringPtrReceiver{}, testLogStringPtrReceiver{Field: "detail"}, NewColoredValue(testLogStringPtrReceiver{}, FgRed))
 	logger.Close()
 
-	assert.Equal(t, []string{"log-string log-string log.testLogString{Field:\"detail\"} \x1b[31mlog-string\x1b[0m\n"}, w1.GetLogs())
+	assert.Equal(t, []string{
+		"log-string log-string log.testLogString{Field:\"detail\"} \x1b[31mlog-string\x1b[0m\n",
+		"log-string-ptr-receiver log-string-ptr-receiver &log.testLogStringPtrReceiver{Field:\"detail\"} \x1b[31mlog-string-ptr-receiver\x1b[0m\n",
+	}, w1.GetLogs())
 }
 
 func TestLoggerExpressionFilter(t *testing.T) {
