@@ -200,10 +200,7 @@ func (l *LoggerImpl) Log(skip int, level Level, format string, logArgs ...any) {
 		event.Stacktrace = Stack(skip + 1)
 	}
 
-	labels := getGoroutineLabels()
-	if labels != nil {
-		event.GoroutinePid = labels["pid"]
-	}
+	event.GoroutinePid = "no-gopid"
 
 	// get a simple text message without color
 	msgArgs := make([]any, len(logArgs))
