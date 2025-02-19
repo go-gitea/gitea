@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -274,7 +273,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			err := api.APIError{}
 			DecodeJSON(t, resp, &err)
 			assert.EqualValues(t, "Please try again later", err.Message)
-			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+			queue.GetManager().FlushAll(t.Context(), 5*time.Second)
 			<-time.After(1 * time.Second)
 		}
 

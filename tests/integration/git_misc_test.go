@@ -5,7 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/url"
 	"sync"
@@ -91,7 +90,7 @@ func TestAgitPullPush(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(context.Background(), dstPath)
+		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 

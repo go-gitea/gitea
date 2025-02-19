@@ -4,7 +4,6 @@
 package issues
 
 import (
-	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -83,7 +82,7 @@ func searchIssueWithKeyword(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -118,7 +117,7 @@ func searchIssueByIndex(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -162,7 +161,7 @@ func searchIssueInRepo(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -232,7 +231,7 @@ func searchIssueByID(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -257,7 +256,7 @@ func searchIssueIsPull(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -282,7 +281,7 @@ func searchIssueIsClosed(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -307,7 +306,7 @@ func searchIssueIsArchived(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -332,7 +331,7 @@ func searchIssueByMilestoneID(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -363,7 +362,7 @@ func searchIssueByLabelID(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -382,7 +381,7 @@ func searchIssueByTime(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -401,7 +400,7 @@ func searchIssueWithOrder(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -432,7 +431,7 @@ func searchIssueInProject(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -455,7 +454,7 @@ func searchIssueWithPaginator(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, total, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, total, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 		assert.Equal(t, test.expectedTotal, total)
