@@ -255,7 +255,7 @@ fmt-check: fmt
 	@diff=$$(git diff --color=always $(GO_SOURCES) templates $(WEB_DIRS)); \
 	if [ -n "$$diff" ]; then \
 	  echo "Please run 'make fmt' and commit the result:"; \
-	  echo "$${diff}"; \
+	  printf "%s" "$${diff}"; \
 	  exit 1; \
 	fi
 
@@ -281,7 +281,7 @@ swagger-check: generate-swagger
 	@diff=$$(git diff --color=always '$(SWAGGER_SPEC)'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-swagger' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
@@ -426,7 +426,7 @@ test-check:
 	@diff=$$(git status -s); \
 	if [ -n "$$diff" ]; then \
 		echo "make test-backend has changed files in the source tree:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		echo "You should change the tests to create these files in a temporary directory."; \
 		echo "Do not simply add these files to .gitignore"; \
 		exit 1; \
@@ -879,7 +879,7 @@ svg-check: svg
 	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
@@ -890,7 +890,7 @@ lockfile-check:
 	if [ -n "$$diff" ]; then \
 		echo "package-lock.json is inconsistent with package.json"; \
 		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
