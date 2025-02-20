@@ -558,8 +558,8 @@ github.com/mattn/go-shellwords v1.0.12 h1:M2zGm7EW6UQJvDeQxo4T51eKPurbeFbe8WtebG
 github.com/mattn/go-shellwords v1.0.12/go.mod h1:EZzvwXDESEeg03EKmM+RmDnNOPKG4lLtQsUlTZDWQ8Y=
 github.com/mattn/go-sqlite3 v1.14.24 h1:tpSp2G2KyMnnQu99ngJ47EIkWVmliIizyZBfPrBWDRM=
 github.com/mattn/go-sqlite3 v1.14.24/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
-github.com/meilisearch/meilisearch-go v0.31.0 h1:yZRhY1qJqdH8h6GFZALGtkDLyj8f9v5aJpsNMyrUmnY=
-github.com/meilisearch/meilisearch-go v0.31.0/go.mod h1:aNtyuwurDg/ggxQIcKqWH6G9g2ptc8GyY7PLY4zMn/g=
+github.com/meilisearch/meilisearch-go v0.29.1-0.20241106140435-0bf60fad690a h1:F0y+3QtCG00mr4KueQWuHv1tlIQeNXhH+XAKYLhb3X4=
+github.com/meilisearch/meilisearch-go v0.29.1-0.20241106140435-0bf60fad690a/go.mod h1:NYOgjEGt/+oExD+NixreBMqxtIB0kCndXOOgpGhoqEs=
 github.com/mholt/acmez/v3 v3.0.1 h1:4PcjKjaySlgXK857aTfDuRbmnM5gb3Ruz3tvoSJAUp8=
 github.com/mholt/acmez/v3 v3.0.1/go.mod h1:L1wOU06KKvq7tswuMDwKdcHeKpFFgkppZy/y0DFxagQ=
 github.com/microcosm-cc/bluemonday v1.0.27 h1:MpEUotklkwCSLeH+Qdx1VJgNqLlpY2KXwXFM08ygZfk=
