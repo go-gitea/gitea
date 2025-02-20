@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -347,7 +346,7 @@ func TestGetCommitFileStatusMerges(t *testing.T) {
 
 func Test_GetCommitBranchStart(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(context.Background(), bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 	commit, err := repo.GetBranchCommit("branch1")

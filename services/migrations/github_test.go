@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
@@ -21,7 +20,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	if token == "" {
 		t.Skip("Skipping GitHub migration test because GITHUB_READ_TOKEN is empty")
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	downloader := NewGithubDownloaderV3(ctx, "https://github.com", "", "", token, "go-gitea", "test_repo")
 	err := downloader.RefreshRate(ctx)
 	assert.NoError(t, err)

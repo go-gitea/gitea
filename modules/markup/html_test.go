@@ -522,7 +522,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 		data += data
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		var res strings.Builder
 		err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 		assert.NoError(b, err)

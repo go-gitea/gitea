@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -550,7 +549,7 @@ func Test_WebhookStatus(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-		gitRepo1, err := gitrepo.OpenRepository(context.Background(), repo1)
+		gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 		assert.NoError(t, err)
