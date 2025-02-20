@@ -182,7 +182,7 @@ textarea:focus,
     height: 76px !important;
   }
   .m-captcha-style {
-    width: 50%;
+    max-width: 450px;
   }
 }
 
