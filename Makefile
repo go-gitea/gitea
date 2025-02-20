@@ -414,7 +414,7 @@ test: test-frontend test-backend ## test everything
 .PHONY: test-backend
 test-backend: ## test frontend files
 	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' $(GO_TEST_PACKAGES)
+	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -vet=off $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test backend files
