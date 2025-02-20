@@ -19,12 +19,12 @@ linters:
     - revive
     - staticcheck
     - stylecheck
-    - tenv
     - testifylint
     - typecheck
     - unconvert
     - unused
     - unparam
+    - usetesting
     - wastedassign
 
 run:
