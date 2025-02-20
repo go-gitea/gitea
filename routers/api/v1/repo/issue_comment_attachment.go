@@ -109,7 +109,7 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 	}
 
 	if err := comment.LoadAttachments(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -179,7 +179,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	// Get uploaded file from request
 	file, header, err := ctx.Req.FormFile("attachment")
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	defer file.Close()
@@ -200,13 +200,13 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err := comment.LoadAttachments(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -282,7 +282,7 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, attach)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
@@ -331,7 +331,7 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 	}
 
 	if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -340,11 +340,11 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 func getIssueCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)
+		ctx.NotFoundOrServerError(err)
 		return nil
 	}
 	if err := comment.LoadIssue(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil
 	}
 	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.ID {
@@ -385,7 +385,7 @@ func canUserWriteIssueCommentAttachment(ctx *context.APIContext, comment *issues
 func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *issues_model.Comment) *repo_model.Attachment {
 	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.PathParamInt64("attachment_id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetAttachmentByID", repo_model.IsErrAttachmentNotExist, err)
+		ctx.NotFoundOrServerError(err)
 		return nil
 	}
 	if !attachmentBelongsToRepoOrComment(ctx, attachment, comment) {
