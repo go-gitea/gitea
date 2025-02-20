@@ -29,7 +29,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	}
 
 	if len(branches) == 0 {
-		graphCmd.AddArguments("--all")
+		graphCmd.AddArguments("--tags", "--branches")
 	}
 
 	graphCmd.AddArguments("-C", "-M", "--date=iso-strict").
