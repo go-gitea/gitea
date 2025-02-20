@@ -370,6 +370,7 @@ lint-go-windows:
 .PHONY: lint-go-vet
 lint-go-vet: ## lint go files with vet
 	@echo "Running go vet..."
+	@$(GO) vet ./...
 	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet ./...
 
