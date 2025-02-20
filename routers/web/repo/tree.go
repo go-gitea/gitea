@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/base"
@@ -58,7 +59,7 @@ func Tree(ctx *context.Context) {
 	recursive := ctx.FormBool("recursive")
 
 	if ctx.Repo.RefFullName == "" {
-		ctx.Error(http.StatusBadRequest, "RefFullName", "ref_name is invalid")
+		ctx.ServerError("RefFullName", errors.New("ref_name is invalid"))
 		return
 	}
 

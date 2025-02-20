@@ -25,7 +25,7 @@ const doLoadChildren = async () => {
   collapsed.value = !collapsed.value;
   if (!collapsed.value && props.loadChildren) {
     isLoading.value = true;
-    const _children = await props.loadChildren(props.item);
+    const _children = await props.loadChildren(props.item.path);
     children.value = _children;
     isLoading.value = false;
   }
@@ -33,11 +33,11 @@ const doLoadChildren = async () => {
 
 const doLoadDirContent = () => {
   doLoadChildren();
-  props.loadContent(props.item);
+  props.loadContent(props.item.path);
 };
 
 const doLoadFileContent = () => {
-  props.loadContent(props.item);
+  props.loadContent(props.item.path);
 };
 
 const doGotoSubModule = () => {

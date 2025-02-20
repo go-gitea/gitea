@@ -10,7 +10,7 @@ import {initTargetPdfViewer} from '../render/pdf.ts';
 import {initTargetButtons} from './common-button.ts';
 import {initTargetCopyContent} from './copycontent.ts';
 
-async function toggleSidebar(visibility, isSigned) {
+async function toggleSidebar(visibility: boolean, isSigned: boolean) {
   const sidebarEl = document.querySelector('.repo-view-file-tree-sidebar');
   const showBtnEl = document.querySelector('.show-tree-sidebar-button');
   const containerClassList = sidebarEl.parentElement.classList;
@@ -29,11 +29,11 @@ async function toggleSidebar(visibility, isSigned) {
   });
 }
 
-async function loadChildren(item, recursive?: boolean) {
+async function loadChildren(path: string, recursive?: boolean) {
   const fileTree = document.querySelector('#view-file-tree');
   const apiBaseUrl = fileTree.getAttribute('data-api-base-url');
   const refTypeNameSubURL = fileTree.getAttribute('data-current-ref-type-name-sub-url');
-  const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${item ? item.path : ''}?recursive=${recursive ?? false}`);
+  const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${path ?? ''}?recursive=${recursive ?? false}`);
   const json = await response.json();
   if (json instanceof Array) {
     return json.map((i) => ({
@@ -90,12 +90,12 @@ export async function initViewFileTreeSidebar() {
 
   const selectedItem = ref(treePath);
 
-  const files = await loadChildren({path: treePath}, true);
+  const files = await loadChildren(treePath, true);
 
   fileTree.classList.remove('is-loading');
-  const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (item) => {
-    window.history.pushState(null, null, `${baseUrl}/src${refString}/${item.path}`);
-    selectedItem.value = item.path;
+  const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (path: string) => {
+    window.history.pushState(null, null, `${baseUrl}/src${refString}/${path}`);
+    selectedItem.value = path;
     loadContent();
   }});
   fileTreeView.mount(fileTree);
@@ -106,7 +106,7 @@ export async function initViewFileTreeSidebar() {
   });
 }
 
-function extractPath(url) {
+function extractPath(url: string) {
   // Create a URL object
   const urlObj = new URL(url);
 
