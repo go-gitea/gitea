@@ -20,7 +20,6 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/stretchr/testify/assert"
@@ -43,10 +42,7 @@ func TestDumpRestore(t *testing.T) {
 
 		reponame := "repo1"
 
-		basePath, err := os.MkdirTemp("", reponame)
-		assert.NoError(t, err)
-		defer util.RemoveAll(basePath)
-
+		basePath := t.TempDir()
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 		session := loginUser(t, repoOwner.Name)
@@ -68,7 +64,7 @@ func TestDumpRestore(t *testing.T) {
 			CloneAddr:      repo.CloneLinkGeneral(t.Context()).HTTPS,
 			RepoName:       reponame,
 		}
-		err = migrations.DumpRepository(ctx, basePath, repoOwner.Name, opts)
+		err := migrations.DumpRepository(ctx, basePath, repoOwner.Name, opts)
 		assert.NoError(t, err)
 
 		//
