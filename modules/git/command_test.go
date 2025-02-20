@@ -4,20 +4,19 @@
 package git
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRunWithContextStd(t *testing.T) {
-	cmd := NewCommand(context.Background(), "--version")
+	cmd := NewCommand(t.Context(), "--version")
 	stdout, stderr, err := cmd.RunStdString(&RunOpts{})
 	assert.NoError(t, err)
 	assert.Empty(t, stderr)
 	assert.Contains(t, stdout, "git version")
 
-	cmd = NewCommand(context.Background(), "--no-such-arg")
+	cmd = NewCommand(t.Context(), "--no-such-arg")
 	stdout, stderr, err = cmd.RunStdString(&RunOpts{})
 	if assert.Error(t, err) {
 		assert.Equal(t, stderr, err.Stderr())
@@ -26,16 +25,16 @@ func TestRunWithContextStd(t *testing.T) {
 		assert.Empty(t, stdout)
 	}
 
-	cmd = NewCommand(context.Background())
+	cmd = NewCommand(t.Context())
 	cmd.AddDynamicArguments("-test")
 	assert.ErrorIs(t, cmd.Run(&RunOpts{}), ErrBrokenCommand)
 
-	cmd = NewCommand(context.Background())
+	cmd = NewCommand(t.Context())
 	cmd.AddDynamicArguments("--test")
 	assert.ErrorIs(t, cmd.Run(&RunOpts{}), ErrBrokenCommand)
 
 	subCmd := "version"
-	cmd = NewCommand(context.Background()).AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
+	cmd = NewCommand(t.Context()).AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
 	stdout, stderr, err = cmd.RunStdString(&RunOpts{})
 	assert.NoError(t, err)
 	assert.Empty(t, stderr)
@@ -54,9 +53,9 @@ func TestGitArgument(t *testing.T) {
 }
 
 func TestCommandString(t *testing.T) {
-	cmd := NewCommandContextNoGlobals(context.Background(), "a", "-m msg", "it's a test", `say "hello"`)
+	cmd := NewCommandContextNoGlobals(t.Context(), "a", "-m msg", "it's a test", `say "hello"`)
 	assert.EqualValues(t, cmd.prog+` a "-m msg" "it's a test" "say \"hello\""`, cmd.LogString())
 
-	cmd = NewCommandContextNoGlobals(context.Background(), "url: https://a:b@c/", "/root/dir-a/dir-b")
+	cmd = NewCommandContextNoGlobals(t.Context(), "url: https://a:b@c/", "/root/dir-a/dir-b")
 	assert.EqualValues(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
 }

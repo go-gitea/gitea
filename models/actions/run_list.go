@@ -10,6 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/translation"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"xorm.io/builder"
@@ -112,14 +113,14 @@ type StatusInfo struct {
 }
 
 // GetStatusInfoList returns a slice of StatusInfo
-func GetStatusInfoList(ctx context.Context) []StatusInfo {
+func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInfo {
 	// same as those in aggregateJobStatus
 	allStatus := []Status{StatusSuccess, StatusFailure, StatusWaiting, StatusRunning}
 	statusInfoList := make([]StatusInfo, 0, 4)
 	for _, s := range allStatus {
 		statusInfoList = append(statusInfoList, StatusInfo{
 			Status:          int(s),
-			DisplayedStatus: s.String(),
+			DisplayedStatus: s.LocaleString(lang),
 		})
 	}
 	return statusInfoList

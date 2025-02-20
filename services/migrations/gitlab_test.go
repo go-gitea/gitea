@@ -4,7 +4,6 @@
 package migrations
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -31,7 +30,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	downloader, err := NewGitlabDownloader(ctx, "https://gitlab.com", "gitea/test_repo", "", "", gitlabPersonalAccessToken)
 	if err != nil {
 		t.Fatalf("NewGitlabDownloader is nil: %v", err)
@@ -423,7 +422,7 @@ func TestGitlabGetReviews(t *testing.T) {
 	defer gitlabClientMockTeardown(server)
 
 	repoID := 1324
-	ctx := context.Background()
+	ctx := t.Context()
 	downloader := &GitlabDownloader{
 		client: client,
 		repoID: repoID,

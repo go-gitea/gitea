@@ -65,18 +65,18 @@ func ListPullReviews(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err = pr.LoadIssue(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if err = pr.Issue.LoadRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -99,7 +99,7 @@ func ListPullReviews(ctx *context.APIContext) {
 
 	apiReviews, err := convert.ToPullReviewList(ctx, allReviews, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -150,7 +150,7 @@ func GetPullReview(ctx *context.APIContext) {
 
 	apiReview, err := convert.ToPullReview(ctx, review, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -200,7 +200,7 @@ func GetPullReviewComments(ctx *context.APIContext) {
 
 	apiComments, err := convert.ToPullReviewCommentList(ctx, review, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -260,7 +260,7 @@ func DeletePullReview(ctx *context.APIContext) {
 	}
 
 	if err := issues_model.DeleteReview(ctx, review); err != nil {
-		ctx.APIError(http.StatusInternalServerError, fmt.Errorf("can not delete ReviewID: %d", review.ID))
+		ctx.APIErrorInternal(fmt.Errorf("can not delete ReviewID: %d", review.ID))
 		return
 	}
 
@@ -310,7 +310,7 @@ func CreatePullReview(ctx *context.APIContext) {
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -322,7 +322,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	}
 
 	if err := pr.Issue.LoadRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -330,14 +330,14 @@ func CreatePullReview(ctx *context.APIContext) {
 	if opts.CommitID == "" {
 		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.Issue.Repo)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		defer closer.Close()
 
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 
@@ -363,7 +363,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			opts.CommitID,
 			nil,
 		); err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -374,7 +374,7 @@ func CreatePullReview(ctx *context.APIContext) {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -382,7 +382,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	// convert response
 	apiReview, err := convert.ToPullReview(ctx, review, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiReview)
@@ -456,7 +456,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 
 	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pr.GetGitRefName())
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -466,7 +466,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 		if errors.Is(err, pull_service.ErrSubmitReviewOnClosedPR) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -474,7 +474,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	// convert response
 	apiReview, err := convert.ToPullReview(ctx, review, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiReview)
@@ -483,7 +483,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 // preparePullReviewType return ReviewType and false or nil and true if an error happen
 func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest, event api.ReviewStateType, body string, hasComments bool) (issues_model.ReviewType, bool) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return -1, true
 	}
 
@@ -537,7 +537,7 @@ func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil, nil, true
 	}
@@ -547,7 +547,7 @@ func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues
 		if issues_model.IsErrReviewNotExist(err) {
 			ctx.APIErrorNotFound("GetReviewByID", err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil, nil, true
 	}
@@ -565,7 +565,7 @@ func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues
 	}
 
 	if err := review.LoadAttributes(ctx); err != nil && !user_model.IsErrUserNotExist(err) {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return nil, nil, true
 	}
 
@@ -776,19 +776,19 @@ func deleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpt
 		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.APIErrorNotFound("GetPullRequestByIndex", err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err := pr.Issue.LoadRepo(ctx); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	permDoer, err := access_model.GetUserRepoPermission(ctx, pr.Issue.Repo, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -816,7 +816,7 @@ func deleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpt
 				ctx.APIError(http.StatusUnprocessableEntity, err)
 				return
 			}
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -953,19 +953,19 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors
 			ctx.APIError(http.StatusForbidden, err)
 			return
 		}
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if review, err = issues_model.GetReviewByID(ctx, review.ID); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	// convert response
 	apiReview, err := convert.ToPullReview(ctx, review, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiReview)

@@ -4,7 +4,6 @@
 package migrations
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"sort"
@@ -28,7 +27,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't reach https://gitea.com, skipping %s", t.Name())
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	downloader, err := NewGiteaDownloader(ctx, "https://gitea.com", "gitea/test_repo", "", "", giteaToken)
 	require.NoError(t, err, "NewGiteaDownloader error occur")
 	require.NotNil(t, downloader, "NewGiteaDownloader is nil")

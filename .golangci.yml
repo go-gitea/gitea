@@ -19,12 +19,12 @@ linters:
     - revive
     - staticcheck
     - stylecheck
-    - tenv
     - testifylint
     - typecheck
     - unconvert
     - unused
     - unparam
+    - usetesting
     - wastedassign
 
 run:
@@ -102,6 +102,8 @@ linters-settings:
             desc: do not use the ini package, use gitea's config system instead
           - pkg: gitea.com/go-chi/cache
             desc: do not use the go-chi cache package, use gitea's cache system
+  usetesting:
+    os-temp-dir: true
 
 issues:
   max-issues-per-linter: 0
