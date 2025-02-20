@@ -485,6 +485,36 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Use -s -w ldflags for release artifacts (#33041) #33042
   * Remove aws go sdk package dependency (#33029) #33047
 
+## [1.22.6](https://github.com/go-gitea/gitea/releases/tag/v1.22.6) - 2024-12-12
+
+* SECURITY
+  * Fix misuse of PublicKeyCallback(#32810)
+* BUGFIXES
+  * Fix lfs migration (#32812) (#32818)
+  * Add missing two sync feed for refs/pull (#32815)
+* TESTING
+  * Avoid MacOS keychain dialog in integration tests (#32813) (#32816)
+
+## [1.22.5](https://github.com/go-gitea/gitea/releases/tag/v1.22.5) - 2024-12-11
+
+* SECURITY
+  * Upgrade crypto library (#32791)
+  * Fix delete branch perm checking (#32654) (#32707)
+* BUGFIXES
+  * Add standard-compliant route to serve outdated R packages (#32783) (#32789)
+  * Fix internal server error when updating labels without write permission (#32776) (#32785)
+  * Add Swift login endpoint (#32693) (#32701)
+  * Fix fork page branch selection (#32711) (#32725)
+  * Fix word overflow in file search page (#32695) (#32699)
+  * Fix gogit `GetRefCommitID` (#32705) (#32712)
+  * Fix race condition in mermaid observer (#32599) (#32673)
+  * Fixe a keystring misuse and refactor duplicates keystrings (#32668) (#32792)
+  * Bump relative-time-element to v4.4.4 (#32739)
+* PERFORMANCE
+  * Make wiki pages visit fast (#32732) (#32745)
+* MISC
+  * Don't create action when syncing mirror pull refs (#32659) (#32664)
+
 ## [1.22.4](https://github.com/go-gitea/gitea/releases/tag/v1.22.4) - 2024-11-14
 
 * SECURITY
