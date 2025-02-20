@@ -4,7 +4,6 @@
 package markup
 
 import (
-	"context"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestResolveLinkRelative(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	setting.AppURL = "http://localhost:3000"
 	assert.Equal(t, "/a", resolveLinkRelative(ctx, "/a", "", "", false))
 	assert.Equal(t, "/a/b", resolveLinkRelative(ctx, "/a", "b", "", false))

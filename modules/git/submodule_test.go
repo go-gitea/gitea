@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,7 +27,7 @@ func TestGetTemplateSubmoduleCommits(t *testing.T) {
 }
 
 func TestAddTemplateSubmoduleIndexes(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	tmpDir := t.TempDir()
 	var err error
 	_, _, err = NewCommand(ctx, "init").RunStdString(&RunOpts{Dir: tmpDir})

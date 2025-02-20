@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -57,7 +56,7 @@ func TestDumpRestore(t *testing.T) {
 		// Phase 1: dump repo1 from the Gitea instance to the filesystem
 		//
 
-		ctx := context.Background()
+		ctx := t.Context()
 		opts := migrations.MigrateOptions{
 			GitServiceType: structs.GiteaService,
 			Issues:         true,
@@ -66,7 +65,7 @@ func TestDumpRestore(t *testing.T) {
 			Milestones:     true,
 			Comments:       true,
 			AuthToken:      token,
-			CloneAddr:      repo.CloneLinkGeneral(context.Background()).HTTPS,
+			CloneAddr:      repo.CloneLinkGeneral(t.Context()).HTTPS,
 			RepoName:       reponame,
 		}
 		err = migrations.DumpRepository(ctx, basePath, repoOwner.Name, opts)
@@ -96,7 +95,7 @@ func TestDumpRestore(t *testing.T) {
 		// Phase 3: dump restored from the Gitea instance to the filesystem
 		//
 		opts.RepoName = newreponame
-		opts.CloneAddr = newrepo.CloneLinkGeneral(context.Background()).HTTPS
+		opts.CloneAddr = newrepo.CloneLinkGeneral(t.Context()).HTTPS
 		err = migrations.DumpRepository(ctx, basePath, repoOwner.Name, opts)
 		assert.NoError(t, err)
 
