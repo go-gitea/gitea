@@ -165,10 +165,8 @@ ifdef DEPS_PLAYWRIGHT
 endif
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
-SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape}}/api/v1"|g
-SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape}}/api/v1"|"basePath": "/api/v1"|g
+SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
 SWAGGER_EXCLUDE := code.gitea.io/sdk
-SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
@@ -271,10 +269,8 @@ endif
 .PHONY: generate-swagger
 generate-swagger: $(SWAGGER_SPEC) ## generate the swagger spec from code comments
 
-$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
-	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
+$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA) $(SWAGGER_SPEC_INPUT)
+	$(GO) run $(SWAGGER_PACKAGE) generate spec --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)'
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
@@ -287,9 +283,11 @@ swagger-check: generate-swagger
 
 .PHONY: swagger-validate
 swagger-validate: ## check if the swagger spec is valid
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
+	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
+	@$(SED_INPLACE) -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
+	@# FIXME: there are some warnings
 	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
+	@$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)' # remove the prefix slash from basePath
 
 .PHONY: checks
 checks: checks-frontend checks-backend ## run various consistency checks
@@ -380,6 +378,7 @@ lint-go-gopls: ## lint go files with gopls
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
+	@echo "Running editorconfig check..."
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
 .PHONY: lint-actions
