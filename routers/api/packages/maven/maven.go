@@ -109,7 +109,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 		return pds[i].Version.CreatedUnix < pds[j].Version.CreatedUnix
 	})
 
-	xmlMetadata, err := xml.Marshal(createMetadataResponse(pds))
+	xmlMetadata, err := xml.Marshal(createMetadataResponse(pds, params.GroupID, params.ArtifactID))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
