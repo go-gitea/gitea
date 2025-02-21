@@ -14,6 +14,7 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToRepo converts a Repository to api.Repository
@@ -33,7 +34,9 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		permissionInRepo.SetUnitsWithDefaultAccessMode(repo.Units, permissionInRepo.AccessMode)
 	}
 
-	cloneLink := repo.CloneLink()
+	// TODO: ideally we should pass "doer" into "ToRepo" to to make CloneLink could generate user-related links
+	// And passing "doer" in will also fix other FIXMEs in this file.
+	cloneLink := repo.CloneLinkGeneral(ctx) // no doer at the moment
 	permission := &api.Permission{
 		Admin: permissionInRepo.AccessMode >= perm.AccessModeAdmin,
 		Push:  permissionInRepo.UnitAccessMode(unit_model.TypeCode) >= perm.AccessModeWrite,
@@ -240,7 +243,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
-		Topics:                        repo.Topics,
+		Topics:                        util.SliceNilAsEmpty(repo.Topics),
 		ObjectFormatName:              repo.ObjectFormatName,
 		Licenses:                      repoLicenses.StringList(),
 	}

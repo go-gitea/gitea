@@ -260,7 +260,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			ci.HeadUser, err = user_model.GetUserByName(ctx, headInfos[0])
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
-					ctx.NotFound("GetUserByName", nil)
+					ctx.NotFound(nil)
 				} else {
 					ctx.ServerError("GetUserByName", err)
 				}
@@ -275,7 +275,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
-					ctx.NotFound("GetRepositoryByOwnerAndName", nil)
+					ctx.NotFound(nil)
 				} else {
 					ctx.ServerError("GetRepositoryByOwnerAndName", err)
 				}
@@ -283,7 +283,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			}
 			if err := ci.HeadRepo.LoadOwner(ctx); err != nil {
 				if user_model.IsErrUserNotExist(err) {
-					ctx.NotFound("GetUserByName", nil)
+					ctx.NotFound(nil)
 				} else {
 					ctx.ServerError("GetUserByName", err)
 				}
@@ -294,7 +294,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			isSameRepo = ci.HeadRepo.ID == ctx.Repo.Repository.ID
 		}
 	} else {
-		ctx.NotFound("CompareAndPullRequest", nil)
+		ctx.NotFound(nil)
 		return nil
 	}
 	ctx.Data["HeadUser"] = ci.HeadUser
@@ -320,7 +320,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			}
 			return nil
 		} else {
-			ctx.NotFound("IsRefExist", nil)
+			ctx.NotFound(nil)
 			return nil
 		}
 	}
@@ -410,7 +410,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		}
 		defer ci.HeadGitRepo.Close()
 	} else {
-		ctx.NotFound("ParseCompareInfo", nil)
+		ctx.NotFound(nil)
 		return nil
 	}
 
@@ -432,7 +432,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				baseRepo,
 				permBase)
 		}
-		ctx.NotFound("ParseCompareInfo", nil)
+		ctx.NotFound(nil)
 		return nil
 	}
 
@@ -451,7 +451,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 					ci.HeadRepo,
 					permHead)
 			}
-			ctx.NotFound("ParseCompareInfo", nil)
+			ctx.NotFound(nil)
 			return nil
 		}
 		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
@@ -515,7 +515,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			ctx.Data["HeadBranch"] = ci.HeadBranch
 			headIsCommit = true
 		} else {
-			ctx.NotFound("IsRefExist", nil)
+			ctx.NotFound(nil)
 			return nil
 		}
 	}
@@ -535,7 +535,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				baseRepo,
 				permBase)
 		}
-		ctx.NotFound("ParseCompareInfo", nil)
+		ctx.NotFound(nil)
 		return nil
 	}
 
@@ -649,7 +649,11 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := processGitCommits(ctx, ci.CompareInfo.Commits)
+	commits, err := processGitCommits(ctx, ci.CompareInfo.Commits)
+	if err != nil {
+		ctx.ServerError("processGitCommits", err)
+		return false
+	}
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
@@ -666,7 +670,7 @@ func PrepareCompareDiff(
 	}
 	if len(title) > 255 {
 		var trailer string
-		title, trailer = util.SplitStringAtByteN(title, 255)
+		title, trailer = util.EllipsisDisplayStringX(title, 255)
 		if len(trailer) > 0 {
 			if ctx.Data["content"] != nil {
 				ctx.Data["content"] = fmt.Sprintf("%s\n\n%s", trailer, ctx.Data["content"])
@@ -870,7 +874,7 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.Data["PageIsPullFiles"] = true
 	}
 
-	if ctx.FormBool("wiki") {
+	if ctx.Data["PageIsWiki"] == true {
 		var err error
 		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
 		if err != nil {
@@ -882,7 +886,7 @@ func ExcerptBlob(ctx *context.Context) {
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommit")
+		ctx.HTTPError(http.StatusInternalServerError, "GetCommit")
 		return
 	}
 	section := &gitdiff.DiffSection{
@@ -912,7 +916,7 @@ func ExcerptBlob(ctx *context.Context) {
 		idxRight = lastRight
 	}
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "getExcerptLines")
+		ctx.HTTPError(http.StatusInternalServerError, "getExcerptLines")
 		return
 	}
 	if idxRight > lastRight {

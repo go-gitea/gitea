@@ -18,7 +18,7 @@ import (
 func TestGetDiffPreview(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
@@ -141,7 +141,7 @@ func TestGetDiffPreview(t *testing.T) {
 func TestGetDiffPreviewErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetPathParam(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)

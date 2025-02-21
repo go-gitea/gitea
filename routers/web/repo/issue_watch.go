@@ -42,11 +42,11 @@ func IssueWatch(ctx *context.Context) {
 				log.Trace("Permission Denied: Not logged in")
 			}
 		}
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
-	watch, err := strconv.ParseBool(ctx.Req.PostForm.Get("watch"))
+	watch, err := strconv.ParseBool(ctx.Req.PostFormValue("watch"))
 	if err != nil {
 		ctx.ServerError("watch is not bool", err)
 		return

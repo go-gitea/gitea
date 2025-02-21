@@ -206,6 +206,16 @@ func TestRender_links(t *testing.T) {
 	test(
 		"ftps://gitea.com",
 		`<p>ftps://gitea.com</p>`)
+
+	t.Run("LinkEllipsis", func(t *testing.T) {
+		input := util.EllipsisDisplayString("http://10.1.2.3", 12)
+		assert.Equal(t, "http://10…", input)
+		test(input, "<p>http://10…</p>")
+
+		input = util.EllipsisDisplayString("http://10.1.2.3", 13)
+		assert.Equal(t, "http://10.…", input)
+		test(input, "<p>http://10.…</p>")
+	})
 }
 
 func TestRender_email(t *testing.T) {
@@ -512,7 +522,7 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 		data += data
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		var res strings.Builder
 		err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 		assert.NoError(b, err)

@@ -16,11 +16,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dustin/go-humanize"
 )
@@ -35,7 +34,7 @@ func EncodeSha256(str string) string {
 // ShortSha is basically just truncating.
 // It is DEPRECATED and will be removed in the future.
 func ShortSha(sha1 string) string {
-	return TruncateString(sha1, 10)
+	return util.TruncateRunes(sha1, 10)
 }
 
 // BasicAuthDecode decode basic auth string
@@ -64,10 +63,7 @@ func VerifyTimeLimitCode(now time.Time, data string, minutes int, code string) b
 	// check code
 	retCode := CreateTimeLimitCode(data, aliveTime, startTimeStr, nil)
 	if subtle.ConstantTimeCompare([]byte(retCode), []byte(code)) != 1 {
-		retCode = CreateTimeLimitCode(data, aliveTime, startTimeStr, sha1.New()) // TODO: this is only for the support of legacy codes, remove this in/after 1.23
-		if subtle.ConstantTimeCompare([]byte(retCode), []byte(code)) != 1 {
-			return false
-		}
+		return false
 	}
 
 	// check time is expired or not: startTime <= now && now < startTime + minutes
@@ -116,27 +112,6 @@ func FileSize(s int64) string {
 	return humanize.IBytes(uint64(s))
 }
 
-// EllipsisString returns a truncated short string,
-// it appends '...' in the end of the length of string is too large.
-func EllipsisString(str string, length int) string {
-	if length <= 3 {
-		return "..."
-	}
-	if utf8.RuneCountInString(str) <= length {
-		return str
-	}
-	return string([]rune(str)[:length-3]) + "..."
-}
-
-// TruncateString returns a truncated string with given limit,
-// it returns input string if length is not reached limit.
-func TruncateString(str string, limit int) string {
-	if utf8.RuneCountInString(str) < limit {
-		return str
-	}
-	return string([]rune(str)[:limit])
-}
-
 // StringsToInt64s converts a slice of string to a slice of int64.
 func StringsToInt64s(strs []string) ([]int64, error) {
 	if strs == nil {
@@ -165,13 +140,12 @@ func Int64sToStrings(ints []int64) []string {
 	return strs
 }
 
-// EntryIcon returns the octicon class for displaying files/directories
+// EntryIcon returns the octicon name for displaying files/directories
 func EntryIcon(entry *git.TreeEntry) string {
 	switch {
 	case entry.IsLink():
 		te, err := entry.FollowLink()
 		if err != nil {
-			log.Debug(err.Error())
 			return "file-symlink-file"
 		}
 		if te.IsDir() {

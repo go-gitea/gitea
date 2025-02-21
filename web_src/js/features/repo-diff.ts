@@ -20,6 +20,7 @@ import {POST, GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {initGlobalDropdown} from './common-page.ts';
+import {invertFileFolding} from './file-fold.ts';
 
 const {pageData, i18n} = window.config;
 
@@ -39,6 +40,8 @@ function initRepoDiffFileViewToggle() {
 }
 
 function initRepoDiffConversationForm() {
+  // FIXME: there could be various different form in a conversation-holder (for example: reply form, edit form).
+  // This listener is for "reply form" only, it should clearly distinguish different forms in the future.
   addDelegatedEventListener<HTMLFormElement, SubmitEvent>(document, 'submit', '.conversation-holder form', async (form, e) => {
     e.preventDefault();
     const textArea = form.querySelector<HTMLTextAreaElement>('textarea');
@@ -173,7 +176,7 @@ function onShowMoreFiles() {
   initDiffHeaderPopup();
 }
 
-export async function loadMoreFiles(url) {
+export async function loadMoreFiles(url: string) {
   const target = document.querySelector('a#diff-show-more-files');
   if (target?.classList.contains('disabled') || pageData.diffFileInfo.isLoadingNewData) {
     return;
@@ -250,4 +253,8 @@ export function initRepoDiffView() {
   initRepoDiffFileViewToggle();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
+
+  addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
+    invertFileFolding(el.closest('.file-content'), el);
+  });
 }

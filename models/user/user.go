@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -181,7 +182,8 @@ func (u *User) BeforeUpdate() {
 		u.MaxRepoCreation = -1
 	}
 
-	// Organization does not need email
+	// FIXME: this email doesn't need to be in lowercase, because the emails are mainly managed by the email table with lower_email field
+	// This trick could be removed in new releases to display the user inputed email as-is.
 	u.Email = strings.ToLower(u.Email)
 	if !u.IsOrganization() {
 		if len(u.AvatarEmail) == 0 {
@@ -190,9 +192,9 @@ func (u *User) BeforeUpdate() {
 	}
 
 	u.LowerName = strings.ToLower(u.Name)
-	u.Location = base.TruncateString(u.Location, 255)
-	u.Website = base.TruncateString(u.Website, 255)
-	u.Description = base.TruncateString(u.Description, 255)
+	u.Location = util.TruncateRunes(u.Location, 255)
+	u.Website = util.TruncateRunes(u.Website, 255)
+	u.Description = util.TruncateRunes(u.Description, 255)
 }
 
 // AfterLoad is invoked from XORM after filling all the fields of this object.
@@ -212,7 +214,7 @@ func (u *User) GetPlaceholderEmail() string {
 	return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
 }
 
-// GetEmail returns an noreply email, if the user has set to keep his
+// GetEmail returns a noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
 func (u *User) GetEmail() string {
 	if u.KeepEmailPrivate {
@@ -310,17 +312,6 @@ func (u *User) OrganisationLink() string {
 	return setting.AppSubURL + "/org/" + url.PathEscape(u.Name)
 }
 
-// GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
-func (u *User) GenerateEmailActivateCode(email string) string {
-	code := base.CreateTimeLimitCode(
-		fmt.Sprintf("%d%s%s%s%s", u.ID, email, u.LowerName, u.Passwd, u.Rands),
-		setting.Service.ActiveCodeLives, time.Now(), nil)
-
-	// Add tail hex username
-	code += hex.EncodeToString([]byte(u.LowerName))
-	return code
-}
-
 // GetUserFollowers returns range of user's followers.
 func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
 	sess := db.GetEngine(ctx).
@@ -394,11 +385,12 @@ func (u *User) ValidatePassword(passwd string) bool {
 }
 
 // IsPasswordSet checks if the password is set or left empty
+// TODO: It's better to clarify the "password" behavior for different types (individual, bot)
 func (u *User) IsPasswordSet() bool {
-	return len(u.Passwd) != 0
+	return u.Passwd != ""
 }
 
-// IsOrganization returns true if user is actually a organization.
+// IsOrganization returns true if user is actually an organization.
 func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
@@ -408,13 +400,14 @@ func (u *User) IsIndividual() bool {
 	return u.Type == UserTypeIndividual
 }
 
-func (u *User) IsUser() bool {
-	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
+// IsTypeBot returns whether the user is of type bot
+func (u *User) IsTypeBot() bool {
+	return u.Type == UserTypeBot
 }
 
-// IsBot returns whether or not the user is of type bot
-func (u *User) IsBot() bool {
-	return u.Type == UserTypeBot
+// IsTokenAccessAllowed returns whether the user is an individual or a bot (which allows for token access)
+func (u *User) IsTokenAccessAllowed() bool {
+	return u.Type == UserTypeIndividual || u.Type == UserTypeBot
 }
 
 // DisplayName returns full name if it's not empty,
@@ -427,19 +420,9 @@ func (u *User) DisplayName() string {
 	return u.Name
 }
 
-var emailToReplacer = strings.NewReplacer(
-	"\n", "",
-	"\r", "",
-	"<", "",
-	">", "",
-	",", "",
-	":", "",
-	";", "",
-)
-
 // EmailTo returns a string suitable to be put into a e-mail `To:` header.
 func (u *User) EmailTo() string {
-	sanitizedDisplayName := emailToReplacer.Replace(u.DisplayName())
+	sanitizedDisplayName := globalVars().emailToReplacer.Replace(u.DisplayName())
 
 	// should be an edge case but nice to have
 	if sanitizedDisplayName == u.Email {
@@ -501,9 +484,9 @@ func (u *User) GitName() string {
 // ShortName ellipses username to length
 func (u *User) ShortName(length int) string {
 	if setting.UI.DefaultShowFullName && len(u.FullName) > 0 {
-		return base.EllipsisString(u.FullName, length)
+		return util.EllipsisDisplayString(u.FullName, length)
 	}
-	return base.EllipsisString(u.Name, length)
+	return util.EllipsisDisplayString(u.Name, length)
 }
 
 // IsMailable checks if a user is eligible
@@ -512,10 +495,10 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
-// IsUserExist checks if given user name exist,
-// the user name should be noncased unique.
+// IsUserExist checks if given username exist,
+// the username should be non-cased unique.
 // If uid is presented, then check will rule out that one,
-// it is used when update a user name in settings page.
+// it is used when update a username in settings page.
 func IsUserExist(ctx context.Context, uid int64, name string) (bool, error) {
 	if len(name) == 0 {
 		return false, nil
@@ -525,7 +508,7 @@ func IsUserExist(ctx context.Context, uid int64, name string) (bool, error) {
 		Get(&User{LowerName: strings.ToLower(name)})
 }
 
-// Note: As of the beginning of 2022, it is recommended to use at least
+// SaltByteLength as of the beginning of 2022, it is recommended to use at least
 // 64 bits of salt, but NIST is already recommending to use to 128 bits.
 // (16 bytes = 16 * 8 = 128 bits)
 const SaltByteLength = 16
@@ -536,28 +519,58 @@ func GetUserSalt() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Returns a 32 bytes long string.
+	// Returns a 32-byte long string.
 	return hex.EncodeToString(rBytes), nil
 }
 
-// Note: The set of characters here can safely expand without a breaking change,
-// but characters removed from this set can cause user account linking to break
-var (
-	customCharsReplacement = strings.NewReplacer("Æ", "AE")
-	removeCharsRE          = regexp.MustCompile("['`´]")
-	transformDiacritics    = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	replaceCharsHyphenRE   = regexp.MustCompile(`[\s~+]`)
-)
+type globalVarsStruct struct {
+	customCharsReplacement *strings.Replacer
+	removeCharsRE          *regexp.Regexp
+	transformDiacritics    transform.Transformer
+	replaceCharsHyphenRE   *regexp.Regexp
+	emailToReplacer        *strings.Replacer
+	emailRegexp            *regexp.Regexp
+	systemUserNewFuncs     map[int64]func() *User
+}
+
+var globalVars = sync.OnceValue(func() *globalVarsStruct {
+	return &globalVarsStruct{
+		// Note: The set of characters here can safely expand without a breaking change,
+		// but characters removed from this set can cause user account linking to break
+		customCharsReplacement: strings.NewReplacer("Æ", "AE"),
+
+		removeCharsRE:        regexp.MustCompile("['`´]"),
+		transformDiacritics:  transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC),
+		replaceCharsHyphenRE: regexp.MustCompile(`[\s~+]`),
+
+		emailToReplacer: strings.NewReplacer(
+			"\n", "",
+			"\r", "",
+			"<", "",
+			">", "",
+			",", "",
+			":", "",
+			";", "",
+		),
+		emailRegexp: regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"),
+
+		systemUserNewFuncs: map[int64]func() *User{
+			GhostUserID:   NewGhostUser,
+			ActionsUserID: NewActionsUser,
+		},
+	}
+})
 
 // NormalizeUserName only takes the name part if it is an email address, transforms it diacritics to ASCII characters.
 // It returns a string with the single-quotes removed, and any other non-supported username characters are replaced with a `-` character
 func NormalizeUserName(s string) (string, error) {
+	vars := globalVars()
 	s, _, _ = strings.Cut(s, "@")
-	strDiacriticsRemoved, n, err := transform.String(transformDiacritics, customCharsReplacement.Replace(s))
+	strDiacriticsRemoved, n, err := transform.String(vars.transformDiacritics, vars.customCharsReplacement.Replace(s))
 	if err != nil {
 		return "", fmt.Errorf("failed to normalize the string of provided username %q at position %d", s, n)
 	}
-	return replaceCharsHyphenRE.ReplaceAllLiteralString(removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
+	return vars.replaceCharsHyphenRE.ReplaceAllLiteralString(vars.removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
 }
 
 var (
@@ -863,12 +876,38 @@ func GetVerifyUser(ctx context.Context, code string) (user *User) {
 	return nil
 }
 
-// VerifyUserActiveCode verifies active code when active account
-func VerifyUserActiveCode(ctx context.Context, code string) (user *User) {
+type TimeLimitCodePurpose string
+
+const (
+	TimeLimitCodeActivateAccount TimeLimitCodePurpose = "activate_account"
+	TimeLimitCodeActivateEmail   TimeLimitCodePurpose = "activate_email"
+	TimeLimitCodeResetPassword   TimeLimitCodePurpose = "reset_password"
+)
+
+type TimeLimitCodeOptions struct {
+	Purpose  TimeLimitCodePurpose
+	NewEmail string
+}
+
+func makeTimeLimitCodeHashData(opts *TimeLimitCodeOptions, u *User) string {
+	return fmt.Sprintf("%s|%d|%s|%s|%s|%s", opts.Purpose, u.ID, strings.ToLower(util.IfZero(opts.NewEmail, u.Email)), u.LowerName, u.Passwd, u.Rands)
+}
+
+// GenerateUserTimeLimitCode generates a time-limit code based on user information and given e-mail.
+// TODO: need to use cache or db to store it to make sure a code can only be consumed once
+func GenerateUserTimeLimitCode(opts *TimeLimitCodeOptions, u *User) string {
+	data := makeTimeLimitCodeHashData(opts, u)
+	code := base.CreateTimeLimitCode(data, setting.Service.ActiveCodeLives, time.Now(), nil)
+	code += hex.EncodeToString([]byte(u.LowerName)) // Add tail hex username
+	return code
+}
+
+// VerifyUserTimeLimitCode verifies the time-limit code
+func VerifyUserTimeLimitCode(ctx context.Context, opts *TimeLimitCodeOptions, code string) (user *User) {
 	if user = GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
-		data := fmt.Sprintf("%d%s%s%s%s", user.ID, user.Email, user.LowerName, user.Passwd, user.Rands)
+		data := makeTimeLimitCodeHashData(opts, user)
 		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			return user
 		}
@@ -947,30 +986,28 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
+// GetPossibleUserByID returns the user if id > 0 or returns system user if id < 0
 func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
-	switch id {
-	case GhostUserID:
-		return NewGhostUser(), nil
-	case ActionsUserID:
-		return NewActionsUser(), nil
-	case 0:
+	if id < 0 {
+		if newFunc, ok := globalVars().systemUserNewFuncs[id]; ok {
+			return newFunc(), nil
+		}
+		return nil, ErrUserNotExist{UID: id}
+	} else if id == 0 {
 		return nil, ErrUserNotExist{}
-	default:
-		return GetUserByID(ctx, id)
 	}
+	return GetUserByID(ctx, id)
 }
 
-// GetPossibleUserByIDs returns the users if id > 0 or return system users if id < 0
+// GetPossibleUserByIDs returns the users if id > 0 or returns system users if id < 0
 func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	uniqueIDs := container.SetOf(ids...)
 	users := make([]*User, 0, len(ids))
 	_ = uniqueIDs.Remove(0)
-	if uniqueIDs.Remove(GhostUserID) {
-		users = append(users, NewGhostUser())
-	}
-	if uniqueIDs.Remove(ActionsUserID) {
-		users = append(users, NewActionsUser())
+	for systemUID, newFunc := range globalVars().systemUserNewFuncs {
+		if uniqueIDs.Remove(systemUID) {
+			users = append(users, newFunc())
+		}
 	}
 	res, err := GetUserByIDs(ctx, uniqueIDs.Values())
 	if err != nil {
@@ -980,7 +1017,7 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, nil
 }
 
-// GetUserByNameCtx returns user by given name.
+// GetUserByName returns user by given name.
 func GetUserByName(ctx context.Context, name string) (*User, error) {
 	if len(name) == 0 {
 		return nil, ErrUserNotExist{Name: name}
@@ -1011,8 +1048,8 @@ func GetUserEmailsByNames(ctx context.Context, names []string) []string {
 	return mails
 }
 
-// GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
-func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]*User, error) {
+// GetMailableUsersByIDs gets users from ids, but only if they can receive mails
+func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -1035,17 +1072,6 @@ func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([
 		And("`is_active` = ?", true).
 		In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsAndYourOwn).
 		Find(&ous)
-}
-
-// GetUserNamesByIDs returns usernames for all resolved users from a list of Ids.
-func GetUserNamesByIDs(ctx context.Context, ids []int64) ([]string, error) {
-	unames := make([]string, 0, len(ids))
-	err := db.GetEngine(ctx).In("id", ids).
-		Table("user").
-		Asc("name").
-		Cols("name").
-		Find(&unames)
-	return unames, err
 }
 
 // GetUserNameByID returns username for the id
@@ -1103,28 +1129,89 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) []*UserCommit {
+func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
 	var (
-		emails     = make(map[string]*User)
 		newCommits = make([]*UserCommit, 0, len(oldCommits))
+		emailSet   = make(container.Set[string])
 	)
 	for _, c := range oldCommits {
-		var u *User
 		if c.Author != nil {
-			if v, ok := emails[c.Author.Email]; !ok {
-				u, _ = GetUserByEmail(ctx, c.Author.Email)
-				emails[c.Author.Email] = u
-			} else {
-				u = v
+			emailSet.Add(c.Author.Email)
+		}
+	}
+
+	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range oldCommits {
+		user, ok := emailUserMap[c.Author.Email]
+		if !ok {
+			user = &User{
+				Name:  c.Author.Name,
+				Email: c.Author.Email,
 			}
 		}
-
 		newCommits = append(newCommits, &UserCommit{
-			User:   u,
+			User:   user,
 			Commit: c,
 		})
 	}
-	return newCommits
+	return newCommits, nil
+}
+
+func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, error) {
+	if len(emails) == 0 {
+		return nil, nil
+	}
+
+	needCheckEmails := make(container.Set[string])
+	needCheckUserNames := make(container.Set[string])
+	for _, email := range emails {
+		if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
+			username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+			needCheckUserNames.Add(username)
+		} else {
+			needCheckEmails.Add(strings.ToLower(email))
+		}
+	}
+
+	emailAddresses := make([]*EmailAddress, 0, len(needCheckEmails))
+	if err := db.GetEngine(ctx).In("lower_email", needCheckEmails.Values()).
+		And("is_activated=?", true).
+		Find(&emailAddresses); err != nil {
+		return nil, err
+	}
+	userIDs := make(container.Set[int64])
+	for _, email := range emailAddresses {
+		userIDs.Add(email.UID)
+	}
+	users, err := GetUsersMapByIDs(ctx, userIDs.Values())
+	if err != nil {
+		return nil, err
+	}
+
+	results := make(map[string]*User, len(emails))
+	for _, email := range emailAddresses {
+		user := users[email.UID]
+		if user != nil {
+			if user.KeepEmailPrivate {
+				results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
+			} else {
+				results[email.Email] = user
+			}
+		}
+	}
+
+	users = make(map[int64]*User, len(needCheckUserNames))
+	if err := db.GetEngine(ctx).In("lower_name", needCheckUserNames.Values()).Find(&users); err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
+	}
+	return results, nil
 }
 
 // GetUserByEmail returns the user object by given e-mail if exists.

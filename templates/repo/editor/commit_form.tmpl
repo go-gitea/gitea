@@ -66,6 +66,16 @@
 				</div>
 			{{end}}
 		</div>
+		{{if and .CommitCandidateEmails (gt (len .CommitCandidateEmails) 1)}}
+			<div class="field {{if .Err_CommitEmail}}error{{end}}">
+				<label>{{ctx.Locale.Tr "repo.editor.commit_email"}}</label>
+				<select class="ui selection dropdown" name="commit_email">
+					{{- range $email := .CommitCandidateEmails -}}
+						<option {{if eq $email $.CommitDefaultEmail}}selected{{end}} value="{{$email}}">{{$email}}</option>
+					{{- end -}}
+				</select>
+			</div>
+		{{end}}
 	</div>
 	<button id="commit-button" type="submit" class="ui primary button">
 		{{if eq .commit_choice "commit-to-new-branch"}}{{ctx.Locale.Tr "repo.editor.propose_file_change"}}{{else}}{{ctx.Locale.Tr "repo.editor.commit_changes"}}{{end}}

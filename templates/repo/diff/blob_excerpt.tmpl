@@ -1,3 +1,4 @@
+{{$blobExcerptLink := print $.RepoLink (Iif $.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $.AfterCommitID) (QueryBuild "?" "anchor" $.Anchor)}}
 {{if $.IsSplitStyle}}
 	{{range $k, $line := $.section.Lines}}
 	{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
@@ -31,9 +32,28 @@
 						{{end}}
 					</div>
 				</div>
+				<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
+				{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
+					<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=split&direction=down">
+						{{svg "octicon-fold-down"}}
+					</button>
+				{{end}}
+				{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
+					<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=split&direction=up">
+						{{svg "octicon-fold-up"}}
+					</button>
+				{{end}}
+				{{if eq $expandDirection 2}}
+					<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=split">
+						{{svg "octicon-fold"}}
+					</button>
+				{{end}}
+				</div>
 			</td>
-			<td colspan="7" class="lines-code lines-code-old ">{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}{{/*
-				*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
+			<td colspan="7" class="lines-code lines-code-old">
+				{{- $inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale -}}
+				{{- template "repo/diff/section_code" dict "diff" $inlineDiff -}}
+			</td>
 		{{else}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 			<td class="lines-escape lines-escape-old">{{if and $line.LeftIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>

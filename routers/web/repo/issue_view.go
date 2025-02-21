@@ -4,7 +4,6 @@
 package repo
 
 import (
-	stdCtx "context"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -40,72 +39,80 @@ import (
 )
 
 // roleDescriptor returns the role descriptor for a comment in/with the given repo, poster and issue
-func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *issues_model.Issue, hasOriginalAuthor bool) (issues_model.RoleDescriptor, error) {
-	roleDescriptor := issues_model.RoleDescriptor{}
-
+func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *user_model.User, permsCache map[int64]access_model.Permission, issue *issues_model.Issue, hasOriginalAuthor bool) (roleDesc issues_model.RoleDescriptor, err error) {
 	if hasOriginalAuthor {
-		return roleDescriptor, nil
+		// the poster is a migrated user, so no need to detect the role
+		return roleDesc, nil
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, poster)
-	if err != nil {
-		return roleDescriptor, err
+	if poster.IsGhost() || !poster.IsIndividual() {
+		return roleDesc, nil
 	}
 
-	// If the poster is the actual poster of the issue, enable Poster role.
-	roleDescriptor.IsPoster = issue.IsPoster(poster.ID)
+	roleDesc.IsPoster = issue.IsPoster(poster.ID) // check whether the comment's poster is the issue's poster
+
+	// Guess the role of the poster in the repo by permission
+	perm, hasPermCache := permsCache[poster.ID]
+	if !hasPermCache {
+		perm, err = access_model.GetUserRepoPermission(ctx, repo, poster)
+		if err != nil {
+			return roleDesc, err
+		}
+	}
+	if permsCache != nil {
+		permsCache[poster.ID] = perm
+	}
 
 	// Check if the poster is owner of the repo.
 	if perm.IsOwner() {
-		// If the poster isn't an admin, enable the owner role.
+		// If the poster isn't a site admin, then is must be the repo's owner
 		if !poster.IsAdmin {
-			roleDescriptor.RoleInRepo = issues_model.RoleRepoOwner
-			return roleDescriptor, nil
+			roleDesc.RoleInRepo = issues_model.RoleRepoOwner
+			return roleDesc, nil
 		}
-
-		// Otherwise check if poster is the real repo admin.
-		ok, err := access_model.IsUserRealRepoAdmin(ctx, repo, poster)
+		// Otherwise (poster is site admin), check if poster is the real repo admin.
+		isRealRepoAdmin, err := access_model.IsUserRealRepoAdmin(ctx, repo, poster)
 		if err != nil {
-			return roleDescriptor, err
+			return roleDesc, err
 		}
-		if ok {
-			roleDescriptor.RoleInRepo = issues_model.RoleRepoOwner
-			return roleDescriptor, nil
+		if isRealRepoAdmin {
+			roleDesc.RoleInRepo = issues_model.RoleRepoOwner
+			return roleDesc, nil
 		}
 	}
 
 	// If repo is organization, check Member role
-	if err := repo.LoadOwner(ctx); err != nil {
-		return roleDescriptor, err
+	if err = repo.LoadOwner(ctx); err != nil {
+		return roleDesc, err
 	}
 	if repo.Owner.IsOrganization() {
 		if isMember, err := organization.IsOrganizationMember(ctx, repo.Owner.ID, poster.ID); err != nil {
-			return roleDescriptor, err
+			return roleDesc, err
 		} else if isMember {
-			roleDescriptor.RoleInRepo = issues_model.RoleRepoMember
-			return roleDescriptor, nil
+			roleDesc.RoleInRepo = issues_model.RoleRepoMember
+			return roleDesc, nil
 		}
 	}
 
 	// If the poster is the collaborator of the repo
 	if isCollaborator, err := repo_model.IsCollaborator(ctx, repo.ID, poster.ID); err != nil {
-		return roleDescriptor, err
+		return roleDesc, err
 	} else if isCollaborator {
-		roleDescriptor.RoleInRepo = issues_model.RoleRepoCollaborator
-		return roleDescriptor, nil
+		roleDesc.RoleInRepo = issues_model.RoleRepoCollaborator
+		return roleDesc, nil
 	}
 
 	hasMergedPR, err := issues_model.HasMergedPullRequestInRepo(ctx, repo.ID, poster.ID)
 	if err != nil {
-		return roleDescriptor, err
+		return roleDesc, err
 	} else if hasMergedPR {
-		roleDescriptor.RoleInRepo = issues_model.RoleRepoContributor
+		roleDesc.RoleInRepo = issues_model.RoleRepoContributor
 	} else if issue.IsPull {
 		// only display first time contributor in the first opening pull request
-		roleDescriptor.RoleInRepo = issues_model.RoleRepoFirstTimeContributor
+		roleDesc.RoleInRepo = issues_model.RoleRepoFirstTimeContributor
 	}
 
-	return roleDescriptor, nil
+	return roleDesc, nil
 }
 
 func getBranchData(ctx *context.Context, issue *issues_model.Issue) {
@@ -265,13 +272,13 @@ func combineLabelComments(issue *issues_model.Issue) {
 
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
-	if ctx.PathParam(":type") == "issues" {
+	if ctx.PathParam("type") == "issues" {
 		// If issue was requested we check if repo has external tracker and redirect
 		extIssueUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil && extIssueUnit != nil {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 				metas := ctx.Repo.Repository.ComposeMetas(ctx)
-				metas["index"] = ctx.PathParam(":index")
+				metas["index"] = ctx.PathParam("index")
 				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
 					log.Error("unable to expand template vars for issue url. issue: %s, err: %v", metas["index"], err)
@@ -287,10 +294,10 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound("GetIssueByIndex", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetIssueByIndex", err)
 		}
@@ -301,10 +308,10 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Make sure type and URL matches.
-	if ctx.PathParam(":type") == "issues" && issue.IsPull {
+	if ctx.PathParam("type") == "issues" && issue.IsPull {
 		ctx.Redirect(issue.Link())
 		return
-	} else if ctx.PathParam(":type") == "pulls" && !issue.IsPull {
+	} else if ctx.PathParam("type") == "pulls" && !issue.IsPull {
 		ctx.Redirect(issue.Link())
 		return
 	}
@@ -536,7 +543,11 @@ func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue
 
 func prepareIssueViewSidebarPin(ctx *context.Context, issue *issues_model.Issue) {
 	var pinAllowed bool
-	if !issue.IsPinned() {
+	if err := issue.LoadPinOrder(ctx); err != nil {
+		ctx.ServerError("LoadPinOrder", err)
+		return
+	}
+	if issue.PinOrder == 0 {
 		var err error
 		pinAllowed, err = issues_model.IsNewPinAllowed(ctx, issue.RepoID, issue.IsPull)
 		if err != nil {
@@ -576,6 +587,8 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		return
 	}
 
+	permCache := make(map[int64]access_model.Permission)
+
 	for _, comment = range issue.Comments {
 		comment.Issue = issue
 
@@ -593,7 +606,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				continue
 			}
 
-			comment.ShowRole, err = roleDescriptor(ctx, issue.Repo, comment.Poster, issue, comment.HasOriginalAuthor())
+			comment.ShowRole, err = roleDescriptor(ctx, issue.Repo, comment.Poster, permCache, issue, comment.HasOriginalAuthor())
 			if err != nil {
 				ctx.ServerError("roleDescriptor", err)
 				return
@@ -691,7 +704,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 							continue
 						}
 
-						c.ShowRole, err = roleDescriptor(ctx, issue.Repo, c.Poster, issue, c.HasOriginalAuthor())
+						c.ShowRole, err = roleDescriptor(ctx, issue.Repo, c.Poster, permCache, issue, c.HasOriginalAuthor())
 						if err != nil {
 							ctx.ServerError("roleDescriptor", err)
 							return
@@ -707,8 +720,8 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 		} else if comment.Type == issues_model.CommentTypePullRequestPush {
 			participants = addParticipant(comment.Poster, participants)
-			if err = comment.LoadPushCommits(ctx); err != nil {
-				ctx.ServerError("LoadPushCommits", err)
+			if err = issue_service.LoadCommentPushCommits(ctx, comment); err != nil {
+				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
 			if !ctx.Repo.CanRead(unit.TypeActions) {
@@ -940,7 +953,7 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 		ctx.ServerError("RenderString", err)
 		return
 	}
-	if issue.ShowRole, err = roleDescriptor(ctx, issue.Repo, issue.Poster, issue, issue.HasOriginalAuthor()); err != nil {
+	if issue.ShowRole, err = roleDescriptor(ctx, issue.Repo, issue.Poster, nil, issue, issue.HasOriginalAuthor()); err != nil {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}

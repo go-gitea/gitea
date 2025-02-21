@@ -128,8 +128,7 @@ func ListPackages(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamString("q", query)
-	pager.AddParamString("type", packageType)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
@@ -140,7 +139,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
-			ctx.NotFound("GetPackageByName", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetPackageByName", err)
 		}
@@ -156,7 +155,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 		return
 	}
 	if len(pvs) == 0 {
-		ctx.NotFound("", err)
+		ctx.NotFound(err)
 		return
 	}
 
@@ -318,7 +317,7 @@ func ListPackageVersions(ctx *context.Context) {
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
-			ctx.NotFound("GetPackageByName", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetPackageByName", err)
 		}
@@ -348,11 +347,6 @@ func ListPackageVersions(ctx *context.Context) {
 	ctx.Data["Query"] = query
 	ctx.Data["Sort"] = sort
 
-	pagerParams := map[string]string{
-		"q":    query,
-		"sort": sort,
-	}
-
 	var (
 		total int64
 		pvs   []*packages_model.PackageVersion
@@ -361,7 +355,6 @@ func ListPackageVersions(ctx *context.Context) {
 	case packages_model.TypeContainer:
 		tagged := ctx.FormTrim("tagged")
 
-		pagerParams["tagged"] = tagged
 		ctx.Data["Tagged"] = tagged
 
 		pvs, total, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
@@ -407,9 +400,7 @@ func ListPackageVersions(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	for k, v := range pagerParams {
-		pager.AddParamString(k, v)
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackageVersionList)
@@ -502,10 +493,10 @@ func PackageSettingsPost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64(":fileid"))
+	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64("fileid"))
 	if err != nil {
 		if err == packages_model.ErrPackageFileNotExist {
-			ctx.NotFound("", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetFileForVersionByID", err)
 		}

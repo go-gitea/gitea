@@ -242,7 +242,7 @@ func BinToHex(objectFormat ObjectFormat, sha, out []byte) []byte {
 	return out
 }
 
-// ParseTreeLine reads an entry from a tree in a cat-file --batch stream
+// ParseCatFileTreeLine reads an entry from a tree in a cat-file --batch stream
 // This carefully avoids allocations - except where fnameBuf is too small.
 // It is recommended therefore to pass in an fnameBuf large enough to avoid almost all allocations
 //
@@ -250,7 +250,7 @@ func BinToHex(objectFormat ObjectFormat, sha, out []byte) []byte {
 // <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <binary HASH>
 //
 // We don't attempt to convert the raw HASH to save a lot of time
-func ParseTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
+func ParseCatFileTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
 	// Read the Mode & fname
@@ -260,7 +260,7 @@ func ParseTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBu
 	}
 	idx := bytes.IndexByte(readBytes, ' ')
 	if idx < 0 {
-		log.Debug("missing space in readBytes ParseTreeLine: %s", readBytes)
+		log.Debug("missing space in readBytes ParseCatFileTreeLine: %s", readBytes)
 		return mode, fname, sha, n, &ErrNotExist{}
 	}
 

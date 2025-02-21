@@ -1,6 +1,9 @@
 {{$file := .file}}
 {{$blobExcerptRepoLink := or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink}}
 {{$issueIndex := or ctx.RootData.IssueIndex $.root.IssueIndex}}
+{{$repoLink := or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink}}
+{{$afterCommitID := or $.root.AfterCommitID "no-after-commit-id"}}{{/* this tmpl is also used by the PR Conversation page, so the "AfterCommitID" may not exist */}}
+{{$blobExcerptLink := print $repoLink (Iif $.root.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $afterCommitID) "?"}}
 <colgroup>
 	<col width="50">
 	<col width="50">
@@ -58,18 +61,16 @@
 			</td>
 			<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 			{{if eq .GetType 4}}
-				<td class="chroma lines-code blob-hunk">{{/*
-					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{/*
-				*/}}</td>
+				<td class="chroma lines-code blob-hunk">{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
 			{{else}}
-				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{/*
-					*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
-						*/}}<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{/*
-							*/}}{{svg "octicon-plus"}}{{/*
-						*/}}</button>{{/*
-					*/}}{{end}}{{/*
-					*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff}}{{/*
-				*/}}</td>
+				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
+					{{- if and $.root.SignedUserID $.root.PageIsPullFiles -}}
+						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+							{{- svg "octicon-plus" -}}
+						</button>
+					{{- end -}}
+					{{- template "repo/diff/section_code" dict "diff" $inlineDiff -}}
+				</td>
 			{{end}}
 		</tr>
 		{{if $line.Comments}}

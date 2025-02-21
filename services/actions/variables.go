@@ -6,7 +6,6 @@ package actions
 import (
 	"context"
 	"regexp"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/log"
@@ -31,20 +30,18 @@ func CreateVariable(ctx context.Context, ownerID, repoID int64, name, data strin
 	return v, nil
 }
 
-func UpdateVariable(ctx context.Context, variableID int64, name, data string) (bool, error) {
-	if err := secret_service.ValidateName(name); err != nil {
+func UpdateVariableNameData(ctx context.Context, variable *actions_model.ActionVariable) (bool, error) {
+	if err := secret_service.ValidateName(variable.Name); err != nil {
 		return false, err
 	}
 
-	if err := envNameCIRegexMatch(name); err != nil {
+	if err := envNameCIRegexMatch(variable.Name); err != nil {
 		return false, err
 	}
 
-	return actions_model.UpdateVariable(ctx, &actions_model.ActionVariable{
-		ID:   variableID,
-		Name: strings.ToUpper(name),
-		Data: util.ReserveLineBreakForTextarea(data),
-	})
+	variable.Data = util.ReserveLineBreakForTextarea(variable.Data)
+
+	return actions_model.UpdateVariableCols(ctx, variable, "name", "data")
 }
 
 func DeleteVariableByID(ctx context.Context, variableID int64) error {

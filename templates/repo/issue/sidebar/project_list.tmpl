@@ -17,8 +17,9 @@
 				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
 			</div>
 			{{end}}
-			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
 			<div class="scrolling menu">
+				<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
+				<div class="divider"></div>
 				{{if $data.OpenProjects}}
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
 					{{range $data.OpenProjects}}
@@ -39,10 +40,10 @@
 			</div>
 		</div>
 	</div>
-	<div class="ui list">
+	<div class="ui list muted-links flex-items-block">
 		<span class="item empty-list {{if $issueProject}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 		{{if $issueProject}}
-			<a class="item muted" href="{{$issueProject.Link ctx}}">
+			<a class="item" href="{{$issueProject.Link ctx}}">
 				{{svg $issueProject.IconName 18}} {{$issueProject.Title}}
 			</a>
 		{{end}}

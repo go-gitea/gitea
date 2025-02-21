@@ -4,7 +4,6 @@
 package oauth2
 
 import (
-	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
@@ -36,7 +35,7 @@ func TestSource(t *testing.T) {
 		Email:       "external@example.com",
 	}
 
-	err := user_model.CreateUser(context.Background(), user, &user_model.Meta{}, &user_model.CreateUserOverwriteOptions{})
+	err := user_model.CreateUser(t.Context(), user, &user_model.Meta{}, &user_model.CreateUserOverwriteOptions{})
 	assert.NoError(t, err)
 
 	e := &user_model.ExternalLoginUser{
@@ -45,7 +44,7 @@ func TestSource(t *testing.T) {
 		LoginSourceID: user.LoginSource,
 		RefreshToken:  "valid",
 	}
-	err = user_model.LinkExternalToUser(context.Background(), user, e)
+	err = user_model.LinkExternalToUser(t.Context(), user, e)
 	assert.NoError(t, err)
 
 	provider, err := createProvider(source.authSource.Name, source)
@@ -53,7 +52,7 @@ func TestSource(t *testing.T) {
 
 	t.Run("refresh", func(t *testing.T) {
 		t.Run("valid", func(t *testing.T) {
-			err := source.refresh(context.Background(), provider, e)
+			err := source.refresh(t.Context(), provider, e)
 			assert.NoError(t, err)
 
 			e := &user_model.ExternalLoginUser{
@@ -61,19 +60,19 @@ func TestSource(t *testing.T) {
 				LoginSourceID: e.LoginSourceID,
 			}
 
-			ok, err := user_model.GetExternalLogin(context.Background(), e)
+			ok, err := user_model.GetExternalLogin(t.Context(), e)
 			assert.NoError(t, err)
 			assert.True(t, ok)
 			assert.Equal(t, "refresh", e.RefreshToken)
 			assert.Equal(t, "token", e.AccessToken)
 
-			u, err := user_model.GetUserByID(context.Background(), user.ID)
+			u, err := user_model.GetUserByID(t.Context(), user.ID)
 			assert.NoError(t, err)
 			assert.True(t, u.IsActive)
 		})
 
 		t.Run("expired", func(t *testing.T) {
-			err := source.refresh(context.Background(), provider, &user_model.ExternalLoginUser{
+			err := source.refresh(t.Context(), provider, &user_model.ExternalLoginUser{
 				ExternalID:    "external",
 				UserID:        user.ID,
 				LoginSourceID: user.LoginSource,
@@ -86,13 +85,13 @@ func TestSource(t *testing.T) {
 				LoginSourceID: e.LoginSourceID,
 			}
 
-			ok, err := user_model.GetExternalLogin(context.Background(), e)
+			ok, err := user_model.GetExternalLogin(t.Context(), e)
 			assert.NoError(t, err)
 			assert.True(t, ok)
 			assert.Equal(t, "", e.RefreshToken)
 			assert.Equal(t, "", e.AccessToken)
 
-			u, err := user_model.GetUserByID(context.Background(), user.ID)
+			u, err := user_model.GetUserByID(t.Context(), user.ID)
 			assert.NoError(t, err)
 			assert.False(t, u.IsActive)
 		})

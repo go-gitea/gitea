@@ -291,7 +291,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			return
 		}
 	default:
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 	ctx.Data["HasTLS"] = hasTLS
@@ -337,7 +337,7 @@ func EditAuthSource(ctx *context.Context) {
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -371,7 +371,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	oauth2providers := oauth2.GetSupportedOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -413,7 +413,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 			return
 		}
 	default:
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -442,7 +442,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 
 // DeleteAuthSource response for deleting an auth source
 func DeleteAuthSource(ctx *context.Context) {
-	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64(":authid"))
+	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
 		return
@@ -454,7 +454,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		} else {
 			ctx.Flash.Error(fmt.Sprintf("auth_service.DeleteSource: %v", err))
 		}
-		ctx.JSONRedirect(setting.AppSubURL + "/-/admin/auths/" + url.PathEscape(ctx.PathParam(":authid")))
+		ctx.JSONRedirect(setting.AppSubURL + "/-/admin/auths/" + url.PathEscape(ctx.PathParam("authid")))
 		return
 	}
 	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)

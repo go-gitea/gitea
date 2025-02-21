@@ -41,7 +41,7 @@ func Members(ctx *context.Context) {
 	if ctx.Doer != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
+			ctx.HTTPError(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
 		opts.IsDoerMember = isMember
@@ -50,13 +50,13 @@ func Members(ctx *context.Context) {
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CountOrgMembers")
+		ctx.HTTPError(http.StatusInternalServerError, "CountOrgMembers")
 		return
 	}
 
-	err = shared_user.RenderOrgHeader(ctx)
+	_, err = shared_user.PrepareOrgHeader(ctx)
 	if err != nil {
-		ctx.ServerError("RenderOrgHeader", err)
+		ctx.ServerError("PrepareOrgHeader", err)
 		return
 	}
 
@@ -90,22 +90,22 @@ func MembersAction(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	switch ctx.PathParam(":action") {
+	switch ctx.PathParam("action") {
 	case "private":
 		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = organization.ChangeOrgUserStatus(ctx, org.ID, member.ID, false)
 	case "public":
 		if ctx.Doer.ID != member.ID && !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = organization.ChangeOrgUserStatus(ctx, org.ID, member.ID, true)
 	case "remove":
 		if !ctx.Org.IsOwner {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		err = org_service.RemoveOrgUser(ctx, org, member)
@@ -131,7 +131,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	if err != nil {
-		log.Error("Action(%s): %v", ctx.PathParam(":action"), err)
+		log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"ok":  false,
 			"err": err.Error(),
@@ -140,7 +140,7 @@ func MembersAction(ctx *context.Context) {
 	}
 
 	redirect := ctx.Org.OrgLink + "/members"
-	if ctx.PathParam(":action") == "leave" {
+	if ctx.PathParam("action") == "leave" {
 		redirect = setting.AppSubURL + "/"
 	}
 

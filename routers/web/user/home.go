@@ -41,8 +41,8 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
-	"github.com/keybase/go-crypto/openpgp"
-	"github.com/keybase/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"xorm.io/builder"
 )
 
@@ -56,7 +56,7 @@ const (
 // getDashboardContextUser finds out which context user dashboard is being viewed as .
 func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.Doer
-	orgName := ctx.PathParam(":org")
+	orgName := ctx.PathParam("org")
 	if len(orgName) > 0 {
 		ctxUser = ctx.Org.Organization.AsUser()
 		ctx.Data["Teams"] = ctx.Org.Teams
@@ -139,7 +139,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Feeds"] = feeds
 
 	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
-	pager.AddParamString("date", date)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplDashboard)
@@ -330,10 +330,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamString("q", keyword)
-	pager.AddParamString("repos", reposQuery)
-	pager.AddParamString("sort", sortType)
-	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestones)
@@ -420,7 +417,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		IsPull:     optional.Some(isPullList),
 		SortType:   sortType,
 		IsArchived: optional.Some(false),
-		User:       ctx.Doer,
+		Doer:       ctx.Doer,
 	}
 	// --------------------------------------------------------------------------
 	// Build opts (IssuesOptions), which contains filter information.
@@ -432,7 +429,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Get repository IDs where User/Org/Team has access.
 	if ctx.Org != nil && ctx.Org.Organization != nil {
-		opts.Org = ctx.Org.Organization
+		opts.Owner = ctx.Org.Organization.AsUser()
 		opts.Team = ctx.Org.Team
 
 		issue.PrepareFilterIssueLabels(ctx, 0, ctx.Org.Organization.AsUser())
@@ -579,17 +576,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	issueStats, err := getUserIssueStats(ctx, filterMode, issue_indexer.ToSearchOptions(keyword, opts).Copy(
+	issueStats, err := getUserIssueStats(ctx, ctxUser, filterMode, issue_indexer.ToSearchOptions(keyword, opts).Copy(
 		func(o *issue_indexer.SearchOptions) {
 			o.IsFuzzyKeyword = isFuzzy
-			// If the doer is the same as the context user, which means the doer is viewing his own dashboard,
-			// it's not enough to show the repos that the doer owns or has been explicitly granted access to,
-			// because the doer may create issues or be mentioned in any public repo.
-			// So we need search issues in all public repos.
-			o.AllPublic = ctx.Doer.ID == ctxUser.ID
-			o.MentionID = nil
-			o.ReviewRequestedID = nil
-			o.ReviewedID = nil
 		},
 	))
 	if err != nil {
@@ -735,7 +724,7 @@ func UsernameSubRoute(ctx *context.Context) {
 
 		// check view permissions
 		if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
-			ctx.NotFound("user", fmt.Errorf("%s", ctx.ContextUser.Name))
+			ctx.NotFound(fmt.Errorf("%s", ctx.ContextUser.Name))
 			return false
 		}
 		return true
@@ -743,7 +732,7 @@ func UsernameSubRoute(ctx *context.Context) {
 	switch {
 	case strings.HasSuffix(username, ".png"):
 		if reloadParam(".png") {
-			AvatarByUserName(ctx)
+			AvatarByUsernameSize(ctx)
 		}
 	case strings.HasSuffix(username, ".keys"):
 		if reloadParam(".keys") {
@@ -755,7 +744,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 	case strings.HasSuffix(username, ".rss"):
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if reloadParam(".rss") {
@@ -763,7 +752,7 @@ func UsernameSubRoute(ctx *context.Context) {
 		}
 	case strings.HasSuffix(username, ".atom"):
 		if !setting.Other.EnableFeed {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 		if reloadParam(".atom") {
@@ -778,10 +767,19 @@ func UsernameSubRoute(ctx *context.Context) {
 	}
 }
 
-func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer.SearchOptions) (ret *issues_model.IssueStats, err error) {
+func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMode int, opts *issue_indexer.SearchOptions) (ret *issues_model.IssueStats, err error) {
 	ret = &issues_model.IssueStats{}
 	doerID := ctx.Doer.ID
 
+	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
+		// If the doer is the same as the context user, which means the doer is viewing his own dashboard,
+		// it's not enough to show the repos that the doer owns or has been explicitly granted access to,
+		// because the doer may create issues or be mentioned in any public repo.
+		// So we need search issues in all public repos.
+		o.AllPublic = doerID == ctxUser.ID
+	})
+
+	// Open/Closed are for the tabs of the issue list
 	{
 		openClosedOpts := opts.Copy()
 		switch filterMode {
@@ -811,6 +809,15 @@ func getUserIssueStats(ctx *context.Context, filterMode int, opts *issue_indexer
 			return nil, err
 		}
 	}
+
+	// Below stats are for the left sidebar
+	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
+		o.AssigneeID = nil
+		o.PosterID = nil
+		o.MentionID = nil
+		o.ReviewRequestedID = nil
+		o.ReviewedID = nil
+	})
 
 	ret.YourRepositoriesCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AllPublic = false }))
 	if err != nil {

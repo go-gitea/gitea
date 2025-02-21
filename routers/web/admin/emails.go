@@ -94,7 +94,7 @@ func Emails(ctx *context.Context) {
 	ctx.Data["Emails"] = emails
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplEmails)
@@ -116,7 +116,7 @@ func ActivateEmail(ctx *context.Context) {
 	activate, oka := truefalse[ctx.FormString("activate")]
 
 	if uid == 0 || len(email) == 0 || !okp || !oka {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 

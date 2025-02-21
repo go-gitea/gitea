@@ -67,9 +67,9 @@ func CreateOrg(ctx *context.APIContext) {
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateOrganization", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -109,7 +109,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 		Visible:     []api.VisibleType{api.VisibleTypePublic, api.VisibleTypeLimited, api.VisibleTypePrivate},
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	orgs := make([]*api.Organization, len(users))

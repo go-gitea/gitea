@@ -28,7 +28,7 @@ func TestGetFormatPatch(t *testing.T) {
 	defer repo.Close()
 
 	rd := &bytes.Buffer{}
-	err = repo.GetPatch("8d92fc95^", "8d92fc95", rd)
+	err = repo.GetPatch("8d92fc95^...8d92fc95", rd)
 	if err != nil {
 		assert.NoError(t, err)
 		return
