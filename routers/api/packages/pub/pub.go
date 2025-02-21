@@ -84,12 +84,13 @@ func EnumeratePackageVersions(ctx *context.Context) {
 	packageName := ctx.PathParam("id")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+	if errors.Is(err, util.ErrNotExist) {
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
-	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
