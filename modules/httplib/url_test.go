@@ -44,7 +44,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	assert.Equal(t, "http://cfg-host/sub/", MakeAbsoluteURL(ctx, ""))
 	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "foo"))
 	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
@@ -76,7 +76,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 func TestIsCurrentGiteaSiteURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
-	ctx := context.Background()
+	ctx := t.Context()
 	good := []string{
 		"?key=val",
 		"/sub",
