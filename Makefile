@@ -378,6 +378,7 @@ lint-go-gopls: ## lint go files with gopls
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
+	@echo "Running editorconfig check..."
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
 .PHONY: lint-actions
