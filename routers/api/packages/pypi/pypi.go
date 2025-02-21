@@ -17,6 +17,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
@@ -50,12 +51,13 @@ func PackageMetadata(ctx *context.Context) {
 	packageName := normalizer.Replace(ctx.PathParam("id"))
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypePyPI, packageName)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+	if errors.Is(err, util.ErrNotExist) {
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
-	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, err)
+
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

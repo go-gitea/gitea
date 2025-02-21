@@ -90,12 +90,14 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	if errors.Is(err, util.ErrNotExist) {
 		pvs, err = packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageNameLegacy())
 	}
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+
+	if errors.Is(err, util.ErrNotExist) {
+		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
 		return
 	}
-	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
+
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
