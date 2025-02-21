@@ -138,13 +138,12 @@ func PackageMetadata(ctx *context.Context) {
 	projectName := ctx.PathParam("projectname")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer, vendorName+"/"+projectName)
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
-		return
-	}
-
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
 		return
 	}
 

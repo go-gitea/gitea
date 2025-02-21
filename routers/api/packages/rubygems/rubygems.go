@@ -301,16 +301,14 @@ func DeletePackage(ctx *context.Context) {
 func GetPackageInfo(ctx *context.Context) {
 	packageName := ctx.PathParam("packagename")
 	versions, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, packageName)
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
-	}
-
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-
+	if len(versions) == 0 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
 	infoContent, err := makePackageInfo(ctx, versions)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -332,11 +330,12 @@ func GetAllPackagesVersions(ctx *context.Context) {
 	out.WriteString("---\n")
 	for _, pkg := range packages {
 		versions, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, pkg.Name)
-		if errors.Is(err, util.ErrNotExist) {
-			continue
-		} else if err != nil {
+		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
+		}
+		if len(versions) == 0 {
+			continue
 		}
 
 		info, err := makePackageInfo(ctx, versions)

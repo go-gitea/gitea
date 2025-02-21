@@ -153,13 +153,12 @@ func PackageMetadata(ctx *context.Context) {
 	packageName := ctx.PathParam("name")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, packageName)
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
-	}
-
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, nil)
 		return
 	}
 
@@ -383,13 +382,13 @@ func DeletePackageVersion(ctx *context.Context) {
 // https://github.com/chef/chef/blob/main/knife/lib/chef/knife/supermarket_unshare.rb
 func DeletePackage(ctx *context.Context) {
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, ctx.PathParam("name"))
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, err)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 

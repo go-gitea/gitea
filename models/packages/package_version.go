@@ -139,11 +139,6 @@ func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Ty
 		},
 		IsInternal: optional.Some(false),
 	})
-
-	if len(pvs) == 0 {
-		return nil, util.ErrNotExist
-	}
-
 	return pvs, err
 }
 

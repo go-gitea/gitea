@@ -56,13 +56,12 @@ func PackageMetadata(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, err)
-		return
-	}
-
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
@@ -284,13 +283,13 @@ func DeletePackage(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, err)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
@@ -309,10 +308,6 @@ func ListPackageTags(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, err)
-		return
-	}
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -369,10 +364,6 @@ func DeletePackageTag(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
-	if errors.Is(err, util.ErrNotExist) {
-		return
-	}
-
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

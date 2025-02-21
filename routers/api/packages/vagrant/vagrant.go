@@ -16,7 +16,6 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	vagrant_module "code.gitea.io/gitea/modules/packages/vagrant"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -46,14 +45,13 @@ func CheckAuthenticate(ctx *context.Context) {
 }
 
 func CheckBoxAvailable(ctx *context.Context) {
-	_, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeVagrant, ctx.PathParam("name"))
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, err)
-		return
-	}
-
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeVagrant, ctx.PathParam("name"))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
@@ -105,13 +103,12 @@ func packageDescriptorToMetadata(baseURL string, pd *packages_model.PackageDescr
 
 func EnumeratePackageVersions(ctx *context.Context) {
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeVagrant, ctx.PathParam("name"))
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, err)
-		return
-	}
-
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 

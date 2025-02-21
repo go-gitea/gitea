@@ -29,12 +29,12 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 func EnumeratePackageVersions(ctx *context.Context) {
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeGo, ctx.PathParam("name"))
-	if errors.Is(err, util.ErrNotExist) {
-		apiError(ctx, http.StatusNotFound, err)
-		return
-	}
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
