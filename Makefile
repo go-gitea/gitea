@@ -284,10 +284,10 @@ swagger-check: generate-swagger
 .PHONY: swagger-validate
 swagger-validate: ## check if the swagger spec is valid
 	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
-	$(SED_INPLACE) -e 's|"basePath": *".*"|"basePath": "/api/v1"|g' './$(SWAGGER_SPEC)'
+	@$(SED_INPLACE) -E 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
 	@# FIXME: there are some warnings
 	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
-	git restore './$(SWAGGER_SPEC)'
+	@$(SED_INPLACE) -E 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)' # remove the prefix slash from basePath
 
 .PHONY: checks
 checks: checks-frontend checks-backend ## run various consistency checks
