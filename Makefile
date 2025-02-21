@@ -287,7 +287,7 @@ swagger-validate: ## check if the swagger spec is valid
 	@$(SED_INPLACE) -E 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
 	@# FIXME: there are some warnings
 	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
-	@$(SED_INPLACE) -E 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)' # remove the prefix slash from basePath
+	@$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)' # remove the prefix slash from basePath
 
 .PHONY: checks
 checks: checks-frontend checks-backend ## run various consistency checks
