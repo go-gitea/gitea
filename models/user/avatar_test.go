@@ -4,7 +4,6 @@
 package user
 
 import (
-	"context"
 	"io"
 	"strings"
 	"testing"
@@ -37,7 +36,7 @@ func TestUserAvatarGenerate(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	var err error
 	tmpDir := t.TempDir()
-	storage.Avatars, err = storage.NewLocalStorage(context.Background(), &setting.Storage{Path: tmpDir})
+	storage.Avatars, err = storage.NewLocalStorage(t.Context(), &setting.Storage{Path: tmpDir})
 	require.NoError(t, err)
 
 	u := unittest.AssertExistsAndLoadBean(t, &User{ID: 2})

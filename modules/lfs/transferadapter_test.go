@@ -5,7 +5,6 @@ package lfs
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	"strings"
@@ -94,7 +93,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		}
 
 		for n, c := range cases {
-			_, err := a.Download(context.Background(), c.link)
+			_, err := a.Download(t.Context(), c.link)
 			if len(c.expectederror) > 0 {
 				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
@@ -127,7 +126,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		}
 
 		for n, c := range cases {
-			err := a.Upload(context.Background(), c.link, p, bytes.NewBufferString("dummy"))
+			err := a.Upload(t.Context(), c.link, p, bytes.NewBufferString("dummy"))
 			if len(c.expectederror) > 0 {
 				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
@@ -160,7 +159,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		}
 
 		for n, c := range cases {
-			err := a.Verify(context.Background(), c.link, p)
+			err := a.Verify(t.Context(), c.link, p)
 			if len(c.expectederror) > 0 {
 				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {

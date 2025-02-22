@@ -85,6 +85,7 @@ jobs:
 
             swagger:
               - "templates/swagger/v1_json.tmpl"
+              - "templates/swagger/v1_input.json"
               - "Makefile"
               - "package.json"
               - "package-lock.json"

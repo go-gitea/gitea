@@ -51,7 +51,7 @@ func (t *testTraceStarter) start(ctx context.Context, traceSpan *TraceSpan, inte
 func TestTraceStarter(t *testing.T) {
 	globalTraceStarters = []traceStarter{&testTraceStarter{}}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx, span := GetTracer().Start(ctx, "root")
 	defer span.End()
 

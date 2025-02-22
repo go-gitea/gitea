@@ -4,7 +4,6 @@
 package private
 
 import (
-	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -18,7 +17,7 @@ var testReposDir = "tests/repos/"
 func TestVerifyCommits(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	gitRepo, err := git.OpenRepository(context.Background(), testReposDir+"repo1_hook_verification")
+	gitRepo, err := git.OpenRepository(t.Context(), testReposDir+"repo1_hook_verification")
 	defer gitRepo.Close()
 	assert.NoError(t, err)
 
