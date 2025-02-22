@@ -118,7 +118,8 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/repo1/forks")
 		resp := user1Sess.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.EqualValues(t, 1, htmlDoc.Find(forkItemSelector).Length())
+		// since user1 is an admin, he can get both of the forked repositories
+		assert.EqualValues(t, 2, htmlDoc.Find(forkItemSelector).Length())
 
 		assert.NoError(t, org_service.AddTeamMember(db.DefaultContext, ownerTeam2, user1))
 		resp = user1Sess.MakeRequest(t, req, http.StatusOK)

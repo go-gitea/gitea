@@ -4,38 +4,38 @@
 package repository
 
 import (
-	"context"
+	"errors"
 	"fmt"
 
-	git_model "code.gitea.io/gitea/models/git"
 	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/pull"
 )
 
-type UpstreamDivergingInfo struct {
-	BaseHasNewCommits bool
-	CommitsBehind     int
-	CommitsAhead      int
-}
-
 // MergeUpstream merges the base repository's default branch into the fork repository's current branch.
-func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branch string) (mergeStyle string, err error) {
+func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, branch string) (mergeStyle string, err error) {
 	if err = repo.MustNotBeArchived(); err != nil {
 		return "", err
 	}
 	if err = repo.GetBaseRepo(ctx); err != nil {
 		return "", err
 	}
+	divergingInfo, err := GetUpstreamDivergingInfo(ctx, repo, branch)
+	if err != nil {
+		return "", err
+	}
+	if !divergingInfo.BaseBranchHasNewCommits {
+		return "up-to-date", nil
+	}
+
 	err = git.Push(ctx, repo.BaseRepo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
-		Branch: fmt.Sprintf("%s:%s", repo.BaseRepo.DefaultBranch, branch),
+		Branch: fmt.Sprintf("%s:%s", divergingInfo.BaseBranchName, branch),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	})
 	if err == nil {
@@ -67,7 +67,7 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 		BaseRepoID: repo.BaseRepo.ID,
 		BaseRepo:   repo.BaseRepo,
 		HeadBranch: branch, // maybe HeadCommitID is not needed
-		BaseBranch: repo.BaseRepo.DefaultBranch,
+		BaseBranch: divergingInfo.BaseBranchName,
 	}
 	fakeIssue.PullRequest = fakePR
 	err = pull.Update(ctx, fakePR, doer, "merge upstream", false)
@@ -77,68 +77,47 @@ func MergeUpstream(ctx context.Context, doer *user_model.User, repo *repo_model.
 	return "merge", nil
 }
 
+// UpstreamDivergingInfo is also used in templates, so it needs to search for all references before changing it.
+type UpstreamDivergingInfo struct {
+	BaseBranchName          string
+	BaseBranchHasNewCommits bool
+	HeadBranchCommitsBehind int
+}
+
 // GetUpstreamDivergingInfo returns the information about the divergence between the fork repository's branch and the base repository's default branch.
-func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, repo *repo_model.Repository, branch string) (*UpstreamDivergingInfo, error) {
-	if !repo.IsFork {
+func GetUpstreamDivergingInfo(ctx reqctx.RequestContext, forkRepo *repo_model.Repository, forkBranch string) (*UpstreamDivergingInfo, error) {
+	if !forkRepo.IsFork {
 		return nil, util.NewInvalidArgumentErrorf("repo is not a fork")
 	}
 
-	if repo.IsArchived {
+	if forkRepo.IsArchived {
 		return nil, util.NewInvalidArgumentErrorf("repo is archived")
 	}
 
-	if err := repo.GetBaseRepo(ctx); err != nil {
+	if err := forkRepo.GetBaseRepo(ctx); err != nil {
 		return nil, err
 	}
 
-	forkBranch, err := git_model.GetBranch(ctx, repo.ID, branch)
-	if err != nil {
-		return nil, err
+	// Do the best to follow the GitHub's behavior, suppose there is a `branch-a` in fork repo:
+	// * if `branch-a` exists in base repo: try to sync `base:branch-a` to `fork:branch-a`
+	// * if `branch-a` doesn't exist in base repo: try to sync `base:main` to `fork:branch-a`
+	info, err := GetBranchDivergingInfo(ctx, forkRepo.BaseRepo, forkBranch, forkRepo, forkBranch)
+	if err == nil {
+		return &UpstreamDivergingInfo{
+			BaseBranchName:          forkBranch,
+			BaseBranchHasNewCommits: info.BaseHasNewCommits,
+			HeadBranchCommitsBehind: info.HeadCommitsBehind,
+		}, nil
 	}
-
-	baseBranch, err := git_model.GetBranch(ctx, repo.BaseRepo.ID, repo.BaseRepo.DefaultBranch)
-	if err != nil {
-		return nil, err
+	if errors.Is(err, util.ErrNotExist) {
+		info, err = GetBranchDivergingInfo(ctx, forkRepo.BaseRepo, forkRepo.BaseRepo.DefaultBranch, forkRepo, forkBranch)
+		if err == nil {
+			return &UpstreamDivergingInfo{
+				BaseBranchName:          forkRepo.BaseRepo.DefaultBranch,
+				BaseBranchHasNewCommits: info.BaseHasNewCommits,
+				HeadBranchCommitsBehind: info.HeadCommitsBehind,
+			}, nil
+		}
 	}
-
-	info := &UpstreamDivergingInfo{}
-	if forkBranch.CommitID == baseBranch.CommitID {
-		return info, nil
-	}
-
-	// if the fork repo has new commits, this call will fail because they are not in the base repo
-	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
-	// so at the moment, we first check the update time, then check whether the fork branch has base's head
-	diff, err := git.GetDivergingCommits(ctx, repo.BaseRepo.RepoPath(), baseBranch.CommitID, forkBranch.CommitID)
-	if err != nil {
-		info.BaseHasNewCommits = baseBranch.UpdatedUnix > forkBranch.UpdatedUnix
-		if info.BaseHasNewCommits {
-			return info, nil
-		}
-
-		// if the base's update time is before the fork, check whether the base's head is in the fork
-		baseGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo.BaseRepo)
-		if err != nil {
-			return nil, err
-		}
-		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
-		if err != nil {
-			return nil, err
-		}
-
-		baseCommitID, err := baseGitRepo.ConvertToGitID(baseBranch.CommitID)
-		if err != nil {
-			return nil, err
-		}
-		headCommit, err := headGitRepo.GetCommit(forkBranch.CommitID)
-		if err != nil {
-			return nil, err
-		}
-		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseCommitID)
-		info.BaseHasNewCommits = !hasPreviousCommit
-		return info, nil
-	}
-
-	info.CommitsBehind, info.CommitsAhead = diff.Behind, diff.Ahead
-	return info, nil
+	return nil, err
 }

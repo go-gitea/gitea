@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
+	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
@@ -54,7 +55,7 @@ func logArgSanitize(arg string) string {
 	} else if filepath.IsAbs(arg) {
 		base := filepath.Base(arg)
 		dir := filepath.Dir(arg)
-		return filepath.Join(filepath.Base(dir), base)
+		return ".../" + filepath.Join(filepath.Base(dir), base)
 	}
 	return arg
 }
@@ -295,14 +296,19 @@ func (c *Command) run(skip int, opts *RunOpts) error {
 		timeout = defaultCommandExecutionTimeout
 	}
 
-	var desc string
+	cmdLogString := c.LogString()
 	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + skip /* parent */)
 	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
 		callerInfo = callerInfo[pos+1:]
 	}
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
-	desc = fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), c.LogString())
+	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
+
+	_, span := gtprof.GetTracer().Start(c.parentContext, gtprof.TraceSpanGitRun)
+	defer span.End()
+	span.SetAttributeString(gtprof.TraceAttrFuncCaller, callerInfo)
+	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
 	var ctx context.Context
 	var cancel context.CancelFunc

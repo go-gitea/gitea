@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -213,7 +214,7 @@ func (u *User) GetPlaceholderEmail() string {
 	return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
 }
 
-// GetEmail returns an noreply email, if the user has set to keep his
+// GetEmail returns a noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
 func (u *User) GetEmail() string {
 	if u.KeepEmailPrivate {
@@ -417,19 +418,9 @@ func (u *User) DisplayName() string {
 	return u.Name
 }
 
-var emailToReplacer = strings.NewReplacer(
-	"\n", "",
-	"\r", "",
-	"<", "",
-	">", "",
-	",", "",
-	":", "",
-	";", "",
-)
-
 // EmailTo returns a string suitable to be put into a e-mail `To:` header.
 func (u *User) EmailTo() string {
-	sanitizedDisplayName := emailToReplacer.Replace(u.DisplayName())
+	sanitizedDisplayName := globalVars().emailToReplacer.Replace(u.DisplayName())
 
 	// should be an edge case but nice to have
 	if sanitizedDisplayName == u.Email {
@@ -502,10 +493,10 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
-// IsUserExist checks if given user name exist,
-// the user name should be noncased unique.
+// IsUserExist checks if given username exist,
+// the username should be non-cased unique.
 // If uid is presented, then check will rule out that one,
-// it is used when update a user name in settings page.
+// it is used when update a username in settings page.
 func IsUserExist(ctx context.Context, uid int64, name string) (bool, error) {
 	if len(name) == 0 {
 		return false, nil
@@ -515,7 +506,7 @@ func IsUserExist(ctx context.Context, uid int64, name string) (bool, error) {
 		Get(&User{LowerName: strings.ToLower(name)})
 }
 
-// Note: As of the beginning of 2022, it is recommended to use at least
+// SaltByteLength as of the beginning of 2022, it is recommended to use at least
 // 64 bits of salt, but NIST is already recommending to use to 128 bits.
 // (16 bytes = 16 * 8 = 128 bits)
 const SaltByteLength = 16
@@ -526,28 +517,58 @@ func GetUserSalt() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Returns a 32 bytes long string.
+	// Returns a 32-byte long string.
 	return hex.EncodeToString(rBytes), nil
 }
 
-// Note: The set of characters here can safely expand without a breaking change,
-// but characters removed from this set can cause user account linking to break
-var (
-	customCharsReplacement = strings.NewReplacer("Æ", "AE")
-	removeCharsRE          = regexp.MustCompile("['`´]")
-	transformDiacritics    = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	replaceCharsHyphenRE   = regexp.MustCompile(`[\s~+]`)
-)
+type globalVarsStruct struct {
+	customCharsReplacement *strings.Replacer
+	removeCharsRE          *regexp.Regexp
+	transformDiacritics    transform.Transformer
+	replaceCharsHyphenRE   *regexp.Regexp
+	emailToReplacer        *strings.Replacer
+	emailRegexp            *regexp.Regexp
+	systemUserNewFuncs     map[int64]func() *User
+}
+
+var globalVars = sync.OnceValue(func() *globalVarsStruct {
+	return &globalVarsStruct{
+		// Note: The set of characters here can safely expand without a breaking change,
+		// but characters removed from this set can cause user account linking to break
+		customCharsReplacement: strings.NewReplacer("Æ", "AE"),
+
+		removeCharsRE:        regexp.MustCompile("['`´]"),
+		transformDiacritics:  transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC),
+		replaceCharsHyphenRE: regexp.MustCompile(`[\s~+]`),
+
+		emailToReplacer: strings.NewReplacer(
+			"\n", "",
+			"\r", "",
+			"<", "",
+			">", "",
+			",", "",
+			":", "",
+			";", "",
+		),
+		emailRegexp: regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"),
+
+		systemUserNewFuncs: map[int64]func() *User{
+			GhostUserID:   NewGhostUser,
+			ActionsUserID: NewActionsUser,
+		},
+	}
+})
 
 // NormalizeUserName only takes the name part if it is an email address, transforms it diacritics to ASCII characters.
 // It returns a string with the single-quotes removed, and any other non-supported username characters are replaced with a `-` character
 func NormalizeUserName(s string) (string, error) {
+	vars := globalVars()
 	s, _, _ = strings.Cut(s, "@")
-	strDiacriticsRemoved, n, err := transform.String(transformDiacritics, customCharsReplacement.Replace(s))
+	strDiacriticsRemoved, n, err := transform.String(vars.transformDiacritics, vars.customCharsReplacement.Replace(s))
 	if err != nil {
 		return "", fmt.Errorf("failed to normalize the string of provided username %q at position %d", s, n)
 	}
-	return replaceCharsHyphenRE.ReplaceAllLiteralString(removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
+	return vars.replaceCharsHyphenRE.ReplaceAllLiteralString(vars.removeCharsRE.ReplaceAllLiteralString(strDiacriticsRemoved, ""), "-"), nil
 }
 
 var (
@@ -963,30 +984,28 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// GetPossibleUserByID returns the user if id > 0 or return system usrs if id < 0
+// GetPossibleUserByID returns the user if id > 0 or returns system user if id < 0
 func GetPossibleUserByID(ctx context.Context, id int64) (*User, error) {
-	switch id {
-	case GhostUserID:
-		return NewGhostUser(), nil
-	case ActionsUserID:
-		return NewActionsUser(), nil
-	case 0:
+	if id < 0 {
+		if newFunc, ok := globalVars().systemUserNewFuncs[id]; ok {
+			return newFunc(), nil
+		}
+		return nil, ErrUserNotExist{UID: id}
+	} else if id == 0 {
 		return nil, ErrUserNotExist{}
-	default:
-		return GetUserByID(ctx, id)
 	}
+	return GetUserByID(ctx, id)
 }
 
-// GetPossibleUserByIDs returns the users if id > 0 or return system users if id < 0
+// GetPossibleUserByIDs returns the users if id > 0 or returns system users if id < 0
 func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	uniqueIDs := container.SetOf(ids...)
 	users := make([]*User, 0, len(ids))
 	_ = uniqueIDs.Remove(0)
-	if uniqueIDs.Remove(GhostUserID) {
-		users = append(users, NewGhostUser())
-	}
-	if uniqueIDs.Remove(ActionsUserID) {
-		users = append(users, NewActionsUser())
+	for systemUID, newFunc := range globalVars().systemUserNewFuncs {
+		if uniqueIDs.Remove(systemUID) {
+			users = append(users, newFunc())
+		}
 	}
 	res, err := GetUserByIDs(ctx, uniqueIDs.Values())
 	if err != nil {
@@ -996,7 +1015,7 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, nil
 }
 
-// GetUserByNameCtx returns user by given name.
+// GetUserByName returns user by given name.
 func GetUserByName(ctx context.Context, name string) (*User, error) {
 	if len(name) == 0 {
 		return nil, ErrUserNotExist{Name: name}
@@ -1027,8 +1046,8 @@ func GetUserEmailsByNames(ctx context.Context, names []string) []string {
 	return mails
 }
 
-// GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
-func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]*User, error) {
+// GetMailableUsersByIDs gets users from ids, but only if they can receive mails
+func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]*User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -1051,17 +1070,6 @@ func GetMaileableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([
 		And("`is_active` = ?", true).
 		In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsAndYourOwn).
 		Find(&ous)
-}
-
-// GetUserNamesByIDs returns usernames for all resolved users from a list of Ids.
-func GetUserNamesByIDs(ctx context.Context, ids []int64) ([]string, error) {
-	unames := make([]string, 0, len(ids))
-	err := db.GetEngine(ctx).In("id", ids).
-		Table("user").
-		Asc("name").
-		Cols("name").
-		Find(&unames)
-	return unames, err
 }
 
 // GetUserNameByID returns username for the id

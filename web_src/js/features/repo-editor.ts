@@ -168,7 +168,7 @@ export function initRepoEditor() {
       silent: true,
       dirtyClass: dirtyFileClass,
       fieldSelector: ':input:not(.commit-form-wrapper :input)',
-      change($form) {
+      change($form: any) {
         const dirty = $form[0]?.classList.contains(dirtyFileClass);
         commitButton.disabled = !dirty;
       },

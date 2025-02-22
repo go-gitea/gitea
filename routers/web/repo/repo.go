@@ -304,112 +304,14 @@ func CreatePost(ctx *context.Context) {
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
 }
 
-const (
-	tplWatchUnwatch templates.TplName = "repo/watch_unwatch"
-	tplStarUnstar   templates.TplName = "repo/star_unstar"
-)
-
-// Action response for actions to a repository
-func Action(ctx *context.Context) {
-	var err error
-	switch ctx.PathParam("action") {
-	case "watch":
-		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
-	case "unwatch":
-		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
-	case "star":
-		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
-	case "unstar":
-		err = repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, false)
-	case "accept_transfer":
-		err = acceptOrRejectRepoTransfer(ctx, true)
-	case "reject_transfer":
-		err = acceptOrRejectRepoTransfer(ctx, false)
-	case "desc": // FIXME: this is not used
-		if !ctx.Repo.IsOwner() {
-			ctx.Error(http.StatusNotFound)
-			return
-		}
-
-		ctx.Repo.Repository.Description = ctx.FormString("desc")
-		ctx.Repo.Repository.Website = ctx.FormString("site")
-		err = repo_service.UpdateRepository(ctx, ctx.Repo.Repository, false)
-	}
-
-	if err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
-		} else {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
-			return
-		}
-	}
-
-	switch ctx.PathParam("action") {
-	case "watch", "unwatch":
-		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
-	case "star", "unstar":
-		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
-	}
-
-	// see the `hx-trigger="refreshUserCards ..."` comments in tmpl
-	ctx.RespHeader().Add("hx-trigger", "refreshUserCards")
-
-	switch ctx.PathParam("action") {
-	case "watch", "unwatch", "star", "unstar":
-		// we have to reload the repository because NumStars or NumWatching (used in the templates) has just changed
-		ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
-		if err != nil {
-			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
-			return
-		}
-	}
-
-	switch ctx.PathParam("action") {
-	case "watch", "unwatch":
-		ctx.HTML(http.StatusOK, tplWatchUnwatch)
-		return
-	case "star", "unstar":
-		ctx.HTML(http.StatusOK, tplStarUnstar)
-		return
-	}
-
-	ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
-}
-
-func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
-	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
-	if err != nil {
-		return err
-	}
-
-	if err := repoTransfer.LoadAttributes(ctx); err != nil {
-		return err
-	}
-
-	if !repoTransfer.CanUserAcceptTransfer(ctx, ctx.Doer) {
-		return errors.New("user does not have enough permissions")
-	}
-
-	if accept {
-		if ctx.Repo.GitRepo != nil {
-			ctx.Repo.GitRepo.Close()
-			ctx.Repo.GitRepo = nil
-		}
-
-		if err := repo_service.TransferOwnership(ctx, repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
-			return err
-		}
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
+func handleActionError(ctx *context.Context, err error) {
+	if errors.Is(err, user_model.ErrBlockedUser) {
+		ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
+	} else if errors.Is(err, util.ErrPermissionDenied) {
+		ctx.Error(http.StatusNotFound)
 	} else {
-		if err := repo_service.CancelRepositoryTransfer(ctx, ctx.Repo.Repository); err != nil {
-			return err
-		}
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
+		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 	}
-
-	ctx.Redirect(ctx.Repo.Repository.Link())
-	return nil
 }
 
 // RedirectDownload return a file based on the following infos:
