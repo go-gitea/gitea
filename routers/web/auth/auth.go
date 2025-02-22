@@ -192,7 +192,7 @@ func SignIn(ctx *context.Context) {
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context) {
 	if !setting.Service.EnablePasswordSignInForm {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -456,7 +456,7 @@ func SignUpPost(ctx *context.Context) {
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -767,7 +767,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 	if err := user_model.UpdateUserCols(ctx, user, "is_active", "rands"); err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.NotFound("UpdateUserCols", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("UpdateUser", err)
 		}

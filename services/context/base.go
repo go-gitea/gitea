@@ -81,8 +81,8 @@ func (b *Base) RespHeader() http.Header {
 	return b.Resp.Header()
 }
 
-// Error returned an error to web browser
-func (b *Base) Error(status int, contents ...string) {
+// HTTPError returned an error to web browser
+func (b *Base) HTTPError(status int, contents ...string) {
 	v := http.StatusText(status)
 	if len(contents) > 0 {
 		v = contents[0]

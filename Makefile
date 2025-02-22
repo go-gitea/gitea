@@ -23,12 +23,12 @@ SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.23.x
+XGO_VERSION := go-1.24.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.1.2
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.7.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.6.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
@@ -144,9 +144,9 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMAN
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.js *.ts tests/e2e
+ESLINT_FILES := web_src/js tools *.js *.ts *.cjs tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml))
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
 GO_SOURCES := $(wildcard *.go)
@@ -165,10 +165,8 @@ ifdef DEPS_PLAYWRIGHT
 endif
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
-SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape}}/api/v1"|g
-SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape}}/api/v1"|"basePath": "/api/v1"|g
+SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
 SWAGGER_EXCLUDE := code.gitea.io/sdk
-SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
@@ -255,7 +253,7 @@ fmt-check: fmt
 	@diff=$$(git diff --color=always $(GO_SOURCES) templates $(WEB_DIRS)); \
 	if [ -n "$$diff" ]; then \
 	  echo "Please run 'make fmt' and commit the result:"; \
-	  echo "$${diff}"; \
+	  printf "%s" "$${diff}"; \
 	  exit 1; \
 	fi
 
@@ -271,25 +269,25 @@ endif
 .PHONY: generate-swagger
 generate-swagger: $(SWAGGER_SPEC) ## generate the swagger spec from code comments
 
-$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
-	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
+$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA) $(SWAGGER_SPEC_INPUT)
+	$(GO) run $(SWAGGER_PACKAGE) generate spec --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)'
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
 	@diff=$$(git diff --color=always '$(SWAGGER_SPEC)'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make generate-swagger' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
 .PHONY: swagger-validate
 swagger-validate: ## check if the swagger spec is valid
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
+	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
+	@$(SED_INPLACE) -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
+	@# FIXME: there are some warnings
 	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
-	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
+	@$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)' # remove the prefix slash from basePath
 
 .PHONY: checks
 checks: checks-frontend checks-backend ## run various consistency checks
@@ -380,6 +378,7 @@ lint-go-gopls: ## lint go files with gopls
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
+	@echo "Running editorconfig check..."
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
 .PHONY: lint-actions
@@ -426,7 +425,7 @@ test-check:
 	@diff=$$(git status -s); \
 	if [ -n "$$diff" ]; then \
 		echo "make test-backend has changed files in the source tree:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		echo "You should change the tests to create these files in a temporary directory."; \
 		echo "Do not simply add these files to .gitignore"; \
 		exit 1; \
@@ -463,7 +462,7 @@ tidy-check: tidy
 	@diff=$$(git diff --color=always go.mod go.sum $(GO_LICENSE_FILE)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
@@ -879,7 +878,7 @@ svg-check: svg
 	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 
@@ -890,7 +889,7 @@ lockfile-check:
 	if [ -n "$$diff" ]; then \
 		echo "package-lock.json is inconsistent with package.json"; \
 		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
-		echo "$${diff}"; \
+		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
 

@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -38,7 +37,7 @@ func TestJobWithNeeds(t *testing.T) {
 		{
 			treePath: ".gitea/workflows/job-with-needs.yml",
 			fileContent: `name: job-with-needs
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/job-with-needs.yml'
@@ -69,7 +68,7 @@ jobs:
 		{
 			treePath: ".gitea/workflows/job-with-needs-fail.yml",
 			fileContent: `name: job-with-needs-fail
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/job-with-needs-fail.yml'
@@ -97,7 +96,7 @@ jobs:
 		{
 			treePath: ".gitea/workflows/job-with-needs-fail-if.yml",
 			fileContent: `name: job-with-needs-fail-if
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/job-with-needs-fail-if.yml'
@@ -182,7 +181,7 @@ func TestJobNeedsMatrix(t *testing.T) {
 		{
 			treePath: ".gitea/workflows/jobs-outputs-with-matrix.yml",
 			fileContent: `name: jobs-outputs-with-matrix
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/jobs-outputs-with-matrix.yml'
@@ -201,7 +200,7 @@ jobs:
         id: gen_output
         run: |
           version="${{ matrix.version }}"
-          echo "output_${version}=${version}" >> "$GITHUB_OUTPUT"          
+          echo "output_${version}=${version}" >> "$GITHUB_OUTPUT"
   job2:
     runs-on: ubuntu-latest
     needs: [job1]
@@ -248,7 +247,7 @@ jobs:
 		{
 			treePath: ".gitea/workflows/jobs-outputs-with-matrix-failure.yml",
 			fileContent: `name: jobs-outputs-with-matrix-failure
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/jobs-outputs-with-matrix-failure.yml'
@@ -267,7 +266,7 @@ jobs:
         id: gen_output
         run: |
           version="${{ matrix.version }}"
-          echo "output_${version}=${version}" >> "$GITHUB_OUTPUT"          
+          echo "output_${version}=${version}" >> "$GITHUB_OUTPUT"
   job2:
     runs-on: ubuntu-latest
     if: ${{ always() }}
@@ -406,7 +405,7 @@ jobs:
 		actionTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
 		actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: actionTask.JobID})
 		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: actionRunJob.RunID})
-		assert.NoError(t, actionRun.LoadAttributes(context.Background()))
+		assert.NoError(t, actionRun.LoadAttributes(t.Context()))
 
 		assert.Equal(t, user2.Name, gtCtx["actor"].GetStringValue())
 		assert.Equal(t, setting.AppURL+"api/v1", gtCtx["api_url"].GetStringValue())

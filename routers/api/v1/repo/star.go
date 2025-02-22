@@ -49,7 +49,7 @@ func ListStargazers(ctx *context.APIContext) {
 
 	stargazers, err := repo_model.GetStargazers(ctx, ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetStargazers", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	users := make([]*api.User, len(stargazers))

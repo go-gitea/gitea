@@ -3339,6 +3339,93 @@
         }
       }
     },
+    "/packages/{owner}/{type}/{name}/-/link/{repo_name}": {
+      "post": {
+        "tags": [
+          "package"
+        ],
+        "summary": "Link a package to a repository",
+        "operationId": "linkPackage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the package",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository to link.",
+            "name": "repo_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/packages/{owner}/{type}/{name}/-/unlink": {
+      "post": {
+        "tags": [
+          "package"
+        ],
+        "summary": "Unlink a package from a repository",
+        "operationId": "unlinkPackage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the package",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/packages/{owner}/{type}/{name}/{version}": {
       "get": {
         "produces": [
@@ -3919,6 +4006,187 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/artifacts": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Lists all artifacts for a repository",
+        "operationId": "getArtifacts",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the artifact",
+            "name": "name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ArtifactsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/artifacts/{artifact_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets a specific artifact for a workflow run",
+        "operationId": "getArtifact",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the artifact",
+            "name": "artifact_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Artifact"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Deletes a specific artifact for a workflow run",
+        "operationId": "deleteArtifact",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the artifact",
+            "name": "artifact_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Downloads a specific artifact for a workflow run redirects to blob url",
+        "operationId": "downloadArtifact",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the artifact",
+            "name": "artifact_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "redirect to the blob download"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runners/registration-token": {
       "get": {
         "produces": [
@@ -3948,6 +4216,58 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RegistrationToken"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/artifacts": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Lists all artifacts for a repository run",
+        "operationId": "getArtifactsOfRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "runid of the workflow run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the artifact",
+            "name": "name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ArtifactsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -18837,6 +19157,76 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActionArtifact": {
+      "description": "ActionArtifact represents a ActionArtifact",
+      "type": "object",
+      "properties": {
+        "archive_download_url": {
+          "type": "string",
+          "x-go-name": "ArchiveDownloadURL"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "expired": {
+          "type": "boolean",
+          "x-go-name": "Expired"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "ExpiresAt"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "size_in_bytes": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SizeInBytes"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "workflow_run": {
+          "$ref": "#/definitions/ActionWorkflowRun"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionArtifactsResponse": {
+      "description": "ActionArtifactsResponse returns ActionArtifacts",
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionArtifact"
+          },
+          "x-go-name": "Entries"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ActionTask": {
       "description": "ActionTask represents a ActionTask",
       "type": "object",
@@ -18995,6 +19385,27 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionWorkflowRun": {
+      "description": "ActionWorkflowRun represents a WorkflowRun",
+      "type": "object",
+      "properties": {
+        "head_sha": {
+          "type": "string",
+          "x-go-name": "HeadSha"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "repository_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepositoryID"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -26062,6 +26473,18 @@
       "description": "AnnotatedTag",
       "schema": {
         "$ref": "#/definitions/AnnotatedTag"
+      }
+    },
+    "Artifact": {
+      "description": "Artifact",
+      "schema": {
+        "$ref": "#/definitions/ActionArtifact"
+      }
+    },
+    "ArtifactsList": {
+      "description": "ArtifactsList",
+      "schema": {
+        "$ref": "#/definitions/ActionArtifactsResponse"
       }
     },
     "Attachment": {

@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -101,7 +100,7 @@ func TestViewIssuesKeyword(t *testing.T) {
 		RepoID: repo.ID,
 		Index:  1,
 	})
-	issues.UpdateIssueIndexer(context.Background(), issue.ID)
+	issues.UpdateIssueIndexer(t.Context(), issue.ID)
 	time.Sleep(time.Second * 1)
 	const keyword = "first"
 	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.Link(), keyword)
