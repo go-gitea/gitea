@@ -197,13 +197,6 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 		}
 	}
 
-	// If the Issue is pinned, we should unpin it before deletion to avoid problems with other pinned Issues
-	if issue.IsPinned() {
-		if err := issue.Unpin(ctx, doer); err != nil {
-			return err
-		}
-	}
-
 	notify_service.DeleteIssue(ctx, doer, issue)
 
 	return nil
@@ -319,6 +312,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 		&issues_model.Comment{RefIssueID: issue.ID},
 		&issues_model.IssueDependency{DependencyID: issue.ID},
 		&issues_model.Comment{DependentIssueID: issue.ID},
+		&issues_model.IssuePin{IssueID: issue.ID},
 	); err != nil {
 		return err
 	}

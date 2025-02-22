@@ -29,13 +29,13 @@
             poetry
 
             # backend
-            go_1_23
+            go_1_24
             gofumpt
             sqlite
           ];
           shellHook = ''
-            export GO="${pkgs.go_1_23}/bin/go"
-            export GOROOT="${pkgs.go_1_23}/share/go"
+            export GO="${pkgs.go_1_24}/bin/go"
+            export GOROOT="${pkgs.go_1_24}/share/go"
           '';
         };
       }

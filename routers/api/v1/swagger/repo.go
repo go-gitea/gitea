@@ -443,6 +443,20 @@ type swaggerRepoTasksList struct {
 	Body api.ActionTaskResponse `json:"body"`
 }
 
+// ArtifactsList
+// swagger:response ArtifactsList
+type swaggerRepoArtifactsList struct {
+	// in:body
+	Body api.ActionArtifactsResponse `json:"body"`
+}
+
+// Artifact
+// swagger:response Artifact
+type swaggerRepoArtifact struct {
+	// in:body
+	Body api.ActionArtifact `json:"body"`
+}
+
 // swagger:response Compare
 type swaggerCompare struct {
 	// in:body

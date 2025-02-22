@@ -23,6 +23,10 @@ type BaseContextKeyType struct{}
 
 var BaseContextKey BaseContextKeyType
 
+// Base is the base context for all web handlers
+// ATTENTION: This struct should never be manually constructed in routes/services,
+// it has many internal details which should be carefully prepared by the framework.
+// If it is abused, it would cause strange bugs like panic/resource-leak.
 type Base struct {
 	reqctx.RequestContext
 
@@ -77,8 +81,8 @@ func (b *Base) RespHeader() http.Header {
 	return b.Resp.Header()
 }
 
-// Error returned an error to web browser
-func (b *Base) Error(status int, contents ...string) {
+// HTTPError returned an error to web browser
+func (b *Base) HTTPError(status int, contents ...string) {
 	v := http.StatusText(status)
 	if len(contents) > 0 {
 		v = contents[0]

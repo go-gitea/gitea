@@ -212,5 +212,8 @@ type swaggerParameterBodies struct {
 	RenameOrgOption api.RenameOrgOption
 
 	// in:body
+	CreateActionWorkflowDispatch api.CreateActionWorkflowDispatch
+
+	// in:body
 	UpdateVariableOption api.UpdateVariableOption
 }

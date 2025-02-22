@@ -61,17 +61,17 @@ func Transfer(ctx *context.APIContext) {
 	newOwner, err := user_model.GetUserByName(ctx, opts.NewOwner)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
+			ctx.APIError(http.StatusNotFound, "The new owner does not exist or cannot be found")
 			return
 		}
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if newOwner.Type == user_model.UserTypeOrganization {
 		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization
-			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
+			ctx.APIError(http.StatusNotFound, "The new owner does not exist or cannot be found")
 			return
 		}
 	}
@@ -79,7 +79,7 @@ func Transfer(ctx *context.APIContext) {
 	var teams []*organization.Team
 	if opts.TeamIDs != nil {
 		if !newOwner.IsOrganization() {
-			ctx.Error(http.StatusUnprocessableEntity, "repoTransfer", "Teams can only be added to organization-owned repositories")
+			ctx.APIError(http.StatusUnprocessableEntity, "Teams can only be added to organization-owned repositories")
 			return
 		}
 
@@ -87,12 +87,12 @@ func Transfer(ctx *context.APIContext) {
 		for _, tID := range *opts.TeamIDs {
 			team, err := organization.GetTeamByID(ctx, tID)
 			if err != nil {
-				ctx.Error(http.StatusUnprocessableEntity, "team", fmt.Errorf("team %d not found", tID))
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("team %d not found", tID))
 				return
 			}
 
 			if team.OrgID != org.ID {
-				ctx.Error(http.StatusForbidden, "team", fmt.Errorf("team %d belongs not to org %d", tID, org.ID))
+				ctx.APIError(http.StatusForbidden, fmt.Errorf("team %d belongs not to org %d", tID, org.ID))
 				return
 			}
 
@@ -109,19 +109,19 @@ func Transfer(ctx *context.APIContext) {
 
 	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
 		if repo_model.IsErrRepoTransferInProgress(err) {
-			ctx.Error(http.StatusConflict, "StartRepositoryTransfer", err)
+			ctx.APIError(http.StatusConflict, err)
 			return
 		}
 
 		if repo_model.IsErrRepoAlreadyExist(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "StartRepositoryTransfer", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
 
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden, "BlockedUser", err)
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.InternalServerError(err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -166,11 +166,11 @@ func AcceptTransfer(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case repo_model.IsErrNoPendingTransfer(err):
-			ctx.Error(http.StatusNotFound, "AcceptTransferOwnership", err)
+			ctx.APIError(http.StatusNotFound, err)
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.Error(http.StatusForbidden, "AcceptTransferOwnership", err)
+			ctx.APIError(http.StatusForbidden, err)
 		default:
-			ctx.Error(http.StatusInternalServerError, "AcceptTransferOwnership", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -208,11 +208,11 @@ func RejectTransfer(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case repo_model.IsErrNoPendingTransfer(err):
-			ctx.Error(http.StatusNotFound, "RejectRepositoryTransfer", err)
+			ctx.APIError(http.StatusNotFound, err)
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.Error(http.StatusForbidden, "RejectRepositoryTransfer", err)
+			ctx.APIError(http.StatusForbidden, err)
 		default:
-			ctx.Error(http.StatusInternalServerError, "RejectRepositoryTransfer", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

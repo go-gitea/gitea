@@ -255,7 +255,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	inputLabelIDs, _ := base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
 	candidateLabels := toSet(pageMetaData.LabelsData.AllLabels, func(label *issues_model.Label) int64 { return label.ID })
 	if len(inputLabelIDs) > 0 && !candidateLabels.Contains(inputLabelIDs...) {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return ret
 	}
 	pageMetaData.LabelsData.SetSelectedLabelIDs(inputLabelIDs)
@@ -263,7 +263,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	allMilestones := append(slices.Clone(pageMetaData.MilestonesData.OpenMilestones), pageMetaData.MilestonesData.ClosedMilestones...)
 	candidateMilestones := toSet(allMilestones, func(milestone *issues_model.Milestone) int64 { return milestone.ID })
 	if form.MilestoneID > 0 && !candidateMilestones.Contains(form.MilestoneID) {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return ret
 	}
 	pageMetaData.MilestonesData.SelectedMilestoneID = form.MilestoneID
@@ -271,18 +271,21 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	allProjects := append(slices.Clone(pageMetaData.ProjectsData.OpenProjects), pageMetaData.ProjectsData.ClosedProjects...)
 	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
 	if form.ProjectID > 0 && !candidateProjects.Contains(form.ProjectID) {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return ret
 	}
 	pageMetaData.ProjectsData.SelectedProjectID = form.ProjectID
 
+	// prepare assignees
 	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })
 	inputAssigneeIDs, _ := base.StringsToInt64s(strings.Split(form.AssigneeIDs, ","))
-	if len(inputAssigneeIDs) > 0 && !candidateAssignees.Contains(inputAssigneeIDs...) {
-		ctx.NotFound("", nil)
-		return ret
+	var assigneeIDStrings []string
+	for _, inputAssigneeID := range inputAssigneeIDs {
+		if candidateAssignees.Contains(inputAssigneeID) {
+			assigneeIDStrings = append(assigneeIDStrings, strconv.FormatInt(inputAssigneeID, 10))
+		}
 	}
-	pageMetaData.AssigneesData.SelectedAssigneeIDs = form.AssigneeIDs
+	pageMetaData.AssigneesData.SelectedAssigneeIDs = strings.Join(assigneeIDStrings, ",")
 
 	// Check if the passed reviewers (user/team) actually exist
 	var reviewers []*user_model.User
@@ -301,14 +304,14 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 			if rID < 0 { // negative reviewIDs represent team requests
 				team, ok := teamReviewersMap[-rID]
 				if !ok {
-					ctx.NotFound("", nil)
+					ctx.NotFound(nil)
 					return ret
 				}
 				teamReviewers = append(teamReviewers, team)
 			} else {
 				user, ok := userReviewersMap[rID]
 				if !ok {
-					ctx.NotFound("", nil)
+					ctx.NotFound(nil)
 					return ret
 				}
 				reviewers = append(reviewers, user)
@@ -346,7 +349,7 @@ func NewIssuePost(ctx *context.Context) {
 	if projectID > 0 {
 		if !ctx.Repo.CanRead(unit.TypeProjects) {
 			// User must also be able to see the project.
-			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read projects")
+			ctx.HTTPError(http.StatusBadRequest, "user hasn't permissions to read projects")
 			return
 		}
 	}
@@ -385,7 +388,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectID); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
+			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.new.blocked_user"))
 		} else {

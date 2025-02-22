@@ -178,7 +178,7 @@ func jsonRedirectBranches(ctx *context.Context) {
 func CreateBranch(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewBranchForm)
 	if !ctx.Repo.CanCreateBranch() {
-		ctx.NotFound("CreateBranch", nil)
+		ctx.NotFound(nil)
 		return
 	}
 

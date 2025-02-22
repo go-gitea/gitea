@@ -121,7 +121,7 @@ func GetInfo(ctx *context.APIContext) {
 
 	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		// fake ErrUserNotExist error message to not leak information about existence
-		ctx.NotFound("GetUserByName", user_model.ErrUserNotExist{Name: ctx.PathParam("username")})
+		ctx.APIErrorNotFound("GetUserByName", user_model.ErrUserNotExist{Name: ctx.PathParam("username")})
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToUser(ctx, ctx.ContextUser, ctx.Doer))
@@ -162,7 +162,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 
 	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, heatmap)
@@ -217,7 +217,7 @@ func ListUserActivityFeeds(ctx *context.APIContext) {
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.SetTotalCountHeader(count)
