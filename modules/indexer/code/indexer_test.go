@@ -29,6 +29,7 @@ import (
 type codeSearchResult struct {
 	Filename string
 	Content  string
+	Indexer  string
 }
 
 func TestMain(m *testing.M) {
@@ -179,6 +180,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					{
 						Filename: "ham.md",
 						Content:  "This is also not cheese",
+						Indexer:  "elastic_search",
 					},
 				},
 			},
@@ -249,8 +251,18 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 
 				hits := make([]codeSearchResult, 0, len(res))
 
+				expectedResults := make([]codeSearchResult, 0, len(kw.Results))
+				for _, expected := range kw.Results {
+					if expected.Indexer == "" || expected.Indexer == name {
+						expectedResults = append(expectedResults, codeSearchResult{
+							Filename: expected.Filename,
+							Content:  expected.Content,
+						})
+					}
+				}
+
 				if total > 0 {
-					assert.NotEmpty(t, kw.Results, "The given scenario does not provide any expected results")
+					assert.NotEmpty(t, expectedResults, "The given scenario does not provide any expected results")
 				}
 
 				for _, hit := range res {
@@ -262,7 +274,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 
 				lastIndex := -1
 
-				for _, expected := range kw.Results {
+				for _, expected := range expectedResults {
 					index := slices.Index(hits, expected)
 					if index == -1 {
 						assert.Failf(t, "Result not found", "Expected %v in %v", expected, hits)
