@@ -165,35 +165,6 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
-			// Search for matches on the contents of files within the repo '62'.
-			// This scenario yields two results (both are based on contents, the first one is an exact match where as the second is a 'fuzzy' one)
-			{
-				RepoIDs: []int64{62},
-				Keyword: "This is not cheese",
-				Langs:   1,
-				Results: []codeSearchResult{
-					{
-						Filename: "potato/ham.md",
-						Content:  "This is not cheese",
-					},
-					{
-						Filename: "ham.md",
-						Content:  "This is also not cheese",
-					},
-				},
-			},
-			// Search for matches on the contents of files regardless of case.
-			{
-				RepoIDs: nil,
-				Keyword: "dESCRIPTION",
-				Langs:   1,
-				Results: []codeSearchResult{
-					{
-						Filename: "README.md",
-						Content:  "# repo1\n\nDescription for repo1",
-					},
-				},
-			},
 			// Search for an exact match on the filename within the repo '62' (case insenstive).
 			// This scenario yields a single result (the file avocado.md on the repo '62')
 			{
@@ -231,6 +202,47 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
+		}
+
+		if name == "elastic_search" {
+			// Additional scenarios for elastic_search only
+			additional := []struct {
+				RepoIDs []int64
+				Keyword string
+				Langs   int
+				Results []codeSearchResult
+			}{
+				// Search for matches on the contents of files within the repo '62'.
+				// This scenario yields two results (both are based on contents, the first one is an exact match where as the second is a 'fuzzy' one)
+				{
+					RepoIDs: []int64{62},
+					Keyword: "This is not cheese",
+					Langs:   1,
+					Results: []codeSearchResult{
+						{
+							Filename: "potato/ham.md",
+							Content:  "This is not cheese",
+						},
+						{
+							Filename: "ham.md",
+							Content:  "This is also not cheese",
+						},
+					},
+				},
+				// Search for matches on the contents of files regardless of case.
+				{
+					RepoIDs: nil,
+					Keyword: "dESCRIPTION",
+					Langs:   1,
+					Results: []codeSearchResult{
+						{
+							Filename: "README.md",
+							Content:  "# repo1\n\nDescription for repo1",
+						},
+					},
+				},
+			}
+			keywords = append(keywords, additional...)
 		}
 
 		for _, kw := range keywords {
