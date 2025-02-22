@@ -208,9 +208,21 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
-	cond, err := ActivityQueryCondition(ctx, opts)
-	if err != nil {
-		return nil, 0, err
+	var err error
+	var cond builder.Cond
+	// if the actor is the requested user or is an administrator, we can skip the ActivityQueryCondition
+	if opts.Actor != nil && opts.RequestedUser != nil && (opts.Actor.IsAdmin || opts.Actor.ID == opts.RequestedUser.ID) {
+		cond = builder.Eq{
+			"user_id":    opts.RequestedUser.ID,
+			"is_deleted": false,
+		}.And(
+			FeedDateCond(opts),
+		)
+	} else {
+		cond, err = ActivityQueryCondition(ctx, opts)
+		if err != nil {
+			return nil, 0, err
+		}
 	}
 
 	actions := make([]*Action, 0, opts.PageSize)
