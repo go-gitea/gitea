@@ -213,11 +213,21 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, err
 	// if the actor is the requested user or is an administrator, we can skip the ActivityQueryCondition
 	if opts.Actor != nil && opts.RequestedUser != nil && (opts.Actor.IsAdmin || opts.Actor.ID == opts.RequestedUser.ID) {
 		cond = builder.Eq{
-			"user_id":    opts.RequestedUser.ID,
-			"is_deleted": false,
+			"user_id": opts.RequestedUser.ID,
 		}.And(
 			FeedDateCond(opts),
 		)
+
+		if !opts.IncludeDeleted {
+			cond = cond.And(builder.Eq{"is_deleted": false})
+		}
+
+		if !opts.IncludePrivate {
+			cond = cond.And(builder.Eq{"is_private": false})
+		}
+		if opts.OnlyPerformedBy {
+			cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		}
 	} else {
 		cond, err = ActivityQueryCondition(ctx, opts)
 		if err != nil {
