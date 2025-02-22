@@ -97,6 +97,9 @@ type Project struct {
 	Type         Type
 
 	RenderedContent template.HTML `xorm:"-"`
+	NumOpenIssues   int64         `xorm:"-"`
+	NumClosedIssues int64         `xorm:"-"`
+	NumIssues       int64         `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`

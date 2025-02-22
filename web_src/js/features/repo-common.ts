@@ -42,6 +42,14 @@ export function initRepoActivityTopAuthorsChart() {
   }
 }
 
+export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
+  const pos = tmpl.indexOf('{url}');
+  if (pos === -1) return tmpl;
+  const posQuestionMark = tmpl.indexOf('?');
+  const needEncode = posQuestionMark >= 0 && posQuestionMark < pos;
+  return tmpl.replace('{url}', needEncode ? encodeURIComponent(url) : url);
+}
+
 function initCloneSchemeUrlSelection(parent: Element) {
   const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
 
@@ -70,7 +78,7 @@ function initCloneSchemeUrlSelection(parent: Element) {
       }
     }
     for (const el of parent.querySelectorAll<HTMLAnchorElement>('.js-clone-url-editor')) {
-      el.href = el.getAttribute('data-href-template').replace('{url}', encodeURIComponent(link));
+      el.href = substituteRepoOpenWithUrl(el.getAttribute('data-href-template'), link);
     }
   };
 
