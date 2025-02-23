@@ -20,7 +20,7 @@ linters:
     - staticcheck
     - stylecheck
     - tenv
-
+    - testifylint
     - typecheck
     - unconvert
     - unused
@@ -34,6 +34,12 @@ output:
   sort-results: true
   sort-order: [file]
   show-stats: true
+
+linters-settings:
+  testifylint:
+      disable:
+          - go-require
+          - require-error
 
 
   stylecheck:

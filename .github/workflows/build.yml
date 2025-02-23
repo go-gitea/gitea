@@ -19,26 +19,19 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: '1.24.0'  # Use the Go version that Gitea supports
-      # Step 3: Cache Go modules to speed up builds
-      - name: Cache Go modules
-        uses: actions/cache@v2
-        with:
-                path: ~/go/pkg/mod
-                key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-                restore-keys: |
-                  ${{ runner.os }}-go-
+
       # Step 3: Install dependencies
       - name: Install dependencies
-        run: |
-          go mod tidy
-      # Step 4: Run Go Linter (golangci-lint)
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+        run: go mod download
 
-      - name: Run golangci-lint
-        run: golangci-lint run --disable-all -E gofmt -E govet --timeout=5m
+      - name: Run unit tests
+        run: go test ./... -v
+        continue-on-error: true
+
+      - name: Run linting
+        run: |
+            go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+            golangci-lint run
 
   docker:
     runs-on: ubuntu-latest
