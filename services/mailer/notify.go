@@ -198,6 +198,10 @@ func (m *mailNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) 
 	MailNewRelease(ctx, rel)
 }
 
+func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
+	if err := SendRepoTransferNotifyMail(ctx, doer, newOwner, repo); err != nil {
+		log.Error("SendRepoTransferNotifyMail: %v", err)
+	}
 func (m *mailNotifier) ActionRunFinished(ctx context.Context, run *actions_model.ActionRun) {
     if run.Status != actions_model.StatusSuccess && run.Status != actions_model.StatusFailure {
         return
