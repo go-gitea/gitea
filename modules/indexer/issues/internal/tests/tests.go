@@ -647,6 +647,21 @@ var cases = []*testIndexerCase{
 			}
 		},
 	},
+	{
+		Name: "SearchAnyAssignee",
+		SearchOptions: &internal.SearchOptions{
+			AnyAssigneeOnly: true,
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Len(t, result.Hits, 180)
+			for _, v := range result.Hits {
+				assert.GreaterOrEqual(t, data[v.ID].AssigneeID, int64(1))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.AssigneeID >= 1
+			}), result.Total)
+		},
+	},
 }
 
 type testIndexerCase struct {
