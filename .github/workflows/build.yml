@@ -19,7 +19,14 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: '1.24.0'  # Use the Go version that Gitea supports
-
+      # Step 3: Cache Go modules to speed up builds
+      - name: Cache Go modules
+        uses: actions/cache@v2
+        with:
+                path: ~/go/pkg/mod
+                key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+                restore-keys: |
+                  ${{ runner.os }}-go-
       # Step 3: Install dependencies
       - name: Install dependencies
         run: |
