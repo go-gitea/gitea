@@ -5,7 +5,6 @@
 package gitdiff
 
 import (
-	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -629,12 +628,12 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepository(context.Background(), "../../modules/git/tests/repos/repo5_pulls")
+	gitRepo, err := git.OpenRepository(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
 	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
-		diffs, err := GetDiff(context.Background(), gitRepo,
+		diffs, err := GetDiff(t.Context(), gitRepo,
 			&DiffOptions{
 				AfterCommitID:      "d8e0bbb45f200e67d9a784ce55bd90821af45ebd",
 				BeforeCommitID:     "72866af952e98d02a73003501836074b286a78f6",

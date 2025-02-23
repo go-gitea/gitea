@@ -4,7 +4,6 @@
 package gitdiff
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -224,7 +223,7 @@ func TestSubmoduleInfo(t *testing.T) {
 		PreviousRefID: "aaaa",
 		NewRefID:      "bbbb",
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	assert.EqualValues(t, "1111", sdi.CommitRefIDLinkHTML(ctx, "1111"))
 	assert.EqualValues(t, "aaaa...bbbb", sdi.CompareRefIDLinkHTML(ctx))
 	assert.EqualValues(t, "name", sdi.SubmoduleRepoLinkHTML(ctx))

@@ -4,7 +4,6 @@
 package cache
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 )
 
 func TestWithCacheContext(t *testing.T) {
-	ctx := WithCacheContext(context.Background())
+	ctx := WithCacheContext(t.Context())
 
 	v := GetContextData(ctx, "empty_field", "my_config1")
 	assert.Nil(t, v)
@@ -52,7 +51,7 @@ func TestWithCacheContext(t *testing.T) {
 }
 
 func TestWithNoCacheContext(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	const field = "system_setting"
 

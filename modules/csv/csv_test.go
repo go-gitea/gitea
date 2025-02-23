@@ -5,7 +5,6 @@ package csv
 
 import (
 	"bytes"
-	"context"
 	"encoding/csv"
 	"io"
 	"strconv"
@@ -231,7 +230,7 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimiters`,
 	}
 
 	for n, c := range cases {
-		delimiter := determineDelimiter(markup.NewRenderContext(context.Background()).WithRelativePath(c.filename), []byte(decodeSlashes(t, c.csv)))
+		delimiter := determineDelimiter(markup.NewRenderContext(t.Context()).WithRelativePath(c.filename), []byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }

@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -53,7 +52,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 	assert.Len(t, mirrors, 1)
 
-	ok := mirror_service.SyncPushMirror(context.Background(), mirrors[0].ID)
+	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
 
 	srcGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, srcRepo)

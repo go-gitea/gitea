@@ -49,32 +49,32 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				if accessMode == perm.AccessModeRead {
 					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeReadPackage)
 					if err != nil {
-						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						ctx.HTTPError(http.StatusInternalServerError, "HasScope", err.Error())
 						return
 					}
 				} else if accessMode == perm.AccessModeWrite {
 					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeWritePackage)
 					if err != nil {
-						ctx.Error(http.StatusInternalServerError, "HasScope", err.Error())
+						ctx.HTTPError(http.StatusInternalServerError, "HasScope", err.Error())
 						return
 					}
 				}
 				if !scopeMatched {
 					ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
-					ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+					ctx.HTTPError(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
 					return
 				}
 
 				// check if scope only applies to public resources
 				publicOnly, err := scope.PublicOnly()
 				if err != nil {
-					ctx.Error(http.StatusForbidden, "tokenRequiresScope", "parsing public resource scope failed: "+err.Error())
+					ctx.HTTPError(http.StatusForbidden, "tokenRequiresScope", "parsing public resource scope failed: "+err.Error())
 					return
 				}
 
 				if publicOnly {
 					if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
-						ctx.Error(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
+						ctx.HTTPError(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
 						return
 					}
 				}
@@ -83,7 +83,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
-			ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+			ctx.HTTPError(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
 			return
 		}
 	}
@@ -100,7 +100,7 @@ func verifyAuth(r *web.Router, authMethods []auth.Method) {
 		ctx.Doer, err = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if err != nil {
 			log.Error("Failed to verify user: %v", err)
-			ctx.Error(http.StatusUnauthorized, "authGroup.Verify")
+			ctx.HTTPError(http.StatusUnauthorized, "authGroup.Verify")
 			return
 		}
 		ctx.IsSigned = ctx.Doer != nil

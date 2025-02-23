@@ -116,7 +116,7 @@ func ActivateEmail(ctx *context.Context) {
 	activate, oka := truefalse[ctx.FormString("activate")]
 
 	if uid == 0 || len(email) == 0 || !okp || !oka {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 

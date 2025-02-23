@@ -77,7 +77,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 
 	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -139,11 +139,11 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "CreateOrUpdateSecret", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "CreateOrUpdateSecret", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateOrUpdateSecret", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -193,11 +193,11 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "DeleteSecret", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DeleteSecret", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteSecret", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -241,9 +241,9 @@ func (Action) GetVariable(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetVariable", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -295,11 +295,11 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 
 	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParam("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "DeleteVariableByName", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DeleteVariableByName", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteVariableByName", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -354,19 +354,19 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		Name:   variableName,
 	})
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if v != nil && v.ID > 0 {
-		ctx.Error(http.StatusConflict, "VariableNameAlreadyExists", util.NewAlreadyExistErrorf("variable name %s already exists", variableName))
+		ctx.APIError(http.StatusConflict, util.NewAlreadyExistErrorf("variable name %s already exists", variableName))
 		return
 	}
 
 	if _, err := actions_service.CreateVariable(ctx, 0, repoID, variableName, opt.Value); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "CreateVariable", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -419,9 +419,9 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetVariable", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -435,9 +435,9 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 
 	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusBadRequest, "UpdateVariable", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "UpdateVariable", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -484,7 +484,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindVariables", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -581,7 +581,7 @@ func ListActionTasks(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListActionTasks", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -592,7 +592,7 @@ func ListActionTasks(ctx *context.APIContext) {
 	for i := range tasks {
 		convertedTask, err := convert.ToActionTask(ctx, tasks[i])
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "ToActionTask", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		res.Entries[i] = convertedTask
@@ -634,7 +634,7 @@ func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
 
 	workflows, err := actions_service.ListActionWorkflows(ctx)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListActionWorkflows", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -681,9 +681,9 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "GetActionWorkflow", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetActionWorkflow", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -729,9 +729,9 @@ func ActionsDisableWorkflow(ctx *context.APIContext) {
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, false)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DisableActionWorkflow", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DisableActionWorkflow", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -780,7 +780,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	workflowID := ctx.PathParam("workflow_id")
 	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
 	if opt.Ref == "" {
-		ctx.Error(http.StatusUnprocessableEntity, "MissingWorkflowParameter", util.NewInvalidArgumentErrorf("ref is required parameter"))
+		ctx.APIError(http.StatusUnprocessableEntity, util.NewInvalidArgumentErrorf("ref is required parameter"))
 		return
 	}
 
@@ -806,11 +806,11 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "DispatchActionWorkflow", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else if errors.Is(err, util.ErrPermissionDenied) {
-			ctx.Error(http.StatusForbidden, "DispatchActionWorkflow", err)
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DispatchActionWorkflow", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -858,9 +858,9 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	err := actions_service.EnableOrDisableWorkflow(ctx, workflowID, true)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Error(http.StatusNotFound, "EnableActionWorkflow", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "EnableActionWorkflow", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -917,7 +917,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 		ListOptions:          utils.GetListOptions(ctx),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error(), err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -928,7 +928,7 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	for i := range artifacts {
 		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "ToActionArtifact", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		res.Entries[i] = convertedArtifact
@@ -978,7 +978,7 @@ func GetArtifacts(ctx *context.APIContext) {
 		ListOptions:          utils.GetListOptions(ctx),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error(), err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -989,7 +989,7 @@ func GetArtifacts(ctx *context.APIContext) {
 	for i := range artifacts {
 		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, artifacts[i])
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "ToActionArtifact", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		res.Entries[i] = convertedArtifact
@@ -1037,14 +1037,14 @@ func GetArtifact(ctx *context.APIContext) {
 	if actions.IsArtifactV4(art) {
 		convertedArtifact, err := convert.ToActionArtifact(ctx.Repo.Repository, art)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "ToActionArtifact", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		ctx.JSON(http.StatusOK, convertedArtifact)
 		return
 	}
 	// v3 not supported due to not having one unique id
-	ctx.Error(http.StatusNotFound, "GetArtifact", "Artifact not found")
+	ctx.APIError(http.StatusNotFound, "Artifact not found")
 }
 
 // DeleteArtifact Deletes a specific artifact for a workflow run.
@@ -1085,14 +1085,14 @@ func DeleteArtifact(ctx *context.APIContext) {
 
 	if actions.IsArtifactV4(art) {
 		if err := actions_model.SetArtifactNeedDelete(ctx, art.RunID, art.ArtifactName); err != nil {
-			ctx.Error(http.StatusInternalServerError, "DeleteArtifact", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		ctx.Status(http.StatusNoContent)
 		return
 	}
 	// v3 not supported due to not having one unique id
-	ctx.Error(http.StatusNotFound, "DeleteArtifact", "Artifact not found")
+	ctx.APIError(http.StatusNotFound, "Artifact not found")
 }
 
 func buildSignature(endp string, expires, artifactID int64) []byte {
@@ -1152,7 +1152,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
 	if art.Status == actions_model.ArtifactStatusExpired {
-		ctx.Error(http.StatusNotFound, "DownloadArtifact", "Artifact has expired")
+		ctx.APIError(http.StatusNotFound, "Artifact has expired")
 		return
 	}
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
@@ -1163,7 +1163,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 			return
 		}
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "DownloadArtifactV4ServeDirectOnly", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 
@@ -1172,7 +1172,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 		return
 	}
 	// v3 not supported due to not having one unique id
-	ctx.Error(http.StatusNotFound, "DownloadArtifact", "Artifact not found")
+	ctx.APIError(http.StatusNotFound, "Artifact not found")
 }
 
 // DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
@@ -1181,9 +1181,9 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.PathParam("username"), ctx.PathParam("reponame"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.InternalServerError(err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -1199,18 +1199,18 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 
 	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)
 	if !hmac.Equal(sigBytes, expectedSig) {
-		ctx.Error(http.StatusUnauthorized, "DownloadArtifactRaw", "Error unauthorized")
+		ctx.APIError(http.StatusUnauthorized, "Error unauthorized")
 		return
 	}
 	t := time.Unix(expires, 0)
 	if t.Before(time.Now()) {
-		ctx.Error(http.StatusUnauthorized, "DownloadArtifactRaw", "Error link expired")
+		ctx.APIError(http.StatusUnauthorized, "Error link expired")
 		return
 	}
 
 	// if artifacts status is not uploaded-confirmed, treat it as not found
 	if art.Status == actions_model.ArtifactStatusExpired {
-		ctx.Error(http.StatusNotFound, "DownloadArtifactRaw", "Artifact has expired")
+		ctx.APIError(http.StatusNotFound, "Artifact has expired")
 		return
 	}
 	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.zip; filename*=UTF-8''%s.zip", url.PathEscape(art.ArtifactName), art.ArtifactName))
@@ -1218,13 +1218,13 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	if actions.IsArtifactV4(art) {
 		err := actions.DownloadArtifactV4(ctx.Base, art)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "DownloadArtifactV4", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		return
 	}
 	// v3 not supported due to not having one unique id
-	ctx.Error(http.StatusNotFound, "DownloadArtifactRaw", "artifact not found")
+	ctx.APIError(http.StatusNotFound, "artifact not found")
 }
 
 // Try to get the artifact by ID and check access
@@ -1233,7 +1233,7 @@ func getArtifactByPathParam(ctx *context.APIContext, repo *repo_model.Repository
 
 	art, ok, err := db.GetByID[actions_model.ActionArtifact](ctx, artifactID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "getArtifactByPathParam", err)
+		ctx.APIErrorInternal(err)
 		return nil
 	}
 	// if artifacts status is not uploaded-confirmed, treat it as not found
@@ -1241,7 +1241,7 @@ func getArtifactByPathParam(ctx *context.APIContext, repo *repo_model.Repository
 	if !ok ||
 		art.RepoID != repo.ID ||
 		art.Status != actions_model.ArtifactStatusUploadConfirmed && art.Status != actions_model.ArtifactStatusExpired {
-		ctx.Error(http.StatusNotFound, "getArtifactByPathParam", "artifact not found")
+		ctx.APIError(http.StatusNotFound, "artifact not found")
 		return nil
 	}
 	return art
