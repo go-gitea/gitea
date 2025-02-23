@@ -209,7 +209,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(elastic.NewTermQuery("poster_id", options.PosterID.Value()))
 	}
 
-	if options.AssigneeID.Has() {
+	if options.AnyAssigneeOnly {
+		q := elastic.NewRangeQuery("assignee_id")
+		q.Gte(1)
+		query.Must(q)
+	} else if options.AssigneeID.Has() {
 		query.Must(elastic.NewTermQuery("assignee_id", options.AssigneeID.Value()))
 	}
 
