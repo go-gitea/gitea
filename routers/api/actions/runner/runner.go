@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
+	notifier "code.gitea.io/gitea/services/notify"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
@@ -210,7 +211,7 @@ func (s *Service) UpdateTask(
 	if err := task.LoadJob(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
-	if err := task.Job.LoadRun(ctx); err != nil {
+	if err := task.Job.LoadAttributes(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load run: %v", err)
 	}
 
@@ -224,7 +225,9 @@ func (s *Service) UpdateTask(
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
 	}
-
+	if task.Status.IsDone() {
+		notifier.CreateWorkflowJob(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
+	}
 	return connect.NewResponse(&runnerv1.UpdateTaskResponse{
 		State: &runnerv1.TaskState{
 			Id:     req.Msg.State.Id,

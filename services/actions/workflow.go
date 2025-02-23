@@ -10,6 +10,8 @@ import (
 	"path"
 	"strings"
 
+	notifier "code.gitea.io/gitea/services/notify"
+
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -276,6 +278,9 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		log.Error("FindRunJobs: %v", err)
 	}
 	CreateCommitStatus(ctx, allJobs...)
+	for _, job := range allJobs {
+		notifier.CreateWorkflowJob(ctx, repo, doer, job, nil)
+	}
 
 	return nil
 }
