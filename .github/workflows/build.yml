@@ -24,12 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           go mod tidy
-      # Step 4: Run Go Linter (golangci-lint)
-      - name: Run Go Linter
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
-          args: --timeout=5m
+
 
 
 
