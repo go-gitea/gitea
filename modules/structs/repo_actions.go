@@ -97,7 +97,7 @@ type ActionArtifactsResponse struct {
 	TotalCount int64             `json:"total_count"`
 }
 
-// ActionWorkflowRun represents a WorkflowJob
+// ActionWorkflowStep represents a step of a WorkflowJob
 type ActionWorkflowStep struct {
 	Name       string `json:"name"`
 	Number     int64  `json:"number"`
