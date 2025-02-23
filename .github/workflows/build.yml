@@ -30,7 +30,7 @@ jobs:
             curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
             echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
-      - name: Run Go Linter
+      - name: Run golangci-lint
         run: golangci-lint run --disable-all -E gofmt -E govet --timeout=5m
 
   docker:
