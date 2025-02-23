@@ -7,23 +7,104 @@ const props = defineProps<{
   noAccessLabel: string;
   readLabel: string;
   writeLabel: string;
+  scopes: string[];
 }>();
 
 const categories = computed(() => {
-  const categories = [
-    'activitypub',
-  ];
+  const categories = {
+    'activitypub': {
+      read: {
+        value: 'read:activitypub',
+        selected: props.scopes.includes('read:activitypub'),
+      },
+      write: {
+        value: 'write:activitypub',
+        selected: props.scopes.includes('write:activitypub'),
+      },
+    },
+  };
   if (props.isAdmin) {
-    categories.push('admin');
+    categories['admin'] = {
+      read: {
+        value: 'read:admin',
+        selected: props.scopes.includes('read:admin'),
+      },
+      write: {
+        value: 'write:admin',
+        selected: props.scopes.includes('write:admin'),
+      },
+    };
   }
-  categories.push(
-    'issue',
-    'misc',
-    'notification',
-    'organization',
-    'package',
-    'repository',
-    'user');
+  categories['issue'] = {
+    read: {
+      value: 'read:issue',
+      selected: props.scopes.includes('read:issue'),
+    },
+    write: {
+      value: 'write:issue',
+      selected: props.scopes.includes('write:issue'),
+    },
+  };
+  categories['misc'] = {
+    read: {
+      value: 'read:misc',
+      selected: props.scopes.includes('read:misc'),
+    },
+    write: {
+      value: 'write:misc',
+      selected: props.scopes.includes('write:misc'),
+    },
+  };
+  categories['notification'] = {
+    read: {
+      value: 'read:notification',
+      selected: props.scopes.includes('read:notification'),
+    },
+    write: {
+      value: 'write:notification',
+      selected: props.scopes.includes('write:notification'),
+    },
+  };
+  categories['organization'] = {
+    read: {
+      value: 'read:organization',
+      selected: props.scopes.includes('read:organization'),
+    },
+    write: {
+      value: 'write:organization',
+      selected: props.scopes.includes('write:organization'),
+    },
+  };
+  categories['package'] = {
+    read: {
+      value: 'read:package',
+      selected: props.scopes.includes('read:package'),
+    },
+    write: {
+      value: 'write:package',
+      selected: props.scopes.includes('write:package'),
+    },
+  };
+  categories['repository'] = {
+    read: {
+      value: 'read:repository',
+      selected: props.scopes.includes('read:repository'),
+    },
+    write: {
+      value: 'write:repository',
+      selected: props.scopes.includes('write:repository'),
+    },
+  };
+  categories['user'] = {
+    read: {
+      value: 'read:user',
+      selected: props.scopes.includes('read:user'),
+    },
+    write: {
+      value: 'write:user',
+      selected: props.scopes.includes('write:user'),
+    },
+  };
   return categories;
 });
 
@@ -56,7 +137,7 @@ function onClickSubmit(e: Event) {
 </script>
 
 <template>
-  <div v-for="category in categories" :key="category" class="field tw-pl-1 tw-pb-1 access-token-category">
+  <div v-for="(permissions, category) in categories" :key="category" class="field tw-pl-1 tw-pb-1 access-token-category">
     <label class="category-label" :for="'access-token-scope-' + category">
       {{ category }}
     </label>
@@ -69,11 +150,8 @@ function onClickSubmit(e: Event) {
         <option value="">
           {{ noAccessLabel }}
         </option>
-        <option :value="'read:' + category">
-          {{ readLabel }}
-        </option>
-        <option :value="'write:' + category">
-          {{ writeLabel }}
+        <option v-for="(permission, action) in permissions" :key="permission.value" :value="permission.value" :selected="permission.selected">
+          {{ action === 'read' ? readLabel : writeLabel }}
         </option>
       </select>
     </div>
