@@ -44,6 +44,7 @@ func TestDBSearchIssues(t *testing.T) {
 	t.Run("search issues with order", searchIssueWithOrder)
 	t.Run("search issues in project", searchIssueInProject)
 	t.Run("search issues with paginator", searchIssueWithPaginator)
+	t.Run("search issues with any assignee", searchIssueWithAnyAssignee)
 }
 
 func searchIssueWithKeyword(t *testing.T) {
@@ -451,6 +452,28 @@ func searchIssueWithPaginator(t *testing.T) {
 			},
 			[]int64{22, 21, 17, 16, 15},
 			22,
+		},
+	}
+	for _, test := range tests {
+		issueIDs, total, err := SearchIssues(t.Context(), &test.opts)
+		require.NoError(t, err)
+		assert.Equal(t, test.expectedIDs, issueIDs)
+		assert.Equal(t, test.expectedTotal, total)
+	}
+}
+
+func searchIssueWithAnyAssignee(t *testing.T) {
+	tests := []struct {
+		opts          SearchOptions
+		expectedIDs   []int64
+		expectedTotal int64
+	}{
+		{
+			SearchOptions{
+				AnyAssigneeOnly: true,
+			},
+			[]int64{17, 6, 1},
+			3,
 		},
 	}
 	for _, test := range tests {
