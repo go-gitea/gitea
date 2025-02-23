@@ -4,7 +4,6 @@
 package migrations
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"sort"
@@ -28,12 +27,12 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't reach https://gitea.com, skipping %s", t.Name())
 	}
-
-	downloader, err := NewGiteaDownloader(context.Background(), "https://gitea.com", "gitea/test_repo", "", "", giteaToken)
+	ctx := t.Context()
+	downloader, err := NewGiteaDownloader(ctx, "https://gitea.com", "gitea/test_repo", "", "", giteaToken)
 	require.NoError(t, err, "NewGiteaDownloader error occur")
 	require.NotNil(t, downloader, "NewGiteaDownloader is nil")
 
-	repo, err := downloader.GetRepoInfo()
+	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	assertRepositoryEqual(t, &base.Repository{
 		Name:          "test_repo",
@@ -45,12 +44,12 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		DefaultBranch: "master",
 	}, repo)
 
-	topics, err := downloader.GetTopics()
+	topics, err := downloader.GetTopics(ctx)
 	assert.NoError(t, err)
 	sort.Strings(topics)
 	assert.EqualValues(t, []string{"ci", "gitea", "migration", "test"}, topics)
 
-	labels, err := downloader.GetLabels()
+	labels, err := downloader.GetLabels(ctx)
 	assert.NoError(t, err)
 	assertLabelsEqual(t, []*base.Label{
 		{
@@ -80,7 +79,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		},
 	}, labels)
 
-	milestones, err := downloader.GetMilestones()
+	milestones, err := downloader.GetMilestones(ctx)
 	assert.NoError(t, err)
 	assertMilestonesEqual(t, []*base.Milestone{
 		{
@@ -100,7 +99,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		},
 	}, milestones)
 
-	releases, err := downloader.GetReleases()
+	releases, err := downloader.GetReleases(ctx)
 	assert.NoError(t, err)
 	assertReleasesEqual(t, []*base.Release{
 		{
@@ -131,13 +130,13 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		},
 	}, releases)
 
-	issues, isEnd, err := downloader.GetIssues(1, 50)
+	issues, isEnd, err := downloader.GetIssues(ctx, 1, 50)
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
 	assert.Len(t, issues, 7)
 	assert.EqualValues(t, "open", issues[0].State)
 
-	issues, isEnd, err = downloader.GetIssues(3, 2)
+	issues, isEnd, err = downloader.GetIssues(ctx, 3, 2)
 	assert.NoError(t, err)
 	assert.False(t, isEnd)
 
@@ -194,7 +193,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(&base.Issue{Number: 4, ForeignIndex: 4})
+	comments, _, err := downloader.GetComments(ctx, &base.Issue{Number: 4, ForeignIndex: 4})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
 		{
@@ -217,11 +216,11 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		},
 	}, comments)
 
-	prs, isEnd, err := downloader.GetPullRequests(1, 50)
+	prs, isEnd, err := downloader.GetPullRequests(ctx, 1, 50)
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
 	assert.Len(t, prs, 6)
-	prs, isEnd, err = downloader.GetPullRequests(1, 3)
+	prs, isEnd, err = downloader.GetPullRequests(ctx, 1, 3)
 	assert.NoError(t, err)
 	assert.False(t, isEnd)
 	assert.Len(t, prs, 3)
@@ -259,7 +258,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		PatchURL:       "https://gitea.com/gitea/test_repo/pulls/12.patch",
 	}, prs[1])
 
-	reviews, err := downloader.GetReviews(&base.Issue{Number: 7, ForeignIndex: 7})
+	reviews, err := downloader.GetReviews(ctx, &base.Issue{Number: 7, ForeignIndex: 7})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

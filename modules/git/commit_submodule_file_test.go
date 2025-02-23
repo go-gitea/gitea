@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,18 +12,18 @@ import (
 func TestCommitSubmoduleLink(t *testing.T) {
 	sf := NewCommitSubmoduleFile("git@github.com:user/repo.git", "aaaa")
 
-	wl := sf.SubmoduleWebLink(context.Background())
+	wl := sf.SubmoduleWebLink(t.Context())
 	assert.Equal(t, "https://github.com/user/repo", wl.RepoWebLink)
-	assert.Equal(t, "https://github.com/user/repo/commit/aaaa", wl.CommitWebLink)
+	assert.Equal(t, "https://github.com/user/repo/tree/aaaa", wl.CommitWebLink)
 
-	wl = sf.SubmoduleWebLink(context.Background(), "1111")
+	wl = sf.SubmoduleWebLink(t.Context(), "1111")
 	assert.Equal(t, "https://github.com/user/repo", wl.RepoWebLink)
-	assert.Equal(t, "https://github.com/user/repo/commit/1111", wl.CommitWebLink)
+	assert.Equal(t, "https://github.com/user/repo/tree/1111", wl.CommitWebLink)
 
-	wl = sf.SubmoduleWebLink(context.Background(), "1111", "2222")
+	wl = sf.SubmoduleWebLink(t.Context(), "1111", "2222")
 	assert.Equal(t, "https://github.com/user/repo", wl.RepoWebLink)
 	assert.Equal(t, "https://github.com/user/repo/compare/1111...2222", wl.CommitWebLink)
 
-	wl = (*CommitSubmoduleFile)(nil).SubmoduleWebLink(context.Background())
+	wl = (*CommitSubmoduleFile)(nil).SubmoduleWebLink(t.Context())
 	assert.Nil(t, wl)
 }

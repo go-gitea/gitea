@@ -49,9 +49,9 @@ type IssuesOptions struct { //nolint
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     optional.Option[bool]
-	Org            *organization.Organization // issues permission scope
-	Team           *organization.Team         // issues permission scope
-	User           *user_model.User           // issues permission scope
+	Owner          *user_model.User   // issues permission scope, it could be an organization or a user
+	Team           *organization.Team // issues permission scope
+	Doer           *user_model.User   // issues permission scope
 }
 
 // Copy returns a copy of the options.
@@ -273,8 +273,12 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 
 	applyLabelsCondition(sess, opts)
 
-	if opts.User != nil {
-		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.Value()))
+	if opts.Owner != nil {
+		sess.And(repo_model.UserOwnedRepoCond(opts.Owner.ID))
+	}
+
+	if opts.Doer != nil && !opts.Doer.IsAdmin {
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.Doer.ID, opts.Owner, opts.Team, opts.IsPull.Value()))
 	}
 }
 
@@ -321,20 +325,20 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
-func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, team *organization.Team, isPull bool) builder.Cond {
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, owner *user_model.User, team *organization.Team, isPull bool) builder.Cond {
 	cond := builder.NewCond()
 	unitType := unit.TypeIssues
 	if isPull {
 		unitType = unit.TypePullRequests
 	}
-	if org != nil {
+	if owner != nil && owner.IsOrganization() {
 		if team != nil {
-			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
+			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, owner.ID, team.ID, unitType)) // special team member repos
 		} else {
 			cond = cond.And(
 				builder.Or(
-					repo_model.UserOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
-					repo_model.UserOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
+					repo_model.UserOrgUnitRepoCond(repoIDstr, userID, owner.ID, unitType), // team member repos
+					repo_model.UserOrgPublicUnitRepoCond(userID, owner.ID),                // user org public non-member repos, TODO: check repo has issues
 				),
 			)
 		}

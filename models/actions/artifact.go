@@ -48,7 +48,7 @@ type ActionArtifact struct {
 	ContentEncoding    string             // The content encoding of the artifact
 	ArtifactPath       string             `xorm:"index unique(runid_name_path)"` // The path to the artifact when runner uploads it
 	ArtifactName       string             `xorm:"index unique(runid_name_path)"` // The name of the artifact when runner uploads it
-	Status             int64              `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
+	Status             ArtifactStatus     `xorm:"index"`                         // The status of the artifact, uploading, expired or need-delete
 	CreatedUnix        timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix        timeutil.TimeStamp `xorm:"updated index"`
 	ExpiredUnix        timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
@@ -68,7 +68,7 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 			RepoID:       t.RepoID,
 			OwnerID:      t.OwnerID,
 			CommitSHA:    t.CommitSHA,
-			Status:       int64(ArtifactStatusUploadPending),
+			Status:       ArtifactStatusUploadPending,
 			ExpiredUnix:  timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays),
 		}
 		if _, err := db.GetEngine(ctx).Insert(artifact); err != nil {
@@ -108,11 +108,18 @@ func UpdateArtifactByID(ctx context.Context, id int64, art *ActionArtifact) erro
 
 type FindArtifactsOptions struct {
 	db.ListOptions
-	RepoID       int64
-	RunID        int64
-	ArtifactName string
-	Status       int
+	RepoID               int64
+	RunID                int64
+	ArtifactName         string
+	Status               int
+	FinalizedArtifactsV4 bool
 }
+
+func (opts FindArtifactsOptions) ToOrders() string {
+	return "id"
+}
+
+var _ db.FindOptionsOrder = (*FindArtifactsOptions)(nil)
 
 func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
@@ -128,11 +135,15 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	if opts.Status > 0 {
 		cond = cond.And(builder.Eq{"status": opts.Status})
 	}
+	if opts.FinalizedArtifactsV4 {
+		cond = cond.And(builder.Eq{"status": ArtifactStatusUploadConfirmed}.Or(builder.Eq{"status": ArtifactStatusExpired}))
+		cond = cond.And(builder.Eq{"content_encoding": "application/zip"})
+	}
 
 	return cond
 }
 
-// ActionArtifactMeta is the meta data of an artifact
+// ActionArtifactMeta is the meta-data of an artifact
 type ActionArtifactMeta struct {
 	ArtifactName string
 	FileSize     int64
@@ -166,18 +177,18 @@ func ListPendingDeleteArtifacts(ctx context.Context, limit int) ([]*ActionArtifa
 
 // SetArtifactExpired sets an artifact to expired
 func SetArtifactExpired(ctx context.Context, artifactID int64) error {
-	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusExpired)})
+	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusExpired})
 	return err
 }
 
 // SetArtifactNeedDelete sets an artifact to need-delete, cron job will delete it
 func SetArtifactNeedDelete(ctx context.Context, runID int64, name string) error {
-	_, err := db.GetEngine(ctx).Where("run_id=? AND artifact_name=? AND status = ?", runID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusPendingDeletion)})
+	_, err := db.GetEngine(ctx).Where("run_id=? AND artifact_name=? AND status = ?", runID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusPendingDeletion})
 	return err
 }
 
 // SetArtifactDeleted sets an artifact to deleted
 func SetArtifactDeleted(ctx context.Context, artifactID int64) error {
-	_, err := db.GetEngine(ctx).ID(artifactID).Cols("status").Update(&ActionArtifact{Status: int64(ArtifactStatusDeleted)})
+	_, err := db.GetEngine(ctx).ID(artifactID).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusDeleted})
 	return err
 }

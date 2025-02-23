@@ -5,6 +5,7 @@ package log
 
 import (
 	"context"
+	"reflect"
 	"runtime"
 	"strings"
 	"sync"
@@ -175,6 +176,20 @@ func (l *LoggerImpl) IsEnabled() bool {
 	return l.level.Load() < int32(FATAL) && len(l.eventWriters) > 0
 }
 
+func asLogStringer(v any) LogStringer {
+	if s, ok := v.(LogStringer); ok {
+		return s
+	} else if a := reflect.ValueOf(v); a.Kind() == reflect.Struct {
+		// in case the receiver is a pointer, but the value is a struct
+		vp := reflect.New(a.Type())
+		vp.Elem().Set(a)
+		if s, ok := vp.Interface().(LogStringer); ok {
+			return s
+		}
+	}
+	return nil
+}
+
 // Log prepares the log event, if the level matches, the event will be sent to the writers
 func (l *LoggerImpl) Log(skip int, level Level, format string, logArgs ...any) {
 	if Level(l.level.Load()) > level {
@@ -207,11 +222,11 @@ func (l *LoggerImpl) Log(skip int, level Level, format string, logArgs ...any) {
 	// handle LogStringer values
 	for i, v := range msgArgs {
 		if cv, ok := v.(*ColoredValue); ok {
-			if s, ok := cv.v.(LogStringer); ok {
-				cv.v = logStringFormatter{v: s}
+			if ls := asLogStringer(cv.v); ls != nil {
+				cv.v = logStringFormatter{v: ls}
 			}
-		} else if s, ok := v.(LogStringer); ok {
-			msgArgs[i] = logStringFormatter{v: s}
+		} else if ls := asLogStringer(v); ls != nil {
+			msgArgs[i] = logStringFormatter{v: ls}
 		}
 	}
 
