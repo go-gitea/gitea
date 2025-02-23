@@ -954,14 +954,18 @@ func (*webhookNotifier) CreateWorkflowJob(ctx context.Context, repo *repo_model.
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
 	}
 
-	job.LoadAttributes(ctx)
+	err := job.LoadAttributes(ctx)
+	if err != nil {
+		log.Error("Error loading job attributes: %v", err)
+		return
+	}
 
 	action, conclusion := toActionStatus(job.Status)
-	var runnerId int64
+	var runnerID int64
 	var steps []*api.ActionWorkflowStep
 
 	if task != nil {
-		runnerId = task.RunnerID
+		runnerID = task.RunnerID
 		for i, step := range task.Steps {
 			_, stepConclusion := toActionStatus(job.Status)
 			steps = append(steps, &api.ActionWorkflowStep{
@@ -986,7 +990,7 @@ func (*webhookNotifier) CreateWorkflowJob(ctx context.Context, repo *repo_model.
 			HeadSha:     job.Run.CommitSHA,
 			HeadBranch:  git.RefName(job.Run.Ref).BranchName(),
 			Conclusion:  conclusion,
-			RunnerID:    runnerId,
+			RunnerID:    runnerID,
 			Steps:       steps,
 			CreatedAt:   job.Created.AsTime().UTC(),
 			StartedAt:   job.Started.AsTime().UTC(),
