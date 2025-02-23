@@ -198,19 +198,11 @@ func (m *mailNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) 
 	MailNewRelease(ctx, rel)
 }
 
-func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
-	if err := SendRepoTransferNotifyMail(ctx, doer, newOwner, repo); err != nil {
-		log.Error("SendRepoTransferNotifyMail: %v", err)
-	}
-}
-
 func (m *mailNotifier) ActionRunFinished(ctx context.Context, run *actions_model.ActionRun) {
-    // Check status first to avoid unnecessary processing
     if run.Status != actions_model.StatusSuccess && run.Status != actions_model.StatusFailure {
         return
     }
 
-    // Load required attributes after status check
     if err := run.LoadAttributes(ctx); err != nil {
         log.Error("LoadAttributes: %v", err)
         return
@@ -222,19 +214,16 @@ func (m *mailNotifier) ActionRunFinished(ctx context.Context, run *actions_model
         run.Status,
     )
 
-    // Safely handle short commit SHA
     commitSHA := run.CommitSHA
     if len(commitSHA) > 7 {
         commitSHA = commitSHA[:7]
     }
 
     body := fmt.Sprintf(`Workflow "%s" run #%d has completed with status: %s
-
 Repository: %s
 Branch: %s
 Commit: %s
 Triggered by: %s
-
 View the run details here: %s`,
         run.WorkflowID,
         run.Index,
@@ -246,19 +235,27 @@ View the run details here: %s`,
         run.HTMLURL(),
     )
 
-    // Send to repo owner if notifications enabled and email present
+    // Send to repo owner
     if run.Repo.Owner.Email != "" &&
         run.Repo.Owner.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
-        if err := SendMailFrom(ctx, run.Repo.Owner.Email, subject, body); err != nil {
+        if err := mailer.SendAsyncEmail(ctx, mailer.Mail{
+            To:      []string{run.Repo.Owner.Email},
+            Subject: subject,
+            Body:    body,
+        }); err != nil {
             log.Error("Failed to send email to repo owner %s: %v", run.Repo.Owner.Email, err)
         }
     }
 
-    // Send to trigger user if different from owner and notifications enabled
+    // Send to trigger user
     if run.TriggerUser.ID != run.Repo.Owner.ID &&
         run.TriggerUser.Email != "" &&
         run.TriggerUser.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
-        if err := SendMailFrom(ctx, run.TriggerUser.Email, subject, body); err != nil {
+        if err := mailer.SendAsyncEmail(ctx, mailer.Mail{
+            To:      []string{run.TriggerUser.Email},
+            Subject: subject,
+            Body:    body,
+        }); err != nil {
             log.Error("Failed to send email to trigger user %s: %v", run.TriggerUser.Email, err)
         }
     }
