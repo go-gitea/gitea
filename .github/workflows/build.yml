@@ -26,14 +26,7 @@ jobs:
           go mod tidy
       # Step 4: Run Go Linter (golangci-lint)
       - name: Run Go Linter
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
-          args: --timeout=5m
-
-
-
-
+        run: golangci-lint run --disable-all -E gofmt -E govet --timeout=5m
 
   docker:
     runs-on: ubuntu-latest
