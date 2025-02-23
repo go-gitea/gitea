@@ -32,8 +32,8 @@ const NoConditionID int64 = -1
 
 // AnyConditionID means a condition to filter the records which match any id.
 // The inverse of the above NoConditionID
-// eg: "assignee_id=-2" means "find the issues with an assignee"
-const AnyConditionID int64 = -2
+// eg: "assignee_id=-1000001" means "find the issues with an assignee"
+const AnyConditionID int64 = -1000001
 
 // NonExistingID means a condition to match no result (eg: a non-existing user)
 // It doesn't use -1 or -2 because they are used as builtin users.

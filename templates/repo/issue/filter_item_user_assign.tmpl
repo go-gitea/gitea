@@ -6,7 +6,7 @@
 * TextFilterTitle
 * TextZeroValue: the text for "all issues"
 * TextNegativeOne: the text for "issues with no assignee"
-* TextNegativeTwo: the text for "issues with any assignee"
+* TextAnyCondition: the text for "issues with any assignee"
 */}}
 {{$queryLink := .QueryLink}}
 <div class="item ui dropdown jump {{if not .UserSearchList}}disabled{{end}}">
@@ -22,8 +22,8 @@
 		{{if $.TextNegativeOne}}
 			<a class="item {{if eq .SelectedUserId -1}}selected{{end}}" href="{{QueryBuild $queryLink $.QueryParamKey -1}}">{{$.TextNegativeOne}}</a>
 		{{end}}
-		{{if $.TextNegativeTwo}}
-			<a class="item {{if eq .SelectedUserId -2}}selected{{end}}" href="{{QueryBuild $queryLink $.QueryParamKey -2}}">{{$.TextNegativeTwo}}</a>
+		{{if $.TextAnyCondition}}
+			<a class="item {{if eq .SelectedUserId -1000001}}selected{{end}}" href="{{QueryBuild $queryLink $.QueryParamKey -1000001}}">{{$.TextAnyCondition}}</a>
 		{{end}}
 		<div class="divider"></div>
 		{{range .UserSearchList}}
