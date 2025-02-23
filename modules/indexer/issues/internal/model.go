@@ -98,7 +98,8 @@ type SearchOptions struct {
 
 	PosterID optional.Option[int64] // poster of the issues
 
-	AssigneeID optional.Option[int64] // assignee of the issues, zero means no assignee
+	AssigneeID      optional.Option[int64] // assignee of the issues, zero means no assignee
+	AnyAssigneeOnly bool                   // if the issues have any assignee (non-zero), if true, AssigneeID will be ignored
 
 	MentionID optional.Option[int64] // mentioned user of the issues
 
