@@ -495,7 +495,7 @@ jobs:
 		actionTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
 		actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: actionTask.JobID})
 		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: actionRunJob.RunID})
-		assert.NoError(t, actionRun.LoadAttributes(context.Background()))
+		assert.NoError(t, actionRun.LoadAttributes(t.Context()))
 
 		assert.Equal(t, user2.Name, gtCtx["actor"].GetStringValue())
 		assert.Equal(t, setting.AppURL+"api/v1", gtCtx["api_url"].GetStringValue())
@@ -524,24 +524,24 @@ jobs:
 		token := gtCtx["token"].GetStringValue()
 		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
 
-		resp, err := runner.client.runnerServiceClient.FetchTask(context.Background(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
 		}))
 		assert.NoError(t, err)
 		assert.Nil(t, resp.Msg.Task)
-		runner.client.runnerServiceClient.UpdateTask(context.Background(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
+		runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
 			State: &runnerv1.TaskState{
 				Id:     actionTask.ID,
 				Result: runnerv1.Result_RESULT_SUCCESS,
 			},
 		}))
-		resp, err = runner.client.runnerServiceClient.FetchTask(context.Background(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
 		}))
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 
-		resp, err = runner.client.runnerServiceClient.FetchTask(context.Background(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
 		}))
 		assert.Error(t, err)
