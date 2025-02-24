@@ -73,23 +73,23 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	// Handle Deprecations and map on to new configuration
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
-	deprecatedSettingWarning(rootCfg, "mailer", "MAILER_TYPE", "mailer", "PROTOCOL", "v1.19.0")
+	removedSettingWarning(rootCfg, "mailer", "MAILER_TYPE", "mailer", "PROTOCOL", "v1.19.0")
 
-	deprecatedSettingWarning(rootCfg, "mailer", "HOST", "mailer", "SMTP_ADDR", "v1.19.0")
+	removedSettingWarning(rootCfg, "mailer", "HOST", "mailer", "SMTP_ADDR", "v1.19.0")
 
-	deprecatedSettingWarning(rootCfg, "mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL", "v1.19.0")
+	removedSettingWarning(rootCfg, "mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL", "v1.19.0")
 
-	deprecatedSettingWarning(rootCfg, "mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO", "v1.19.0")
+	removedSettingWarning(rootCfg, "mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO", "v1.19.0")
 
-	deprecatedSettingWarning(rootCfg, "mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT", "v1.19.0")
+	removedSettingWarning(rootCfg, "mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT", "v1.19.0")
 
-	deprecatedSettingWarning(rootCfg, "mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT", "v1.19.0")
+	removedSettingWarning(rootCfg, "mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT", "v1.19.0")
 
-	deprecatedSettingWarning(rootCfg, "mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE", "v1.19.0")
+	removedSettingWarning(rootCfg, "mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE", "v1.19.0")
 
-	deprecatedSettingWarning(rootCfg, "mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE", "v1.19.0")
+	removedSettingWarning(rootCfg, "mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE", "v1.19.0")
 
-	deprecatedSettingWarning(rootCfg, "mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT", "v1.19.0")
+	removedSettingWarning(rootCfg, "mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT", "v1.19.0")
 
 	if sec.HasKey("PROTOCOL") && sec.Key("PROTOCOL").String() == "smtp+startls" {
 		log.Error("Deprecated fallback `[mailer]` `PROTOCOL = smtp+startls` present. Use `[mailer]` `PROTOCOL = smtp+starttls`` instead. This fallback will be removed in v1.19.0")

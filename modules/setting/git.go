@@ -98,8 +98,8 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.SetOption("gc.reflogExpire", "90")
 
 	// keep warning here but not read the option
-	deprecatedSettingWarning(rootCfg, "git.reflog", "ENABLED", "git.config", "core.logAllRefUpdates", "1.21")
-	deprecatedSettingWarning(rootCfg, "git.reflog", "EXPIRATION", "git.config", "core.reflogExpire", "1.21")
+	removedSettingWarning(rootCfg, "git.reflog", "ENABLED", "git.config", "core.logAllRefUpdates", "1.21")
+	removedSettingWarning(rootCfg, "git.reflog", "EXPIRATION", "git.config", "core.reflogExpire", "1.21")
 
 	for _, key := range secGitConfig.Keys() {
 		GitConfig.SetOption(key.Name(), key.String())

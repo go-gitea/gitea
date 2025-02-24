@@ -60,18 +60,18 @@ func prepareLoggerConfig(rootCfg ConfigProvider) {
 		sec.Key("logger.default.MODE").MustString(",")
 	}
 
-	deprecatedSettingWarning(rootCfg, "log", "ACCESS", "log", "logger.access.MODE", "1.21")
-	deprecatedSettingWarning(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.access.MODE", "1.21")
+	removedSettingWarning(rootCfg, "log", "ACCESS", "log", "logger.access.MODE", "1.21")
+	removedSettingWarning(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.access.MODE", "1.21")
 
-	deprecatedSettingWarning(rootCfg, "log", "ROUTER", "log", "logger.router.MODE", "1.21")
-	deprecatedSettingWarning(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.router.MODE", "1.21")
+	removedSettingWarning(rootCfg, "log", "ROUTER", "log", "logger.router.MODE", "1.21")
+	removedSettingWarning(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.router.MODE", "1.21")
 
 	if !sec.HasKey("logger.router.MODE") {
 		sec.Key("logger.router.MODE").MustString(",") // use default logger
 	}
 
-	deprecatedSettingWarning(rootCfg, "log", "XORM", "log", "logger.xorm.MODE", "1.21")
-	deprecatedSettingWarning(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.xorm.MODE", "1.21")
+	removedSettingWarning(rootCfg, "log", "XORM", "log", "logger.xorm.MODE", "1.21")
+	removedSettingWarning(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.xorm.MODE", "1.21")
 
 	if !sec.HasKey("logger.xorm.MODE") {
 		sec.Key("logger.xorm.MODE").MustString(",") // use default logger

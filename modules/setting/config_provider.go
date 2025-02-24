@@ -333,9 +333,9 @@ func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, n
 // make linter happy when there is no deprecated setting at the moment
 var _ = deprecatedSetting
 
-func deprecatedSettingWarning(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
+func removedSettingWarning(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents, please use `[%s].%s` instead because this fallback has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		LogStartupProblem(1, log.ERROR, "Removed: config option `[%s].%s` presents, please use `[%s].%s` instead because this setting has been removed in %s", oldSection, oldKey, newSection, newKey, version)
 	}
 }
 
