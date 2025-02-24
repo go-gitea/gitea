@@ -1,4 +1,4 @@
-{{if .IsStarList }}
+{{if false }}
 <div class="star-list">
 	<!-- Header -->
 	<div class="top">
@@ -28,14 +28,36 @@
 			</div>
 			<!-- Create List-->
 			<div>
-				<a class="ui small primary button">Create list</a>
+				<details>
+					<summary class="btn">Create list</summary>
+					<details-dialog class="box">
+						<div class="box-header">
+							<div class="box-title">
+								<h1>Create list</h1>
+								<button>Close</button>
+							</div>
+						</div>
+						<form action="#" method="post">
+							<input type="text" value="test" placeholder="⭐️ Name this list">
+							<input type="text" value="test" placeholder="Write a description">
+							<div class="btn-group">
+								<div>
+									<button>Delete list</button>
+								</div>
+								<div>
+									<button>Save list</button>
+								</div>
+							</div>
+						</form>
+					</details-dialog>
+				</details>
 			</div>
 		</div>
 	</div>
 
 	<!-- List -->
 	<div id="profile-lists-container">
-		<div class="box">
+		<div class="list-box">
 			<a href="https://ilo.nz" class="box-row">
 				<h3 class="name">Vim</h3>
 				<div class="repositories">
