@@ -166,6 +166,96 @@
   margin-right: 10px;
 }
 
+.star-list-repos .top {
+  height: 37.75px;
+  line-height: 37.75px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.star-list-repos h2 {
+  display: block;
+  margin: 0;
+  padding: 0;
+  height: inherit;
+  line-height: inherit;
+}
+
+.star-list-repos .btn {
+  padding: 5px 16px;
+  color: #25292e;
+  background-color: #f6f8fa;
+  list-style: none;
+  box-shadow: 0px 1px 0px 0px #1f232880a;
+  border-radius: 6px;
+  font-size: 16px;
+  border: 1px solid #d1d9e0;
+  line-height: 20px;
+}
+
+.star-list-repos details>summary {
+  transition: 80ms cubic-bezier(0.33, 1, 0.68, 1);
+  transition-property: color, background-color, box-shadow, border-color;
+}
+
+.star-list-repos .box {
+  width: 448px;
+  border-color: #d1d9e0;
+  border-radius: 0.375rem;
+  border-style: solid;
+  border-width: 0.0625rem;
+}
+
+.star-list-repos details-dialog {
+  position: fixed;
+  margin: 10vh auto;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  max-height: 80vh;
+  max-width: 90vw;
+  overflow: auto;
+  border-shadow: 3px 3px 3px 3px 5px black;
+}
+
+.star-list-repos .box-header {
+  background-color: #f6f8fa;
+  height: 37.75px;
+}
+
+.star-list-repos h1 {
+  margin-left: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  height: 37.75px;
+  line-height: 37.75px;
+}
+
+.star-list-repos .box-title {
+  height: 37.75px;
+  line-height: 37.75px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+}
+
+.star-list-repos .btn-group {
+  display: flex;
+  justify-content: space-between;
+}
+
+.star-list-repos .description {
+  font-size: 16px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.star-list-repos .repositories {
+  color: #59536e;
+}
+
 #readme_profile {
   padding: 1em 2em;
   border-radius: var(--border-radius);
