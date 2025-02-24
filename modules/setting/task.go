@@ -10,9 +10,9 @@ func loadTaskFrom(rootCfg ConfigProvider) {
 	taskSec := rootCfg.Section("task")
 	queueTaskSec := rootCfg.Section("queue.task")
 
-	deprecatedSetting(rootCfg, "task", "QUEUE_TYPE", "queue.task", "TYPE", "v1.19.0")
-	deprecatedSetting(rootCfg, "task", "QUEUE_CONN_STR", "queue.task", "CONN_STR", "v1.19.0")
-	deprecatedSetting(rootCfg, "task", "QUEUE_LENGTH", "queue.task", "LENGTH", "v1.19.0")
+	deprecatedSettingWarning(rootCfg, "task", "QUEUE_TYPE", "queue.task", "TYPE", "v1.19.0")
+	deprecatedSettingWarning(rootCfg, "task", "QUEUE_CONN_STR", "queue.task", "CONN_STR", "v1.19.0")
+	deprecatedSettingWarning(rootCfg, "task", "QUEUE_LENGTH", "queue.task", "LENGTH", "v1.19.0")
 
 	switch taskSec.Key("QUEUE_TYPE").MustString("channel") {
 	case "channel":

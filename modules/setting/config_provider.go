@@ -326,7 +326,16 @@ func LogStartupProblem(skip int, level log.Level, format string, args ...any) {
 
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents, please use `[%s].%s` instead because this fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents, please use `[%s].%s` instead because this fallback will be removed in %s", oldSection, oldKey, newSection, newKey, version)
+	}
+}
+
+// make linter happy when there is no deprecated setting at the moment
+var _ = deprecatedSetting
+
+func deprecatedSettingWarning(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
+	if rootCfg.Section(oldSection).HasKey(oldKey) {
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents, please use `[%s].%s` instead because this fallback has been removed in %s", oldSection, oldKey, newSection, newKey, version)
 	}
 }
 

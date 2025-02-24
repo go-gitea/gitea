@@ -60,37 +60,21 @@ func prepareLoggerConfig(rootCfg ConfigProvider) {
 		sec.Key("logger.default.MODE").MustString(",")
 	}
 
-	deprecatedSetting(rootCfg, "log", "ACCESS", "log", "logger.access.MODE", "1.21")
-	deprecatedSetting(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.access.MODE", "1.21")
-	if val := sec.Key("ACCESS").String(); val != "" {
-		sec.Key("logger.access.MODE").MustString(val)
-	}
-	if sec.HasKey("ENABLE_ACCESS_LOG") && !sec.Key("ENABLE_ACCESS_LOG").MustBool() {
-		sec.Key("logger.access.MODE").SetValue("")
-	}
+	deprecatedSettingWarning(rootCfg, "log", "ACCESS", "log", "logger.access.MODE", "1.21")
+	deprecatedSettingWarning(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.access.MODE", "1.21")
 
-	deprecatedSetting(rootCfg, "log", "ROUTER", "log", "logger.router.MODE", "1.21")
-	deprecatedSetting(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.router.MODE", "1.21")
-	if val := sec.Key("ROUTER").String(); val != "" {
-		sec.Key("logger.router.MODE").MustString(val)
-	}
+	deprecatedSettingWarning(rootCfg, "log", "ROUTER", "log", "logger.router.MODE", "1.21")
+	deprecatedSettingWarning(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.router.MODE", "1.21")
+
 	if !sec.HasKey("logger.router.MODE") {
 		sec.Key("logger.router.MODE").MustString(",") // use default logger
 	}
-	if sec.HasKey("DISABLE_ROUTER_LOG") && sec.Key("DISABLE_ROUTER_LOG").MustBool() {
-		sec.Key("logger.router.MODE").SetValue("")
-	}
 
-	deprecatedSetting(rootCfg, "log", "XORM", "log", "logger.xorm.MODE", "1.21")
-	deprecatedSetting(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.xorm.MODE", "1.21")
-	if val := sec.Key("XORM").String(); val != "" {
-		sec.Key("logger.xorm.MODE").MustString(val)
-	}
+	deprecatedSettingWarning(rootCfg, "log", "XORM", "log", "logger.xorm.MODE", "1.21")
+	deprecatedSettingWarning(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.xorm.MODE", "1.21")
+
 	if !sec.HasKey("logger.xorm.MODE") {
 		sec.Key("logger.xorm.MODE").MustString(",") // use default logger
-	}
-	if sec.HasKey("ENABLE_XORM_LOG") && !sec.Key("ENABLE_XORM_LOG").MustBool() {
-		sec.Key("logger.xorm.MODE").SetValue("")
 	}
 }
 

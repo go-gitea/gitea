@@ -121,10 +121,7 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 	}
 
 	// Handle the rename of ENABLE to ENABLED
-	deprecatedSetting(rootCfg, "oauth2", "ENABLE", "oauth2", "ENABLED", "v1.23.0")
-	if sec.HasKey("ENABLE") && !sec.HasKey("ENABLED") {
-		OAuth2.Enabled = sec.Key("ENABLE").MustBool(OAuth2.Enabled)
-	}
+	deprecatedSettingWarning(rootCfg, "oauth2", "ENABLE", "oauth2", "ENABLED", "v1.23.0")
 
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
 		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
