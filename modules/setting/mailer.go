@@ -70,7 +70,6 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		return
 	}
 
-	// Handle Deprecations and map on to new configuration
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
 	removedSettingWarning(rootCfg, "mailer", "MAILER_TYPE", "mailer", "PROTOCOL", "v1.19.0")

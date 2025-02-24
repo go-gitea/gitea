@@ -4,6 +4,8 @@
 package setting
 
 import (
+	"net"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +22,7 @@ func Test_loadMailerFrom(t *testing.T) {
 			SMTPPort: "123",
 		},
 		":123": {
-			SMTPAddr: "127.0.0.1",
+			SMTPAddr: "",
 			SMTPPort: "123",
 		},
 	}
@@ -29,7 +31,14 @@ func Test_loadMailerFrom(t *testing.T) {
 			cfg, _ := NewConfigProviderFromData("")
 			sec := cfg.Section("mailer")
 			sec.NewKey("ENABLED", "true")
-			sec.NewKey("HOST", host)
+			if strings.Contains(host, ":") {
+				addr, port, err := net.SplitHostPort(host)
+				assert.NoError(t, err)
+				sec.NewKey("SMTP_ADDR", addr)
+				sec.NewKey("SMTP_PORT", port)
+			} else {
+				sec.NewKey("SMTP_ADDR", host)
+			}
 
 			// Check mailer setting
 			loadMailerFrom(cfg)
