@@ -4,7 +4,6 @@
 package renderhelper
 
 import (
-	"context"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -20,7 +19,7 @@ func TestRepoWiki(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	t.Run("AutoLink", func(t *testing.T) {
-		rctx := NewRenderContextRepoWiki(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoWiki(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
@@ -35,7 +34,7 @@ func TestRepoWiki(t *testing.T) {
 	})
 
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
-		rctx := NewRenderContextRepoWiki(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoWiki(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 [/test](/test)
 [./test](./test)
@@ -52,7 +51,7 @@ func TestRepoWiki(t *testing.T) {
 	})
 
 	t.Run("PathInTag", func(t *testing.T) {
-		rctx := NewRenderContextRepoWiki(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoWiki(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 <img src="LINK">
 <video src="LINK">

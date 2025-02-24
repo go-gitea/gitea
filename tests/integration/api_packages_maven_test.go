@@ -80,6 +80,7 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("UploadLegacy", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
+		// try to upload a package with legacy package name (will be saved as "GroupID-ArtifactID")
 		legacyRootLink := "/api/packages/user2/maven/com/gitea/legacy-project"
 		req := NewRequestWithBody(t, "PUT", legacyRootLink+"/1.0.2/any-file-name?use_legacy_package_name=1", strings.NewReader("test-content")).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
@@ -97,6 +98,13 @@ func TestPackageMaven(t *testing.T) {
 		req = NewRequest(t, "GET", "/user2/-/packages/maven/com.gitea%3Alegacy-project/1.0.2")
 		MakeRequest(t, req, http.StatusNotFound)
 
+		// legacy package names should also be able to be listed
+		req = NewRequest(t, "GET", legacyRootLink+"/maven-metadata.xml").AddBasicAuth(user.Name)
+		resp := MakeRequest(t, req, http.StatusOK)
+		respBody := resp.Body.String()
+		assert.Contains(t, respBody, "<version>1.0.2</version>")
+
+		// then upload a package with correct package name (will be saved as "GroupID:ArtifactID")
 		req = NewRequestWithBody(t, "PUT", legacyRootLink+"/1.0.3/any-file-name", strings.NewReader("test-content")).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 		_, err = packages.GetPackageByName(db.DefaultContext, user.ID, packages.TypeMaven, "com.gitea-legacy-project")
@@ -114,6 +122,12 @@ func TestPackageMaven(t *testing.T) {
 		req = NewRequest(t, "GET", "/user2/-/packages/maven/com.gitea%3Alegacy-project/1.0.2")
 		MakeRequest(t, req, http.StatusOK)
 
+		// now 2 packages should be listed
+		req = NewRequest(t, "GET", legacyRootLink+"/maven-metadata.xml").AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+		respBody = resp.Body.String()
+		assert.Contains(t, respBody, "<version>1.0.2</version>")
+		assert.Contains(t, respBody, "<version>1.0.3</version>")
 		require.NoError(t, packages.DeletePackageByID(db.DefaultContext, p.ID))
 	})
 

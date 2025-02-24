@@ -4,7 +4,6 @@
 package migrations
 
 import (
-	"context"
 	"net/url"
 	"os"
 	"testing"
@@ -30,7 +29,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 	if cloneUser != "" {
 		u.User = url.UserPassword(cloneUser, clonePassword)
 	}
-	ctx := context.Background()
+	ctx := t.Context()
 	factory := &CodebaseDownloaderFactory{}
 	downloader, err := factory.New(ctx, base.MigrateOptions{
 		CloneAddr:    u.String(),
