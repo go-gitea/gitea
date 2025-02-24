@@ -101,6 +101,7 @@ type ActionArtifactsResponse struct {
 type ActionWorkflowStep struct {
 	Name       string `json:"name"`
 	Number     int64  `json:"number"`
+	Status     string `json:"status"`
 	Conclusion string `json:"conclusion,omitempty"`
 	// swagger:strfmt date-time
 	StartedAt time.Time `json:"started_at,omitempty"`
@@ -118,9 +119,10 @@ type ActionWorkflowJob struct {
 	RunAttempt int64                 `json:"run_attempt"`
 	HeadSha    string                `json:"head_sha"`
 	HeadBranch string                `json:"head_branch,omitempty"`
+	Status     string                `json:"status"`
 	Conclusion string                `json:"conclusion,omitempty"`
-	RunnerID   int64                 `json:"runner_id"`
-	RunnerName string                `json:"runner_name"`
+	RunnerID   int64                 `json:"runner_id,omitempty"`
+	RunnerName string                `json:"runner_name,omitempty"`
 	Steps      []*ActionWorkflowStep `json:"steps"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
