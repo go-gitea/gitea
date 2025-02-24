@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -25,6 +24,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/tests"
 
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
