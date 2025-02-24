@@ -220,14 +220,16 @@ func (s *Service) UpdateTask(
 		actions_service.CreateCommitStatus(ctx, task.Job)
 	}
 
+	if task.Status.IsDone() {
+		notifier.CreateWorkflowJob(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
+	}
+
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 		if err := actions_service.EmitJobsIfReady(task.Job.RunID); err != nil {
 			log.Error("Emit ready jobs of run %d: %v", task.Job.RunID, err)
 		}
 	}
-	if task.Status.IsDone() {
-		notifier.CreateWorkflowJob(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
-	}
+
 	return connect.NewResponse(&runnerv1.UpdateTaskResponse{
 		State: &runnerv1.TaskState{
 			Id:     req.Msg.State.Id,
