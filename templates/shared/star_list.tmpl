@@ -1,4 +1,4 @@
-{{if false }}
+{{if true }}
 <div class="star-list">
 	<!-- Header -->
 	<div class="top">
@@ -28,29 +28,7 @@
 			</div>
 			<!-- Create List-->
 			<div>
-				<details>
-					<summary class="btn">Create list</summary>
-					<details-dialog class="box">
-						<div class="box-header">
-							<div class="box-title">
-								<h1>Create list</h1>
-								<button>Close</button>
-							</div>
-						</div>
-						<form action="#" method="post">
-							<input type="text" value="test" placeholder="⭐️ Name this list">
-							<input type="text" value="test" placeholder="Write a description">
-							<div class="btn-group">
-								<div>
-									<button>Delete list</button>
-								</div>
-								<div>
-									<button>Save list</button>
-								</div>
-							</div>
-						</form>
-					</details-dialog>
-				</details>
+				<button class="ui primary button muted show-modal" href="#" data-modal="#create-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">Create list</button>
 			</div>
 		</div>
 	</div>
@@ -85,37 +63,16 @@
 		</div>
 	</div>
 </div>
-{{else if true }}
+{{else if false }}
 <div class="star-list-repos">
 	<div class="top">
 		<h2>Test</h2>
-		<div>
-			<details>
-				<summary class="btn">Edit list</summary>
-				<details-dialog class="box">
-					<div class="box-header">
-						<div class="box-title">
-							<h1>Edit list</h1>
-							<button>Close</button>
-						</div>
-					</div>
-					<form action="#" method="post">
-						<input type="text" value="test" placeholder="⭐️ Name this list">
-						<input type="text" value="test" placeholder="Write a description">
-						<div class="btn-group">
-							<div>
-								<button>Delete list</button>
-							</div>
-							<div>
-								<button>Save list</button>
-							</div>
-						</div>
-					</form>
-				</details-dialog>
-			</details>
-		</div>
+		<a class="muted show-modal" href="#" data-modal="#edit-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">Edit list</a>
 	</div>
 	<div class="description">Test</div>
 	<div class="repositories">1 repositories</div>
 </div>
 {{end}}
+
+{{template "shared/create_star_list_dialog" .}}
+{{template "shared/edit_star_list_dialog" .}}

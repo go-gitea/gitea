@@ -17,7 +17,7 @@
 					{{template "user/dashboard/feeds" .}}
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
-						{{template "user/star_list" .}}
+						{{template "shared/star_list" .}}
 						{{template "shared/repo_search" .}}
 						{{template "explore/repo_list" .}}
 						{{template "base/paginate" .}}
