@@ -18,10 +18,6 @@
 }
 
 @media (max-width: 767.98px) {
-  .issue-list-toolbar-right .dropdown .menu {
-    left: auto !important;
-    right: auto !important;
-  }
   .issue-list-navbar {
     order: 0;
   }
@@ -31,6 +27,37 @@
   }
   .issue-list-search {
     order: 2 !important;
+  }
+  /* Don't use flex wrap on mobile as it takes too much vertical space.
+   * Only set overflow properties on mobile screens, because while the
+   * CSS trick to pop out from overflowing works on desktop screen, it
+   * has a massive flaw that it cannot inherited any max width from it's 'real'
+   * parent and therefor ends up taking more vertical space than is desired.
+   **/
+  .issue-list-toolbar-right .filter.menu {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* The following few CSS was created with care and built with the information
+   * from CSS-Tricks: https://css-tricks.com/popping-hidden-overflow/
+  */
+
+  /* It's important that every element up to .issue-list-toolbar-right doesn't
+   * have a position set, such that element that wants to pop out will use
+   * .issue-list-toolbar-right as 'clip parent' and thereby avoids the
+   * overflow-y: hidden.
+  */
+  .issue-list-toolbar-right .filter.menu > .dropdown.item {
+    position: initial;
+  }
+  /* It's important that this element and not an child has `position` set.
+   * Set width so that overflow-x knows where to stop overflowing.
+  */
+  .issue-list-toolbar-right {
+    position: relative;
+    width: 100%;
   }
 }
 
