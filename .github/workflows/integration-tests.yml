@@ -11,7 +11,7 @@ on:
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
-    needs: docker  # Ensure the Docker job runs first
+
 
     steps:
       - name: Checkout repository
