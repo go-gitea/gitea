@@ -24,7 +24,11 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	if runner.Ephemeral {
 		var task actions_model.ActionTask
 		has, err := db.GetEngine(ctx).Where("runner_id = ?", runner.ID).Get(&task)
-		if err == nil && has {
+		// Let the runner retry the request, do not allow to proceed
+		if err != nil {
+			return nil, false, err
+		}
+		if has {
 			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
 				return nil, false, nil
 			}
