@@ -54,6 +54,8 @@ jobs:
               - "*.js"
               - "*.ts"
               - "web_src/**"
+              - "tools/*.js"
+              - "tools/*.ts"
               - "assets/emoji.json"
               - "package.json"
               - "package-lock.json"
