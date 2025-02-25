@@ -8,7 +8,7 @@ go 1.24
 godebug x509negativeserial=1
 
 require (
-	code.gitea.io/actions-proto-go v0.4.0
+	code.gitea.io/actions-proto-go v0.4.1-0.20250224031915-32cdcf1b5f71
 	code.gitea.io/gitea-vet v0.2.3
 	code.gitea.io/sdk/gitea v0.20.0
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
@@ -333,6 +333,3 @@ exclude github.com/gofrs/uuid v4.0.0+incompatible
 exclude github.com/goccy/go-json v0.4.11
 
 exclude github.com/satori/go.uuid v1.2.0
-
-// TODO remove before merge
-replace code.gitea.io/actions-proto-go v0.4.0 => gitea.com/ChristopherHX/actions-proto-go v0.4.1-0.20250212113254-35d54b458c4a
