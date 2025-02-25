@@ -1613,11 +1613,11 @@ func registerRoutes(m *web.Router) {
 		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
 
-	m.Group("/stars/{username}/lists", func() {
-		m.Post("", starlists.Create)                    // 创建一个新的list
-		m.Get("/{listname}", starlists.GetByName)       // 获取当前listname的所有repo
-		m.Post("/{listname}", starlists.UpdateByName)   // 更新当前listname的所有repo
-		m.Delete("/{listname}", starlists.DeleteByName) // 删除当前listname
+	m.Group("/stars/lists", func() {
+		m.Post("", web.Bind(forms.StarListForm{}), starlists.Create) // 创建一个新的list
+		m.Get("/{listname}", starlists.GetByName)                    // 获取当前listname的所有repo
+		m.Post("/{listname}", starlists.UpdateByName)                // 更新当前listname的所有repo
+		m.Delete("/{listname}", starlists.DeleteByName)              // 删除当前listname
 	})
 
 	m.Group("/{username}/{reponame}", func() {
