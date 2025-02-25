@@ -1,7 +1,7 @@
-{{if true }}
+{{if .PageIsProfileStarList }}
 <div class="star-list">
 	<!-- Header -->
-	<div class="top">
+	<div class="top tw-mb-3">
 		<div>
 			<span>Lists(26)</span>
 		</div>
@@ -28,49 +28,48 @@
 			</div>
 			<!-- Create List-->
 			<div>
-				<button class="ui primary button muted show-modal" href="#" data-modal="#create-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">Create list</button>
+				<button class="ui primary button muted show-modal" data-modal="#create-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">Create list</button>
 			</div>
 		</div>
 	</div>
 
 	<!-- List -->
 	<div id="profile-lists-container">
+		{{if gt (len .StarList) 0}}
 		<div class="list-box">
+			{{range .StarList}}
 			<a href="https://ilo.nz" class="box-row">
-				<h3 class="name">Vim</h3>
+				<h3 class="name">{{.Name}}</h3>
 				<div class="repositories">
 					88 repositories
 				</div>
 			</a>
-			<a href="https://ilo.nz" class="box-row">
-				<h3 class="name">Gitea</h3>
-				<div class="repositories">
-					123 repositories
-				</div>
-			</a>
-			<a href="https://ilo.nz" class="box-row">
-				<h3 class="name">Git</h3>
-				<div class="repositories">
-					12 repositories
-				</div>
-			</a>
-			<a href="https://ilo.nz" class="box-row">
-				<h3 class="name">NeoVim</h3>
-				<div class="repositories">
-					6 repositories
-				</div>
-			</a>
+			{{end}}
 		</div>
+		{{else}}
+		<div class="ui attached segment tw-text-center tw-flex tw-items-center tw-justify-center tw-h-64 tw-border tw-rounded-md tw-border-red-600">
+			<div class="content">
+				<div class="">{{svg "octicon-star"}}</div>
+				<div class="tw-mt-5 tw-text-20 tw-font-bold">Create your first list</div>
+				<div class="tw-mt-5">
+					Lists make it easier to organize and curate repositories that you have starred.
+					<a class="ui show-modal" href="#" data-modal="#create-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">Create your first list</a>
+				</div>
+			</div>
+		</div>
+		{{end}}
 	</div>
 </div>
-{{else if false }}
+{{else }}
 <div class="star-list-repos">
 	<div class="top">
 		<h2>Test</h2>
 		<a class="muted show-modal" href="#" data-modal="#edit-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">Edit list</a>
 	</div>
 	<div class="description">Test</div>
-	<div class="repositories">1 repositories</div>
+	<div class="repositories">
+		{{svg "octicon-repo"}} 12 {{ctx.Locale.Tr "user.repositories"}}
+	</div>
 </div>
 {{end}}
 
