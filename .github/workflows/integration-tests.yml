@@ -24,8 +24,7 @@ jobs:
       - name: Pull latest Gitea image
         run: docker pull maias816/gitea:latest
 
-      - name: Start Gitea with Docker Compose
-        run: docker-compose up -d
+
 
 
       # Wait for Gitea to start
