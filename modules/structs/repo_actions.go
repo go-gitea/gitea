@@ -113,7 +113,7 @@ type ActionWorkflowStep struct {
 type ActionWorkflowJob struct {
 	ID         int64                 `json:"id"`
 	URL        string                `json:"url"`
-	HtmlURL    string                `json:"html_url"`
+	HTMLURL    string                `json:"html_url"`
 	RunID      int64                 `json:"run_id"`
 	RunURL     string                `json:"run_url"`
 	Name       string                `json:"name"`

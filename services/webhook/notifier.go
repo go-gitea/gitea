@@ -1004,7 +1004,7 @@ func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_
 			ID: job.ID,
 			// missing api endpoint for this location
 			URL:     fmt.Sprintf("%s/actions/runs/%d/jobs/%d", repo.APIURL(), job.RunID, job.ID),
-			HtmlURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), jobIndex),
+			HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), jobIndex),
 			RunID:   job.RunID,
 			// Missing api endpoint for this location, artifacts are available under a nested url
 			RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),
