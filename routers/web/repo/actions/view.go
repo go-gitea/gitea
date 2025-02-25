@@ -460,7 +460,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 
 	actions_service.CreateCommitStatus(ctx, job)
 	_ = job.LoadAttributes(ctx)
-	notifier.CreateWorkflowJob(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+	notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 
 	return nil
 }
@@ -559,7 +559,7 @@ func Cancel(ctx *context_module.Context) {
 
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
-		notifier.CreateWorkflowJob(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 
 	ctx.JSON(http.StatusOK, struct{}{})
@@ -605,7 +605,7 @@ func Approve(ctx *context_module.Context) {
 
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
-		notifier.CreateWorkflowJob(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 
 	ctx.JSON(http.StatusOK, struct{}{})

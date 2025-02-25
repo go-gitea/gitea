@@ -365,7 +365,7 @@ func handleWorkflows(
 		}
 		CreateCommitStatus(ctx, alljobs...)
 		for _, job := range alljobs {
-			notifier.CreateWorkflowJob(ctx, input.Repo, input.Doer, job, nil)
+			notifier.WorkflowJobStatusUpdate(ctx, input.Repo, input.Doer, job, nil)
 		}
 	}
 	return nil

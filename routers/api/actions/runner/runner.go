@@ -221,7 +221,7 @@ func (s *Service) UpdateTask(
 	}
 
 	if task.Status.IsDone() {
-		notifier.CreateWorkflowJob(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
+		notifier.WorkflowJobStatusUpdate(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {

@@ -376,8 +376,8 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit
 	}
 }
 
-func CreateWorkflowJob(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
+func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
 	for _, notifier := range notifiers {
-		notifier.CreateWorkflowJob(ctx, repo, sender, job, task)
+		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)
 	}
 }

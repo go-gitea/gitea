@@ -278,7 +278,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 	CreateCommitStatus(ctx, allJobs...)
 	for _, job := range allJobs {
-		notifier.CreateWorkflowJob(ctx, repo, doer, job, nil)
+		notifier.WorkflowJobStatusUpdate(ctx, repo, doer, job, nil)
 	}
 
 	return nil

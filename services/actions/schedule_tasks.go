@@ -158,7 +158,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		log.Error("LoadAttributes: %v", err)
 	}
 	for _, job := range allJobs {
-		notifier.CreateWorkflowJob(ctx, run.Repo, run.TriggerUser, job, nil)
+		notifier.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
 	}
 
 	// Return nil if no errors occurred

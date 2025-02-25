@@ -71,7 +71,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	CreateCommitStatus(ctx, jobs...)
 	for _, job := range jobs {
 		_ = job.LoadAttributes(ctx)
-		notifier.CreateWorkflowJob(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 	return nil
 }
@@ -103,7 +103,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		CreateCommitStatus(ctx, job)
 		if updated {
 			_ = job.LoadAttributes(ctx)
-			notifier.CreateWorkflowJob(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+			notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
 	}
 

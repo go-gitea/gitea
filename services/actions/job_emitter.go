@@ -76,7 +76,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 	CreateCommitStatus(ctx, jobs...)
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
-		notifier.CreateWorkflowJob(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 	return nil
 }

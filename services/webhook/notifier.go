@@ -5,6 +5,7 @@ package webhook
 
 import (
 	"context"
+	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -944,7 +945,7 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 	}
 }
 
-func (*webhookNotifier) CreateWorkflowJob(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
+func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
 	source := EventSource{
 		Repository: repo,
 		Owner:      repo.Owner,
@@ -959,6 +960,19 @@ func (*webhookNotifier) CreateWorkflowJob(ctx context.Context, repo *repo_model.
 	if err != nil {
 		log.Error("Error loading job attributes: %v", err)
 		return
+	}
+
+	jobIndex := 0
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
+	if err != nil {
+		log.Error("Error loading getting run jobs: %v", err)
+		return
+	}
+	for i, j := range jobs {
+		if j.ID == job.ID {
+			jobIndex = i
+			break
+		}
 	}
 
 	status, conclusion := toActionStatus(job.Status)
@@ -987,9 +1001,13 @@ func (*webhookNotifier) CreateWorkflowJob(ctx context.Context, repo *repo_model.
 	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventWorkflowJob, &api.WorkflowJobPayload{
 		Action: status,
 		WorkflowJob: &api.ActionWorkflowJob{
-			ID:          job.ID,
-			RunID:       job.RunID,
-			RunURL:      job.Run.HTMLURL(),
+			ID: job.ID,
+			// missing api endpoint for this location
+			URL:     fmt.Sprintf("%s/actions/runs/%d/jobs/%d", repo.APIURL(), job.RunID, job.ID),
+			HtmlURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), jobIndex),
+			RunID:   job.RunID,
+			// Missing api endpoint for this location, artifacts are available under a nested url
+			RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),
 			Name:        job.Name,
 			Labels:      job.RunsOn,
 			RunAttempt:  job.Attempt,
