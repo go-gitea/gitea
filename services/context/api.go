@@ -291,6 +291,11 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := GetAPIContext(req)
 
+		if ctx.Repo.Repository.IsEmpty {
+			ctx.APIErrorNotFound("repository is empty")
+			return
+		}
+
 		if ctx.Repo.GitRepo == nil {
 			ctx.APIErrorInternal(fmt.Errorf("no open git repo"))
 			return
