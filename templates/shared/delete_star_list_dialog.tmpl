@@ -1,0 +1,17 @@
+<div class="ui g-modal-confirm delete modal" id="delete-star-list">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		Delete list
+	</div>
+	<form class="ui form" method="post" action="">
+		<div class="content">
+			<p>Are you sure you want to delete this list?</p>
+			<p>You will still be able to view the 1 repository in this list in your stars.</p>
+			{{$.CsrfTokenHtml}}
+		</div>
+		<div class="text right actions">
+			<button class="ui cancel button">Cancel</button>
+			<button class="ui red button">Delete list</button>
+		</div>
+	</form>
+</div>
