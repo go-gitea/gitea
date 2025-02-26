@@ -1,4 +1,5 @@
 <script lang="ts">
+import {defineComponent, type PropType} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import dayjs from 'dayjs';
 import {
@@ -56,11 +57,11 @@ Chart.register(
   customEventListener,
 );
 
-export default {
+export default defineComponent({
   components: {ChartLine, SvgIcon},
   props: {
     locale: {
-      type: Object,
+      type: Object as PropType<Record<string, any>>,
       required: true,
     },
     repoLink: {
@@ -79,16 +80,16 @@ export default {
     sortedContributors: {} as Record<string, any>,
     type: 'commits',
     contributorsStats: {} as Record<string, any>,
-    xAxisStart: null,
-    xAxisEnd: null,
-    xAxisMin: null,
-    xAxisMax: null,
+    xAxisStart: null as number | null,
+    xAxisEnd: null as number | null,
+    xAxisMin: null as number | null,
+    xAxisMax: null as number | null,
   }),
   mounted() {
     this.fetchGraphData();
 
     fomanticQuery('#repo-contributors').dropdown({
-      onChange: (val) => {
+      onChange: (val: string) => {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
         this.type = val;
@@ -98,7 +99,7 @@ export default {
   },
   methods: {
     sortContributors() {
-      const contributors = this.filterContributorWeeksByDateRange();
+      const contributors: Record<string, any> = this.filterContributorWeeksByDateRange();
       const criteria = `total_${this.type}`;
       this.sortedContributors = Object.values(contributors)
         .filter((contributor) => contributor[criteria] !== 0)
@@ -157,7 +158,7 @@ export default {
     },
 
     filterContributorWeeksByDateRange() {
-      const filteredData = {};
+      const filteredData: Record<string, any> = {};
       const data = this.contributorsStats;
       for (const key of Object.keys(data)) {
         const user = data[key];
@@ -195,7 +196,7 @@ export default {
       // Normally, chartjs handles this automatically, but it will resize the graph when you
       // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
       const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o) => o[this.type]),
+        ...this.totalStats.weeks.map((o: Record<string, any>) => o[this.type]),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -207,7 +208,7 @@ export default {
       // for contributors' graph. If I let chartjs do this for me, it will choose different
       // maxY value for each contributors' graph which again makes it harder to compare.
       const maxValue = Math.max(
-        ...this.sortedContributors.map((c) => c.max_contribution_type),
+        ...this.sortedContributors.map((c: Record<string, any>) => c.max_contribution_type),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -231,8 +232,8 @@ export default {
     },
 
     updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
-      const minVal = chart.options.scales.x.min;
-      const maxVal = chart.options.scales.x.max;
+      const minVal = Number(chart.options.scales.x.min);
+      const maxVal = Number(chart.options.scales.x.max);
       if (reset) {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
@@ -320,7 +321,7 @@ export default {
       };
     },
   },
-};
+});
 </script>
 <template>
   <div>

@@ -1,4 +1,4 @@
-import {h} from 'vue';
+import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
@@ -35,6 +35,7 @@ import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg
 import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg';
 import octiconGitMerge from '../../public/assets/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/assets/img/svg/octicon-git-pull-request.svg';
+import octiconGitPullRequestClosed from '../../public/assets/img/svg/octicon-git-pull-request-closed.svg';
 import octiconGitPullRequestDraft from '../../public/assets/img/svg/octicon-git-pull-request-draft.svg';
 import octiconGrabber from '../../public/assets/img/svg/octicon-grabber.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
@@ -112,6 +113,7 @@ const svgs = {
   'octicon-git-commit': octiconGitCommit,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
+  'octicon-git-pull-request-closed': octiconGitPullRequestClosed,
   'octicon-git-pull-request-draft': octiconGitPullRequestDraft,
   'octicon-grabber': octiconGrabber,
   'octicon-heading': octiconHeading,
@@ -194,19 +196,18 @@ export function svgParseOuterInner(name: SvgName) {
   return {svgOuter, svgInnerHtml};
 }
 
-export const SvgIcon = {
+export const SvgIcon = defineComponent({
   name: 'SvgIcon',
   props: {
-    name: {type: String, required: true},
+    name: {type: String as PropType<SvgName>, required: true},
     size: {type: Number, default: 16},
-    className: {type: String, default: ''},
     symbolId: {type: String},
   },
   render() {
     let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
     // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
     // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
-    const attrs = {};
+    const attrs: Record<string, any> = {};
     for (const attr of svgOuter.attributes) {
       if (attr.name === 'class') continue;
       attrs[`^${attr.name}`] = attr.value;
@@ -214,15 +215,7 @@ export const SvgIcon = {
     attrs[`^width`] = this.size;
     attrs[`^height`] = this.size;
 
-    // make the <SvgIcon class="foo" class-name="bar"> classes work together
-    const classes = [];
-    for (const cls of svgOuter.classList) {
-      classes.push(cls);
-    }
-    // TODO: drop the `className/class-name` prop in the future, only use "class" prop
-    if (this.className) {
-      classes.push(...this.className.split(/\s+/).filter(Boolean));
-    }
+    const classes = Array.from(svgOuter.classList);
     if (this.symbolId) {
       classes.push('tw-hidden', 'svg-symbol-container');
       svgInnerHtml = `<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${svgInnerHtml}</symbol>`;
@@ -234,4 +227,4 @@ export const SvgIcon = {
       innerHTML: svgInnerHtml,
     });
   },
-};
+});

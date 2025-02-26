@@ -166,6 +166,23 @@ func (prs PullRequestList) getRepositoryIDs() []int64 {
 	return repoIDs.Values()
 }
 
+func (prs PullRequestList) SetBaseRepo(baseRepo *repo_model.Repository) {
+	for _, pr := range prs {
+		if pr.BaseRepo == nil {
+			pr.BaseRepo = baseRepo
+		}
+	}
+}
+
+func (prs PullRequestList) SetHeadRepo(headRepo *repo_model.Repository) {
+	for _, pr := range prs {
+		if pr.HeadRepo == nil {
+			pr.HeadRepo = headRepo
+			pr.isHeadRepoLoaded = true
+		}
+	}
+}
+
 func (prs PullRequestList) LoadRepositories(ctx context.Context) error {
 	repoIDs := prs.getRepositoryIDs()
 	reposMap := make(map[int64]*repo_model.Repository, len(repoIDs))

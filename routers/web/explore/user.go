@@ -87,7 +87,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	}
 
 	if opts.SupportedSortOrders != nil && !opts.SupportedSortOrders.Contains(sortOrder) {
-		ctx.NotFound("unsupported sort order", nil)
+		ctx.NotFound(nil)
 		return
 	}
 

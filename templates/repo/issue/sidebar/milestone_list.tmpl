@@ -18,13 +18,13 @@
 					<i class="icon">{{svg "octicon-search"}}</i>
 					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_milestones"}}">
 				</div>
-				<div class="divider"></div>
-				<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_milestone"}}</div>
 				<div class="scrolling menu">
+					<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_milestone"}}</div>
+					<div class="divider"></div>
 					{{if $data.OpenMilestones}}
 						<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
 						{{range $data.OpenMilestones}}
-							<a class="item muted" data-value="{{.ID}}" href="{{$pageMeta.RepoLink}}/issues?milestone={{.ID}}">
+							<a class="item muted" data-value="{{.ID}}" href="{{$pageMeta.RepoLink}}/milestone/{{.ID}}">
 								{{svg "octicon-milestone" 18}} {{.Name}}
 							</a>
 						{{end}}
@@ -33,7 +33,7 @@
 					{{if $data.ClosedMilestones}}
 						<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_closed"}}</div>
 						{{range $data.ClosedMilestones}}
-							<a class="item muted" data-value="{{.ID}}" href="{{$pageMeta.RepoLink}}/issues?milestone={{.ID}}">
+							<a class="item muted" data-value="{{.ID}}" href="{{$pageMeta.RepoLink}}/milestone/{{.ID}}">
 								{{svg "octicon-milestone" 18}} {{.Name}}
 							</a>
 						{{end}}
@@ -43,10 +43,10 @@
 		</div>
 	</div>
 
-	<div class="ui list">
+	<div class="ui list muted-links flex-items-block">
 		<span class="item empty-list {{if $issueMilestone}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_milestone"}}</span>
 		{{if $issueMilestone}}
-			<a class="item muted" href="{{$pageMeta.RepoLink}}/milestone/{{$issueMilestone.ID}}">
+			<a class="item" href="{{$pageMeta.RepoLink}}/milestone/{{$issueMilestone.ID}}">
 				{{svg "octicon-milestone" 18}} {{$issueMilestone.Name}}
 			</a>
 		{{end}}

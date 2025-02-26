@@ -28,7 +28,7 @@
 					{{if .TotalTrackedTime}}
 					<div class="text grey flex-text-block">
 							{{svg "octicon-clock" 16}}
-							{{.TotalTrackedTime | Sec2Time}}
+							{{.TotalTrackedTime | Sec2Hour}}
 					</div>
 					{{end}}
 				</div>
@@ -152,6 +152,11 @@
 				{{end}}
 			</div>
 			{{end}}
+		</div>
+	{{else}}
+		<div class="tw-text-center tw-p-8">
+			<h3 class="tw-my-4">{{ctx.Locale.Tr "repo.issues.filter_no_results"}}</h3>
+			<p class="tw-text-placeholder-text">{{ctx.Locale.Tr "repo.issues.filter_no_results_placeholder"}}</p>
 		</div>
 	{{end}}
 	{{if .IssueIndexerUnavailable}}

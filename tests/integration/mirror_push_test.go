@@ -4,12 +4,10 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -20,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
-	gitea_context "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -55,7 +52,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 	assert.Len(t, mirrors, 1)
 
-	ok := mirror_service.SyncPushMirror(context.Background(), mirrors[0].ID)
+	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
 
 	srcGitRepo, err := gitrepo.OpenRepository(git.DefaultContext, srcRepo)
@@ -92,9 +89,8 @@ func testCreatePushMirror(t *testing.T, session *TestSession, owner, repo, addre
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	flashCookie := session.GetCookie(gitea_context.CookieNameFlash)
-	assert.NotNil(t, flashCookie)
-	assert.Contains(t, flashCookie.Value, "success")
+	flashMsg := session.GetCookieFlashMessage()
+	assert.NotEmpty(t, flashMsg.SuccessMsg)
 }
 
 func doRemovePushMirror(t *testing.T, session *TestSession, owner, repo string, pushMirrorID int64) bool {
@@ -104,8 +100,8 @@ func doRemovePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 		"push_mirror_id": strconv.FormatInt(pushMirrorID, 10),
 	})
 	resp := session.MakeRequest(t, req, NoExpectedStatus)
-	flashCookie := session.GetCookie(gitea_context.CookieNameFlash)
-	return resp.Code == http.StatusSeeOther && flashCookie != nil && strings.Contains(flashCookie.Value, "success")
+	flashMsg := session.GetCookieFlashMessage()
+	return resp.Code == http.StatusSeeOther && assert.NotEmpty(t, flashMsg.SuccessMsg)
 }
 
 func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, pushMirrorID int64, interval string) bool {

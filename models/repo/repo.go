@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
@@ -61,20 +62,30 @@ func (err ErrRepoIsArchived) Error() string {
 	return fmt.Sprintf("%s is archived", err.Repo.LogString())
 }
 
-var (
-	validRepoNamePattern   = regexp.MustCompile(`[-.\w]+`)
-	invalidRepoNamePattern = regexp.MustCompile(`[.]{2,}`)
-	reservedRepoNames      = []string{".", "..", "-"}
-	reservedRepoPatterns   = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
-)
+type globalVarsStruct struct {
+	validRepoNamePattern   *regexp.Regexp
+	invalidRepoNamePattern *regexp.Regexp
+	reservedRepoNames      []string
+	reservedRepoPatterns   []string
+}
+
+var globalVars = sync.OnceValue(func() *globalVarsStruct {
+	return &globalVarsStruct{
+		validRepoNamePattern:   regexp.MustCompile(`[-.\w]+`),
+		invalidRepoNamePattern: regexp.MustCompile(`[.]{2,}`),
+		reservedRepoNames:      []string{".", "..", "-"},
+		reservedRepoPatterns:   []string{"*.git", "*.wiki", "*.rss", "*.atom"},
+	}
+})
 
 // IsUsableRepoName returns true when name is usable
 func IsUsableRepoName(name string) error {
-	if !validRepoNamePattern.MatchString(name) || invalidRepoNamePattern.MatchString(name) {
+	vars := globalVars()
+	if !vars.validRepoNamePattern.MatchString(name) || vars.invalidRepoNamePattern.MatchString(name) {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
-	return db.IsUsableName(reservedRepoNames, reservedRepoPatterns, name)
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoPatterns, name)
 }
 
 // TrustModelType defines the types of trust model for this repository

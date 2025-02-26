@@ -1,8 +1,8 @@
 {{if and (not .HideRepoInfo) (not .IsBlame)}}
-<div class="ui segments repository-summary tw-mt-1 tw-mb-0">
+<div class="ui segments repository-summary tw-my-0">
 	<div class="ui segment sub-menu repository-menu">
 		{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo)}}
-			<a class="item muted {{if .PageIsCommits}}active{{end}}" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}">
+			<a class="item muted {{if .PageIsCommits}}active{{end}}" href="{{.RepoLink}}/commits/{{.RefFullName.RefWebLinkPath}}">
 				{{svg "octicon-history"}} <b>{{ctx.Locale.PrettyNumber .CommitsCount}}</b> {{ctx.Locale.TrN .CommitsCount "repo.commit" "repo.commits"}}
 			</a>
 			<a class="item muted {{if .PageIsBranches}}active{{end}}" href="{{.RepoLink}}/branches">

@@ -1,5 +1,5 @@
 {{if or .UsesIgnoreRevs .FaultyIgnoreRevsFile}}
-	{{$revsFileLink := URLJoin .RepoLink "src" .BranchNameSubURL "/.git-blame-ignore-revs"}}
+	{{$revsFileLink := URLJoin .RepoLink "src" .RefTypeNameSubURL "/.git-blame-ignore-revs"}}
 	{{if .UsesIgnoreRevs}}
 		<div class="ui info message">
 			<p>{{ctx.Locale.Tr "repo.blame.ignore_revs" $revsFileLink "?bypass-blame-ignore=true"}}</p>
@@ -18,11 +18,11 @@
 		<div class="file-header-right file-actions tw-flex tw-items-center tw-flex-wrap">
 			<div class="ui buttons">
 				<a class="ui tiny button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
-				{{if not .IsViewCommit}}
+				{{if or .RefFullName.IsBranch .RefFullName.IsTag}}
 					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID | PathEscape}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
 				{{end}}
-				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
-				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
+				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
+				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
 				<button class="ui tiny button unescape-button">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 				<button class="ui tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			</div>
