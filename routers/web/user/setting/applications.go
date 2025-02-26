@@ -7,6 +7,8 @@ package setting
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/modules/json"
+
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -41,6 +43,14 @@ func ApplicationsPost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		loadApplicationsData(ctx)
+
+		// Send back the previously selected scopes as a JSON string
+		scopes, err := json.Marshal(form.Scope)
+		if err != nil {
+			ctx.ServerError("json.Marshal", err)
+			return
+		}
+		ctx.Data["Scopes"] = string(scopes)
 
 		ctx.HTML(http.StatusOK, tplSettingsApplications)
 		return

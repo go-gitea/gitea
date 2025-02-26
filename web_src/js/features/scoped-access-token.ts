@@ -11,6 +11,7 @@ export async function initScopedAccessTokenCategories() {
       noAccessLabel: el.getAttribute('data-no-access-label'),
       readLabel: el.getAttribute('data-read-label'),
       writeLabel: el.getAttribute('data-write-label'),
+      scopes: JSON.parse(el.getAttribute('data-scopes').length > 0 ? el.getAttribute('data-scopes') : '[]'),
     });
     View.mount(el);
   } catch (err) {
