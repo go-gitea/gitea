@@ -98,6 +98,7 @@ func loadApplicationsData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Tokens"] = tokens
+	ctx.Data["TokenCategories"] = auth_model.AllAccessTokenScopeCategoryNames
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enabled
 	ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
 	if setting.OAuth2.Enabled {

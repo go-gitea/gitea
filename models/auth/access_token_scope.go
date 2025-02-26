@@ -14,7 +14,7 @@ import (
 type AccessTokenScopeCategory int
 
 const (
-	AccessTokenScopeCategoryActivityPub = iota
+	AccessTokenScopeCategoryActivityPub AccessTokenScopeCategory = iota
 	AccessTokenScopeCategoryAdmin
 	AccessTokenScopeCategoryMisc // WARN: this is now just a placeholder, don't remove it which will change the following values
 	AccessTokenScopeCategoryNotification
@@ -36,6 +36,32 @@ var AllAccessTokenScopeCategories = []AccessTokenScopeCategory{
 	AccessTokenScopeCategoryIssue,
 	AccessTokenScopeCategoryRepository,
 	AccessTokenScopeCategoryUser,
+}
+
+// AccessTokenScopeCategoryNames maps AccessTokenScopeCategory to their string representations
+var AccessTokenScopeCategoryNames = map[AccessTokenScopeCategory]string{
+	AccessTokenScopeCategoryActivityPub:  "activitypub",
+	AccessTokenScopeCategoryAdmin:        "admin",
+	AccessTokenScopeCategoryMisc:         "misc",
+	AccessTokenScopeCategoryNotification: "notification",
+	AccessTokenScopeCategoryOrganization: "organization",
+	AccessTokenScopeCategoryPackage:      "package",
+	AccessTokenScopeCategoryIssue:        "issue",
+	AccessTokenScopeCategoryRepository:   "repository",
+	AccessTokenScopeCategoryUser:         "user",
+}
+
+// AccessTokenScopeCategoryNames is a list of all access token scope category names
+var AllAccessTokenScopeCategoryNames = []string{
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryActivityPub],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryAdmin],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryMisc],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryNotification],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryOrganization],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryPackage],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryIssue],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryRepository],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryUser],
 }
 
 // AccessTokenScopeLevel represents the access levels without a given scope category
