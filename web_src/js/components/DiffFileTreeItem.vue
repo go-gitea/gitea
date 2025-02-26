@@ -2,7 +2,7 @@
 import {SvgIcon, type SvgName} from '../svg.ts';
 import {diffTreeStore} from '../modules/stores.ts';
 import {ref} from 'vue';
-import {type Item, type File, type FileStatus} from '../utils/filetree.ts';
+import type {Item, File, FileStatus} from '../utils/filetree.ts';
 
 defineProps<{
   item: Item,
