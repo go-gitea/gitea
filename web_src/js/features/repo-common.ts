@@ -57,10 +57,22 @@ function initCloneSchemeUrlSelection(parent: Element) {
   const tabSsh = parent.querySelector('.repo-clone-ssh');
   const tabTea = parent.querySelector('.repo-clone-tea');
   const updateClonePanelUi = function() {
-    const scheme = localStorage.getItem('repo-clone-protocol') || 'https';
-    const isHttps = scheme === 'https' && Boolean(tabHttps) || scheme !== 'https' && !tabHttps;
-    const isSsh = scheme === 'ssh' && Boolean(tabSsh) || scheme !== 'ssh' && !tabSsh;
-    const isTea = scheme === 'tea' && Boolean(tabTea) || scheme !== 'tea' && !tabTea;
+    let scheme = localStorage.getItem('repo-clone-protocol') || 'https';
+
+    // Fallbacks if the scheme preference is not available in the tabs.
+    if (scheme === 'tea' && !tabTea) {
+      scheme = 'https';
+    }
+    if (scheme === 'https' && !tabHttps) {
+      scheme = 'ssh';
+    } else if (scheme === 'ssh' && !tabSsh) {
+      scheme = 'https';
+    }
+
+    const isHttps = scheme === 'https';
+    const isSsh = scheme === 'ssh';
+    const isTea = scheme === 'tea';
+
     if (tabHttps) {
       tabHttps.textContent = window.origin.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
       tabHttps.classList.toggle('active', isHttps);
