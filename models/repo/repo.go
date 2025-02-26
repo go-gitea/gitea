@@ -649,13 +649,13 @@ type CloneLink struct {
 	Tea   string
 }
 
-// ComposeHTTPSCloneLink returns HTTPS clone URL based on the given owner and repository name.
-func ComposeHTTPSCloneLink(ctx context.Context, owner, repo string) string {
+// ComposeHTTPSCloneURL returns HTTPS clone URL based on the given owner and repository name.
+func ComposeHTTPSCloneURL(ctx context.Context, owner, repo string) string {
 	return fmt.Sprintf("%s%s/%s.git", httplib.GuessCurrentAppURL(ctx), url.PathEscape(owner), url.PathEscape(repo))
 }
 
-// ComposeSSHCloneLink returns SSH clone URL based on the given owner and repository name.
-func ComposeSSHCloneLink(doer *user_model.User, ownerName, repoName string) string {
+// ComposeSSHCloneURL returns SSH clone URL based on the given owner and repository name.
+func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) string {
 	sshUser := setting.SSH.User
 	sshDomain := setting.SSH.Domain
 
@@ -695,8 +695,8 @@ func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
 	return &CloneLink{
-		SSH:   ComposeSSHCloneLink(doer, repo.OwnerName, repoPathName),
-		HTTPS: ComposeHTTPSCloneLink(ctx, repo.OwnerName, repoPathName),
+		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
+		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
 		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
 	}
 }
