@@ -1634,6 +1634,7 @@ func registerRoutes(m *web.Router) {
 			m.Any("", devtest.List)
 			m.Any("/fetch-action-test", devtest.FetchActionTest)
 			m.Any("/{sub}", devtest.Tmpl)
+			m.Get("/repo-action-view/{run}/{job}", devtest.MockActionsView)
 			m.Post("/actions-mock/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 		})
 	}

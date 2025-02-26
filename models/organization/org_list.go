@@ -124,6 +124,7 @@ func GetUserOrgsList(ctx context.Context, user *user_model.User) ([]*MinimalOrg,
 	if err := db.GetEngine(ctx).Select(columnsStr).
 		Table("user").
 		Where(builder.In("`user`.`id`", queryUserOrgIDs(user.ID, true))).
+		OrderBy("`user`.lower_name ASC").
 		Find(&orgs); err != nil {
 		return nil, err
 	}
