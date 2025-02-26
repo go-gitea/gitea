@@ -60,18 +60,13 @@
 		<script id="diff-data-script" type="module">
 			const diffDataFiles = [{{range $i, $file := .DiffFiles}}
 				{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Status:{{$file.Status}},IsSubmodule:{{$file.IsSubmodule}},IsViewed:{{$file.IsViewed}}},{{end}}];
+
 			const diffData = {
 				isIncomplete: {{.Diff.IsIncomplete}},
-				tooManyFilesMessage: "{{ctx.Locale.Tr "repo.diff.too_many_files"}}",
-				binaryFileMessage: "{{ctx.Locale.Tr "repo.diff.bin"}}",
-				showMoreMessage: "{{ctx.Locale.Tr "repo.diff.show_more"}}",
-				statisticsMessage: "{{ctx.Locale.Tr "repo.diff.stats_desc_file"}}",
-				linkLoadMore: "?skip-to={{.Diff.End}}&file-only=true",
 			};
 
 			// for first time loading, the diffFileInfo is a plain object
 			// after the Vue component is mounted, the diffFileInfo is a reactive object
-			// keep in mind that this script block would be executed many times when loading more files, by "loadMoreFiles"
 			let diffFileInfo = window.config.pageData.diffFileInfo || {
 				files:[],
 				fileTreeIsVisible: false,

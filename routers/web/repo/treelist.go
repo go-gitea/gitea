@@ -59,7 +59,6 @@ type FileDiffFile struct {
 	Name        string
 	NameHash    string
 	IsSubmodule bool
-	IsBinary    bool
 	IsViewed    bool
 	Status      string
 }
@@ -72,18 +71,12 @@ func transformDiffTreeForUI(diffTree *gitdiff.DiffTree, filesViewedState map[str
 	for _, file := range diffTree.Files {
 		nameHash := git.HashFilePathForWebUI(file.HeadPath)
 		isSubmodule := file.HeadMode == git.EntryModeCommit
-		isBinary := file.HeadMode == git.EntryModeExec
-
-		isViewed := false
-		if fileViewedState, ok := filesViewedState[file.Path()]; ok {
-			isViewed = (fileViewedState == pull_model.Viewed)
-		}
+		isViewed := filesViewedState[file.Path()] == pull_model.Viewed
 
 		files = append(files, FileDiffFile{
 			Name:        file.HeadPath,
 			NameHash:    nameHash,
 			IsSubmodule: isSubmodule,
-			IsBinary:    isBinary,
 			IsViewed:    isViewed,
 			Status:      file.Status,
 		})
