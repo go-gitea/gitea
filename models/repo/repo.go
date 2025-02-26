@@ -688,8 +688,8 @@ func ComposeSSHCloneLink(doer *user_model.User, ownerName, repoName string) stri
 	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 }
 
-// ComposeTeaCloneLink returns Tea CLI clone command based on the given owner and repository name.
-func ComposeTeaCloneLink(ctx context.Context, owner, repo string) string {
+// ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
+func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
 	return fmt.Sprintf("tea clone %s/%s", url.PathEscape(owner), url.PathEscape(repo))
 }
 
@@ -697,7 +697,7 @@ func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, re
 	return &CloneLink{
 		SSH:   ComposeSSHCloneLink(doer, repo.OwnerName, repoPathName),
 		HTTPS: ComposeHTTPSCloneLink(ctx, repo.OwnerName, repoPathName),
-		Tea:   ComposeTeaCloneLink(ctx, repo.OwnerName, repoPathName),
+		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
 	}
 }
 
