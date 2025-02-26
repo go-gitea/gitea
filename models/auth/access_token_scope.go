@@ -51,10 +51,22 @@ var AccessTokenScopeCategoryNames = map[AccessTokenScopeCategory]string{
 	AccessTokenScopeCategoryUser:         "user",
 }
 
-// AccessTokenScopeCategoryNames is a list of all access token scope category names
+// AccessTokenScopeCategoryNames is a list of all access token scope category names including admin's reserved scope
 var AllAccessTokenScopeCategoryNames = []string{
 	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryActivityPub],
 	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryAdmin],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryMisc],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryNotification],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryOrganization],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryPackage],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryIssue],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryRepository],
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryUser],
+}
+
+// AccessTokenScopeCategoryNames is a list of all access token scope category names without admin's reserved scope
+var AllNonAdminAccessTokenScopeCategoryNames = []string{
+	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryActivityPub],
 	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryMisc],
 	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryNotification],
 	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryOrganization],

@@ -101,10 +101,7 @@
 				<button id="scoped-access-submit" class="ui primary button">
 					{{ctx.Locale.Tr "settings.generate_token"}}
 				</button>
-			</form>{{/* Fomantic ".ui.form .warning.message" is hidden by default, so put the warning message out of the form*/}}
-			<div id="scoped-access-warning" class="ui warning message center tw-hidden">
-				{{ctx.Locale.Tr "settings.at_least_one_permission"}}
-			</div>
+			</form>
 		</div>
 
 		{{if .EnableOAuth2}}
