@@ -53,30 +53,30 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
 function initCloneSchemeUrlSelection(parent: Element) {
   const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
 
-  const tabHTTPS = parent.querySelector('.repo-clone-https');
-  const tabSSH = parent.querySelector('.repo-clone-ssh');
+  const tabHttps = parent.querySelector('.repo-clone-https');
+  const tabSsh = parent.querySelector('.repo-clone-ssh');
   const tabTea = parent.querySelector('.repo-clone-tea');
   const updateClonePanelUi = function() {
     const scheme = localStorage.getItem('repo-clone-protocol') || 'https';
-    const isHTTPS = scheme === 'https' && Boolean(tabHTTPS) || scheme !== 'https' && !tabHTTPS;
-    const isSSH = scheme === 'ssh' && Boolean(tabSSH) || scheme !== 'ssh' && !tabSSH;
+    const isHttps = scheme === 'https' && Boolean(tabHttps) || scheme !== 'https' && !tabHttps;
+    const isSsh = scheme === 'ssh' && Boolean(tabSsh) || scheme !== 'ssh' && !tabSsh;
     const isTea = scheme === 'tea' && Boolean(tabTea) || scheme !== 'tea' && !tabTea;
-    if (tabHTTPS) {
-      tabHTTPS.textContent = window.origin.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
-      tabHTTPS.classList.toggle('active', isHTTPS);
+    if (tabHttps) {
+      tabHttps.textContent = window.origin.split(':')[0].toUpperCase(); // show "HTTP" or "HTTPS"
+      tabHttps.classList.toggle('active', isHttps);
     }
-    if (tabSSH) {
-      tabSSH.classList.toggle('active', isSSH);
+    if (tabSsh) {
+      tabSsh.classList.toggle('active', isSsh);
     }
     if (tabTea) {
       tabTea.classList.toggle('active', isTea);
     }
 
     let tab: Element;
-    if (isHTTPS) {
-      tab = tabHTTPS;
-    } else if (isSSH) {
-      tab = tabSSH;
+    if (isHttps) {
+      tab = tabHttps;
+    } else if (isSsh) {
+      tab = tabSsh;
     } else if (isTea) {
       tab = tabTea;
     }
@@ -97,12 +97,12 @@ function initCloneSchemeUrlSelection(parent: Element) {
   };
 
   updateClonePanelUi();
-  // tabSSH or tabHttps might not both exist, eg: guest view, or one is disabled by the server
-  tabHTTPS?.addEventListener('click', () => {
+  // tabSsh or tabHttps might not both exist, eg: guest view, or one is disabled by the server
+  tabHttps?.addEventListener('click', () => {
     localStorage.setItem('repo-clone-protocol', 'https');
     updateClonePanelUi();
   });
-  tabSSH?.addEventListener('click', () => {
+  tabSsh?.addEventListener('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');
     updateClonePanelUi();
   });
