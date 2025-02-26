@@ -71,7 +71,7 @@ func transformDiffTreeForUI(diffTree *gitdiff.DiffTree, filesViewedState map[str
 	for _, file := range diffTree.Files {
 		nameHash := git.HashFilePathForWebUI(file.HeadPath)
 		isSubmodule := file.HeadMode == git.EntryModeCommit
-		isViewed := filesViewedState[file.Path()] == pull_model.Viewed
+		isViewed := filesViewedState[file.HeadPath] == pull_model.Viewed
 
 		files = append(files, FileDiffFile{
 			Name:        file.HeadPath,
