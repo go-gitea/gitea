@@ -61,10 +61,10 @@
 					<div class="field">
 						<div class="tw-my-2">{{ctx.Locale.Tr "settings.repo_and_org_access"}}</div>
 						<label class="gt-checkbox">
-							<input type="radio" name="scope" value="{{$.AccessTokenScopePublicOnly}}"> {{ctx.Locale.Tr "settings.permissions_public_only"}}
+							<input type="radio" name="scope-public-only" value="{{$.AccessTokenScopePublicOnly}}"> {{ctx.Locale.Tr "settings.permissions_public_only"}}
 						</label>
 						<label class="gt-checkbox">
-							<input type="radio" name="scope" value="" checked> {{ctx.Locale.Tr "settings.permissions_access_all"}}
+							<input type="radio" name="scope-public-only" value="" checked> {{ctx.Locale.Tr "settings.permissions_access_all"}}
 						</label>
 					</div>
 					<div>
