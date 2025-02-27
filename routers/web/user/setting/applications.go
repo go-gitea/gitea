@@ -116,7 +116,7 @@ func loadApplicationsData(ctx *context.Context) {
 	// Handle specific ordered token categories for admin or non-admin users
 	tokenCategoryNames := auth_model.GetAccessTokenCategories()
 	if !ctx.Doer.IsAdmin {
-		util.SliceRemoveAll(tokenCategoryNames, "admin")
+		tokenCategoryNames = util.SliceRemoveAll(tokenCategoryNames, "admin")
 	}
 	ctx.Data["TokenCategories"] = tokenCategoryNames
 
