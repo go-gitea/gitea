@@ -372,8 +372,8 @@ lint-go-vet: ## lint go files with vet
 	@$(GO) vet -vettool=gitea-vet ./...
 
 .PHONY: lint-go-gopls
-lint-go-gopls: ## lint go files with gopls check
-	@echo "Running gopls..."
+lint-go-gopls: ## lint go files with gopls
+	@echo "Running gopls check..."
 	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA)
 
 .PHONY: lint-editorconfig
