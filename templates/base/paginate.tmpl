@@ -17,7 +17,7 @@
 					{{if eq .Num -1}}
 						<a class="disabled item">...</a>
 					{{else}}
-						<a class="{{if .IsCurrent}}active {{end}}item tw-content-center" {{if not .IsCurrent}}href="{{$paginationLink}}?page={{.Num}}{{if $paginationParams}}&{{$paginationParams}}{{end}}"{{end}}>{{.Num}}</a>
+						<a class="{{if .IsCurrent}}active {{end}}item" {{if not .IsCurrent}}href="{{$paginationLink}}?page={{.Num}}{{if $paginationParams}}&{{$paginationParams}}{{end}}"{{end}}>{{.Num}}</a>
 					{{end}}
 				{{end}}
 				<a class="{{if not .HasNext}}disabled{{end}} item navigation" {{if .HasNext}}href="{{$paginationLink}}?page={{.Next}}{{if $paginationParams}}&{{$paginationParams}}{{end}}"{{end}}>
