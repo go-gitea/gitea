@@ -9,7 +9,10 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGitSmartHTTP(t *testing.T) {
@@ -18,51 +21,55 @@ func TestGitSmartHTTP(t *testing.T) {
 
 func testGitSmartHTTP(t *testing.T, u *url.URL) {
 	kases := []struct {
-		p    string
-		code int
+		method, path string
+		code         int
 	}{
 		{
-			p:    "user2/repo1/info/refs",
+			path: "user2/repo1/info/refs",
 			code: http.StatusOK,
 		},
 		{
-			p:    "user2/repo1/HEAD",
+			method: "HEAD",
+			path:   "user2/repo1/info/refs",
+			code:   http.StatusOK,
+		},
+		{
+			path: "user2/repo1/HEAD",
 			code: http.StatusOK,
 		},
 		{
-			p:    "user2/repo1/objects/info/alternates",
+			path: "user2/repo1/objects/info/alternates",
 			code: http.StatusNotFound,
 		},
 		{
-			p:    "user2/repo1/objects/info/http-alternates",
+			path: "user2/repo1/objects/info/http-alternates",
 			code: http.StatusNotFound,
 		},
 		{
-			p:    "user2/repo1/../../custom/conf/app.ini",
+			path: "user2/repo1/../../custom/conf/app.ini",
 			code: http.StatusNotFound,
 		},
 		{
-			p:    "user2/repo1/objects/info/../../../../custom/conf/app.ini",
+			path: "user2/repo1/objects/info/../../../../custom/conf/app.ini",
 			code: http.StatusNotFound,
 		},
 		{
-			p:    `user2/repo1/objects/info/..\..\..\..\custom\conf\app.ini`,
+			path: `user2/repo1/objects/info/..\..\..\..\custom\conf\app.ini`,
 			code: http.StatusBadRequest,
 		},
 	}
 
 	for _, kase := range kases {
-		t.Run(kase.p, func(t *testing.T) {
-			p := u.String() + kase.p
-			req, err := http.NewRequest("GET", p, nil)
-			assert.NoError(t, err)
+		t.Run(kase.path, func(t *testing.T) {
+			req, err := http.NewRequest(util.IfZero(kase.method, "GET"), u.String()+kase.path, nil)
+			require.NoError(t, err)
 			req.SetBasicAuth("user2", userPassword)
 			resp, err := http.DefaultClient.Do(req)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer resp.Body.Close()
 			assert.EqualValues(t, kase.code, resp.StatusCode)
 			_, err = io.ReadAll(resp.Body)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }

@@ -51,14 +51,16 @@ jobs:
               - "options/locale/locale_en-US.ini"
 
             frontend:
-              - "**/*.js"
+              - "*.js"
+              - "*.ts"
               - "web_src/**"
+              - "tools/*.js"
+              - "tools/*.ts"
               - "assets/emoji.json"
               - "package.json"
               - "package-lock.json"
               - "Makefile"
-              - ".eslintrc.yaml"
-              - "stylelint.config.js"
+              - ".eslintrc.cjs"
               - ".npmrc"
 
             docs:
@@ -85,6 +87,7 @@ jobs:
 
             swagger:
               - "templates/swagger/v1_json.tmpl"
+              - "templates/swagger/v1_input.json"
               - "Makefile"
               - "package.json"
               - "package-lock.json"
