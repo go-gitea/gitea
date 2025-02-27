@@ -21,7 +21,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 
-const {pageData, i18n} = window.config;
+const {i18n} = window.config;
 
 function initRepoDiffFileViewToggle() {
   $('.file-view-toggle').on('click', function () {
@@ -168,39 +168,35 @@ function onShowMoreFiles() {
   initDiffHeaderPopup();
 }
 
-async function loadMoreFiles(url: string) {
-  const target = document.querySelector('a#diff-show-more-files');
-  if (target?.classList.contains('disabled') || pageData.diffFileInfo.isLoadingNewData) {
-    return;
+async function loadMoreFiles(btn: Element): Promise<boolean> {
+  if (btn.classList.contains('disabled')) {
+    return false;
   }
 
-  pageData.diffFileInfo.isLoadingNewData = true;
-  target?.classList.add('disabled');
-
+  btn.classList.add('disabled');
+  const url = btn.getAttribute('data-href');
   try {
     const response = await GET(url);
     const resp = await response.text();
     const $resp = $(resp);
     // the response is a full HTML page, we need to extract the relevant contents:
-    // 1. append the newly loaded file list items to the existing list
+    // * append the newly loaded file list items to the existing list
     $('#diff-incomplete').replaceWith($resp.find('#diff-file-boxes').children());
 
     onShowMoreFiles();
+    return true;
   } catch (error) {
     console.error('Error:', error);
     showErrorToast('An error occurred while loading more files.');
   } finally {
-    target?.classList.remove('disabled');
-    pageData.diffFileInfo.isLoadingNewData = false;
+    btn.classList.remove('disabled');
   }
 }
 
 function initRepoDiffShowMore() {
-  $(document).on('click', 'a#diff-show-more-files', (e) => {
+  addDelegatedEventListener(document, 'click', 'a#diff-show-more-files', (el, e) => {
     e.preventDefault();
-
-    const linkLoadMore = e.target.getAttribute('data-href');
-    loadMoreFiles(linkLoadMore);
+    loadMoreFiles(el);
   });
 
   $(document).on('click', 'a.diff-load-button', async (e) => {
@@ -232,70 +228,41 @@ function initRepoDiffShowMore() {
   });
 }
 
-function shouldStopLoading() {
-  if (!window.location.hash) {
-    return true; // No hash to look for
-  }
-
-  // eslint-disable-next-line unicorn/prefer-query-selector
-  const targetElement = document.getElementById(window.location.hash.substring(1));
-  if (targetElement) {
-    return true; // The element is already loaded
-  }
-
-  return !pageData.diffFileInfo.isIncomplete;
-}
-
-// This is a flag to ensure that only one loadUntilFound is running at a time
-let isLoadUntilFoundRunning = false;
-
 async function loadUntilFound() {
-  // this ensures that only one loadUntilFound is running at a time
-  if (isLoadUntilFoundRunning === true) {
+  const hashTargetSelector = window.location.hash;
+  if (!hashTargetSelector.startsWith('#diff-') && !hashTargetSelector.startsWith('#issuecomment-')) {
     return;
   }
-  isLoadUntilFoundRunning = true;
 
-  try {
-    while (!shouldStopLoading()) {
-      const showMoreButton = document.querySelector('#diff-show-more-files');
-      if (!showMoreButton) {
-        console.error('Could not find the show more files button');
-        return;
-      }
-
-      const url = showMoreButton.getAttribute('data-href');
-      if (!url) {
-        console.error('Could not find the data-href attribute of the show more files button');
-        return;
-      }
-
-      // Load more files, await ensures we don't block progress
-      await loadMoreFiles(url);
+  while (true) {
+    // use getElementById to avoid querySelector throws an error when the hash is invalid
+    // eslint-disable-next-line unicorn/prefer-query-selector
+    const targetElement = document.getElementById(hashTargetSelector.substring(1));
+    if (targetElement) {
+      targetElement.scrollIntoView();
+      return;
     }
 
-    if (window.location.hash) {
-      const targetElement = document.querySelector(window.location.hash);
-      if (targetElement) {
-        targetElement.scrollIntoView();
-      }
+    // the button will be refreshed after each "load more", so query it every time
+    const showMoreButton = document.querySelector('#diff-show-more-files');
+    if (!showMoreButton) {
+      return; // nothing more to load
     }
-  } finally {
-    isLoadUntilFoundRunning = false;
+
+    // Load more files, await ensures we don't block progress
+    const ok = await loadMoreFiles(showMoreButton);
+    if (!ok) return; // failed to load more files
   }
 }
 
 function initRepoDiffHashChangeListener() {
-  const el = document.querySelector('#diff-file-tree');
-  if (!el) return;
-
   window.addEventListener('hashchange', loadUntilFound);
   loadUntilFound();
 }
 
 export function initRepoDiffView() {
   initRepoDiffConversationForm();
-  if (!$('#diff-file-list').length) return;
+  if (!$('#diff-file-boxes').length) return;
   initDiffFileTree();
   initDiffCommitSelect();
   initRepoDiffShowMore();

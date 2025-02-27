@@ -57,28 +57,6 @@
 				<div>{{ctx.Locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>
 			</div>
 		{{end}}
-		<script id="diff-data-script" type="module">
-			const diffDataFiles = [{{range $i, $file := .DiffFiles}}
-				{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Status:{{$file.Status}},IsSubmodule:{{$file.IsSubmodule}},IsViewed:{{$file.IsViewed}}},{{end}}];
-
-			const diffData = {
-				isIncomplete: {{.Diff.IsIncomplete}},
-			};
-
-			// for first time loading, the diffFileInfo is a plain object
-			// after the Vue component is mounted, the diffFileInfo is a reactive object
-			let diffFileInfo = window.config.pageData.diffFileInfo || {
-				files:[],
-				fileTreeIsVisible: false,
-				fileListIsVisible: false,
-				isLoadingNewData: false,
-				selectedItem: '',
-			};
-			diffFileInfo = Object.assign(diffFileInfo, diffData);
-			diffFileInfo.files.push(...diffDataFiles);
-			window.config.pageData.diffFileInfo = diffFileInfo;
-		</script>
-		<div id="diff-file-list"></div>
 	{{end}}
 	<div id="diff-container">
 		{{if $showFileTree}}

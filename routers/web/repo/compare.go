@@ -640,7 +640,7 @@ func PrepareCompareDiff(
 			return false
 		}
 
-		ctx.Data["DiffFiles"] = transformDiffTreeForUI(diffTree, nil)
+		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(diffTree, nil)
 	}
 
 	headCommit, err := ci.HeadGitRepo.GetCommit(headCommitID)
