@@ -62,7 +62,7 @@ function initCloneSchemeUrlSelection(parent: Element) {
       scheme = 'https';
     }
 
-    // Fallbacks if the scheme preference is not available in the tabs.
+    // Fallbacks if the scheme preference is not available in the tabs, for example: empty repo page, there are only HTTPS and SSH
     if (scheme === 'tea' && !tabTea) {
       scheme = 'https';
     }
