@@ -57,7 +57,7 @@ function initCloneSchemeUrlSelection(parent: Element) {
   const tabSsh = parent.querySelector('.repo-clone-ssh');
   const tabTea = parent.querySelector('.repo-clone-tea');
   const updateClonePanelUi = function() {
-    let scheme = localStorage.getItem('repo-clone-protocol') || 'https';
+    let scheme = localStorage.getItem('repo-clone-protocol');
     if (!['https', 'ssh', 'tea'].includes(scheme)) {
       scheme = 'https';
     }
