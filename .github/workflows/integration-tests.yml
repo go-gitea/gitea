@@ -33,21 +33,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install docker-compose -y
-
-
-
-      - name: Start Gitea & PostgreSQL using Docker Compose
-        run: |
-          docker-compose -f docker-compose.yml up -d
-
-      - name: Wait for Gitea to be ready
-        run: |
-          sleep 20  # Adjust based on how long it takes for Gitea to fully start
-
       - name: Pull Test Docker Image
         run: |
           docker pull api_ui_tests:latest  # Pull the existing image
