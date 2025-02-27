@@ -161,6 +161,7 @@ function initDiffHeaderPopup() {
 
 // Will be called when the show more (files) button has been pressed
 function onShowMoreFiles() {
+  // FIXME: here the init calls are incomplete: at least it misses dropdown & initCompReactionSelector
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   countAndUpdateViewedFiles();
@@ -182,7 +183,6 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
     // the response is a full HTML page, we need to extract the relevant contents:
     // * append the newly loaded file list items to the existing list
     $('#diff-incomplete').replaceWith($resp.find('#diff-file-boxes').children());
-
     onShowMoreFiles();
     return true;
   } catch (error) {
@@ -191,6 +191,7 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
   } finally {
     btn.classList.remove('disabled');
   }
+  return false;
 }
 
 function initRepoDiffShowMore() {
