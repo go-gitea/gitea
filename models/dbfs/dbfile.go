@@ -46,10 +46,7 @@ func (f *file) readAt(fileMeta *dbfsMeta, offset int64, p []byte) (n int, err er
 	blobPos := int(offset % f.blockSize)
 	blobOffset := offset - int64(blobPos)
 	blobRemaining := int(f.blockSize) - blobPos
-	needRead := len(p)
-	if needRead > blobRemaining {
-		needRead = blobRemaining
-	}
+	needRead := min(len(p), blobRemaining)
 	if blobOffset+int64(blobPos)+int64(needRead) > fileMeta.FileSize {
 		needRead = int(fileMeta.FileSize - blobOffset - int64(blobPos))
 	}
@@ -66,14 +63,8 @@ func (f *file) readAt(fileMeta *dbfsMeta, offset int64, p []byte) (n int, err er
 		blobData = nil
 	}
 
-	canCopy := len(blobData) - blobPos
-	if canCopy <= 0 {
-		canCopy = 0
-	}
-	realRead := needRead
-	if realRead > canCopy {
-		realRead = canCopy
-	}
+	canCopy := max(len(blobData)-blobPos, 0)
+	realRead := min(needRead, canCopy)
 	if realRead > 0 {
 		copy(p[:realRead], fileData.BlobData[blobPos:blobPos+realRead])
 	}
@@ -113,10 +104,7 @@ func (f *file) Write(p []byte) (n int, err error) {
 		blobPos := int(f.offset % f.blockSize)
 		blobOffset := f.offset - int64(blobPos)
 		blobRemaining := int(f.blockSize) - blobPos
-		needWrite := len(p)
-		if needWrite > blobRemaining {
-			needWrite = blobRemaining
-		}
+		needWrite := min(len(p), blobRemaining)
 		buf := make([]byte, f.blockSize)
 		readBytes, err := f.readAt(fileMeta, blobOffset, buf)
 		if err != nil && !errors.Is(err, io.EOF) {

@@ -15,7 +15,7 @@ type PublicKey struct {
 	Title       string `json:"title,omitempty"`
 	Fingerprint string `json:"fingerprint,omitempty"`
 	// swagger:strfmt date-time
-	Created  time.Time `json:"created_at,omitempty"`
+	Created  time.Time `json:"created_at"`
 	Owner    *User     `json:"user,omitempty"`
 	ReadOnly bool      `json:"read_only,omitempty"`
 	KeyType  string    `json:"key_type,omitempty"`

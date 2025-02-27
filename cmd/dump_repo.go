@@ -135,8 +135,8 @@ func runDumpRepository(ctx *cli.Context) error {
 		opts.PullRequests = true
 		opts.ReleaseAssets = true
 	} else {
-		units := strings.Split(ctx.String("units"), ",")
-		for _, unit := range units {
+		units := strings.SplitSeq(ctx.String("units"), ",")
+		for unit := range units {
 			switch strings.ToLower(strings.TrimSpace(unit)) {
 			case "":
 				continue

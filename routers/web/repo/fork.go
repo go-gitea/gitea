@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -72,7 +73,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		} else {
 			for i, org := range orgs {
 				if org.ID == traverseParentRepo.OwnerID {
-					orgs = append(orgs[:i], orgs[i+1:]...)
+					orgs = slices.Delete(orgs, i, i+1)
 					break
 				}
 			}

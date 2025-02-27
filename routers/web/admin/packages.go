@@ -24,10 +24,7 @@ const (
 
 // Packages shows all packages
 func Packages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 	sort := ctx.FormTrim("sort")

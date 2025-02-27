@@ -47,7 +47,7 @@ type Metadata struct {
 	Keywords      []string             `json:"keywords,omitempty"`
 	RepositoryURL string               `json:"repository_url,omitempty"`
 	License       string               `json:"license,omitempty"`
-	Author        Person               `json:"author,omitempty"`
+	Author        Person               `json:"author"`
 	Manifests     map[string]*Manifest `json:"manifests,omitempty"`
 }
 

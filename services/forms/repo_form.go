@@ -6,6 +6,7 @@ package forms
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -489,13 +490,7 @@ func (i IssueLockForm) HasValidReason() bool {
 		return true
 	}
 
-	for _, v := range setting.Repository.Issue.LockReasons {
-		if v == i.Reason {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(setting.Repository.Issue.LockReasons, i.Reason)
 }
 
 // CreateProjectForm form for creating a project

@@ -56,7 +56,7 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 		return nil, err
 	}
 	filelist := make([]string, 0, len(filenames))
-	for _, line := range bytes.Split(res, []byte{'\000'}) {
+	for line := range bytes.SplitSeq(res, []byte{'\000'}) {
 		filelist = append(filelist, string(line))
 	}
 

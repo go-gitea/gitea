@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -194,7 +195,7 @@ func filterXRefComments(ctx *context.Context, issue *issues_model.Issue) error {
 				return err
 			}
 			if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
-				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				issue.Comments = slices.Delete(issue.Comments, i, i+1)
 				continue
 			}
 		}
@@ -232,7 +233,7 @@ func combineLabelComments(issue *issues_model.Issue) {
 					addedAndRemoved := false
 					for i, label := range prev.AddedLabels {
 						if cur.Label.ID == label.ID {
-							prev.AddedLabels = append(prev.AddedLabels[:i], prev.AddedLabels[i+1:]...)
+							prev.AddedLabels = slices.Delete(prev.AddedLabels, i, i+1)
 							addedAndRemoved = true
 							break
 						}
@@ -246,7 +247,7 @@ func combineLabelComments(issue *issues_model.Issue) {
 					removedAndAdded := false
 					for i, label := range prev.RemovedLabels {
 						if cur.Label.ID == label.ID {
-							prev.RemovedLabels = append(prev.RemovedLabels[:i], prev.RemovedLabels[i+1:]...)
+							prev.RemovedLabels = slices.Delete(prev.RemovedLabels, i, i+1)
 							removedAndAdded = true
 							break
 						}
@@ -257,7 +258,7 @@ func combineLabelComments(issue *issues_model.Issue) {
 				}
 				prev.CreatedUnix = cur.CreatedUnix
 				// remove the current comment since it has been combined to prev comment
-				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				issue.Comments = slices.Delete(issue.Comments, i, i+1)
 				i--
 			} else { // if prev is not a label comment, start a new group
 				if cur.Content != "1" {

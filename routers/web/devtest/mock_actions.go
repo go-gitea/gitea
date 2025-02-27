@@ -35,7 +35,7 @@ func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewSte
 	if logCur.Step == 1 && logCur.Cursor == 0 {
 		mockCount = 30 // for the first batch, return as many as possible to test the auto-expand and auto-scroll
 	}
-	for i := 0; i < mockCount; i++ {
+	for range mockCount {
 		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
 		logStr = strings.ReplaceAll(logStr, "{step}", fmt.Sprintf("%d", logCur.Step))

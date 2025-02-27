@@ -342,8 +342,8 @@ func determineRemote(ctx context.Context, forkUser string) (string, string, erro
 		fmt.Fprintf(os.Stderr, "Unable to list git remotes:\n%s\n", string(out))
 		return "", "", fmt.Errorf("unable to determine forked remote: %w", err)
 	}
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(out), "\n")
+	for line := range lines {
 		fields := strings.Split(line, "\t")
 		name, remote := fields[0], fields[1]
 		// only look at pushers

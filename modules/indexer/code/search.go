@@ -77,7 +77,7 @@ func HighlightSearchResultCode(filename, language string, lineNums []int, code s
 
 	// The lineNums outputted by highlight.Code might not match the original lineNums, because "highlight" removes the last `\n`
 	lines := make([]*ResultLine, min(len(highlightedLines), len(lineNums)))
-	for i := 0; i < len(lines); i++ {
+	for i := range lines {
 		lines[i] = &ResultLine{
 			Num:              lineNums[i],
 			FormattedContent: template.HTML(highlightedLines[i]),

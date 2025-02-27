@@ -243,7 +243,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
 					}
 					if oldCommit != nil {
-						for i := 0; i < oldCommit.ParentCount(); i++ {
+						for i := range oldCommit.ParentCount() {
 							commitID, _ := oldCommit.ParentID(i)
 							if !commitID.IsZero() {
 								oldCommitID = commitID.String()

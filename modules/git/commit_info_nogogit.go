@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"path"
 	"sort"
 
@@ -40,9 +41,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 				return nil, nil, err
 			}
 
-			for pth, found := range commits {
-				revs[pth] = found
-			}
+			maps.Copy(revs, commits)
 		}
 	} else {
 		sort.Strings(entryPaths)

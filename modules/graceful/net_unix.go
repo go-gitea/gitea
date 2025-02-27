@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -179,9 +180,9 @@ func GetListenerTCP(network string, address *net.TCPAddr) (*net.TCPListener, err
 	// look for a provided listener
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
-			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
+			providedListeners = slices.Delete(providedListeners, i, i+1)
 			needsUnlink := providedListenersToUnlink[i]
-			providedListenersToUnlink = append(providedListenersToUnlink[:i], providedListenersToUnlink[i+1:]...)
+			providedListenersToUnlink = slices.Delete(providedListenersToUnlink, i, i+1)
 
 			activeListeners = append(activeListeners, l)
 			activeListenersToUnlink = append(activeListenersToUnlink, needsUnlink)
@@ -213,9 +214,9 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 	// look for a provided listener
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
-			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
+			providedListeners = slices.Delete(providedListeners, i, i+1)
 			needsUnlink := providedListenersToUnlink[i]
-			providedListenersToUnlink = append(providedListenersToUnlink[:i], providedListenersToUnlink[i+1:]...)
+			providedListenersToUnlink = slices.Delete(providedListenersToUnlink, i, i+1)
 
 			activeListenersToUnlink = append(activeListenersToUnlink, needsUnlink)
 			activeListeners = append(activeListeners, l)

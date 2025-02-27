@@ -141,7 +141,7 @@ jobs:
 				fileResp := createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
 
 				// fetch and execute task
-				for i := 0; i < len(tc.outcomes); i++ {
+				for range len(tc.outcomes) {
 					task := runner.fetchTask(t)
 					jobName := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, task.Id)
 					outcome := tc.outcomes[jobName]
@@ -325,7 +325,7 @@ jobs:
 				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, fmt.Sprintf("create %s", tc.treePath), tc.fileContent)
 				createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
 
-				for i := 0; i < len(tc.outcomes); i++ {
+				for range len(tc.outcomes) {
 					task := runner.fetchTask(t)
 					jobName := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, task.Id)
 					outcome := tc.outcomes[jobName]

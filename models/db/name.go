@@ -5,6 +5,7 @@ package db
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -80,10 +81,8 @@ func IsUsableName(reservedNames, reservedPatterns []string, name string) error {
 		return util.SilentWrap{Message: "name is empty", Err: util.ErrInvalidArgument}
 	}
 
-	for i := range reservedNames {
-		if name == reservedNames[i] {
-			return ErrNameReserved{name}
-		}
+	if slices.Contains(reservedNames, name) {
+		return ErrNameReserved{name}
 	}
 
 	for _, pat := range reservedPatterns {

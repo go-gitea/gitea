@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -90,7 +91,7 @@ func RefixMergeBase(x *xorm.Engine) error {
 			}
 
 			// we should recalculate
-			refs := append([]string{}, parents[1:]...)
+			refs := slices.Clone(parents[1:])
 			refs = append(refs, gitRefName)
 			cmd := git.NewCommand(git.DefaultContext, "merge-base").AddDashesAndList(refs...)
 

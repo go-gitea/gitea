@@ -112,7 +112,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		return err
 	}
 	releaseAttachments := make([]string, 0, len(attachments))
-	for i := 0; i < len(attachments); i++ {
+	for i := range attachments {
 		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 

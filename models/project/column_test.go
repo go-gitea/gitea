@@ -110,7 +110,7 @@ func Test_NewColumn(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
 
-	for i := 0; i < maxProjectColumns-3; i++ {
+	for i := range maxProjectColumns - 3 {
 		err := NewColumn(db.DefaultContext, &Column{
 			Title:     fmt.Sprintf("column-%d", i+4),
 			ProjectID: project1.ID,

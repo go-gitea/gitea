@@ -58,7 +58,7 @@ func (i *Indexer) initClient() (*elastic.Client, error) {
 }
 
 func (i *Indexer) checkOldIndexes(ctx context.Context) {
-	for v := 0; v < i.version; v++ {
+	for v := range i.version {
 		indexName := versionedIndexName(i.indexName, v)
 		exists, err := i.Client.IndexExists(indexName).Do(ctx)
 		if err == nil && exists {

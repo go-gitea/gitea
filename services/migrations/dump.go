@@ -603,7 +603,7 @@ func (g *RepositoryDumper) CreatePullRequests(ctx context.Context, prs ...*base.
 	defer encoder.Close()
 
 	count := 0
-	for i := 0; i < len(prs); i++ {
+	for i := range prs {
 		pr := prs[i]
 		if err := g.handlePullRequest(ctx, pr); err != nil {
 			log.Error("PR #%d in %s/%s failed - skipping", pr.Number, g.repoOwner, g.repoName, err)

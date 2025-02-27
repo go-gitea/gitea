@@ -140,7 +140,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Retrieve parent(s) of the commit
 	apiParents := make([]*api.CommitMeta, commit.ParentCount())
-	for i := 0; i < commit.ParentCount(); i++ {
+	for i := range commit.ParentCount() {
 		sha, _ := commit.ParentID(i)
 		apiParents[i] = &api.CommitMeta{
 			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(sha.String()),

@@ -26,7 +26,7 @@ func Format(format string, args ...any) (msg string, err error) {
 			// 1. Tr(lang, key, [slice-items]) as Sprintf(msg, items...)
 			// 2. Tr(lang, key, args...) as Sprintf(msg, args...)
 			if len(args) == 1 {
-				for i := 0; i < val.Len(); i++ {
+				for i := range val.Len() {
 					fmtArgs = append(fmtArgs, val.Index(i).Interface())
 				}
 			} else {

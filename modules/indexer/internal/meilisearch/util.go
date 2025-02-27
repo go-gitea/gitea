@@ -28,7 +28,7 @@ func versionedIndexName(indexName string, version int) string {
 }
 
 func (i *Indexer) checkOldIndexes() {
-	for v := 0; v < i.version; v++ {
+	for v := range i.version {
 		indexName := versionedIndexName(i.indexName, v)
 		_, err := i.Client.GetIndex(indexName)
 		if err == nil {

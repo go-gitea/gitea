@@ -222,7 +222,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	// Create repos.
 	repoIDs := make([]int64, 0)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {

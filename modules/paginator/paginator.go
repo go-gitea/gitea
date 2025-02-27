@@ -189,7 +189,7 @@ func (p *Paginator) Pages() []*Page {
 	}
 
 	// Check previous pages.
-	for i := 0; i < previousNum; i++ {
+	for i := range previousNum {
 		pages[offsetIdx+i] = &Page{i + offsetVal, false}
 	}
 

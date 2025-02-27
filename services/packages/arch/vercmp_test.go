@@ -16,7 +16,7 @@ func TestCompareVersions(t *testing.T) {
 		{"1", "1.0", "1.1", "1.1.1", "1.2", "2.0", "3.0.0"},
 	}
 	for _, check := range checks {
-		for i := 0; i < len(check)-1; i++ {
+		for i := range len(check) - 1 {
 			require.Equal(t, -1, compareVersions(check[i], check[i+1]))
 			require.Equal(t, 1, compareVersions(check[i+1], check[i]))
 		}

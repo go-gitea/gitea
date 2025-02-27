@@ -78,7 +78,7 @@ func prepareHandleArgsIn(resp http.ResponseWriter, req *http.Request, fn reflect
 	isPreCheck := req == nil
 
 	argsIn := make([]reflect.Value, fn.Type().NumIn())
-	for i := 0; i < fn.Type().NumIn(); i++ {
+	for i := range fn.Type().NumIn() {
 		argTyp := fn.Type().In(i)
 		switch argTyp {
 		case respWriterType:

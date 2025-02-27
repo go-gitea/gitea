@@ -22,7 +22,7 @@ func Init() error {
 		if err != nil {
 			return err
 		}
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			if err = c.Ping(); err == nil {
 				break
 			}

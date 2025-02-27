@@ -94,10 +94,7 @@ func GetIssueStats(ctx context.Context, opts *IssuesOptions) (*IssueStats, error
 	// ids in a temporary table and join from them.
 	accum := &IssueStats{}
 	for i := 0; i < len(opts.IssueIDs); {
-		chunk := i + MaxQueryParameters
-		if chunk > len(opts.IssueIDs) {
-			chunk = len(opts.IssueIDs)
-		}
+		chunk := min(i+MaxQueryParameters, len(opts.IssueIDs))
 		stats, err := getIssueStatsChunk(ctx, opts, opts.IssueIDs[i:chunk])
 		if err != nil {
 			return nil, err

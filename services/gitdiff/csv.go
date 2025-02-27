@@ -134,7 +134,7 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 			return nil, err
 		}
 		cells := make([]*TableDiffCell, len(row))
-		for j := 0; j < len(row); j++ {
+		for j := range row {
 			if celltype == TableDiffCellDel {
 				cells[j] = &TableDiffCell{LeftCell: row[j], Type: celltype}
 			} else {
@@ -360,16 +360,16 @@ func getColumnMapping(baseCSVReader, headCSVReader *csvReader) ([]int, []int) {
 	}
 
 	// Initializes all head2base mappings to be unmappedColumn (-1)
-	for i := 0; i < len(head2BaseColMap); i++ {
+	for i := range head2BaseColMap {
 		head2BaseColMap[i] = unmappedColumn
 	}
 
 	// Loops through the baseRow and see if there is a match in the head row
-	for i := 0; i < len(baseRow); i++ {
+	for i := range baseRow {
 		base2HeadColMap[i] = unmappedColumn
 		baseCell, err := getCell(baseRow, i)
 		if err == nil {
-			for j := 0; j < len(headRow); j++ {
+			for j := range headRow {
 				if head2BaseColMap[j] == -1 {
 					headCell, err := getCell(headRow, j)
 					if err == nil && baseCell == headCell {
@@ -390,7 +390,7 @@ func getColumnMapping(baseCSVReader, headCSVReader *csvReader) ([]int, []int) {
 
 // tryMapColumnsByContent tries to map missing columns by the content of the first lines.
 func tryMapColumnsByContent(baseCSVReader *csvReader, base2HeadColMap []int, headCSVReader *csvReader, head2BaseColMap []int) {
-	for i := 0; i < len(base2HeadColMap); i++ {
+	for i := range base2HeadColMap {
 		headStart := 0
 		for base2HeadColMap[i] == unmappedColumn && headStart < len(head2BaseColMap) {
 			if head2BaseColMap[headStart] == unmappedColumn {
@@ -424,7 +424,7 @@ func getCell(row []string, column int) (string, error) {
 // countUnmappedColumns returns the count of unmapped columns.
 func countUnmappedColumns(mapping []int) int {
 	count := 0
-	for i := 0; i < len(mapping); i++ {
+	for i := range mapping {
 		if mapping[i] == unmappedColumn {
 			count++
 		}
@@ -450,7 +450,7 @@ func tryMergeLines(lines []*DiffLine) [][2]int {
 	result := make([][2]int, len(ids))
 
 	j := 0
-	for i = 0; i < len(ids); i++ {
+	for i = range ids {
 		if ids[i][0] == 0 {
 			if j > 0 && result[j-1][1] == 0 {
 				temp := j

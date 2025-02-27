@@ -104,7 +104,7 @@ func (u *User) IsUploadAvatarChanged(data []byte) bool {
 	if !u.UseCustomAvatar || len(u.Avatar) == 0 {
 		return true
 	}
-	avatarID := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
+	avatarID := fmt.Sprintf("%x", md5.Sum(fmt.Appendf(nil, "%d-%x", u.ID, md5.Sum(data))))
 	return u.Avatar != avatarID
 }
 

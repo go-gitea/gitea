@@ -13,7 +13,7 @@ import (
 
 // token is a html tag or entity, eg: "<span ...>", "</span>", "&lt;"
 func extractHTMLToken(s string) (before, token, after string, valid bool) {
-	for pos1 := 0; pos1 < len(s); pos1++ {
+	for pos1 := range len(s) {
 		if s[pos1] == '<' {
 			pos2 := strings.IndexByte(s[pos1:], '>')
 			if pos2 == -1 {

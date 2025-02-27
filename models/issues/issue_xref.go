@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -91,7 +92,7 @@ func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossRefe
 			for i, x := range xreflist {
 				if x.Issue.ID == c.IssueID && x.Action == c.RefAction {
 					found = true
-					xreflist = append(xreflist[:i], xreflist[i+1:]...)
+					xreflist = slices.Delete(xreflist, i, i+1)
 					break
 				}
 			}

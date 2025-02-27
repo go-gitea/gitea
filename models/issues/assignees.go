@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -162,7 +163,7 @@ func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (re
 
 	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
 	if found {
-		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i+1:]...)
+		issue.Assignees = slices.Delete(issue.Assignees, i, i+1)
 		_, err = db.DeleteByBean(ctx, &assigneeIn)
 		if err != nil {
 			return found, err

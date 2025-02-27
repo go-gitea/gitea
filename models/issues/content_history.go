@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
@@ -100,7 +101,7 @@ func KeepLimitedContentHistory(ctx context.Context, issueID, commentID int64, li
 			log.Error("can not delete out-dated content history, err=%v", err)
 			break
 		}
-		res = append(res[:indexToDelete], res[indexToDelete+1:]...)
+		res = slices.Delete(res, indexToDelete, indexToDelete+1)
 		outDatedCount--
 	}
 }

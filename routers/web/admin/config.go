@@ -61,7 +61,7 @@ func TestCache(ctx *context.Context) {
 
 func shadowPasswordKV(cfgItem, splitter string) string {
 	fields := strings.Split(cfgItem, splitter)
-	for i := 0; i < len(fields); i++ {
+	for i := range fields {
 		if strings.HasPrefix(fields[i], "password=") {
 			fields[i] = "password=******"
 			break

@@ -62,7 +62,7 @@ func ParseGitURL(remote string) (*GitURL, error) {
 		squareBrackets := false
 		lastIndex := -1
 	FOR:
-		for i := 0; i < len(remote); i++ {
+		for i := range len(remote) {
 			switch remote[i] {
 			case '@':
 				url.User = stdurl.User(remote[:i])

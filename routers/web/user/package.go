@@ -43,10 +43,7 @@ const (
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 
@@ -324,10 +321,7 @@ func ListPackageVersions(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	pagination := &db.ListOptions{
 		PageSize: setting.UI.PackagesPagingNum,
 		Page:     page,

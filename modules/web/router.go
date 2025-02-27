@@ -125,8 +125,8 @@ func (r *Router) Methods(methods, pattern string, h ...any) {
 	middlewares, handlerFunc := wrapMiddlewareAndHandler(r.curMiddlewares, h)
 	fullPattern := r.getPattern(pattern)
 	if strings.Contains(methods, ",") {
-		methods := strings.Split(methods, ",")
-		for _, method := range methods {
+		methods := strings.SplitSeq(methods, ",")
+		for method := range methods {
 			r.chiRouter.With(middlewares...).Method(strings.TrimSpace(method), fullPattern, handlerFunc)
 		}
 	} else {
@@ -202,7 +202,7 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 	// if the path doesn't have repeated slashes, then no need to execute it
 	if removeRepeatedSlashes {
 		buf := &strings.Builder{}
-		for i := 0; i < len(normalizedPath); i++ {
+		for i := range len(normalizedPath) {
 			if i == 0 || normalizedPath[i-1] != '/' || normalizedPath[i] != '/' {
 				buf.WriteByte(normalizedPath[i])
 			}

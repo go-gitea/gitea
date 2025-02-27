@@ -75,7 +75,7 @@ func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
 		return nil, ErrBadLink{te.Name(), "not a symlink"}
 	}
 	entry := te
-	for i := 0; i < 999; i++ {
+	for range 999 {
 		if entry.IsLink() {
 			next, err := entry.FollowLink()
 			if err != nil {
@@ -156,7 +156,7 @@ func (ctes customSortableEntries) Swap(i, j int) {
 func (ctes customSortableEntries) Less(i, j int) bool {
 	t1, t2 := ctes.Entries[i], ctes.Entries[j]
 	var k int
-	for k = 0; k < len(sorter)-1; k++ {
+	for k = range len(sorter) - 1 {
 		s := sorter[k]
 		switch {
 		case s(t1, t2, ctes.Comparer):

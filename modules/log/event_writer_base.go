@@ -105,7 +105,7 @@ func (b *EventWriterBaseImpl) Run(ctx context.Context) {
 			case io.WriterTo:
 				_, err = msg.WriteTo(b.OutputWriteCloser)
 			default:
-				_, err = b.OutputWriteCloser.Write([]byte(fmt.Sprint(msg)))
+				_, err = b.OutputWriteCloser.Write(fmt.Append(nil, msg))
 			}
 			if err != nil {
 				FallbackErrorf("unable to write log message of %q (%v): %v", b.Name, err, event.Msg)

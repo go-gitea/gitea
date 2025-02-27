@@ -1098,8 +1098,8 @@ func DeleteArtifact(ctx *context.APIContext) {
 func buildSignature(endp string, expires, artifactID int64) []byte {
 	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
 	mac.Write([]byte(endp))
-	mac.Write([]byte(fmt.Sprint(expires)))
-	mac.Write([]byte(fmt.Sprint(artifactID)))
+	mac.Write(fmt.Append(nil, expires))
+	mac.Write(fmt.Append(nil, artifactID))
 	return mac.Sum(nil)
 }
 

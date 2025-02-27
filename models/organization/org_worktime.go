@@ -69,7 +69,7 @@ func GetWorktimeByMilestones(org *Organization, unitFrom, unixTo int64) (results
 
 	// Show only the first RepoName, for nicer output.
 	prevRepoName := ""
-	for i := 0; i < len(results); i++ {
+	for i := range results {
 		res := &results[i]
 		res.MilestoneDeadline = 0 // clear the deadline because we do not really need it
 		if prevRepoName == res.RepoName {

@@ -107,7 +107,7 @@ func newJobStatusResolver(jobs actions_model.ActionJobList) *jobStatusResolver {
 
 func (r *jobStatusResolver) Resolve() map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
-	for i := 0; i < len(r.statuses); i++ {
+	for range len(r.statuses) {
 		updated := r.resolve()
 		if len(updated) == 0 {
 			return ret

@@ -76,7 +76,7 @@ func init() {
 
 // IsRuleNameSpecial return true if it contains special character
 func IsRuleNameSpecial(ruleName string) bool {
-	for i := 0; i < len(ruleName); i++ {
+	for i := range len(ruleName) {
 		if syntax.Special(ruleName[i]) {
 			return true
 		}
@@ -246,7 +246,7 @@ func (protectBranch *ProtectedBranch) GetUnprotectedFilePatterns() []glob.Glob {
 
 func getFilePatterns(filePatterns string) []glob.Glob {
 	extarr := make([]glob.Glob, 0, 10)
-	for _, expr := range strings.Split(strings.ToLower(filePatterns), ";") {
+	for expr := range strings.SplitSeq(strings.ToLower(filePatterns), ";") {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := glob.Compile(expr, '.', '/'); err != nil {

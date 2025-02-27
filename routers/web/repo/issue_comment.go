@@ -461,7 +461,7 @@ func GetCommentAttachments(ctx *context.Context) {
 		ctx.ServerError("LoadAttachments", err)
 		return
 	}
-	for i := 0; i < len(comment.Attachments); i++ {
+	for i := range comment.Attachments {
 		attachments = append(attachments, convert.ToAttachment(ctx.Repo.Repository, comment.Attachments[i]))
 	}
 	ctx.JSON(http.StatusOK, attachments)

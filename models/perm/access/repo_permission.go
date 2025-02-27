@@ -444,7 +444,7 @@ func getUsersWithAccessMode(ctx context.Context, repo *repo_model.Repository, mo
 	users := make([]*user_model.User, 0, len(accesses)+1)
 	if len(accesses) > 0 {
 		userIDs := make([]int64, len(accesses))
-		for i := 0; i < len(accesses); i++ {
+		for i := range accesses {
 			userIDs[i] = accesses[i].UserID
 		}
 

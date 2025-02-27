@@ -956,7 +956,7 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 	defer reader.Close()
 	scanner := bufio.NewScanner(reader)
 	var diffLines []*gitdiff.DiffLine
-	for line := 0; line < idxRight+chunkSize; line++ {
+	for line := range idxRight + chunkSize {
 		if ok := scanner.Scan(); !ok {
 			break
 		}

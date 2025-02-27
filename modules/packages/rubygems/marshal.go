@@ -175,7 +175,7 @@ func (e *MarshalEncoder) marshalIntInternal(i int64) error {
 		length = -length
 	}
 
-	for c := 0; c < length; c++ {
+	for c := range length {
 		if err := e.w.WriteByte(byte(i >> uint(8*c) & 0xff)); err != nil {
 			return err
 		}
@@ -250,7 +250,7 @@ func (e *MarshalEncoder) marshalArray(arr reflect.Value) error {
 		return err
 	}
 
-	for i := 0; i < length; i++ {
+	for i := range length {
 		if err := e.marshal(arr.Index(i).Interface()); err != nil {
 			return err
 		}

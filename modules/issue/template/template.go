@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -446,12 +447,7 @@ func (o *valuedOption) IsChecked() bool {
 	case api.IssueFormFieldTypeDropdown:
 		checks := strings.Split(o.field.Get(fmt.Sprintf("form-field-%s", o.field.ID)), ",")
 		idx := strconv.Itoa(o.index)
-		for _, v := range checks {
-			if v == idx {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(checks, idx)
 	case api.IssueFormFieldTypeCheckboxes:
 		return o.field.Get(fmt.Sprintf("form-field-%s-%d", o.field.ID, o.index)) == "on"
 	}

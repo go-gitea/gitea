@@ -120,7 +120,7 @@ func runRecreateTable(ctx *cli.Context) error {
 
 	args := ctx.Args()
 	names := make([]string, 0, ctx.NArg())
-	for i := 0; i < ctx.NArg(); i++ {
+	for i := range ctx.NArg() {
 		names = append(names, args.Get(i))
 	}
 

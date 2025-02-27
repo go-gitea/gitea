@@ -240,7 +240,7 @@ func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
 	if len(ws) == 0 {
 		return nil
 	}
-	for i := 0; i < len(ws); i++ {
+	for i := range ws {
 		ws[i].Type = strings.TrimSpace(ws[i].Type)
 	}
 	return db.Insert(ctx, ws)

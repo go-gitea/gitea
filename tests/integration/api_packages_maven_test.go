@@ -321,7 +321,7 @@ func TestPackageMavenConcurrent(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		var wg sync.WaitGroup
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			wg.Add(1)
 			go func(i int) {
 				putFile(t, fmt.Sprintf("/%s/%s.jar", packageVersion, strconv.Itoa(i)), "test", http.StatusCreated)

@@ -89,8 +89,8 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 	}
 
 	if token != "" {
-		tokens := strings.Split(token, ",")
-		for _, token := range tokens {
+		tokens := strings.SplitSeq(token, ",")
+		for token := range tokens {
 			token = strings.TrimSpace(token)
 			ts := oauth2.StaticTokenSource(
 				&oauth2.Token{AccessToken: token},
@@ -142,7 +142,7 @@ func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) {
 func (g *GithubDownloaderV3) waitAndPickClient(ctx context.Context) {
 	var recentIdx int
 	var maxRemaining int
-	for i := 0; i < len(g.clients); i++ {
+	for i := range g.clients {
 		if g.rates[i] != nil && g.rates[i].Remaining > maxRemaining {
 			maxRemaining = g.rates[i].Remaining
 			recentIdx = i

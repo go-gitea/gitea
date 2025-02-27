@@ -152,7 +152,7 @@ func TestCompareCodeExpand(t *testing.T) {
 
 		// all the links in the comparison should be to the forked repo&branch
 		assert.NotZero(t, els.Length())
-		for i := 0; i < els.Length(); i++ {
+		for i := range els.Length() {
 			link := els.Eq(i).AttrOr("hx-get", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}

@@ -408,7 +408,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 		divs := htmlDoc.doc.Find("#keys-ssh .flex-item .flex-item-body:not(:last-child)")
 
 		syncedKeys := make([]string, divs.Length())
-		for i := 0; i < divs.Length(); i++ {
+		for i := range divs.Length() {
 			syncedKeys[i] = strings.TrimSpace(divs.Eq(i).Text())
 		}
 

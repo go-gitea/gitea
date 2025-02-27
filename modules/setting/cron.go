@@ -18,7 +18,7 @@ func getCronSettings(rootCfg ConfigProvider, name string, config any) (any, erro
 	typ := reflect.TypeOf(config).Elem()
 	val := reflect.ValueOf(config).Elem()
 
-	for i := 0; i < typ.NumField(); i++ {
+	for i := range typ.NumField() {
 		field := val.Field(i)
 		tpField := typ.Field(i)
 		if tpField.Type.Kind() == reflect.Struct && tpField.Anonymous {

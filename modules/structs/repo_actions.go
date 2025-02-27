@@ -57,7 +57,7 @@ type ActionWorkflow struct {
 	HTMLURL   string    `json:"html_url"`
 	BadgeURL  string    `json:"badge_url"`
 	// swagger:strfmt date-time
-	DeletedAt time.Time `json:"deleted_at,omitempty"`
+	DeletedAt time.Time `json:"deleted_at"`
 }
 
 // ActionWorkflowResponse returns a ActionWorkflow

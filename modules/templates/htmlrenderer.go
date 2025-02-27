@@ -251,7 +251,7 @@ func extractErrorLine(code []byte, lineNum, posNum int, target string) string {
 	b := bufio.NewReader(bytes.NewReader(code))
 	var line []byte
 	var err error
-	for i := 0; i < lineNum; i++ {
+	for i := range lineNum {
 		if line, err = b.ReadBytes('\n'); err != nil {
 			if i == lineNum-1 && errors.Is(err, io.EOF) {
 				err = nil

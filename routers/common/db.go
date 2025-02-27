@@ -21,7 +21,7 @@ import (
 // InitDBEngine In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
 func InitDBEngine(ctx context.Context) (err error) {
 	log.Info("Beginning ORM engine initialization.")
-	for i := 0; i < setting.Database.DBConnectRetries; i++ {
+	for i := range setting.Database.DBConnectRetries {
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("Aborted due to shutdown:\nin retry ORM engine initialization")

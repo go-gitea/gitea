@@ -96,7 +96,7 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 // IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing
 func IndexerGlobFromString(globstr string) []*GlobMatcher {
 	extarr := make([]*GlobMatcher, 0, 10)
-	for _, expr := range strings.Split(strings.ToLower(globstr), ",") {
+	for expr := range strings.SplitSeq(strings.ToLower(globstr), ",") {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := GlobMatcherCompile(expr, '.', '/'); err != nil {

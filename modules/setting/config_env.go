@@ -63,7 +63,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 		}
 		toDecode := encoded[unescapeIdx[0]+3 : unescapeIdx[1]-1]
 		decodedBytes := make([]byte, len(toDecode)/2)
-		for i := 0; i < len(toDecode)/2; i++ {
+		for i := range len(toDecode) / 2 {
 			// Can ignore error here as we know these should be hexadecimal from the regexp
 			byteInt, _ := strconv.ParseInt(toDecode[2*i:2*i+2], 16, 0)
 			decodedBytes[i] = byte(byteInt)

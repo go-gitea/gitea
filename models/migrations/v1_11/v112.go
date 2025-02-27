@@ -28,7 +28,7 @@ func RemoveAttachmentMissedRepo(x *xorm.Engine) error {
 			return err
 		}
 
-		for i := 0; i < len(attachments); i++ {
+		for i := range attachments {
 			uuid := attachments[i].UUID
 			if err = util.RemoveAll(filepath.Join(setting.Attachment.Storage.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
 				fmt.Printf("Error: %v", err) //nolint:forbidigo

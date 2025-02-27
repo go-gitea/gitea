@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"maps"
 	"net/http"
 	"slices"
 	"sort"
@@ -136,9 +137,7 @@ func NewIssue(ctx *context.Context) {
 
 	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates, pageMetaData)
-	for k, v := range errs {
-		ret.TemplateErrors[k] = v
-	}
+	maps.Copy(ret.TemplateErrors, errs)
 	if ctx.Written() {
 		return
 	}

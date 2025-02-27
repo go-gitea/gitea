@@ -211,7 +211,7 @@ func getActionIssues(ctx *context.Context) issues_model.IssueList {
 		return nil
 	}
 	issueIDs := make([]int64, 0, 10)
-	for _, stringIssueID := range strings.Split(commaSeparatedIssueIDs, ",") {
+	for stringIssueID := range strings.SplitSeq(commaSeparatedIssueIDs, ",") {
 		issueID, err := strconv.ParseInt(stringIssueID, 10, 64)
 		if err != nil {
 			ctx.ServerError("ParseInt", err)
@@ -572,7 +572,7 @@ func GetIssueAttachments(ctx *context.Context) {
 		return
 	}
 	attachments := make([]*api.Attachment, len(issue.Attachments))
-	for i := 0; i < len(issue.Attachments); i++ {
+	for i := range issue.Attachments {
 		attachments[i] = convert.ToAttachment(ctx.Repo.Repository, issue.Attachments[i])
 	}
 	ctx.JSON(http.StatusOK, attachments)
@@ -588,7 +588,7 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 	default:
 		return fmt.Errorf("unknown Type: %T", content)
 	}
-	for i := 0; i < len(attachments); i++ {
+	for i := range attachments {
 		if util.SliceContainsString(files, attachments[i].UUID) {
 			continue
 		}

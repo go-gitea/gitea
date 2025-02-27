@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -75,7 +76,7 @@ func appGlobalFlags() []cli.Flag {
 }
 
 func prepareSubcommandWithConfig(command *cli.Command, globalFlags []cli.Flag) {
-	command.Flags = append(append([]cli.Flag{}, globalFlags...), command.Flags...)
+	command.Flags = slices.Concat(globalFlags, command.Flags)
 	command.Action = prepareWorkPathAndCustomConf(command.Action)
 	command.HideHelp = true
 	if command.Name != "help" {

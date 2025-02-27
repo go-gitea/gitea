@@ -77,7 +77,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	name2attribute2info := make(map[string]map[string]string)
 
-	for i := 0; i < (len(fields) / 3); i++ {
+	for i := range len(fields) / 3 {
 		filename := string(fields[3*i])
 		attribute := string(fields[3*i+1])
 		info := string(fields[3*i+2])

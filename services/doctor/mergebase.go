@@ -6,6 +6,7 @@ package doctor
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -62,7 +63,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 					return nil
 				}
 
-				refs := append([]string{}, parents[1:]...)
+				refs := slices.Clone(parents[1:])
 				refs = append(refs, pr.GetGitRefName())
 				cmd := git.NewCommand(ctx, "merge-base").AddDashesAndList(refs...)
 				pr.MergeBase, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})

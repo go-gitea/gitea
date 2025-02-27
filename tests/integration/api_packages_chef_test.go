@@ -181,7 +181,7 @@ nwIDAQAB
 
 				var data []byte
 				if version == "1.3" {
-					data = []byte(fmt.Sprintf(
+					data = fmt.Appendf(nil,
 						"Method:%s\nPath:%s\nX-Ops-Content-Hash:%s\nX-Ops-Sign:version=%s\nX-Ops-Timestamp:%s\nX-Ops-UserId:%s\nX-Ops-Server-API-Version:%s",
 						req.Method,
 						path.Clean(req.URL.Path),
@@ -190,17 +190,17 @@ nwIDAQAB
 						req.Header.Get("X-Ops-Timestamp"),
 						username,
 						req.Header.Get("X-Ops-Server-Api-Version"),
-					))
+					)
 				} else {
 					sum := sha1.Sum([]byte(path.Clean(req.URL.Path)))
-					data = []byte(fmt.Sprintf(
+					data = fmt.Appendf(nil,
 						"Method:%s\nHashed Path:%s\nX-Ops-Content-Hash:%s\nX-Ops-Timestamp:%s\nX-Ops-UserId:%s",
 						req.Method,
 						base64.StdEncoding.EncodeToString(sum[:]),
 						req.Header.Get("X-Ops-Content-Hash"),
 						req.Header.Get("X-Ops-Timestamp"),
 						username,
-					))
+					)
 				}
 
 				for k := range req.Header {

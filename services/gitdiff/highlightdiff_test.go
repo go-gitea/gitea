@@ -101,7 +101,7 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 
 func TestDiffWithHighlightTagMatch(t *testing.T) {
 	totalOverflow := 0
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		hcd := newHighlightCodeDiff()
 		hcd.placeholderMaxCount = i
 		diffs := hcd.diffWithHighlight(

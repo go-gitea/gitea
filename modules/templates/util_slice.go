@@ -22,7 +22,7 @@ func (su *SliceUtils) Contains(s, v any) bool {
 	if sv.Kind() != reflect.Slice && sv.Kind() != reflect.Array {
 		panic(fmt.Sprintf("invalid type, expected slice or array, but got: %T", s))
 	}
-	for i := 0; i < sv.Len(); i++ {
+	for i := range sv.Len() {
 		it := sv.Index(i)
 		if !it.CanInterface() {
 			continue

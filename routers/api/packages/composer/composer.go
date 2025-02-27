@@ -53,10 +53,7 @@ func ServiceIndex(ctx *context.Context) {
 // SearchPackages searches packages, only "q" is supported
 // https://packagist.org/apidoc#search-packages
 func SearchPackages(ctx *context.Context) {
-	page := ctx.FormInt("page")
-	if page < 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	perPage := ctx.FormInt("per_page")
 	paginator := db.ListOptions{
 		Page:     page,

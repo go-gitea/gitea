@@ -738,7 +738,7 @@ func countIndexerData(data map[int64]*internal.IndexerData, f func(v *internal.I
 // Some engines like Elasticsearch index data asynchronously, so we need to wait for a while.
 func waitData(indexer internal.Indexer, total int64) error {
 	var actual int64
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		result, err := indexer.Search(context.Background(), &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 0,

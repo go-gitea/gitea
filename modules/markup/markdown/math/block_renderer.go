@@ -42,7 +42,7 @@ func (r *BlockRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 
 func (r *BlockRenderer) writeLines(w util.BufWriter, source []byte, n gast.Node) {
 	l := n.Lines().Len()
-	for i := 0; i < l; i++ {
+	for i := range l {
 		line := n.Lines().At(i)
 		_, _ = w.Write(util.EscapeHTML(line.Value(source)))
 	}

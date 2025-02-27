@@ -16,10 +16,7 @@ import (
 )
 
 func MonitorDiagnosis(ctx *context.Context) {
-	seconds := ctx.FormInt64("seconds")
-	if seconds <= 1 {
-		seconds = 1
-	}
+	seconds := max(ctx.FormInt64("seconds"), 1)
 	if seconds > 300 {
 		seconds = 300
 	}

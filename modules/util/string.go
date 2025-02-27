@@ -80,7 +80,7 @@ func ToSnakeCase(input string) string {
 				needSep = false
 			}
 		}
-		for i := 0; i < len(res); i++ {
+		for i := range res {
 			if isSnakeCaseUpper(res[i]) {
 				res[i] += 'a' - 'A'
 			}
@@ -103,7 +103,7 @@ func UnsafeStringToBytes(s string) []byte {
 func SplitTrimSpace(input, sep string) []string {
 	input = strings.TrimSpace(input)
 	var stringList []string
-	for _, s := range strings.Split(input, sep) {
+	for s := range strings.SplitSeq(input, sep) {
 		if s = strings.TrimSpace(s); s != "" {
 			stringList = append(stringList, s)
 		}

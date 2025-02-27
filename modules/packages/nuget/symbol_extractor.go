@@ -150,7 +150,7 @@ func ParseDebugHeaderID(r io.ReadSeeker) (string, error) {
 		}
 	}
 
-	for i := 0; i < int(streamCount); i++ {
+	for range int(streamCount) {
 		var offset uint32
 		if err := binary.Read(r, binary.LittleEndian, &offset); err != nil {
 			return "", err

@@ -267,7 +267,7 @@ func (c *compareDump) assertEqual(filename string, kind any, fields compareField
 func (c *compareDump) assertEqualSlices(before, after reflect.Value, fields compareFields) any {
 	assert.EqualValues(c.t, before.Len(), after.Len())
 	if before.Len() == after.Len() {
-		for i := 0; i < before.Len(); i++ {
+		for i := range before.Len() {
 			_ = c.assertEqualValues(
 				reflect.Indirect(before.Index(i).Elem()),
 				reflect.Indirect(after.Index(i).Elem()),

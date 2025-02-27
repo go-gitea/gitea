@@ -10,6 +10,7 @@ import (
 	"errors"
 	"io"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 
@@ -319,7 +320,7 @@ func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 		// remove duplicates
 		for i := len(paths) - 1; i > 0; i-- {
 			if paths[i] == paths[i-1] {
-				paths = append(paths[:i-1], paths[i:]...)
+				paths = slices.Delete(paths, i-1, i)
 			}
 		}
 	}
@@ -343,10 +344,7 @@ func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 
 	results := make([]string, len(paths))
 	remaining := len(paths)
-	nextRestart := (len(paths) * 3) / 4
-	if nextRestart > 70 {
-		nextRestart = 70
-	}
+	nextRestart := min((len(paths)*3)/4, 70)
 	lastEmptyParent := head.ID.String()
 	commitSinceLastEmptyParent := uint64(0)
 	commitSinceNextRestart := uint64(0)

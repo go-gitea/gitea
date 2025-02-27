@@ -75,7 +75,7 @@ func dumpVarMarshalable(v any, dumped container.Set[uintptr]) (ret any, ok bool)
 		return e.Interface(), true
 	case reflect.Struct:
 		m := map[string]any{}
-		for i := 0; i < e.NumField(); i++ {
+		for i := range e.NumField() {
 			k := e.Type().Field(i).Name
 			if !e.Type().Field(i).IsExported() {
 				continue
@@ -92,7 +92,7 @@ func dumpVarMarshalable(v any, dumped container.Set[uintptr]) (ret any, ok bool)
 		return m, true
 	case reflect.Array, reflect.Slice:
 		var m []any
-		for i := 0; i < e.Len(); i++ {
+		for i := range e.Len() {
 			v, _ := dumpVarMarshalable(e.Index(i).Interface(), dumped)
 			m = append(m, v)
 		}

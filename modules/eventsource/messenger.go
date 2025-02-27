@@ -3,6 +3,8 @@
 
 package eventsource
 
+import "slices"
+
 import "sync"
 
 // Messenger is a per uid message store
@@ -36,7 +38,7 @@ func (m *Messenger) Unregister(channel <-chan *Event) bool {
 	defer m.mutex.Unlock()
 	for i, toRemove := range m.channels {
 		if channel == toRemove {
-			m.channels = append(m.channels[:i], m.channels[i+1:]...)
+			m.channels = slices.Delete(m.channels, i, i+1)
 			close(toRemove)
 			break
 		}

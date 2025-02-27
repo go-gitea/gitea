@@ -35,7 +35,7 @@ func CheckConsistencyFor(t assert.TestingT, beansToCheck ...any) {
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Table(bean).Find(ptrToSliceValue.Interface()))
 		sliceValue = ptrToSliceValue.Elem()
 
-		for i := 0; i < sliceValue.Len(); i++ {
+		for i := range sliceValue.Len() {
 			entity := sliceValue.Index(i).Interface()
 			checkForConsistency(t, entity)
 		}

@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -337,7 +338,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		// remove it from the defaults
 		for i, charset := range defaultDetectedCharsetsOrder {
 			if charset == canonicalCharset {
-				defaultDetectedCharsetsOrder = append(defaultDetectedCharsetsOrder[:i], defaultDetectedCharsetsOrder[i+1:]...)
+				defaultDetectedCharsetsOrder = slices.Delete(defaultDetectedCharsetsOrder, i, i+1)
 				break
 			}
 		}

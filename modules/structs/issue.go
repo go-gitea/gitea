@@ -203,7 +203,7 @@ func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 		if err != nil {
 			return err
 		}
-		for _, v := range strings.Split(str, ",") {
+		for v := range strings.SplitSeq(str, ",") {
 			if v = strings.TrimSpace(v); v == "" {
 				continue
 			}
