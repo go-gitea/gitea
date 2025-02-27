@@ -221,11 +221,12 @@ func TestPackageComposer(t *testing.T) {
 
 		// Test package linked to repository
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeComposer)
+		userPkgs, err := packages.GetPackagesByType(db.DefaultContext, user.ID, packages.TypeComposer)
 		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
+		assert.Len(t, userPkgs, 1)
+		assert.EqualValues(t, 0, userPkgs[0].RepoID)
 
-		err = packages.SetRepositoryLink(db.DefaultContext, pvs[0].ID, repo1.ID)
+		err = packages.SetRepositoryLink(db.DefaultContext, userPkgs[0].ID, repo1.ID)
 		assert.NoError(t, err)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
