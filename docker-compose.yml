@@ -1,43 +1,42 @@
+version: '3.7'
+
 services:
   gitea:
-    image: gitea/gitea:latest
+    image: gitea/gitea:latest  # Gitea Docker image
     container_name: gitea
     ports:
-      - "3000:3000"
-      - "22:22"
+      - "3000:3000"  # Expose Gitea web interface on port 3000
+      - "22:22"      # Expose SSH port for Git operations
     environment:
+      - USER_UID=1000
+      - USER_GID=1000
       - GITEA__database__DB_TYPE=postgres
-      - GITEA__database__HOST=db:5432
+      - GITEA__database__HOST=db:5432  # PostgreSQL database service
       - GITEA__database__NAME=gitea
-      - GITEA__database__USER=gitea
-      - GITEA__database__PASSWD=gitea
+      - GITEA__database__USER=gitea_user
+      - GITEA__database__PASSWD=gitea_pass
+      - GITEA__server__DOMAIN=localhost:3000
+      - GITEA__server__SSH_PORT=22
     depends_on:
       - db
       - redis
     volumes:
-      - gitea_data:/data
-
-  redis:
-    image: redis:alpine
-
-
-    container_name: redis
-    volumes:
-      - redis_data:/data
+      - ./data:/data  # Persistent storage for Gitea data
 
   db:
-    image: postgres:alpine
+    image: postgres:alpine  # PostgreSQL Docker image
     container_name: db
     environment:
-      - POSTGRES_USER=gitea
-      - POSTGRES_PASSWORD=gitea
       - POSTGRES_DB=gitea
+      - POSTGRES_USER=gitea_user
+      - POSTGRES_PASSWORD=gitea_pass
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - ./db-data:/var/lib/postgresql/data  # Persistent storage for database
 
-
-
-volumes:
-  gitea_data:
-  redis_data:
-  db_data:
+  redis:
+    image: redis:alpine  # Redis Docker image
+    container_name: redis
+    ports:
+      - "6379:6379"  # Expose Redis default port
+    volumes:
+      - ./redis-data:/data  # Persistent storage for Redis

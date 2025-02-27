@@ -1,52 +1,59 @@
-name: Gitea CI Workflow
+name: Gitea Setup and Testing
 
 on:
   push:
     branches:
-      - dev  # Run when pushing to 'dev'
+      - main  # Trigger the workflow when changes are pushed to the main branch
   pull_request:
     branches:
-      - dev  # Run tests when a PR is opened or updated targeting 'dev'
+      - main  # Trigger the workflow when a PR is opened to the main branch
+  workflow_dispatch:  # Allows manual trigger from the GitHub UI
 
 jobs:
-  integration-tests:
+  setup-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:13
+        options: --health-cmd="pg_isready -U gitea_user" --health-timeout=30s --health-retries=3
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: gitea
+          POSTGRES_USER: gitea_user
+          POSTGRES_PASSWORD: gitea_pass
+        healthcheck:
+          test: ["CMD", "pg_isready", "-U", "gitea_user"]
+          interval: 10s
+          retries: 5
+          timeout: 30s
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v2
 
-
-
-
-
-      - name: Pull latest Gitea image
-        run: docker pull maias816/gitea:latest
-
-
-
-
-      # Wait for Gitea to start
-      - name: Wait for Gitea to start
-        run: sleep 10  # Adjust time if needed
-
-      # ✅ Clone API tests repository
-      - name: Clone API Tests Repository
-        run: git clone https://github.com/maias1907/gitea-Automation-Testing-Project.git
-
-      # ✅ Install dependencies (if needed)
-      - name: Install API test dependencies
+      - name: Set up Docker Compose
         run: |
-          cd gitea-Automation-Testing-Project
+          sudo apt-get update
+          sudo apt-get install docker-compose -y
 
-
-      # ✅ Run API tests
-      - name: Run API Tests
+      - name: Start Gitea & PostgreSQL using Docker Compose
         run: |
-          cd gitea-Automation-Testing-Project
-          mvn -q clean test -Dtest=**/APITests/*
+          docker-compose -f docker-compose.yml up -d
 
-      - name: Stop Gitea
-        run: docker-compose down
-#ه
+      - name: Wait for Gitea to be ready
+        run: |
+          sleep 20  # Adjust based on how long it takes for Gitea to fully start
+
+      - name: Pull Test Docker Image
+        run: |
+          docker pull api_ui_tests:latest  # Pull the existing image
+
+      - name: Run API and UI Tests
+        run: |
+          docker run --rm api_ui_tests:latest  # Run the tests using the image
+
+      - name: Tear down containers
+        run: |
+          docker-compose down
