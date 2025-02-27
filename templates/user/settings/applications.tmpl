@@ -70,35 +70,21 @@
 						{{ctx.Locale.Tr "settings.permissions_access_all"}}
 					</label>
 				</div>
-				<details class="ui optional field">
-					<summary class="tw-pb-4 tw-pl-1">
-						{{ctx.Locale.Tr "settings.select_permissions"}}
-					</summary>
-					<p class="activity meta">
-						<i>{{ctx.Locale.Tr "settings.access_token_desc" (HTMLFormat `href="%s/api/swagger" target="_blank"` AppSubUrl) (`href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`|SafeHTML)}}</i>
-					</p>
+				<details class="ui field tw-pl-1">
+					<summary>{{ctx.Locale.Tr "settings.select_permissions"}}</summary>
+					<i class="tw-block tw-my-2">{{ctx.Locale.Tr "settings.access_token_desc" (HTMLFormat `href="%s/api/swagger" target="_blank"` AppSubUrl) (`href="https://docs.gitea.com/development/oauth2-provider#scopes" target="_blank"`|SafeHTML)}}</i>
 					{{range $category := .TokenCategories}}
-						<div class="field tw-pl-1 tw-pb-1 access-token-category">
-							<label class="category-label" for="access-token-scope-{{$category}}">
-								{{$category}}
-							</label>
-							<div class="gitea-select">
-								<select class="ui selection access-token-select" name="scope" id="access-token-scope-{{$category}}">
-									<option value="">
-										{{ctx.Locale.Tr "settings.permission_no_access"}}
-									</option>
-									<option value="read:{{$category}}">
-										{{ctx.Locale.Tr "settings.permission_read"}}
-									</option>
-									<option value="write:{{$category}}">
-										{{ctx.Locale.Tr "settings.permission_write"}}
-									</option>
-								</select>
-							</div>
+						<div class="tw-my-2">
+							<label for="access-token-scope-{{$category}}">{{$category}}</label>
+							<select name="scope" id="access-token-scope-{{$category}}">
+								<option value="">{{ctx.Locale.Tr "settings.permission_no_access"}}</option>
+								<option value="read:{{$category}}">{{ctx.Locale.Tr "settings.permission_read"}}</option>
+								<option value="write:{{$category}}">{{ctx.Locale.Tr "settings.permission_write"}}</option>
+							</select>
 						</div>
 					{{end}}
 				</details>
-				<button id="scoped-access-submit" class="ui primary button">
+				<button class="ui primary button">
 					{{ctx.Locale.Tr "settings.generate_token"}}
 				</button>
 			</form>

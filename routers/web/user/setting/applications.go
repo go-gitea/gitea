@@ -12,6 +12,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -101,11 +102,11 @@ func loadApplicationsData(ctx *context.Context) {
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enabled
 
 	// Handle specific ordered token categories for admin or non-admin users
-	if ctx.Doer.IsAdmin {
-		ctx.Data["TokenCategories"] = auth_model.AllAccessTokenScopeCategoryNames
-	} else {
-		ctx.Data["TokenCategories"] = auth_model.AllNonAdminAccessTokenScopeCategoryNames
+	tokenCategoryNames := auth_model.GetAccessTokenCategories()
+	if !ctx.Doer.IsAdmin {
+		util.SliceRemoveAll(tokenCategoryNames, "admin")
 	}
+	ctx.Data["TokenCategories"] = tokenCategoryNames
 
 	if setting.OAuth2.Enabled {
 		ctx.Data["Applications"], err = db.Find[auth_model.OAuth2Application](ctx, auth_model.FindOAuth2ApplicationsOptions{

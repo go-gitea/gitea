@@ -38,44 +38,6 @@ var AllAccessTokenScopeCategories = []AccessTokenScopeCategory{
 	AccessTokenScopeCategoryUser,
 }
 
-// AccessTokenScopeCategoryNames maps AccessTokenScopeCategory to their string representations
-var AccessTokenScopeCategoryNames = map[AccessTokenScopeCategory]string{
-	AccessTokenScopeCategoryActivityPub:  "activitypub",
-	AccessTokenScopeCategoryAdmin:        "admin",
-	AccessTokenScopeCategoryMisc:         "misc",
-	AccessTokenScopeCategoryNotification: "notification",
-	AccessTokenScopeCategoryOrganization: "organization",
-	AccessTokenScopeCategoryPackage:      "package",
-	AccessTokenScopeCategoryIssue:        "issue",
-	AccessTokenScopeCategoryRepository:   "repository",
-	AccessTokenScopeCategoryUser:         "user",
-}
-
-// AllAccessTokenScopeCategoryNames is a list of all access token scope category names including admin's reserved scope
-var AllAccessTokenScopeCategoryNames = []string{
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryActivityPub],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryAdmin],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryMisc],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryNotification],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryOrganization],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryPackage],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryIssue],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryRepository],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryUser],
-}
-
-// AllNonAdminAccessTokenScopeCategoryNames is a list of all access token scope category names without admin's reserved scope
-var AllNonAdminAccessTokenScopeCategoryNames = []string{
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryActivityPub],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryMisc],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryNotification],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryOrganization],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryPackage],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryIssue],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryRepository],
-	AccessTokenScopeCategoryNames[AccessTokenScopeCategoryUser],
-}
-
 // AccessTokenScopeLevel represents the access levels without a given scope category
 type AccessTokenScopeLevel int
 
@@ -231,6 +193,13 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 	},
 }
 
+func GetAccessTokenCategories() (res []string) {
+	for _, cat := range accessTokenScopes[Read] {
+		res = append(res, strings.TrimPrefix(string(cat), "read:"))
+	}
+	return res
+}
+
 // GetRequiredScopes gets the specific scopes for a given level and categories
 func GetRequiredScopes(level AccessTokenScopeLevel, scopeCategories ...AccessTokenScopeCategory) []AccessTokenScope {
 	scopes := make([]AccessTokenScope, 0, len(scopeCategories))
@@ -308,6 +277,9 @@ func (s AccessTokenScope) parse() (accessTokenScopeBitmap, error) {
 
 // StringSlice returns the AccessTokenScope as a []string
 func (s AccessTokenScope) StringSlice() []string {
+	if s == "" {
+		return nil
+	}
 	return strings.Split(string(s), ",")
 }
 
