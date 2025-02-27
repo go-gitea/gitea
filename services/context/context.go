@@ -215,6 +215,9 @@ func Contexter() func(next http.Handler) http.Handler {
 func (ctx *Context) HasError() bool {
 	hasErr, _ := ctx.Data["HasError"].(bool)
 	hasErr = hasErr || ctx.Flash.ErrorMsg != ""
+	if !hasErr {
+		return false
+	}
 	if ctx.Flash.ErrorMsg == "" {
 		ctx.Flash.ErrorMsg = ctx.GetErrMsg()
 	}
