@@ -1,5 +1,111 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
 <h4 class="ui top attached header">
+	UI
+</h4>
+<div class="ui attached segment">
+	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config?key=">
+		{{.CsrfTokenHtml}}
+		<div class="inline field">
+			<label for="explore_paging_number" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">Explore Paging Number</label>
+			<input id="explore_paging_number" name="explore_paging_number" type="number" min="0" value="20">
+		</div>
+		<div class="inline field">
+			<label for="issue_paging_number" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">Issue Paging Number</label>
+			<input id="issue_paging_number" name="issue_paging_number" type="number" min="0" value="20">
+		</div>
+		<div class="inline field">
+			<label for="feed_max_commit_number" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">Feed Max Commit Number</label>
+			<input id="feed_max_commit_number" name="feed_max_commit_number" type="number" min="0" value="5">
+		</div>
+		<div class="inline field">
+			<label for="feed_paging_number" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">Feed Paging Number</label>
+			<input id="feed_paging_number" name="feed_paging_number" type="number" min="0" value="20">
+		</div>
+		<div class="inline field">
+			<label for="sitemap_paging_number" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">Sitemap Paging Number</label>
+			<input id="sitemap_paging_number" name="sitemap_paging_number" type="number" min="0" value="20">
+		</div>
+		<div class="inline field">
+			<label for="graph_max_commit_number" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">Graph Max Commit Number</label>
+			<input id="graph_max_commit_number" name="graph_max_commit_number" type="number" min="0" value="100">
+		</div>
+		<div class="inline field">
+			<label for="code_comment_lines" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">Code Comment Lines</label>
+			<input id="code_comment_lines" name="code_comment_lines" type="number" min="0" value="4">
+		</div>
+		<div class="inline field">
+			<label for="max_display_file_size" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">Max Display File Size</label>
+			<input id="max_display_file_size" name="max_display_file_size" type="number" min="0" value="8388608">
+		</div>
+		<div class="inline field">
+			<label for="default_theme">Default Theme</label>
+			<input id="default_theme" name="default_theme" value="gitea-auto">
+		</div>
+		<div class="inline field">
+			<label for="themes">Themes</label>
+			<input id="themes" name="themes" value="">
+		</div>
+		<div class="inline field">
+			<label for="reactions">Reactions</label>
+			<input id="reactions" name="reactions" value="+1, -1, laugh, hooray, confused, heart, rocket, eyes">
+		</div>
+		<div class="inline field">
+			<label for="reaction_max_user_number" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">Reaction Max User Number</label>
+			<input id="reaction_max_user_number" name="reaction_max_user_number" type="number" min="0" value="10">
+		</div>
+		<div class="inline field">
+			<label for="custom_emojis">Custom Emojis</label>
+			<input id="custom_emojis" name="custom_emojis" value=":gitea:">
+		</div>
+		<div class="inline field">
+			<label for="explore_paging_default_sort">Explore Paging Default Sort</label>
+			<input id="explore_paging_default_sort" name="explore_paging_default_sort" value="recentupdate">
+		</div>
+		<div class="inline field">
+			<label for="preferred_timestamp_tense">Preferred Timestamp Tense</label>
+			<input id="preferred_timestamp_tense" name="preferred_timestamp_tense" value="mixed">
+		</div>
+
+		<div class="divider"></div>
+
+		<div class="field">
+			<div class="ui checkbox">
+				<input name="ambiguous_unicode_detection" type="checkbox" value="1" checked>
+				<label>Ambiguous Unicode Detection</label>
+			</div>
+		</div>
+		<div class="field">
+			<div class="ui checkbox">
+				<input name="show_user_email" type="checkbox" value="1" checked>
+				<label>Show User Email</label>
+			</div>
+		</div>
+		<div class="field">
+			<div class="ui checkbox">
+				<input name="default_show_full_name" type="checkbox" value="0">
+				<label>Default Show Full Name</label>
+			</div>
+		</div>
+		<div class="field">
+			<div class="ui checkbox">
+				<input name="search_repo_description" type="checkbox" value="1" checked>
+				<label>Search Repo Description</label>
+			</div>
+		</div>
+		<div class="field">
+			<div class="ui checkbox">
+				<input name="only_show_relevant_repos" type="checkbox" value="0">
+				<label>Only Show Relevant Repos</label>
+			</div>
+		</div>
+
+		<div class="field">
+			<button class="ui primary button">{{ctx.Locale.Tr "org.settings.update_settings"}}</button>
+		</div>
+	</form>
+</div>
+
+<h4 class="ui top attached header">
 	{{ctx.Locale.Tr "admin.config.picture_config"}}
 </h4>
 <div class="ui attached table segment">
