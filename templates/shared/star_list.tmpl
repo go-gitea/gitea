@@ -3,7 +3,7 @@
 	<!-- Header -->
 	<div class="top tw-mb-3">
 		<div>
-			<span>Lists(26)</span>
+			<span>Lists({{len .StarList}})</span>
 		</div>
 		<div class="top-right">
 			<!-- Sort -->
@@ -27,9 +27,11 @@
 				</form>
 			</div>
 			<!-- Create List-->
+			{{if eq .SignedUserID .ContextUser.ID}}
 			<div>
 				<button class="ui primary button muted show-modal" data-modal="#create-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">Create list</button>
 			</div>
+			{{end}}
 		</div>
 	</div>
 
@@ -46,7 +48,7 @@
 			</a>
 			{{end}}
 		</div>
-		{{else}}
+		{{else if eq .SignedUserID .ContextUser.ID}}
 		<div class="ui attached segment tw-text-center tw-flex tw-items-center tw-justify-center tw-h-64 tw-rounded-md">
 			<div class="content">
 				<div class="">{{svg "octicon-star"}}</div>
@@ -60,11 +62,13 @@
 		{{end}}
 	</div>
 </div>
-{{else }}
+{{else}}
 <div class="star-list-repos">
 	<div class="top">
 		<h2>Test</h2>
+		{{if .SignedUserID .ContextUser.ID}}
 		<a class="muted show-modal" href="#" data-modal="#edit-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">Edit list</a>
+		{{end}}
 	</div>
 	<div class="description">Test</div>
 	<div class="repositories">
