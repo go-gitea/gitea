@@ -176,7 +176,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		if !pr.IsWorkInProgress(ctx) {
-			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, issue, pr)
+			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, pr)
 			if err != nil {
 				return err
 			}
@@ -450,6 +450,15 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 							if err != nil {
 								log.Error("UpdateCommitDivergence: %v", err)
 							}
+						}
+					}
+
+					if !pr.IsWorkInProgress(ctx) {
+						reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(ctx, pr)
+						if err != nil {
+							log.Error("PullRequestCodeOwnersReview: %v", err)
+						} else {
+							issue_service.ReviewRequestNotify(ctx, pr.Issue, doer, reviewNotifiers)
 						}
 					}
 

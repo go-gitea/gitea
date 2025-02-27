@@ -40,17 +40,17 @@ type ReviewRequestNotifier struct {
 	ReviewTeam *org_model.Team
 }
 
-func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
-	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
-
+func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+	issue := pr.Issue
 	if pr.IsWorkInProgress(ctx) {
 		return nil, nil
 	}
-
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return nil, err
 	}
-
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -71,6 +71,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue,
 	}
 
 	var data string
+	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
 	for _, file := range files {
 		if blob, err := commit.GetBlobByPath(file); err == nil {
 			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
