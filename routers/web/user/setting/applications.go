@@ -6,6 +6,7 @@ package setting
 
 import (
 	"net/http"
+	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -40,18 +41,29 @@ func ApplicationsPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
-	if ctx.HasError() {
-		loadApplicationsData(ctx)
-
-		ctx.HTML(http.StatusOK, tplSettingsApplications)
-		return
+	_ = ctx.Req.ParseForm()
+	var scopeNames []string
+	for k, v := range ctx.Req.Form {
+		if strings.HasPrefix(k, "scope-") {
+			scopeNames = append(scopeNames, v...)
+		}
 	}
 
-	scope, err := form.GetScope()
+	scope, err := auth_model.AccessTokenScope(strings.Join(scopeNames, ",")).Normalize()
 	if err != nil {
 		ctx.ServerError("GetScope", err)
 		return
 	}
+	if scope == "" {
+		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
+	}
+
+	if ctx.HasError() {
+		loadApplicationsData(ctx)
+		ctx.HTML(http.StatusOK, tplSettingsApplications)
+		return
+	}
+
 	t := &auth_model.AccessToken{
 		UID:   ctx.Doer.ID,
 		Name:  form.Name,

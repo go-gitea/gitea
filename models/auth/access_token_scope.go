@@ -5,6 +5,7 @@ package auth
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/perm"
@@ -197,6 +198,7 @@ func GetAccessTokenCategories() (res []string) {
 	for _, cat := range accessTokenScopes[Read] {
 		res = append(res, strings.TrimPrefix(string(cat), "read:"))
 	}
+	slices.Sort(res)
 	return res
 }
 
