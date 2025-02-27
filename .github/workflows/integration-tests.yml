@@ -23,11 +23,7 @@ jobs:
           POSTGRES_DB: gitea
           POSTGRES_USER: gitea_user
           POSTGRES_PASSWORD: gitea_pass
-        healthcheck:
-          test: ["CMD", "pg_isready", "-U", "gitea_user"]
-          interval: 10s
-          retries: 5
-          timeout: 30s
+
 
     steps:
       - name: Checkout code
