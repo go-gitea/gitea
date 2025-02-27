@@ -33,10 +33,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}  # GitHub Secrets for Docker username
+          password: ${{ secrets.DOCKER_PASSWORD }}  # GitHub Secrets for Docker password
+
       - name: Pull Test Docker Image
         run: |
           docker pull api_ui_tests:latest  # Pull the existing image
-
       - name: Run API and UI Tests
         run: |
           docker run --rm api_ui_tests:latest  # Run the tests using the image
