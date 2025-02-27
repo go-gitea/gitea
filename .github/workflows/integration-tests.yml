@@ -38,9 +38,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install docker-compose -y
 
-      - name: Build Test Docker Image
-        run: |
-          docker build -t api_ui_tests:latest -f Dockerfile.test .
+
 
       - name: Start Gitea & PostgreSQL using Docker Compose
         run: |
