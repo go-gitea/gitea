@@ -47,6 +47,4 @@ jobs:
         run: |
           docker run --rm maias816/api_ui_tests:latest  # Run the tests using the image
 
-      - name: Tear down containers
-        run: |
-          docker-compose down
+
