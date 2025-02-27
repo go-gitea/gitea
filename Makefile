@@ -37,7 +37,6 @@ GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
 GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.18.1
-GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.18.1
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -248,7 +247,6 @@ fmt: ## format the Go code
 		-e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' \
 	  -e 's/([ 	]\{1,\}/(/g' -e '/^[ 	]\{1,\})/! s/[ 	]\{1,\})/)/g' \
 	  $(TEMPLATES)
-	 @$(GO) run $(GOPLS_MODERNIZE_PACKAGE) -fix ./...
 
 .PHONY: fmt-check
 fmt-check: fmt
@@ -376,7 +374,7 @@ lint-go-vet: ## lint go files with vet
 .PHONY: lint-go-gopls
 lint-go-gopls: ## lint go files with gopls
 	@echo "Running gopls..."
-	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) GOPLS_MODERNIZE_PACKAGE=$(GOPLS_MODERNIZE_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA)
+	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES_NO_BINDATA)
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
