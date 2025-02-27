@@ -41,7 +41,8 @@ jobs:
 
       - name: Pull Test Docker Image
         run: |
-          docker pull api_ui_tests:latest  # Pull the existing image from docker hub1
+          docker pull maias816/api_ui_tests:latest
+      # Pull the existing image from docker hub1
       - name: Run API and UI Tests
         run: |
           docker run --rm api_ui_tests:latest  # Run the tests using the image
