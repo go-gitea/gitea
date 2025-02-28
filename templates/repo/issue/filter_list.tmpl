@@ -135,8 +135,7 @@
 		<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "farduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 		<div class="divider"></div>
 		<div class="header">{{ctx.Locale.Tr "repo.issues.filter_label"}}</div>
-		{{range .ExclusiveLabelScopes}}
-			{{$scope := .}}
+		{{range $scope := .ExclusiveLabelScopes}}
 			{{$sortType := (printf "scope-%s" $scope)}}
 			<a class="{{if eq $.SortType $sortType}}active {{end}}item" href="{{QueryBuild $queryLink "sort" $sortType}}">{{$scope}}</a>
 		{{end}}

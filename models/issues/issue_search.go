@@ -76,7 +76,7 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
 		sess.Join("LEFT", "label", "label.id = issue_label.label_id and label.name LIKE ?", scope+"/%")
 		sess.Asc("label.exclusive_order").Desc("issue.id")
-		return // EARLY RETURN
+		return
 	}
 
 	switch sortType {
