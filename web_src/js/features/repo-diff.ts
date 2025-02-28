@@ -6,19 +6,12 @@ import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {
-  submitEventSubmitter,
-  queryElemSiblings,
-  hideElem,
-  showElem,
-  animateOnce,
-  addDelegatedEventListener,
-  createElementFromHTML, queryElems,
-} from '../utils/dom.ts';
+import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
+import {parseDom} from '../utils.ts';
 
 const {i18n} = window.config;
 
@@ -174,7 +167,7 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
   try {
     const response = await GET(url);
     const resp = await response.text();
-    const respDoc = new DOMParser().parseFromString(resp, 'text/html');
+    const respDoc = parseDom(resp, 'text/html');
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes');
     // the response is a full HTML page, we need to extract the relevant contents:
     // * append the newly loaded file list items to the existing list
@@ -206,7 +199,7 @@ function initRepoDiffShowMore() {
     try {
       const response = await GET(url);
       const resp = await response.text();
-      const respDoc = new DOMParser().parseFromString(resp, 'text/html');
+      const respDoc = parseDom(resp, 'text/html');
       const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body');
       el.parentElement.replaceWith(...Array.from(respFileBody.children));
       // FIXME: calling onShowMoreFiles is not quite right here.
