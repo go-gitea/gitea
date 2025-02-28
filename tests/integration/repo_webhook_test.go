@@ -529,6 +529,7 @@ func Test_WebhookStatus(t *testing.T) {
 	var payloads []api.CommitStatusPayload
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(r *http.Request) {
+		assert.Contains(t, r.Header["X-Github-Hook-Installation-Target-Type"], "repository", "X-GitHub-Hook-Installation-Target-Type should contain repository")
 		assert.Contains(t, r.Header["X-Github-Event-Type"], "status", "X-GitHub-Event-Type should contain status")
 		assert.Contains(t, r.Header["X-Gitea-Event-Type"], "status", "X-Gitea-Event-Type should contain status")
 		assert.Contains(t, r.Header["X-Gogs-Event-Type"], "status", "X-Gogs-Event-Type should contain status")
