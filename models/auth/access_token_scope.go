@@ -5,6 +5,7 @@ package auth
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/perm"
@@ -14,7 +15,7 @@ import (
 type AccessTokenScopeCategory int
 
 const (
-	AccessTokenScopeCategoryActivityPub = iota
+	AccessTokenScopeCategoryActivityPub AccessTokenScopeCategory = iota
 	AccessTokenScopeCategoryAdmin
 	AccessTokenScopeCategoryMisc // WARN: this is now just a placeholder, don't remove it which will change the following values
 	AccessTokenScopeCategoryNotification
@@ -193,6 +194,14 @@ var accessTokenScopes = map[AccessTokenScopeLevel]map[AccessTokenScopeCategory]A
 	},
 }
 
+func GetAccessTokenCategories() (res []string) {
+	for _, cat := range accessTokenScopes[Read] {
+		res = append(res, strings.TrimPrefix(string(cat), "read:"))
+	}
+	slices.Sort(res)
+	return res
+}
+
 // GetRequiredScopes gets the specific scopes for a given level and categories
 func GetRequiredScopes(level AccessTokenScopeLevel, scopeCategories ...AccessTokenScopeCategory) []AccessTokenScope {
 	scopes := make([]AccessTokenScope, 0, len(scopeCategories))
@@ -270,6 +279,9 @@ func (s AccessTokenScope) parse() (accessTokenScopeBitmap, error) {
 
 // StringSlice returns the AccessTokenScope as a []string
 func (s AccessTokenScope) StringSlice() []string {
+	if s == "" {
+		return nil
+	}
 	return strings.Split(string(s), ",")
 }
 

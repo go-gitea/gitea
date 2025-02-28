@@ -72,7 +72,7 @@ func TestAPIReposGitBlobs(t *testing.T) {
 
 	// Login as User4.
 	session = loginUser(t, user4.Name)
-	token4 := getTokenForLoggedInUser(t, session)
+	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
 	// Test using org repo "org3/repo3" where user4 is a NOT collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/blobs/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", org3.Name, repo3.Name, token4)

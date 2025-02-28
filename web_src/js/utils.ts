@@ -1,6 +1,12 @@
 import {decode, encode} from 'uint8-to-base64';
 import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
 
+// transform /path/to/file.ext to /path/to
+export function dirname(path: string): string {
+  const lastSlashIndex = path.lastIndexOf('/');
+  return lastSlashIndex < 0 ? '' : path.substring(0, lastSlashIndex);
+}
+
 // transform /path/to/file.ext to file.ext
 export function basename(path: string): string {
   const lastSlashIndex = path.lastIndexOf('/');

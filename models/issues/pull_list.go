@@ -28,10 +28,15 @@ type PullRequestsOptions struct {
 	Labels      []int64
 	MilestoneID int64
 	PosterID    int64
+	BaseBranch  string
 }
 
 func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
 	sess := db.GetEngine(ctx).Where("pull_request.base_repo_id=?", baseRepoID)
+
+	if opts.BaseBranch != "" {
+		sess.And("pull_request.base_branch=?", opts.BaseBranch)
+	}
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
 	switch opts.State {
