@@ -7,6 +7,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -274,12 +275,13 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Doer.IsAdmin && ctx.Doer.LoginName != ctx.PathParam("collaborator") && !ctx.IsUserRepoAdmin() {
+	collaboratorUsername := ctx.PathParam("collaborator")
+	if !ctx.Doer.IsAdmin && ctx.Doer.LowerName != strings.ToLower(collaboratorUsername) && !ctx.IsUserRepoAdmin() {
 		ctx.APIError(http.StatusForbidden, "Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own")
 		return
 	}
 
-	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, collaboratorUsername)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err)

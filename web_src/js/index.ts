@@ -68,7 +68,6 @@ import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './features/common-fetch-action.ts';
-import {initScopedAccessTokenCategories} from './features/scoped-access-token.ts';
 import {
   initFootLanguageMenu,
   initGlobalDropdown,
@@ -209,7 +208,6 @@ onDomReady(() => {
     initUserSettings,
     initRepoDiffView,
     initPdfViewer,
-    initScopedAccessTokenCategories,
     initColorPickers,
 
     initOAuth2SettingsDisableCheckbox,
