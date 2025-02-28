@@ -6,6 +6,7 @@ package issue
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -40,6 +41,12 @@ type ReviewRequestNotifier struct {
 	ReviewTeam *org_model.Team
 }
 
+var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
+
+func IsCodeOwnerFile(f string) bool {
+	return slices.Contains(codeOwnerFiles, f)
+}
+
 func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
@@ -71,8 +78,8 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	var data string
-	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
-	for _, file := range files {
+
+	for _, file := range codeOwnerFiles {
 		if blob, err := commit.GetBlobByPath(file); err == nil {
 			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err == nil {
