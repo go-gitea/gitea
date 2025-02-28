@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  # API Test Runner - Runs first, then stops
+  api-test-runner:
+    image: moslemasaad/gitea-test-automation
+    container_name: api-test-runner
+    environment:
+      - GITEA_API_TOKEN=9829d39ece8b5ad3a7dcf2c8b273b55043ceaca6
+      - Password=80517moslem
+    command: mvn clean test -Dtest=**/apiTests/*
+  
+  # Selenium Grid Hub
+  selenium-hub:
+    image: selenium/hub:latest
+    container_name: selenium-hub
+    ports:
+      - "4444:4444"
+
+  # Chrome Node
+  chrome-node:
+    image: selenium/node-chrome:latest
+    container_name: selenium-chrome
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    shm_size: "2g"
+
+  # Firefox Node
+  firefox-node:
+    image: selenium/node-firefox:latest
+    container_name: selenium-firefox
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    shm_size: "2g"
+
+  # Selenium Test Runner - Runs after API tests
+  selenium-test-runner:
+    image: moslemasaad/gitea-test-automation
+    container_name: selenium-test-runner
+    depends_on:
+      - selenium-hub
+    environment:
+      - GITEA_API_TOKEN=9829d39ece8b5ad3a7dcf2c8b273b55043ceaca6
+      - Password=80517moslem
+      - GRID_URL=http://selenium-hub:4444/
+    command: mvn clean test -Dtest=**/seleniumTests/*
