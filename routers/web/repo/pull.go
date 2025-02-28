@@ -761,6 +761,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	var methodWithError string
 	var diff *gitdiff.Diff
+	shouldGetUserSpecificDiff := false
 
 	// if we're not logged in or only a single commit (or commit range) is shown we
 	// have to load only the diff and not get the viewed information
@@ -772,6 +773,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	} else {
 		diff, err = gitdiff.SyncAndGetUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diffOptions, files...)
 		methodWithError = "SyncAndGetUserSpecificDiff"
+		shouldGetUserSpecificDiff = true
 	}
 	if err != nil {
 		ctx.ServerError(methodWithError, err)
@@ -814,6 +816,27 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 				file.IsProtected = pb.IsProtectedFile(glob, file.Name)
 			}
 		}
+	}
+
+	if !fileOnly {
+		// note: use mergeBase is set to false because we already have the merge base from the pull request info
+		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, pull.MergeBase, headCommitID)
+		if err != nil {
+			ctx.ServerError("GetDiffTree", err)
+			return
+		}
+
+		filesViewedState := make(map[string]pull_model.ViewedState)
+		if shouldGetUserSpecificDiff {
+			// This sort of sucks because we already fetch this when getting the diff
+			review, err := pull_model.GetNewestReviewState(ctx, ctx.Doer.ID, issue.ID)
+			if err == nil && review != nil && review.UpdatedFiles != nil {
+				// If there wasn't an error and we have a review with updated files, use that
+				filesViewedState = review.UpdatedFiles
+			}
+		}
+
+		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(diffTree, filesViewedState)
 	}
 
 	ctx.Data["Diff"] = diff

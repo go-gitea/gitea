@@ -451,7 +451,8 @@ unit-test-coverage:
 tidy: ## run go mod tidy
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
-	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
+# disabled because of issues related to https://github.com/google/go-licenses/issues/128
+# 	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
 vendor: go.mod go.sum
 	$(GO) mod vendor
@@ -470,7 +471,7 @@ tidy-check: tidy
 go-licenses: $(GO_LICENSE_FILE) ## regenerate go licenses
 
 $(GO_LICENSE_FILE): go.mod go.sum
-	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
+	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path=$(GO_LICENSE_TMP_DIR)
 	$(GO) run build/generate-go-licenses.go $(GO_LICENSE_TMP_DIR) $(GO_LICENSE_FILE)
 	@rm -rf $(GO_LICENSE_TMP_DIR)
 
