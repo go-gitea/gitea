@@ -152,7 +152,7 @@ func (p *Permission) ReadableUnitTypes() []unit.Type {
 }
 
 func (p *Permission) LogString() string {
-	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [ "
+	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): ["
 	args := []any{p.AccessMode.ToString(), len(p.units), len(p.unitsMode)}
 
 	for i, u := range p.units {
@@ -164,14 +164,16 @@ func (p *Permission) LogString() string {
 				config = err.Error()
 			}
 		}
-		format += "\nUnits[%d]: ID: %d RepoID: %d Type: %s Config: %s"
+		format += "\n\tunits[%d]: ID=%d RepoID=%d Type=%s Config=%s"
 		args = append(args, i, u.ID, u.RepoID, u.Type.LogString(), config)
 	}
 	for key, value := range p.unitsMode {
-		format += "\nUnitMode[%-v]: %-v"
+		format += "\n\tunitsMode[%-v]: %-v"
 		args = append(args, key.LogString(), value.LogString())
 	}
-	format += " ]>"
+	format += "\n\teveryoneAccessMode: %-v"
+	args = append(args, p.everyoneAccessMode)
+	format += "\n\t]>"
 	return fmt.Sprintf(format, args...)
 }
 

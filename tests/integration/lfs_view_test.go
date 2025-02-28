@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -143,7 +142,7 @@ func TestLFSLockView(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		// make sure the display names are different, or the test is meaningless
-		require.NoError(t, repo3.LoadOwner(context.Background()))
+		require.NoError(t, repo3.LoadOwner(t.Context()))
 		require.NotEqual(t, user2.DisplayName(), repo3.Owner.DisplayName())
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/settings/lfs/locks", repo3.FullName()))

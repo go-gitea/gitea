@@ -179,7 +179,7 @@ func TestParseRepositoryURL(t *testing.T) {
 	ctxReq := &http.Request{URL: ctxURL, Header: http.Header{}}
 	ctxReq.Host = ctxURL.Host
 	ctxReq.Header.Add("X-Forwarded-Proto", ctxURL.Scheme)
-	ctx := context.WithValue(context.Background(), httplib.RequestContextKey, ctxReq)
+	ctx := context.WithValue(t.Context(), httplib.RequestContextKey, ctxReq)
 	cases := []struct {
 		input                          string
 		ownerName, repoName, remaining string
@@ -249,19 +249,19 @@ func TestMakeRepositoryBaseLink(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "https://localhost:3000/subpath")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/subpath")()
 
-	u, err := ParseRepositoryURL(context.Background(), "https://localhost:3000/subpath/user/repo.git")
+	u, err := ParseRepositoryURL(t.Context(), "https://localhost:3000/subpath/user/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "/subpath/user/repo", MakeRepositoryWebLink(u))
 
-	u, err = ParseRepositoryURL(context.Background(), "https://github.com/owner/repo.git")
+	u, err = ParseRepositoryURL(t.Context(), "https://github.com/owner/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://github.com/owner/repo", MakeRepositoryWebLink(u))
 
-	u, err = ParseRepositoryURL(context.Background(), "git@github.com:owner/repo.git")
+	u, err = ParseRepositoryURL(t.Context(), "git@github.com:owner/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://github.com/owner/repo", MakeRepositoryWebLink(u))
 
-	u, err = ParseRepositoryURL(context.Background(), "git+ssh://other:123/owner/repo.git")
+	u, err = ParseRepositoryURL(t.Context(), "git+ssh://other:123/owner/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://other/owner/repo", MakeRepositoryWebLink(u))
 }

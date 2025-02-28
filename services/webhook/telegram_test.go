@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"context"
 	"testing"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -195,7 +194,7 @@ func TestTelegramJSONPayload(t *testing.T) {
 		PayloadVersion: 2,
 	}
 
-	req, reqBody, err := newTelegramRequest(context.Background(), hook, task)
+	req, reqBody, err := newTelegramRequest(t.Context(), hook, task)
 	require.NotNil(t, req)
 	require.NotNil(t, reqBody)
 	require.NoError(t, err)

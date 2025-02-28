@@ -7,9 +7,7 @@ package forms
 import (
 	"mime/multipart"
 	"net/http"
-	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -347,20 +345,13 @@ func (f *EditVariableForm) Validate(req *http.Request, errs binding.Errors) bind
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name  string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
-	Scope []string
+	Name string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
 }
 
 // Validate validates the fields
 func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
-	scope := strings.Join(f.Scope, ",")
-	s, err := auth_model.AccessTokenScope(scope).Normalize()
-	return s, err
 }
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
