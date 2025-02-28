@@ -1157,7 +1157,7 @@ table th[data-sortt-desc] .svg {
 .ui.list.flex-items-block > .item,
 .flex-items-block > .item,
 .flex-text-block {
-  display: flex;
+  display: flex !important; /* override various fomantic "block" styles, since we are using "flex block" explicitly, it's fine to be "important" */
   align-items: center;
   gap: .5rem;
   min-width: 0;
