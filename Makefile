@@ -451,7 +451,8 @@ unit-test-coverage:
 tidy: ## run go mod tidy
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
-	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
+# disabled because of issues related to https://github.com/google/go-licenses/issues/128
+# 	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
 vendor: go.mod go.sum
 	$(GO) mod vendor
