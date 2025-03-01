@@ -1,5 +1,6 @@
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import type {Promisable} from 'type-fest';
+import type {InitPerformanceTracer} from './init.ts';
 
 let globalSelectorObserverInited = false;
 
@@ -60,7 +61,7 @@ function attachGlobalEvents() {
   });
 }
 
-export function initGlobalSelectorObserver(traceInitPerformance: {recordCall: (name: string, func: ()=>void) => void}): void {
+export function initGlobalSelectorObserver(perfTracer?: InitPerformanceTracer): void {
   if (globalSelectorObserverInited) throw new Error('initGlobalSelectorObserver() already called');
   globalSelectorObserverInited = true;
 
@@ -87,9 +88,9 @@ export function initGlobalSelectorObserver(traceInitPerformance: {recordCall: (n
       }
     }
   });
-  if (traceInitPerformance) {
+  if (perfTracer) {
     for (const {selector, handler} of selectorHandlers) {
-      traceInitPerformance.recordCall(`initGlobalSelectorObserver ${selector}`, () => {
+      perfTracer.recordCall(`initGlobalSelectorObserver ${selector}`, () => {
         for (const el of document.querySelectorAll<HTMLElement>(selector)) {
           handler(el);
         }

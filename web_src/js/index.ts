@@ -70,39 +70,14 @@ import {initGlobalFetchAction} from './features/common-fetch-action.ts';
 import {initFootLanguageMenu, initGlobalDropdown, initGlobalInput, initGlobalTabularMenu, initHeadNavbarContentToggle} from './features/common-page.ts';
 import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton} from './features/common-button.ts';
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
+import {callInitFunctions} from './modules/init.ts';
 
 initGiteaFomantic();
 initSubmitEventPolyfill();
 
-// Start performance trace by accessing a URL by "https://localhost/?_ui_performance_trace=1" or "https://localhost/?key=value&_ui_performance_trace=1"
-// It is a quick check, no side effect so no need to do slow URL parsing.
-const traceInitPerformance = !window.location.search.includes('_ui_performance_trace=1') ? null : new class {
-  results: {name: string, dur: number}[] = [];
-  recordCall(name: string, func: ()=>void) {
-    const start = performance.now();
-    func();
-    this.results.push({name, dur: performance.now() - start});
-  }
-  printResults() {
-    this.results = this.results.sort((a, b) => b.dur - a.dur);
-    for (let i = 0; i < 20 && i < this.results.length; i++) {
-      // eslint-disable-next-line no-console
-      console.log(`performance trace: ${this.results[i].name} ${this.results[i].dur.toFixed(3)}`);
-    }
-  }
-}();
-
-function callInitFunctions(functions: (() => any)[]) {
-  if (traceInitPerformance) {
-    for (const func of functions) traceInitPerformance.recordCall(func.name, func);
-  } else {
-    for (const func of functions) func();
-  }
-}
-
 onDomReady(() => {
   const initStartTime = performance.now();
-  callInitFunctions([
+  const initPerformanceTracer = callInitFunctions([
     initGlobalDropdown,
     initGlobalTabularMenu,
     initGlobalFetchAction,
@@ -199,9 +174,9 @@ onDomReady(() => {
   ]);
 
   // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.
-  initGlobalSelectorObserver(traceInitPerformance);
+  initGlobalSelectorObserver(initPerformanceTracer);
+  if (initPerformanceTracer) initPerformanceTracer.printResults();
 
-  if (traceInitPerformance) traceInitPerformance.printResults();
   const initDur = performance.now() - initStartTime;
   if (initDur > 500) {
     console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
