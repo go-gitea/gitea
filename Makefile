@@ -508,8 +508,11 @@ unit-test-coverage:
 tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
-# disabled because of issues related to https://github.com/google/go-licenses/issues/128
-# 	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
+	@# revert "go/toolchain" version, they are updated incorrectly by the "tidy" tool
+	$(SED_INPLACE) -E -e 's/^(go [0-9]\.[0-9]+).*/\1/g' go.mod go.mod
+	awk 'BEGIN {skip=0} /^toolchain/ {skip=1; next} skip==1 && /^$$/ {skip=0; next} {skip=0} 1' go.mod > go.mod.new
+	rm go.mod && mv go.mod.new go.mod
+ 	# $(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
 vendor: go.mod go.sum
 	$(GO) mod vendor
