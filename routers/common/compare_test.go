@@ -484,7 +484,13 @@ func Test_ParseComparePathParams(t *testing.T) {
 				assert.NotNil(t, r.close)
 				r.close = nil // close is a function, so we can't compare it
 			}
-			assert.EqualValues(t, kase.compareInfo, r)
+			assert.EqualValues(t, *kase.compareInfo.CompareRouter, *r.CompareRouter)
+			assert.EqualValues(t, *kase.compareInfo.BaseRepo, *r.BaseRepo)
+			assert.EqualValues(t, *kase.compareInfo.HeadUser, *r.HeadUser)
+			assert.EqualValues(t, *kase.compareInfo.HeadRepo, *r.HeadRepo)
+			assert.EqualValues(t, kase.compareInfo.HeadGitRepo.Path, r.HeadGitRepo.Path)
+			assert.EqualValues(t, kase.compareInfo.IsBaseCommit, r.IsBaseCommit)
+			assert.EqualValues(t, kase.compareInfo.IsHeadCommit, r.IsHeadCommit)
 		})
 	}
 }
