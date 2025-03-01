@@ -6,8 +6,10 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -256,4 +258,39 @@ func ReserveLineBreakForTextarea(input string) string {
 	// And users are unlikely to really need to keep the \r.
 	// Other than this, we should respect the original content, even leading or trailing spaces.
 	return strings.ReplaceAll(input, "\r\n", "\n")
+}
+
+func ConfigSectionToMap(in any, keyPrefix string) (map[string]string, error) {
+	if keyPrefix == "" {
+		return nil, fmt.Errorf("keyPrefix is empty")
+	}
+	out := map[string]string{}
+
+	v := reflect.ValueOf(in)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("in is not a struct")
+	}
+
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		fi := t.Field(i)
+		if tagValue := fi.Tag.Get("ini"); tagValue == "-" {
+			continue
+		}
+		switch v.FieldByName(fi.Name).Kind() {
+		case reflect.Bool,
+			reflect.String,
+			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			out[fmt.Sprintf("%s.%s", keyPrefix, ToSnakeCase(fi.Name))] = fmt.Sprintf("%v", v.FieldByName(fi.Name).Interface())
+		case reflect.Slice, reflect.Array:
+			str, _ := json.Marshal(v.FieldByName(fi.Name))
+			out[fmt.Sprintf("%s.%s", keyPrefix, ToSnakeCase(fi.Name))] = string(str)
+		}
+	}
+
+	return out, nil
 }
