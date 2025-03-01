@@ -193,7 +193,7 @@ func ConfigSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config_settings")
 	ctx.Data["PageIsAdminConfig"] = true
 	ctx.Data["PageIsAdminConfigSettings"] = true
-	ctx.Data["UI"] = setting.UI
+	ctx.Data["UI"] = setting.Config().UI.ToStruct(ctx)
 	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
 	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
