@@ -1,14 +1,15 @@
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
+import type {Promisable} from 'type-fest';
 
 let globalSelectorObserverInited = false;
 
 type SelectorHandler = {selector: string, handler: (el: HTMLElement) => void};
 const selectorHandlers: SelectorHandler[] = [];
 
-type GlobalEventFunc<T extends HTMLElement, E extends Event> = (el: T, e: E) => (void | Promise<void>);
+type GlobalEventFunc<T extends HTMLElement, E extends Event> = (el: T, e: E) => Promisable<void>;
 const globalEventFuncs: Record<string, GlobalEventFunc<HTMLElement, Event>> = {};
 
-type GlobalInitFunc<T extends HTMLElement> = (el: T) => void | Promise<void>;
+type GlobalInitFunc<T extends HTMLElement> = (el: T) => Promisable<void>;
 const globalInitFuncs: Record<string, GlobalInitFunc<HTMLElement>> = {};
 
 // It handles the global events for all `<div data-global-click="onSomeElemClick"></div>` elements.
