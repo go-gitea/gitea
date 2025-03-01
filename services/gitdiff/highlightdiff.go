@@ -6,8 +6,6 @@ package gitdiff
 import (
 	"strings"
 
-	"code.gitea.io/gitea/modules/highlight"
-
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -90,11 +88,8 @@ func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
-	highlightCodeA, _ := highlight.Code(filename, language, codeA)
-	highlightCodeB, _ := highlight.Code(filename, language, codeB)
-
-	convertedCodeA := hcd.convertToPlaceholders(string(highlightCodeA))
-	convertedCodeB := hcd.convertToPlaceholders(string(highlightCodeB))
+	convertedCodeA := hcd.convertToPlaceholders(codeA)
+	convertedCodeB := hcd.convertToPlaceholders(codeB)
 
 	diffs := diffMatchPatch.DiffMain(convertedCodeA, convertedCodeB, true)
 	diffs = diffMatchPatch.DiffCleanupEfficiency(diffs)
@@ -204,18 +199,6 @@ func (hcd *highlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 			tokenToRecover = token
 		} // else: impossible
 		sb.WriteString(tokenToRecover)
-	}
-
-	if len(tagStack) > 0 {
-		// close all opening tags
-		for i := len(tagStack) - 1; i >= 0; i-- {
-			tagToClose := tagStack[i]
-			// get the closing tag "</span>" from "<span class=...>" or "<span>"
-			pos := strings.IndexAny(tagToClose, " >")
-			if pos != -1 {
-				sb.WriteString("</" + tagToClose[1:pos] + ">")
-			} // else: impossible. every tag was pushed into the stack by the code above and is valid HTML opening tag
-		}
 	}
 
 	diff.Text = sb.String()
