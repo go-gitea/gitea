@@ -1,4 +1,3 @@
-import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {initDiffFileTree} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
@@ -8,17 +7,16 @@ import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
+import {observeAddedElement} from '../modules/observer.ts';
 
 const {i18n} = window.config;
 
-function initRepoDiffFileViewToggle() {
+function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
-  // FIXME: this event listener is not correctly added to "load more files"
-  queryElems(document, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
+  queryElems(el, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
     queryElemSiblings(btn, '.file-view-toggle', (el) => el.classList.remove('active'));
     btn.classList.add('active');
 
@@ -75,7 +73,6 @@ function initRepoDiffConversationForm() {
           el.classList.add('tw-invisible');
         }
       }
-      fomanticQuery(newConversationHolder.querySelectorAll('.ui.dropdown')).dropdown();
 
       // the default behavior is to add a pending review, so if no submitter, it also means "pending_review"
       if (!submitter || submitter?.matches('button[name="pending_review"]')) {
@@ -110,8 +107,6 @@ function initRepoDiffConversationForm() {
       if (elConversationHolder) {
         const elNewConversation = createElementFromHTML(data);
         elConversationHolder.replaceWith(elNewConversation);
-        queryElems(elConversationHolder, '.ui.dropdown:not(.custom)', (el) => fomanticQuery(el).dropdown());
-        initCompReactionSelector(elNewConversation);
       } else {
         window.location.reload();
       }
@@ -149,7 +144,7 @@ function initDiffHeaderPopup() {
 
 // Will be called when the show more (files) button has been pressed
 function onShowMoreFiles() {
-  // FIXME: here the init calls are incomplete: at least it misses dropdown & initCompReactionSelector & initRepoDiffFileViewToggle
+  // TODO: replace these calls with the "observer.ts" methods
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   countAndUpdateViewedFiles();
@@ -255,11 +250,11 @@ export function initRepoDiffView() {
   initDiffCommitSelect();
   initRepoDiffShowMore();
   initDiffHeaderPopup();
-  initRepoDiffFileViewToggle();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
   initRepoDiffHashChangeListener();
 
+  observeAddedElement('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
   addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
     invertFileFolding(el.closest('.file-content'), el);
   });

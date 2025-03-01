@@ -107,7 +107,7 @@ func newJSONRequest[T any](pc payloadConvertor[T], w *webhook_model.Webhook, t *
 	req.Header.Set("Content-Type", "application/json")
 
 	if withDefaultHeaders {
-		return req, body, addDefaultHeaders(req, []byte(w.Secret), t, body)
+		return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body)
 	}
 	return req, body, nil
 }

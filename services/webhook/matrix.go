@@ -56,7 +56,7 @@ func newMatrixRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mo
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	return req, body, addDefaultHeaders(req, []byte(w.Secret), t, body) // likely useless, but has always been sent historially
+	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body) // likely useless, but has always been sent historially
 }
 
 const matrixPayloadSizeLimit = 1024 * 64
