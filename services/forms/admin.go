@@ -52,6 +52,7 @@ type AdminEditUserForm struct {
 	ProhibitLogin           bool
 	Reset2FA                bool `form:"reset_2fa"`
 	Visibility              structs.VisibleType
+	UserType                int
 }
 
 // Validate validates form fields

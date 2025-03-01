@@ -30,6 +30,14 @@
 				{{svg (Iif .User.IsRestricted "octicon-check" "octicon-x")}}
 			</div>
 			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "settings.user_type"}}:</b>
+				{{if .User.IsIndividual}}{{ctx.Locale.Tr "settings.user_type.individual"}}{{end}}
+				{{if .User.IsOrganization}}{{ctx.Locale.Tr "settings.user_type.organization"}}{{end}}
+				{{if .User.IsReservedIndividual}}{{ctx.Locale.Tr "settings.user_type.reservedindividual"}}{{end}}
+				{{if .User.IsReservedOrganization}}{{ctx.Locale.Tr "settings.user_type.reservedorganization"}}{{end}}
+				{{if .User.IsTypeBot}}{{ctx.Locale.Tr "settings.user_type.bot"}}{{end}}
+			</div>
+			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "settings.visibility"}}:</b>
 				{{if .User.Visibility.IsPublic}}{{ctx.Locale.Tr "settings.visibility.public"}}{{end}}
 				{{if .User.Visibility.IsLimited}}{{ctx.Locale.Tr "settings.visibility.limited"}}{{end}}

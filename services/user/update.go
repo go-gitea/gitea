@@ -36,6 +36,7 @@ type UpdateOptions struct {
 	EmailNotificationsPreference optional.Option[string]
 	SetLastLogin                 bool
 	RepoAdminChangeTeamAccess    optional.Option[bool]
+	UserType                     optional.Option[int]
 }
 
 func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) error {
@@ -132,6 +133,10 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		u.KeepActivityPrivate = opts.KeepActivityPrivate.Value()
 
 		cols = append(cols, "keep_activity_private")
+	}
+	if opts.UserType.Has() {
+		u.Type = user_model.UserType(opts.UserType.Value())
+		cols = append(cols, "type")
 	}
 
 	if opts.AllowCreateOrganization.Has() {

@@ -53,6 +53,28 @@
 					</div>
 				</div>
 
+				<div class="inline field {{if .Err_Type}}error{{end}}">
+					<span class="inline required field"><label for="type">{{ctx.Locale.Tr "settings.user_type"}}</label></span>
+					<div class="ui selection type dropdown">
+						<input type="hidden" id="user_type" name="user_type" value="{{.User.Type}}">
+						<div class="text">
+							{{if .User.IsIndividual}}{{ctx.Locale.Tr "settings.user_type.individual"}}{{end}}
+							{{if .User.IsOrganization}}{{ctx.Locale.Tr "settings.user_type.organization"}}{{end}}
+							{{if .User.IsReservedIndividual}}{{ctx.Locale.Tr "settings.user_type.reservedindividual"}}{{end}}
+							{{if .User.IsReservedOrganization}}{{ctx.Locale.Tr "settings.user_type.reservedorganization"}}{{end}}
+							{{if .User.IsTypeBot}}{{ctx.Locale.Tr "settings.user_type.bot"}}{{end}}
+						</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+								<div class="item" data-value="0">{{ctx.Locale.Tr "settings.user_type.individual"}}</div>
+								<div class="item" data-value="1">{{ctx.Locale.Tr "settings.user_type.organization"}}</div>
+								<div class="item" data-value="2">{{ctx.Locale.Tr "settings.user_type.reservedindividual"}}</div>
+								<div class="item" data-value="3">{{ctx.Locale.Tr "settings.user_type.reservedorganization"}}</div>
+								<div class="item" data-value="4">{{ctx.Locale.Tr "settings.user_type.bot"}}</div>
+						</div>
+					</div>
+				</div>
+
 				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
 					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>

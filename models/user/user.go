@@ -395,9 +395,17 @@ func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
 
+func (u *User) IsReservedOrganization() bool {
+	return u.Type == UserTypeOrganizationReserved
+}
+
 // IsIndividual returns true if user is actually a individual user.
 func (u *User) IsIndividual() bool {
 	return u.Type == UserTypeIndividual
+}
+
+func (u *User) IsReservedIndividual() bool {
+	return u.Type == UserTypeUserReserved
 }
 
 // IsTypeBot returns whether the user is of type bot
