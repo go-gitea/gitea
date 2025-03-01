@@ -6,7 +6,6 @@ package v1_24 //nolint
 import (
 	"math"
 
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -43,7 +42,7 @@ func MigrateIniToDatabase(x *xorm.Engine) error {
 		return err
 	}
 
-	_ = GetRevision(sess) // prepare the "revision" key ahead
+	_ = getRevision(sess) // prepare the "revision" key ahead
 
 	_, err = sess.Exec("UPDATE system_setting SET version=version+1 WHERE setting_key=?", keyRevision)
 	if err != nil {
@@ -56,7 +55,7 @@ func MigrateIniToDatabase(x *xorm.Engine) error {
 		}
 		rows, _ := res.RowsAffected()
 		if rows == 0 { // if no existing row, insert a new row
-			if _, err = sess.Insert(&system_model.Setting{SettingKey: k, SettingValue: v}); err != nil {
+			if _, err = sess.Insert(&Setting{SettingKey: k, SettingValue: v}); err != nil {
 				return err
 			}
 		}
@@ -65,7 +64,7 @@ func MigrateIniToDatabase(x *xorm.Engine) error {
 	return sess.Commit()
 }
 
-func GetRevision(sess *xorm.Session) int {
+func getRevision(sess *xorm.Session) int {
 	revision := &Setting{}
 	exist, err := sess.Where("setting_key = ?", keyRevision).Get(revision)
 	if err != nil {
