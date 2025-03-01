@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
+	"code.gitea.io/gitea/services/mailer/token"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -87,16 +88,59 @@ func DeleteAttachment(ctx *context.Context) {
 	})
 }
 
+func checkSecurityLink(ctx *context.Context, uuid string) (*repo_model.Attachment, func()) {
+	handlerType, user, payload, err := token.ExtractToken(ctx, uuid)
+	if err != nil {
+		return nil, nil
+	}
+	if handlerType != token.ReadAttachmentHandlerType {
+		return nil, nil
+	}
+
+	var attachID int64
+	err = util.UnpackData(payload, &attachID)
+	if err != nil {
+		return nil, nil
+	}
+
+	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
+	if err != nil {
+		return nil, nil
+	}
+
+	cUser := ctx.Doer
+	cIsSigned := ctx.IsSigned
+
+	cancel := func() {
+		ctx.Doer = cUser
+		ctx.IsSigned = cIsSigned
+	}
+
+	ctx.Doer = user
+	ctx.IsSigned = true
+
+	return attach, cancel
+}
+
 // GetAttachment serve attachments with the given UUID
 func ServeAttachment(ctx *context.Context, uuid string) {
-	attach, err := repo_model.GetAttachmentByUUID(ctx, uuid)
-	if err != nil {
-		if repo_model.IsErrAttachmentNotExist(err) {
-			ctx.HTTPError(http.StatusNotFound)
-		} else {
-			ctx.ServerError("GetAttachmentByUUID", err)
+	var err error
+
+	attach, cancel := checkSecurityLink(ctx, uuid)
+	if cancel != nil {
+		defer cancel()
+	}
+
+	if attach == nil {
+		attach, err = repo_model.GetAttachmentByUUID(ctx, uuid)
+		if err != nil {
+			if repo_model.IsErrAttachmentNotExist(err) {
+				ctx.HTTPError(http.StatusNotFound)
+			} else {
+				ctx.ServerError("GetAttachmentByUUID", err)
+			}
+			return
 		}
-		return
 	}
 
 	repository, unitType, err := repo_service.LinkedRepository(ctx, attach)

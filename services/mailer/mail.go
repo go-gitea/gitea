@@ -28,9 +28,12 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 	"code.gitea.io/gitea/services/mailer/token"
+
+	"golang.org/x/net/html"
 )
 
 const (
@@ -228,6 +231,11 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		return nil, err
 	}
 
+	loadedBody, err := ParseMailBody(string(body))
+	if err != nil {
+		return nil, err
+	}
+
 	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
 
 	if actName != "new" {
@@ -279,12 +287,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	mailMeta["Subject"] = subject
 
-	var mailBody bytes.Buffer
-
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
-	}
-
 	// Make sure to compose independent messages to avoid leaking user emails
 	msgID := generateMessageIDForIssue(ctx.Issue, ctx.Comment, ctx.ActionType)
 	reference := generateMessageIDForIssue(ctx.Issue, nil, activities_model.ActionType(0))
@@ -308,6 +310,20 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	msgs := make([]*sender_service.Message, 0, len(recipients))
 	for _, recipient := range recipients {
+		var mailBody bytes.Buffer
+
+		bodyStr, err := loadedBody.RenderBody(ctx, recipient)
+		if err != nil {
+			log.Error("RenderBody: %v", err)
+			continue
+		}
+		mailMeta["Body"] = template.HTML(bodyStr)
+
+		if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
+			log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
+			continue
+		}
+
 		msg := sender_service.NewMessageFrom(
 			recipient.Email,
 			fromDisplayName(ctx.Doer),
@@ -547,4 +563,120 @@ func fromDisplayName(u *user_model.User) string {
 		log.Error("fromDisplayName: %w", err)
 	}
 	return u.GetCompleteName()
+}
+
+type LoadedMailBody struct {
+	doc      *html.Node
+	allLinks []*html.Attribute
+}
+
+func (ml *LoadedMailBody) RenderBody(ctx *mailCommentContext, user *user_model.User) (string, error) {
+	allLinks := make(map[string]string)
+
+	for _, l := range ml.allLinks {
+		if v, ok := allLinks[l.Val]; ok {
+			l.Val = v
+			continue
+		}
+
+		securityURI, err := AttachmentSrcToSecurityURI(ctx, l.Val, user)
+		if err != nil {
+			continue
+		}
+
+		allLinks[l.Val] = securityURI
+		l.Val = securityURI
+	}
+
+	var buf bytes.Buffer
+	err := html.Render(&buf, ml.doc)
+	if err != nil {
+		log.Error("Failed to render modified HTML: %v", err)
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+func ParseMailBody(body string) (*LoadedMailBody, error) {
+	doc, err := html.Parse(strings.NewReader(body))
+	if err != nil {
+		log.Error("Failed to parse HTML body: %v", err)
+		return nil, err
+	}
+
+	var processNode func(*html.Node)
+	allLins := make([]*html.Attribute, 0)
+
+	processNode = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			if n.Data == "img" {
+				for i, attr := range n.Attr {
+					if attr.Key != "src" {
+						continue
+					}
+
+					if !strings.HasPrefix(attr.Val, setting.AppURL) { // external image
+						continue
+					}
+
+					allLins = append(allLins, &n.Attr[i])
+				}
+			}
+
+			if n.Data == "a" {
+				for i, attr := range n.Attr {
+					if attr.Key != "href" {
+						continue
+					}
+
+					if !strings.HasPrefix(attr.Val, setting.AppURL) { // external link
+						continue
+					}
+
+					allLins = append(allLins, &n.Attr[i])
+				}
+			}
+		}
+
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			processNode(c)
+		}
+	}
+
+	processNode(doc)
+
+	return &LoadedMailBody{
+		doc:      doc,
+		allLinks: allLins,
+	}, nil
+}
+
+func AttachmentSrcToSecurityURI(ctx context.Context, attachmentPath string, user *user_model.User) (string, error) {
+	if !strings.HasPrefix(attachmentPath, setting.AppURL) { // external image
+		return "", fmt.Errorf("external image")
+	}
+
+	parts := strings.Split(attachmentPath, "/attachments/")
+	if len(parts) <= 1 {
+		return "", fmt.Errorf("invalid attachment path: %s", attachmentPath)
+	}
+
+	attachmentUUID := parts[len(parts)-1]
+	attachment, err := repo_model.GetAttachmentByUUID(ctx, attachmentUUID)
+	if err != nil {
+		return "", err
+	}
+
+	payload, err := util.PackData(attachment.ID)
+	if err != nil {
+		return "", err
+	}
+
+	key, err := token.CreateToken(token.ReadAttachmentHandlerType, user, payload)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.Replace(attachmentPath, attachmentUUID, key, 1), nil
 }

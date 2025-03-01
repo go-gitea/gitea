@@ -1380,7 +1380,7 @@ func registerRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}", func() { // to maintain compatibility with old attachments
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
-	}, optSignIn, context.RepoAssignment)
+	}, optSignIn)
 	// end "/{username}/{reponame}": compatibility with old attachments
 
 	m.Group("/{username}/{reponame}", func() {

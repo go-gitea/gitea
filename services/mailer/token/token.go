@@ -34,6 +34,7 @@ const (
 	UnknownHandlerType HandlerType = iota
 	ReplyHandlerType
 	UnsubscribeHandlerType
+	ReadAttachmentHandlerType
 )
 
 var encodingWithoutPadding = base32.StdEncoding.WithPadding(base32.NoPadding)
