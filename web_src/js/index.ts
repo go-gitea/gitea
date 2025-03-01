@@ -62,13 +62,12 @@ import {initRepoContributors} from './features/contributors.ts';
 import {initRepoCodeFrequency} from './features/code-frequency.ts';
 import {initRepoRecentCommits} from './features/recent-commits.ts';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.ts';
-import {initDirAuto} from './modules/dirauto.ts';
+import {initAddedElementObserver} from './modules/observer.ts';
 import {initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './features/common-fetch-action.ts';
-import {initScopedAccessTokenCategories} from './features/scoped-access-token.ts';
 import {
   initFootLanguageMenu,
   initGlobalDropdown,
@@ -87,7 +86,7 @@ import {
 } from './features/common-form.ts';
 
 initGiteaFomantic();
-initDirAuto();
+initAddedElementObserver();
 initSubmitEventPolyfill();
 
 function callInitFunctions(functions: (() => any)[]) {
@@ -209,7 +208,6 @@ onDomReady(() => {
     initUserSettings,
     initRepoDiffView,
     initPdfViewer,
-    initScopedAccessTokenCategories,
     initColorPickers,
 
     initOAuth2SettingsDisableCheckbox,
