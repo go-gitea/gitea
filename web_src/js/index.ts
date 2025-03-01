@@ -11,7 +11,6 @@ import {initImageDiff} from './features/imagediff.ts';
 import {initRepoMigration} from './features/repo-migration.ts';
 import {initRepoProject} from './features/repo-projects.ts';
 import {initTableSort} from './features/tablesort.ts';
-import {initAutoFocusEnd} from './features/autofocus-end.ts';
 import {initAdminUserListSearchForm} from './features/admin/users.ts';
 import {initAdminConfigs} from './features/admin/config.ts';
 import {initMarkupAnchors} from './markup/anchors.ts';
@@ -62,61 +61,47 @@ import {initRepoContributors} from './features/contributors.ts';
 import {initRepoCodeFrequency} from './features/code-frequency.ts';
 import {initRepoRecentCommits} from './features/recent-commits.ts';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.ts';
-import {initAddedElementObserver} from './modules/observer.ts';
+import {initGlobalSelectorObserver} from './modules/observer.ts';
 import {initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './features/common-fetch-action.ts';
-import {
-  initFootLanguageMenu,
-  initGlobalDropdown,
-  initGlobalTabularMenu,
-  initHeadNavbarContentToggle,
-} from './features/common-page.ts';
-import {
-  initGlobalButtonClickOnEnter,
-  initGlobalButtons,
-  initGlobalDeleteButton,
-} from './features/common-button.ts';
-import {
-  initGlobalComboMarkdownEditor,
-  initGlobalEnterQuickSubmit,
-  initGlobalFormDirtyLeaveConfirm,
-} from './features/common-form.ts';
+import {initFootLanguageMenu, initGlobalDropdown, initGlobalInput, initGlobalTabularMenu, initHeadNavbarContentToggle} from './features/common-page.ts';
+import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton} from './features/common-button.ts';
+import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 
 initGiteaFomantic();
-initAddedElementObserver();
 initSubmitEventPolyfill();
 
-function callInitFunctions(functions: (() => any)[]) {
-  // Start performance trace by accessing a URL by "https://localhost/?_ui_performance_trace=1" or "https://localhost/?key=value&_ui_performance_trace=1"
-  // It is a quick check, no side effect so no need to do slow URL parsing.
-  const initStart = performance.now();
-  if (window.location.search.includes('_ui_performance_trace=1')) {
-    let results: {name: string, dur: number}[] = [];
-    for (const func of functions) {
-      const start = performance.now();
-      func();
-      results.push({name: func.name, dur: performance.now() - start});
-    }
-    results = results.sort((a, b) => b.dur - a.dur);
-    for (let i = 0; i < 20 && i < results.length; i++) {
+// Start performance trace by accessing a URL by "https://localhost/?_ui_performance_trace=1" or "https://localhost/?key=value&_ui_performance_trace=1"
+// It is a quick check, no side effect so no need to do slow URL parsing.
+const traceInitPerformance = !window.location.search.includes('_ui_performance_trace=1') ? null : new class {
+  results: {name: string, dur: number}[] = [];
+  recordCall(name: string, func: ()=>void) {
+    const start = performance.now();
+    func();
+    this.results.push({name, dur: performance.now() - start});
+  }
+  printResults() {
+    this.results = this.results.sort((a, b) => b.dur - a.dur);
+    for (let i = 0; i < 20 && i < this.results.length; i++) {
       // eslint-disable-next-line no-console
-      console.log(`performance trace: ${results[i].name} ${results[i].dur.toFixed(3)}`);
-    }
-  } else {
-    for (const func of functions) {
-      func();
+      console.log(`performance trace: ${this.results[i].name} ${this.results[i].dur.toFixed(3)}`);
     }
   }
-  const initDur = performance.now() - initStart;
-  if (initDur > 500) {
-    console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
+}();
+
+function callInitFunctions(functions: (() => any)[]) {
+  if (traceInitPerformance) {
+    for (const func of functions) traceInitPerformance.recordCall(func.name, func);
+  } else {
+    for (const func of functions) func();
   }
 }
 
 onDomReady(() => {
+  const initStartTime = performance.now();
   callInitFunctions([
     initGlobalDropdown,
     initGlobalTabularMenu,
@@ -129,6 +114,7 @@ onDomReady(() => {
     initGlobalFormDirtyLeaveConfirm,
     initGlobalComboMarkdownEditor,
     initGlobalDeleteButton,
+    initGlobalInput,
 
     initCommonOrganization,
     initCommonIssueListQuickGoto,
@@ -150,7 +136,6 @@ onDomReady(() => {
     initSshKeyFormParser,
     initStopwatch,
     initTableSort,
-    initAutoFocusEnd,
     initFindFileInRepo,
     initCopyContent,
 
@@ -212,4 +197,13 @@ onDomReady(() => {
 
     initOAuth2SettingsDisableCheckbox,
   ]);
+
+  // it must be the last one, then the "querySelectorAll" only needs to be executed once for global init functions.
+  initGlobalSelectorObserver(traceInitPerformance);
+
+  if (traceInitPerformance) traceInitPerformance.printResults();
+  const initDur = performance.now() - initStartTime;
+  if (initDur > 500) {
+    console.error(`slow init functions took ${initDur.toFixed(3)}ms`);
+  }
 });
