@@ -256,7 +256,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	// cancel running jobs of the same workflow
-	if err := actions_model.CancelPreviousJobs(
+	if err := CancelPreviousJobs(
 		ctx,
 		run.RepoID,
 		run.Ref,
