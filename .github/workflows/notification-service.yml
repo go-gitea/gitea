@@ -1,13 +1,11 @@
 name: Run Notification Service Tests
 
 on:
-  push:
-    branches: [ main, dev ]
   pull_request:
     branches: [ main, dev ]
 
 jobs:
-  api-tests:
+  notification-service-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
