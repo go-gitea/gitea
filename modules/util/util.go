@@ -6,13 +6,13 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
 
 	"golang.org/x/text/cases"
