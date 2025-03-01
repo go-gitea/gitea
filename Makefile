@@ -366,9 +366,8 @@ lint-go-windows:
 	golangci-lint run
 
 .PHONY: lint-go-vet
-lint-go-vet: ## lint go files with vet
-	@echo "Running go vet..."
-	@$(GO) vet ./...
+lint-go-vet: ## lint go files with gitea-vet
+	@echo "Running gitea-vet..."
 	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet ./...
 
