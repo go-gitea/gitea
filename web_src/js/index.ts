@@ -62,7 +62,7 @@ import {initRepoContributors} from './features/contributors.ts';
 import {initRepoCodeFrequency} from './features/code-frequency.ts';
 import {initRepoRecentCommits} from './features/recent-commits.ts';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.ts';
-import {initDirAuto} from './modules/dirauto.ts';
+import {initAddedElementObserver} from './modules/observer.ts';
 import {initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
@@ -86,7 +86,7 @@ import {
 } from './features/common-form.ts';
 
 initGiteaFomantic();
-initDirAuto();
+initAddedElementObserver();
 initSubmitEventPolyfill();
 
 function callInitFunctions(functions: (() => any)[]) {
