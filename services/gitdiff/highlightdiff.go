@@ -201,5 +201,17 @@ func (hcd *highlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 		sb.WriteString(tokenToRecover)
 	}
 
+	if len(tagStack) > 0 {
+		// close all opening tags
+		for i := len(tagStack) - 1; i >= 0; i-- {
+			tagToClose := tagStack[i]
+			// get the closing tag "</span>" from "<span class=...>" or "<span>"
+			pos := strings.IndexAny(tagToClose, " >")
+			if pos != -1 {
+				sb.WriteString("</" + tagToClose[1:pos] + ">")
+			} // else: impossible. every tag was pushed into the stack by the code above and is valid HTML opening tag
+		}
+	}
+
 	diff.Text = sb.String()
 }
