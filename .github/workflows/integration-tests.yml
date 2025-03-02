@@ -1,9 +1,7 @@
 name: Gitea Setup and Testing
 
 on:
-  push:
-    branches:
-      - dev  # Trigger the workflow when changes are pushed to the dev branch
+
   pull_request:
     branches:
       - dev  # Trigger the workflow when a PR is opened to the dev branch
@@ -45,6 +43,8 @@ jobs:
       # Pull the existing image from docker hub1
       - name: Run API and UI Tests
         run: |
-          docker run --rm maias816/api_ui_tests:latest  # Run the tests using the image ok
+         docker run --rm maias816/api_ui_tests:latest
+
+
 
 
