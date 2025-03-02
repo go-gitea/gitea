@@ -106,7 +106,8 @@ func Variables(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Variables"] = variables
-
+	ctx.Data["DataMaxLength"] = actions_model.VariableDataMaxLength
+	ctx.Data["DescriptionMaxLength"] = actions_model.VariableDescriptionMaxLength
 	ctx.HTML(http.StatusOK, vCtx.VariablesTemplate)
 }
 
@@ -124,7 +125,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 
-	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data)
+	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
 	if err != nil {
 		log.Error("CreateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
@@ -157,6 +158,7 @@ func VariableUpdate(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditVariableForm)
 	variable.Name = form.Name
 	variable.Data = form.Data
+	variable.Description = form.Description
 
 	if ok, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil || !ok {
 		log.Error("UpdateVariable: %v", err)
