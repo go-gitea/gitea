@@ -34,14 +34,6 @@ func TestDiffWithHighlight(t *testing.T) {
 	hcd.placeholderTokenMap['C'] = "</span>"
 	diff := diffmatchpatch.Diff{}
 
-	// diff.Text = "OC"
-	// hcd.recoverOneDiff(&diff)
-	// assert.Equal(t, "<span></span>", diff.Text)
-	//
-	// diff.Text = "O"
-	// hcd.recoverOneDiff(&diff)
-	// assert.Equal(t, "<span></span>", diff.Text)
-
 	diff.Text = "C"
 	hcd.recoverOneDiff(&diff)
 	assert.Equal(t, "", diff.Text)
@@ -100,29 +92,3 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 	assert.Equal(t, expected, output)
 }
 
-func TestDiffWithHighlightTagMatch(t *testing.T) {
-	// totalOverflow := 0
-	//
-	//	for i := 0; i < 100; i++ {
-	//		hcd := newHighlightCodeDiff()
-	//		hcd.placeholderMaxCount = i
-	//		diffs := hcd.diffWithHighlight(
-	//			"main.js", "",
-	//			"a='1'",
-	//			"b='2'",
-	//		)
-	//		totalOverflow += hcd.placeholderOverflowCount
-	//
-	//		output := diffToHTML(nil, diffs, DiffLineDel)
-	//		c1 := strings.Count(output, "<span")
-	//		c2 := strings.Count(output, "</span")
-	//		assert.Equal(t, c1, c2)
-	//
-	//		output = diffToHTML(nil, diffs, DiffLineAdd)
-	//		c1 = strings.Count(output, "<span")
-	//		c2 = strings.Count(output, "</span")
-	//		assert.Equal(t, c1, c2)
-	//	}
-	//
-	// assert.NotZero(t, totalOverflow)
-}
