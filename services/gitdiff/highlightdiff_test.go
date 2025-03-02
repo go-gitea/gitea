@@ -19,11 +19,11 @@ func TestDiffWithHighlight(t *testing.T) {
 		"		run(db)\n",
 	)
 
-	expected := `		run(<span class="removed-code">&#39;&lt;&gt;&#39;</span>)`
+	expected := "\t\trun(<span class=\"removed-code\">&#39;&lt;&gt;&#39;</span>)\n"
 	output := diffToHTML(nil, diffs, DiffLineDel)
 	assert.Equal(t, expected, output)
 
-	expected = `		run(<span class="added-code">db</span>)`
+	expected = "\t\trun(<span class=\"added-code\">db</span>)\n"
 	output = diffToHTML(nil, diffs, DiffLineAdd)
 	assert.Equal(t, expected, output)
 
