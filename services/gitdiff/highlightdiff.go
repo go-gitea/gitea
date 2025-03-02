@@ -4,7 +4,6 @@
 package gitdiff
 
 import (
-	"html/template"
 	"strings"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -89,8 +88,8 @@ func (hcd *highlightCodeDiff) diffWithHighlight(codeA, codeB string) []diffmatch
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
-	convertedCodeA := hcd.convertToPlaceholders(template.HTMLEscapeString(codeA))
-	convertedCodeB := hcd.convertToPlaceholders(template.HTMLEscapeString(codeB))
+	convertedCodeA := hcd.convertToPlaceholders(codeA)
+	convertedCodeB := hcd.convertToPlaceholders(codeB)
 
 	diffs := diffMatchPatch.DiffMain(convertedCodeA, convertedCodeB, true)
 	diffs = diffMatchPatch.DiffCleanupEfficiency(diffs)
