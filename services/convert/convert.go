@@ -261,11 +261,11 @@ func ToActionRunner(ctx context.Context, runner *actions_model.ActionRunner) *ap
 	}
 	labels := make([]*api.ActionRunnerLabel, len(runner.AgentLabels))
 	for i, label := range runner.AgentLabels {
-		labels = append(labels, &api.ActionRunnerLabel{
+		labels[i] = &api.ActionRunnerLabel{
 			ID:   int64(i),
 			Name: label,
 			Type: "custom",
-		})
+		}
 	}
 	return &api.ActionRunner{
 		ID:        runner.ID,
