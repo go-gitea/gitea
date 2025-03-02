@@ -344,17 +344,29 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Reponame"] = repoName
 
 	var parentCommit *git.Commit
+	var parentCommitID string
 	if commit.ParentCount() > 0 {
 		parentCommit, err = gitRepo.GetCommit(parents[0])
 		if err != nil {
 			ctx.NotFound(err)
 			return
 		}
+		parentCommitID = parentCommit.ID.String()
 	}
 	setCompareContext(ctx, parentCommit, commit, userName, repoName)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
+
+	if !fileOnly {
+		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, parentCommitID, commitID)
+		if err != nil {
+			ctx.ServerError("GetDiffTree", err)
+			return
+		}
+
+		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(diffTree, nil)
+	}
 
 	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
 	if err != nil {

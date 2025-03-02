@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
@@ -92,10 +93,10 @@ func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 	}
 
 	body = []byte(t.PayloadContent)
-	return req, body, addDefaultHeaders(req, []byte(w.Secret), t, body)
+	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body)
 }
 
-func addDefaultHeaders(req *http.Request, secret []byte, t *webhook_model.HookTask, payloadContent []byte) error {
+func addDefaultHeaders(req *http.Request, secret []byte, w *webhook_model.Webhook, t *webhook_model.HookTask, payloadContent []byte) error {
 	var signatureSHA1 string
 	var signatureSHA256 string
 	if len(secret) > 0 {
@@ -112,10 +113,27 @@ func addDefaultHeaders(req *http.Request, secret []byte, t *webhook_model.HookTa
 
 	event := t.EventType.Event()
 	eventType := string(t.EventType)
+	targetType := "default"
+	if w.IsSystemWebhook {
+		targetType = "system"
+	} else if w.RepoID != 0 {
+		targetType = "repository"
+	} else if w.OwnerID != 0 {
+		owner, err := user_model.GetUserByID(req.Context(), w.OwnerID)
+		if owner != nil && err == nil {
+			if owner.IsOrganization() {
+				targetType = "organization"
+			} else {
+				targetType = "user"
+			}
+		}
+	}
+
 	req.Header.Add("X-Gitea-Delivery", t.UUID)
 	req.Header.Add("X-Gitea-Event", event)
 	req.Header.Add("X-Gitea-Event-Type", eventType)
 	req.Header.Add("X-Gitea-Signature", signatureSHA256)
+	req.Header.Add("X-Gitea-Hook-Installation-Target-Type", targetType)
 	req.Header.Add("X-Gogs-Delivery", t.UUID)
 	req.Header.Add("X-Gogs-Event", event)
 	req.Header.Add("X-Gogs-Event-Type", eventType)
@@ -125,6 +143,7 @@ func addDefaultHeaders(req *http.Request, secret []byte, t *webhook_model.HookTa
 	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
 	req.Header["X-GitHub-Event"] = []string{event}
 	req.Header["X-GitHub-Event-Type"] = []string{eventType}
+	req.Header["X-GitHub-Hook-Installation-Target-Type"] = []string{targetType}
 	return nil
 }
 

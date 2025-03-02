@@ -7,8 +7,6 @@
 // This documentation describes the Gitea API.
 //
 //	Schemes: https, http
-//	BasePath: /api/v1
-//	Version: {{AppVer | JSEscape}}
 //	License: MIT http://opensource.org/licenses/MIT
 //
 //	Consumes:
