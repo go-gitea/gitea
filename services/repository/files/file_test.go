@@ -47,7 +47,7 @@ func getExpectedFileResponse() *api.FileResponse {
 			Path:           treePath,
 			SHA:            sha,
 			LastCommitSHA:  "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-			LastCommitWhen: time.Date(2017, 3, 19, 20, 47, 59, 0, time.UTC),
+			LastCommitWhen: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
 			Type:           "file",
 			Size:           30,
 			Encoding:       &encoding,

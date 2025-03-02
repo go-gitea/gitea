@@ -37,6 +37,7 @@ func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) 
 		Path:          treePath,
 		SHA:           sha,
 		LastCommitSHA: lastCommitSHA,
+		LastCommitWhen: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
 		Type:          "file",
 		Size:          30,
 		Encoding:      &encoding,
