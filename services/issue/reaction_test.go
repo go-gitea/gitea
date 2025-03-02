@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-
+	"code.gitea.io/gitea/modules/setting/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,7 +72,8 @@ func TestIssueDeleteReaction(t *testing.T) {
 func TestIssueReactionCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	setting.UI.ReactionMaxUserNum = 2
+	reactionMaxUserNum := config.Value[int]{}
+	setting.Config().UI.ReactionMaxUserNum = reactionMaxUserNum.WithDefault(2)
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

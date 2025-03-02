@@ -175,7 +175,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 		return
 	}
 
-	if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+	if fInfo.fileSize >= setting.Config().UI.MaxDisplayFileSize.Value(ctx) {
 		// Pretend that this is a normal text file to display 'This file is too large to be shown'
 		ctx.Data["IsFileTooLarge"] = true
 		ctx.Data["IsTextFile"] = true

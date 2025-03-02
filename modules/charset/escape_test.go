@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -172,10 +173,12 @@ func TestEscapeControlReader(t *testing.T) {
 }
 
 func TestSettingAmbiguousUnicodeDetection(t *testing.T) {
-	defer test.MockVariableValue(&setting.UI.AmbiguousUnicodeDetection, true)()
+	ambiguousUnicodeDetectionValue := setting.Config().UI.AmbiguousUnicodeDetection.Value(t.Context())
+	defer test.MockVariableValue(&ambiguousUnicodeDetectionValue, true)()
 	_, out := EscapeControlHTML("a test", &translation.MockLocale{})
 	assert.EqualValues(t, `a<span class="escaped-code-point" data-escaped="[U+00A0]"><span class="char"> </span></span>test`, out)
-	setting.UI.AmbiguousUnicodeDetection = false
+	ambiguousUnicodeDetection := config.Value[bool]{}
+	setting.Config().UI.AmbiguousUnicodeDetection = ambiguousUnicodeDetection.WithDefault(false)
 	_, out = EscapeControlHTML("a test", &translation.MockLocale{})
 	assert.EqualValues(t, `a test`, out)
 }

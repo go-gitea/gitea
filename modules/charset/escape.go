@@ -8,6 +8,7 @@
 package charset
 
 import (
+	"context"
 	"html/template"
 	"io"
 	"strings"
@@ -29,7 +30,7 @@ func EscapeControlHTML(html template.HTML, locale translation.Locale, allowed ..
 
 // EscapeControlReader escapes the unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
 func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
-	if !setting.UI.AmbiguousUnicodeDetection {
+	if !setting.Config().UI.AmbiguousUnicodeDetection.Value(context.Background()) {
 		_, err = io.Copy(writer, reader)
 		return &EscapeStatus{}, err
 	}

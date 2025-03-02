@@ -273,5 +273,6 @@ func ChangeUIConfig(ctx *context.Context) {
 		return
 	}
 
+	config.GetDynGetter().InvalidateCache()
 	ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings")
 }

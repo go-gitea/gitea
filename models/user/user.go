@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	_ "image/jpeg" // Needed for jpeg support
 	"mime"
 	"net/mail"
 	"net/url"
@@ -17,8 +18,6 @@ import (
 	"sync"
 	"time"
 	"unicode"
-
-	_ "image/jpeg" // Needed for jpeg support
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -200,7 +199,7 @@ func (u *User) BeforeUpdate() {
 // AfterLoad is invoked from XORM after filling all the fields of this object.
 func (u *User) AfterLoad() {
 	if u.Theme == "" {
-		u.Theme = setting.UI.DefaultTheme
+		u.Theme = setting.Config().UI.DefaultTheme.Value(context.Background())
 	}
 }
 
@@ -441,7 +440,7 @@ func (u *User) EmailTo() string {
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
 // returns username otherwise.
 func (u *User) GetDisplayName() string {
-	if setting.UI.DefaultShowFullName {
+	if setting.Config().UI.DefaultShowFullName.Value(context.Background()) {
 		trimmed := strings.TrimSpace(u.FullName)
 		if len(trimmed) > 0 {
 			return trimmed
@@ -483,7 +482,7 @@ func (u *User) GitName() string {
 
 // ShortName ellipses username to length
 func (u *User) ShortName(length int) string {
-	if setting.UI.DefaultShowFullName && len(u.FullName) > 0 {
+	if setting.Config().UI.DefaultShowFullName.Value(context.Background()) && len(u.FullName) > 0 {
 		return util.EllipsisDisplayString(u.FullName, length)
 	}
 	return util.EllipsisDisplayString(u.Name, length)
@@ -662,7 +661,7 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
-	u.Theme = setting.UI.DefaultTheme
+	u.Theme = setting.Config().UI.DefaultTheme.Value(ctx)
 	u.IsRestricted = setting.Service.DefaultUserIsRestricted
 	u.IsActive = !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)
 
@@ -1394,7 +1393,7 @@ func FixWrongUserType(ctx context.Context) (int64, error) {
 }
 
 func GetOrderByName() string {
-	if setting.UI.DefaultShowFullName {
+	if setting.Config().UI.DefaultShowFullName.Value(context.Background()) {
 		return "full_name, name"
 	}
 	return "name"

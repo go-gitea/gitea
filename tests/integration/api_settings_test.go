@@ -22,8 +22,8 @@ func TestAPIExposedSettings(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &ui)
-	assert.Len(t, ui.AllowedReactions, len(setting.UI.Reactions))
-	assert.ElementsMatch(t, setting.UI.Reactions, ui.AllowedReactions)
+	assert.Len(t, ui.AllowedReactions, len(setting.Config().UI.Reactions.Value(t.Context())))
+	assert.ElementsMatch(t, setting.Config().UI.Reactions.Value(t.Context()), ui.AllowedReactions)
 
 	apiSettings := new(api.GeneralAPISettings)
 	req = NewRequest(t, "GET", "/api/v1/settings/api")

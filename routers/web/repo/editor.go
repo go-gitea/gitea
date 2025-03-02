@@ -146,7 +146,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		blob := entry.Blob()
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
+		if blob.Size() >= setting.Config().UI.MaxDisplayFileSize.Value(ctx) {
 			ctx.NotFound(err)
 			return
 		}

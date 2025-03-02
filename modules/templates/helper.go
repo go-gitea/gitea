@@ -5,6 +5,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"html/template"
@@ -26,6 +27,7 @@ import (
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() template.FuncMap {
+	ctx := context.Background()
 	return map[string]any{
 		"ctx": func() any { return nil }, // template context function
 
@@ -105,7 +107,7 @@ func NewFuncMap() template.FuncMap {
 			return setting.AssetVersion
 		},
 		"DefaultShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
+			return setting.Config().UI.DefaultShowFullName.Value(ctx)
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
@@ -114,10 +116,10 @@ func NewFuncMap() template.FuncMap {
 			return setting.Other.ShowFooterPoweredBy
 		},
 		"AllowedReactions": func() []string {
-			return setting.UI.Reactions
+			return setting.Config().UI.Reactions.Value(ctx)
 		},
 		"CustomEmojis": func() map[string]string {
-			return setting.UI.CustomEmojisMap
+			return setting.Config().UI.CustomEmojisMap
 		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author
@@ -263,13 +265,14 @@ func evalTokens(tokens ...any) (any, error) {
 }
 
 func userThemeName(user *user_model.User) string {
+	ctx := context.Background()
 	if user == nil || user.Theme == "" {
-		return setting.UI.DefaultTheme
+		return setting.Config().UI.DefaultTheme.Value(ctx)
 	}
 	if webtheme.IsThemeAvailable(user.Theme) {
 		return user.Theme
 	}
-	return setting.UI.DefaultTheme
+	return setting.Config().UI.DefaultTheme.Value(ctx)
 }
 
 func isQueryParamEmpty(v any) bool {

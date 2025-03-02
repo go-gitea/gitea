@@ -4,6 +4,7 @@
 package template
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"path"
@@ -66,7 +67,7 @@ func UnmarshalFromRepo(repo *git.Repository, branch, filename string) (*api.Issu
 }
 
 func unmarshalFromEntry(entry *git.TreeEntry, filename string) (*api.IssueTemplate, error) {
-	if size := entry.Blob().Size(); size > setting.UI.MaxDisplayFileSize {
+	if size := entry.Blob().Size(); size > setting.Config().UI.MaxDisplayFileSize.Value(context.Background()) {
 		return nil, fmt.Errorf("too large: %v > MaxDisplayFileSize", size)
 	}
 

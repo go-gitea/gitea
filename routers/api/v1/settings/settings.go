@@ -22,9 +22,9 @@ func GetGeneralUISettings(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GeneralUISettings"
 	ctx.JSON(http.StatusOK, api.GeneralUISettings{
-		DefaultTheme:     setting.UI.DefaultTheme,
-		AllowedReactions: setting.UI.Reactions,
-		CustomEmojis:     setting.UI.CustomEmojis,
+		DefaultTheme:     setting.Config().UI.DefaultTheme.Value(ctx),
+		AllowedReactions: setting.Config().UI.Reactions.Value(ctx),
+		CustomEmojis:     setting.Config().UI.CustomEmojis.Value(ctx),
 	})
 }
 

@@ -91,7 +91,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 
-	if fileSize >= setting.UI.MaxDisplayFileSize {
+	if fileSize >= setting.Config().UI.MaxDisplayFileSize.Value(ctx) {
 		ctx.Data["IsFileTooLarge"] = true
 		ctx.HTML(http.StatusOK, tplRepoHome)
 		return

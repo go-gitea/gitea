@@ -7,6 +7,7 @@ import (
 	"context"
 	"sync"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting/config"
 )
@@ -70,7 +71,9 @@ type UIStruct struct {
 	DefaultTheme              *config.Value[string]
 	Themes                    *config.Value[[]string]
 	Reactions                 *config.Value[[]string]
+	ReactionsLookup           container.Set[string]
 	CustomEmojis              *config.Value[[]string]
+	CustomEmojisMap           map[string]string
 	SearchRepoDescription     *config.Value[bool]
 	OnlyShowRelevantRepos     *config.Value[bool]
 	ExploreDefaultSort        *config.Value[string]
@@ -183,6 +186,15 @@ func initDefaultConfig() {
 
 func Config() *ConfigStruct {
 	defaultConfigOnce.Do(initDefaultConfig)
+	ctx := context.Background()
+	defaultConfig.UI.ReactionsLookup = make(container.Set[string])
+	for _, reaction := range defaultConfig.UI.Reactions.Value(ctx) {
+		defaultConfig.UI.ReactionsLookup.Add(reaction)
+	}
+	defaultConfig.UI.CustomEmojisMap = make(map[string]string)
+	for _, emoji := range defaultConfig.UI.CustomEmojis.Value(ctx) {
+		defaultConfig.UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
+	}
 	return defaultConfig
 }
 

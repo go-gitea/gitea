@@ -80,7 +80,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	} else if slices.Contains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
-		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
+		if data, err := blob.GetBlobContent(setting.Config().UI.MaxDisplayFileSize.Value(ctx)); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
@@ -142,7 +142,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 
 	switch {
 	case isRepresentableAsText:
-		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+		if fInfo.fileSize >= setting.Config().UI.MaxDisplayFileSize.Value(ctx) {
 			ctx.Data["IsFileTooLarge"] = true
 			break
 		}
@@ -249,7 +249,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		ctx.Data["IsImageFile"] = true
 		ctx.Data["CanCopyContent"] = true
 	default:
-		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+		if fInfo.fileSize >= setting.Config().UI.MaxDisplayFileSize.Value(ctx) {
 			ctx.Data["IsFileTooLarge"] = true
 			break
 		}

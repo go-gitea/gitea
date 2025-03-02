@@ -162,7 +162,7 @@ func FindIssueReactions(ctx context.Context, issueID int64, listOptions db.ListO
 func FindReactions(ctx context.Context, opts FindReactionsOptions) (ReactionList, int64, error) {
 	sess := db.GetEngine(ctx).
 		Where(opts.toConds()).
-		In("reaction.`type`", setting.UI.Reactions).
+		In("reaction.`type`", setting.Config().UI.Reactions.Value(ctx)).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
@@ -220,7 +220,7 @@ type ReactionOptions struct {
 
 // CreateReaction creates reaction for issue or comment.
 func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
-	if !setting.UI.ReactionsLookup.Contains(opts.Type) {
+	if !setting.Config().UI.ReactionsLookup.Contains(opts.Type) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
@@ -357,7 +357,7 @@ func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Reposit
 // GetFirstUsers returns first reacted user display names separated by comma
 func (list ReactionList) GetFirstUsers() string {
 	var buffer bytes.Buffer
-	rem := setting.UI.ReactionMaxUserNum
+	rem := setting.Config().UI.ReactionMaxUserNum.Value(context.Background())
 	for _, reaction := range list {
 		if buffer.Len() > 0 {
 			buffer.WriteString(", ")
@@ -372,8 +372,9 @@ func (list ReactionList) GetFirstUsers() string {
 
 // GetMoreUserCount returns count of not shown users in reaction tooltip
 func (list ReactionList) GetMoreUserCount() int {
-	if len(list) <= setting.UI.ReactionMaxUserNum {
+	ctx := context.Background()
+	if len(list) <= setting.Config().UI.ReactionMaxUserNum.Value(ctx) {
 		return 0
 	}
-	return len(list) - setting.UI.ReactionMaxUserNum
+	return len(list) - setting.Config().UI.ReactionMaxUserNum.Value(ctx)
 }

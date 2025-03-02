@@ -38,7 +38,7 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
 	prepareContextForCommonProfile(ctx)
 
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
-	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
+	ctx.Data["ShowUserEmail"] = setting.Config().UI.ShowUserEmail.Value(ctx) && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
 	if setting.Service.UserLocationMapURL != "" {
 		ctx.Data["ContextUserLocationMapURL"] = setting.Service.UserLocationMapURL + url.QueryEscape(ctx.ContextUser.Location)
 	}
@@ -153,7 +153,7 @@ func LoadHeaderCount(ctx *context.Context) error {
 		OwnerID:            ctx.ContextUser.ID,
 		Private:            ctx.IsSigned,
 		Collaborate:        optional.Some(false),
-		IncludeDescription: setting.UI.SearchRepoDescription,
+		IncludeDescription: setting.Config().UI.SearchRepoDescription.Value(ctx),
 	})
 	if err != nil {
 		return err

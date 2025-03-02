@@ -4,6 +4,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"html/template"
@@ -126,7 +127,7 @@ func timeSinceTo(then any, now time.Time) template.HTML {
 
 // TimeSince renders relative time HTML given a time
 func TimeSince(then any) template.HTML {
-	if setting.UI.PreferredTimestampTense == "absolute" {
+	if setting.Config().UI.PreferredTimestampTense.Value(context.Background()) == "absolute" {
 		return dateTimeFormat("full", then)
 	}
 	return timeSinceTo(then, time.Now())

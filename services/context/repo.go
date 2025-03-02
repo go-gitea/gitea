@@ -222,7 +222,7 @@ func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (cfg *editorconfi
 	if err != nil {
 		return nil, nil, err
 	}
-	if treeEntry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+	if treeEntry.Blob().Size() >= setting.Config().UI.MaxDisplayFileSize.Value(context.Background()) {
 		return nil, nil, git.ErrNotExist{ID: "", RelPath: ".editorconfig"}
 	}
 	reader, err := treeEntry.Blob().DataAsync()

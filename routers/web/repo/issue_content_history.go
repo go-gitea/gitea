@@ -64,7 +64,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		}
 
 		username := item.UserName
-		if setting.UI.DefaultShowFullName && strings.TrimSpace(item.UserFullName) != "" {
+		if setting.Config().UI.DefaultShowFullName.Value(ctx) && strings.TrimSpace(item.UserFullName) != "" {
 			username = strings.TrimSpace(item.UserFullName)
 		}
 
