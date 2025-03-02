@@ -59,13 +59,9 @@ func GetRunners(ctx *context.APIContext, ownerID, repoID int64) {
 }
 
 func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
-	runner, exists, err := db.GetByID[actions_model.ActionRunner](ctx, runnerID)
+	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !exists {
-		ctx.APIErrorNotFound("Runner does not exist")
+		ctx.APIErrorNotFound(err)
 		return
 	}
 	if !runner.Editable(ownerID, repoID) {
@@ -76,13 +72,9 @@ func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 }
 
 func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
-	runner, exists, err := db.GetByID[actions_model.ActionRunner](ctx, runnerID)
+	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
-		return
-	}
-	if !exists {
-		ctx.APIErrorNotFound("Runner does not exist")
 		return
 	}
 	if !runner.Editable(ownerID, repoID) {
