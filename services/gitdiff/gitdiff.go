@@ -312,25 +312,25 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			highlightedLine := diffSection.file.HighlightedNewLines[diffLine.RightIdx-1]
+			highlightedLine := diffSection.file.highlightedNewLines[diffLine.RightIdx-1]
 			return DiffInlineWithUnicodeEscape(template.HTML(highlightedLine), locale)
 		}
-		diff1 = diffSection.file.HighlightedOldLines[compareDiffLine.LeftIdx-1]
-		diff2 = diffSection.file.HighlightedNewLines[diffLine.RightIdx-1]
+		diff1 = diffSection.file.highlightedOldLines[compareDiffLine.LeftIdx-1]
+		diff2 = diffSection.file.highlightedNewLines[diffLine.RightIdx-1]
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			highlightedLine := diffSection.file.HighlightedOldLines[diffLine.LeftIdx-1]
+			highlightedLine := diffSection.file.highlightedOldLines[diffLine.LeftIdx-1]
 			return DiffInlineWithUnicodeEscape(template.HTML(highlightedLine), locale)
 		}
-		diff1 = diffSection.file.HighlightedOldLines[diffLine.LeftIdx-1]
-		diff2 = diffSection.file.HighlightedNewLines[compareDiffLine.RightIdx-1]
+		diff1 = diffSection.file.highlightedOldLines[diffLine.LeftIdx-1]
+		diff2 = diffSection.file.highlightedNewLines[compareDiffLine.RightIdx-1]
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			highlightedContent := diffSection.file.HighlightedNewLines[diffLine.RightIdx-1]
+			highlightedContent := diffSection.file.highlightedNewLines[diffLine.RightIdx-1]
 			return DiffInlineWithUnicodeEscape(template.HTML(highlightedContent), locale)
 		}
-		highlightedContent := diffSection.file.HighlightedOldLines[diffLine.LeftIdx-1]
+		highlightedContent := diffSection.file.highlightedOldLines[diffLine.LeftIdx-1]
 		return DiffInlineWithUnicodeEscape(template.HTML(highlightedContent), locale)
 	}
 
@@ -371,8 +371,8 @@ type DiffFile struct {
 	IsSubmodule       bool // if IsSubmodule==true, then there must be a SubmoduleDiffInfo
 	SubmoduleDiffInfo *SubmoduleDiffInfo
 
-	HighlightedOldLines []string
-	HighlightedNewLines []string
+	highlightedOldLines []string
+	highlightedNewLines []string
 }
 
 // GetType returns type of diff file.
@@ -1226,7 +1226,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		}
 		diffFile.IsGenerated = isGenerated.Value()
 
-		highlightCode(commit, beforeCommit, diffFile)
+		diffFile.highlightedOldLines, diffFile.highlightedNewLines = highlightCode(commit, beforeCommit, diffFile)
 
 		tailSection := diffFile.GetTailSection(gitRepo, beforeCommit, commit)
 		if tailSection != nil {
@@ -1248,17 +1248,19 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	return diff, nil
 }
 
-func highlightCode(commit *git.Commit, beforeCommit *git.Commit, diffFile *DiffFile) {
+func highlightCode(commit *git.Commit, beforeCommit *git.Commit, diffFile *DiffFile) ([]string, []string) {
+	var oldLines []string
+	var newLines []string
+
 	if beforeCommit != nil {
 		oldBlob, err := beforeCommit.GetBlobByPath(diffFile.Name)
 		if err == nil {
 			oldContent, _ := oldBlob.GetBlobContent(oldBlob.Size())
 			highlightedOldContent, _ := highlight.Code(diffFile.Name, diffFile.Language, oldContent)
 
-			oldLines := strings.Split(string(highlightedOldContent), "\n")
-			diffFile.HighlightedOldLines = make([]string, len(oldLines))
-			for i, line := range oldLines {
-				diffFile.HighlightedOldLines[i] = line
+			oldLines = strings.Split(string(highlightedOldContent), "\n")
+			for _, line := range oldLines {
+				oldLines = append(oldLines, line)
 			}
 		}
 	}
@@ -1268,12 +1270,13 @@ func highlightCode(commit *git.Commit, beforeCommit *git.Commit, diffFile *DiffF
 		newContent, _ := newBlob.GetBlobContent(newBlob.Size())
 		highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, newContent)
 
-		newLines := strings.Split(string(highlightedNewContent), "\n")
-		diffFile.HighlightedNewLines = make([]string, len(newLines))
-		for i, line := range newLines {
-			diffFile.HighlightedNewLines[i] = line
+		newLines = strings.Split(string(highlightedNewContent), "\n")
+		for _, line := range newLines {
+			newLines = append(newLines, line)
 		}
 	}
+
+	return oldLines, newLines
 }
 
 type PullDiffStats struct {
