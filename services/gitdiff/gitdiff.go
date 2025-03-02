@@ -1258,10 +1258,8 @@ func highlightCode(commit, beforeCommit *git.Commit, diffFile *DiffFile) ([]stri
 			oldContent, _ := oldBlob.GetBlobContent(oldBlob.Size())
 			highlightedOldContent, _ := highlight.Code(diffFile.Name, diffFile.Language, oldContent)
 
-			oldLines = strings.Split(string(highlightedOldContent), "\n")
-			for _, line := range oldLines {
-				oldLines = append(oldLines, line)
-			}
+			splitLines := strings.Split(string(highlightedOldContent), "\n")
+			oldLines = append(oldLines, splitLines...)
 		}
 	}
 
@@ -1270,10 +1268,8 @@ func highlightCode(commit, beforeCommit *git.Commit, diffFile *DiffFile) ([]stri
 		newContent, _ := newBlob.GetBlobContent(newBlob.Size())
 		highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, newContent)
 
-		newLines = strings.Split(string(highlightedNewContent), "\n")
-		for _, line := range newLines {
-			newLines = append(newLines, line)
-		}
+		splitLines := strings.Split(string(highlightedNewContent), "\n")
+		newLines = append(newLines, splitLines...)
 	}
 
 	return oldLines, newLines
