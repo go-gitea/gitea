@@ -15,21 +15,21 @@ permissions:
 
 jobs:
   jmeter:
-    name: Run JMeter Tests
+    name: Run JMeter Tests and Generate HTML Report
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run JMeter Action on a test
+      - name: Run JMeter Load Test
         uses: rbhadti94/apache-jmeter-action@v0.5.0
         with:
           testFilePath: tests/jmeter/gite-test-plan.jmx
           outputReportsFolder: reports/
-          args: "--loglevel INFO"
+          args: "-n -t tests/jmeter/gite-test-plan.jmx -l reports/results.jtl -e -o reports/html-report"
 
       - name: Upload JMeter Test Results
         uses: actions/upload-artifact@v4
         with:
-          name: jmeter-test-results
-          path: reports/
+          name: jmeter-html-report
+          path: reports/html-report/
