@@ -97,56 +97,60 @@ func (u *UIStruct) ToStruct(ctx context.Context) UIForm {
 	}
 	customEmojis = strings.TrimSuffix(customEmojis, ",")
 	return UIForm{
-		ExplorePagingNum:          u.ExplorePagingNum.Value(ctx),
-		SitemapPagingNum:          u.SitemapPagingNum.Value(ctx),
-		IssuePagingNum:            u.IssuePagingNum.Value(ctx),
-		RepoSearchPagingNum:       u.RepoSearchPagingNum.Value(ctx),
-		MembersPagingNum:          u.MembersPagingNum.Value(ctx),
-		FeedMaxCommitNum:          u.FeedMaxCommitNum.Value(ctx),
-		FeedPagingNum:             u.FeedPagingNum.Value(ctx),
-		PackagesPagingNum:         u.PackagesPagingNum.Value(ctx),
-		GraphMaxCommitNum:         u.GraphMaxCommitNum.Value(ctx),
-		CodeCommentLines:          u.CodeCommentLines.Value(ctx),
-		ReactionMaxUserNum:        u.ReactionMaxUserNum.Value(ctx),
-		MaxDisplayFileSize:        u.MaxDisplayFileSize.Value(ctx),
-		ShowUserEmail:             u.ShowUserEmail.Value(ctx),
-		DefaultShowFullName:       u.DefaultShowFullName.Value(ctx),
-		DefaultTheme:              u.DefaultTheme.Value(ctx),
-		Themes:                    themes,
-		Reactions:                 reactions,
-		CustomEmojis:              customEmojis,
-		SearchRepoDescription:     u.SearchRepoDescription.Value(ctx),
-		OnlyShowRelevantRepos:     u.OnlyShowRelevantRepos.Value(ctx),
-		ExplorePagingDefaultSort:  u.ExploreDefaultSort.Value(ctx),
-		PreferredTimestampTense:   u.PreferredTimestampTense.Value(ctx),
-		AmbiguousUnicodeDetection: u.AmbiguousUnicodeDetection.Value(ctx),
+		ExplorePagingNum:              u.ExplorePagingNum.Value(ctx),
+		SitemapPagingNum:              u.SitemapPagingNum.Value(ctx),
+		IssuePagingNum:                u.IssuePagingNum.Value(ctx),
+		RepoSearchPagingNum:           u.RepoSearchPagingNum.Value(ctx),
+		MembersPagingNum:              u.MembersPagingNum.Value(ctx),
+		FeedMaxCommitNum:              u.FeedMaxCommitNum.Value(ctx),
+		FeedPagingNum:                 u.FeedPagingNum.Value(ctx),
+		PackagesPagingNum:             u.PackagesPagingNum.Value(ctx),
+		GraphMaxCommitNum:             u.GraphMaxCommitNum.Value(ctx),
+		CodeCommentLines:              u.CodeCommentLines.Value(ctx),
+		ReactionMaxUserNum:            u.ReactionMaxUserNum.Value(ctx),
+		MaxDisplayFileSize:            u.MaxDisplayFileSize.Value(ctx),
+		ShowUserEmail:                 u.ShowUserEmail.Value(ctx),
+		DefaultShowFullName:           u.DefaultShowFullName.Value(ctx),
+		DefaultTheme:                  u.DefaultTheme.Value(ctx),
+		Themes:                        themes,
+		Reactions:                     reactions,
+		CustomEmojis:                  customEmojis,
+		SearchRepoDescription:         u.SearchRepoDescription.Value(ctx),
+		OnlyShowRelevantRepos:         u.OnlyShowRelevantRepos.Value(ctx),
+		ExplorePagingDefaultSort:      u.ExploreDefaultSort.Value(ctx),
+		ExplorePagingSortOption:       []string{"recentupdate", "alphabetically", "reverselastlogin", "newest", "oldest"},
+		PreferredTimestampTense:       u.PreferredTimestampTense.Value(ctx),
+		PreferredTimestampTenseOption: []string{"mixed", "absolute"},
+		AmbiguousUnicodeDetection:     u.AmbiguousUnicodeDetection.Value(ctx),
 	}
 }
 
 type UIForm struct {
-	ExplorePagingNum          int
-	SitemapPagingNum          int
-	IssuePagingNum            int
-	RepoSearchPagingNum       int
-	MembersPagingNum          int
-	FeedMaxCommitNum          int
-	FeedPagingNum             int
-	PackagesPagingNum         int
-	GraphMaxCommitNum         int
-	CodeCommentLines          int
-	ReactionMaxUserNum        int
-	MaxDisplayFileSize        int64
-	ShowUserEmail             bool
-	DefaultShowFullName       bool
-	DefaultTheme              string
-	Themes                    string
-	Reactions                 string
-	CustomEmojis              string
-	SearchRepoDescription     bool
-	OnlyShowRelevantRepos     bool
-	ExplorePagingDefaultSort  string
-	PreferredTimestampTense   string
-	AmbiguousUnicodeDetection bool
+	ExplorePagingNum              int
+	SitemapPagingNum              int
+	IssuePagingNum                int
+	RepoSearchPagingNum           int
+	MembersPagingNum              int
+	FeedMaxCommitNum              int
+	FeedPagingNum                 int
+	PackagesPagingNum             int
+	GraphMaxCommitNum             int
+	CodeCommentLines              int
+	ReactionMaxUserNum            int
+	MaxDisplayFileSize            int64
+	ShowUserEmail                 bool
+	DefaultShowFullName           bool
+	DefaultTheme                  string
+	Themes                        string
+	Reactions                     string
+	CustomEmojis                  string
+	SearchRepoDescription         bool
+	OnlyShowRelevantRepos         bool
+	ExplorePagingDefaultSort      string
+	ExplorePagingSortOption       []string
+	PreferredTimestampTense       string
+	PreferredTimestampTenseOption []string
+	AmbiguousUnicodeDetection     bool
 }
 
 type ConfigStruct struct {
@@ -178,7 +182,7 @@ func initDefaultConfig() {
 			MembersPagingNum:          config.ValueJSON[int]("ui.members_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "MEMBERS_PAGING_NUM"}),
 			FeedMaxCommitNum:          config.ValueJSON[int]("ui.feed_max_commit_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "FEED_MAX_COMMIT_NUM"}),
 			FeedPagingNum:             config.ValueJSON[int]("ui.feed_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "FEED_PAGE_NUM"}),
-			PackagesPagingNum:         config.ValueJSON[int]("ui.package_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "PACKAGE_PAGING_NUM"}),
+			PackagesPagingNum:         config.ValueJSON[int]("ui.packages_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "PACKAGES_PAGING_NUM"}),
 			GraphMaxCommitNum:         config.ValueJSON[int]("ui.graph_max_commit_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "GRAPH_MAX_COMMIT_NUM"}),
 			CodeCommentLines:          config.ValueJSON[int]("ui.code_comment_lines").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "CODE_COMMENT_LINES"}),
 			ReactionMaxUserNum:        config.ValueJSON[int]("ui.reaction_max_user_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "REACTION_MAX_USER_NUM"}),

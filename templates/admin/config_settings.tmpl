@@ -8,128 +8,149 @@
 		<dl class="admin-dl-horizontal">
 			<dt>{{ctx.Locale.Tr "admin.config.ui.explore_paging_num"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="explore_paging_num" name="explore_paging_num" type="number" min="0" value="{{.UI.ExplorePagingNum}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.issue_paging_num"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="issue_paging_num" name="issue_paging_num" type="number" min="0" value="{{.UI.IssuePagingNum}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.feed_max_commit_numb"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="feed_max_commit_numb" name="feed_max_commit_num" type="number" min="0" value="{{.UI.FeedMaxCommitNum}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.feed_paging_num"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="feed_paging_num" name="feed_paging_num" type="number" min="0" value="{{.UI.FeedPagingNum}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.packages_paging_num"}}</dt>
+			<dd>
+				<div class="inline field" >
+					<input id="packages_paging_num" name="packages_paging_num" type="number" min="0" value="{{.UI.PackagesPagingNum}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.members_paging_num"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="members_paging_num" name="members_paging_num" type="number" min="0" value="{{.UI.MembersPagingNum}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.sitemap_paging_num"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="sitemap_paging_num" name="sitemap_paging_num" type="number" min="0" value="{{.UI.SitemapPagingNum}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.graph_max_commit_num"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="graph_max_commit_num" name="graph_max_commit_num" type="number" min="0" value="{{.UI.GraphMaxCommitNum}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.code_comment_lines"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="code_comment_lines" name="code_comment_lines" type="number" min="0" value="{{.UI.CodeCommentLines}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.max_display_file_size"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="max_display_file_size" name="max_display_file_size" type="number" min="0" value="{{.UI.MaxDisplayFileSize}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.default_theme"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
-					<input id="default_theme" name="default_theme" value="{{.UI.DefaultTheme}}">
+				<div class="inline field" >
+					<select name="default_theme" class="ui dropdown">
+						{{$defaultTheme := .UI.DefaultTheme}}
+						{{range $theme := StringUtils.Split .UI.Themes ","}}
+						<option value="{{$theme}}" {{Iif (eq $defaultTheme $theme) "selected"}}>{{$theme}}</option>
+						{{end}}
+					</select>
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.themes"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="themes" name="themes" value="{{.UI.Themes}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.reactions"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="reactions" name="reactions" value="{{.UI.Reactions}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.reaction_max_user_num"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="reaction_max_user_num" name="reaction_max_user_num" type="number" min="0" value="{{.UI.ReactionMaxUserNum}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.custom_emojis"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="inline field" >
 					<input id="custom_emojis" name="custom_emojis" value="{{.UI.CustomEmojis}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.explore_paging_default_sort"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
-					<input id="explore_paging_default_sort" name="explore_paging_default_sort" value="{{.UI.ExplorePagingDefaultSort}}">
+				<div class="inline field" >
+					<select name="explore_paging_default_sort" class="ui dropdown">
+						{{$explorePagingDefaultSort := .UI.ExplorePagingDefaultSort}}
+						{{range $value := .UI.ExplorePagingSortOption}}
+						<option value="{{$value}}" {{Iif (eq $explorePagingDefaultSort $value) "selected"}}>{{$value}}</option>
+						{{end}}
+					</select>
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.preferred_timestamp_tense"}}</dt>
 			<dd>
-				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
-					<input id="preferred_timestamp_tense" name="preferred_timestamp_tense" value="{{.UI.PreferredTimestampTense}}">
+				<div class="inline field" >
+					<select name="preferred_timestamp_tense" class="ui dropdown">
+						{{$preferredTimestampTense := .UI.PreferredTimestampTense}}
+						{{range $value := .UI.PreferredTimestampTenseOption}}
+						<option value="{{$value}}" {{Iif (eq $preferredTimestampTense $value) "selected"}}>{{$value}}</option>
+						{{end}}
+					</select>
 				</div>
 			</dd>
 			<div class="divider"></div>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.ambiguous_unicode_detection"}}</dt>
 			<dd>
-				<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="ui toggle checkbox" >
 					<input name="ambiguous_unicode_detection" type="checkbox" {{if .UI.AmbiguousUnicodeDetection}}checked{{end}}><label></label>
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.show_user_email"}}</dt>
 			<dd>
-				<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="ui toggle checkbox" >
 					<input name="show_user_email" type="checkbox" {{if .UI.ShowUserEmail}}checked{{end}}><label></label>
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.default_show_full_name"}}</dt>
 			<dd>
-				<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="ui toggle checkbox" >
 					<input name="default_show_full_name" type="checkbox" {{if .UI.DefaultShowFullName}}checked{{end}}><label></label>
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.search_repo_description"}}</dt>
 			<dd>
-				<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="ui toggle checkbox" >
 					<input name="search_repo_description" type="checkbox" {{if .UI.SearchRepoDescription}}checked{{end}}><label></label>
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.only_show_relevant_repos"}}</dt>
 			<dd>
-				<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+				<div class="ui toggle checkbox" >
 					<input name="only_show_relevant_repos" type="checkbox" {{if .UI.OnlyShowRelevantRepos}}checked{{end}}><label></label>
 				</div>
 			</dd>

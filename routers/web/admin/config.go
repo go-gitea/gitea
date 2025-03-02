@@ -259,6 +259,21 @@ func ChangeConfig(ctx *context.Context) {
 
 func ChangeUIConfig(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UIForm)
+	if len(form.Themes) == 1 {
+		form.Themes = strings.Split(form.Themes[0], ",")
+	} else {
+		form.Themes = nil
+	}
+	if len(form.Reactions) == 1 {
+		form.Reactions = strings.Split(form.Reactions[0], ",")
+	} else {
+		form.Reactions = nil
+	}
+	if len(form.CustomEmojis) == 1 {
+		form.CustomEmojis = strings.Split(form.CustomEmojis[0], ",")
+	} else {
+		form.CustomEmojis = nil
+	}
 	log.Debug("ChangeUIConfig form: %+v", form)
 	formMap, err := util.ConfigSectionToMap(form, "ui")
 	if err != nil {
