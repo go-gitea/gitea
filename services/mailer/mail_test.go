@@ -10,7 +10,6 @@ import (
 	"html/template"
 	"io"
 	"mime/quotedprintable"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -24,10 +23,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/test"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const subjectTpl = `
@@ -454,37 +454,31 @@ func TestFromDisplayName(t *testing.T) {
 	})
 }
 
-func PrepareAttachmentsStorage(t testing.TB) { // same as in test_utils.go
-	// prepare attachments directory and files
-	assert.NoError(t, storage.Clean(storage.Attachments))
-
-	s, err := storage.NewStorage(setting.LocalStorageType, &setting.Storage{
-		Path: filepath.Join(filepath.Dir(setting.AppPath), "tests", "testdata", "data", "attachments"),
-	})
-	assert.NoError(t, err)
-	assert.NoError(t, s.IterateObjects("", func(p string, obj storage.Object) error {
-		_, err = storage.Copy(storage.Attachments, p, s, p)
-		return err
-	}))
-}
-
 func TestEmbedBase64ImagesInEmail(t *testing.T) {
-	// Fake context setup
 	doer, repo, _, _ := prepareMailerTest(t)
-	PrepareAttachmentsStorage(t)
-	setting.MailService.Base64EmbedImages = true
-	setting.MailService.Base64EmbedImagesMaxSizePerEmail = 10 * 1024 * 1024
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 23, Repo: repo, Poster: doer})
-	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
+	defer test.MockVariableValue(&setting.MailService.Base64EmbedImages, true)
+	defer test.MockVariableValue(&setting.MailService.Base64EmbedImagesMaxSizePerEmail, 10*1024*1024)
+
+	err := issues_model.NewIssue(t.Context(), repo, &issues_model.Issue{
+		Poster:  doer,
+		RepoID:  repo.ID,
+		Title:   "test issue attachment",
+		Content: `content including this image: <image alt="gitea.png" src="attachments/1b267670-1793-4cd0-abc1-449269b7cff9" /> with some more content behind it`,
+	}, nil, nil)
+	require.NoError(t, err)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "test issue attachment"})
+	require.NoError(t, issue.LoadRepo(t.Context()))
 
 	subjectTemplates = texttmpl.Must(texttmpl.New("issue/new").Parse(subjectTpl))
 	bodyTemplates = template.Must(template.New("issue/new").Parse(bodyTpl))
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{
-		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
-		Content: strings.ReplaceAll(issue.Content, `src="`, `src="`+setting.AppURL),
+		Context:    t.Context(),
+		Issue:      issue,
+		Doer:       doer,
+		ActionType: activities_model.ActionCreateIssue,
+		Content:    strings.ReplaceAll(issue.Content, `src="`, `src="`+setting.AppURL),
 	}, "en-US", recipients, false, "issue create")
 
 	mailBody := msgs[0].Body
@@ -511,16 +505,20 @@ func TestEmbedBase64ImagesInEmail(t *testing.T) {
 
 func TestEmbedBase64Images(t *testing.T) {
 	user, repo, _, _ := prepareMailerTest(t)
-	PrepareAttachmentsStorage(t)
-	setting.MailService.Base64EmbedImages = true
-	setting.MailService.Base64EmbedImagesMaxSizePerEmail = 10 * 1024 * 1024
+	defer test.MockVariableValue(&setting.MailService.Base64EmbedImages, true)
+	defer test.MockVariableValue(&setting.MailService.Base64EmbedImagesMaxSizePerEmail, 10*1024*1024)
 
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 23, Repo: repo, Poster: user})
-
+	err := issues_model.NewIssue(t.Context(), repo, &issues_model.Issue{
+		Poster:  user,
+		RepoID:  repo.ID,
+		Title:   "test issue attachment",
+		Content: `content including this image: <image alt="gitea.png" src="attachments/1b267670-1793-4cd0-abc1-449269b7cff9" /> with some more content behind it`,
+	}, nil, nil)
+	require.NoError(t, err)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "test issue attachment"})
+	require.NoError(t, issue.LoadRepo(t.Context()))
 	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 13, IssueID: issue.ID, RepoID: repo.ID})
-	ctx0 := context.Background()
-
-	ctx := &mailCommentContext{Context: ctx0 /* TODO: use a correct context */, Issue: issue, Doer: user}
+	ctx := &mailCommentContext{Context: t.Context(), Issue: issue, Doer: user}
 
 	img1ExternalURL := "https://via.placeholder.com/10"
 	img1ExternalImg := "<img src=\"" + img1ExternalURL + "\"/>"
