@@ -4,7 +4,10 @@
 package gitdiff
 
 import (
+	"html/template"
 	"strings"
+
+	"code.gitea.io/gitea/modules/highlight"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -84,12 +87,31 @@ func (hcd *highlightCodeDiff) collectUsedRunes(code string) {
 	}
 }
 
-func (hcd *highlightCodeDiff) diffWithHighlight(codeA, codeB string) []diffmatchpatch.Diff {
+func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB string) []diffmatchpatch.Diff {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
-	convertedCodeA := hcd.convertToPlaceholders(codeA)
-	convertedCodeB := hcd.convertToPlaceholders(codeB)
+	highlightCodeA, _ := highlight.Code(filename, language, codeA)
+	highlightCodeB, _ := highlight.Code(filename, language, codeB)
+
+	convertedCodeA := hcd.convertToPlaceholders(string(highlightCodeA))
+	convertedCodeB := hcd.convertToPlaceholders(string(highlightCodeB))
+
+	diffs := diffMatchPatch.DiffMain(convertedCodeA, convertedCodeB, true)
+	diffs = diffMatchPatch.DiffCleanupEfficiency(diffs)
+
+	for i := range diffs {
+		hcd.recoverOneDiff(&diffs[i])
+	}
+	return diffs
+}
+
+func (hcd *highlightCodeDiff) diffWithFullFileHighlight(codeA, codeB template.HTML) []diffmatchpatch.Diff {
+	hcd.collectUsedRunes(string(codeA))
+	hcd.collectUsedRunes(string(codeB))
+
+	convertedCodeA := hcd.convertToPlaceholders(string(codeA))
+	convertedCodeB := hcd.convertToPlaceholders(string(codeB))
 
 	diffs := diffMatchPatch.DiffMain(convertedCodeA, convertedCodeB, true)
 	diffs = diffMatchPatch.DiffCleanupEfficiency(diffs)
