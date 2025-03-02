@@ -36,6 +36,7 @@ services:
   redis:
     image: redis:alpine  # Redis Docker image
     container_name: redis
+
     ports:
       - "6379:6379"  # Expose Redis default port
     volumes:
