@@ -106,7 +106,7 @@ func getExpectedFileResponseForRepofilesDelete() *api.FileResponse {
 	}
 }
 
-func getExpectedFileResponseForRepofilesCreate(commitID, lastCommitSHA string) *api.FileResponse {
+func getExpectedFileResponseForRepofilesCreate(commitID string, lastCommit *git.Commit) *api.FileResponse {
 	treePath := "new/file.txt"
 	encoding := "base64"
 	content := "VGhpcyBpcyBhIE5FVyBmaWxl"
@@ -116,18 +116,19 @@ func getExpectedFileResponseForRepofilesCreate(commitID, lastCommitSHA string) *
 	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:          filepath.Base(treePath),
-			Path:          treePath,
-			SHA:           "103ff9234cefeee5ec5361d22b49fbb04d385885",
-			LastCommitSHA: lastCommitSHA,
-			Type:          "file",
-			Size:          18,
-			Encoding:      &encoding,
-			Content:       &content,
-			URL:           &selfURL,
-			HTMLURL:       &htmlURL,
-			GitURL:        &gitURL,
-			DownloadURL:   &downloadURL,
+			Name:           filepath.Base(treePath),
+			Path:           treePath,
+			SHA:            "103ff9234cefeee5ec5361d22b49fbb04d385885",
+			LastCommitSHA:  lastCommit.ID.String(),
+			LastCommitWhen: lastCommit.Committer.When,
+			Type:           "file",
+			Size:           18,
+			Encoding:       &encoding,
+			Content:        &content,
+			URL:            &selfURL,
+			HTMLURL:        &htmlURL,
+			GitURL:         &gitURL,
+			DownloadURL:    &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -269,10 +270,17 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
 		lastCommit, _ := gitRepo.GetCommitByPath("new/file.txt")
-		expectedFileResponse := getExpectedFileResponseForRepofilesCreate(commitID, lastCommit.ID.String())
+		expectedFileResponse := getExpectedFileResponseForRepofilesCreate(commitID, lastCommit)
 		assert.NotNil(t, expectedFileResponse)
 		if expectedFileResponse != nil {
-			assert.EqualValues(t, expectedFileResponse.Content, filesResponse.Files[0])
+			assert.EqualValues(t, expectedFileResponse.Content.Name, filesResponse.Files[0].Name)
+			assert.EqualValues(t, expectedFileResponse.Content.Path, filesResponse.Files[0].Path)
+			assert.EqualValues(t, expectedFileResponse.Content.SHA, filesResponse.Files[0].SHA)
+			assert.EqualValues(t, expectedFileResponse.Content.LastCommitSHA, filesResponse.Files[0].LastCommitSHA)
+			assert.EqualValues(t, expectedFileResponse.Content.LastCommitWhen, filesResponse.Files[0].LastCommitWhen)
+			assert.EqualValues(t, expectedFileResponse.Content.Type, filesResponse.Files[0].Type)
+			assert.EqualValues(t, expectedFileResponse.Content.Size, filesResponse.Files[0].Size)
+
 			assert.EqualValues(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
 			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
