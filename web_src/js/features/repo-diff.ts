@@ -12,8 +12,6 @@ import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {observeAddedElement} from '../modules/observer.ts';
 import {initGlobalDropdown} from './common-page.ts';
-
-
 const {i18n} = window.config;
 
 function initRepoDiffFileBox(el: HTMLElement) {
@@ -90,7 +88,7 @@ function initRepoDiffConversationForm() {
       console.error('Error:', error);
       showErrorToast(i18n.network_error);
     } finally {
-      form?.classList.remove('is-loading'); 
+      form?.classList.remove('is-loading');
     }
   });
 
