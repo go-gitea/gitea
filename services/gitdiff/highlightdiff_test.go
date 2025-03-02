@@ -18,8 +18,8 @@ func TestDiffWithHighlight(t *testing.T) {
 		"		run(db)\n",
 	)
 
-	expected := `		run(<span class="removed-code">'<>'</span>)
-`
+	expected := "\t\trun(<span class=\"removed-code\">'<>'</></span>)\n"
+
 	output := diffToHTML(nil, diffs, DiffLineDel)
 	assert.Equal(t, expected, output)
 
@@ -75,14 +75,14 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 	hcd = newHighlightCodeDiff()
 	hcd.placeholderMaxCount = 0
 	diffs = hcd.diffWithHighlight(
-		"a < b",
-		"a > b",
+		"a this_is_not_html_at_this_point b",
+		"a this_is_is_still_not_html_at_this_point_its_just_a_string b",
 	)
 	output = diffToHTML(nil, diffs, DiffLineDel)
-	expected = `a <span class="removed-code"><</span> b`
+	expected = "a this_is_not_html_at_this_point b"
 	assert.Equal(t, expected, output)
 
 	output = diffToHTML(nil, diffs, DiffLineAdd)
-	expected = `a <span class="added-code">></span> b`
+	expected = "a this_is_<span class=\"added-code\">is_still_</span>not_html_at_this_point<span class=\"added-code\">_its_just_a_string</span> b"
 	assert.Equal(t, expected, output)
 }
