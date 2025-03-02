@@ -21,12 +21,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Ensure Report Directory Exists
+        run: mkdir -p reports/html-report
+
+      - name: Cleanup Previous JMeter Reports
+        run: rm -rf reports/html-report && mkdir -p reports/html-report
+
       - name: Run JMeter Load Test
         uses: rbhadti94/apache-jmeter-action@v0.5.0
         with:
           testFilePath: tests/jmeter/gite-test-plan.jmx
           outputReportsFolder: reports/
           args: "-n -t tests/jmeter/gite-test-plan.jmx -l reports/results.jtl -e -o reports/html-report"
+
+      - name: Check JMeter Report Generation
+        run: ls -la reports/html-report || echo "Report directory is empty"
 
       - name: Upload JMeter Test Results
         uses: actions/upload-artifact@v4
