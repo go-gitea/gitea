@@ -48,6 +48,10 @@ func IsCodeOwnerFile(f string) bool {
 }
 
 func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
+	return PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, "", "")
+}
+
+func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_model.PullRequest, startCommitID, endCommitID string) ([]*ReviewRequestNotifier, error) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
@@ -78,7 +82,6 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	var data string
-
 	for _, file := range codeOwnerFiles {
 		if blob, err := commit.GetBlobByPath(file); err == nil {
 			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
@@ -87,18 +90,28 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 			}
 		}
 	}
+	if data == "" {
+		return nil, nil
+	}
 
 	rules, _ := issues_model.GetCodeOwnersFromContent(ctx, data)
+	if len(rules) == 0 {
+		return nil, nil
+	}
 
-	// get the mergebase
-	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
-	if err != nil {
-		return nil, err
+	if startCommitID == "" && endCommitID == "" {
+		// get the mergebase
+		mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+		if err != nil {
+			return nil, err
+		}
+		startCommitID = mergeBase
+		endCommitID = pr.GetGitRefName()
 	}
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitRefName())
+	changedFiles, err := repo.GetFilesChangedBetween(startCommitID, endCommitID)
 	if err != nil {
 		return nil, err
 	}

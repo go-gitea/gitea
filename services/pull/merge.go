@@ -211,7 +211,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 	defer releaser()
 	defer func() {
-		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
+		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, false, "", "")
 	}()
 
 	_, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)

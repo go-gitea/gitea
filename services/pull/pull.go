@@ -374,7 +374,7 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 
 // AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
 // and generate new patch for testing as needed.
-func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, isSync bool, oldCommitID, newCommitID string) {
+func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, isSync, isForPush bool, oldCommitID, newCommitID string) {
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
 		// There is no sensible way to shut this down ":-("
@@ -454,10 +454,16 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					}
 
 					if !pr.IsWorkInProgress(ctx) {
-						reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(ctx, pr)
+						var reviewNotifiers []*issue_service.ReviewRequestNotifier
+						if isForPush {
+							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, pr)
+						} else {
+							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, oldCommitID, newCommitID)
+						}
 						if err != nil {
 							log.Error("PullRequestCodeOwnersReview: %v", err)
-						} else {
+						}
+						if len(reviewNotifiers) > 0 {
 							issue_service.ReviewRequestNotify(ctx, pr.Issue, doer, reviewNotifiers)
 						}
 					}
