@@ -59,7 +59,7 @@ jobs:
         run: |
           docker build -t maias816/gitea:latest .
 
-      # Step 5: Push the Docker image to Docker Hub
+      # Step 5: Push the Docker image to Docker Hub ok
       - name: Push Docker image
         run: |
           docker push maias816/gitea:latest
