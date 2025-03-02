@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
 
 	"golang.org/x/text/cases"
@@ -283,12 +282,10 @@ func ConfigSectionToMap(in any, keyPrefix string) (map[string]string, error) {
 		switch v.FieldByName(fi.Name).Kind() {
 		case reflect.Bool,
 			reflect.String,
+			reflect.Slice, reflect.Array,
 			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			out[fmt.Sprintf("%s.%s", keyPrefix, ToSnakeCase(fi.Name))] = fmt.Sprintf("%v", v.FieldByName(fi.Name).Interface())
-		case reflect.Slice, reflect.Array:
-			str, _ := json.Marshal(v.FieldByName(fi.Name))
-			out[fmt.Sprintf("%s.%s", keyPrefix, ToSnakeCase(fi.Name))] = string(str)
 		}
 	}
 
