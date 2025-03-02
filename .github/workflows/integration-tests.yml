@@ -3,7 +3,7 @@ name: Gitea Setup and Testing
 on:
   pull_request:
     branches:
-      - dev  # Trigger the workflow when a PR is opened to the dev branch
+      - feature-branch  # Trigger the workflow when a PR is opened to the dev branch
   #workflow_dispatch:  # Allows manual trigger from the GitHub UI
 
 jobs:
