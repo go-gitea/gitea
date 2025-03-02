@@ -8,8 +8,7 @@ export class InitPerformanceTracer {
   printResults() {
     this.results = this.results.sort((a, b) => b.dur - a.dur);
     for (let i = 0; i < 20 && i < this.results.length; i++) {
-      // eslint-disable-next-line no-console
-      console.log(`performance trace: ${this.results[i].name} ${this.results[i].dur.toFixed(3)}`);
+      console.info(`performance trace: ${this.results[i].name} ${this.results[i].dur.toFixed(3)}`);
     }
   }
 }
