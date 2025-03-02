@@ -1,0 +1,85 @@
+<div class="ui small modal" id="create-star-list">
+	<div class="header">Create list</div>
+	<div class="content">
+		<div class="ui info message">Create a list to organize your starred repositories.</div>
+		<form class="ui form modal-form" method="post">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="action" value="add" />
+			<div class="field">
+				<label for="list-name">Name</label>
+				<input id="list-name" name="name" placeholder="⭐️ Name this list">
+			</div>
+			<div class="field">
+				<label for="list-description">Description</label>
+				<textarea id="list-description" name="description" placeholder="Write a description"></textarea>
+			</div>
+			<div class="text right actions">
+				<button class="ui cancel button">Cancel</button>
+				<button class="ui primary button">Create</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="ui small modal" id="edit-star-list">
+	<div class="header">Edit list</div>
+	<div class="content">
+		<form class="ui form modal-form" method="post">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="action" value="edit" />
+			<div class="field">
+				<label for="list-name">Name</label>
+				<input id="list-name" name="name" placeholder="⭐️ Name this list">
+			</div>
+			<div class="field">
+				<label for="list-description">Description</label>
+				<textarea id="list-description" name="description" placeholder="Write a description"></textarea>
+			</div>
+			<div class="text right actions">
+				<button class="ui cancel button">Cancel</button>
+				<button class="ui red button show-modal" data-modal="#delete-star-list">Delete list</button>
+				<button class="ui primary button">Save list</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="ui g-modal-confirm delete modal" id="delete-star-list">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		Delete list
+	</div>
+	<form class="ui form" method="post" action="">
+		<div class="content">
+			<p>Are you sure you want to delete this list?</p>
+			<p>You will still be able to view the 1 repository in this list in your stars.</p>
+			{{$.CsrfTokenHtml}}
+		</div>
+		<div class="text right actions">
+			<button class="ui cancel button">Cancel</button>
+			<button class="ui red button">Delete list</button>
+		</div>
+	</form>
+</div>
+
+<div class="ui small modal" id="choose-star-list">
+	<div class="header">List</div>
+	<div class="content">
+		<form class="ui form modal-form" method="post">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="action" value="edit" />
+			<div class="field">
+				<label for="list-name">Name</label>
+				<input id="list-name" name="name" placeholder="⭐️ Name this list">
+			</div>
+			<div class="field">
+				<label for="list-description">Description</label>
+				<textarea id="list-description" name="description" placeholder="Write a description"></textarea>
+			</div>
+			<div class="text right actions">
+				<button class="ui cancel button">Cancel</button>
+				<button class="ui primary button">Save</button>
+			</div>
+		</form>
+	</div>
+</div>

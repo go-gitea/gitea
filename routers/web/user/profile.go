@@ -190,6 +190,12 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		total = int(count)
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
+		starList, err := repo_model.GetStarListsForUser(ctx, ctx.ContextUser.ID)
+		if err != nil {
+			ctx.ServerError("SearchStarList", err)
+			return
+		}
+		ctx.Data["StarList"] = starList
 		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,

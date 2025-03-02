@@ -5,9 +5,10 @@
 		<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}} aria-label="{{$buttonText}}">
 			{{svg "octicon-eye"}}
 			<span aria-hidden="true">{{$buttonText}}</span>
+			<span class="ui small label">{{CountFmt .Repository.NumWatches}}</span>
 		</button>
 		<a hx-boost="false" class="ui basic label" href="{{.RepoLink}}/watchers">
-			{{CountFmt .Repository.NumWatches}}
+			{{svg "octicon-triangle-down"}}
 		</a>
 	</div>
 </form>
