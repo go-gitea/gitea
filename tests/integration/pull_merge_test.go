@@ -923,7 +923,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 			Run(&git.RunOpts{Dir: dstPath, Stderr: stderrBuf})
 		assert.NoError(t, err)
 
-		assert.Contains(t, stderrBuf.String(), setting.AppURL+"user2/repo1/pulls/7")
+		assert.Contains(t, stderrBuf.String(), setting.AppURL+"user2/repo1/pulls/6")
 
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
@@ -1043,7 +1043,7 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-		mergeReq := NewRequestWithValues(t, "POST", "/api/v1/repos/user2/repo1/pulls/7/merge", map[string]string{
+		mergeReq := NewRequestWithValues(t, "POST", "/api/v1/repos/user2/repo1/pulls/6/merge", map[string]string{
 			"_csrf":                     csrf,
 			"head_commit_id":            "",
 			"merge_when_checks_succeed": "false",

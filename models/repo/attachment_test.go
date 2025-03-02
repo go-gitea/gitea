@@ -51,7 +51,7 @@ func TestDeleteAttachments(t *testing.T) {
 
 	count, err = repo_model.DeleteAttachmentsByComment(db.DefaultContext, 2, false)
 	assert.NoError(t, err)
-	assert.Equal(t, 3, count)
+	assert.Equal(t, 2, count)
 
 	err = repo_model.DeleteAttachment(db.DefaultContext, &repo_model.Attachment{ID: 8}, false)
 	assert.NoError(t, err)
