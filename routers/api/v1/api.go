@@ -912,7 +912,10 @@ func Routes() *web.Router {
 			})
 
 			m.Group("/runners", func() {
+				m.Get("", reqToken(), reqChecker, act.GetRunners)
 				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
+				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
+				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
 			})
 		})
 	}

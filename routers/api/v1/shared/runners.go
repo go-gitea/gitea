@@ -7,9 +7,14 @@ import (
 	"errors"
 	"net/http"
 
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // RegistrationToken is response related to registration token
@@ -29,4 +34,68 @@ func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
 	}
 
 	ctx.JSON(http.StatusOK, RegistrationToken{Token: token.Token})
+}
+
+func GetRunners(ctx *context.APIContext, ownerID, repoID int64) {
+	runners, total, err := db.FindAndCount[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{
+		OwnerID:     ownerID,
+		RepoID:      repoID,
+		ListOptions: utils.GetListOptions(ctx),
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	res := new(api.ActionRunnersResponse)
+	res.TotalCount = total
+
+	res.Entries = make([]*api.ActionRunner, len(runners))
+	for i, runner := range runners {
+		res.Entries[i] = convert.ToActionRunner(ctx, runner)
+	}
+
+	ctx.JSON(http.StatusOK, &res)
+}
+
+func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
+	runner, exists, err := db.GetByID[actions_model.ActionRunner](ctx, runnerID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !exists {
+		ctx.APIErrorNotFound("Runner does not exist")
+		return
+	}
+	if !runner.Editable(ownerID, repoID) {
+		ctx.APIErrorNotFound("No permission to get this runner")
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToActionRunner(ctx, runner))
+}
+
+func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
+	runner, exists, err := db.GetByID[actions_model.ActionRunner](ctx, runnerID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !exists {
+		ctx.APIErrorNotFound("Runner does not exist")
+		return
+	}
+	if !runner.Editable(ownerID, repoID) {
+		ctx.APIErrorNotFound("No permission to delete this runner")
+		return
+	}
+	if runner.Status() == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE {
+		ctx.APIError(http.StatusConflict, "Runner is active")
+		return
+	}
+	err = actions_model.DeleteRunner(ctx, runner.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+	}
+	ctx.Status(http.StatusNoContent)
 }

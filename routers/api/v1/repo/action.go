@@ -526,6 +526,18 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
 }
 
+func (Action) GetRunners(ctx *context.APIContext) {
+	shared.GetRunners(ctx, 0, ctx.Repo.Repository.ID)
+}
+
+func (Action) GetRunner(ctx *context.APIContext) {
+	shared.GetRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
+}
+
+func (Action) DeleteRunner(ctx *context.APIContext) {
+	shared.DeleteRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
+}
+
 var _ actions_service.API = new(Action)
 
 // Action implements actions_service.API
