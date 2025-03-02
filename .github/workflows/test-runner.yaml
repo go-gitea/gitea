@@ -1,8 +1,12 @@
 name: Run API & Selenium Tests Separately
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
-    branches: [ main, dev ]
+    branches:
+      - main
 
 jobs:
   api-tests:

@@ -1,8 +1,12 @@
 name: Run Notification Service Tests
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
-    branches: [ main, dev ]
+    branches:
+      - main
 
 jobs:
   notification-service-tests:
