@@ -14,7 +14,6 @@ import (
 func TestDiffWithHighlight(t *testing.T) {
 	hcd := newHighlightCodeDiff()
 	diffs := hcd.diffWithHighlight(
-		"main.v", "",
 		"		run('<>')\n",
 		"		run(db)\n",
 	)
@@ -42,7 +41,6 @@ func TestDiffWithHighlight(t *testing.T) {
 func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	hcd := newHighlightCodeDiff()
 	diffs := hcd.diffWithHighlight(
-		"main.js", "",
 		"a='\U00100000'",
 		"a='\U0010FFFD''",
 	)
@@ -55,7 +53,6 @@ func TestDiffWithHighlightPlaceholder(t *testing.T) {
 
 	hcd = newHighlightCodeDiff()
 	diffs = hcd.diffWithHighlight(
-		"main.js", "",
 		"a='\U00100000'",
 		"a='\U0010FFFD'",
 	)
@@ -68,7 +65,6 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 	hcd := newHighlightCodeDiff()
 	hcd.placeholderMaxCount = 0
 	diffs := hcd.diffWithHighlight(
-		"main.js", "",
 		"'",
 		``,
 	)
@@ -79,7 +75,6 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 	hcd = newHighlightCodeDiff()
 	hcd.placeholderMaxCount = 0
 	diffs = hcd.diffWithHighlight(
-		"main.js", "",
 		"a < b",
 		"a > b",
 	)

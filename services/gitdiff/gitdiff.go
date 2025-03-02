@@ -301,10 +301,6 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 		diff2           string
 	)
 
-	language := ""
-	if diffSection.file != nil {
-		language = diffSection.file.Language
-	}
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
@@ -335,10 +331,10 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	}
 
 	hcd := newHighlightCodeDiff()
-	diffRecord := hcd.diffWithHighlight(diffSection.FileName, language, diff1, diff2)
+	diffRecord := hcd.diffWithHighlight(diff1, diff2)
 	// it seems that Gitea doesn't need the line wrapper of Chroma, so do not add them back
 	// if the line wrappers are still needed in the future, it can be added back by "diffToHTML(hcd.lineWrapperTags. ...)"
-	diffHTML := html.UnescapeString(diffToHTML(nil, diffRecord, diffLine.Type))
+	diffHTML := diffToHTML(nil, diffRecord, diffLine.Type)
 	return DiffInlineWithUnicodeEscape(template.HTML(diffHTML), locale)
 }
 

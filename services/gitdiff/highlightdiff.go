@@ -84,7 +84,7 @@ func (hcd *highlightCodeDiff) collectUsedRunes(code string) {
 	}
 }
 
-func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB string) []diffmatchpatch.Diff {
+func (hcd *highlightCodeDiff) diffWithHighlight(codeA, codeB string) []diffmatchpatch.Diff {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
