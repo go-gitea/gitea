@@ -1248,7 +1248,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	return diff, nil
 }
 
-func highlightCode(commit *git.Commit, beforeCommit *git.Commit, diffFile *DiffFile) ([]string, []string) {
+func highlightCode(commit, beforeCommit *git.Commit, diffFile *DiffFile) ([]string, []string) {
 	var oldLines []string
 	var newLines []string
 

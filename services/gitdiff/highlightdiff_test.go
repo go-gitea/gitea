@@ -91,4 +91,3 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 	expected = `a <span class="added-code">></span> b`
 	assert.Equal(t, expected, output)
 }
-
