@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
 
 	"golang.org/x/text/cases"
@@ -276,16 +277,32 @@ func ConfigSectionToMap(in any, keyPrefix string) (map[string]string, error) {
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
 		fi := t.Field(i)
+		fieldName := fi.Name
 		if tagValue := fi.Tag.Get("ini"); tagValue == "-" {
 			continue
+		} else if tagValue != "" {
+			fieldName = tagValue
 		}
 		switch v.FieldByName(fi.Name).Kind() {
 		case reflect.Bool,
-			reflect.String,
-			reflect.Slice, reflect.Array,
 			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			out[fmt.Sprintf("%s.%s", keyPrefix, ToSnakeCase(fi.Name))] = fmt.Sprintf("%v", v.FieldByName(fi.Name).Interface())
+			out[fmt.Sprintf("%s.%s", keyPrefix, ToSnakeCase(fieldName))] = fmt.Sprintf("%v", v.FieldByName(fi.Name).Interface())
+		case reflect.String:
+			marshal, err := json.Marshal(v.FieldByName(fi.Name).Interface())
+			if err != nil {
+				return nil, err
+			}
+			out[fmt.Sprintf("%s.%s", keyPrefix, ToSnakeCase(fieldName))] = fmt.Sprintf("%v", string(marshal))
+		case reflect.Slice, reflect.Array:
+			if v.FieldByName(fi.Name).Len() == 0 {
+				continue
+			}
+			marshal, err := json.Marshal(v.FieldByName(fi.Name).Interface())
+			if err != nil {
+				return nil, err
+			}
+			out[fmt.Sprintf("%s.%s", keyPrefix, ToSnakeCase(fieldName))] = fmt.Sprintf("%v", string(marshal))
 		}
 	}
 

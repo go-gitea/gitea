@@ -259,6 +259,7 @@ func ChangeConfig(ctx *context.Context) {
 
 func ChangeUIConfig(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UIForm)
+	log.Debug("ChangeUIConfig form: %+v", form)
 	formMap, err := util.ConfigSectionToMap(form, "ui")
 	if err != nil {
 		ctx.ServerError("unable convert struct to map[string]string", err)
@@ -274,5 +275,7 @@ func ChangeUIConfig(ctx *context.Context) {
 	}
 
 	config.GetDynGetter().InvalidateCache()
+
+	ctx.Flash.Success(ctx.Tr("admin.dashboard.update_settings_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings")
 }

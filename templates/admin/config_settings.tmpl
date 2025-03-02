@@ -30,6 +30,12 @@
 					<input id="feed_paging_num" name="feed_paging_num" type="number" min="0" value="{{.UI.FeedPagingNum}}">
 				</div>
 			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.members_paging_num"}}</dt>
+			<dd>
+				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
+					<input id="members_paging_num" name="members_paging_num" type="number" min="0" value="{{.UI.MembersPagingNum}}">
+				</div>
+			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.sitemap_paging_num"}}</dt>
 			<dd>
 				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
@@ -87,7 +93,7 @@
 			<dt>{{ctx.Locale.Tr "admin.config.ui.explore_paging_default_sort"}}</dt>
 			<dd>
 				<div class="inline field" data-tooltip-content="{{ctx.Locale.Tr "admin.config.disable_gravatar"}}">
-					<input id="explore_paging_default_sort" name="explore_paging_default_sort" value="{{.UI.ExploreDefaultSort}}">
+					<input id="explore_paging_default_sort" name="explore_paging_default_sort" value="{{.UI.ExplorePagingDefaultSort}}">
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.preferred_timestamp_tense"}}</dt>
