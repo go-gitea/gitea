@@ -6,6 +6,7 @@ package gitdiff
 import (
 	"strings"
 
+	"code.gitea.io/gitea/modules/highlight"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -88,8 +89,11 @@ func (hcd *highlightCodeDiff) diffWithHighlight(codeA, codeB string) []diffmatch
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
-	convertedCodeA := hcd.convertToPlaceholders(codeA)
-	convertedCodeB := hcd.convertToPlaceholders(codeB)
+	highlightCodeA, _ := highlight.Code("", "", codeA)
+	highlightCodeB, _ := highlight.Code("", "", codeB)
+
+	convertedCodeA := hcd.convertToPlaceholders(string(highlightCodeA))
+	convertedCodeB := hcd.convertToPlaceholders(string(highlightCodeB))
 
 	diffs := diffMatchPatch.DiffMain(convertedCodeA, convertedCodeB, true)
 	diffs = diffMatchPatch.DiffCleanupEfficiency(diffs)
