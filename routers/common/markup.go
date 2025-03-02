@@ -39,7 +39,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		rctx := renderhelper.NewRenderContextSimpleDocument(ctx, baseLink).WithUseAbsoluteLink(true).
 			WithMarkupType(markdown.MarkupName)
 		if err := markdown.RenderRaw(rctx, strings.NewReader(text), ctx.Resp); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		}
 		return
 	}
@@ -88,15 +88,15 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		})
 		rctx = rctx.WithMarkupType("").WithRelativePath(filePath) // render the repo file content by its extension
 	default:
-		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
+		ctx.HTTPError(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
 		return
 	}
 	rctx = rctx.WithUseAbsoluteLink(true)
 	if err := markup.Render(rctx, strings.NewReader(text), ctx.Resp); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusUnprocessableEntity, err.Error())
+			ctx.HTTPError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		}
 		return
 	}

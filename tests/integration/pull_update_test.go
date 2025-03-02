@@ -115,12 +115,12 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		OldBranch: "master",
 		NewBranch: "master",
 		Author: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Committer: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    time.Now(),
@@ -142,12 +142,12 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		OldBranch: "master",
 		NewBranch: "newBranch",
 		Author: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Committer: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    time.Now(),

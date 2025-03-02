@@ -26,7 +26,7 @@ func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 func listUserFollowers(ctx *context.APIContext, u *user_model.User) {
 	users, count, err := user_model.GetUserFollowers(ctx, u, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func ListFollowers(ctx *context.APIContext) {
 func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
 	users, count, err := user_model.GetUserFollowing(ctx, u, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserFollowing", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -155,7 +155,7 @@ func checkUserFollowing(ctx *context.APIContext, u *user_model.User, followID in
 	if user_model.IsFollowing(ctx, u.ID, followID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 	}
 }
 
@@ -229,9 +229,9 @@ func Follow(ctx *context.APIContext) {
 
 	if err := user_model.FollowUser(ctx, ctx.Doer, ctx.ContextUser); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden, "FollowUser", err)
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "FollowUser", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -256,7 +256,7 @@ func Unfollow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if err := user_model.UnfollowUser(ctx, ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UnfollowUser", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

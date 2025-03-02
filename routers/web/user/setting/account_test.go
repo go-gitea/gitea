@@ -95,7 +95,7 @@ func TestChangePassword(t *testing.T) {
 			AccountPost(ctx)
 
 			assert.Contains(t, ctx.Flash.ErrorMsg, req.Message)
-			assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+			assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 		})
 	}
 }

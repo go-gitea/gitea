@@ -22,6 +22,7 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGPGGit(t *testing.T) {
@@ -33,9 +34,7 @@ func TestGPGGit(t *testing.T) {
 
 	// Need to create a root key
 	rootKeyPair, err := importTestingKey()
-	if !assert.NoError(t, err, "importTestingKey") {
-		return
-	}
+	require.NoError(t, err, "importTestingKey")
 
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, rootKeyPair.PrimaryKey.KeyIdShortString())()
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()

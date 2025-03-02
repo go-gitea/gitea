@@ -58,7 +58,7 @@ func TestRepoEdit(t *testing.T) {
 	web.SetForm(ctx, &opts)
 	Edit(ctx)
 
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,
 	}, unittest.Cond("name = ? AND is_archived = 1", *opts.Name))
@@ -78,7 +78,7 @@ func TestRepoEditNameChange(t *testing.T) {
 
 	web.SetForm(ctx, &opts)
 	Edit(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,

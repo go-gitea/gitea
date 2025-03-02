@@ -39,8 +39,6 @@ type SearchUserOptions struct {
 	IsTwoFactorEnabled optional.Option[bool]
 	IsProhibitLogin    optional.Option[bool]
 	IncludeReserved    bool
-
-	ExtraParamStrings map[string]string
 }
 
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {

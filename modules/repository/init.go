@@ -81,7 +81,7 @@ func LoadRepoConfig() error {
 		if isDir, err := util.IsDir(customPath); err != nil {
 			return fmt.Errorf("failed to check custom %s dir: %w", t, err)
 		} else if isDir {
-			if typeFiles[i].custom, err = util.StatDir(customPath); err != nil {
+			if typeFiles[i].custom, err = util.ListDirRecursively(customPath, &util.ListDirOptions{SkipCommonHiddenNames: true}); err != nil {
 				return fmt.Errorf("failed to list custom %s files: %w", t, err)
 			}
 		}

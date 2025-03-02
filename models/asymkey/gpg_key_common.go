@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/keybase/go-crypto/openpgp"
-	"github.com/keybase/go-crypto/openpgp/armor"
-	"github.com/keybase/go-crypto/openpgp/packet"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 //   __________________  ________   ____  __.
@@ -33,9 +33,9 @@ import (
 
 // This file provides common functions relating to GPG Keys
 
-// checkArmoredGPGKeyString checks if the given key string is a valid GPG armored key.
+// CheckArmoredGPGKeyString checks if the given key string is a valid GPG armored key.
 // The function returns the actual public key on success
-func checkArmoredGPGKeyString(content string) (openpgp.EntityList, error) {
+func CheckArmoredGPGKeyString(content string) (openpgp.EntityList, error) {
 	list, err := openpgp.ReadArmoredKeyRing(strings.NewReader(content))
 	if err != nil {
 		return nil, ErrGPGKeyParsing{err}
@@ -43,8 +43,8 @@ func checkArmoredGPGKeyString(content string) (openpgp.EntityList, error) {
 	return list, nil
 }
 
-// base64EncPubKey encode public key content to base 64
-func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
+// Base64EncPubKey encode public key content to base 64
+func Base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	var w bytes.Buffer
 	err := pubkey.Serialize(&w)
 	if err != nil {
@@ -80,7 +80,7 @@ func base64DecPubKey(content string) (*packet.PublicKey, error) {
 	return pkey, nil
 }
 
-// getExpiryTime extract the expire time of primary key based on sig
+// getExpiryTime extract the expiry time of primary key based on sig
 func getExpiryTime(e *openpgp.Entity) time.Time {
 	expiry := time.Time{}
 	// Extract self-sign for expire date based on : https://github.com/golang/crypto/blob/master/openpgp/keys.go#L165
@@ -88,12 +88,12 @@ func getExpiryTime(e *openpgp.Entity) time.Time {
 	for _, ident := range e.Identities {
 		if selfSig == nil {
 			selfSig = ident.SelfSignature
-		} else if ident.SelfSignature.IsPrimaryId != nil && *ident.SelfSignature.IsPrimaryId {
+		} else if ident.SelfSignature != nil && ident.SelfSignature.IsPrimaryId != nil && *ident.SelfSignature.IsPrimaryId {
 			selfSig = ident.SelfSignature
 			break
 		}
 	}
-	if selfSig.KeyLifetimeSecs != nil {
+	if selfSig != nil && selfSig.KeyLifetimeSecs != nil {
 		expiry = e.PrimaryKey.CreationTime.Add(time.Duration(*selfSig.KeyLifetimeSecs) * time.Second)
 	}
 	return expiry
@@ -119,7 +119,7 @@ func readArmoredSign(r io.Reader) (body io.Reader, err error) {
 	return block.Body, nil
 }
 
-func extractSignature(s string) (*packet.Signature, error) {
+func ExtractSignature(s string) (*packet.Signature, error) {
 	r, err := readArmoredSign(strings.NewReader(s))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read signature armor")
@@ -135,7 +135,7 @@ func extractSignature(s string) (*packet.Signature, error) {
 	return sig, nil
 }
 
-func tryGetKeyIDFromSignature(sig *packet.Signature) string {
+func TryGetKeyIDFromSignature(sig *packet.Signature) string {
 	if sig.IssuerKeyId != nil && (*sig.IssuerKeyId) != 0 {
 		return fmt.Sprintf("%016X", *sig.IssuerKeyId)
 	}

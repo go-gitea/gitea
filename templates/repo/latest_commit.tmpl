@@ -3,7 +3,7 @@
 	…
 {{else}}
 	{{if .LatestCommitUser}}
-		{{ctx.AvatarUtils.Avatar .LatestCommitUser 24 "tw-mr-1"}}
+		{{ctx.AvatarUtils.Avatar .LatestCommitUser 24}}
 		{{if and .LatestCommitUser.FullName DefaultShowFullName}}
 			<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 		{{else}}
@@ -11,7 +11,7 @@
 		{{end}}
 	{{else}}
 		{{if .LatestCommit.Author}}
-			{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24 "tw-mr-1"}}
+			{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
 			<span class="author-wrapper" title="{{.LatestCommit.Author.Name}}"><strong>{{.LatestCommit.Author.Name}}</strong></span>
 		{{end}}
 	{{end}}

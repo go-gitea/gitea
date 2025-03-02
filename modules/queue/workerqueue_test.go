@@ -4,7 +4,6 @@
 package queue
 
 import (
-	"context"
 	"slices"
 	"strconv"
 	"sync"
@@ -58,7 +57,7 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 			testRecorder.Record("push:%v", i)
 			assert.NoError(t, q.Push(i))
 		}
-		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
+		assert.NoError(t, q.FlushWithContext(t.Context(), 0))
 		stop()
 
 		ok := true
@@ -166,7 +165,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 
 		q, _ := newWorkerPoolQueueForTest("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
-		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
+		assert.NoError(t, q.FlushWithContext(t.Context(), 0))
 		stop()
 	}
 

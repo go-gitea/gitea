@@ -29,7 +29,7 @@ func RecentCommits(ctx *context.Context) {
 
 // RecentCommitsData returns JSON of recent commits data
 func RecentCommitsData(ctx *context.Context) {
-	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
+	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch); err != nil {
 		if errors.Is(err, contributors_service.ErrAwaitGeneration) {
 			ctx.Status(http.StatusAccepted)
 			return

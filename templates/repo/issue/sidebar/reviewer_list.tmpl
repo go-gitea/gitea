@@ -6,7 +6,7 @@
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/request_review?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input type="hidden" class="combo-value" name="reviewer_ids">{{/* match CreateIssueForm */}}
-	<div class="ui dropdown {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
+	<div class="ui dropdown text-flex-grow {{if or (not $hasCandidates) (not $data.CanChooseReviewer)}}disabled{{end}}">
 		<a class="text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.review.reviewers"}}</strong> {{if $data.CanChooseReviewer}}{{svg "octicon-gear"}}{{end}}
 		</a>
@@ -51,9 +51,9 @@
 			<div class="item">
 				<div class="flex-text-inline tw-flex-1">
 					{{if .User}}
-						<a class="muted flex-text-inline" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20}} {{.User.GetDisplayName}}</a>
+						<a class="muted flex-text-inline tw-gap-2" href="{{.User.HomeLink}}">{{ctx.AvatarUtils.Avatar .User 20}} {{.User.GetDisplayName}}</a>
 					{{else if .Team}}
-						{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}
+						<span class="flex-text-inline tw-gap-2">{{svg "octicon-people" 20}} {{$repoOwnerName}}/{{.Team.Name}}</span>
 					{{end}}
 				</div>
 				<div class="flex-text-inline">
@@ -92,7 +92,7 @@
 				<div class="flex-text-inline tw-flex-1">
 					{{$originalURLHostname := $pageMeta.Repository.GetOriginalURLHostname}}
 					{{$originalURL := $pageMeta.Repository.OriginalURL}}
-					<a class="muted flex-text-inline" href="{{$originalURL}}" data-tooltip-content="{{ctx.Locale.Tr "repo.migrated_from_fake" $originalURLHostname}}">
+					<a class="muted flex-text-inline tw-gap-2" href="{{$originalURL}}" data-tooltip-content="{{ctx.Locale.Tr "repo.migrated_from_fake" $originalURLHostname}}">
 						{{svg (MigrationIcon $originalURLHostname) 20}} {{.OriginalAuthor}}
 					</a>
 				</div>

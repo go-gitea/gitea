@@ -196,7 +196,7 @@ func migrateActionsLog(ctx context.Context, dstStorage storage.ObjectStorage) er
 
 func migrateActionsArtifacts(ctx context.Context, dstStorage storage.ObjectStorage) error {
 	return db.Iterate(ctx, nil, func(ctx context.Context, artifact *actions_model.ActionArtifact) error {
-		if artifact.Status == int64(actions_model.ArtifactStatusExpired) {
+		if artifact.Status == actions_model.ArtifactStatusExpired {
 			return nil
 		}
 

@@ -11,9 +11,10 @@ import {svg} from '../svg.ts';
 export const fomanticMobileScreen = window.matchMedia('only screen and (max-width: 767.98px)');
 
 export function initGiteaFomantic() {
+  // our extensions
+  $.fn.fomanticExt = {};
   // Silence fomantic's error logging when tabs are used without a target content element
   $.fn.tab.settings.silent = true;
-
   // By default, use "exact match" for full text search
   $.fn.dropdown.settings.fullTextSearch = 'exact';
   // Do not use "cursor: pointer" for dropdown labels

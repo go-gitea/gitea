@@ -186,7 +186,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 	if ctx.Doer == nil {
-		ctx.NotFound("Require SignIn", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -202,12 +202,12 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 	if history.IssueID != issue.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 	if commentID != 0 {
 		if history.CommentID != commentID {
-			ctx.NotFound("CompareCommentID", issues_model.ErrCommentNotExist{})
+			ctx.NotFound(issues_model.ErrCommentNotExist{})
 			return
 		}
 
@@ -216,7 +216,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 			return
 		}
 		if comment.IssueID != issue.ID {
-			ctx.NotFound("CompareIssueID", issues_model.ErrCommentNotExist{})
+			ctx.NotFound(issues_model.ErrCommentNotExist{})
 			return
 		}
 	}

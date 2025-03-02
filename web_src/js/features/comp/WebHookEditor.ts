@@ -6,7 +6,7 @@ export function initCompWebHookEditor() {
     return;
   }
 
-  for (const input of document.querySelectorAll('.events.checkbox input')) {
+  for (const input of document.querySelectorAll<HTMLInputElement>('.events.checkbox input')) {
     input.addEventListener('change', function () {
       if (this.checked) {
         showElem('.events.fields');
@@ -14,7 +14,7 @@ export function initCompWebHookEditor() {
     });
   }
 
-  for (const input of document.querySelectorAll('.non-events.checkbox input')) {
+  for (const input of document.querySelectorAll<HTMLInputElement>('.non-events.checkbox input')) {
     input.addEventListener('change', function () {
       if (this.checked) {
         hideElem('.events.fields');
@@ -34,7 +34,7 @@ export function initCompWebHookEditor() {
   }
 
   // Test delivery
-  document.querySelector('#test-delivery')?.addEventListener('click', async function () {
+  document.querySelector<HTMLButtonElement>('#test-delivery')?.addEventListener('click', async function () {
     this.classList.add('is-loading', 'disabled');
     await POST(this.getAttribute('data-link'));
     setTimeout(() => {

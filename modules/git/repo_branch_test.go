@@ -47,7 +47,7 @@ func BenchmarkRepository_GetBranches(b *testing.B) {
 	}
 	defer bareRepo1.Close()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, _, err := bareRepo1.GetBranchNames(0, 0)
 		if err != nil {
 			b.Fatal(err)

@@ -79,6 +79,34 @@ license = MIT`)
 
 		return buf.Bytes()
 	}
+	readIndexContent := func(r io.Reader) (map[string]string, error) {
+		gzr, err := gzip.NewReader(r)
+		if err != nil {
+			return nil, err
+		}
+
+		content := make(map[string]string)
+
+		tr := tar.NewReader(gzr)
+		for {
+			hd, err := tr.Next()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
+
+			buf, err := io.ReadAll(tr)
+			if err != nil {
+				return nil, err
+			}
+
+			content[hd.Name] = string(buf)
+		}
+
+		return content, nil
+	}
 
 	compressions := []string{"gz", "xz", "zst"}
 	repositories := []string{"main", "testing", "with/slash", ""}
@@ -170,35 +198,6 @@ license = MIT`)
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusConflict)
 				})
-
-				readIndexContent := func(r io.Reader) (map[string]string, error) {
-					gzr, err := gzip.NewReader(r)
-					if err != nil {
-						return nil, err
-					}
-
-					content := make(map[string]string)
-
-					tr := tar.NewReader(gzr)
-					for {
-						hd, err := tr.Next()
-						if err == io.EOF {
-							break
-						}
-						if err != nil {
-							return nil, err
-						}
-
-						buf, err := io.ReadAll(tr)
-						if err != nil {
-							return nil, err
-						}
-
-						content[hd.Name] = string(buf)
-					}
-
-					return content, nil
-				}
 
 				t.Run("Index", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
@@ -299,4 +298,39 @@ license = MIT`)
 			})
 		}
 	}
+	t.Run("KeepLastVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		pkgVer1 := createPackage("gz", "gitea-test", "1.0.0", "aarch64")
+		pkgVer2 := createPackage("gz", "gitea-test", "1.0.1", "aarch64")
+		req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgVer1)).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+		req = NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgVer2)).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		content, err := readIndexContent(resp.Body)
+		assert.NoError(t, err)
+		assert.Len(t, content, 2)
+
+		_, has := content["gitea-test-1.0.0/desc"]
+		assert.False(t, has)
+		_, has = content["gitea-test-1.0.1/desc"]
+		assert.True(t, has)
+
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/gitea-test/1.0.1/aarch64", rootURL)).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
+		resp = MakeRequest(t, req, http.StatusOK)
+		content, err = readIndexContent(resp.Body)
+		assert.NoError(t, err)
+		assert.Len(t, content, 2)
+		_, has = content["gitea-test-1.0.0/desc"]
+		assert.True(t, has)
+	})
 }

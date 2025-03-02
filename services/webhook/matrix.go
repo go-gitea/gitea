@@ -24,6 +24,10 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
+func init() {
+	RegisterWebhookRequester(webhook_module.MATRIX, newMatrixRequest)
+}
+
 func newMatrixRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &MatrixMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
@@ -52,7 +56,7 @@ func newMatrixRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mo
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	return req, body, addDefaultHeaders(req, []byte(w.Secret), t, body) // likely useless, but has always been sent historially
+	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body) // likely useless, but has always been sent historially
 }
 
 const matrixPayloadSizeLimit = 1024 * 64
@@ -236,6 +240,13 @@ func (m matrixConvertor) Package(p *api.PackagePayload) (MatrixPayload, error) {
 	case api.HookPackageDeleted:
 		text = fmt.Sprintf("[%s] Package deleted by %s", packageLink, senderLink)
 	}
+
+	return m.newPayload(text)
+}
+
+func (m matrixConvertor) Status(p *api.CommitStatusPayload) (MatrixPayload, error) {
+	refLink := htmlLinkFormatter(p.TargetURL, p.Context+"["+p.SHA+"]:"+p.Description)
+	text := fmt.Sprintf("Commit Status changed: %s", refLink)
 
 	return m.newPayload(text)
 }

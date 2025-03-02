@@ -88,6 +88,21 @@ func (r *requestDataStore) cleanUp() {
 	}
 }
 
+type RequestContext interface {
+	context.Context
+	RequestDataStore
+}
+
+func FromContext(ctx context.Context) RequestContext {
+	// here we must use the current ctx and the underlying store
+	// the current ctx guarantees that the ctx deadline/cancellation/values are respected
+	// the underlying store guarantees that the request-specific data is available
+	if store := GetRequestDataStore(ctx); store != nil {
+		return &requestContext{Context: ctx, RequestDataStore: store}
+	}
+	return nil
+}
+
 func GetRequestDataStore(ctx context.Context) RequestDataStore {
 	if req, ok := ctx.Value(RequestDataStoreKey).(*requestDataStore); ok {
 		return req
@@ -97,11 +112,11 @@ func GetRequestDataStore(ctx context.Context) RequestDataStore {
 
 type requestContext struct {
 	context.Context
-	dataStore *requestDataStore
+	RequestDataStore
 }
 
 func (c *requestContext) Value(key any) any {
-	if v := c.dataStore.GetContextValue(key); v != nil {
+	if v := c.GetContextValue(key); v != nil {
 		return v
 	}
 	return c.Context.Value(key)
@@ -109,9 +124,10 @@ func (c *requestContext) Value(key any) any {
 
 func NewRequestContext(parentCtx context.Context, profDesc string) (_ context.Context, finished func()) {
 	ctx, _, processFinished := process.GetManager().AddTypedContext(parentCtx, profDesc, process.RequestProcessType, true)
-	reqCtx := &requestContext{Context: ctx, dataStore: &requestDataStore{values: make(map[any]any)}}
+	store := &requestDataStore{values: make(map[any]any)}
+	reqCtx := &requestContext{Context: ctx, RequestDataStore: store}
 	return reqCtx, func() {
-		reqCtx.dataStore.cleanUp()
+		store.cleanUp()
 		processFinished()
 	}
 }
@@ -119,5 +135,5 @@ func NewRequestContext(parentCtx context.Context, profDesc string) (_ context.Co
 // NewRequestContextForTest creates a new RequestContext for testing purposes
 // It doesn't add the context to the process manager, nor do cleanup
 func NewRequestContextForTest(parentCtx context.Context) context.Context {
-	return &requestContext{Context: parentCtx, dataStore: &requestDataStore{values: make(map[any]any)}}
+	return &requestContext{Context: parentCtx, RequestDataStore: &requestDataStore{values: make(map[any]any)}}
 }

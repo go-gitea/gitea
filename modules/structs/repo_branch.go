@@ -133,3 +133,11 @@ type EditBranchProtectionOption struct {
 type UpdateBranchProtectionPriories struct {
 	IDs []int64 `json:"ids"`
 }
+
+type MergeUpstreamRequest struct {
+	Branch string `json:"branch"`
+}
+
+type MergeUpstreamResponse struct {
+	MergeStyle string `json:"merge_type"`
+}

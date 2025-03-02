@@ -40,9 +40,9 @@ func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64
 	source, err := auth.GetSourceByID(ctx, sourceID)
 	if err != nil {
 		if auth.IsErrSourceNotExist(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "auth.GetSourceByID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -98,13 +98,13 @@ func CreateUser(ctx *context.APIContext) {
 	if u.LoginType == auth.Plain {
 		if len(form.Password) < setting.MinPasswordLength {
 			err := errors.New("PasswordIsRequired")
-			ctx.Error(http.StatusBadRequest, "PasswordIsRequired", err)
+			ctx.APIError(http.StatusBadRequest, err)
 			return
 		}
 
 		if !password.IsComplexEnough(form.Password) {
 			err := errors.New("PasswordComplexity")
-			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
+			ctx.APIError(http.StatusBadRequest, err)
 			return
 		}
 
@@ -112,7 +112,7 @@ func CreateUser(ctx *context.APIContext) {
 			if password.IsErrIsPwnedRequest(err) {
 				log.Error(err.Error())
 			}
-			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
+			ctx.APIError(http.StatusBadRequest, errors.New("PasswordPwned"))
 			return
 		}
 	}
@@ -143,9 +143,9 @@ func CreateUser(ctx *context.APIContext) {
 			user_model.IsErrEmailCharIsNotSupported(err) ||
 			user_model.IsErrEmailInvalid(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateUser", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -204,13 +204,13 @@ func EditUser(ctx *context.APIContext) {
 	if err := user_service.UpdateAuth(ctx, ctx.ContextUser, authOpts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
-			ctx.Error(http.StatusBadRequest, "PasswordTooShort", fmt.Errorf("password must be at least %d characters", setting.MinPasswordLength))
+			ctx.APIError(http.StatusBadRequest, fmt.Errorf("password must be at least %d characters", setting.MinPasswordLength))
 		case errors.Is(err, password.ErrComplexity):
-			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		case errors.Is(err, password.ErrIsPwned), password.IsErrIsPwnedRequest(err):
-			ctx.Error(http.StatusBadRequest, "PasswordIsPwned", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		default:
-			ctx.Error(http.StatusInternalServerError, "UpdateAuth", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -219,11 +219,11 @@ func EditUser(ctx *context.APIContext) {
 		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
-				ctx.Error(http.StatusBadRequest, "EmailInvalid", err)
+				ctx.APIError(http.StatusBadRequest, err)
 			case user_model.IsErrEmailAlreadyUsed(err):
-				ctx.Error(http.StatusBadRequest, "EmailUsed", err)
+				ctx.APIError(http.StatusBadRequest, err)
 			default:
-				ctx.Error(http.StatusInternalServerError, "AddOrSetPrimaryEmailAddress", err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -250,9 +250,9 @@ func EditUser(ctx *context.APIContext) {
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
 		if user_model.IsErrDeleteLastAdminUser(err) {
-			ctx.Error(http.StatusBadRequest, "LastAdmin", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -290,13 +290,13 @@ func DeleteUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	if ctx.ContextUser.IsOrganization() {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
 		return
 	}
 
 	// admin should not delete themself
 	if ctx.ContextUser.ID == ctx.Doer.ID {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("you cannot delete yourself"))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("you cannot delete yourself"))
 		return
 	}
 
@@ -305,9 +305,9 @@ func DeleteUser(ctx *context.APIContext) {
 			org_model.IsErrUserHasOrgs(err) ||
 			packages_model.IsErrUserOwnPackages(err) ||
 			user_model.IsErrDeleteLastAdminUser(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteUser", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -377,11 +377,11 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 
 	if err := asymkey_service.DeletePublicKey(ctx, ctx.ContextUser, ctx.PathParamInt64("id")); err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else if asymkey_model.IsErrKeyAccessDenied(err) {
-			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
+			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteUserPublicKey", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -432,7 +432,7 @@ func SearchUsers(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchUsers", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -473,30 +473,20 @@ func RenameUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	if ctx.ContextUser.IsOrganization() {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
 		return
 	}
 
-	oldName := ctx.ContextUser.Name
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
 
-	// Check if user name has been changed
+	// Check if username has been changed
 	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
-		switch {
-		case user_model.IsErrUserAlreadyExist(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("form.username_been_taken"))
-		case db.IsErrNameReserved(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_reserved", newName))
-		case db.IsErrNamePatternNotAllowed(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_pattern_not_allowed", newName))
-		case db.IsErrNameCharsNotAllowed(err):
-			ctx.Error(http.StatusUnprocessableEntity, "", ctx.Tr("user.form.name_chars_not_allowed", newName))
-		default:
-			ctx.ServerError("ChangeUserName", err)
+		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+		} else {
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
-
-	log.Trace("User name changed: %s -> %s", oldName, newName)
 	ctx.Status(http.StatusNoContent)
 }

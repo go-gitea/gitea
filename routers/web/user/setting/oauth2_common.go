@@ -76,14 +76,14 @@ func (oa *OAuth2CommonHandlers) EditShow(ctx *context.Context) {
 	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
-			ctx.NotFound("Application not found", err)
+			ctx.NotFound(err)
 			return
 		}
 		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
 	if app.UID != oa.OwnerID {
-		ctx.NotFound("Application not found", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["App"] = app
@@ -98,14 +98,14 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 		app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 		if err != nil {
 			if auth.IsErrOAuthApplicationNotFound(err) {
-				ctx.NotFound("Application not found", err)
+				ctx.NotFound(err)
 				return
 			}
 			ctx.ServerError("GetOAuth2ApplicationByID", err)
 			return
 		}
 		if app.UID != oa.OwnerID {
-			ctx.NotFound("Application not found", nil)
+			ctx.NotFound(nil)
 			return
 		}
 		ctx.Data["App"] = app
@@ -135,14 +135,14 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
-			ctx.NotFound("Application not found", err)
+			ctx.NotFound(err)
 			return
 		}
 		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
 	if app.UID != oa.OwnerID {
-		ctx.NotFound("Application not found", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["App"] = app

@@ -131,7 +131,7 @@ func TestAddOrgUser(t *testing.T) {
 	testSuccess := func(orgID, userID int64, isPublic bool) {
 		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID})
 		expectedNumMembers := org.NumMembers
-		if !unittest.BeanExists(t, &organization.OrgUser{OrgID: orgID, UID: userID}) {
+		if unittest.GetBean(t, &organization.OrgUser{OrgID: orgID, UID: userID}) == nil {
 			expectedNumMembers++
 		}
 		assert.NoError(t, organization.AddOrgUser(db.DefaultContext, orgID, userID))

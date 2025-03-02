@@ -222,7 +222,7 @@ func Organization(ctx *context.Context) {
 
 	ctx.Data["Orgs"] = orgs
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsOrganization)
 }
@@ -329,7 +329,7 @@ func Repos(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsRepositories)
 }

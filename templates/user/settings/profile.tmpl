@@ -124,13 +124,7 @@
 				</div>
 
 				<div class="inline field tw-pl-4">
-					<label for="new-avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
-					<input id="new-avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
-				</div>
-
-				<div class="field tw-pl-4 cropper-panel tw-hidden">
-					<div>{{ctx.Locale.Tr "settings.cropper_prompt"}}</div>
-					<div class="cropper-wrapper"><img class="cropper-source" src alt></div>
+					{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
 				</div>
 
 				<div class="field">

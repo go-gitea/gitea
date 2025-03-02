@@ -133,7 +133,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("comment's repoID is incorrect", errors.New("comment's repoID is incorrect"))
+		ctx.NotFound(errors.New("comment's repoID is incorrect"))
 		return
 	}
 
@@ -143,12 +143,12 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 	if !permResult {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Issue.IsPull {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -159,7 +159,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 			return
 		}
 	} else {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -214,7 +214,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 	} else if origin == "timeline" {
 		ctx.HTML(http.StatusOK, tplTimelineConversation)
 	} else {
-		ctx.Error(http.StatusBadRequest, "Unknown origin: "+origin)
+		ctx.HTTPError(http.StatusBadRequest, "Unknown origin: "+origin)
 	}
 }
 

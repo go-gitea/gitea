@@ -5,7 +5,6 @@ package misc
 
 import (
 	"fmt"
-	"net/http"
 
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
@@ -53,11 +52,11 @@ func SigningKey(ctx *context.APIContext) {
 
 	content, err := asymkey_service.PublicSigningKey(ctx, path)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "gpg export", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	_, err = ctx.Write([]byte(content))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "gpg export", fmt.Errorf("Error writing key content %w", err))
+		ctx.APIErrorInternal(fmt.Errorf("Error writing key content %w", err))
 	}
 }

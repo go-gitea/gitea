@@ -215,7 +215,7 @@ func TestToUpperASCII(t *testing.T) {
 func BenchmarkToUpper(b *testing.B) {
 	for _, tc := range upperTests {
 		b.Run(tc.in, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				ToUpperASCII(tc.in)
 			}
 		})

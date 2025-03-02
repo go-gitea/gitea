@@ -4,7 +4,6 @@
 package integration
 
 import (
-	stdCtx "context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -168,7 +167,7 @@ func TestAPICreateFile(t *testing.T) {
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &createFileOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusCreated)
-			gitRepo, _ := gitrepo.OpenRepository(stdCtx.Background(), repo1)
+			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 			commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 			latestCommit, _ := gitRepo.GetCommitByPath(treePath)
 			expectedFileResponse := getExpectedFileResponseForCreate("user2/repo1", commitID, treePath, latestCommit.ID.String(), latestCommit.Committer.When)
@@ -286,7 +285,7 @@ func TestAPICreateFile(t *testing.T) {
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusCreated)
 		emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "empty-repo"}) // public repo
-		gitRepo, _ := gitrepo.OpenRepository(stdCtx.Background(), emptyRepo)
+		gitRepo, _ := gitrepo.OpenRepository(t.Context(), emptyRepo)
 		commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 		latestCommit, _ := gitRepo.GetCommitByPath(treePath)
 		expectedFileResponse := getExpectedFileResponseForCreate("user2/empty-repo", commitID, treePath, latestCommit.ID.String(), latestCommit.Committer.When)

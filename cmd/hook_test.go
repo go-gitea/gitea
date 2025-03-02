@@ -6,7 +6,6 @@ package cmd
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"strings"
 	"testing"
 
@@ -15,7 +14,7 @@ import (
 
 func TestPktLine(t *testing.T) {
 	// test read
-	ctx := context.Background()
+	ctx := t.Context()
 	s := strings.NewReader("0000")
 	r := bufio.NewReader(s)
 	result, err := readPktLine(ctx, r, pktLineTypeFlush)

@@ -1,7 +1,8 @@
 import $ from 'jquery';
 import {checkAppUrl} from '../common-page.ts';
-import {hideElem, showElem, toggleElem} from '../../utils/dom.ts';
+import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
+import {initAvatarUploaderWithCropper} from '../comp/Cropper.ts';
 
 const {appSubUrl} = window.config;
 
@@ -90,7 +91,7 @@ export function initAdminCommon(): void {
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
 
-  function onOAuth2UseCustomURLChange(applyDefaultValues) {
+  function onOAuth2UseCustomURLChange(applyDefaultValues: boolean) {
     const provider = document.querySelector<HTMLInputElement>('#oauth2_provider').value;
     hideElem('.oauth2_use_custom_url_field');
     for (const input of document.querySelectorAll<HTMLInputElement>('.oauth2_use_custom_url_field input[required]')) {
@@ -258,4 +259,6 @@ export function initAdminCommon(): void {
       window.location.href = this.getAttribute('data-redirect');
     });
   }
+
+  queryElems(document, '.avatar-file-with-cropper', initAvatarUploaderWithCropper);
 }

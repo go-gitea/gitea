@@ -142,7 +142,7 @@ func IntrospectOAuth(ctx *context.Context) {
 		if err != nil && !auth.IsErrOauthClientIDInvalid(err) {
 			// this is likely a database error; log it and respond without details
 			log.Error("Error retrieving client_id: %v", err)
-			ctx.Error(http.StatusInternalServerError)
+			ctx.HTTPError(http.StatusInternalServerError)
 			return
 		}
 		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
@@ -363,7 +363,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.GrantApplicationForm)
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -440,7 +440,7 @@ func OIDCKeys(ctx *context.Context) {
 	jwk, err := oauth2_provider.DefaultSigningKey.ToJWK()
 	if err != nil {
 		log.Error("Error converting signing key to JWK: %v", err)
-		ctx.Error(http.StatusInternalServerError)
+		ctx.HTTPError(http.StatusInternalServerError)
 		return
 	}
 

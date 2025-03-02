@@ -44,7 +44,7 @@ type RenderOptions struct {
 	MarkupType string
 
 	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention)
-	// BranchNameSubURL (for iframe&asciicast)
+	// RefTypeNameSubURL (for iframe&asciicast)
 	// markupAllowShortIssuePattern
 	// markdownLineBreakStyle (comment, document)
 	Metas map[string]string
@@ -170,7 +170,7 @@ sandbox="allow-scripts"
 		setting.AppSubURL,
 		url.PathEscape(ctx.RenderOptions.Metas["user"]),
 		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
-		ctx.RenderOptions.Metas["BranchNameSubURL"],
+		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
 		url.PathEscape(ctx.RenderOptions.RelativePath),
 	))
 	return err

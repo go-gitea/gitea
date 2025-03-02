@@ -77,9 +77,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamString("q", query)
-	pager.AddParamString("type", packageType)
-	pager.AddParamString("sort", sort)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)

@@ -4,7 +4,7 @@
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/labels?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input class="combo-value" name="label_ids" type="hidden" value="{{$data.SelectedLabelIDs}}">
-	<div class="ui dropdown {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
+	<div class="ui dropdown text-flex-grow {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
 		<a class="text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.labels"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
 		</a>
@@ -16,8 +16,9 @@
 					<i class="icon">{{svg "octicon-search" 16}}</i>
 					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_labels"}}">
 				</div>
-				<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
 				<div class="scrolling menu">
+					<a class="item clear-selection" href="#">{{ctx.Locale.Tr "repo.issues.new.clear_labels"}}</a>
+					<div class="divider"></div>
 					{{$previousExclusiveScope := "_no_scope"}}
 					{{range $data.RepoLabels}}
 						{{$exclusiveScope := .ExclusiveScope}}

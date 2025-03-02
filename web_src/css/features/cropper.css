@@ -1,6 +1,6 @@
 @import "cropperjs/dist/cropper.css";
 
-.page-content.user.profile .cropper-panel .cropper-wrapper {
+.avatar-file-with-cropper + .cropper-panel .cropper-wrapper {
   max-width: 400px;
   max-height: 400px;
 }

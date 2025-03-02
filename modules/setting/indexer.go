@@ -31,6 +31,8 @@ var Indexer = struct {
 	IncludePatterns      []*GlobMatcher
 	ExcludePatterns      []*GlobMatcher
 	ExcludeVendored      bool
+
+	TypeBleveMaxFuzzniess int
 }{
 	IssueType:        "bleve",
 	IssuePath:        "indexers/issues.bleve",
@@ -88,6 +90,7 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 	Indexer.ExcludeVendored = sec.Key("REPO_INDEXER_EXCLUDE_VENDORED").MustBool(true)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 	Indexer.StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(30 * time.Second)
+	Indexer.TypeBleveMaxFuzzniess = sec.Key("TYPE_BLEVE_MAX_FUZZINESS").MustInt(0)
 }
 
 // IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing
@@ -97,7 +100,7 @@ func IndexerGlobFromString(globstr string) []*GlobMatcher {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := GlobMatcherCompile(expr, '.', '/'); err != nil {
-				log.Info("Invalid glob expression '%s' (skipped): %v", expr, err)
+				log.Warn("Invalid glob expression '%s' (skipped): %v", expr, err)
 			} else {
 				extarr = append(extarr, g)
 			}

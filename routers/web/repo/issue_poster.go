@@ -26,13 +26,9 @@ type userSearchResponse struct {
 	Results []*userSearchInfo `json:"results"`
 }
 
-// IssuePosters get posters for current repo's issues/pull requests
-func IssuePosters(ctx *context.Context) {
-	issuePosters(ctx, false)
-}
-
-func PullPosters(ctx *context.Context) {
-	issuePosters(ctx, true)
+func IssuePullPosters(ctx *context.Context) {
+	isPullList := ctx.PathParam("type") == "pulls"
+	issuePosters(ctx, isPullList)
 }
 
 func issuePosters(ctx *context.Context, isPullList bool) {

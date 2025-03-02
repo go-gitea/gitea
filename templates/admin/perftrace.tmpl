@@ -1,0 +1,13 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+
+<div class="admin-setting-content">
+	{{template "admin/trace_tabs" .}}
+
+	{{range $record := .PerfTraceRecords}}
+	<div class="ui segment tw-w-full tw-overflow-auto">
+		<pre class="tw-whitespace-pre">{{$record.Content}}</pre>
+	</div>
+	{{end}}
+</div>
+
+{{template "admin/layout_footer" .}}

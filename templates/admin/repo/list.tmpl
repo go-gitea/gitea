@@ -86,6 +86,8 @@
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
+					{{else}}
+						<tr><td class="tw-text-center" colspan="12">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>

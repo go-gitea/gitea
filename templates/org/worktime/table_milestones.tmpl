@@ -1,0 +1,28 @@
+<table class="ui table">
+	<thead>
+		<tr>
+			<th>{{ctx.Locale.Tr "repository"}}</th>
+			<th>{{ctx.Locale.Tr "repo.milestone"}}</th>
+			<th>{{ctx.Locale.Tr "org.worktime.time"}}</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{range $.WorktimeSumResult}}
+		<tr>
+			<td>
+				{{if not .HideRepoName}}
+					{{svg "octicon-repo"}} <a href="{{$.Org.HomeLink}}/{{PathEscape .RepoName}}/issues">{{.RepoName}}</a>
+				{{end}}
+			</td>
+			<td>
+				{{if .MilestoneName}}
+					{{svg "octicon-milestone"}} <a href="{{$.Org.HomeLink}}/{{PathEscape .RepoName}}/milestone/{{.MilestoneID}}">{{.MilestoneName}}</a>
+				{{else}}
+					-
+				{{end}}
+			</td>
+			<td>{{svg "octicon-clock"}} {{.SumTime | Sec2Hour}}</td>
+		</tr>
+		{{end}}
+	</tbody>
+</table>

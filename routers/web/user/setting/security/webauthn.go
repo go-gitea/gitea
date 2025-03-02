@@ -25,7 +25,7 @@ import (
 // WebAuthnRegister initializes the webauthn registration procedure
 func WebAuthnRegister(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -41,7 +41,7 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 	if cred != nil {
-		ctx.Error(http.StatusConflict, "Name already taken")
+		ctx.HTTPError(http.StatusConflict, "Name already taken")
 		return
 	}
 
@@ -72,7 +72,7 @@ func WebAuthnRegister(ctx *context.Context) {
 // WebauthnRegisterPost receives the response of the security key
 func WebauthnRegisterPost(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -109,7 +109,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 		return
 	}
 	if dbCred != nil {
-		ctx.Error(http.StatusConflict, "Name already taken")
+		ctx.HTTPError(http.StatusConflict, "Name already taken")
 		return
 	}
 
@@ -127,7 +127,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 // WebauthnDelete deletes an security key by id
 func WebauthnDelete(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 

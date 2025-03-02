@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"net/url"
 	"strconv"
 	"strings"
@@ -246,7 +245,7 @@ func TestLinguist(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NoError(t, stats.UpdateRepoIndexer(repo))
-				assert.NoError(t, queue.GetManager().FlushAll(context.Background(), 10*time.Second))
+				assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 10*time.Second))
 
 				stats, err := repo_model.GetTopLanguageStats(db.DefaultContext, repo, len(c.FilesToAdd))
 				assert.NoError(t, err)

@@ -17,13 +17,13 @@ export function initGlobalEnterQuickSubmit() {
     if (e.key !== 'Enter') return;
     const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
     if (hasCtrlOrMeta && e.target.matches('textarea')) {
-      if (handleGlobalEnterQuickSubmit(e.target)) {
+      if (handleGlobalEnterQuickSubmit(e.target as HTMLElement)) {
         e.preventDefault();
       }
     } else if (e.target.matches('input') && !e.target.closest('form')) {
       // input in a normal form could handle Enter key by default, so we only handle the input outside a form
       // eslint-disable-next-line unicorn/no-lonely-if
-      if (handleGlobalEnterQuickSubmit(e.target)) {
+      if (handleGlobalEnterQuickSubmit(e.target as HTMLElement)) {
         e.preventDefault();
       }
     }

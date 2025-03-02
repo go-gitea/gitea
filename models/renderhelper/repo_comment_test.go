@@ -4,7 +4,6 @@
 package renderhelper
 
 import (
-	"context"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -21,7 +20,7 @@ func TestRepoComment(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	t.Run("AutoLink", func(t *testing.T) {
-		rctx := NewRenderContextRepoComment(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoComment(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
@@ -36,7 +35,7 @@ func TestRepoComment(t *testing.T) {
 	})
 
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
-		rctx := NewRenderContextRepoComment(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoComment(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 
 		// It is Gitea's old behavior, the relative path is resolved to the repo path
 		// It is different from GitHub, GitHub resolves relative links to current page's path
@@ -56,7 +55,7 @@ func TestRepoComment(t *testing.T) {
 	})
 
 	t.Run("WithCurrentRefPath", func(t *testing.T) {
-		rctx := NewRenderContextRepoComment(context.Background(), repo1, RepoCommentOptions{CurrentRefPath: "/commit/1234"}).
+		rctx := NewRenderContextRepoComment(t.Context(), repo1, RepoCommentOptions{CurrentRefPath: "/commit/1234"}).
 			WithMarkupType(markdown.MarkupName)
 
 		// the ref path is only used to render commit message: a commit message is rendered at the commit page with its commit ID path

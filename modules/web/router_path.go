@@ -89,11 +89,23 @@ func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string) bool {
 	return true
 }
 
+func isValidMethod(name string) bool {
+	switch name {
+	case http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodHead, http.MethodOptions, http.MethodConnect, http.MethodTrace:
+		return true
+	}
+	return false
+}
+
 func newRouterPathMatcher(methods, pattern string, h ...any) *routerPathMatcher {
 	middlewares, handlerFunc := wrapMiddlewareAndHandler(nil, h)
 	p := &routerPathMatcher{methods: make(container.Set[string]), middlewares: middlewares, handlerFunc: handlerFunc}
 	for _, method := range strings.Split(methods, ",") {
-		p.methods.Add(strings.TrimSpace(method))
+		method = strings.TrimSpace(method)
+		if !isValidMethod(method) {
+			panic(fmt.Sprintf("invalid HTTP method: %s", method))
+		}
+		p.methods.Add(method)
 	}
 	re := []byte{'^'}
 	lastEnd := 0

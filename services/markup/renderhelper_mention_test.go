@@ -4,7 +4,6 @@
 package markup
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -32,10 +31,10 @@ func TestRenderHelperMention(t *testing.T) {
 	unittest.AssertCount(t, &user.User{Name: userNoSuch}, 0)
 
 	// when using general context, use user's visibility to check
-	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(context.Background(), userPublic))
-	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(context.Background(), userLimited))
-	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(context.Background(), userPrivate))
-	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(context.Background(), userNoSuch))
+	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(t.Context(), userPublic))
+	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(t.Context(), userLimited))
+	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(t.Context(), userPrivate))
+	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(t.Context(), userNoSuch))
 
 	// when using web context, use user.IsUserVisibleToViewer to check
 	req, err := http.NewRequest("GET", "/", nil)

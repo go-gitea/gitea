@@ -9,7 +9,7 @@ export function initTableSort() {
   }
 }
 
-function tableSort(normSort, revSort, isDefault) {
+function tableSort(normSort: string, revSort: string, isDefault: string) {
   if (!normSort) return false;
   if (!revSort) revSort = '';
 

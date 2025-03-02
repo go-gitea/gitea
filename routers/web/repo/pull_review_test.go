@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/services/pull"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRenderConversation(t *testing.T) {
@@ -41,19 +42,16 @@ func TestRenderConversation(t *testing.T) {
 	var preparedComment *issues_model.Comment
 	run("prepare", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
 		comment, err := pull.CreateCodeComment(ctx, pr.Issue.Poster, ctx.Repo.GitRepo, pr.Issue, 1, "content", "", false, 0, pr.HeadCommitID, nil)
-		if !assert.NoError(t, err) {
-			return
-		}
+		require.NoError(t, err)
+
 		comment.Invalidated = true
 		err = issues_model.UpdateCommentInvalidate(ctx, comment)
-		if !assert.NoError(t, err) {
-			return
-		}
+		require.NoError(t, err)
+
 		preparedComment = comment
 	})
-	if !assert.NotNil(t, preparedComment) {
-		return
-	}
+	require.NotNil(t, preparedComment)
+
 	run("diff with outdated", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
 		ctx.Data["ShowOutdatedComments"] = true
 		renderConversation(ctx, preparedComment, "diff")

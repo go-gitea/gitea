@@ -17,7 +17,8 @@ export function initGlobalDeleteButton(): void {
   // Some model/form elements will be filled by `data-id` / `data-name` / `data-data-xxx` attributes.
   // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
   // If there is no form, then the data will be posted to `data-url`.
-  // TODO: it's not encouraged to use this method. `show-modal` does far better than this.
+  // TODO: do not use this method in new code. `show-modal` / `link-action(data-modal-confirm)` does far better than this.
+  // FIXME: all legacy `delete-button` should be refactored to use `show-modal` or `link-action`
   for (const btn of document.querySelectorAll<HTMLElement>('.delete-button')) {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -73,10 +74,10 @@ export function initGlobalDeleteButton(): void {
   }
 }
 
-function onShowPanelClick(e) {
+function onShowPanelClick(e: MouseEvent) {
   // a '.show-panel' element can show a panel, by `data-panel="selector"`
   // if it has "toggle" class, it toggles the panel
-  const el = e.currentTarget;
+  const el = e.currentTarget as HTMLElement;
   e.preventDefault();
   const sel = el.getAttribute('data-panel');
   if (el.classList.contains('toggle')) {
@@ -86,9 +87,9 @@ function onShowPanelClick(e) {
   }
 }
 
-function onHidePanelClick(e) {
+function onHidePanelClick(e: MouseEvent) {
   // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
-  const el = e.currentTarget;
+  const el = e.currentTarget as HTMLElement;
   e.preventDefault();
   let sel = el.getAttribute('data-panel');
   if (sel) {
@@ -97,13 +98,13 @@ function onHidePanelClick(e) {
   }
   sel = el.getAttribute('data-panel-closest');
   if (sel) {
-    hideElem(el.parentNode.closest(sel));
+    hideElem((el.parentNode as HTMLElement).closest(sel));
     return;
   }
   throw new Error('no panel to hide'); // should never happen, otherwise there is a bug in code
 }
 
-function onShowModalClick(e) {
+function onShowModalClick(e: MouseEvent) {
   // A ".show-modal" button will show a modal dialog defined by its "data-modal" attribute.
   // Each "data-modal-{target}" attribute will be filled to target element's value or text-content.
   // * First, try to query '#target'
@@ -111,7 +112,7 @@ function onShowModalClick(e) {
   // * Then, try to query '.target'
   // * Then, try to query 'target' as HTML tag
   // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
-  const el = e.currentTarget;
+  const el = e.currentTarget as HTMLElement;
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal');
   const elModal = document.querySelector(modalSelector);
@@ -136,9 +137,9 @@ function onShowModalClick(e) {
     }
 
     if (attrTargetAttr) {
-      attrTarget[camelize(attrTargetAttr)] = attrib.value;
+      (attrTarget as any)[camelize(attrTargetAttr)] = attrib.value;
     } else if (attrTarget.matches('input, textarea')) {
-      attrTarget.value = attrib.value; // FIXME: add more supports like checkbox
+      (attrTarget as HTMLInputElement | HTMLTextAreaElement).value = attrib.value; // FIXME: add more supports like checkbox
     } else {
       attrTarget.textContent = attrib.value; // FIXME: it should be more strict here, only handle div/span/p
     }

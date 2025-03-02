@@ -4,7 +4,6 @@
 package console
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -24,7 +23,7 @@ func TestRenderConsole(t *testing.T) {
 		canRender := render.CanRender("test", strings.NewReader(k))
 		assert.True(t, canRender)
 
-		err := render.Render(markup.NewRenderContext(context.Background()), strings.NewReader(k), &buf)
+		err := render.Render(markup.NewRenderContext(t.Context()), strings.NewReader(k), &buf)
 		assert.NoError(t, err)
 		assert.EqualValues(t, v, buf.String())
 	}

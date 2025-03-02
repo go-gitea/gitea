@@ -1,8 +1,13 @@
 {{template "base/head" .}}
 <div class="page-content">
+	<div class="tw-flex tw-justify-center tw-items-center tw-gap-5">
+		<a href="/devtest/repo-action-view/10/100">Run:CanCancel</a>
+		<a href="/devtest/repo-action-view/20/200">Run:CanApprove</a>
+		<a href="/devtest/repo-action-view/30/300">Run:CanRerun</a>
+	</div>
 	{{template "repo/actions/view_component" (dict
-		"RunIndex" 1
-		"JobIndex" 2
+		"RunIndex" (or .RunID 10)
+		"JobIndex" (or .JobID 100)
 		"ActionsURL" (print AppSubUrl "/devtest/actions-mock")
 	)}}
 </div>

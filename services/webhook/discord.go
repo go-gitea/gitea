@@ -265,6 +265,12 @@ func (d discordConvertor) Package(p *api.PackagePayload) (DiscordPayload, error)
 	return d.createPayload(p.Sender, text, "", p.Package.HTMLURL, color), nil
 }
 
+func (d discordConvertor) Status(p *api.CommitStatusPayload) (DiscordPayload, error) {
+	text, color := getStatusPayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.TargetURL, color), nil
+}
+
 func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
@@ -275,6 +281,10 @@ func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_m
 		AvatarURL: meta.IconURL,
 	}
 	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.DISCORD, newDiscordRequest)
 }
 
 func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {

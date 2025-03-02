@@ -4,7 +4,6 @@
 package integration
 
 import (
-	stdCtx "context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -96,7 +95,7 @@ func TestAPIChangeFiles(t *testing.T) {
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name), &changeFilesOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusCreated)
-			gitRepo, _ := gitrepo.OpenRepository(stdCtx.Background(), repo1)
+			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 			commitID, _ := gitRepo.GetBranchCommitID(changeFilesOptions.NewBranchName)
 			createLasCommit, _ := gitRepo.GetCommitByPath(createTreePath)
 			updateLastCommit, _ := gitRepo.GetCommitByPath(updateTreePath)

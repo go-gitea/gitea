@@ -17,7 +17,7 @@
 {{else if eq .HookType "msteams"}}
 	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/msteams.png">
 {{else if eq .HookType "feishu"}}
-	<img width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/feishu.png">
+	{{svg "gitea-feishu" $size "img"}}
 {{else if eq .HookType "matrix"}}
 	{{svg "gitea-matrix" $size "img"}}
 {{else if eq .HookType "wechatwork"}}

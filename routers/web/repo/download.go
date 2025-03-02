@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"path"
 	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -82,11 +81,11 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 	return common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified)
 }
 
-func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified *time.Time) {
+func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetTreeEntryByPath", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetTreeEntryByPath", err)
 		}
@@ -94,23 +93,18 @@ func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified *time.T
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
-		ctx.NotFound("getBlobForEntry", nil)
+		ctx.NotFound(nil)
 		return nil, nil
 	}
 
-	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:])
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("GetCommitsInfo", err)
+		ctx.ServerError("GetTreePathLatestCommit", err)
 		return nil, nil
 	}
+	lastModified := &latestCommit.Committer.When
 
-	if len(info) == 1 {
-		// Not Modified
-		lastModified = &info[0].Commit.Committer.When
-	}
-	blob = entry.Blob()
-
-	return blob, lastModified
+	return entry.Blob(), lastModified
 }
 
 // SingleDownload download a file by repos path
@@ -142,7 +136,7 @@ func DownloadByID(ctx *context.Context) {
 	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetBlob", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetBlob", err)
 		}
@@ -158,7 +152,7 @@ func DownloadByIDOrLFS(ctx *context.Context) {
 	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetBlob", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetBlob", err)
 		}

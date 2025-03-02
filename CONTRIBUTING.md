@@ -182,7 +182,7 @@ Here's how to run the test suite:
 
 ## Translation
 
-All translation work happens on [Crowdin](https://crowdin.com/project/gitea).
+All translation work happens on [Crowdin](https://translate.gitea.com).
 The only translation that is maintained in this repository is [the English translation](https://github.com/go-gitea/gitea/blob/main/options/locale/locale_en-US.ini).
 It is synced regularly with Crowdin. \
 Other locales on main branch **should not** be updated manually as they will be overwritten with each sync. \

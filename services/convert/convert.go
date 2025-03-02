@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -229,9 +230,31 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
+// ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
+func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArtifact) (*api.ActionArtifact, error) {
+	url := fmt.Sprintf("%s/actions/artifacts/%d", repo.APIURL(), art.ID)
+
+	return &api.ActionArtifact{
+		ID:                 art.ID,
+		Name:               art.ArtifactName,
+		SizeInBytes:        art.FileSize,
+		Expired:            art.Status == actions_model.ArtifactStatusExpired,
+		URL:                url,
+		ArchiveDownloadURL: url + "/zip",
+		CreatedAt:          art.CreatedUnix.AsLocalTime(),
+		UpdatedAt:          art.UpdatedUnix.AsLocalTime(),
+		ExpiresAt:          art.ExpiredUnix.AsLocalTime(),
+		WorkflowRun: &api.ActionWorkflowRun{
+			ID:           art.RunID,
+			RepositoryID: art.RepoID,
+			HeadSha:      art.CommitSHA,
+		},
+	}, nil
+}
+
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(ctx context.Context, c *git.Commit) *api.PayloadCommitVerification {
-	verif := asymkey_model.ParseCommitWithSignature(ctx, c)
+	verif := asymkey_service.ParseCommitWithSignature(ctx, c)
 	commitVerification := &api.PayloadCommitVerification{
 		Verified: verif.Verified,
 		Reason:   verif.Reason,

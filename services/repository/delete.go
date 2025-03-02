@@ -14,6 +14,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -158,6 +159,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		&actions_model.ActionSchedule{RepoID: repoID},
 		&actions_model.ActionArtifact{RepoID: repoID},
 		&actions_model.ActionRunnerToken{RepoID: repoID},
+		&issues_model.IssuePin{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -263,6 +265,11 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(repo_model.Attachment)); err != nil {
+		return err
+	}
+
+	// unlink packages linked to this repository
+	if err = packages_model.UnlinkRepositoryFromAllPackages(ctx, repoID); err != nil {
 		return err
 	}
 

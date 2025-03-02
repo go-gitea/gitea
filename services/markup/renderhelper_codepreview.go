@@ -36,8 +36,8 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", err
 	}
 
-	webCtx, ok := ctx.Value(gitea_context.WebContextKey).(*gitea_context.Context)
-	if !ok {
+	webCtx := gitea_context.GetWebContext(ctx)
+	if webCtx == nil {
 		return "", fmt.Errorf("context is not a web context")
 	}
 	doer := webCtx.Doer

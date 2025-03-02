@@ -25,7 +25,7 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound("CanUseTimetracker", nil)
+		c.NotFound(nil)
 		return
 	}
 
@@ -56,23 +56,23 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound("CanUseTimetracker", nil)
+		c.NotFound(nil)
 		return
 	}
 
 	t, err := issues_model.GetTrackedTimeByID(c, c.PathParamInt64("timeid"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
-			c.NotFound("time not found", err)
+			c.NotFound(err)
 			return
 		}
-		c.Error(http.StatusInternalServerError, "GetTrackedTimeByID", err.Error())
+		c.HTTPError(http.StatusInternalServerError, "GetTrackedTimeByID", err.Error())
 		return
 	}
 
 	// only OP or admin may delete
 	if !c.IsSigned || (!c.IsUserSiteAdmin() && c.Doer.ID != t.UserID) {
-		c.Error(http.StatusForbidden, "not allowed")
+		c.HTTPError(http.StatusForbidden, "not allowed")
 		return
 	}
 
@@ -81,7 +81,7 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 
-	c.Flash.Success(c.Tr("repo.issues.del_time_history", util.SecToTime(t.Time)))
+	c.Flash.Success(c.Tr("repo.issues.del_time_history", util.SecToHours(t.Time)))
 	c.JSONRedirect("")
 }
 
@@ -92,7 +92,7 @@ func UpdateIssueTimeEstimate(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 

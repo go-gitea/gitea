@@ -17,7 +17,7 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 		q, err := newFn(cfg)
 		assert.NoError(t, err)
 
-		ctx := context.Background()
+		ctx := t.Context()
 		_ = q.RemoveAll(ctx)
 		cnt, err := q.Len(ctx)
 		assert.NoError(t, err)
@@ -121,7 +121,7 @@ func TestBaseDummy(t *testing.T) {
 	q, err := newBaseDummy(&BaseConfig{}, true)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	assert.NoError(t, q.PushItem(ctx, []byte("foo")))
 
 	cnt, err := q.Len(ctx)

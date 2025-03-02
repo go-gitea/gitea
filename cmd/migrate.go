@@ -18,7 +18,7 @@ import (
 var CmdMigrate = &cli.Command{
 	Name:        "migrate",
 	Usage:       "Migrate the database",
-	Description: "This is a command for migrating the database, so that you can run gitea admin create-user before starting the server.",
+	Description: `This is a command for migrating the database, so that you can run "gitea admin create user" before starting the server.`,
 	Action:      runMigrate,
 }
 

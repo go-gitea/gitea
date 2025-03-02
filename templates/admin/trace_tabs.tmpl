@@ -1,0 +1,19 @@
+<div class="flex-text-block">
+	<div class="tw-flex-1">
+		<div class="ui compact small menu">
+			{{if .ShowAdminPerformanceTraceTab}}
+			<a class="item {{Iif .PageIsAdminMonitorPerfTrace "active"}}" href="{{AppSubUrl}}/-/admin/monitor/perftrace">{{ctx.Locale.Tr "admin.monitor.performance_logs"}}</a>
+			{{end}}
+			<a class="item {{Iif (eq .ShowGoroutineList "process") "active"}}" href="{{AppSubUrl}}/-/admin/monitor/stacktrace?show=process">{{ctx.Locale.Tr "admin.monitor.process"}}</a>
+			<a class="item {{Iif (eq .ShowGoroutineList "stacktrace") "active"}}" href="{{AppSubUrl}}/-/admin/monitor/stacktrace?show=stacktrace">{{ctx.Locale.Tr "admin.monitor.stacktrace"}}</a>
+		</div>
+	</div>
+	<form target="_blank" action="{{AppSubUrl}}/-/admin/monitor/diagnosis" class="ui form">
+		<div class="ui inline field">
+			<button class="ui primary small button">{{ctx.Locale.Tr "admin.monitor.download_diagnosis_report"}}</button>
+			<input name="seconds" size="3" maxlength="3" value="10"> {{ctx.Locale.Tr "tool.raw_seconds"}}
+		</div>
+	</form>
+</div>
+
+<div class="divider"></div>

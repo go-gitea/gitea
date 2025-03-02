@@ -52,7 +52,7 @@ func GetLabelTemplate(ctx *context.APIContext) {
 
 	labels, err := repo_module.LoadTemplateLabelsByDisplayName(name)
 	if err != nil {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 

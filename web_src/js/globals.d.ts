@@ -36,8 +36,9 @@ declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
 }
 
 interface JQuery {
-  api: any, // fomantic
   areYouSure: any, // jquery.are-you-sure
+  fomanticExt: any; // fomantic extension
+  api: any, // fomantic
   dimmer: any, // fomantic
   dropdown: any; // fomantic
   modal: any; // fomantic

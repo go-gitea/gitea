@@ -156,7 +156,7 @@ func (s *Service) FetchTask(
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks not be assgined.
 		// try to pick a task for the runner that send the request.
-		if t, ok, err := pickTask(ctx, runner); err != nil {
+		if t, ok, err := actions_service.PickTask(ctx, runner); err != nil {
 			log.Error("pick task failed: %v", err)
 			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 		} else if ok {

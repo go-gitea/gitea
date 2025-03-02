@@ -1,10 +1,10 @@
 {{if .Statuses}}
 	{{if and (eq (len .Statuses) 1) .Status.TargetURL}}
-		<a class="tw-align-middle {{.AdditionalClasses}} tw-no-underline" data-tippy="commit-statuses" href="{{.Status.TargetURL}}">
+		<a class="flex-text-inline tw-no-underline {{.AdditionalClasses}}" data-tippy="commit-statuses" href="{{.Status.TargetURL}}">
 			{{template "repo/commit_status" .Status}}
 		</a>
 	{{else}}
-		<span class="tw-align-middle {{.AdditionalClasses}}" data-tippy="commit-statuses" tabindex="0">
+		<span class="flex-text-inline {{.AdditionalClasses}}" data-tippy="commit-statuses" tabindex="0">
 			{{template "repo/commit_status" .Status}}
 		</span>
 	{{end}}

@@ -324,7 +324,7 @@ func GetUploadBlob(ctx *context.Context) {
 
 	upload, err := packages_model.GetBlobUploadByID(ctx, uuid)
 	if err != nil {
-		if err == packages_model.ErrPackageBlobUploadNotExist {
+		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -345,7 +345,7 @@ func UploadBlob(ctx *context.Context) {
 
 	uploader, err := container_service.NewBlobUploader(ctx, ctx.PathParam("uuid"))
 	if err != nil {
-		if err == packages_model.ErrPackageBlobUploadNotExist {
+		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -396,7 +396,7 @@ func EndUploadBlob(ctx *context.Context) {
 
 	uploader, err := container_service.NewBlobUploader(ctx, ctx.PathParam("uuid"))
 	if err != nil {
-		if err == packages_model.ErrPackageBlobUploadNotExist {
+		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -465,7 +465,7 @@ func CancelUploadBlob(ctx *context.Context) {
 
 	_, err := packages_model.GetBlobUploadByID(ctx, uuid)
 	if err != nil {
-		if err == packages_model.ErrPackageBlobUploadNotExist {
+		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -501,7 +501,7 @@ func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescri
 func HeadBlob(ctx *context.Context) {
 	blob, err := getBlobFromContext(ctx)
 	if err != nil {
-		if err == container_model.ErrContainerBlobNotExist {
+		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -520,7 +520,7 @@ func HeadBlob(ctx *context.Context) {
 func GetBlob(ctx *context.Context) {
 	blob, err := getBlobFromContext(ctx)
 	if err != nil {
-		if err == container_model.ErrContainerBlobNotExist {
+		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -639,7 +639,7 @@ func getManifestFromContext(ctx *context.Context) (*packages_model.PackageFileDe
 func HeadManifest(ctx *context.Context) {
 	manifest, err := getManifestFromContext(ctx)
 	if err != nil {
-		if err == container_model.ErrContainerBlobNotExist {
+		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errManifestUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -659,7 +659,7 @@ func HeadManifest(ctx *context.Context) {
 func GetManifest(ctx *context.Context) {
 	manifest, err := getManifestFromContext(ctx)
 	if err != nil {
-		if err == container_model.ErrContainerBlobNotExist {
+		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errManifestUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -739,7 +739,7 @@ func GetTagList(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
 	if _, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeContainer, image); err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiErrorDefined(ctx, errNameUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)

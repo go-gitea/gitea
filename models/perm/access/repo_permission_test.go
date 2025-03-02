@@ -50,7 +50,7 @@ func TestApplyEveryoneRepoPermission(t *testing.T) {
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
 	}
-	applyEveryoneRepoPermission(nil, &perm)
+	finalProcessRepoUnitPermission(nil, &perm)
 	assert.False(t, perm.CanRead(unit.TypeWiki))
 
 	perm = Permission{
@@ -59,7 +59,7 @@ func TestApplyEveryoneRepoPermission(t *testing.T) {
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
 	}
-	applyEveryoneRepoPermission(&user_model.User{ID: 0}, &perm)
+	finalProcessRepoUnitPermission(&user_model.User{ID: 0}, &perm)
 	assert.False(t, perm.CanRead(unit.TypeWiki))
 
 	perm = Permission{
@@ -68,7 +68,7 @@ func TestApplyEveryoneRepoPermission(t *testing.T) {
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
 	}
-	applyEveryoneRepoPermission(&user_model.User{ID: 1}, &perm)
+	finalProcessRepoUnitPermission(&user_model.User{ID: 1}, &perm)
 	assert.True(t, perm.CanRead(unit.TypeWiki))
 
 	perm = Permission{
@@ -77,20 +77,22 @@ func TestApplyEveryoneRepoPermission(t *testing.T) {
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
 	}
-	applyEveryoneRepoPermission(&user_model.User{ID: 1}, &perm)
+	finalProcessRepoUnitPermission(&user_model.User{ID: 1}, &perm)
 	// it should work the same as "EveryoneAccessMode: none" because the default AccessMode should be applied to units
 	assert.True(t, perm.CanWrite(unit.TypeWiki))
 
 	perm = Permission{
 		units: []*repo_model.RepoUnit{
+			{Type: unit.TypeCode}, // will be removed
 			{Type: unit.TypeWiki, EveryoneAccessMode: perm_model.AccessModeRead},
 		},
 		unitsMode: map[unit.Type]perm_model.AccessMode{
 			unit.TypeWiki: perm_model.AccessModeWrite,
 		},
 	}
-	applyEveryoneRepoPermission(&user_model.User{ID: 1}, &perm)
+	finalProcessRepoUnitPermission(&user_model.User{ID: 1}, &perm)
 	assert.True(t, perm.CanWrite(unit.TypeWiki))
+	assert.Len(t, perm.units, 1)
 }
 
 func TestUnitAccessMode(t *testing.T) {

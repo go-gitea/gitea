@@ -32,8 +32,8 @@ export function initRepoIssueSidebarList() {
     fullTextSearch: true,
     apiSettings: {
       url: issueSearchUrl,
-      onResponse(response) {
-        const filteredResponse = {success: true, results: []};
+      onResponse(response: any) {
+        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
         const currIssueId = $('#new-dependency-drop-list').data('issue-id');
         // Parse the response from the api to work with our dropdown
         $.each(response, (_i, issue) => {
@@ -216,7 +216,7 @@ export function initRepoIssueCodeCommentCancel() {
 
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
-  const pullUpdateButton = document.querySelector('.update-button > button');
+  const pullUpdateButton = document.querySelector<HTMLButtonElement>('.update-button > button');
   if (!pullUpdateButton) return;
 
   pullUpdateButton.addEventListener('click', async function (e) {
@@ -247,7 +247,7 @@ export function initRepoPullRequestUpdate() {
   });
 
   $('.update-button > .dropdown').dropdown({
-    onChange(_text, _value, $choice) {
+    onChange(_text: string, _value: string, $choice: any) {
       const choiceEl = $choice[0];
       const url = choiceEl.getAttribute('data-do');
       if (url) {
@@ -298,8 +298,8 @@ export function initRepoIssueReferenceRepositorySearch() {
     .dropdown({
       apiSettings: {
         url: `${appSubUrl}/repo/search?q={query}&limit=20`,
-        onResponse(response) {
-          const filteredResponse = {success: true, results: []};
+        onResponse(response: any) {
+          const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
           $.each(response.data, (_r, repo) => {
             filteredResponse.results.push({
               name: htmlEscape(repo.repository.full_name),
@@ -310,7 +310,7 @@ export function initRepoIssueReferenceRepositorySearch() {
         },
         cache: false,
       },
-      onChange(_value, _text, $choice) {
+      onChange(_value: string, _text: string, $choice: any) {
         const $form = $choice.closest('form');
         if (!$form.length) return;
 
@@ -360,7 +360,7 @@ export function initRepoIssueComments() {
   });
 }
 
-export async function handleReply(el) {
+export async function handleReply(el: HTMLElement) {
   const form = el.closest('.comment-code-cloud').querySelector('.comment-form');
   const textarea = form.querySelector('textarea');
 
@@ -373,25 +373,13 @@ export async function handleReply(el) {
 
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
-    // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
-    if (window.history.scrollRestoration !== 'manual') {
-      window.history.scrollRestoration = 'manual';
-    }
     const commentDiv = document.querySelector(window.location.hash);
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        const ancestorDiffBox = commentDiv.closest('.diff-file-box');
-        // on pages like conversation, there is no diff header
-        const diffHeader = ancestorDiffBox?.querySelector('.diff-file-header');
-
-        // offset is for scrolling
-        let offset = 30;
-        if (diffHeader) {
-          offset += $('.diff-detail-box').outerHeight() + $(diffHeader).outerHeight();
-        }
+        const ancestorDiffBox = commentDiv.closest<HTMLElement>('.diff-file-box');
 
         hideElem(`#show-outdated-${id}`);
         showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
@@ -399,12 +387,11 @@ export function initRepoPullRequestReview() {
         if (ancestorDiffBox?.getAttribute('data-folded') === 'true') {
           setFileFolding(ancestorDiffBox, ancestorDiffBox.querySelector('.fold-file'), false);
         }
-
-        window.scrollTo({
-          top: $(commentDiv).offset().top - offset,
-          behavior: 'instant',
-        });
       }
+      // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
+      if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
+      // wait for a while because some elements (eg: image, editor, etc.) may change the viewport's height.
+      setTimeout(() => commentDiv.scrollIntoView({block: 'start'}), 100);
     }
   }
 
@@ -434,13 +421,11 @@ export function initRepoPullRequestReview() {
   // The following part is only for diff views
   if (!$('.repository.pull.diff').length) return;
 
-  const $reviewBtn = $('.js-btn-review');
-  const $panel = $reviewBtn.parent().find('.review-box-panel');
-  const $closeBtn = $panel.find('.close');
-
-  if ($reviewBtn.length && $panel.length) {
-    const tippy = createTippy($reviewBtn[0], {
-      content: $panel[0],
+  const elReviewBtn = document.querySelector('.js-btn-review');
+  const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
+  if (elReviewBtn && elReviewPanel) {
+    const tippy = createTippy(elReviewBtn, {
+      content: elReviewPanel,
       theme: 'default',
       placement: 'bottom',
       trigger: 'click',
@@ -448,11 +433,7 @@ export function initRepoPullRequestReview() {
       interactive: true,
       hideOnClick: true,
     });
-
-    $closeBtn.on('click', (e) => {
-      e.preventDefault();
-      tippy.hide();
-    });
+    elReviewPanel.querySelector('.close').addEventListener('click', () => tippy.hide());
   }
 
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
@@ -602,7 +583,7 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-async function initSingleCommentEditor($commentForm) {
+async function initSingleCommentEditor($commentForm: any) {
   // pages:
   // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
   // * issue/pr view page: with comment form, has status-button and comment-button
@@ -624,7 +605,7 @@ async function initSingleCommentEditor($commentForm) {
   syncUiState();
 }
 
-function initIssueTemplateCommentEditors($commentForm) {
+function initIssueTemplateCommentEditors($commentForm: any) {
   // pages:
   // * new issue with issue template
   const $comboFields = $commentForm.find('.combo-editor-dropzone');

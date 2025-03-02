@@ -28,7 +28,7 @@ import (
 func RedirectToUser(ctx *Base, userName string, redirectUserID int64) {
 	user, err := user_model.GetUserByID(ctx, redirectUserID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "unable to get user")
+		ctx.HTTPError(http.StatusInternalServerError, "unable to get user")
 		return
 	}
 
@@ -122,8 +122,8 @@ func (ctx *Context) RenderWithErr(msg any, tpl templates.TplName, form any) {
 }
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.
-func (ctx *Context) NotFound(logMsg string, logErr error) {
-	ctx.notFoundInternal(logMsg, logErr)
+func (ctx *Context) NotFound(logErr error) {
+	ctx.notFoundInternal("", logErr)
 }
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {

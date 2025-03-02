@@ -52,7 +52,7 @@ func NodeInfo(ctx *context.APIContext) {
 			}
 
 			if err := ctx.Cache.PutJSON(cacheKeyNodeInfoUsage, nodeInfoUsage, 180); err != nil {
-				ctx.InternalServerError(err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 		}

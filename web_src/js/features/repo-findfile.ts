@@ -4,13 +4,15 @@ import {pathEscapeSegments} from '../utils/url.ts';
 import {GET} from '../modules/fetch.ts';
 
 const threshold = 50;
-let files = [];
-let repoFindFileInput, repoFindFileTableBody, repoFindFileNoResult;
+let files: Array<string> = [];
+let repoFindFileInput: HTMLInputElement;
+let repoFindFileTableBody: HTMLElement;
+let repoFindFileNoResult: HTMLElement;
 
 // return the case-insensitive sub-match result as an array:  [unmatched, matched, unmatched, matched, ...]
 // res[even] is unmatched, res[odd] is matched, see unit tests for examples
 // argument subLower must be a lower-cased string.
-export function strSubMatch(full, subLower) {
+export function strSubMatch(full: string, subLower: string) {
   const res = [''];
   let i = 0, j = 0;
   const fullLower = full.toLowerCase();
@@ -38,7 +40,7 @@ export function strSubMatch(full, subLower) {
   return res;
 }
 
-export function calcMatchedWeight(matchResult) {
+export function calcMatchedWeight(matchResult: Array<any>) {
   let weight = 0;
   for (let i = 0; i < matchResult.length; i++) {
     if (i % 2 === 1) { // matches are on odd indices, see strSubMatch
@@ -49,7 +51,7 @@ export function calcMatchedWeight(matchResult) {
   return weight;
 }
 
-export function filterRepoFilesWeighted(files, filter) {
+export function filterRepoFilesWeighted(files: Array<string>, filter: string) {
   let filterResult = [];
   if (filter) {
     const filterLower = filter.toLowerCase();
@@ -71,7 +73,7 @@ export function filterRepoFilesWeighted(files, filter) {
   return filterResult;
 }
 
-function filterRepoFiles(filter) {
+function filterRepoFiles(filter: string) {
   const treeLink = repoFindFileInput.getAttribute('data-url-tree-link');
   repoFindFileTableBody.innerHTML = '';
 

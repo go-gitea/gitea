@@ -9,30 +9,25 @@
 				{{if .User.IsAdmin}}
 					<span class="ui basic label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
 				{{end}}
+				{{if .User.IsTypeBot}}
+					<span class="ui basic label">{{ctx.Locale.Tr "admin.users.bot"}}</span>
+				{{end}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.auth_source"}}:</b>
-				{{if eq .LoginSource.ID 0}}
-					{{ctx.Locale.Tr "admin.users.local"}}
-				{{else}}
-					{{.LoginSource.Name}}
-				{{end}}
+				{{Iif (eq .LoginSource.ID 0) (ctx.Locale.Tr "admin.users.local") .LoginSource.Name}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.activated"}}:</b>
-				{{if .User.IsActive}}
-					{{svg "octicon-check"}}
-				{{else}}
-					{{svg "octicon-x"}}
-				{{end}}
+				{{svg (Iif .User.IsActive "octicon-check" "octicon-x")}}
+			</div>
+			<div class="flex-item-body">
+				<b>{{ctx.Locale.Tr "admin.users.prohibit_login"}}:</b>
+				{{svg (Iif .User.ProhibitLogin "octicon-check" "octicon-x")}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.restricted"}}:</b>
-				{{if .User.IsRestricted}}
-					{{svg "octicon-check"}}
-				{{else}}
-					{{svg "octicon-x"}}
-				{{end}}
+				{{svg (Iif .User.IsRestricted "octicon-check" "octicon-x")}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "settings.visibility"}}:</b>
@@ -42,11 +37,7 @@
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.2fa"}}:</b>
-				{{if .TwoFactorEnabled}}
-					<span class="text green">{{svg "octicon-check"}}</span>
-				{{else}}
-					{{svg "octicon-x"}}
-				{{end}}
+				{{svg (Iif .TwoFactorEnabled "octicon-check" "octicon-x")}}
 			</div>
 			{{if .User.Language}}
 				<div class="flex-item-body">

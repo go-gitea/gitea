@@ -28,6 +28,10 @@
   z-index: 1;
 }
 
+.tippy-box[data-theme="default"] {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
 /* bare theme, no styling at all, except box-shadow */
 .tippy-box[data-theme="bare"] {
   border: none;

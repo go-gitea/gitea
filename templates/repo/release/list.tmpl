@@ -24,7 +24,7 @@
 								"Repository" $.Repository
 								"ShowTabTags" true
 								"DropdownFixedText" (ctx.Locale.Tr "repo.release.compare")
-								"RefLinkTemplate" (print "{RepoLink}/compare/{RefShortName}..." (PathEscapeSegments $compareTarget))
+								"RefLinkTemplate" (print "{RepoLink}/compare/{RefShortName}" "..." (PathEscapeSegments $compareTarget))
 							}}
 						{{end}}
 					</div>

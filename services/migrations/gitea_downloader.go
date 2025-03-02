@@ -67,7 +67,6 @@ func (f *GiteaDownloaderFactory) GitServiceType() structs.GitServiceType {
 // GiteaDownloader implements a Downloader interface to get repository information's
 type GiteaDownloader struct {
 	base.NullDownloader
-	ctx        context.Context
 	client     *gitea_sdk.Client
 	baseURL    string
 	repoOwner  string
@@ -114,7 +113,6 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	}
 
 	return &GiteaDownloader{
-		ctx:        ctx,
 		client:     giteaClient,
 		baseURL:    baseURL,
 		repoOwner:  path[0],
@@ -122,11 +120,6 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		pagination: paginationSupport,
 		maxPerPage: maxPerPage,
 	}, nil
-}
-
-// SetContext set context
-func (g *GiteaDownloader) SetContext(ctx context.Context) {
-	g.ctx = ctx
 }
 
 // String implements Stringer
@@ -142,7 +135,7 @@ func (g *GiteaDownloader) LogString() string {
 }
 
 // GetRepoInfo returns a repository information
-func (g *GiteaDownloader) GetRepoInfo() (*base.Repository, error) {
+func (g *GiteaDownloader) GetRepoInfo(_ context.Context) (*base.Repository, error) {
 	if g == nil {
 		return nil, errors.New("error: GiteaDownloader is nil")
 	}
@@ -164,19 +157,19 @@ func (g *GiteaDownloader) GetRepoInfo() (*base.Repository, error) {
 }
 
 // GetTopics return gitea topics
-func (g *GiteaDownloader) GetTopics() ([]string, error) {
+func (g *GiteaDownloader) GetTopics(_ context.Context) ([]string, error) {
 	topics, _, err := g.client.ListRepoTopics(g.repoOwner, g.repoName, gitea_sdk.ListRepoTopicsOptions{})
 	return topics, err
 }
 
 // GetMilestones returns milestones
-func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
+func (g *GiteaDownloader) GetMilestones(ctx context.Context) ([]*base.Milestone, error) {
 	milestones := make([]*base.Milestone, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
 		select {
-		case <-g.ctx.Done():
+		case <-ctx.Done():
 			return nil, nil
 		default:
 		}
@@ -235,13 +228,13 @@ func (g *GiteaDownloader) convertGiteaLabel(label *gitea_sdk.Label) *base.Label 
 }
 
 // GetLabels returns labels
-func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
+func (g *GiteaDownloader) GetLabels(ctx context.Context) ([]*base.Label, error) {
 	labels := make([]*base.Label, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
 		select {
-		case <-g.ctx.Done():
+		case <-ctx.Done():
 			return nil, nil
 		default:
 		}
@@ -323,13 +316,13 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 }
 
 // GetReleases returns releases
-func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
+func (g *GiteaDownloader) GetReleases(ctx context.Context) ([]*base.Release, error) {
 	releases := make([]*base.Release, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
 		select {
-		case <-g.ctx.Done():
+		case <-ctx.Done():
 			return nil, nil
 		default:
 		}
@@ -395,7 +388,7 @@ func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction
 }
 
 // GetIssues returns issues according start and limit
-func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
+func (g *GiteaDownloader) GetIssues(_ context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -458,13 +451,13 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 }
 
 // GetComments returns comments according issueNumber
-func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	allComments := make([]*base.Comment, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
 		select {
-		case <-g.ctx.Done():
+		case <-ctx.Done():
 			return nil, false, nil
 		default:
 		}
@@ -504,7 +497,7 @@ func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Com
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
+func (g *GiteaDownloader) GetPullRequests(_ context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -624,7 +617,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
 	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip GetReviews")
 		return nil, nil
@@ -635,7 +628,7 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
 		select {
-		case <-g.ctx.Done():
+		case <-ctx.Done():
 			return nil, nil
 		default:
 		}

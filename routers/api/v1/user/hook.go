@@ -63,13 +63,13 @@ func GetHook(ctx *context.APIContext) {
 	}
 
 	if !ctx.Doer.IsAdmin && hook.OwnerID != ctx.Doer.ID {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
 	apiHook, err := webhook_service.ToHook(ctx.Doer.HomeLink(), hook)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiHook)

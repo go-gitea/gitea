@@ -72,9 +72,9 @@ func (at ActionType) String() string {
 	case ActionRenameRepo:
 		return "rename_repo"
 	case ActionStarRepo:
-		return "star_repo"
+		return "star_repo" // will not displayed in feeds.tmpl
 	case ActionWatchRepo:
-		return "watch_repo"
+		return "watch_repo" // will not displayed in feeds.tmpl
 	case ActionCommitRepo:
 		return "commit_repo"
 	case ActionCreateIssue:
@@ -355,7 +355,7 @@ func (a *Action) GetBranch() string {
 
 // GetRefLink returns the action's ref link.
 func (a *Action) GetRefLink(ctx context.Context) string {
-	return git.RefURL(a.GetRepoLink(ctx), a.RefName)
+	return a.GetRepoLink(ctx) + "/src/" + git.RefName(a.RefName).RefWebLinkPath()
 }
 
 // GetTag returns the action's repository tag.
@@ -454,6 +454,24 @@ func ActivityReadable(user, doer *user_model.User) bool {
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
+func FeedDateCond(opts GetFeedsOptions) builder.Cond {
+	cond := builder.NewCond()
+	if opts.Date == "" {
+		return cond
+	}
+
+	dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
+	if err != nil {
+		log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+	} else {
+		dateHigh := dateLow.Add(86399000000000) // 23h59m59s
+
+		cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
+		cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
+	}
+	return cond
+}
+
 func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
@@ -534,17 +552,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 		cond = cond.And(builder.Eq{"is_deleted": false})
 	}
 
-	if opts.Date != "" {
-		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
-		if err != nil {
-			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
-		} else {
-			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
-
-			cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
-			cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
-		}
-	}
+	cond = cond.And(FeedDateCond(opts))
 
 	return cond, nil
 }

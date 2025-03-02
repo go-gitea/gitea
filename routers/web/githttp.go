@@ -21,7 +21,7 @@ func addOwnerRepoGitHTTPRouters(m *web.Router) {
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea"`)
-			ctx.Error(http.StatusUnauthorized)
+			ctx.HTTPError(http.StatusUnauthorized)
 		}
 	}
 	m.Group("/{username}/{reponame}", func() {

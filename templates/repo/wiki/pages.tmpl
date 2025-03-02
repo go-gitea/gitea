@@ -10,7 +10,7 @@
 				{{end}}
 			</span>
 		</h2>
-		{{if .IsRepositoryAdmin}}<div>{{ctx.Locale.Tr "repo.default_branch"}}: {{.Repository.DefaultWikiBranch}}</div>{{end}}
+		{{if $.Permission.IsAdmin}}<div>{{ctx.Locale.Tr "repo.default_branch"}}: {{.Repository.DefaultWikiBranch}}</div>{{end}}
 		<table class="ui table wiki-pages-list">
 			<tbody>
 				{{range .Pages}}

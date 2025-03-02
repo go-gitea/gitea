@@ -22,6 +22,9 @@ TYPE = immediate
 [queue.push_update]
 TYPE = immediate
 
+[queue.webhook_sender]
+TYPE = immediate
+
 [repository]
 ROOT = {{REPO_TEST_DIR}}tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-sqlite/gitea-repositories
 
@@ -93,7 +96,6 @@ COLORIZE             = true
 LEVEL                = Debug
 
 [security]
-DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTI3OTU5ODN9.OQkH5UmzID2XBdwQ9TAI6Jj2t1X-wElVTjbE7aoN4I8
@@ -117,3 +119,6 @@ RENDER_CONTENT_MODE=sanitized
 
 [actions]
 ENABLED = true
+
+[webhook]
+ALLOWED_HOST_LIST = 127.0.0.1

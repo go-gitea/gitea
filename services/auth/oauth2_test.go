@@ -4,7 +4,6 @@
 package auth
 
 import (
-	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -26,7 +25,7 @@ func TestUserIDFromToken(t *testing.T) {
 		ds := make(reqctx.ContextData)
 
 		o := OAuth2{}
-		uid := o.userIDFromToken(context.Background(), token, ds)
+		uid := o.userIDFromToken(t.Context(), token, ds)
 		assert.Equal(t, int64(user_model.ActionsUserID), uid)
 		assert.Equal(t, true, ds["IsActionsToken"])
 		assert.Equal(t, ds["ActionsTaskID"], int64(RunningTaskID))
@@ -48,7 +47,7 @@ func TestCheckTaskIsRunning(t *testing.T) {
 	for name := range cases {
 		c := cases[name]
 		t.Run(name, func(t *testing.T) {
-			actual := CheckTaskIsRunning(context.Background(), c.TaskID)
+			actual := CheckTaskIsRunning(t.Context(), c.TaskID)
 			assert.Equal(t, c.Expected, actual)
 		})
 	}

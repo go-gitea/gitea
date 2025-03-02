@@ -65,6 +65,7 @@
 }
 
 #repo-files-table .repo-file-last-commit {
+  min-width: 0; /* otherwise the flex axis is not limited and the text might overflow in Pale Moon */
   background: var(--color-box-header);
 }
 

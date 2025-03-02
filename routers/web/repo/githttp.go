@@ -78,7 +78,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
 		isPull = true
 	} else {
-		isPull = ctx.Req.Method == "GET"
+		isPull = ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
 	}
 
 	var accessMode perm.AccessMode
@@ -147,7 +147,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea"`)
-			ctx.Error(http.StatusUnauthorized)
+			ctx.HTTPError(http.StatusUnauthorized)
 			return nil
 		}
 

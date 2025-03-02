@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/webauthn"
@@ -21,44 +22,88 @@ import (
 	user_service "code.gitea.io/gitea/services/user"
 )
 
+type globalVarsStruct struct {
+	gitRawOrAttachPathRe *regexp.Regexp
+	lfsPathRe            *regexp.Regexp
+	archivePathRe        *regexp.Regexp
+	feedPathRe           *regexp.Regexp
+	feedRefPathRe        *regexp.Regexp
+}
+
+var globalVars = sync.OnceValue(func() *globalVarsStruct {
+	return &globalVarsStruct{
+		gitRawOrAttachPathRe: regexp.MustCompile(`^/[-.\w]+/[-.\w]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/)|(?:attachments/))`),
+		lfsPathRe:            regexp.MustCompile(`^/[-.\w]+/[-.\w]+/info/lfs/`),
+		archivePathRe:        regexp.MustCompile(`^/[-.\w]+/[-.\w]+/archive/`),
+		feedPathRe:           regexp.MustCompile(`^/[-.\w]+(/[-.\w]+)?\.(rss|atom)$`), // "/owner.rss" or "/owner/repo.atom"
+		feedRefPathRe:        regexp.MustCompile(`^/[-.\w]+/[-.\w]+/(rss|atom)/`),     // "/owner/repo/rss/branch/..."
+	}
+})
+
 // Init should be called exactly once when the application starts to allow plugins
 // to allocate necessary resources
 func Init() {
 	webauthn.Init()
 }
 
+type authPathDetector struct {
+	req  *http.Request
+	vars *globalVarsStruct
+}
+
+func newAuthPathDetector(req *http.Request) *authPathDetector {
+	return &authPathDetector{req: req, vars: globalVars()}
+}
+
+// isAPIPath returns true if the specified URL is an API path
+func (a *authPathDetector) isAPIPath() bool {
+	return strings.HasPrefix(a.req.URL.Path, "/api/")
+}
+
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
-func isAttachmentDownload(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
+func (a *authPathDetector) isAttachmentDownload() bool {
+	return strings.HasPrefix(a.req.URL.Path, "/attachments/") && a.req.Method == "GET"
+}
+
+func (a *authPathDetector) isFeedRequest(req *http.Request) bool {
+	if !setting.Other.EnableFeed {
+		return false
+	}
+	if req.Method != "GET" {
+		return false
+	}
+	return a.vars.feedPathRe.MatchString(req.URL.Path) || a.vars.feedRefPathRe.MatchString(req.URL.Path)
 }
 
 // isContainerPath checks if the request targets the container endpoint
-func isContainerPath(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, "/v2/")
+func (a *authPathDetector) isContainerPath() bool {
+	return strings.HasPrefix(a.req.URL.Path, "/v2/")
 }
 
-var (
-	gitRawOrAttachPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/)|(?:attachments/))`)
-	lfsPathRe            = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
-	archivePathRe        = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/archive/`)
-)
-
-func isGitRawOrAttachPath(req *http.Request) bool {
-	return gitRawOrAttachPathRe.MatchString(req.URL.Path)
+func (a *authPathDetector) isGitRawOrAttachPath() bool {
+	return a.vars.gitRawOrAttachPathRe.MatchString(a.req.URL.Path)
 }
 
-func isGitRawOrAttachOrLFSPath(req *http.Request) bool {
-	if isGitRawOrAttachPath(req) {
+func (a *authPathDetector) isGitRawOrAttachOrLFSPath() bool {
+	if a.isGitRawOrAttachPath() {
 		return true
 	}
 	if setting.LFS.StartServer {
-		return lfsPathRe.MatchString(req.URL.Path)
+		return a.vars.lfsPathRe.MatchString(a.req.URL.Path)
 	}
 	return false
 }
 
-func isArchivePath(req *http.Request) bool {
-	return archivePathRe.MatchString(req.URL.Path)
+func (a *authPathDetector) isArchivePath() bool {
+	return a.vars.archivePathRe.MatchString(a.req.URL.Path)
+}
+
+func (a *authPathDetector) isAuthenticatedTokenRequest() bool {
+	switch a.req.URL.Path {
+	case "/login/oauth/userinfo", "/login/oauth/introspect":
+		return true
+	}
+	return false
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
@@ -104,7 +149,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	middleware.SetLocaleCookie(resp, user.Language, 0)
 
 	// force to generate a new CSRF token
-	if ctx := gitea_context.GetWebContext(req); ctx != nil {
+	if ctx := gitea_context.GetWebContext(req.Context()); ctx != nil {
 		ctx.Csrf.PrepareForSessionUser(ctx)
 	}
 }

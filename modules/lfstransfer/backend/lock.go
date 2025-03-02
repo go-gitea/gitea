@@ -50,7 +50,7 @@ func (g *giteaLockBackend) Create(path, refname string) (transfer.Lock, error) {
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
+	req := newInternalRequestLFS(g.ctx, url, http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
 	if err != nil {
 		g.logger.Log("http request error", err)
@@ -102,7 +102,7 @@ func (g *giteaLockBackend) Unlock(lock transfer.Lock) error {
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequest(g.ctx, url, http.MethodPost, headers, bodyBytes)
+	req := newInternalRequestLFS(g.ctx, url, http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
 	if err != nil {
 		g.logger.Log("http request error", err)
@@ -185,7 +185,7 @@ func (g *giteaLockBackend) queryLocks(v url.Values) ([]transfer.Lock, string, er
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequest(g.ctx, url, http.MethodGet, headers, nil)
+	req := newInternalRequestLFS(g.ctx, url, http.MethodGet, headers, nil)
 	resp, err := req.Response()
 	if err != nil {
 		g.logger.Log("http request error", err)

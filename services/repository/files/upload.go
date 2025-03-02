@@ -27,6 +27,8 @@ type UploadRepoFileOptions struct {
 	Message      string
 	Files        []string // In UUID format.
 	Signoff      bool
+	Author       *IdentityOptions
+	Committer    *IdentityOptions
 }
 
 type uploadInfo struct {
@@ -128,12 +130,17 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return err
 	}
 
-	// make author and committer the doer
-	author := doer
-	committer := doer
-
 	// Now commit the tree
-	commitHash, err := t.CommitTree(opts.LastCommitID, author, committer, treeHash, opts.Message, opts.Signoff)
+	commitOpts := &CommitTreeUserOptions{
+		ParentCommitID:    opts.LastCommitID,
+		TreeHash:          treeHash,
+		CommitMessage:     opts.Message,
+		SignOff:           opts.Signoff,
+		DoerUser:          doer,
+		AuthorIdentity:    opts.Author,
+		CommitterIdentity: opts.Committer,
+	}
+	commitHash, err := t.CommitTree(commitOpts)
 	if err != nil {
 		return err
 	}

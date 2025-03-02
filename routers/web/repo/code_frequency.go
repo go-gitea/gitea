@@ -29,7 +29,7 @@ func CodeFrequency(ctx *context.Context) {
 
 // CodeFrequencyData returns JSON of code frequency data
 func CodeFrequencyData(ctx *context.Context) {
-	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
+	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch); err != nil {
 		if errors.Is(err, contributors_service.ErrAwaitGeneration) {
 			ctx.Status(http.StatusAccepted)
 			return

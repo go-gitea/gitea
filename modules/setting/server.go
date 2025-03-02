@@ -169,20 +169,24 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+	// if these are removed, the warning will not be shown
+	if sec.HasKey("ENABLE_ACME") {
+		EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
+	} else {
+		deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
+		EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	}
+
 	Protocol = HTTP
 	protocolCfg := sec.Key("PROTOCOL").String()
+	if protocolCfg != "https" && EnableAcme {
+		log.Fatal("ACME could only be used with HTTPS protocol")
+	}
+
 	switch protocolCfg {
 	case "https":
 		Protocol = HTTPS
-
-		// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
-		// if these are removed, the warning will not be shown
-		if sec.HasKey("ENABLE_ACME") {
-			EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
-		} else {
-			deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
-			EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
-		}
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
@@ -209,6 +213,9 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			} else {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
 				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
+			}
+			if AcmeEmail == "" {
+				log.Fatal("ACME Email is not set (ACME_EMAIL).")
 			}
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()

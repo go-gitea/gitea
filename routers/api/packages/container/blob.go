@@ -111,12 +111,11 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 		}
 		var err error
 		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-			if err == packages_model.ErrDuplicatePackage {
-				created = false
-			} else {
+			if !errors.Is(err, packages_model.ErrDuplicatePackage) {
 				log.Error("Error inserting package: %v", err)
 				return err
 			}
+			created = false
 		}
 
 		if created {
@@ -135,7 +134,7 @@ func getOrCreateUploadVersion(ctx context.Context, pi *packages_service.PackageI
 			MetadataJSON: "null",
 		}
 		if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
-			if err != packages_model.ErrDuplicatePackageVersion {
+			if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
 				log.Error("Error inserting package: %v", err)
 				return err
 			}
@@ -161,7 +160,7 @@ func createFileForBlob(ctx context.Context, pv *packages_model.PackageVersion, p
 	}
 	var err error
 	if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
-		if err == packages_model.ErrDuplicatePackageFile {
+		if errors.Is(err, packages_model.ErrDuplicatePackageFile) {
 			return nil
 		}
 		log.Error("Error inserting package file: %v", err)

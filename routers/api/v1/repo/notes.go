@@ -54,7 +54,7 @@ func GetNote(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
-		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
 	}
 	getNote(ctx, sha)
@@ -62,16 +62,16 @@ func GetNote(ctx *context.APIContext) {
 
 func getNote(ctx *context.APIContext, identifier string) {
 	if ctx.Repo.GitRepo == nil {
-		ctx.InternalServerError(fmt.Errorf("no open git repo"))
+		ctx.APIErrorInternal(fmt.Errorf("no open git repo"))
 		return
 	}
 
 	commitID, err := ctx.Repo.GitRepo.ConvertToGitID(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
+			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "ConvertToSHA1", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -79,10 +79,10 @@ func getNote(ctx *context.APIContext, identifier string) {
 	var note git.Note
 	if err := git.GetNote(ctx, ctx.Repo.GitRepo, commitID.String(), &note); err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound(identifier)
+			ctx.APIErrorNotFound(identifier)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "GetNote", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 			Files:        files,
 		})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ToCommit", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	apiNote := api.Note{Message: string(note.Message), Commit: cmt}

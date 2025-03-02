@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/gogs/go-gogs-client"
@@ -60,16 +59,14 @@ func (f *GogsDownloaderFactory) GitServiceType() structs.GitServiceType {
 // from gogs via API
 type GogsDownloader struct {
 	base.NullDownloader
-	ctx                context.Context
-	client             *gogs.Client
 	baseURL            string
 	repoOwner          string
 	repoName           string
 	userName           string
 	password           string
+	token              string
 	openIssuesFinished bool
 	openIssuesPages    int
-	transport          http.RoundTripper
 }
 
 // String implements Stringer
@@ -84,53 +81,45 @@ func (g *GogsDownloader) LogString() string {
 	return fmt.Sprintf("<GogsDownloader %s %s/%s>", g.baseURL, g.repoOwner, g.repoName)
 }
 
-// SetContext set context
-func (g *GogsDownloader) SetContext(ctx context.Context) {
-	g.ctx = ctx
-}
-
 // NewGogsDownloader creates a gogs Downloader via gogs API
-func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
+func NewGogsDownloader(_ context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
 	downloader := GogsDownloader{
-		ctx:       ctx,
 		baseURL:   baseURL,
 		userName:  userName,
 		password:  password,
+		token:     token,
 		repoOwner: repoOwner,
 		repoName:  repoName,
 	}
-
-	var client *gogs.Client
-	if len(token) != 0 {
-		client = gogs.NewClient(baseURL, token)
-		downloader.userName = token
-	} else {
-		transport := NewMigrationHTTPTransport()
-		transport.Proxy = func(req *http.Request) (*url.URL, error) {
-			req.SetBasicAuth(userName, password)
-			return proxy.Proxy()(req)
-		}
-		downloader.transport = transport
-
-		client = gogs.NewClient(baseURL, "")
-		client.SetHTTPClient(&http.Client{
-			Transport: &downloader,
-		})
-	}
-
-	downloader.client = client
 	return &downloader
 }
 
-// RoundTrip wraps the provided request within this downloader's context and passes it to our internal http.Transport.
-// This implements http.RoundTripper and makes the gogs client requests cancellable even though it is not cancellable itself
-func (g *GogsDownloader) RoundTrip(req *http.Request) (*http.Response, error) {
-	return g.transport.RoundTrip(req.WithContext(g.ctx))
+type roundTripperFunc func(req *http.Request) (*http.Response, error)
+
+func (rt roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return rt(r)
+}
+
+func (g *GogsDownloader) client(ctx context.Context) *gogs.Client {
+	// Gogs client lacks the context support, so we use a custom transport
+	// Then each request uses a dedicated client with its own context
+	httpTransport := NewMigrationHTTPTransport()
+	gogsClient := gogs.NewClient(g.baseURL, g.token)
+	gogsClient.SetHTTPClient(&http.Client{
+		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if g.password != "" {
+				// Gogs client lacks the support for basic auth, this is the only way to set it
+				req.SetBasicAuth(g.userName, g.password)
+			}
+			return httpTransport.RoundTrip(req.WithContext(ctx))
+		}),
+	})
+	return gogsClient
 }
 
 // GetRepoInfo returns a repository information
-func (g *GogsDownloader) GetRepoInfo() (*base.Repository, error) {
-	gr, err := g.client.GetRepo(g.repoOwner, g.repoName)
+func (g *GogsDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, error) {
+	gr, err := g.client(ctx).GetRepo(g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -148,11 +137,11 @@ func (g *GogsDownloader) GetRepoInfo() (*base.Repository, error) {
 }
 
 // GetMilestones returns milestones
-func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
+func (g *GogsDownloader) GetMilestones(ctx context.Context) ([]*base.Milestone, error) {
 	perPage := 100
 	milestones := make([]*base.Milestone, 0, perPage)
 
-	ms, err := g.client.ListRepoMilestones(g.repoOwner, g.repoName)
+	ms, err := g.client(ctx).ListRepoMilestones(g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -171,10 +160,10 @@ func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
 }
 
 // GetLabels returns labels
-func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
+func (g *GogsDownloader) GetLabels(ctx context.Context) ([]*base.Label, error) {
 	perPage := 100
 	labels := make([]*base.Label, 0, perPage)
-	ls, err := g.client.ListRepoLabels(g.repoOwner, g.repoName)
+	ls, err := g.client(ctx).ListRepoLabels(g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +176,7 @@ func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
 }
 
 // GetIssues returns issues according start and limit, perPage is not supported
-func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
+func (g *GogsDownloader) GetIssues(ctx context.Context, page, _ int) ([]*base.Issue, bool, error) {
 	var state string
 	if g.openIssuesFinished {
 		state = string(gogs.STATE_CLOSED)
@@ -197,7 +186,7 @@ func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
 		g.openIssuesPages = page
 	}
 
-	issues, isEnd, err := g.getIssues(page, state)
+	issues, isEnd, err := g.getIssues(ctx, page, state)
 	if err != nil {
 		return nil, false, err
 	}
@@ -212,10 +201,10 @@ func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
 	return issues, false, nil
 }
 
-func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool, error) {
+func (g *GogsDownloader) getIssues(ctx context.Context, page int, state string) ([]*base.Issue, bool, error) {
 	allIssues := make([]*base.Issue, 0, 10)
 
-	issues, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gogs.ListIssueOption{
+	issues, err := g.client(ctx).ListRepoIssues(g.repoOwner, g.repoName, gogs.ListIssueOption{
 		Page:  page,
 		State: state,
 	})
@@ -234,10 +223,10 @@ func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool,
 }
 
 // GetComments returns comments according issueNumber
-func (g *GogsDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+func (g *GogsDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	allComments := make([]*base.Comment, 0, 100)
 
-	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex())
+	comments, err := g.client(ctx).ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex())
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
@@ -261,7 +250,7 @@ func (g *GogsDownloader) GetComments(commentable base.Commentable) ([]*base.Comm
 }
 
 // GetTopics return repository topics
-func (g *GogsDownloader) GetTopics() ([]string, error) {
+func (g *GogsDownloader) GetTopics(_ context.Context) ([]string, error) {
 	return []string{}, nil
 }
 

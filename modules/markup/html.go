@@ -47,7 +47,7 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// NOTE: All below regex matching do not perform any extra validation.
 	// Thus a link is produced even if the linked entity does not exist.
 	// While fast, this is also incorrect and lead to false positives.
-	// TODO: fix invalid linking issue
+	// TODO: fix invalid linking issue (update: stale TODO, what issues? maybe no TODO anymore)
 
 	// valid chars in encoded path and parameter: [-+~_%.a-zA-Z0-9/]
 

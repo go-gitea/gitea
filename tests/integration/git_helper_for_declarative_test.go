@@ -76,7 +76,7 @@ func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
 	u.Host = listener.Addr().String()
 
 	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 		s.Shutdown(ctx)
 		cancel()
 	}()
@@ -89,7 +89,7 @@ func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.NoError(t, git.CloneWithArgs(context.Background(), git.AllowLFSFiltersArgs(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
+		assert.NoError(t, git.CloneWithArgs(t.Context(), git.AllowLFSFiltersArgs(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))
 		assert.NoError(t, err)
 		assert.True(t, exist)
@@ -98,7 +98,7 @@ func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 
 func doPartialGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.NoError(t, git.CloneWithArgs(context.Background(), git.AllowLFSFiltersArgs(), u.String(), dstLocalPath, git.CloneRepoOptions{
+		assert.NoError(t, git.CloneWithArgs(t.Context(), git.AllowLFSFiltersArgs(), u.String(), dstLocalPath, git.CloneRepoOptions{
 			Filter: "blob:none",
 		}))
 		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))

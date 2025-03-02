@@ -29,13 +29,11 @@ var (
 	// When the real indexer is not ready, it will be a dummy indexer which will return error to explain it's not ready.
 	// So it's always safe use it as *globalIndexer.Load() and call its methods.
 	globalIndexer atomic.Pointer[internal.Indexer]
-	dummyIndexer  *internal.Indexer
 )
 
 func init() {
-	i := internal.NewDummyIndexer()
-	dummyIndexer = &i
-	globalIndexer.Store(dummyIndexer)
+	dummyIndexer := internal.NewDummyIndexer()
+	globalIndexer.Store(&dummyIndexer)
 }
 
 func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
@@ -123,13 +121,12 @@ func Init() {
 			for _, indexerData := range items {
 				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
 				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
-					unhandled = append(unhandled, indexerData)
 					if !setting.IsInTesting {
 						log.Error("Codes indexer handler: index error for repo %v: %v", indexerData.RepoID, err)
 					}
 				}
 			}
-			return unhandled
+			return nil // do not re-queue the failed items, otherwise some broken repo will block the queue
 		}
 
 		indexerQueue = queue.CreateUniqueQueue(ctx, "code_indexer", handler)

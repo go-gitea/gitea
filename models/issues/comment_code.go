@@ -86,8 +86,10 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 			ids = append(ids, comment.ReviewID)
 		}
 	}
-	if err := e.In("id", ids).Find(&reviews); err != nil {
-		return nil, err
+	if len(ids) > 0 {
+		if err := e.In("id", ids).Find(&reviews); err != nil {
+			return nil, err
+		}
 	}
 
 	n := 0

@@ -37,5 +37,5 @@ done
 if [ $# -gt 0 ]; then
     exec "$@"
 else
-    exec /bin/s6-svscan /etc/s6
+    exec /usr/bin/s6-svscan /etc/s6
 fi

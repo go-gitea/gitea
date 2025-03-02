@@ -109,23 +109,17 @@
 								{{ctx.Locale.Tr "repo.release.delete_release"}}
 							</a>
 							{{if .IsDraft}}
-								<button class="ui small button" type="submit" name="draft" value="{{ctx.Locale.Tr "repo.release.save_draft"}}">{{ctx.Locale.Tr "repo.release.save_draft"}}</button>
-								<button class="ui small primary button">
-									{{ctx.Locale.Tr "repo.release.publish"}}
-								</button>
+								<button class="ui small button" type="submit" name="draft" value="1">{{ctx.Locale.Tr "repo.release.save_draft"}}</button>
+								<button class="ui small primary button">{{ctx.Locale.Tr "repo.release.publish"}}</button>
 							{{else}}
-								<button class="ui small primary button">
-									{{ctx.Locale.Tr "repo.release.edit_release"}}
-								</button>
+								<button class="ui small primary button">{{ctx.Locale.Tr "repo.release.edit_release"}}</button>
 							{{end}}
 						{{else}}
-							{{if not .tag_name}}
+							{{if .ShowCreateTagOnlyButton}}
 								<button class="ui small button" name="tag_only" value="1">{{ctx.Locale.Tr "repo.release.add_tag"}}</button>
 							{{end}}
 							<button class="ui small button" name="draft" value="1">{{ctx.Locale.Tr "repo.release.save_draft"}}</button>
-							<button class="ui small primary button">
-								{{ctx.Locale.Tr "repo.release.publish"}}
-							</button>
+							<button class="ui small primary button">{{ctx.Locale.Tr "repo.release.publish"}}</button>
 						{{end}}
 					</div>
 				</div>

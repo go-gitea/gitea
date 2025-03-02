@@ -4,12 +4,9 @@
 package repo
 
 import (
-	"fmt"
 	"strconv"
 
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/services/context"
 	user_service "code.gitea.io/gitea/services/user"
@@ -22,12 +19,9 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 	}
 
 	ec, _, err := ctx.Repo.GetEditorconfig()
-
-	if err != nil && !git.IsErrNotExist(err) {
-		description := fmt.Sprintf("Error while getting .editorconfig file: %v", err)
-		if err := system_model.CreateRepositoryNotice(description); err != nil {
-			ctx.ServerError("ErrCreatingReporitoryNotice", err)
-		}
+	if err != nil {
+		// it used to check `!git.IsErrNotExist(err)` and create a system notice, but it is quite annoying and useless
+		// because network errors also happen frequently, so we just ignore it
 		return
 	}
 

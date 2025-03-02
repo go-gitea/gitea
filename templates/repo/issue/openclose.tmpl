@@ -17,7 +17,7 @@
 		{{ctx.Locale.PrettyNumber .OpenCount}} {{ctx.Locale.Tr "repo.issues.open_title"}}
 	</a>
 	<a class="{{if eq .State "closed"}}active {{end}}item flex-text-inline" href="{{if eq .State "closed"}}{{$allStatesLink}}{{else}}{{$closedLink}}{{end}}">
-		{{svg "octicon-check"}}
+		{{svg "octicon-issue-closed"}}
 		{{ctx.Locale.PrettyNumber .ClosedCount}} {{ctx.Locale.Tr "repo.issues.closed_title"}}
 	</a>
 </div>

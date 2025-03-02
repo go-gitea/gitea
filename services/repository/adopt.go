@@ -52,8 +52,9 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		IsEmpty:                         !opts.AutoInit,
 	}
 
+	repoPath := repo_model.RepoPath(u.Name, repo.Name)
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -75,7 +76,12 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
 			return fmt.Errorf("getRepositoryByID: %w", err)
 		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 
+	if err := func() error {
 		if err := adoptRepository(ctx, repoPath, repo, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("adoptRepository: %w", err)
 		}
@@ -84,23 +90,18 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
-		// Initialize Issue Labels if selected
-		if len(opts.IssueLabels) > 0 {
-			if err := repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				return fmt.Errorf("InitializeLabels: %w", err)
-			}
-		}
-
 		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
 		return nil
-	}); err != nil {
+	}(); err != nil {
+		if errDel := DeleteRepository(ctx, doer, repo, false /* no notify */); errDel != nil {
+			log.Error("Failed to delete repository %s that could not be adopted: %v", repo.FullName(), errDel)
+		}
 		return nil, err
 	}
-
 	notify_service.AdoptRepository(ctx, doer, u, repo)
 
 	return repo, nil

@@ -183,7 +183,7 @@ func selectProtectedTagByContext(ctx *context.Context) *git_model.ProtectedTag {
 		return tag
 	}
 
-	ctx.NotFound("", fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, ctx.Repo.Repository))
+	ctx.NotFound(fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, ctx.Repo.Repository))
 
 	return nil
 }

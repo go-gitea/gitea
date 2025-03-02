@@ -38,7 +38,7 @@ func GetLicenses(ctx *context.APIContext) {
 	licenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
 	if err != nil {
 		log.Error("GetRepoLicenses failed: %v", err)
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

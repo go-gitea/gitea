@@ -1,23 +1,10 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content install post-install">
-	<div class="ui container">
-		<div class="ui grid">
-			<div class="sixteen wide column content">
-				<div class="home">
-					<div class="ui stackable middle very relaxed page grid">
-						<div class="sixteen wide center aligned centered column">
-							<div>
-								<img src="{{AssetUrlPrefix}}/img/loading.png" alt="{{ctx.Locale.Tr "loading"}}">
-							</div>
-						</div>
-					</div>
-					<div class="ui stackable middle very relaxed page grid">
-						<div class="sixteen wide center aligned centered column">
-							<p><a id="goto-user-login" href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "loading"}}</a></p>
-						</div>
-					</div>
-				</div>
-			</div>
+<div role="main" aria-label="{{.Title}}" class="page-content install post-install tw-h-full">
+	<div class="home tw-text-center tw-h-full tw-flex tw-flex-col tw-justify-center"><!-- the "home" class makes the links green -->
+		<!-- the "cup" has a handler, so move it a little leftward to make it visually in the center -->
+		<div class="tw-ml-[-30px]"><img width="160" src="{{AssetUrlPrefix}}/img/loading.png" alt="" aria-hidden="true"></div>
+		<div class="tw-my-[2em] tw-text-[18px]">
+			<a id="goto-user-login" href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "install.installing_desc"}}</a>
 		</div>
 	</div>
 </div>

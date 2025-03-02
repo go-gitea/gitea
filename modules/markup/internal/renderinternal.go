@@ -76,7 +76,7 @@ func (r *RenderInternal) ProtectSafeAttrs(content template.HTML) template.HTML {
 	return template.HTML(reAttrClass().ReplaceAllString(string(content), `$1 data-attr-class="`+r.secureIDPrefix+`$2"$3`))
 }
 
-func (r *RenderInternal) FormatWithSafeAttrs(w io.Writer, fmt string, a ...any) error {
+func (r *RenderInternal) FormatWithSafeAttrs(w io.Writer, fmt template.HTML, a ...any) error {
 	_, err := w.Write([]byte(r.ProtectSafeAttrs(htmlutil.HTMLFormat(fmt, a...))))
 	return err
 }

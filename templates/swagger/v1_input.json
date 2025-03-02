@@ -1,0 +1,6 @@
+{
+  "info": {
+    "version": "{{AppVer | JSEscape}}"
+  },
+  "basePath": "{{AppSubUrl | JSEscape}}/api/v1"
+}

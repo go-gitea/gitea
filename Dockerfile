@@ -1,5 +1,5 @@
 # Build stage
-FROM docker.io/library/golang:1.23-alpine3.21 AS build-env
+FROM docker.io/library/golang:1.24-alpine3.21 AS build-env
 
 ARG GOPROXY
 ENV GOPROXY=${GOPROXY:-direct}

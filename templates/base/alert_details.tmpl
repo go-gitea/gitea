@@ -1,7 +1,11 @@
 {{.Message}}
+{{if .Details}}
 <details>
 	<summary>{{.Summary}}</summary>
-	<code>
-		{{.Details | SanitizeHTML}}
-	</code>
+	<code>{{.Details | SanitizeHTML}}</code>
 </details>
+{{else}}
+<div>
+	{{.Summary}}
+</div>
+{{end}}

@@ -23,7 +23,7 @@ func TestTestHook(t *testing.T) {
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
 	TestHook(ctx)
-	assert.EqualValues(t, http.StatusNoContent, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusNoContent, ctx.Resp.WrittenStatus())
 
 	unittest.AssertExistsAndLoadBean(t, &webhook.HookTask{
 		HookID: 1,

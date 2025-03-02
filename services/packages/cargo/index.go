@@ -11,7 +11,6 @@ import (
 	"io"
 	"path"
 	"strconv"
-	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -296,8 +295,13 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 		return err
 	}
 
-	now := time.Now()
-	commitHash, err := t.CommitTreeWithDate(lastCommitID, doer, doer, treeHash, commitMessage, false, now, now)
+	commitOpts := &files_service.CommitTreeUserOptions{
+		ParentCommitID: lastCommitID,
+		TreeHash:       treeHash,
+		CommitMessage:  commitMessage,
+		DoerUser:       doer,
+	}
+	commitHash, err := t.CommitTree(commitOpts)
 	if err != nil {
 		return err
 	}

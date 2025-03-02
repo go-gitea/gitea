@@ -30,7 +30,7 @@ func ParseSizeAndClass(defaultSize int, defaultClass string, others ...any) (int
 	return size, class
 }
 
-func HTMLFormat(s string, rawArgs ...any) template.HTML {
+func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
 	args := slices.Clone(rawArgs)
 	for i, v := range args {
 		switch v := v.(type) {
@@ -44,5 +44,5 @@ func HTMLFormat(s string, rawArgs ...any) template.HTML {
 			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
 		}
 	}
-	return template.HTML(fmt.Sprintf(s, args...))
+	return template.HTML(fmt.Sprintf(string(s), args...))
 }

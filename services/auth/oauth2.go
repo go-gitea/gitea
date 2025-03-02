@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/oauth2_provider"
 )
@@ -162,8 +161,9 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 // Returns nil if verification fails.
 func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	// These paths are not API paths, but we still want to check for tokens because they maybe in the API returned URLs
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) &&
-		!isGitRawOrAttachPath(req) && !isArchivePath(req) {
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isAttachmentDownload() && !detector.isAuthenticatedTokenRequest() &&
+		!detector.isGitRawOrAttachPath() && !detector.isArchivePath() {
 		return nil, nil
 	}
 
@@ -189,14 +189,4 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 
 	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
 	return user, nil
-}
-
-func isAuthenticatedTokenRequest(req *http.Request) bool {
-	switch req.URL.Path {
-	case "/login/oauth/userinfo":
-		fallthrough
-	case "/login/oauth/introspect":
-		return true
-	}
-	return false
 }

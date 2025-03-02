@@ -17,7 +17,7 @@ type GenerateTokenRequest struct {
 func GenerateActionsRunnerToken(ctx context.Context, scope string) (*ResponseText, ResponseExtra) {
 	reqURL := setting.LocalURL + "api/internal/actions/generate_actions_runner_token"
 
-	req := newInternalRequest(ctx, reqURL, "POST", GenerateTokenRequest{
+	req := newInternalRequestAPI(ctx, reqURL, "POST", GenerateTokenRequest{
 		Scope: scope,
 	})
 

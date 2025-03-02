@@ -28,10 +28,15 @@ type PullRequestsOptions struct {
 	Labels      []int64
 	MilestoneID int64
 	PosterID    int64
+	BaseBranch  string
 }
 
 func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
 	sess := db.GetEngine(ctx).Where("pull_request.base_repo_id=?", baseRepoID)
+
+	if opts.BaseBranch != "" {
+		sess.And("pull_request.base_branch=?", opts.BaseBranch)
+	}
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
 	switch opts.State {
@@ -164,6 +169,23 @@ func (prs PullRequestList) getRepositoryIDs() []int64 {
 		}
 	}
 	return repoIDs.Values()
+}
+
+func (prs PullRequestList) SetBaseRepo(baseRepo *repo_model.Repository) {
+	for _, pr := range prs {
+		if pr.BaseRepo == nil {
+			pr.BaseRepo = baseRepo
+		}
+	}
+}
+
+func (prs PullRequestList) SetHeadRepo(headRepo *repo_model.Repository) {
+	for _, pr := range prs {
+		if pr.HeadRepo == nil {
+			pr.HeadRepo = headRepo
+			pr.isHeadRepoLoaded = true
+		}
+	}
 }
 
 func (prs PullRequestList) LoadRepositories(ctx context.Context) error {

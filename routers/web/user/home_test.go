@@ -45,7 +45,7 @@ func TestArchivedIssues(t *testing.T) {
 	Issues(ctx)
 
 	// Assert: One Issue (ID 30) from one Repo (ID 50) is retrieved, while nothing from archived Repo 51 is retrieved
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 
 	assert.Len(t, ctx.Data["Issues"], 1)
 }
@@ -58,7 +58,7 @@ func TestIssues(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "closed")
 	Issues(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.Len(t, ctx.Data["Issues"], 1)
@@ -72,7 +72,7 @@ func TestPulls(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	ctx.Req.Form.Set("state", "open")
 	Pulls(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 
 	assert.Len(t, ctx.Data["Issues"], 5)
 }
@@ -87,7 +87,7 @@ func TestMilestones(t *testing.T) {
 	ctx.Req.Form.Set("state", "closed")
 	ctx.Req.Form.Set("sort", "furthestduedate")
 	Milestones(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
@@ -107,7 +107,7 @@ func TestMilestonesForSpecificRepo(t *testing.T) {
 	ctx.Req.Form.Set("state", "closed")
 	ctx.Req.Form.Set("sort", "furthestduedate")
 	Milestones(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])

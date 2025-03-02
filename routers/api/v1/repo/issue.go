@@ -132,7 +132,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
+		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	}
 
@@ -170,9 +170,9 @@ func SearchIssues(ctx *context.APIContext) {
 			owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
-					ctx.Error(http.StatusBadRequest, "Owner not found", err)
+					ctx.APIError(http.StatusBadRequest, err)
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+					ctx.APIErrorInternal(err)
 				}
 				return
 			}
@@ -183,15 +183,15 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		if ctx.FormString("team") != "" {
 			if ctx.FormString("owner") == "" {
-				ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
+				ctx.APIError(http.StatusBadRequest, "Owner organisation is required for filtering on team")
 				return
 			}
 			team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.Error(http.StatusBadRequest, "Team not found", err)
+					ctx.APIError(http.StatusBadRequest, err)
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+					ctx.APIErrorInternal(err)
 				}
 				return
 			}
@@ -204,7 +204,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		if len(repoIDs) == 0 {
@@ -237,7 +237,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		includedAnyLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetLabelIDsByNames", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -251,7 +251,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		includedMilestones, err = issues_model.GetMilestoneIDsByNames(ctx, includedMilestoneNames)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetMilestoneIDsByNames", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -312,12 +312,12 @@ func SearchIssues(ctx *context.APIContext) {
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchIssues", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -405,7 +405,7 @@ func ListIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
+		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	}
 
@@ -428,7 +428,7 @@ func ListIssues(ctx *context.APIContext) {
 	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
 		labelIDs, err = issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, splitted)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -444,7 +444,7 @@ func ListIssues(ctx *context.APIContext) {
 				continue
 			}
 			if !issues_model.IsErrMilestoneNotExist(err) {
-				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoIDANDName", err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			id, err := strconv.ParseInt(part[i], 10, 64)
@@ -459,7 +459,7 @@ func ListIssues(ctx *context.APIContext) {
 			if issues_model.IsErrMilestoneNotExist(err) {
 				continue
 			}
-			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
+			ctx.APIErrorInternal(err)
 		}
 	}
 
@@ -474,7 +474,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	if isPull.Has() && !ctx.Repo.CanReadIssuesOrPulls(isPull.Value()) {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -482,7 +482,7 @@ func ListIssues(ctx *context.APIContext) {
 		canReadIssues := ctx.Repo.CanRead(unit.TypeIssues)
 		canReadPulls := ctx.Repo.CanRead(unit.TypePullRequests)
 		if !canReadIssues && !canReadPulls {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 			return
 		} else if !canReadIssues {
 			isPull = optional.Some(true)
@@ -549,12 +549,12 @@ func ListIssues(ctx *context.APIContext) {
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchIssues", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -571,12 +571,12 @@ func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
 
 	user, err := user_model.GetUserByName(ctx, userName)
 	if user_model.IsErrUserNotExist(err) {
-		ctx.NotFound(err)
+		ctx.APIErrorNotFound(err)
 		return 0
 	}
 
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return 0
 	}
 
@@ -616,14 +616,14 @@ func GetIssue(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 	if !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(ctx, ctx.Doer, issue))
@@ -691,9 +691,9 @@ func CreateIssue(ctx *context.APIContext) {
 		assigneeIDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
-				ctx.Error(http.StatusInternalServerError, "AddAssigneeByName", err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -702,17 +702,17 @@ func CreateIssue(ctx *context.APIContext) {
 		for _, aID := range assigneeIDs {
 			assignee, err := user_model.GetUserByID(ctx, aID)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 
 			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository, false)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "canBeAssigned", err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			if !valid {
-				ctx.Error(http.StatusUnprocessableEntity, "canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name})
+				ctx.APIError(http.StatusUnprocessableEntity, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name})
 				return
 			}
 		}
@@ -723,11 +723,11 @@ func CreateIssue(ctx *context.APIContext) {
 
 	if err := issue_service.NewIssue(ctx, ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs, 0); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.Error(http.StatusForbidden, "NewIssue", err)
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "NewIssue", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -735,10 +735,10 @@ func CreateIssue(ctx *context.APIContext) {
 	if form.Closed {
 		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue because it still has open dependencies")
 				return
 			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -746,7 +746,7 @@ func CreateIssue(ctx *context.APIContext) {
 	// Refetch from database to assign some automatic values
 	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
@@ -796,9 +796,9 @@ func EditIssue(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -807,7 +807,7 @@ func EditIssue(ctx *context.APIContext) {
 
 	err = issue.LoadAttributes(ctx)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -819,7 +819,7 @@ func EditIssue(ctx *context.APIContext) {
 	if len(form.Title) > 0 {
 		err = issue_service.ChangeTitle(ctx, issue, ctx.Doer, form.Title)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "ChangeTitle", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -827,18 +827,18 @@ func EditIssue(ctx *context.APIContext) {
 		err = issue_service.ChangeContent(ctx, issue, ctx.Doer, *form.Body, issue.ContentVersion)
 		if err != nil {
 			if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {
-				ctx.Error(http.StatusBadRequest, "ChangeContent", err)
+				ctx.APIError(http.StatusBadRequest, err)
 				return
 			}
 
-			ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
 	if form.Ref != nil {
 		err = issue_service.ChangeIssueRef(ctx, issue, ctx.Doer, *form.Ref)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "UpdateRef", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -849,7 +849,7 @@ func EditIssue(ctx *context.APIContext) {
 
 		if form.RemoveDeadline == nil || !*form.RemoveDeadline {
 			if form.Deadline == nil {
-				ctx.Error(http.StatusBadRequest, "", "The due_date cannot be empty")
+				ctx.APIError(http.StatusBadRequest, "The due_date cannot be empty")
 				return
 			}
 			if !form.Deadline.IsZero() {
@@ -860,7 +860,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 
 		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-			ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		issue.DeadlineUnix = deadlineUnix
@@ -883,9 +883,9 @@ func EditIssue(ctx *context.APIContext) {
 		err = issue_service.UpdateAssignees(ctx, issue, oneAssignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.Error(http.StatusForbidden, "UpdateAssignees", err)
+				ctx.APIError(http.StatusForbidden, err)
 			} else {
-				ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
+				ctx.APIErrorInternal(err)
 			}
 			return
 		}
@@ -896,18 +896,18 @@ func EditIssue(ctx *context.APIContext) {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
 		if err = issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
-			ctx.Error(http.StatusInternalServerError, "ChangeMilestoneAssign", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
 	if form.State != nil {
 		if issue.IsPull {
 			if err := issue.LoadPullRequest(ctx); err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			if issue.PullRequest.HasMerged {
-				ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
+				ctx.APIError(http.StatusPreconditionFailed, "cannot change state of this pull request, it was already merged")
 				return
 			}
 		}
@@ -922,11 +922,11 @@ func EditIssue(ctx *context.APIContext) {
 	// Refetch from database to assign some automatic values
 	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = issue.LoadMilestone(ctx); err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, issue))
@@ -963,15 +963,15 @@ func DeleteIssue(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound(err)
+			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err = issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteIssueByID", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -1019,21 +1019,21 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Error(http.StatusForbidden, "", "Not repo writer")
+		ctx.APIError(http.StatusForbidden, "Not repo writer")
 		return
 	}
 
 	deadlineUnix, _ := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
 	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -1042,22 +1042,22 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 
 func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {
 	if state != api.StateOpen && state != api.StateClosed {
-		ctx.Error(http.StatusPreconditionFailed, "UnknownIssueStateError", fmt.Sprintf("unknown state: %s", state))
+		ctx.APIError(http.StatusPreconditionFailed, fmt.Sprintf("unknown state: %s", state))
 		return
 	}
 
 	if state == api.StateClosed && !issue.IsClosed {
 		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue or pull request because it still has open dependencies")
+				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue or pull request because it still has open dependencies")
 				return
 			}
-			ctx.Error(http.StatusInternalServerError, "CloseIssue", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	} else if state == api.StateOpen && issue.IsClosed {
 		if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
-			ctx.Error(http.StatusInternalServerError, "ReopenIssue", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}

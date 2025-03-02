@@ -11,7 +11,7 @@ import (
 )
 
 func TestReadingBlameOutput(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {

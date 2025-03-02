@@ -45,9 +45,9 @@ func CompareDiff(ctx *context.APIContext) {
 
 	if ctx.Repo.GitRepo == nil {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx, ctx.Repo.Repository)
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -82,7 +82,7 @@ func CompareDiff(ctx *context.APIContext) {
 				Files:        files,
 			})
 		if err != nil {
-			ctx.ServerError("toCommit", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		apiCommits = append(apiCommits, apiCommit)

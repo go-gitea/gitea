@@ -4,13 +4,13 @@
 package git
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCommitsCount(t *testing.T) {
@@ -91,9 +91,7 @@ empty commit`
 
 	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
-	if !assert.NotNil(t, commitFromReader) {
-		return
-	}
+	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
 	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
 
@@ -159,9 +157,7 @@ ISO-8859-1`
 
 	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
-	if !assert.NotNil(t, commitFromReader) {
-		return
-	}
+	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
 	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
 
@@ -350,7 +346,7 @@ func TestGetCommitFileStatusMerges(t *testing.T) {
 
 func Test_GetCommitBranchStart(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(context.Background(), bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 	commit, err := repo.GetBranchCommit("branch1")
@@ -360,5 +356,5 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	startCommitID, err := repo.GetCommitBranchStart(os.Environ(), "branch1", commit.ID.String())
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
-	assert.EqualValues(t, "9c9aef8dd84e02bc7ec12641deb4c930a7c30185", startCommitID)
+	assert.EqualValues(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
 }

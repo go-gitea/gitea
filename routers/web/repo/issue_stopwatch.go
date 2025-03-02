@@ -26,7 +26,7 @@ func IssueStopwatch(c *context.Context) {
 	}
 
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound("CanUseTimetracker", nil)
+		c.NotFound(nil)
 		return
 	}
 
@@ -49,7 +49,7 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 	if !c.Repo.CanUseTimetracker(c, issue, c.Doer) {
-		c.NotFound("CanUseTimetracker", nil)
+		c.NotFound(nil)
 		return
 	}
 

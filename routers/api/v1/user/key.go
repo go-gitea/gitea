@@ -81,7 +81,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	}
 
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListPublicKeys", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -182,9 +182,9 @@ func GetPublicKey(ctx *context.APIContext) {
 	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPublicKeyByID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -200,7 +200,7 @@ func GetPublicKey(ctx *context.APIContext) {
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 		return
 	}
 
@@ -270,7 +270,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
 		return
 	}
 
@@ -278,23 +278,23 @@ func DeletePublicKey(ctx *context.APIContext) {
 	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if externallyManaged {
-		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
+		ctx.APIError(http.StatusForbidden, "SSH Key is externally managed for this user")
 		return
 	}
 
 	if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, id); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
-			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
+			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeletePublicKey", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

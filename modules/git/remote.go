@@ -39,7 +39,7 @@ func GetRemoteURL(ctx context.Context, repoPath, remoteName string) (*giturl.Git
 	if err != nil {
 		return nil, err
 	}
-	return giturl.Parse(addr)
+	return giturl.ParseGitURL(addr)
 }
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
@@ -77,6 +77,15 @@ func (err *ErrInvalidCloneAddr) Error() string {
 
 func (err *ErrInvalidCloneAddr) Unwrap() error {
 	return util.ErrInvalidArgument
+}
+
+// IsRemoteNotExistError checks the prefix of the error message to see whether a remote does not exist.
+func IsRemoteNotExistError(err error) bool {
+	// see: https://github.com/go-gitea/gitea/issues/32889#issuecomment-2571848216
+	// Should not add space in the end, sometimes git will add a `:`
+	prefix1 := "exit status 128 - fatal: No such remote" // git < 2.30
+	prefix2 := "exit status 2 - error: No such remote"   // git >= 2.30
+	return strings.HasPrefix(err.Error(), prefix1) || strings.HasPrefix(err.Error(), prefix2)
 }
 
 // ParseRemoteAddr checks if given remote address is valid,

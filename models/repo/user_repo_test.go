@@ -12,6 +12,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepoAssignees(t *testing.T) {
@@ -37,4 +38,20 @@ func TestRepoAssignees(t *testing.T) {
 	if assert.Len(t, users, 3) {
 		assert.NotContains(t, []int64{users[0].ID, users[1].ID, users[2].ID}, 15)
 	}
+}
+
+func TestGetIssuePostersWithSearch(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+
+	users, err := repo_model.GetIssuePostersWithSearch(db.DefaultContext, repo2, false, "USER", false /* full name */)
+	require.NoError(t, err)
+	require.Len(t, users, 1)
+	assert.Equal(t, "user2", users[0].Name)
+
+	users, err = repo_model.GetIssuePostersWithSearch(db.DefaultContext, repo2, false, "TW%O", true /* full name */)
+	require.NoError(t, err)
+	require.Len(t, users, 1)
+	assert.Equal(t, "user2", users[0].Name)
 }

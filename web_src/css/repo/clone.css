@@ -20,10 +20,12 @@
 .clone-panel-tab .item {
   padding: 5px 10px;
   background: none;
+  color: var(--color-text-light-2);
 }
 
 .clone-panel-tab .item.active {
-  border-bottom: 3px solid var(--color-secondary);
+  color: var(--color-text-dark);
+  border-bottom: 3px solid currentcolor;
 }
 
 .clone-panel-tab + .divider {

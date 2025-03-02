@@ -240,7 +240,7 @@ func processImageManifestIndex(ctx context.Context, mci *manifestCreationInfo, b
 				IsManifest: true,
 			})
 			if err != nil {
-				if err == container_model.ErrContainerBlobNotExist {
+				if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 					return errManifestBlobUnknown
 				}
 				return err
@@ -321,12 +321,11 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	}
 	var err error
 	if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-		if err == packages_model.ErrDuplicatePackage {
-			created = false
-		} else {
+		if !errors.Is(err, packages_model.ErrDuplicatePackage) {
 			log.Error("Error inserting package: %v", err)
 			return nil, err
 		}
+		created = false
 	}
 
 	if created {
@@ -352,21 +351,23 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	}
 	var pv *packages_model.PackageVersion
 	if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
-			if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-				return nil, err
-			}
+		if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
+			log.Error("Error inserting package: %v", err)
+			return nil, err
+		}
 
-			// keep download count on overwrite
-			_pv.DownloadCount = pv.DownloadCount
+		if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
+			return nil, err
+		}
 
-			if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
+		// keep download count on overwrite
+		_pv.DownloadCount = pv.DownloadCount
+
+		if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
+			if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
 				log.Error("Error inserting package: %v", err)
 				return nil, err
 			}
-		} else {
-			log.Error("Error inserting package: %v", err)
-			return nil, err
 		}
 	}
 
@@ -417,7 +418,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 	var err error
 	if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
-		if err == packages_model.ErrDuplicatePackageFile {
+		if errors.Is(err, packages_model.ErrDuplicatePackageFile) {
 			// Skip this blob because the manifest contains the same filesystem layer multiple times.
 			return nil
 		}

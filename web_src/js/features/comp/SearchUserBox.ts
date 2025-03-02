@@ -14,7 +14,7 @@ export function initCompSearchUserBox() {
     minCharacters: 2,
     apiSettings: {
       url: `${appSubUrl}/user/search_candidates?q={query}`,
-      onResponse(response) {
+      onResponse(response: any) {
         const resultItems = [];
         const searchQuery = searchUserBox.querySelector('input').value;
         const searchQueryUppercase = searchQuery.toUpperCase();

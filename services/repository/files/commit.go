@@ -6,10 +6,10 @@ package files
 import (
 	"context"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/structs"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 // CountDivergingCommits determines how many commits a branch is ahead or behind the repository's base branch
@@ -24,7 +24,7 @@ func CountDivergingCommits(ctx context.Context, repo *repo_model.Repository, bra
 // GetPayloadCommitVerification returns the verification information of a commit
 func GetPayloadCommitVerification(ctx context.Context, commit *git.Commit) *structs.PayloadCommitVerification {
 	verification := &structs.PayloadCommitVerification{}
-	commitVerification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+	commitVerification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 	if commit.Signature != nil {
 		verification.Signature = commit.Signature.Signature
 		verification.Payload = commit.Signature.Payload

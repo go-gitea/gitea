@@ -469,7 +469,7 @@ func (a *actionNotifier) NewRelease(ctx context.Context, rel *repo_model.Release
 		Repo:      rel.Repo,
 		IsPrivate: rel.Repo.IsPrivate,
 		Content:   rel.Title,
-		RefName:   rel.TagName, // FIXME: use a full ref name?
+		RefName:   git.RefNameFromTag(rel.TagName).String(), // Other functions in this file all use "refFullName.String()"
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}

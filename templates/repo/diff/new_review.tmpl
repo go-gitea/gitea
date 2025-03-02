@@ -1,56 +1,59 @@
-<div id="review-box">
-	<button class="ui tiny primary button tw-pr-1 tw-flex js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}" {{if not $.IsShowingAllCommits}}data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}>
+<div id="review-box" {{if $.Repository.IsArchived}}data-tooltip-content="{{ctx.Locale.Tr "repo.archive.pull.nocomment"}}"{{end}}>
+	<button class="ui tiny primary button tw-pr-1 js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}"
+		{{if not $.IsShowingAllCommits}}data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}
+		{{if $.Repository.IsArchived}}disabled{{end}}
+	>
 		{{ctx.Locale.Tr "repo.diff.review"}}
 		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
-	{{if $.IsShowingAllCommits}}
-	<div class="review-box-panel tippy-target">
-		<div class="ui segment">
-			<form class="ui form form-fetch-action" action="{{.Link}}/reviews/submit" method="post">
-				{{.CsrfTokenHtml}}
-				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
-				<div class="field tw-flex tw-items-center">
-					<div class="tw-flex-1">{{ctx.Locale.Tr "repo.diff.review.header"}}</div>
-					<a class="muted close">{{svg "octicon-x" 16}}</a>
-				</div>
-				<div class="field">
-					{{template "shared/combomarkdowneditor" (dict
-						"MarkdownPreviewInRepo" $.Repository
-						"MarkdownPreviewMode" "comment"
-						"TextareaName" "content"
-						"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.review.placeholder")
-						"DropzoneParentContainer" "form"
-					)}}
-				</div>
-				{{if .IsAttachmentEnabled}}
-					<div class="field">
-						{{template "repo/upload" .}}
-					</div>
-				{{end}}
-				<div class="divider"></div>
-				{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
-				{{if not $.Issue.IsClosed}}
-					{{if $showSelfTooltip}}
-						<span class="tw-inline-block" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_approve"}}">
-							<button type="submit" name="type" value="approve" disabled class="ui submit primary tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.approve"}}</button>
-						</span>
-					{{else}}
-						<button type="submit" name="type" value="approve" class="ui submit primary tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.approve"}}</button>
-					{{end}}
-				{{end}}
-				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{ctx.Locale.Tr "repo.diff.review.comment"}}</button>
-				{{if not $.Issue.IsClosed}}
-					{{if $showSelfTooltip}}
-						<span class="tw-inline-block" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_reject"}}">
-							<button type="submit" name="type" value="reject" disabled class="ui submit red tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.reject"}}</button>
-						</span>
-					{{else}}
-						<button type="submit" name="type" value="reject" class="ui submit red tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.reject"}}</button>
-					{{end}}
-				{{end}}
-			</form>
-		</div>
-	</div>
-	{{end}}
 </div>
+{{if $.IsShowingAllCommits}}
+<div class="review-box-panel tippy-target">
+	<div class="ui segment">
+		<form class="ui form form-fetch-action" action="{{.Link}}/reviews/submit" method="post">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
+			<div class="field tw-flex tw-items-center">
+				<div class="tw-flex-1">{{ctx.Locale.Tr "repo.diff.review.header"}}</div>
+				<a class="muted close">{{svg "octicon-x" 16}}</a>
+			</div>
+			<div class="field">
+				{{template "shared/combomarkdowneditor" (dict
+					"MarkdownPreviewInRepo" $.Repository
+					"MarkdownPreviewMode" "comment"
+					"TextareaName" "content"
+					"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.review.placeholder")
+					"DropzoneParentContainer" "form"
+				)}}
+			</div>
+			{{if .IsAttachmentEnabled}}
+				<div class="field">
+					{{template "repo/upload" .}}
+				</div>
+			{{end}}
+			<div class="divider"></div>
+			{{$showSelfTooltip := (and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID))}}
+			{{if not $.Issue.IsClosed}}
+				{{if $showSelfTooltip}}
+					<span class="tw-inline-block" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_approve"}}">
+						<button type="submit" name="type" value="approve" disabled class="ui submit primary tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.approve"}}</button>
+					</span>
+				{{else}}
+					<button type="submit" name="type" value="approve" class="ui submit primary tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.approve"}}</button>
+				{{end}}
+			{{end}}
+			<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{ctx.Locale.Tr "repo.diff.review.comment"}}</button>
+			{{if not $.Issue.IsClosed}}
+				{{if $showSelfTooltip}}
+					<span class="tw-inline-block" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.review.self_reject"}}">
+						<button type="submit" name="type" value="reject" disabled class="ui submit red tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.reject"}}</button>
+					</span>
+				{{else}}
+					<button type="submit" name="type" value="reject" class="ui submit red tiny button btn-submit">{{ctx.Locale.Tr "repo.diff.review.reject"}}</button>
+				{{end}}
+			{{end}}
+		</form>
+	</div>
+</div>
+{{end}}

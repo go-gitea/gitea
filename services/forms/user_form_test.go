@@ -4,10 +4,8 @@
 package forms
 
 import (
-	"strconv"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/gobwas/glob"
@@ -102,30 +100,5 @@ func TestRegisterForm_IsDomainAllowed_BlockedEmail(t *testing.T) {
 		form := RegisterForm{Email: v.email}
 
 		assert.Equal(t, v.valid, form.IsEmailDomainAllowed())
-	}
-}
-
-func TestNewAccessTokenForm_GetScope(t *testing.T) {
-	tests := []struct {
-		form        NewAccessTokenForm
-		scope       auth_model.AccessTokenScope
-		expectedErr error
-	}{
-		{
-			form:  NewAccessTokenForm{Name: "test", Scope: []string{"read:repository"}},
-			scope: "read:repository",
-		},
-		{
-			form:  NewAccessTokenForm{Name: "test", Scope: []string{"read:repository", "write:user"}},
-			scope: "read:repository,write:user",
-		},
-	}
-
-	for i, test := range tests {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			scope, err := test.form.GetScope()
-			assert.Equal(t, test.expectedErr, err)
-			assert.Equal(t, test.scope, scope)
-		})
 	}
 }

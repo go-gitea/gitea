@@ -5,6 +5,10 @@ const data = {
 	isMirrorsEnabled: {{.MirrorsEnabled}},
 	isStarsEnabled: {{not .IsDisableStars}},
 
+	canCreateMigrations: {{not .DisableMigrations}},
+
+	textNoOrg: {{ctx.Locale.Tr "home.empty_org"}},
+	textNoRepo: {{ctx.Locale.Tr "home.empty_repo"}},
 	textRepository: {{ctx.Locale.Tr "repository"}},
 	textOrganization: {{ctx.Locale.Tr "organization"}},
 	textMyRepos: {{ctx.Locale.Tr "home.my_repos"}},

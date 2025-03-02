@@ -37,7 +37,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 
 	if forkRepo.IsEmpty {
 		log.Trace("Empty repository %-v", forkRepo)
-		ctx.NotFound("getForkRepository", nil)
+		ctx.NotFound(nil)
 		return nil
 	}
 
@@ -189,7 +189,7 @@ func ForkPost(ctx *context.Context) {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return
 		} else if !isAllowedToFork {
-			ctx.Error(http.StatusForbidden)
+			ctx.HTTPError(http.StatusForbidden)
 			return
 		}
 	}

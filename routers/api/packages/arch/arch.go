@@ -62,7 +62,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	pck, err := arch_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) || err == io.EOF {
+		if errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, io.EOF) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)

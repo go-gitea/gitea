@@ -165,6 +165,7 @@ func NewMainApp(appVer AppVersion) *cli.App {
 	app.Commands = append(app.Commands, subCmdWithConfig...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
 
+	setting.InitGiteaEnvVars()
 	return app
 }
 

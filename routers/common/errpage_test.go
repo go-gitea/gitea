@@ -4,7 +4,6 @@
 package common
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -21,7 +20,7 @@ import (
 func TestRenderPanicErrorPage(t *testing.T) {
 	w := httptest.NewRecorder()
 	req := &http.Request{URL: &url.URL{}}
-	req = req.WithContext(reqctx.NewRequestContextForTest(context.Background()))
+	req = req.WithContext(reqctx.NewRequestContextForTest(t.Context()))
 	RenderPanicErrorPage(w, req, errors.New("fake panic error (for test only)"))
 	respContent := w.Body.String()
 	assert.Contains(t, respContent, `class="page-content status-page-500"`)

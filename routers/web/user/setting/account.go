@@ -37,7 +37,7 @@ const (
 // Account renders change user's password, user's email and user suicide page
 func Account(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials, setting.UserFeatureDeletion) && !setting.Service.EnableNotifyMail {
-		ctx.NotFound("Not Found", fmt.Errorf("account setting are not allowed to be changed"))
+		ctx.NotFound(fmt.Errorf("account setting are not allowed to be changed"))
 		return
 	}
 
@@ -54,7 +54,7 @@ func Account(ctx *context.Context) {
 // AccountPost response for change user's password
 func AccountPost(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.NotFound("Not Found", fmt.Errorf("password setting is not allowed to be changed"))
+		ctx.NotFound(fmt.Errorf("password setting is not allowed to be changed"))
 		return
 	}
 
@@ -105,7 +105,7 @@ func AccountPost(ctx *context.Context) {
 // EmailPost response for change user's email
 func EmailPost(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.NotFound("Not Found", fmt.Errorf("emails are not allowed to be changed"))
+		ctx.NotFound(fmt.Errorf("emails are not allowed to be changed"))
 		return
 	}
 
@@ -239,7 +239,7 @@ func EmailPost(ctx *context.Context) {
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.NotFound("Not Found", fmt.Errorf("emails are not allowed to be changed"))
+		ctx.NotFound(fmt.Errorf("emails are not allowed to be changed"))
 		return
 	}
 	email, err := user_model.GetEmailAddressByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
@@ -261,7 +261,7 @@ func DeleteEmail(ctx *context.Context) {
 // DeleteAccount render user suicide page and response for delete user himself
 func DeleteAccount(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureDeletion) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 

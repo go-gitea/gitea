@@ -36,7 +36,7 @@ const (
 // MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
 	if unit.TypeProjects.UnitGlobalDisabled() {
-		ctx.NotFound("EnableProjects", nil)
+		ctx.NotFound(nil)
 		return
 	}
 }
@@ -74,6 +74,11 @@ func Projects(ctx *context.Context) {
 	})
 	if err != nil {
 		ctx.ServerError("FindProjects", err)
+		return
+	}
+
+	if err := project_service.LoadIssueNumbersForProjects(ctx, projects, ctx.Doer); err != nil {
+		ctx.ServerError("LoadIssueNumbersForProjects", err)
 		return
 	}
 
@@ -120,7 +125,7 @@ func Projects(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
-	pager.AddParamString("state", fmt.Sprint(ctx.Data["State"]))
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
@@ -211,7 +216,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
 		return
 	}
-	ctx.JSONRedirect(fmt.Sprintf("%s/-/projects/%d", ctx.ContextUser.HomeLink(), id))
+	ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.ContextUser, id))
 }
 
 // DeleteProject delete a project
@@ -222,7 +227,7 @@ func DeleteProject(ctx *context.Context) {
 		return
 	}
 	if p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -251,7 +256,7 @@ func RenderEditProject(ctx *context.Context) {
 		return
 	}
 	if p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -261,7 +266,7 @@ func RenderEditProject(ctx *context.Context) {
 	ctx.Data["redirect"] = ctx.FormString("redirect")
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["card_type"] = p.CardType
-	ctx.Data["CancelLink"] = fmt.Sprintf("%s/-/projects/%d", ctx.ContextUser.HomeLink(), p.ID)
+	ctx.Data["CancelLink"] = project_model.ProjectLinkForOrg(ctx.ContextUser, p.ID)
 
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
@@ -275,7 +280,7 @@ func EditProjectPost(ctx *context.Context) {
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
-	ctx.Data["CancelLink"] = fmt.Sprintf("%s/-/projects/%d", ctx.ContextUser.HomeLink(), projectID)
+	ctx.Data["CancelLink"] = project_model.ProjectLinkForOrg(ctx.ContextUser, projectID)
 
 	shared_user.RenderUserHeader(ctx)
 
@@ -296,7 +301,7 @@ func EditProjectPost(ctx *context.Context) {
 		return
 	}
 	if p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -324,7 +329,11 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 	if project.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
+		return
+	}
+	if err := project.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
 		return
 	}
 
@@ -340,13 +349,20 @@ func ViewProject(ctx *context.Context) {
 	}
 	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
 
-	issuesMap, err := issues_model.LoadIssuesFromColumnList(ctx, columns, &issues_model.IssuesOptions{
+	opts := issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
 		AssigneeID: optional.Some(assigneeID),
-	})
+		Owner:      project.Owner,
+		Doer:       ctx.Doer,
+	}
+
+	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &opts)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)
 		return
+	}
+	for _, column := range columns {
+		column.NumIssues = int64(len(issuesMap[column.ID]))
 	}
 
 	if project.CardType != project_model.CardTypeTextOnly {
@@ -593,7 +609,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 	if project.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound("InvalidRepoID", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -604,7 +620,7 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	if column.ProjectID != project.ID {
-		ctx.NotFound("ColumnNotInProject", nil)
+		ctx.NotFound(nil)
 		return
 	}
 

@@ -56,16 +56,11 @@ func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
 	if err != nil {
 		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
 	}
-	nameExts := strings.SplitN(parts[2], ".", 2)
-	if len(nameExts) != 2 {
+	commitID, archiveType := git.SplitArchiveNameType(parts[2])
+	if archiveType == git.ArchiveUnknown {
 		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
 	}
-
-	return &RepoArchiver{
-		RepoID:   repoID,
-		CommitID: parts[1] + nameExts[0],
-		Type:     git.ToArchiveType(nameExts[1]),
-	}, nil
+	return &RepoArchiver{RepoID: repoID, CommitID: commitID, Type: archiveType}, nil
 }
 
 // GetRepoArchiver get an archiver

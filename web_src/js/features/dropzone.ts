@@ -6,16 +6,18 @@ import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
-import type {DropzoneFile} from 'dropzone/index.js';
+import type {DropzoneFile, DropzoneOptions} from 'dropzone/index.js';
 
 const {csrfToken, i18n} = window.config;
+
+type CustomDropzoneFile = DropzoneFile & {uuid: string};
 
 // dropzone has its owner event dispatcher (emitter)
 export const DropzoneCustomEventReloadFiles = 'dropzone-custom-reload-files';
 export const DropzoneCustomEventRemovedFile = 'dropzone-custom-removed-file';
 export const DropzoneCustomEventUploadDone = 'dropzone-custom-upload-done';
 
-async function createDropzone(el, opts) {
+async function createDropzone(el: HTMLElement, opts: DropzoneOptions) {
   const [{default: Dropzone}] = await Promise.all([
     import(/* webpackChunkName: "dropzone" */'dropzone'),
     import(/* webpackChunkName: "dropzone" */'dropzone/dist/dropzone.css'),
@@ -23,7 +25,7 @@ async function createDropzone(el, opts) {
   return new Dropzone(el, opts);
 }
 
-export function generateMarkdownLinkForAttachment(file, {width, dppx}: {width?: number, dppx?: number} = {}) {
+export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFile>, {width, dppx}: {width?: number, dppx?: number} = {}) {
   let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
   if (isImageFile(file)) {
     fileMarkdown = `!${fileMarkdown}`;
@@ -43,7 +45,7 @@ export function generateMarkdownLinkForAttachment(file, {width, dppx}: {width?: 
   return fileMarkdown;
 }
 
-function addCopyLink(file) {
+function addCopyLink(file: Partial<CustomDropzoneFile>) {
   // Create a "Copy Link" element, to conveniently copy the image or file link as Markdown to the clipboard
   // The "<a>" element has a hardcoded cursor: pointer because the default is overridden by .dropzone
   const copyLinkEl = createElementFromHTML(`
@@ -58,6 +60,8 @@ function addCopyLink(file) {
   file.previewTemplate.append(copyLinkEl);
 }
 
+type FileUuidDict = Record<string, {submitted: boolean}>;
+
 /**
  * @param {HTMLElement} dropzoneEl
  */
@@ -67,7 +71,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   const attachmentBaseLinkUrl = dropzoneEl.getAttribute('data-link-url');
 
   let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
-  let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
+  let fileUuidDict: FileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
   const opts: Record<string, any> = {
     url: dropzoneEl.getAttribute('data-upload-url'),
     headers: {'X-Csrf-Token': csrfToken},
@@ -89,7 +93,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   // "http://localhost:3000/owner/repo/issues/[object%20Event]"
   // the reason is that the preview "callback(dataURL)" is assign to "img.onerror" then "thumbnail" uses the error object as the dataURL and generates '<img src="[object Event]">'
   const dzInst = await createDropzone(dropzoneEl, opts);
-  dzInst.on('success', (file: DropzoneFile & {uuid: string}, resp: any) => {
+  dzInst.on('success', (file: CustomDropzoneFile, resp: any) => {
     file.uuid = resp.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
     const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});
@@ -98,7 +102,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
     dzInst.emit(DropzoneCustomEventUploadDone, {file});
   });
 
-  dzInst.on('removedfile', async (file: DropzoneFile & {uuid: string}) => {
+  dzInst.on('removedfile', async (file: CustomDropzoneFile) => {
     if (disableRemovedfileEvent) return;
 
     dzInst.emit(DropzoneCustomEventRemovedFile, {fileUuid: file.uuid});

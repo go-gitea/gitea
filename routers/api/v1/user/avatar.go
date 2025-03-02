@@ -32,13 +32,13 @@ func UpdateAvatar(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "DecodeImage", err)
+		ctx.APIError(http.StatusBadRequest, err)
 		return
 	}
 
 	err = user_service.UploadAvatar(ctx, ctx.Doer, content)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "UploadAvatar", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -57,7 +57,7 @@ func DeleteAvatar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	err := user_service.DeleteAvatar(ctx, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteAvatar", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

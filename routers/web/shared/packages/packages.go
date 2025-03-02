@@ -210,7 +210,7 @@ func getCleanupRuleByContext(ctx *context.Context, owner *user_model.User) *pack
 	pcr, err := packages_model.GetCleanupRuleByID(ctx, id)
 	if err != nil {
 		if err == packages_model.ErrPackageCleanupRuleNotExist {
-			ctx.NotFound("", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetCleanupRuleByID", err)
 		}
@@ -221,7 +221,7 @@ func getCleanupRuleByContext(ctx *context.Context, owner *user_model.User) *pack
 		return pcr
 	}
 
-	ctx.NotFound("", fmt.Errorf("PackageCleanupRule[%v] not associated to owner %v", id, owner))
+	ctx.NotFound(fmt.Errorf("PackageCleanupRule[%v] not associated to owner %v", id, owner))
 
 	return nil
 }

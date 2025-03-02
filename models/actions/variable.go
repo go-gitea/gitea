@@ -58,6 +58,7 @@ func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data strin
 
 type FindVariablesOpts struct {
 	db.ListOptions
+	IDs     []int64
 	RepoID  int64
 	OwnerID int64 // it will be ignored if RepoID is set
 	Name    string
@@ -65,6 +66,15 @@ type FindVariablesOpts struct {
 
 func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
+
+	if len(opts.IDs) > 0 {
+		if len(opts.IDs) == 1 {
+			cond = cond.And(builder.Eq{"id": opts.IDs[0]})
+		} else {
+			cond = cond.And(builder.In("id", opts.IDs))
+		}
+	}
+
 	// Since we now support instance-level variables,
 	// there is no need to check for null values for `owner_id` and `repo_id`
 	cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -85,12 +95,12 @@ func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariab
 	return db.Find[ActionVariable](ctx, opts)
 }
 
-func UpdateVariable(ctx context.Context, variable *ActionVariable) (bool, error) {
-	count, err := db.GetEngine(ctx).ID(variable.ID).Cols("name", "data").
-		Update(&ActionVariable{
-			Name: variable.Name,
-			Data: variable.Data,
-		})
+func UpdateVariableCols(ctx context.Context, variable *ActionVariable, cols ...string) (bool, error) {
+	variable.Name = strings.ToUpper(variable.Name)
+	count, err := db.GetEngine(ctx).
+		ID(variable.ID).
+		Cols(cols...).
+		Update(variable)
 	return count != 0, err
 }
 

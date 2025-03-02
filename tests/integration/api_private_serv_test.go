@@ -17,7 +17,7 @@ import (
 
 func TestAPIPrivateNoServ(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 		key, user, err := private.ServNoCommand(ctx, 1)
 		assert.NoError(t, err)
@@ -39,7 +39,7 @@ func TestAPIPrivateNoServ(t *testing.T) {
 
 func TestAPIPrivateServ(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
 
 		// Can push to a repo we own

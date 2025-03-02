@@ -45,8 +45,6 @@ func TestCreateRepositoryNotice(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, noticeBean)
 }
 
-// TODO TestRemoveAllWithNotice
-
 func TestCountNotices(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.Equal(t, int64(3), system.CountNotices(db.DefaultContext))

@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	"context"
 	"os"
 	"strings"
 	"testing"
@@ -53,7 +52,7 @@ func TestMigratePackages(t *testing.T) {
 	assert.NotNil(t, v)
 	assert.NotNil(t, f)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	p := t.TempDir()
 

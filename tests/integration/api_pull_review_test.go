@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/builder"
 )
 
@@ -39,9 +40,8 @@ func TestAPIPullReview(t *testing.T) {
 
 	var reviews []*api.PullReview
 	DecodeJSON(t, resp, &reviews)
-	if !assert.Len(t, reviews, 8) {
-		return
-	}
+	require.Len(t, reviews, 8)
+
 	for _, r := range reviews {
 		assert.EqualValues(t, pullIssue.HTMLURL(), r.HTMLPullURL)
 	}

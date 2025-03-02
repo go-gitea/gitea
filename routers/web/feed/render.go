@@ -9,7 +9,7 @@ import (
 
 // RenderBranchFeed render format for branch or file
 func RenderBranchFeed(ctx *context.Context) {
-	_, _, showFeedType := GetFeedType(ctx.PathParam("reponame"), ctx.Req)
+	_, showFeedType := GetFeedType(ctx.PathParam("reponame"), ctx.Req)
 	if ctx.Repo.TreePath == "" {
 		ShowBranchFeed(ctx, ctx.Repo.Repository, showFeedType)
 	} else {

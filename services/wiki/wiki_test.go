@@ -17,6 +17,7 @@ import (
 	_ "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -166,9 +167,8 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			assert.NoError(t, AddWikiPage(git.DefaultContext, doer, repo, webPath, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
 			gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
-			if !assert.NoError(t, err) {
-				return
-			}
+			require.NoError(t, err)
+
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
 			assert.NoError(t, err)
@@ -238,9 +238,8 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 
 	// Now need to show that the page has been added:
 	gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
+
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
 	assert.NoError(t, err)
@@ -253,9 +252,8 @@ func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
+
 	defer gitRepo.Close()
 
 	tests := []struct {
@@ -307,9 +305,8 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
+
 	defer gitRepo.Close()
 
 	existence, newWikiPath, err := prepareGitPath(gitRepo, "master", "Home")

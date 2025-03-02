@@ -140,81 +140,51 @@ func IsExist(path string) (bool, error) {
 	return false, err
 }
 
-func statDir(dirPath, recPath string, includeDir, isDirOnly, followSymlinks bool) ([]string, error) {
-	dir, err := os.Open(dirPath)
+func listDirRecursively(result *[]string, fsDir, recordParentPath string, opts *ListDirOptions) error {
+	dir, err := os.Open(fsDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer dir.Close()
 
 	fis, err := dir.Readdir(0)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	statList := make([]string, 0)
 	for _, fi := range fis {
-		if CommonSkip(fi.Name()) {
+		if opts.SkipCommonHiddenNames && IsCommonHiddenFileName(fi.Name()) {
 			continue
 		}
-
-		relPath := path.Join(recPath, fi.Name())
-		curPath := path.Join(dirPath, fi.Name())
+		relPath := path.Join(recordParentPath, fi.Name())
+		curPath := filepath.Join(fsDir, fi.Name())
 		if fi.IsDir() {
-			if includeDir {
-				statList = append(statList, relPath+"/")
+			if opts.IncludeDir {
+				*result = append(*result, relPath+"/")
 			}
-			s, err := statDir(curPath, relPath, includeDir, isDirOnly, followSymlinks)
-			if err != nil {
-				return nil, err
+			if err = listDirRecursively(result, curPath, relPath, opts); err != nil {
+				return err
 			}
-			statList = append(statList, s...)
-		} else if !isDirOnly {
-			statList = append(statList, relPath)
-		} else if followSymlinks && fi.Mode()&os.ModeSymlink != 0 {
-			link, err := os.Readlink(curPath)
-			if err != nil {
-				return nil, err
-			}
-
-			isDir, err := IsDir(link)
-			if err != nil {
-				return nil, err
-			}
-			if isDir {
-				if includeDir {
-					statList = append(statList, relPath+"/")
-				}
-				s, err := statDir(curPath, relPath, includeDir, isDirOnly, followSymlinks)
-				if err != nil {
-					return nil, err
-				}
-				statList = append(statList, s...)
-			}
+		} else {
+			*result = append(*result, relPath)
 		}
 	}
-	return statList, nil
+	return nil
 }
 
-// StatDir gathers information of given directory by depth-first.
-// It returns slice of file list and includes subdirectories if enabled;
-// it returns error and nil slice when error occurs in underlying functions,
-// or given path is not a directory or does not exist.
-//
-// Slice does not include given path itself.
-// If subdirectories is enabled, they will have suffix '/'.
-func StatDir(rootPath string, includeDir ...bool) ([]string, error) {
-	if isDir, err := IsDir(rootPath); err != nil {
-		return nil, err
-	} else if !isDir {
-		return nil, errors.New("not a directory or does not exist: " + rootPath)
-	}
+type ListDirOptions struct {
+	IncludeDir            bool // subdirectories are also included with suffix slash
+	SkipCommonHiddenNames bool
+}
 
-	isIncludeDir := false
-	if len(includeDir) != 0 {
-		isIncludeDir = includeDir[0]
+// ListDirRecursively gathers information of given directory by depth-first.
+// The paths are always in "dir/slash/file" format (not "\\" even in Windows)
+// Slice does not include given path itself.
+func ListDirRecursively(rootDir string, opts *ListDirOptions) (res []string, err error) {
+	if err = listDirRecursively(&res, rootDir, "", opts); err != nil {
+		return nil, err
 	}
-	return statDir(rootPath, "", isIncludeDir, false, false)
+	return res, nil
 }
 
 func isOSWindows() bool {
@@ -265,8 +235,8 @@ func HomeDir() (home string, err error) {
 	return home, nil
 }
 
-// CommonSkip will check a provided name to see if it represents file or directory that should not be watched
-func CommonSkip(name string) bool {
+// IsCommonHiddenFileName will check a provided name to see if it represents file or directory that should not be watched
+func IsCommonHiddenFileName(name string) bool {
 	if name == "" {
 		return true
 	}
@@ -275,9 +245,9 @@ func CommonSkip(name string) bool {
 	case '.':
 		return true
 	case 't', 'T':
-		return name[1:] == "humbs.db"
+		return name[1:] == "humbs.db" // macOS
 	case 'd', 'D':
-		return name[1:] == "esktop.ini"
+		return name[1:] == "esktop.ini" // Windows
 	}
 
 	return false

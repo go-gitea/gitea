@@ -2,7 +2,8 @@
 	{{template "shared/search/combo_fuzzy" dict "Value" .Keyword "Disabled" .CodeIndexerUnavailable "IsFuzzy" .IsFuzzy "Placeholder" (ctx.Locale.Tr "search.code_kind")}}
 </form>
 <div class="divider"></div>
-<div class="ui user list">
+<div class="ui list">
+	{{template "base/alert" .}}
 	{{if .CodeIndexerUnavailable}}
 		<div class="ui error message">
 			<p>{{ctx.Locale.Tr "search.code_search_unavailable"}}</p>

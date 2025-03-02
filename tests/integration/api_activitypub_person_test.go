@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -93,7 +92,7 @@ func TestActivityPubPersonInbox(t *testing.T) {
 			setting.AppURL = appURL
 		}()
 		username1 := "user1"
-		ctx := context.Background()
+		ctx := t.Context()
 		user1, err := user_model.GetUserByName(ctx, username1)
 		assert.NoError(t, err)
 		user1url := fmt.Sprintf("%s/api/v1/activitypub/user-id/1#main-key", srv.URL)

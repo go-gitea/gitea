@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
+	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
@@ -54,7 +55,7 @@ func logArgSanitize(arg string) string {
 	} else if filepath.IsAbs(arg) {
 		base := filepath.Base(arg)
 		dir := filepath.Dir(arg)
-		return filepath.Join(filepath.Base(dir), base)
+		return ".../" + filepath.Join(filepath.Base(dir), base)
 	}
 	return arg
 }
@@ -236,10 +237,16 @@ type RunOpts struct {
 }
 
 func commonBaseEnvs() []string {
-	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
 	envs := []string{
-		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
-		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+		// Make Gitea use internal git config only, to prevent conflicts with user's git config
+		// It's better to use GIT_CONFIG_GLOBAL, but it requires git >= 2.32, so we still use HOME at the moment.
+		"HOME=" + HomeDir(),
+		// Avoid using system git config, it would cause problems (eg: use macOS osxkeychain to show a modal dialog, auto installing lfs hooks)
+		// This might be a breaking change in 1.24, because some users said that they have put some configs like "receive.certNonceSeed" in "/etc/gitconfig"
+		// For these users, they need to migrate the necessary configs to Gitea's git config file manually.
+		"GIT_CONFIG_NOSYSTEM=1",
+		// Ignore replace references (https://git-scm.com/docs/git-replace)
+		"GIT_NO_REPLACE_OBJECTS=1",
 	}
 
 	// some environment variables should be passed to git command
@@ -289,14 +296,19 @@ func (c *Command) run(skip int, opts *RunOpts) error {
 		timeout = defaultCommandExecutionTimeout
 	}
 
-	var desc string
+	cmdLogString := c.LogString()
 	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + skip /* parent */)
 	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
 		callerInfo = callerInfo[pos+1:]
 	}
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
-	desc = fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), c.LogString())
+	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
+
+	_, span := gtprof.GetTracer().Start(c.parentContext, gtprof.TraceSpanGitRun)
+	defer span.End()
+	span.SetAttributeString(gtprof.TraceAttrFuncCaller, callerInfo)
+	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
 	var ctx context.Context
 	var cancel context.CancelFunc

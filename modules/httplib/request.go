@@ -99,10 +99,10 @@ func (r *Request) Param(key, value string) *Request {
 	return r
 }
 
-// Body adds request raw body.
-// it supports string and []byte.
+// Body adds request raw body. It supports string, []byte and io.Reader as body.
 func (r *Request) Body(data any) *Request {
 	switch t := data.(type) {
+	case nil: // do nothing
 	case string:
 		bf := bytes.NewBufferString(t)
 		r.req.Body = io.NopCloser(bf)
@@ -111,6 +111,12 @@ func (r *Request) Body(data any) *Request {
 		bf := bytes.NewBuffer(t)
 		r.req.Body = io.NopCloser(bf)
 		r.req.ContentLength = int64(len(t))
+	case io.ReadCloser:
+		r.req.Body = t
+	case io.Reader:
+		r.req.Body = io.NopCloser(t)
+	default:
+		panic(fmt.Sprintf("unsupported request body type %T", t))
 	}
 	return r
 }
@@ -141,7 +147,7 @@ func (r *Request) getResponse() (*http.Response, error) {
 		}
 	} else if r.req.Method == "POST" && r.req.Body == nil && len(paramBody) > 0 {
 		r.Header("Content-Type", "application/x-www-form-urlencoded")
-		r.Body(paramBody)
+		r.Body(paramBody) // string
 	}
 
 	var err error
@@ -185,6 +191,7 @@ func (r *Request) getResponse() (*http.Response, error) {
 }
 
 // Response executes request client gets response manually.
+// Caller MUST close the response body if no error occurs
 func (r *Request) Response() (*http.Response, error) {
 	return r.getResponse()
 }

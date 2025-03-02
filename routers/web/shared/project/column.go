@@ -17,7 +17,7 @@ func MoveColumns(ctx *context.Context) {
 		return
 	}
 	if !project.CanBeAccessedByOwnerRepo(ctx.ContextUser.ID, ctx.Repo.Repository) {
-		ctx.NotFound("CanBeAccessedByOwnerRepo", nil)
+		ctx.NotFound(nil)
 		return
 	}
 

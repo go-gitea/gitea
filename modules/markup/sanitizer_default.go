@@ -48,7 +48,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(unchecked|checked|indeterminate)$`)).OnElements("li")
 
 	// Allow 'color' and 'background-color' properties for the style attribute on text elements.
-	policy.AllowStyles("color", "background-color").OnElements("span", "p")
+	policy.AllowStyles("color", "background-color").OnElements("div", "span", "p", "tr", "th", "td")
 
 	policy.AllowAttrs("src", "autoplay", "controls").OnElements("video")
 

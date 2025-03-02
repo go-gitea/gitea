@@ -50,15 +50,15 @@ func ListIssueLabels(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err := issue.LoadAttributes(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -110,13 +110,13 @@ func AddIssueLabels(ctx *context.APIContext) {
 	}
 
 	if err = issue_service.AddLabels(ctx, issue, ctx.Doer, labels); err != nil {
-		ctx.Error(http.StatusInternalServerError, "AddLabels", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	labels, err = issues_model.GetLabelsByIssueID(ctx, issue.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLabelsByIssueID", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -166,9 +166,9 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -181,15 +181,15 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	label, err := issues_model.GetLabelByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrLabelNotExist(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLabelByID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if err := issue_service.RemoveLabel(ctx, issue, ctx.Doer, label); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteIssueLabel", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -240,13 +240,13 @@ func ReplaceIssueLabels(ctx *context.APIContext) {
 	}
 
 	if err := issue_service.ReplaceLabels(ctx, issue, ctx.Doer, labels); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ReplaceLabels", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	labels, err = issues_model.GetLabelsByIssueID(ctx, issue.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLabelsByIssueID", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -288,9 +288,9 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -301,7 +301,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	}
 
 	if err := issue_service.ClearLabels(ctx, issue, ctx.Doer); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ClearLabels", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -312,15 +312,15 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil, nil, err
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Error(http.StatusForbidden, "CanWriteIssuesOrPulls", "write permission is required")
+		ctx.APIError(http.StatusForbidden, "write permission is required")
 		return nil, nil, fmt.Errorf("permission denied")
 	}
 
@@ -336,25 +336,25 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		case reflect.String:
 			labelNames = append(labelNames, rv.String())
 		default:
-			ctx.Error(http.StatusBadRequest, "InvalidLabel", "a label must be an integer or a string")
+			ctx.APIError(http.StatusBadRequest, "a label must be an integer or a string")
 			return nil, nil, fmt.Errorf("invalid label")
 		}
 	}
 	if len(labelIDs) > 0 && len(labelNames) > 0 {
-		ctx.Error(http.StatusBadRequest, "InvalidLabels", "labels should be an array of strings or integers")
+		ctx.APIError(http.StatusBadRequest, "labels should be an array of strings or integers")
 		return nil, nil, fmt.Errorf("invalid labels")
 	}
 	if len(labelNames) > 0 {
 		repoLabelIDs, err := issues_model.GetLabelIDsInRepoByNames(ctx, ctx.Repo.Repository.ID, labelNames)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
+			ctx.APIErrorInternal(err)
 			return nil, nil, err
 		}
 		labelIDs = append(labelIDs, repoLabelIDs...)
 		if ctx.Repo.Owner.IsOrganization() {
 			orgLabelIDs, err := issues_model.GetLabelIDsInOrgByNames(ctx, ctx.Repo.Owner.ID, labelNames)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "GetLabelIDsInOrgByNames", err)
+				ctx.APIErrorInternal(err)
 				return nil, nil, err
 			}
 			labelIDs = append(labelIDs, orgLabelIDs...)
@@ -363,7 +363,7 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 
 	labels, err := issues_model.GetLabelsByIDs(ctx, labelIDs, "id", "repo_id", "org_id", "name", "exclusive")
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLabelsByIDs", err)
+		ctx.APIErrorInternal(err)
 		return nil, nil, err
 	}
 

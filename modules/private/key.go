@@ -14,7 +14,7 @@ import (
 func UpdatePublicKeyInRepo(ctx context.Context, keyID, repoID int64) error {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/update/%d", keyID, repoID)
-	req := newInternalRequest(ctx, reqURL, "POST")
+	req := newInternalRequestAPI(ctx, reqURL, "POST")
 	_, extra := requestJSONResp(req, &ResponseText{})
 	return extra.Error
 }
@@ -24,7 +24,7 @@ func UpdatePublicKeyInRepo(ctx context.Context, keyID, repoID int64) error {
 func AuthorizedPublicKeyByContent(ctx context.Context, content string) (*ResponseText, ResponseExtra) {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + "api/internal/ssh/authorized_keys"
-	req := newInternalRequest(ctx, reqURL, "POST")
+	req := newInternalRequestAPI(ctx, reqURL, "POST")
 	req.Param("content", content)
 	return requestJSONResp(req, &ResponseText{})
 }

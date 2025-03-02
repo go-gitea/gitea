@@ -32,14 +32,12 @@ func (err ErrCommitIDDoesNotMatch) Error() string {
 	return fmt.Sprintf("file CommitID does not match [given: %s, expected: %s]", err.GivenCommitID, err.CurrentCommitID)
 }
 
-// CherryPick cherrypicks or reverts a commit to the given repository
+// CherryPick cherry-picks or reverts a commit to the given repository
 func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, revert bool, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
 	if err := opts.Validate(ctx, repo, doer); err != nil {
 		return nil, err
 	}
 	message := strings.TrimSpace(opts.Message)
-
-	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
 	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
@@ -112,12 +110,21 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	}
 
 	// Now commit the tree
-	var commitHash string
-	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate("HEAD", author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
-	} else {
-		commitHash, err = t.CommitTree("HEAD", author, committer, treeHash, message, opts.Signoff)
+	commitOpts := &CommitTreeUserOptions{
+		ParentCommitID:    "HEAD",
+		TreeHash:          treeHash,
+		CommitMessage:     message,
+		SignOff:           opts.Signoff,
+		DoerUser:          doer,
+		AuthorIdentity:    opts.Author,
+		AuthorTime:        nil,
+		CommitterIdentity: opts.Committer,
+		CommitterTime:     nil,
 	}
+	if opts.Dates != nil {
+		commitOpts.AuthorTime, commitOpts.CommitterTime = &opts.Dates.Author, &opts.Dates.Committer
+	}
+	commitHash, err := t.CommitTree(commitOpts)
 	if err != nil {
 		return nil, err
 	}

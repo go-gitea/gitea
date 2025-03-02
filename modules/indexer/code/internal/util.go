@@ -35,7 +35,7 @@ func FilenameOfIndexerID(indexerID string) string {
 	return indexerID[index+1:]
 }
 
-// Given the contents of file, returns the boundaries of its first seven lines.
+// FilenameMatchIndexPos returns the boundaries of its first seven lines.
 func FilenameMatchIndexPos(content string) (int, int) {
 	count := 1
 	for i, c := range content {
@@ -47,4 +47,12 @@ func FilenameMatchIndexPos(content string) (int, int) {
 		}
 	}
 	return 0, len(content)
+}
+
+func ParseKeywordAsPhrase(keyword string) (string, bool) {
+	if strings.HasPrefix(keyword, `"`) && strings.HasSuffix(keyword, `"`) && len(keyword) > 1 {
+		// only remove the prefix and suffix quotes, no need to decode the content at the moment
+		return keyword[1 : len(keyword)-1], true
+	}
+	return "", false
 }

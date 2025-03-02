@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -88,7 +87,7 @@ func TestTemplateIif(t *testing.T) {
 func TestTemplateEscape(t *testing.T) {
 	execTmpl := func(code string) string {
 		tmpl := template.New("test")
-		tmpl.Funcs(template.FuncMap{"QueryBuild": QueryBuild, "HTMLFormat": htmlutil.HTMLFormat})
+		tmpl.Funcs(template.FuncMap{"QueryBuild": QueryBuild, "HTMLFormat": htmlFormat})
 		template.Must(tmpl.Parse(code))
 		w := &strings.Builder{}
 		assert.NoError(t, tmpl.Execute(w, nil))
@@ -116,5 +115,60 @@ func TestTemplateEscape(t *testing.T) {
 	t.Run("HTMLFormat", func(t *testing.T) {
 		actual := execTmpl("{{HTMLFormat `<a k=\"%s\">%s</a>` `\"` `<>`}}")
 		assert.Equal(t, `<a k="&#34;">&lt;&gt;</a>`, actual)
+	})
+}
+
+func TestQueryBuild(t *testing.T) {
+	t.Run("construct", func(t *testing.T) {
+		assert.Equal(t, "", string(QueryBuild()))
+		assert.Equal(t, "", string(QueryBuild("a", nil, "b", false, "c", 0, "d", "")))
+		assert.Equal(t, "a=1&b=true", string(QueryBuild("a", 1, "b", "true")))
+
+		// path with query parameters
+		assert.Equal(t, "/?k=1", string(QueryBuild("/", "k", 1)))
+		assert.Equal(t, "/", string(QueryBuild("/?k=a", "k", 0)))
+
+		// no path but question mark with query parameters
+		assert.Equal(t, "?k=1", string(QueryBuild("?", "k", 1)))
+		assert.Equal(t, "?", string(QueryBuild("?", "k", 0)))
+		assert.Equal(t, "path?k=1", string(QueryBuild("path?", "k", 1)))
+		assert.Equal(t, "path", string(QueryBuild("path?", "k", 0)))
+
+		// only query parameters
+		assert.Equal(t, "&k=1", string(QueryBuild("&", "k", 1)))
+		assert.Equal(t, "", string(QueryBuild("&", "k", 0)))
+		assert.Equal(t, "", string(QueryBuild("&k=a", "k", 0)))
+		assert.Equal(t, "", string(QueryBuild("k=a&", "k", 0)))
+		assert.Equal(t, "a=1&b=2", string(QueryBuild("a=1", "b", 2)))
+		assert.Equal(t, "&a=1&b=2", string(QueryBuild("&a=1", "b", 2)))
+		assert.Equal(t, "a=1&b=2&", string(QueryBuild("a=1&", "b", 2)))
+	})
+
+	t.Run("replace", func(t *testing.T) {
+		assert.Equal(t, "a=1&c=d&e=f", string(QueryBuild("a=b&c=d&e=f", "a", 1)))
+		assert.Equal(t, "a=b&c=1&e=f", string(QueryBuild("a=b&c=d&e=f", "c", 1)))
+		assert.Equal(t, "a=b&c=d&e=1", string(QueryBuild("a=b&c=d&e=f", "e", 1)))
+		assert.Equal(t, "a=b&c=d&e=f&k=1", string(QueryBuild("a=b&c=d&e=f", "k", 1)))
+	})
+
+	t.Run("replace-&", func(t *testing.T) {
+		assert.Equal(t, "&a=1&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "a", 1)))
+		assert.Equal(t, "&a=b&c=1&e=f", string(QueryBuild("&a=b&c=d&e=f", "c", 1)))
+		assert.Equal(t, "&a=b&c=d&e=1", string(QueryBuild("&a=b&c=d&e=f", "e", 1)))
+		assert.Equal(t, "&a=b&c=d&e=f&k=1", string(QueryBuild("&a=b&c=d&e=f", "k", 1)))
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		assert.Equal(t, "c=d&e=f", string(QueryBuild("a=b&c=d&e=f", "a", "")))
+		assert.Equal(t, "a=b&e=f", string(QueryBuild("a=b&c=d&e=f", "c", "")))
+		assert.Equal(t, "a=b&c=d", string(QueryBuild("a=b&c=d&e=f", "e", "")))
+		assert.Equal(t, "a=b&c=d&e=f", string(QueryBuild("a=b&c=d&e=f", "k", "")))
+	})
+
+	t.Run("delete-&", func(t *testing.T) {
+		assert.Equal(t, "&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "a", "")))
+		assert.Equal(t, "&a=b&e=f", string(QueryBuild("&a=b&c=d&e=f", "c", "")))
+		assert.Equal(t, "&a=b&c=d", string(QueryBuild("&a=b&c=d&e=f", "e", "")))
+		assert.Equal(t, "&a=b&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "k", "")))
 	})
 }

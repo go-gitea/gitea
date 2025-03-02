@@ -34,13 +34,13 @@ func UploadReleaseAttachment(ctx *context.Context) {
 // UploadAttachment response for uploading attachments
 func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	if !setting.Attachment.Enabled {
-		ctx.Error(http.StatusNotFound, "attachment is not enabled")
+		ctx.HTTPError(http.StatusNotFound, "attachment is not enabled")
 		return
 	}
 
 	file, header, err := ctx.Req.FormFile("file")
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("FormFile: %v", err))
+		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("FormFile: %v", err))
 		return
 	}
 	defer file.Close()
@@ -52,10 +52,10 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.Error(http.StatusBadRequest, err.Error())
+			ctx.HTTPError(http.StatusBadRequest, err.Error())
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %v", err))
+		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %v", err))
 		return
 	}
 
@@ -70,16 +70,16 @@ func DeleteAttachment(ctx *context.Context) {
 	file := ctx.FormString("file")
 	attach, err := repo_model.GetAttachmentByUUID(ctx, file)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, err.Error())
+		ctx.HTTPError(http.StatusBadRequest, err.Error())
 		return
 	}
 	if !ctx.IsSigned || (ctx.Doer.ID != attach.UploaderID) {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 	err = repo_model.DeleteAttachment(ctx, attach, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
+		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]string{
@@ -92,7 +92,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	attach, err := repo_model.GetAttachmentByUUID(ctx, uuid)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetAttachmentByUUID", err)
 		}
@@ -107,17 +107,17 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 
 	if repository == nil { // If not linked
 		if !(ctx.IsSigned && attach.UploaderID == ctx.Doer.ID) { // We block if not the uploader
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	} else { // If we have the repository we check access
 		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
 			return
 		}
 		if !perm.CanRead(unitType) {
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}

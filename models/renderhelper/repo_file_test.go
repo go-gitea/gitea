@@ -4,7 +4,6 @@
 package renderhelper
 
 import (
-	"context"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -22,7 +21,7 @@ func TestRepoFile(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	t.Run("AutoLink", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoFile(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
@@ -37,7 +36,7 @@ func TestRepoFile(t *testing.T) {
 	})
 
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{CurrentRefPath: "branch/main"}).
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefPath: "branch/main"}).
 			WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 [/test](/test)
@@ -55,7 +54,7 @@ func TestRepoFile(t *testing.T) {
 	})
 
 	t.Run("WithCurrentRefPath", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{CurrentRefPath: "/commit/1234"}).
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefPath: "/commit/1234"}).
 			WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 [/test](/test)
@@ -68,7 +67,7 @@ func TestRepoFile(t *testing.T) {
 	})
 
 	t.Run("WithCurrentRefPathByTag", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
 			CurrentRefPath:  "/commit/1234",
 			CurrentTreePath: "my-dir",
 		}).
@@ -89,7 +88,7 @@ func TestRepoFileOrgMode(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	t.Run("Links", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
 			CurrentRefPath:  "/commit/1234",
 			CurrentTreePath: "my-dir",
 		}).WithRelativePath("my-dir/a.org")
@@ -106,7 +105,7 @@ func TestRepoFileOrgMode(t *testing.T) {
 	})
 
 	t.Run("CodeHighlight", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{}).WithRelativePath("my-dir/a.org")
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{}).WithRelativePath("my-dir/a.org")
 
 		rendered, err := markup.RenderString(rctx, `
 #+begin_src c

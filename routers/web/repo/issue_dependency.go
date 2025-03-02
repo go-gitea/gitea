@@ -23,7 +23,7 @@ func AddDependency(ctx *context.Context) {
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
-		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
+		ctx.HTTPError(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
 
@@ -97,7 +97,7 @@ func RemoveDependency(ctx *context.Context) {
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
-		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
+		ctx.HTTPError(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
 
@@ -109,7 +109,7 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Dependency Type
-	depTypeStr := ctx.Req.PostForm.Get("dependencyType")
+	depTypeStr := ctx.Req.PostFormValue("dependencyType")
 
 	var depType issues_model.DependencyType
 
@@ -119,7 +119,7 @@ func RemoveDependency(ctx *context.Context) {
 	case "blocking":
 		depType = issues_model.DependencyTypeBlocking
 	default:
-		ctx.Error(http.StatusBadRequest, "GetDependecyType")
+		ctx.HTTPError(http.StatusBadRequest, "GetDependecyType")
 		return
 	}
 

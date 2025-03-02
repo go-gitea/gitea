@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIPullCommits(t *testing.T) {
@@ -29,9 +30,7 @@ func TestAPIPullCommits(t *testing.T) {
 	var commits []*api.Commit
 	DecodeJSON(t, resp, &commits)
 
-	if !assert.Len(t, commits, 2) {
-		return
-	}
+	require.Len(t, commits, 2)
 
 	assert.Equal(t, "985f0301dba5e7b34be866819cd15ad3d8f508ee", commits[0].SHA)
 	assert.Equal(t, "5c050d3b6d2db231ab1f64e324f1b6b9a0b181c2", commits[1].SHA)

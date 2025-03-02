@@ -46,6 +46,12 @@ func UpdateRepositoryCols(ctx context.Context, repo *Repository, cols ...string)
 	return err
 }
 
+// UpdateRepositoryColsNoAutoTime updates repository's columns and but applies time change automatically
+func UpdateRepositoryColsNoAutoTime(ctx context.Context, repo *Repository, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(cols...).NoAutoTime().Update(repo)
+	return err
+}
+
 // ErrReachLimitOfRepo represents a "ReachLimitOfRepo" kind of error.
 type ErrReachLimitOfRepo struct {
 	Limit int

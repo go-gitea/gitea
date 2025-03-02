@@ -1,5 +1,5 @@
 <script lang="ts">
-import {createApp, nextTick} from 'vue';
+import {nextTick, defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -24,7 +24,7 @@ const commitStatus: CommitStatusMap = {
   warning: {name: 'gitea-exclamation', color: 'yellow'},
 };
 
-const sfc = {
+export default defineComponent({
   components: {SvgIcon},
   data() {
     const params = new URLSearchParams(window.location.search);
@@ -113,7 +113,7 @@ const sfc = {
     this.changeReposFilter(this.reposFilter);
     fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
     nextTick(() => {
-      this.$refs.search.focus();
+      this.$refs.search?.focus();
     });
 
     this.textArchivedFilterTitles = {
@@ -130,12 +130,12 @@ const sfc = {
   },
 
   methods: {
-    changeTab(t) {
-      this.tab = t;
+    changeTab(tab: string) {
+      this.tab = tab;
       this.updateHistory();
     },
 
-    changeReposFilter(filter) {
+    changeReposFilter(filter: string) {
       this.reposFilter = filter;
       this.repos = [];
       this.page = 1;
@@ -218,7 +218,7 @@ const sfc = {
       this.searchRepos();
     },
 
-    changePage(page) {
+    changePage(page: number) {
       this.page = page;
       if (this.page > this.finalPage) {
         this.page = this.finalPage;
@@ -243,7 +243,7 @@ const sfc = {
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           response = await GET(totalCountSearchURL);
-          this.reposTotalCount = response.headers.get('X-Total-Count') ?? '?';
+          this.reposTotalCount = parseInt(response.headers.get('X-Total-Count') ?? '0');
         }
 
         response = await GET(searchedURL);
@@ -256,7 +256,7 @@ const sfc = {
       }
 
       if (searchedURL === this.searchURL) {
-        this.repos = json.data.map((webSearchRepo) => {
+        this.repos = json.data.map((webSearchRepo: any) => {
           return {
             ...webSearchRepo.repository,
             latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
@@ -264,7 +264,7 @@ const sfc = {
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
           };
         });
-        const count = response.headers.get('X-Total-Count');
+        const count = Number(response.headers.get('X-Total-Count'));
         if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
           this.reposTotalCount = count;
         }
@@ -275,7 +275,7 @@ const sfc = {
       }
     },
 
-    repoIcon(repo) {
+    repoIcon(repo: any) {
       if (repo.fork) {
         return 'octicon-repo-forked';
       } else if (repo.mirror) {
@@ -298,7 +298,7 @@ const sfc = {
       return commitStatus[status].color;
     },
 
-    reposFilterKeyControl(e) {
+    reposFilterKeyControl(e: KeyboardEvent) {
       switch (e.key) {
         case 'Enter':
           document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
@@ -335,16 +335,7 @@ const sfc = {
       }
     },
   },
-};
-
-export function initDashboardRepoList() {
-  const el = document.querySelector('#dashboard-repo-list');
-  if (el) {
-    createApp(sfc).mount(el);
-  }
-}
-
-export default sfc; // activate the IDE's Vue plugin
+});
 </script>
 <template>
   <div>
@@ -362,7 +353,15 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div class="ui attached segment repos-search">
+      <div v-if="!reposTotalCount" class="ui attached segment">
+        <div v-if="!isLoading" class="empty-repo-or-org">
+          <svg-icon name="octicon-git-branch" :size="24"/>
+          <p>{{ textNoRepo }}</p>
+        </div>
+        <!-- using the loading indicator here will cause more (unnecessary) page flickers, so at the moment, not use the loading indicator -->
+        <!-- <div v-else class="is-loading loading-icon-2px tw-min-h-16"/> -->
+      </div>
+      <div v-else class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
           <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
@@ -375,7 +374,7 @@ export default sfc; // activate the IDE's Vue plugin
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
                   <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
-                    <svg-icon name="octicon-archive" :size="16" class-name="tw-mr-1"/>
+                    <svg-icon name="octicon-archive" :size="16" class="tw-mr-1"/>
                     {{ textShowArchived }}
                   </label>
                 </div>
@@ -384,7 +383,7 @@ export default sfc; // activate the IDE's Vue plugin
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
                   <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
-                    <svg-icon name="octicon-lock" :size="16" class-name="tw-mr-1"/>
+                    <svg-icon name="octicon-lock" :size="16" class="tw-mr-1"/>
                     {{ textShowPrivate }}
                   </label>
                 </div>
@@ -421,7 +420,7 @@ export default sfc; // activate the IDE's Vue plugin
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="repo, index in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
-              <svg-icon :name="repoIcon(repo)" :size="16" class-name="repo-list-icon"/>
+              <svg-icon :name="repoIcon(repo)" :size="16" class="repo-list-icon"/>
               <div class="text truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
@@ -429,7 +428,7 @@ export default sfc; // activate the IDE's Vue plugin
             </a>
             <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class-name="'tw-ml-2 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
           </li>
         </ul>
@@ -440,26 +439,26 @@ export default sfc; // activate the IDE's Vue plugin
               class="item navigation tw-py-1" :class="{'disabled': page === 1}"
               @click="changePage(1)" :title="textFirstPage"
             >
-              <svg-icon name="gitea-double-chevron-left" :size="16" class-name="tw-mr-1"/>
+              <svg-icon name="gitea-double-chevron-left" :size="16" class="tw-mr-1"/>
             </a>
             <a
               class="item navigation tw-py-1" :class="{'disabled': page === 1}"
               @click="changePage(page - 1)" :title="textPreviousPage"
             >
-              <svg-icon name="octicon-chevron-left" :size="16" clsas-name="tw-mr-1"/>
+              <svg-icon name="octicon-chevron-left" :size="16" class="tw-mr-1"/>
             </a>
             <a class="active item tw-py-1">{{ page }}</a>
             <a
               class="item navigation" :class="{'disabled': page === finalPage}"
               @click="changePage(page + 1)" :title="textNextPage"
             >
-              <svg-icon name="octicon-chevron-right" :size="16" class-name="tw-ml-1"/>
+              <svg-icon name="octicon-chevron-right" :size="16" class="tw-ml-1"/>
             </a>
             <a
               class="item navigation tw-py-1" :class="{'disabled': page === finalPage}"
               @click="changePage(finalPage)" :title="textLastPage"
             >
-              <svg-icon name="gitea-double-chevron-right" :size="16" class-name="tw-ml-1"/>
+              <svg-icon name="gitea-double-chevron-right" :size="16" class="tw-ml-1"/>
             </a>
           </div>
         </div>
@@ -475,11 +474,17 @@ export default sfc; // activate the IDE's Vue plugin
           <svg-icon name="octicon-plus"/>
         </a>
       </h4>
-      <div v-if="organizations.length" class="ui attached table segment tw-rounded-b">
+      <div v-if="!organizations.length" class="ui attached segment">
+        <div class="empty-repo-or-org">
+          <svg-icon name="octicon-organization" :size="24"/>
+          <p>{{ textNoOrg }}</p>
+        </div>
+      </div>
+      <div v-else class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
-              <svg-icon name="octicon-organization" :size="16" class-name="repo-list-icon"/>
+              <svg-icon name="octicon-organization" :size="16" class="repo-list-icon"/>
               <div class="text truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
@@ -489,7 +494,7 @@ export default sfc; // activate the IDE's Vue plugin
             </a>
             <div class="text light grey tw-flex tw-items-center tw-ml-2">
               {{ org.num_repos }}
-              <svg-icon name="octicon-repo" :size="16" class-name="tw-ml-1 tw-mt-0.5"/>
+              <svg-icon name="octicon-repo" :size="16" class="tw-ml-1 tw-mt-0.5"/>
             </div>
           </li>
         </ul>
@@ -553,5 +558,15 @@ ul li:not(:last-child) {
 
 .repo-owner-name-list li.active {
   background: var(--color-hover);
+}
+
+.empty-repo-or-org {
+  margin-top: 1em;
+  text-align: center;
+  color: var(--color-placeholder-text);
+}
+
+.empty-repo-or-org p {
+  margin: 1em auto;
 }
 </style>

@@ -109,6 +109,8 @@
 								</div>
 							</td>
 						</tr>
+					{{else}}
+						<tr class="no-results-row"><td class="tw-text-center" colspan="9">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>

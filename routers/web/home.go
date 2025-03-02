@@ -113,5 +113,5 @@ func HomeSitemap(ctx *context.Context) {
 // NotFound render 404 page
 func NotFound(ctx *context.Context) {
 	ctx.Data["Title"] = "Page Not Found"
-	ctx.NotFound("home.NotFound", nil)
+	ctx.NotFound(nil)
 }

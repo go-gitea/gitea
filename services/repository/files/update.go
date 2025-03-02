@@ -27,8 +27,8 @@ import (
 
 // IdentityOptions for a person's identity like an author or committer
 type IdentityOptions struct {
-	Name  string
-	Email string
+	GitUserName  string // to match "git config user.name"
+	GitUserEmail string // to match "git config user.email"
 }
 
 // CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
@@ -160,8 +160,6 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
-
 	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		log.Error("NewTemporaryUploadRepository failed: %v", err)
@@ -262,12 +260,21 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// Now commit the tree
-	var commitHash string
-	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate(opts.LastCommitID, author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
-	} else {
-		commitHash, err = t.CommitTree(opts.LastCommitID, author, committer, treeHash, message, opts.Signoff)
+	commitOpts := &CommitTreeUserOptions{
+		ParentCommitID:    opts.LastCommitID,
+		TreeHash:          treeHash,
+		CommitMessage:     message,
+		SignOff:           opts.Signoff,
+		DoerUser:          doer,
+		AuthorIdentity:    opts.Author,
+		AuthorTime:        nil,
+		CommitterIdentity: opts.Committer,
+		CommitterTime:     nil,
 	}
+	if opts.Dates != nil {
+		commitOpts.AuthorTime, commitOpts.CommitterTime = &opts.Dates.Author, &opts.Dates.Committer
+	}
+	commitHash, err := t.CommitTree(commitOpts)
 	if err != nil {
 		return nil, err
 	}

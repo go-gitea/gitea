@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -64,10 +63,7 @@ func VerifyTimeLimitCode(now time.Time, data string, minutes int, code string) b
 	// check code
 	retCode := CreateTimeLimitCode(data, aliveTime, startTimeStr, nil)
 	if subtle.ConstantTimeCompare([]byte(retCode), []byte(code)) != 1 {
-		retCode = CreateTimeLimitCode(data, aliveTime, startTimeStr, sha1.New()) // TODO: this is only for the support of legacy codes, remove this in/after 1.23
-		if subtle.ConstantTimeCompare([]byte(retCode), []byte(code)) != 1 {
-			return false
-		}
+		return false
 	}
 
 	// check time is expired or not: startTime <= now && now < startTime + minutes
@@ -144,13 +140,12 @@ func Int64sToStrings(ints []int64) []string {
 	return strs
 }
 
-// EntryIcon returns the octicon class for displaying files/directories
+// EntryIcon returns the octicon name for displaying files/directories
 func EntryIcon(entry *git.TreeEntry) string {
 	switch {
 	case entry.IsLink():
 		te, err := entry.FollowLink()
 		if err != nil {
-			log.Debug(err.Error())
 			return "file-symlink-file"
 		}
 		if te.IsDir() {

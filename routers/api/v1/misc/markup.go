@@ -38,7 +38,7 @@ func Markup(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.MarkupOption)
 
 	if ctx.HasAPIError() {
-		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.GetErrMsg())
 		return
 	}
 
@@ -69,7 +69,7 @@ func Markdown(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.MarkdownOption)
 
 	if ctx.HasAPIError() {
-		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
+		ctx.APIError(http.StatusUnprocessableEntity, ctx.GetErrMsg())
 		return
 	}
 
@@ -100,7 +100,7 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	defer ctx.Req.Body.Close()
 	if err := markdown.RenderRaw(markup.NewRenderContext(ctx), ctx.Req.Body, ctx.Resp); err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 }

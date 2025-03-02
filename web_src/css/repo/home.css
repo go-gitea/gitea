@@ -1,7 +1,8 @@
 .repo-grid-filelist-sidebar {
   display: grid;
-  grid-template-columns: auto 300px;
+  grid-template-columns: auto 280px;
   grid-template-rows: auto auto 1fr;
+  gap: var(--page-spacing);
 }
 
 .repo-home-filelist {
@@ -13,13 +14,11 @@
 .repo-home-sidebar-top {
   grid-column: 2;
   grid-row: 1;
-  padding-left: 1em;
 }
 
 .repo-home-sidebar-bottom {
   grid-column: 2;
   grid-row: 2;
-  padding-left: 1em;
 }
 
 .repo-home-sidebar-bottom .flex-list > :first-child {
