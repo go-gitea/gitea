@@ -83,7 +83,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 	}
 
 	if !canWriteFiles(ctx, apiOpts.BranchName) {
-		ctx.Error(http.StatusInternalServerError, "ApplyPatch", repo_model.ErrUserDoesNotHaveAccessToRepo{
+		ctx.APIErrorInternal(repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -93,19 +93,19 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 	if err != nil {
 		if files.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
-			ctx.Error(http.StatusForbidden, "Access", err)
+			ctx.APIError(http.StatusForbidden, err)
 			return
 		}
 		if git_model.IsErrBranchAlreadyExists(err) || files.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
 			files.IsErrFilePathInvalid(err) || files.IsErrRepoFileAlreadyExists(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
 		if git_model.IsErrBranchNotExist(err) || git.IsErrBranchNotExist(err) {
-			ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
+			ctx.APIError(http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "ApplyPatch", err)
+		ctx.APIErrorInternal(err)
 	} else {
 		ctx.JSON(http.StatusCreated, fileResponse)
 	}

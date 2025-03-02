@@ -1,6 +1,6 @@
 {{$showFileTree := (and (not .DiffNotAvailable) (gt .Diff.NumFiles 1))}}
 <div>
-	<div class="diff-detail-box diff-box">
+	<div class="diff-detail-box">
 		<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-ml-0.5">
 			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
@@ -57,32 +57,6 @@
 				<div>{{ctx.Locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>
 			</div>
 		{{end}}
-		<script id="diff-data-script" type="module">
-			const diffDataFiles = [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}},IsBin:{{$file.IsBin}},IsSubmodule:{{$file.IsSubmodule}},Addition:{{$file.Addition}},Deletion:{{$file.Deletion}},IsViewed:{{$file.IsViewed}}},{{end}}];
-			const diffData = {
-				isIncomplete: {{.Diff.IsIncomplete}},
-				tooManyFilesMessage: "{{ctx.Locale.Tr "repo.diff.too_many_files"}}",
-				binaryFileMessage: "{{ctx.Locale.Tr "repo.diff.bin"}}",
-				showMoreMessage: "{{ctx.Locale.Tr "repo.diff.show_more"}}",
-				statisticsMessage: "{{ctx.Locale.Tr "repo.diff.stats_desc_file"}}",
-				linkLoadMore: "?skip-to={{.Diff.End}}&file-only=true",
-			};
-
-			// for first time loading, the diffFileInfo is a plain object
-			// after the Vue component is mounted, the diffFileInfo is a reactive object
-			// keep in mind that this script block would be executed many times when loading more files, by "loadMoreFiles"
-			let diffFileInfo = window.config.pageData.diffFileInfo || {
-				files:[],
-				fileTreeIsVisible: false,
-				fileListIsVisible: false,
-				isLoadingNewData: false,
-				selectedItem: '',
-			};
-			diffFileInfo = Object.assign(diffFileInfo, diffData);
-			diffFileInfo.files.push(...diffDataFiles);
-			window.config.pageData.diffFileInfo = diffFileInfo;
-		</script>
-		<div id="diff-file-list"></div>
 	{{end}}
 	<div id="diff-container">
 		{{if $showFileTree}}
@@ -106,7 +80,7 @@
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
-					<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
+					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 						<h4 class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
 								<button class="fold-file btn interact-bg tw-p-1{{if not $isExpandable}} tw-invisible{{end}}">
@@ -235,7 +209,7 @@
 				{{end}}
 
 				{{if .Diff.IsIncomplete}}
-					<div class="diff-file-box diff-box file-content tw-mt-2" id="diff-incomplete">
+					<div class="diff-file-box file-content tw-mt-2" id="diff-incomplete">
 						<h4 class="ui top attached header tw-font-normal tw-flex tw-items-center tw-justify-between">
 							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
 							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>

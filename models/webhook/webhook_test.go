@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -245,7 +244,7 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), PerWebhook, 168*time.Hour, 0))
 	unittest.AssertNotExistsBean(t, hookTask)
 }
 
@@ -261,7 +260,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), PerWebhook, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
@@ -278,7 +277,7 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 1))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), PerWebhook, 168*time.Hour, 1))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
@@ -295,7 +294,7 @@ func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertNotExistsBean(t, hookTask)
 }
 
@@ -311,7 +310,7 @@ func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }
 
@@ -328,6 +327,6 @@ func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *test
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 
-	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	assert.NoError(t, CleanupHookTaskTable(t.Context(), OlderThan, 168*time.Hour, 0))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
 }

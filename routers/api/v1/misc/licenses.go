@@ -59,7 +59,7 @@ func GetLicenseTemplateInfo(ctx *context.APIContext) {
 
 	text, err := options.License(name)
 	if err != nil {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 

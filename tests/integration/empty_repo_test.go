@@ -60,12 +60,20 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user30")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	// test web page
 	req := NewRequest(t, "GET", "/user30/empty")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	bodyString := resp.Body.String()
 	assert.Contains(t, bodyString, "empty-repo-guide")
 	assert.True(t, test.IsNormalPageCompleted(bodyString))
 
+	// test api
+	req = NewRequest(t, "GET", "/api/v1/repos/user30/empty/raw/main/README.md").AddTokenAuth(token)
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// create a new file
 	req = NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body).Find(`input[name="commit_choice"]`)

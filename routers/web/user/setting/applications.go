@@ -6,12 +6,14 @@ package setting
 
 import (
 	"net/http"
+	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -39,18 +41,29 @@ func ApplicationsPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
-	if ctx.HasError() {
-		loadApplicationsData(ctx)
-
-		ctx.HTML(http.StatusOK, tplSettingsApplications)
-		return
+	_ = ctx.Req.ParseForm()
+	var scopeNames []string
+	for k, v := range ctx.Req.Form {
+		if strings.HasPrefix(k, "scope-") {
+			scopeNames = append(scopeNames, v...)
+		}
 	}
 
-	scope, err := form.GetScope()
+	scope, err := auth_model.AccessTokenScope(strings.Join(scopeNames, ",")).Normalize()
 	if err != nil {
 		ctx.ServerError("GetScope", err)
 		return
 	}
+	if scope == "" || scope == auth_model.AccessTokenScopePublicOnly {
+		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
+	}
+
+	if ctx.HasError() {
+		loadApplicationsData(ctx)
+		ctx.HTML(http.StatusOK, tplSettingsApplications)
+		return
+	}
+
 	t := &auth_model.AccessToken{
 		UID:   ctx.Doer.ID,
 		Name:  form.Name,
@@ -99,7 +112,14 @@ func loadApplicationsData(ctx *context.Context) {
 	}
 	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enabled
-	ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
+
+	// Handle specific ordered token categories for admin or non-admin users
+	tokenCategoryNames := auth_model.GetAccessTokenCategories()
+	if !ctx.Doer.IsAdmin {
+		tokenCategoryNames = util.SliceRemoveAll(tokenCategoryNames, "admin")
+	}
+	ctx.Data["TokenCategories"] = tokenCategoryNames
+
 	if setting.OAuth2.Enabled {
 		ctx.Data["Applications"], err = db.Find[auth_model.OAuth2Application](ctx, auth_model.FindOAuth2ApplicationsOptions{
 			OwnerID: ctx.Doer.ID,

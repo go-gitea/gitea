@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -531,7 +530,9 @@ func Test_WebhookStatus(t *testing.T) {
 	var triggeredEvent string
 	provider := newMockWebhookProvider(func(r *http.Request) {
 		assert.Contains(t, r.Header["X-Github-Event-Type"], "status", "X-GitHub-Event-Type should contain status")
+		assert.Contains(t, r.Header["X-Github-Hook-Installation-Target-Type"], "repository", "X-GitHub-Hook-Installation-Target-Type should contain repository")
 		assert.Contains(t, r.Header["X-Gitea-Event-Type"], "status", "X-Gitea-Event-Type should contain status")
+		assert.Contains(t, r.Header["X-Gitea-Hook-Installation-Target-Type"], "repository", "X-Gitea-Hook-Installation-Target-Type should contain repository")
 		assert.Contains(t, r.Header["X-Gogs-Event-Type"], "status", "X-Gogs-Event-Type should contain status")
 		content, _ := io.ReadAll(r.Body)
 		var payload api.CommitStatusPayload
@@ -550,7 +551,7 @@ func Test_WebhookStatus(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-		gitRepo1, err := gitrepo.OpenRepository(context.Background(), repo1)
+		gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 		assert.NoError(t, err)
