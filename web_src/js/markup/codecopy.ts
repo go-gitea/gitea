@@ -8,7 +8,7 @@ export function makeCodeCopyButton(): HTMLButtonElement {
 }
 
 export function initMarkupCodeCopy(elMarkup: HTMLElement): void {
-  const el = elMarkup.querySelector('.code-block code') // .markup .code-block code
+  const el = elMarkup.querySelector('.code-block code'); // .markup .code-block code
   if (!el || !el.textContent) return;
 
   const btn = makeCodeCopyButton();
