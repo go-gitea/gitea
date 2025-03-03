@@ -2,12 +2,12 @@ import {createApp, ref} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {GET, PUT} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
-import {initMarkupContent} from '../markup/content.ts';
-import {initTargetRepoBranchTagSelector} from './repo-legacy.ts';
-import {initTargetRepoEllipsisButton} from './repo-commit.ts';
-import {initTargetPdfViewer} from '../render/pdf.ts';
-import {initTargetButtons} from './common-button.ts';
-import {initTargetCopyContent} from './copycontent.ts';
+// import {initMarkupContent} from '../markup/content.ts';
+// import {initTargetRepoBranchTagSelector} from './repo-legacy.ts';
+// import {initTargetRepoEllipsisButton} from './repo-commit.ts';
+// import {initTargetPdfViewer} from '../render/pdf.ts';
+// import {initTargetButtons} from './common-button.ts';
+// import {initTargetCopyContent} from './copycontent.ts';
 
 async function toggleSidebar(visibility: boolean, isSigned: boolean) {
   const sidebarEl = document.querySelector('.repo-view-file-tree-sidebar');
@@ -58,13 +58,13 @@ function reloadContentScript(contentEl: Element) {
   contentEl.querySelector('.show-tree-sidebar-button').addEventListener('click', () => {
     toggleSidebar(true, document.querySelector('.repo-view-file-tree-sidebar').hasAttribute('data-is-signed'));
   });
-  initMarkupContent();
-  initTargetButtons(contentEl);
+  // initMarkupContent();
+  // initTargetButtons(contentEl);
   // initTargetDropdown(contentEl);
-  initTargetPdfViewer(contentEl);
-  initTargetRepoBranchTagSelector(contentEl);
-  initTargetRepoEllipsisButton(contentEl);
-  initTargetCopyContent(contentEl);
+  // initTargetPdfViewer(contentEl);
+  // initTargetRepoBranchTagSelector(contentEl);
+  // initTargetRepoEllipsisButton(contentEl);
+  // initTargetCopyContent(contentEl);
 }
 
 export async function initViewFileTreeSidebar() {
