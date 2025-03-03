@@ -12,6 +12,8 @@ import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {observeAddedElement} from '../modules/observer.ts';
 import {initGlobalDropdown} from './common-page.ts';
+import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+
 const {i18n} = window.config;
 
 function initRepoDiffFileBox(el: HTMLElement) {
@@ -260,7 +262,7 @@ export function initRepoDiffView() {
   initExpandAndCollapseFilesButton();
   initRepoDiffHashChangeListener();
 
-  observeAddedElement('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
+  registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
   addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
     invertFileFolding(el.closest('.file-content'), el);
   });
