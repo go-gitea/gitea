@@ -1,5 +1,5 @@
 import {POST} from '../modules/fetch.ts';
-import {addDelegatedEventListener, hideElem, queryElems, showElem, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {camelize} from 'vue';
