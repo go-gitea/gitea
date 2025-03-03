@@ -10,7 +10,7 @@ import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
-import {observeAddedElement} from '../modules/observer.ts';
+import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
 const {i18n} = window.config;
 
@@ -254,7 +254,7 @@ export function initRepoDiffView() {
   initExpandAndCollapseFilesButton();
   initRepoDiffHashChangeListener();
 
-  observeAddedElement('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
+  registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
   addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
     invertFileFolding(el.closest('.file-content'), el);
   });
