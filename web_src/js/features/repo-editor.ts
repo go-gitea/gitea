@@ -198,6 +198,6 @@ export function initRepoEditor() {
 }
 
 export function renderPreviewPanelContent(previewPanel: Element, content: string) {
-  previewPanel.innerHTML = content;
+  previewPanel.innerHTML = `<div class="render-content markup">${content}</div>`;
   attachRefIssueContextPopup(previewPanel.querySelectorAll('p .ref-issue'));
 }
