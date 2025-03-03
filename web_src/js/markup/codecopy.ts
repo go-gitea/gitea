@@ -7,15 +7,12 @@ export function makeCodeCopyButton(): HTMLButtonElement {
   return button;
 }
 
-export function renderCodeCopy(): void {
-  const els = document.querySelectorAll('.markup .code-block code');
-  if (!els.length) return;
+export function initMarkupCodeCopy(elMarkup: HTMLElement): void {
+  const el = elMarkup.querySelector('.code-block code'); // .markup .code-block code
+  if (!el || !el.textContent) return;
 
-  for (const el of els) {
-    if (!el.textContent) continue;
-    const btn = makeCodeCopyButton();
-    // remove final trailing newline introduced during HTML rendering
-    btn.setAttribute('data-clipboard-text', el.textContent.replace(/\r?\n$/, ''));
-    el.after(btn);
-  }
+  const btn = makeCodeCopyButton();
+  // remove final trailing newline introduced during HTML rendering
+  btn.setAttribute('data-clipboard-text', el.textContent.replace(/\r?\n$/, ''));
+  el.after(btn);
 }
