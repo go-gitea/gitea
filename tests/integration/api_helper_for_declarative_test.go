@@ -33,6 +33,10 @@ type APITestContext struct {
 
 func NewAPITestContext(t *testing.T, username, reponame string, scope ...auth.AccessTokenScope) APITestContext {
 	session := loginUser(t, username)
+	if len(scope) == 0 {
+		// FIXME: legacy logic: no scope means all
+		scope = []auth.AccessTokenScope{auth.AccessTokenScopeAll}
+	}
 	token := getTokenForLoggedInUser(t, session, scope...)
 	return APITestContext{
 		Session:  session,

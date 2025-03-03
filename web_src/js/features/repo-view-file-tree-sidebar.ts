@@ -4,7 +4,6 @@ import {GET, PUT} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
 import {initMarkupContent} from '../markup/content.ts';
 import {initTargetRepoBranchTagSelector} from './repo-legacy.ts';
-import {initTargetDropdown} from './common-page.ts';
 import {initTargetRepoEllipsisButton} from './repo-commit.ts';
 import {initTargetPdfViewer} from '../render/pdf.ts';
 import {initTargetButtons} from './common-button.ts';
@@ -61,7 +60,7 @@ function reloadContentScript(contentEl: Element) {
   });
   initMarkupContent();
   initTargetButtons(contentEl);
-  initTargetDropdown(contentEl);
+  // initTargetDropdown(contentEl);
   initTargetPdfViewer(contentEl);
   initTargetRepoBranchTagSelector(contentEl);
   initTargetRepoEllipsisButton(contentEl);

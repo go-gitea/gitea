@@ -9,7 +9,6 @@ import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
 import {initRepoCloneButtons} from './repo-common.ts';
 import {initCitationFileCopyContent} from './citation.ts';
 import {initCompLabelEdit} from './comp/LabelEdit.ts';
-import {initRepoDiffConversationNav} from './repo-diff.ts';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoSettings} from './repo-settings.ts';
 import {initRepoPullRequestMergeForm} from './repo-issue-pr-form.ts';
@@ -64,7 +63,6 @@ export function initRepository() {
     initRepoIssueWipToggle();
     initRepoIssueComments();
 
-    initRepoDiffConversationNav();
     initRepoIssueReferenceIssue();
 
     initRepoIssueCommentDelete();
