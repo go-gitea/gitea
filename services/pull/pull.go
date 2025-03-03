@@ -407,11 +407,10 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		}
 
 		if isSync {
-			requests := issues_model.PullRequestList(prs)
-			if err = requests.LoadAttributes(ctx); err != nil {
+			if err = prs.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(ctx, requests, repoID, doer, branch); invalidationErr != nil {
+			if invalidationErr := checkForInvalidation(ctx, prs, repoID, doer, branch); invalidationErr != nil {
 				log.Error("checkForInvalidation: %v", invalidationErr)
 			}
 			if err == nil {
@@ -645,7 +644,7 @@ func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
@@ -672,11 +671,11 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
-	issues_model.PullRequestList(prs).SetHeadRepo(repo)
-	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
+	prs.SetHeadRepo(repo)
+	if err := prs.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -707,11 +706,11 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
-	issues_model.PullRequestList(prs).SetBaseRepo(repo)
-	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
+	prs.SetBaseRepo(repo)
+	if err := prs.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -744,7 +743,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 			return err
 		}
 
-		if err = issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+		if err = prs.LoadAttributes(ctx); err != nil {
 			return err
 		}
 
