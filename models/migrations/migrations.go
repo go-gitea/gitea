@@ -374,7 +374,7 @@ func prepareMigrationTasks() []*migration {
 		// Gitea 1.23.0-rc0 ends at migration ID number 311 (database version 312)
 		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_24.AddDeleteBranchAfterMergeForAutoMerge),
 		newMigration(313, "Move PinOrder from issue table to a new table issue_pin", v1_24.MovePinOrderToTableIssuePin),
-		newMigration(314, "Migrate the configuration of the ui section of the ini configuration file to the system setting table.", v1_24.MigrateIniToDatabase),
+		newMigration(315, "Migrate the configuration of the ui section of the ini configuration file to the system setting table.", v1_24.MigrateIniToDatabase),
 	}
 	return preparedMigrations
 }
