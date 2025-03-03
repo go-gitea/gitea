@@ -789,7 +789,7 @@ func Run(ctx *context_module.Context) {
 		return nil
 	})
 	if err != nil {
-		if errLocale := util.ErrAsLocale(err); errLocale != nil {
+		if errLocale := util.ErrorAsLocale(err); errLocale != nil {
 			ctx.Flash.Error(ctx.Tr(errLocale.TrKey, errLocale.TrArgs...))
 			ctx.Redirect(redirectURL)
 		} else {

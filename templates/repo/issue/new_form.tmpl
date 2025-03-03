@@ -1,6 +1,4 @@
-{{if .Flash}}
 {{template "base/alert" .}}
-{{end}}
 <form class="issue-content ui comment form form-fetch-action" id="new-issue" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
 	<div class="issue-content-left">
@@ -9,7 +7,10 @@
 				{{ctx.AvatarUtils.Avatar .SignedUser 40}}
 				<div class="ui segment content tw-my-0">
 					<div class="field">
-						<input name="title" class="js-autofocus-end" id="issue_title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" required maxlength="255" autocomplete="off">
+						<input name="title" data-global-init="initInputAutoFocusEnd" id="issue_title" required maxlength="255" autocomplete="off"
+								placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}"
+								value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}"
+						>
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{ctx.Locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0)}}</div>
 						{{end}}

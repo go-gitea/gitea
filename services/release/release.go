@@ -296,10 +296,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		}
 		for _, attach := range attachments {
 			if attach.ReleaseID != rel.ID {
-				return util.SilentWrap{
-					Message: "delete attachment of release permission denied",
-					Err:     util.ErrPermissionDenied,
-				}
+				return util.NewPermissionDeniedErrorf("delete attachment of release permission denied")
 			}
 			deletedUUIDs.Add(attach.UUID)
 		}
@@ -321,10 +318,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		}
 		for _, attach := range attachments {
 			if attach.ReleaseID != rel.ID {
-				return util.SilentWrap{
-					Message: "update attachment of release permission denied",
-					Err:     util.ErrPermissionDenied,
-				}
+				return util.NewPermissionDeniedErrorf("update attachment of release permission denied")
 			}
 		}
 

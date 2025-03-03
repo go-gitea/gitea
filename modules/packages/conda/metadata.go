@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	ErrInvalidStructure = util.SilentWrap{Message: "package structure is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidName      = util.SilentWrap{Message: "package name is invalid", Err: util.ErrInvalidArgument}
-	ErrInvalidVersion   = util.SilentWrap{Message: "package version is invalid", Err: util.ErrInvalidArgument}
+	ErrInvalidStructure = util.NewInvalidArgumentErrorf("package structure is invalid")
+	ErrInvalidName      = util.NewInvalidArgumentErrorf("package name is invalid")
+	ErrInvalidVersion   = util.NewInvalidArgumentErrorf("package version is invalid")
 )
 
 const (

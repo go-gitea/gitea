@@ -355,7 +355,7 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
   return candidates.length ? candidates[0] as T : null;
 }
 
-export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
+export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => Promisable<void>, options?: boolean | AddEventListenerOptions) {
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
     if (!elem) return;

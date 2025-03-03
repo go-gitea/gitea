@@ -18,9 +18,7 @@ import (
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
-const (
-	tplTeamInviteMail templates.TplName = "team_invite"
-)
+const tplTeamInviteMail templates.TplName = "team_invite"
 
 // MailTeamInvite sends team invites
 func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_model.Team, invite *org_model.TeamInvite) error {

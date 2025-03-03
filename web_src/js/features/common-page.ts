@@ -2,7 +2,7 @@ import {GET} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../bootstrap.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {queryElems} from '../utils/dom.ts';
-import {observeAddedElement} from '../modules/observer.ts';
+import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 
 const {appUrl} = window.config;
 
@@ -30,7 +30,7 @@ export function initFootLanguageMenu() {
 
 export function initGlobalDropdown() {
   // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
-  observeAddedElement('.ui.dropdown:not(.custom)', (el) => {
+  registerGlobalSelectorFunc('.ui.dropdown:not(.custom)', (el) => {
     const $dropdown = fomanticQuery(el);
     if ($dropdown.data('module-dropdown')) return; // do not re-init if other code has already initialized it.
 
@@ -78,6 +78,25 @@ export function initGlobalDropdown() {
 
 export function initGlobalTabularMenu() {
   fomanticQuery('.ui.menu.tabular:not(.custom) .item').tab({autoTabActivation: false});
+}
+
+// for performance considerations, it only uses performant syntax
+function attachInputDirAuto(el: Partial<HTMLInputElement | HTMLTextAreaElement>) {
+  if (el.type !== 'hidden' &&
+    el.type !== 'checkbox' &&
+    el.type !== 'radio' &&
+    el.type !== 'range' &&
+    el.type !== 'color') {
+    el.dir = 'auto';
+  }
+}
+
+export function initGlobalInput() {
+  registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
+  registerGlobalInitFunc('initInputAutoFocusEnd', (el: HTMLInputElement) => {
+    el.focus(); // expects only one such element on one page. If there are many, then the last one gets the focus.
+    el.setSelectionRange(el.value.length, el.value.length);
+  });
 }
 
 /**

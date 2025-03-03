@@ -4,6 +4,7 @@
 package i18n
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
@@ -30,7 +31,7 @@ func Format(format string, args ...any) (msg string, err error) {
 					fmtArgs = append(fmtArgs, val.Index(i).Interface())
 				}
 			} else {
-				err = ErrUncertainArguments
+				err = errors.New("arguments to i18n should not contain uncertain slices")
 				break
 			}
 		} else {
