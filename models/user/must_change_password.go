@@ -34,7 +34,7 @@ func SetMustChangePassword(ctx context.Context, all, mustChangePassword bool, in
 	if !all {
 		include = sliceTrimSpaceDropEmpty(include)
 		if len(include) == 0 {
-			return 0, util.NewSilentWrapErrorf(util.ErrInvalidArgument, "no users to include provided")
+			return 0, util.ErrorWrap(util.ErrInvalidArgument, "no users to include provided")
 		}
 
 		cond = cond.And(builder.In("lower_name", include))
