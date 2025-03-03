@@ -75,7 +75,6 @@ func Base64InlineImages(body string, ctx *mailCommentContext) (string, error) {
 							log.Trace("attachmentSrcToDataURI not possible: %v", err) // Not an error, just skip. This is probably an image from outside the gitea instance.
 							continue
 						}
-						log.Trace("Old value of src attribute: %s, new value (first 100 characters): %s", attr.Val, dataURI[:100])
 						n.Attr[i].Val = dataURI
 						break
 					}
@@ -115,7 +114,7 @@ func AttachmentSrcToBase64DataURI(attachmentPath string, ctx *mailCommentContext
 	}
 
 	// "Doer" is theoretically not the correct permission check (as Doer created the action on which to send), but as this is batch processed the receipants can't be accessed.
-	// Therefore we check the Doer, with which we counter leaking information as a Doer brute force attack on attachments would be possible.
+	// Therefore, we check the Doer, with which we counter leaking information as a Doer brute force attack on attachments would be possible.
 	perm, err := access_model.GetUserRepoPermission(ctx, ctx.Issue.Repo, ctx.Doer)
 	if err != nil {
 		return "", err

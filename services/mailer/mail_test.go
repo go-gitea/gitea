@@ -23,7 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/services/attachment"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
@@ -55,23 +55,36 @@ const bodyTpl = `
 
 func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	mailService := setting.Mailer{
-		From: "test@gitea.com",
-	}
-
-	setting.MailService = &mailService
+	setting.MailService = &setting.Mailer{From: "test@gitea.com"}
 	setting.Domain = "localhost"
 	setting.AppURL = "https://try.gitea.io/"
 
 	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer})
 	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1, Repo: repo, Poster: doer})
-	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
 	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2, Issue: issue})
+	require.NoError(t, issue.LoadRepo(db.DefaultContext))
 	return doer, repo, issue, comment
 }
 
-func TestComposeIssueCommentMessage(t *testing.T) {
+func prepareMailerBase64Test(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, att *repo_model.Attachment) {
+	user, repo, issue, comment := prepareMailerTest(t)
+	setting.MailService.Base64EmbedImages = true
+	setting.MailService.Base64EmbedImagesMaxSizePerEmail = 10 * 1024 * 1024
+	att, err := attachment.NewAttachment(t.Context(), &repo_model.Attachment{
+		RepoID:     repo.ID,
+		IssueID:    issue.ID,
+		UploaderID: user.ID,
+		CommentID:  comment.ID,
+		Name:       "test.png",
+	}, bytes.NewReader([]byte("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a")), 8)
+	require.NoError(t, err)
+	issue.Content = fmt.Sprintf(`MSG-BEFORE <image src="attachments/%s"> MSG-AFTER`, att.UUID)
+	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "content"))
+	return user, repo, issue, att
+}
+
+func TestComposeIssueComment(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 
 	markup.Init(&markup.RenderHelperFuncs{
@@ -112,7 +125,8 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	assert.Len(t, gomailMsg.GetGenHeader("List-Unsubscribe"), 2) // url + mailto
 
 	var buf bytes.Buffer
-	gomailMsg.WriteTo(&buf)
+	_, err = gomailMsg.WriteTo(&buf)
+	require.NoError(t, err)
 
 	b, err := io.ReadAll(quotedprintable.NewReader(&buf))
 	assert.NoError(t, err)
@@ -407,9 +421,9 @@ func TestGenerateMessageIDForRelease(t *testing.T) {
 }
 
 func TestFromDisplayName(t *testing.T) {
-	template, err := texttmpl.New("mailFrom").Parse("{{ .DisplayName }}")
+	tmpl, err := texttmpl.New("mailFrom").Parse("{{ .DisplayName }}")
 	assert.NoError(t, err)
-	setting.MailService = &setting.Mailer{FromDisplayNameFormatTemplate: template}
+	setting.MailService = &setting.Mailer{FromDisplayNameFormatTemplate: tmpl}
 	defer func() { setting.MailService = nil }()
 
 	tests := []struct {
@@ -438,9 +452,9 @@ func TestFromDisplayName(t *testing.T) {
 	}
 
 	t.Run("template with all available vars", func(t *testing.T) {
-		template, err = texttmpl.New("mailFrom").Parse("{{ .DisplayName }} (by {{ .AppName }} on [{{ .Domain }}])")
+		tmpl, err = texttmpl.New("mailFrom").Parse("{{ .DisplayName }} (by {{ .AppName }} on [{{ .Domain }}])")
 		assert.NoError(t, err)
-		setting.MailService = &setting.Mailer{FromDisplayNameFormatTemplate: template}
+		setting.MailService = &setting.Mailer{FromDisplayNameFormatTemplate: tmpl}
 		oldAppName := setting.AppName
 		setting.AppName = "Code IT"
 		oldDomain := setting.Domain
@@ -455,20 +469,7 @@ func TestFromDisplayName(t *testing.T) {
 }
 
 func TestEmbedBase64ImagesInEmail(t *testing.T) {
-	doer, repo, _, _ := prepareMailerTest(t)
-	defer test.MockVariableValue(&setting.MailService.Base64EmbedImages, true)
-	defer test.MockVariableValue(&setting.MailService.Base64EmbedImagesMaxSizePerEmail, 10*1024*1024)
-
-	err := issues_model.NewIssue(t.Context(), repo, &issues_model.Issue{
-		Poster:  doer,
-		RepoID:  repo.ID,
-		Title:   "test issue attachment",
-		Content: `content including this image: <image alt="gitea.png" src="attachments/1b267670-1793-4cd0-abc1-449269b7cff9" /> with some more content behind it`,
-	}, nil, nil)
-	require.NoError(t, err)
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "test issue attachment"})
-	require.NoError(t, issue.LoadRepo(t.Context()))
-
+	doer, _, issue, _ := prepareMailerBase64Test(t)
 	subjectTemplates = texttmpl.Must(texttmpl.New("issue/new").Parse(subjectTpl))
 	bodyTemplates = template.Must(template.New("issue/new").Parse(bodyTpl))
 
@@ -480,52 +481,26 @@ func TestEmbedBase64ImagesInEmail(t *testing.T) {
 		ActionType: activities_model.ActionCreateIssue,
 		Content:    strings.ReplaceAll(issue.Content, `src="`, `src="`+setting.AppURL),
 	}, "en-US", recipients, false, "issue create")
+	require.NoError(t, err)
 
 	mailBody := msgs[0].Body
-	re := regexp.MustCompile(`(?s)<body>(.*?)</body>`)
+	re := regexp.MustCompile(`MSG-BEFORE.*MSG-AFTER`)
 	matches := re.FindStringSubmatch(mailBody)
-	if len(matches) > 1 {
-		mailBody = matches[1]
-	}
-	// check if the mail body was correctly generated
-	assert.NoError(t, err)
-	assert.Contains(t, mailBody, "content including this image")
-
-	// check if an image was embedded
-	assert.Contains(t, mailBody, "data:image/png;base64,")
-
-	// check if the image was embedded only once
-	assert.Equal(t, 1, strings.Count(mailBody, "data:image/png;base64,"))
-
-	img2InternalBase64 := "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAxAQMAAAB3d7wRAAAABlBMVEVgmyF6qkqITHmkAAAAAXRSTlMBN+Ho8AAAAJhJREFUKM+V0DsOwyAQBNCxXLjkCFwk0t7McDQfhS4tpQuEzWc/iaUU2eo1zC4DUMWYF3DxVKzGTXjBGb2RsjJEo6ZhN1Zj+cEgi/9hBQl3YflkkIsbo5IO5glKTuhPpavM3Hp4C7WdjEWYrL5GMkp/R+s4GPlh/CZn4MEwv9aHHiyD3ujm5X22eaMyDa5yAm+O0B1TPa1l3W2qZWMg+KgtAAAAAElFTkSuQmCC"
-
-	// check if the image was embedded correctly
-	assert.Contains(t, mailBody, img2InternalBase64)
+	require.NotEmpty(t, matches)
+	mailBody = matches[0]
+	assert.Equal(t, `MSG-BEFORE <img src="data:image/png;base64,iVBORw0KGgo="/> MSG-AFTER`, mailBody)
 }
 
 func TestEmbedBase64Images(t *testing.T) {
-	user, repo, _, _ := prepareMailerTest(t)
-	defer test.MockVariableValue(&setting.MailService.Base64EmbedImages, true)
-	defer test.MockVariableValue(&setting.MailService.Base64EmbedImagesMaxSizePerEmail, 10*1024*1024)
-
-	err := issues_model.NewIssue(t.Context(), repo, &issues_model.Issue{
-		Poster:  user,
-		RepoID:  repo.ID,
-		Title:   "test issue attachment",
-		Content: `content including this image: <image alt="gitea.png" src="attachments/1b267670-1793-4cd0-abc1-449269b7cff9" /> with some more content behind it`,
-	}, nil, nil)
-	require.NoError(t, err)
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "test issue attachment"})
-	require.NoError(t, issue.LoadRepo(t.Context()))
-	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 13, IssueID: issue.ID, RepoID: repo.ID})
+	user, repo, issue, att := prepareMailerBase64Test(t)
 	ctx := &mailCommentContext{Context: t.Context(), Issue: issue, Doer: user}
 
 	img1ExternalURL := "https://via.placeholder.com/10"
 	img1ExternalImg := "<img src=\"" + img1ExternalURL + "\"/>"
 
-	img2InternalURL := setting.AppURL + repo.Owner.Name + "/" + repo.Name + "/attachments/" + attachment.UUID
+	img2InternalURL := setting.AppURL + repo.Owner.Name + "/" + repo.Name + "/attachments/" + att.UUID
 	img2InternalImg := "<img src=\"" + img2InternalURL + "\"/>"
-	img2InternalBase64 := "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAxAQMAAAB3d7wRAAAABlBMVEVgmyF6qkqITHmkAAAAAXRSTlMBN+Ho8AAAAJhJREFUKM+V0DsOwyAQBNCxXLjkCFwk0t7McDQfhS4tpQuEzWc/iaUU2eo1zC4DUMWYF3DxVKzGTXjBGb2RsjJEo6ZhN1Zj+cEgi/9hBQl3YflkkIsbo5IO5glKTuhPpavM3Hp4C7WdjEWYrL5GMkp/R+s4GPlh/CZn4MEwv9aHHiyD3ujm5X22eaMyDa5yAm+O0B1TPa1l3W2qZWMg+KgtAAAAAElFTkSuQmCC"
+	img2InternalBase64 := "data:image/png;base64,iVBORw0KGgo="
 	img2InternalBase64Img := "<img src=\"" + img2InternalBase64 + "\"/>"
 
 	// 1st Test: convert internal image to base64
@@ -558,7 +533,7 @@ func TestEmbedBase64Images(t *testing.T) {
 
 	// 4th Test, generate email body with 2 internal images, but set Mailer.Base64EmbedImagesMaxSizePerEmail to the size of the first image (+1), expect the first image to be replaced and the second not
 	t.Run("generateEmailBodyWithMaxSize", func(t *testing.T) {
-		setting.MailService.Base64EmbedImagesMaxSizePerEmail = int64(len(img2InternalBase64) + 1)
+		setting.MailService.Base64EmbedImagesMaxSizePerEmail = 10
 
 		mailBody := "<html><head></head><body><p>Test1</p>" + img2InternalImg + "<p>Test2</p>" + img2InternalImg + "<p>Test3</p></body></html>"
 		expectedMailBody := "<html><head></head><body><p>Test1</p>" + img2InternalBase64Img + "<p>Test2</p>" + img2InternalImg + "<p>Test3</p></body></html>"
