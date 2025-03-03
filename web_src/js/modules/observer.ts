@@ -20,6 +20,9 @@ export function registerGlobalEventFunc<T extends HTMLElement, E extends Event>(
 
 // It handles the global init functions by a selector, for example:
 // > registerGlobalSelectorObserver('.ui.dropdown:not(.custom)', (el) => { initDropdown(el, ...) });
+// ATTENTION: For most cases, it's recommended to use registerGlobalInitFunc instead,
+// Because this selector-based approach is less efficient and less maintainable.
+// But if there are already a lot of elements on many pages, this selector-based approach is more convenient for exiting code.
 export function registerGlobalSelectorFunc(selector: string, handler: (el: HTMLElement) => void) {
   selectorHandlers.push({selector, handler});
   // Then initAddedElementObserver will call this handler for all existing elements after all handlers are added.
