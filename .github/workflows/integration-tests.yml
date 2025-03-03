@@ -47,7 +47,7 @@ jobs:
         run: |
          docker run --rm maias816/api_ui_tests:latest
 
-      - name: pull feature image
+      - name: pull feature image # pull and feature image
         run: |
           docker pull maias816/code-formatter:latest
       - name : run feature tests
