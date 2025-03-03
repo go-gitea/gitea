@@ -11,6 +11,7 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -309,7 +310,7 @@ func getPackagePayloadInfo(p *api.PackagePayload, linkFormatter linkFormatter, w
 }
 
 func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
-	refLink := linkFormatter(p.TargetURL, fmt.Sprintf("%s [%s]", p.Context, p.SHA[:7]))
+	refLink := linkFormatter(p.TargetURL, fmt.Sprintf("%s [%s]", p.Context, base.ShortSha(p.SHA)))
 
 	text = fmt.Sprintf("Commit Status changed: %s - %s", refLink, p.Description)
 	color = greenColor
