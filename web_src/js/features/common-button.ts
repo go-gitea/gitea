@@ -1,7 +1,6 @@
 import {POST} from '../modules/fetch.ts';
 import {addDelegatedEventListener, hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {camelize} from 'vue';
 
 export function initGlobalButtonClickOnEnter(): void {
@@ -75,10 +74,9 @@ export function initGlobalDeleteButton(): void {
   }
 }
 
-function onShowPanelClick(e: MouseEvent) {
+function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   // a '.show-panel' element can show a panel, by `data-panel="selector"`
   // if it has "toggle" class, it toggles the panel
-  const el = e.currentTarget as HTMLElement;
   e.preventDefault();
   const sel = el.getAttribute('data-panel');
   if (el.classList.contains('toggle')) {
@@ -88,9 +86,8 @@ function onShowPanelClick(e: MouseEvent) {
   }
 }
 
-function onHidePanelClick(e: MouseEvent) {
+function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
   // a `.hide-panel` element can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
-  const el = e.currentTarget as HTMLElement;
   e.preventDefault();
   let sel = el.getAttribute('data-panel');
   if (sel) {
@@ -105,7 +102,7 @@ function onHidePanelClick(e: MouseEvent) {
   throw new Error('no panel to hide'); // should never happen, otherwise there is a bug in code
 }
 
-function onShowModalClick(e: MouseEvent) {
+function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // A ".show-modal" button will show a modal dialog defined by its "data-modal" attribute.
   // Each "data-modal-{target}" attribute will be filled to target element's value or text-content.
   // * First, try to query '#target'
@@ -113,7 +110,6 @@ function onShowModalClick(e: MouseEvent) {
   // * Then, try to query '.target'
   // * Then, try to query 'target' as HTML tag
   // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
-  const el = e.currentTarget as HTMLElement;
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal');
   const elModal = document.querySelector(modalSelector);
@@ -161,7 +157,15 @@ export function initGlobalButtons(): void {
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
   addDelegatedEventListener(document, 'click', 'form button.ui.cancel.button', (_ /* el */, e) => e.preventDefault());
 
-  registerGlobalSelectorFunc('.show-panel', (el) => el.addEventListener('click', onShowPanelClick));
-  registerGlobalSelectorFunc('.hide-panel', (el) => el.addEventListener('click', onHidePanelClick));
-  registerGlobalSelectorFunc('.show-modal', (el) => el.addEventListener('click', onShowModalClick));
+  // Ideally these "button" events should be handled by registerGlobalEventFunc
+  // Refactoring would involve too many changes, so at the moment, just use the global event listener.
+  addDelegatedEventListener(document, 'click', '.show-panel, .hide-panel, .show-modal', (el, e: MouseEvent) => {
+    if (el.classList.contains('show-panel')) {
+      onShowPanelClick(el, e);
+    } else if (el.classList.contains('hide-panel')) {
+      onHidePanelClick(el, e);
+    } else if (el.classList.contains('show-modal')) {
+      onShowModalClick(el, e);
+    }
+  });
 }
