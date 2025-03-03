@@ -12,9 +12,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
+
+const mailRepoTransferNotify templates.TplName = "notify/repo_transfer"
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
 func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {

@@ -4,6 +4,7 @@
 package i18n
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"slices"
@@ -41,7 +42,7 @@ func NewLocaleStore() LocaleStore {
 // AddLocaleByIni adds locale by ini into the store
 func (store *localeStore) AddLocaleByIni(langName, langDesc string, source, moreSource []byte) error {
 	if _, ok := store.localeMap[langName]; ok {
-		return ErrLocaleAlreadyExist
+		return errors.New("lang has already been added")
 	}
 
 	store.langNames = append(store.langNames, langName)

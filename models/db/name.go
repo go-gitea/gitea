@@ -77,7 +77,7 @@ func (err ErrNameCharsNotAllowed) Unwrap() error {
 func IsUsableName(reservedNames, reservedPatterns []string, name string) error {
 	name = strings.TrimSpace(strings.ToLower(name))
 	if utf8.RuneCountInString(name) == 0 {
-		return util.SilentWrap{Message: "name is empty", Err: util.ErrInvalidArgument}
+		return util.NewInvalidArgumentErrorf("name is empty")
 	}
 
 	for i := range reservedNames {

@@ -18,24 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func fallbackMailSubject(issue *issues_model.Issue) string {
-	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
-}
-
-type mailCommentContext struct {
-	context.Context
-	Issue                 *issues_model.Issue
-	Doer                  *user_model.User
-	ActionType            activities_model.ActionType
-	Content               string
-	Comment               *issues_model.Comment
-	ForceDoerNotification bool
-}
-
-const (
-	// MailBatchSize set the batch size used in mailIssueCommentBatch
-	MailBatchSize = 100
-)
+const MailBatchSize = 100 // batch size used in mailIssueCommentBatch
 
 // mailIssueCommentToParticipants can be used for both new issue creation and comment.
 // This function sends two list of emails:
@@ -196,6 +179,44 @@ func MailParticipants(ctx context.Context, issue *issues_model.Issue, doer *user
 			ForceDoerNotification: forceDoerNotification,
 		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
+	}
+	return nil
+}
+
+// SendIssueAssignedMail composes and sends issue assigned email
+func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
+
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
+		return err
+	}
+
+	langMap := make(map[string][]*user_model.User)
+	for _, user := range recipients {
+		if !user.IsActive {
+			// don't send emails to inactive users
+			continue
+		}
+		langMap[user.Language] = append(langMap[user.Language], user)
+	}
+
+	for lang, tos := range langMap {
+		msgs, err := composeIssueCommentMessages(&mailCommentContext{
+			Context:    ctx,
+			Issue:      issue,
+			Doer:       doer,
+			ActionType: activities_model.ActionType(0),
+			Content:    content,
+			Comment:    comment,
+		}, lang, tos, false, "issue assigned")
+		if err != nil {
+			return err
+		}
+		SendAsync(msgs...)
 	}
 	return nil
 }

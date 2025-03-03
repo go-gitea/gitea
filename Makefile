@@ -73,6 +73,7 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
+GOTESTFLAGS ?= -vet=off
 ifeq ($(RACE_ENABLED),true)
 	GOFLAGS += -race
 	GOTESTFLAGS += -race
@@ -311,10 +312,10 @@ lint-frontend: lint-js lint-css ## lint frontend files
 lint-frontend-fix: lint-js-fix lint-css-fix ## lint frontend files and fix issues
 
 .PHONY: lint-backend
-lint-backend: lint-go lint-go-vet lint-go-gopls lint-editorconfig ## lint backend files
+lint-backend: lint-go lint-go-gitea-vet lint-go-gopls lint-editorconfig ## lint backend files
 
 .PHONY: lint-backend-fix
-lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig ## lint backend files and fix issues
+lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js files
@@ -365,9 +366,9 @@ lint-go-windows:
 	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
 	golangci-lint run
 
-.PHONY: lint-go-vet
-lint-go-vet: ## lint go files with vet
-	@echo "Running go vet..."
+.PHONY: lint-go-gitea-vet
+lint-go-gitea-vet: ## lint go files with gitea-vet
+	@echo "Running gitea-vet..."
 	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet ./...
 

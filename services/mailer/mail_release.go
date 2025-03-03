@@ -6,6 +6,7 @@ package mailer
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -18,9 +19,11 @@ import (
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
-const (
-	tplNewReleaseMail templates.TplName = "release"
-)
+const tplNewReleaseMail templates.TplName = "release"
+
+func generateMessageIDForRelease(release *repo_model.Release) string {
+	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
+}
 
 // MailNewRelease send new release notify to all repo watchers.
 func MailNewRelease(ctx context.Context, rel *repo_model.Release) {

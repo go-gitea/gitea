@@ -95,7 +95,7 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - run: make deps-backend deps-tools
-      - run: make lint-go-windows lint-go-vet
+      - run: make lint-go-windows lint-go-gitea-vet
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
           GOOS: windows

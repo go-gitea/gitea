@@ -141,14 +141,14 @@ func GetActionWorkflow(ctx *context.APIContext, workflowID string) (*api.ActionW
 
 func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) error {
 	if workflowID == "" {
-		return util.ErrWrapLocale(
+		return util.ErrorWrapLocale(
 			util.NewNotExistErrorf("workflowID is empty"),
 			"actions.workflow.not_found", workflowID,
 		)
 	}
 
 	if ref == "" {
-		return util.ErrWrapLocale(
+		return util.ErrorWrapLocale(
 			util.NewNotExistErrorf("ref is empty"),
 			"form.target_ref_not_exist", ref,
 		)
@@ -158,7 +158,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(workflowID) {
-		return util.ErrWrapLocale(
+		return util.ErrorWrapLocale(
 			util.NewPermissionDeniedErrorf("workflow is disabled"),
 			"actions.workflow.disabled",
 		)
@@ -177,7 +177,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		runTargetCommit, err = gitRepo.GetBranchCommit(ref)
 	}
 	if err != nil {
-		return util.ErrWrapLocale(
+		return util.ErrorWrapLocale(
 			util.NewNotExistErrorf("ref %q doesn't exist", ref),
 			"form.target_ref_not_exist", ref,
 		)
@@ -208,7 +208,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	if len(workflows) == 0 {
-		return util.ErrWrapLocale(
+		return util.ErrorWrapLocale(
 			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
 			"actions.workflow.not_found", workflowID,
 		)
