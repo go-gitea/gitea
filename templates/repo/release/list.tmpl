@@ -21,6 +21,7 @@
 								{{$compareTarget = $release.Sha1}}
 							{{end}}
 							{{template "repo/branch_dropdown" dict
+								"ContainerClasses" "release-branch-tag-selector"
 								"Repository" $.Repository
 								"ShowTabTags" true
 								"DropdownFixedText" (ctx.Locale.Tr "repo.release.compare")

@@ -22,8 +22,8 @@ import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 
 function initRepoBranchTagSelector() {
-  registerGlobalInitFunc('initRepoBranchTagSelector', async (el: HTMLInputElement) => {
-    createApp(RepoBranchTagSelector, {el}).mount(el);
+  registerGlobalInitFunc('initRepoBranchTagSelector', async (elRoot: HTMLInputElement) => {
+    createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
   });
 }
 
