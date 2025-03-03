@@ -294,21 +294,37 @@ type DiffInline struct {
 	Content      template.HTML
 }
 
-// DiffInlineWithUnicodeEscape makes a DiffInline with hidden unicode characters escaped
+// DiffInlineWithUnicodeEscape makes a DiffInline with hidden Unicode characters escaped
 func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) DiffInline {
 	status, content := charset.EscapeControlHTML(s, locale)
 	return DiffInline{EscapeStatus: status, Content: content}
+}
+
+func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *DiffLine, highlightLines map[int]template.HTML) template.HTML {
+	h, ok := highlightLines[lineIdx-1]
+	if ok {
+		return h
+	}
+	if diffLine.Content == "" {
+		return ""
+	}
+	if setting.Git.DisableDiffHighlight {
+		return template.HTML(html.EscapeString(diffLine.Content[1:]))
+	}
+
+	h, _ = highlight.Code(diffSection.Name, diffSection.file.Language, diffLine.Content[1:])
+	return h
 }
 
 func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
 	hcd := newHighlightCodeDiff()
 	var diff1, diff2, lineHTML template.HTML
 	if leftLine != nil {
-		diff1 = diffSection.file.highlightedOldLines[leftLine.LeftIdx-1]
+		diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, diffSection.file.highlightedOldLines)
 		lineHTML = util.Iif(diffLineType == DiffLinePlain, diff1, "")
 	}
 	if rightLine != nil {
-		diff2 = diffSection.file.highlightedNewLines[rightLine.RightIdx-1]
+		diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, diffSection.file.highlightedNewLines)
 		lineHTML = util.Iif(diffLineType == DiffLinePlain, diff2, "")
 	}
 	if diffLineType != DiffLinePlain {
@@ -322,11 +338,6 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, locale translation.Locale) DiffInline {
-	// FIXME: should check DisableDiffHighlight in other places, but not here
-	if setting.Git.DisableDiffHighlight {
-		return getLineContent(diffLine.Content[1:], locale)
-	}
-
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
@@ -373,8 +384,8 @@ type DiffFile struct {
 	IsSubmodule       bool // if IsSubmodule==true, then there must be a SubmoduleDiffInfo
 	SubmoduleDiffInfo *SubmoduleDiffInfo
 
-	highlightedOldLines []template.HTML
-	highlightedNewLines []template.HTML
+	highlightedOldLines map[int]template.HTML // TODO: in the future, we only need to store the related diff lines to save memory
+	highlightedNewLines map[int]template.HTML
 }
 
 // GetType returns type of diff file.
@@ -1250,8 +1261,16 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
-		diffFile.highlightedOldLines = highlightCodeLines(diffFile, limitedContent.LeftContent.buf.String())
-		diffFile.highlightedNewLines = highlightCodeLines(diffFile, limitedContent.RightContent.buf.String())
+		if !setting.Git.DisableDiffHighlight {
+			// FIXME: it's not right to highlight code here for all cases, because this function is also used for non-rendering purpose
+			// For example: API
+			if limitedContent.LeftContent != nil && limitedContent.LeftContent.buf.Len() < MaxDiffHighlightEntireFileSize {
+				diffFile.highlightedOldLines = highlightCodeLines(diffFile, limitedContent.LeftContent.buf.String())
+			}
+			if limitedContent.RightContent != nil && limitedContent.RightContent.buf.Len() < MaxDiffHighlightEntireFileSize {
+				diffFile.highlightedNewLines = highlightCodeLines(diffFile, limitedContent.RightContent.buf.String())
+			}
+		}
 	}
 
 	if opts.FileOnly {
@@ -1268,11 +1287,12 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	return diff, nil
 }
 
-func highlightCodeLines(diffFile *DiffFile, content string) (lines []template.HTML) {
+func highlightCodeLines(diffFile *DiffFile, content string) map[int]template.HTML {
 	highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, content)
 	splitLines := strings.Split(string(highlightedNewContent), "\n")
-	for _, line := range splitLines {
-		lines = append(lines, template.HTML(line))
+	lines := make(map[int]template.HTML, len(splitLines))
+	for i, line := range splitLines {
+		lines[i] = template.HTML(line)
 	}
 	return lines
 }
