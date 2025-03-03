@@ -245,8 +245,8 @@ func (m matrixConvertor) Package(p *api.PackagePayload) (MatrixPayload, error) {
 }
 
 func (m matrixConvertor) Status(p *api.CommitStatusPayload) (MatrixPayload, error) {
-	refLink := htmlLinkFormatter(p.TargetURL, p.Context+"["+p.SHA+"]:"+p.Description)
-	text := fmt.Sprintf("Commit Status changed: %s", refLink)
+	refLink := htmlLinkFormatter(p.TargetURL, fmt.Sprintf("%s [%s]", p.Context, p.SHA[:7]))
+	text := fmt.Sprintf("Commit Status changed: %s - %s", refLink, p.Description)
 
 	return m.newPayload(text)
 }
