@@ -1,6 +1,7 @@
 import {POST} from '../modules/fetch.ts';
 import {addDelegatedEventListener, hideElem, queryElems, showElem, toggleElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {camelize} from 'vue';
 
 export function initGlobalButtonClickOnEnter(): void {
@@ -160,7 +161,7 @@ export function initGlobalButtons(): void {
   // There are a few cancel buttons in non-modal forms, and there are some dynamically created forms (eg: the "Edit Issue Content")
   addDelegatedEventListener(document, 'click', 'form button.ui.cancel.button', (_ /* el */, e) => e.preventDefault());
 
-  queryElems(document, '.show-panel', (el) => el.addEventListener('click', onShowPanelClick));
-  queryElems(document, '.hide-panel', (el) => el.addEventListener('click', onHidePanelClick));
-  queryElems(document, '.show-modal', (el) => el.addEventListener('click', onShowModalClick));
+  registerGlobalSelectorFunc('.show-panel', (el) => el.addEventListener('click', onShowPanelClick));
+  registerGlobalSelectorFunc('.hide-panel', (el) => el.addEventListener('click', onHidePanelClick));
+  registerGlobalSelectorFunc('.show-modal', (el) => el.addEventListener('click', onShowModalClick));
 }
