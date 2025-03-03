@@ -38,12 +38,10 @@ var Git = struct {
 		Pull    int
 		GC      int `ini:"GC"`
 	} `ini:"git.timeout"`
-	MaxDiffHighlightFileSize int64
 }{
 	DisableDiffHighlight:      false,
 	MaxGitDiffLines:           1000,
 	MaxGitDiffLineCharacters:  5000,
-	MaxDiffHighlightFileSize:  5000,
 	MaxGitDiffFiles:           100,
 	CommitsRangeSize:          50,
 	BranchesRangeSize:         20,
