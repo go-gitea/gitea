@@ -1,7 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import {createCodeEditor} from './codeeditor.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
-import {initMarkupContent} from '../markup/content.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
@@ -200,6 +199,5 @@ export function initRepoEditor() {
 
 export function renderPreviewPanelContent(previewPanel: Element, content: string) {
   previewPanel.innerHTML = content;
-  initMarkupContent();
   attachRefIssueContextPopup(previewPanel.querySelectorAll('p .ref-issue'));
 }
