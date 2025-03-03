@@ -273,14 +273,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 		expectedFileResponse := getExpectedFileResponseForRepofilesCreate(commitID, lastCommit)
 		assert.NotNil(t, expectedFileResponse)
 		if expectedFileResponse != nil {
-			assert.EqualValues(t, expectedFileResponse.Content.Name, filesResponse.Files[0].Name)
-			assert.EqualValues(t, expectedFileResponse.Content.Path, filesResponse.Files[0].Path)
-			assert.EqualValues(t, expectedFileResponse.Content.SHA, filesResponse.Files[0].SHA)
-			assert.EqualValues(t, expectedFileResponse.Content.LastCommitSHA, filesResponse.Files[0].LastCommitSHA)
-			assert.EqualValues(t, expectedFileResponse.Content.LastCommitWhen, filesResponse.Files[0].LastCommitWhen)
-			assert.EqualValues(t, expectedFileResponse.Content.Type, filesResponse.Files[0].Type)
-			assert.EqualValues(t, expectedFileResponse.Content.Size, filesResponse.Files[0].Size)
-
+			assert.EqualValues(t, expectedFileResponse.Content, filesResponse.Files[0])
 			assert.EqualValues(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
 			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
