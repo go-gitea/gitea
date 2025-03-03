@@ -142,6 +142,11 @@ func TestAPIUpdateFile(t *testing.T) {
 			expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath, lasCommit.ID.String(), lasCommit.Committer.When)
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
+
+			// FIXME: This is a workaround to compare time.Time values. This maybe a bug of Golang,
+			// assume your local timezone is UTC, but a location with zero offset is not equal to UTC but they should be.
+			expectedFileResponse.Content.LastCommitWhen, _ = time.Parse(time.RFC3339, expectedFileResponse.Content.LastCommitWhen.Format(time.RFC3339))
+
 			assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
 			assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
 			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
