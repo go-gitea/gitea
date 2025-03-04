@@ -1085,10 +1085,6 @@ td .commit-summary {
   height: 30px;
 }
 
-.repository .diff-box .resolved-placeholder .button {
-  padding: 8px 12px;
-}
-
 .repository .diff-file-box .header {
   background-color: var(--color-box-header);
 }

@@ -41,7 +41,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	cmd := NewCommand(repo.Ctx, "check-attr", "-z")
+	cmd := NewCommand("check-attr", "-z")
 
 	if opts.AllAttributes {
 		cmd.AddArguments("-a")
@@ -59,7 +59,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	cmd.AddDashesAndList(opts.Filenames...)
 
-	if err := cmd.Run(&RunOpts{
+	if err := cmd.Run(repo.Ctx, &RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdout: stdOut,
@@ -122,7 +122,7 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 	}
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	c.cmd = NewCommand(c.ctx, "check-attr", "--stdin", "-z")
+	c.cmd = NewCommand("check-attr", "--stdin", "-z")
 
 	if len(c.IndexFile) > 0 {
 		c.cmd.AddArguments("--cached")
@@ -159,7 +159,7 @@ func (c *CheckAttributeReader) Run() error {
 		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
-	err := c.cmd.Run(&RunOpts{
+	err := c.cmd.Run(c.ctx, &RunOpts{
 		Env:    c.env,
 		Dir:    c.Repo.Path,
 		Stdin:  c.stdinReader,

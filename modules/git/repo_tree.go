@@ -33,7 +33,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := NewCommand(repo.Ctx, "commit-tree").AddDynamicArguments(tree.ID.String())
+	cmd := NewCommand("commit-tree").AddDynamicArguments(tree.ID.String())
 
 	for _, parent := range opts.Parents {
 		cmd.AddArguments("-p").AddDynamicArguments(parent)
@@ -53,7 +53,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err := cmd.Run(&RunOpts{
+	err := cmd.Run(repo.Ctx, &RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdin:  messageBytes,
