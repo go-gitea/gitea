@@ -6,6 +6,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"html/template"
@@ -16,9 +17,7 @@ import (
 	"strings"
 	texttmpl "text/template"
 
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -54,11 +53,20 @@ func sanitizeSubject(subject string) string {
 	return mime.QEncoding.Encode("utf-8", string(runes))
 }
 
-func Base64InlineImages(body string, ctx *mailCommentContext) (string, error) {
+type mailAttachmentBase64Embedder struct {
+	doer    *user_model.User
+	repo    *repo_model.Repository
+	maxSize int64
+}
+
+func newMailAttachmentBase64Embedder(doer *user_model.User, repo *repo_model.Repository, maxSize int64) *mailAttachmentBase64Embedder {
+	return &mailAttachmentBase64Embedder{doer: doer, repo: repo, maxSize: maxSize}
+}
+
+func (b64embedder *mailAttachmentBase64Embedder) Base64InlineImages(ctx context.Context, body string) (string, error) {
 	doc, err := html.Parse(strings.NewReader(body))
 	if err != nil {
-		log.Error("Failed to parse HTML body: %v", err)
-		return "", err
+		return "", fmt.Errorf("%w", err)
 	}
 
 	var totalEmbeddedImagesSize int64
@@ -70,7 +78,7 @@ func Base64InlineImages(body string, ctx *mailCommentContext) (string, error) {
 				for i, attr := range n.Attr {
 					if attr.Key == "src" {
 						attachmentPath := attr.Val
-						dataURI, err := AttachmentSrcToBase64DataURI(attachmentPath, ctx, &totalEmbeddedImagesSize)
+						dataURI, err := b64embedder.AttachmentSrcToBase64DataURI(ctx, attachmentPath, &totalEmbeddedImagesSize)
 						if err != nil {
 							log.Trace("attachmentSrcToDataURI not possible: %v", err) // Not an error, just skip. This is probably an image from outside the gitea instance.
 							continue
@@ -98,7 +106,7 @@ func Base64InlineImages(body string, ctx *mailCommentContext) (string, error) {
 	return buf.String(), nil
 }
 
-func AttachmentSrcToBase64DataURI(attachmentPath string, ctx *mailCommentContext, totalEmbeddedImagesSize *int64) (string, error) {
+func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ctx context.Context, attachmentPath string, totalEmbeddedImagesSize *int64) (string, error) {
 	if !strings.HasPrefix(attachmentPath, setting.AppURL) { // external image
 		return "", fmt.Errorf("external image")
 	}
@@ -113,14 +121,8 @@ func AttachmentSrcToBase64DataURI(attachmentPath string, ctx *mailCommentContext
 		return "", err
 	}
 
-	// "Doer" is theoretically not the correct permission check (as Doer created the action on which to send), but as this is batch processed the receipants can't be accessed.
-	// Therefore, we check the Doer, with which we counter leaking information as a Doer brute force attack on attachments would be possible.
-	perm, err := access_model.GetUserRepoPermission(ctx, ctx.Issue.Repo, ctx.Doer)
-	if err != nil {
-		return "", err
-	}
-	if !perm.CanRead(unit.TypeIssues) {
-		return "", fmt.Errorf("no permission")
+	if attachment.RepoID != b64embedder.repo.ID {
+		return "", fmt.Errorf("attachment does not belong to the repository")
 	}
 
 	fr, err := storage.Attachments.Open(attachment.RelativePath())
@@ -129,15 +131,13 @@ func AttachmentSrcToBase64DataURI(attachmentPath string, ctx *mailCommentContext
 	}
 	defer fr.Close()
 
-	maxSize := setting.MailService.Base64EmbedImagesMaxSizePerEmail // at maximum read the whole available combined email size, to prevent maliciously large file reads
-
-	lr := &io.LimitedReader{R: fr, N: maxSize + 1}
+	lr := &io.LimitedReader{R: fr, N: b64embedder.maxSize + 1}
 	content, err := io.ReadAll(lr)
 	if err != nil {
 		return "", err
 	}
-	if len(content) > int(maxSize) {
-		return "", fmt.Errorf("file size exceeds the embedded image max limit \\(%d bytes\\)", maxSize)
+	if int64(len(content)) > b64embedder.maxSize {
+		return "", fmt.Errorf("file size exceeds the embedded image max limit \\(%d bytes\\)", b64embedder.maxSize)
 	}
 
 	if *totalEmbeddedImagesSize+int64(len(content)) > setting.MailService.Base64EmbedImagesMaxSizePerEmail {
