@@ -11,9 +11,9 @@ function targetElement(el: Element): {target: Element, displayAsBlock: boolean} 
   };
 }
 
-export async function renderMath(): Promise<void> {
-  const els = document.querySelectorAll('.markup code.language-math');
-  if (!els.length) return;
+export async function initMarkupCodeMath(elMarkup: HTMLElement): Promise<void> {
+  const el = elMarkup.querySelector('code.language-math'); // .markup code.language-math'
+  if (!el) return;
 
   const [{default: katex}] = await Promise.all([
     import(/* webpackChunkName: "katex" */'katex'),
@@ -24,25 +24,23 @@ export async function renderMath(): Promise<void> {
   const MAX_SIZE = 25;
   const MAX_EXPAND = 1000;
 
-  for (const el of els) {
-    const {target, displayAsBlock} = targetElement(el);
-    if (target.hasAttribute('data-render-done')) continue;
-    const source = el.textContent;
+  const {target, displayAsBlock} = targetElement(el);
+  if (target.hasAttribute('data-render-done')) return;
+  const source = el.textContent;
 
-    if (source.length > MAX_CHARS) {
-      displayError(target, new Error(`Math source of ${source.length} characters exceeds the maximum allowed length of ${MAX_CHARS}.`));
-      continue;
-    }
-    try {
-      const tempEl = document.createElement(displayAsBlock ? 'p' : 'span');
-      katex.render(source, tempEl, {
-        maxSize: MAX_SIZE,
-        maxExpand: MAX_EXPAND,
-        displayMode: displayAsBlock, // katex: true for display (block) mode, false for inline mode
-      });
-      target.replaceWith(tempEl);
-    } catch (error) {
-      displayError(target, error);
-    }
+  if (source.length > MAX_CHARS) {
+    displayError(target, new Error(`Math source of ${source.length} characters exceeds the maximum allowed length of ${MAX_CHARS}.`));
+    return;
+  }
+  try {
+    const tempEl = document.createElement(displayAsBlock ? 'p' : 'span');
+    katex.render(source, tempEl, {
+      maxSize: MAX_SIZE,
+      maxExpand: MAX_EXPAND,
+      displayMode: displayAsBlock, // katex: true for display (block) mode, false for inline mode
+    });
+    target.replaceWith(tempEl);
+  } catch (error) {
+    displayError(target, error);
   }
 }

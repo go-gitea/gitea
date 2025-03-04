@@ -13,7 +13,7 @@
 			</h4>
 			<div class="ui bottom attached table unstackable segment">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
-				<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsPlainText}} plain-text{{else if .IsTextFile}} code-view{{end}}">
+				<div class="file-view {{if .IsPlainText}}plain-text{{else if .IsTextFile}}code-view{{end}}">
 					{{if .IsFileTooLarge}}
 						{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
 					{{else if not .FileSize}}
@@ -31,7 +31,7 @@
 									<strong>{{ctx.Locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 								</audio>
 							{{else if .IsPDFFile}}
-								<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "diff.view_file"}}"></div>
+								<div class="pdf-content is-loading" data-global-init="initPdfViewer" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "diff.view_file"}}"></div>
 							{{else}}
 								<a href="{{$.RawFileLink}}" rel="nofollow" class="tw-p-4">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 							{{end}}
