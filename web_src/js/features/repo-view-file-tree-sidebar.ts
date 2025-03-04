@@ -84,10 +84,13 @@ export function initViewFileTreeSidebar() {
     }});
     fileTreeView.mount(fileTree);
 
-    window.addEventListener('popstate', () => {
-      selectedItem.value = getSelectedPath(refString);
-      loadContent(el);
-    });
+    if (!window.popstateListenerForViewFilePageAdded) {
+      window.addEventListener('popstate', () => {
+        selectedItem.value = getSelectedPath(refString);
+        loadContent(el);
+      });
+      window.popstateListenerForViewFilePageAdded = true;
+    }
   });
 }
 
