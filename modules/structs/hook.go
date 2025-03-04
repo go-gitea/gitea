@@ -476,7 +476,7 @@ type WorkflowJobPayload struct {
 	WorkflowJob  *ActionWorkflowJob `json:"workflow_job"`
 	PullRequest  *PullRequest       `json:"pull_request,omitempty"`
 	Organization *Organization      `json:"organization,omitempty"`
-	Repository   *Repository        `json:"repository"`
+	Repo         *Repository        `json:"repository"`
 	Sender       *User              `json:"sender"`
 }
 

@@ -321,7 +321,7 @@ func (msteamsConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MSTeamsPayload, 
 	title, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
-		p.Repository,
+		p.Repo,
 		p.Sender,
 		title,
 		"",
