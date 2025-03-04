@@ -5,7 +5,7 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
 
 async function toggleSidebar(sidebarEl: HTMLElement, visibility: boolean) {
-  const showBtnEl = document.querySelector('.show-tree-sidebar-button');
+  const showBtnEl = sidebarEl.parentElement.querySelector('.show-tree-sidebar-button');
   const containerClassList = sidebarEl.parentElement.classList;
   containerClassList.toggle('repo-grid-tree-sidebar', visibility);
   containerClassList.toggle('repo-grid-filelist-only', !visibility);
@@ -22,28 +22,30 @@ async function toggleSidebar(sidebarEl: HTMLElement, visibility: boolean) {
   });
 }
 
-async function loadChildren(path: string, recursive?: boolean) {
-  const fileTree = document.querySelector('#view-file-tree');
-  const apiBaseUrl = fileTree.getAttribute('data-api-base-url');
-  const refTypeNameSubURL = fileTree.getAttribute('data-current-ref-type-name-sub-url');
-  const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${encodeURIComponent(path ?? '')}?recursive=${recursive ?? false}`);
-  const json = await response.json();
-  if (json instanceof Array) {
-    return json.map((i) => ({
-      name: i.name,
-      type: i.type,
-      path: i.path,
-      sub_module_url: i.sub_module_url,
-      children: i.children,
-    }));
-  }
-  return null;
+function childrenLoader(sidebarEl: HTMLElement) {
+  return async (path: string, recursive?: boolean) => {
+    const fileTree = sidebarEl.querySelector('#view-file-tree');
+    const apiBaseUrl = fileTree.getAttribute('data-api-base-url');
+    const refTypeNameSubURL = fileTree.getAttribute('data-current-ref-type-name-sub-url');
+    const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${encodeURIComponent(path ?? '')}?recursive=${recursive ?? false}`);
+    const json = await response.json();
+    if (json instanceof Array) {
+      return json.map((i) => ({
+        name: i.name,
+        type: i.type,
+        path: i.path,
+        sub_module_url: i.sub_module_url,
+        children: i.children,
+      }));
+    }
+    return null;
+  };
 }
 
 async function loadContent(sidebarEl: HTMLElement) {
   // load content by path (content based on home_content.tmpl)
   const response = await GET(`${window.location.href}?only_content=true`);
-  const contentEl = document.querySelector('.repo-home-filelist');
+  const contentEl = sidebarEl.parentElement.querySelector('.repo-home-filelist');
   contentEl.innerHTML = await response.text();
   reloadContentScript(sidebarEl, contentEl);
 }
@@ -56,14 +58,14 @@ function reloadContentScript(sidebarEl: HTMLElement, contentEl: Element) {
 
 export function initViewFileTreeSidebar() {
   registerGlobalInitFunc('initViewFileTreeSidebar', async (el: HTMLElement) => {
-    document.querySelector('.hide-tree-sidebar-button').addEventListener('click', () => {
+    el.querySelector('.hide-tree-sidebar-button').addEventListener('click', () => {
       toggleSidebar(el, false);
     });
-    document.querySelector('.repo-home-filelist .show-tree-sidebar-button').addEventListener('click', () => {
+    el.parentElement.querySelector('.repo-home-filelist .show-tree-sidebar-button').addEventListener('click', () => {
       toggleSidebar(el, true);
     });
 
-    const fileTree = document.querySelector('#view-file-tree');
+    const fileTree = el.querySelector('#view-file-tree');
     const baseUrl = fileTree.getAttribute('data-api-base-url');
     const treePath = fileTree.getAttribute('data-tree-path');
     const refType = fileTree.getAttribute('data-current-ref-type');
@@ -72,10 +74,10 @@ export function initViewFileTreeSidebar() {
 
     const selectedItem = ref(getSelectedPath(refString));
 
-    const files = await loadChildren(treePath, true);
+    const files = await childrenLoader(el)(treePath, true);
 
     fileTree.classList.remove('is-loading');
-    const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (path: string) => {
+    const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren: childrenLoader(el), loadContent: (path: string) => {
       selectedItem.value = getSelectedPath(refString, `${baseUrl}/src${refString}/${path}`);
       window.history.pushState(null, null, `${baseUrl}/src${refString}/${encodeURIComponent(path)}`);
       loadContent(el);
