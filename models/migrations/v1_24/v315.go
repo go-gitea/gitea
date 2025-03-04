@@ -30,7 +30,7 @@ func (s *Setting) TableName() string {
 }
 
 func MigrateIniToDatabase(x *xorm.Engine) error {
-	uiMap, err := util.ConfigSectionToMap(setting.UI, "ui")
+	uiMap, err := util.ConfigSectionToMap(setting.UI, "ui", []string{"Reactions", "CustomEmojis"}...)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,9 @@ func MigrateIniToDatabase(x *xorm.Engine) error {
 		return err
 	}
 
-	sess.Sync(new(Setting))
+	if err = sess.Sync(new(Setting)); err != nil {
+		return err
+	}
 
 	_ = getRevision(sess) // prepare the "revision" key ahead
 

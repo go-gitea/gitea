@@ -4,24 +4,24 @@
 package v1_24 //nolint
 
 import (
+	"context"
 	"testing"
 
-	"code.gitea.io/gitea/models/migrations/base"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_MigrateIniToDatabase(t *testing.T) {
-	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(Setting))
-	defer deferable()
-	if x == nil || t.Failed() {
-		return
+	if err := db.InitEngine(context.Background()); err != nil {
+		t.Fatal(err)
 	}
+	x := unittest.GetXORMEngine()
 
 	assert.NoError(t, MigrateIniToDatabase(x))
 
 	cnt, err := x.Table("system_setting").Where("setting_key LIKE 'ui.%'").Count()
 	assert.NoError(t, err)
-	assert.EqualValues(t, 23, cnt)
+	assert.EqualValues(t, 21, cnt)
 }

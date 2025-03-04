@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -260,7 +261,7 @@ func ReserveLineBreakForTextarea(input string) string {
 	return strings.ReplaceAll(input, "\r\n", "\n")
 }
 
-func ConfigSectionToMap(in any, keyPrefix string) (map[string]string, error) {
+func ConfigSectionToMap(in any, keyPrefix string, skipFields ...string) (map[string]string, error) {
 	if keyPrefix == "" {
 		return nil, fmt.Errorf("keyPrefix is empty")
 	}
@@ -278,6 +279,9 @@ func ConfigSectionToMap(in any, keyPrefix string) (map[string]string, error) {
 	for i := 0; i < v.NumField(); i++ {
 		fi := t.Field(i)
 		fieldName := fi.Name
+		if slices.Contains(skipFields, fieldName) {
+			continue
+		}
 		if tagValue := fi.Tag.Get("ini"); tagValue == "-" {
 			continue
 		} else if tagValue != "" {
