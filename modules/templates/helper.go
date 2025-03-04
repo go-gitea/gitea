@@ -116,10 +116,10 @@ func NewFuncMap() template.FuncMap {
 			return setting.Other.ShowFooterPoweredBy
 		},
 		"AllowedReactions": func() []string {
-			return setting.Config().UI.Reactions.Value(ctx)
+			return setting.UI.Reactions
 		},
 		"CustomEmojis": func() map[string]string {
-			return setting.Config().UI.CustomEmojisMap
+			return setting.UI.CustomEmojisMap
 		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author

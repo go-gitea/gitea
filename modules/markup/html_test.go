@@ -313,7 +313,7 @@ func TestRender_emoji(t *testing.T) {
 	test(
 		":custom-emoji:",
 		`<p>:custom-emoji:</p>`)
-	setting.Config().UI.CustomEmojisMap["custom-emoji"] = ":custom-emoji:"
+	setting.UI.CustomEmojisMap["custom-emoji"] = ":custom-emoji:"
 	test(
 		":custom-emoji:",
 		`<p><span class="emoji" aria-label="custom-emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span></p>`)

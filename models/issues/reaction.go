@@ -162,7 +162,7 @@ func FindIssueReactions(ctx context.Context, issueID int64, listOptions db.ListO
 func FindReactions(ctx context.Context, opts FindReactionsOptions) (ReactionList, int64, error) {
 	sess := db.GetEngine(ctx).
 		Where(opts.toConds()).
-		In("reaction.`type`", setting.Config().UI.Reactions.Value(ctx)).
+		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
@@ -220,7 +220,7 @@ type ReactionOptions struct {
 
 // CreateReaction creates reaction for issue or comment.
 func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
-	if !setting.Config().UI.ReactionsLookup.Contains(opts.Type) {
+	if !setting.UI.ReactionsLookup.Contains(opts.Type) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 

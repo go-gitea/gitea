@@ -29,8 +29,6 @@ type UIForm struct {
 	DefaultShowFullName      bool
 	DefaultTheme             string
 	Themes                   []string
-	Reactions                []string
-	CustomEmojis             []string
 	SearchRepoDescription    bool
 	OnlyShowRelevantRepos    bool
 	ExplorePagingDefaultSort string `binding:"In(recentupdate,alphabetically,reverselastlogin,newest,oldest)"`

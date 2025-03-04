@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting/config"
 )
@@ -71,10 +70,6 @@ type UIStruct struct {
 	DefaultShowFullName       *config.Value[bool]
 	DefaultTheme              *config.Value[string]
 	Themes                    *config.Value[[]string]
-	Reactions                 *config.Value[[]string]
-	ReactionsLookup           container.Set[string]
-	CustomEmojis              *config.Value[[]string]
-	CustomEmojisMap           map[string]string
 	SearchRepoDescription     *config.Value[bool]
 	OnlyShowRelevantRepos     *config.Value[bool]
 	ExploreDefaultSort        *config.Value[string]
@@ -83,19 +78,11 @@ type UIStruct struct {
 }
 
 func (u *UIStruct) ToStruct(ctx context.Context) UIForm {
-	var themes, reactions, customEmojis string
+	var themes string
 	for _, v := range u.Themes.Value(ctx) {
 		themes += v + ","
 	}
 	themes = strings.TrimSuffix(themes, ",")
-	for _, v := range u.Reactions.Value(ctx) {
-		reactions += v + ","
-	}
-	reactions = strings.TrimSuffix(reactions, ",")
-	for _, v := range u.CustomEmojis.Value(ctx) {
-		customEmojis += v + ","
-	}
-	customEmojis = strings.TrimSuffix(customEmojis, ",")
 	return UIForm{
 		ExplorePagingNum:              u.ExplorePagingNum.Value(ctx),
 		SitemapPagingNum:              u.SitemapPagingNum.Value(ctx),
@@ -113,8 +100,6 @@ func (u *UIStruct) ToStruct(ctx context.Context) UIForm {
 		DefaultShowFullName:           u.DefaultShowFullName.Value(ctx),
 		DefaultTheme:                  u.DefaultTheme.Value(ctx),
 		Themes:                        themes,
-		Reactions:                     reactions,
-		CustomEmojis:                  customEmojis,
 		SearchRepoDescription:         u.SearchRepoDescription.Value(ctx),
 		OnlyShowRelevantRepos:         u.OnlyShowRelevantRepos.Value(ctx),
 		ExplorePagingDefaultSort:      u.ExploreDefaultSort.Value(ctx),
@@ -142,8 +127,6 @@ type UIForm struct {
 	DefaultShowFullName           bool
 	DefaultTheme                  string
 	Themes                        string
-	Reactions                     string
-	CustomEmojis                  string
 	SearchRepoDescription         bool
 	OnlyShowRelevantRepos         bool
 	ExplorePagingDefaultSort      string
@@ -191,8 +174,6 @@ func initDefaultConfig() {
 			DefaultShowFullName:       config.ValueJSON[bool]("ui.default_show_full_name").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "DEFAULT_SHOW_FULL_NAME"}),
 			DefaultTheme:              config.ValueJSON[string]("ui.default_theme").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "DEFAULT_THEME"}),
 			Themes:                    config.ValueJSON[[]string]("ui.themes").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "THEMES"}),
-			Reactions:                 config.ValueJSON[[]string]("ui.reactions").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "REACTIONS"}),
-			CustomEmojis:              config.ValueJSON[[]string]("ui.custom_emojis").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "CUSTOM_EMOJIS"}),
 			SearchRepoDescription:     config.ValueJSON[bool]("ui.search_repo_description").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "SEARCH_REPO_DESCRIPTION"}),
 			OnlyShowRelevantRepos:     config.ValueJSON[bool]("ui.only_show_relevant_repos").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "ONLY_SHOW_RELEVANT_REPOS"}),
 			ExploreDefaultSort:        config.ValueJSON[string]("ui.explore_paging_default_sort").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "EXPLORE_PAGING_DEFAULT_SORT"}),
@@ -204,15 +185,6 @@ func initDefaultConfig() {
 
 func Config() *ConfigStruct {
 	defaultConfigOnce.Do(initDefaultConfig)
-	ctx := context.Background()
-	defaultConfig.UI.ReactionsLookup = make(container.Set[string])
-	for _, reaction := range defaultConfig.UI.Reactions.Value(ctx) {
-		defaultConfig.UI.ReactionsLookup.Add(reaction)
-	}
-	defaultConfig.UI.CustomEmojisMap = make(map[string]string)
-	for _, emoji := range defaultConfig.UI.CustomEmojis.Value(ctx) {
-		defaultConfig.UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
-	}
 	return defaultConfig
 }
 
