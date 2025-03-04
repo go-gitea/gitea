@@ -4,7 +4,6 @@
 package v1_24 //nolint
 
 import (
-	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -14,7 +13,7 @@ import (
 )
 
 func Test_MigrateIniToDatabase(t *testing.T) {
-	if err := db.InitEngine(context.Background()); err != nil {
+	if err := db.InitEngine(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	x := unittest.GetXORMEngine()
