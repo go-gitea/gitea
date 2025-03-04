@@ -21,7 +21,7 @@ func Test_MigrateIniToDatabase(t *testing.T) {
 
 	assert.NoError(t, MigrateIniToDatabase(x))
 
-	cnt, err := x.Table("system_setting").Where(`setting_key LIKE "ui.%"`).Count()
+	cnt, err := x.Table("system_setting").Where("setting_key LIKE 'ui.%'").Count()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 23, cnt)
 }
