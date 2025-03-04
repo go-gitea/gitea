@@ -202,12 +202,11 @@ jobs:
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
-    # specifying the version of ubuntu in use as mssql fails on newer kernels
-    # pending resolution from vendor
-    runs-on: ubuntu-20.04
+    # NOTE: mssql-2017 docker image will panic when run on hosts that have Ubuntu newer than 20.04
+    runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2017-latest
+        image: mcr.microsoft.com/mssql/server:2019-latest
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
