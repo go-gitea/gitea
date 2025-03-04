@@ -181,7 +181,7 @@ func (wc wechatworkConvertor) Status(p *api.CommitStatusPayload) (WechatworkPayl
 	return newWechatworkMarkdownPayload(text), nil
 }
 
-func (pc wechatworkConvertor) WorkflowJob(p *api.WorkflowJobPayload) (WechatworkPayload, error) {
+func (wc wechatworkConvertor) WorkflowJob(p *api.WorkflowJobPayload) (WechatworkPayload, error) {
 	text, _ := getWorkflowJobPayloadInfo(p, noneLinkFormatter, true)
 
 	return newWechatworkMarkdownPayload(text), nil
