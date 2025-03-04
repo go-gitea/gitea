@@ -26,7 +26,7 @@ async function loadChildren(path: string, recursive?: boolean) {
   const fileTree = document.querySelector('#view-file-tree');
   const apiBaseUrl = fileTree.getAttribute('data-api-base-url');
   const refTypeNameSubURL = fileTree.getAttribute('data-current-ref-type-name-sub-url');
-  const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${path ?? ''}?recursive=${recursive ?? false}`);
+  const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${encodeURIComponent(path ?? '')}?recursive=${recursive ?? false}`);
   const json = await response.json();
   if (json instanceof Array) {
     return json.map((i) => ({
@@ -49,7 +49,7 @@ async function loadContent(sidebarEl: HTMLElement) {
 }
 
 function reloadContentScript(sidebarEl: HTMLElement, contentEl: Element) {
-  contentEl.querySelector('.show-tree-sidebar-button').addEventListener('click', () => {
+  contentEl.querySelector('.show-tree-sidebar-button')?.addEventListener('click', () => {
     toggleSidebar(sidebarEl, true);
   });
 }
@@ -70,41 +70,26 @@ export function initViewFileTreeSidebar() {
     const refName = fileTree.getAttribute('data-current-ref-short-name');
     const refString = (refType ? (`/${refType}`) : '') + (refName ? (`/${refName}`) : '');
 
-    const selectedItem = ref(treePath);
+    const selectedItem = ref(getSelectedPath(refString));
 
     const files = await loadChildren(treePath, true);
 
     fileTree.classList.remove('is-loading');
     const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (path: string) => {
-      window.history.pushState(null, null, `${baseUrl}/src${refString}/${path}`);
-      selectedItem.value = path;
+      selectedItem.value = getSelectedPath(refString, `${baseUrl}/src${refString}/${path}`);
+      window.history.pushState(null, null, `${baseUrl}/src${refString}/${encodeURIComponent(path)}`);
       loadContent(el);
     }});
     fileTreeView.mount(fileTree);
 
     window.addEventListener('popstate', () => {
-      selectedItem.value = extractPath(window.location.href);
+      selectedItem.value = getSelectedPath(refString);
       loadContent(el);
     });
   });
 }
 
-function extractPath(url: string) {
-  // Create a URL object
-  const urlObj = new URL(url);
-
-  // Get the pathname part
-  const path = urlObj.pathname;
-
-  // Define a regular expression to match "/{param1}/{param2}/src/{branch}/{main}/"
-  const regex = /^\/[^/]+\/[^/]+\/src\/[^/]+\/[^/]+\//;
-
-  // Use RegExp#exec() method to match the path
-  const match = regex.exec(path);
-  if (match) {
-    return path.substring(match[0].length);
-  }
-
-  // If the path does not match, return the original path
-  return path;
+function getSelectedPath(ref: string, url?: string) {
+  const path = url ?? (new URL(window.location.href).pathname);
+  return path.substring(path.indexOf(ref) + ref.length + 1);
 }
