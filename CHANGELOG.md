@@ -4,6 +4,27 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.23.5](https://github.com/go-gitea/gitea/releases/tag/v1.23.5) - 2025-03-03
+
+* SECURITY
+  * Bump x/oauth2 & x/crypto (#33704) (#33727)
+* PERFORMANCE
+  * Optimize user dashboard loading (#33686) (#33708)
+* BUGFIXES
+  * Fix navbar dropdown item align (#33782)
+  * Fix inconsistent closed issue list icon (#33722) (#33728)
+  * Fix for Maven Package Naming Convention Handling (#33678) (#33679)
+  * Improve Open-with URL encoding (#33666) (#33680)
+  * Deleting repository should unlink all related packages (#33653) (#33673)
+  * Fix omitempty bug (#33663) (#33670)
+  * Upgrade go-crypto from 1.1.4 to 1.1.6 (#33745) (#33754)
+  * Fix OCI image.version annotation for releases to use full semver (#33698) (#33701)
+  * Try to fix ACME path when renew (#33668) (#33693)
+  * Fix mCaptcha bug (#33659) (#33661)
+  * Git graph: don't show detached commits (#33645) (#33650)
+  * Use MatchPhraseQuery for bleve code search (#33628)
+  * Adjust appearence of commit status webhook (#33778) #33789
+
 ## [1.23.4](https://github.com/go-gitea/gitea/releases/tag/v1.23.4) - 2025-02-16
 
 * SECURITY
