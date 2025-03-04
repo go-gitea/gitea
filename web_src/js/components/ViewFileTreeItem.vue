@@ -25,9 +25,12 @@ const doLoadChildren = async () => {
   collapsed.value = !collapsed.value;
   if (!collapsed.value && props.loadChildren) {
     isLoading.value = true;
-    const _children = await props.loadChildren(props.item.path);
-    children.value = _children;
-    isLoading.value = false;
+    try {
+      const _children = await props.loadChildren(props.item.path);
+      children.value = _children;
+    } finally {
+      isLoading.value = false;
+    }
   }
 };
 
