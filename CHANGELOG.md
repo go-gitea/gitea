@@ -23,6 +23,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix mCaptcha bug (#33659) (#33661)
   * Git graph: don't show detached commits (#33645) (#33650)
   * Use MatchPhraseQuery for bleve code search (#33628)
+  * Adjust appearence of commit status webhook (#33778) #33789
 
 ## [1.23.4](https://github.com/go-gitea/gitea/releases/tag/v1.23.4) - 2025-02-16
 
