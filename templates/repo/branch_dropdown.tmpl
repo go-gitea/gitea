@@ -14,7 +14,8 @@
 
 Search "repo/branch_dropdown" in the template directory to find all occurrences.
 */}}
-<div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}"
+<div class="{{if .ContainerClasses}}{{.ContainerClasses}}{{end}}"
+	data-global-init="initRepoBranchTagSelector"
 	data-text-release-compare="{{ctx.Locale.Tr "repo.release.compare"}}"
 	data-text-branches="{{ctx.Locale.Tr "repo.branches"}}"
 	data-text-tags="{{ctx.Locale.Tr "repo.tags"}}"
