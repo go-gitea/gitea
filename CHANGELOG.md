@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * PERFORMANCE
   * Optimize user dashboard loading (#33686) (#33708)
 * BUGFIXES
+  * Fix navbar dropdown item align (#33782)
   * Fix inconsistent closed issue list icon (#33722) (#33728)
   * Fix for Maven Package Naming Convention Handling (#33678) (#33679)
   * Improve Open-with URL encoding (#33666) (#33680)
