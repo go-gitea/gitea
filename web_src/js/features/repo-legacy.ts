@@ -1,3 +1,4 @@
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {
   initRepoCommentFormAndSidebar,
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
@@ -20,10 +21,10 @@ import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 
-function initRepoBranchTagSelector(selector: string) {
-  for (const elRoot of document.querySelectorAll(selector)) {
+function initRepoBranchTagSelector() {
+  registerGlobalInitFunc('initRepoBranchTagSelector', async (elRoot: HTMLInputElement) => {
     createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
-  }
+  });
 }
 
 export function initBranchSelectorTabs() {
@@ -42,7 +43,7 @@ export function initRepository() {
   const pageContent = document.querySelector('.page-content.repository');
   if (!pageContent) return;
 
-  initRepoBranchTagSelector('.js-branch-tag-selector');
+  initRepoBranchTagSelector();
   initRepoCommentFormAndSidebar();
 
   // Labels
