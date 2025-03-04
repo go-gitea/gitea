@@ -62,7 +62,7 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 	go func() {
 		stderr := strings.Builder{}
 		err := NewCommand("cat-file", "--batch-check").
-			Run(context.Background(), &RunOpts{
+			Run(ctx, &RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
