@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -245,8 +246,8 @@ func (m matrixConvertor) Package(p *api.PackagePayload) (MatrixPayload, error) {
 }
 
 func (m matrixConvertor) Status(p *api.CommitStatusPayload) (MatrixPayload, error) {
-	refLink := htmlLinkFormatter(p.TargetURL, p.Context+"["+p.SHA+"]:"+p.Description)
-	text := fmt.Sprintf("Commit Status changed: %s", refLink)
+	refLink := htmlLinkFormatter(p.TargetURL, fmt.Sprintf("%s [%s]", p.Context, base.ShortSha(p.SHA)))
+	text := fmt.Sprintf("Commit Status changed: %s - %s", refLink, p.Description)
 
 	return m.newPayload(text)
 }
