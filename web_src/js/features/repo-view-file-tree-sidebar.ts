@@ -1,10 +1,10 @@
 import {createApp, ref} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {GET, PUT} from '../modules/fetch.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
 
-async function toggleSidebar(visibility: boolean, isSigned: boolean) {
-  const sidebarEl = document.querySelector('.repo-view-file-tree-sidebar');
+async function toggleSidebar(sidebarEl: HTMLElement, visibility: boolean) {
   const showBtnEl = document.querySelector('.show-tree-sidebar-button');
   const containerClassList = sidebarEl.parentElement.classList;
   containerClassList.toggle('repo-grid-tree-sidebar', visibility);
@@ -12,7 +12,7 @@ async function toggleSidebar(visibility: boolean, isSigned: boolean) {
   toggleElem(sidebarEl, visibility);
   toggleElem(showBtnEl, !visibility);
 
-  if (!isSigned) return;
+  if (!sidebarEl.hasAttribute('data-is-signed')) return;
 
   // save to session
   await PUT('/repo/preferences', {
@@ -40,55 +40,52 @@ async function loadChildren(path: string, recursive?: boolean) {
   return null;
 }
 
-async function loadContent() {
+async function loadContent(sidebarEl: HTMLElement) {
   // load content by path (content based on home_content.tmpl)
   const response = await GET(`${window.location.href}?only_content=true`);
   const contentEl = document.querySelector('.repo-home-filelist');
   contentEl.innerHTML = await response.text();
-  reloadContentScript(contentEl);
+  reloadContentScript(sidebarEl, contentEl);
 }
 
-function reloadContentScript(contentEl: Element) {
+function reloadContentScript(sidebarEl: HTMLElement, contentEl: Element) {
   contentEl.querySelector('.show-tree-sidebar-button').addEventListener('click', () => {
-    toggleSidebar(true, document.querySelector('.repo-view-file-tree-sidebar').hasAttribute('data-is-signed'));
+    toggleSidebar(sidebarEl, true);
   });
 }
 
-export async function initViewFileTreeSidebar() {
-  const sidebarElement = document.querySelector('.repo-view-file-tree-sidebar');
-  if (!sidebarElement) return;
+export function initViewFileTreeSidebar() {
+  registerGlobalInitFunc('initViewFileTreeSidebar', async (el: HTMLElement) => {
+    document.querySelector('.hide-tree-sidebar-button').addEventListener('click', () => {
+      toggleSidebar(el, false);
+    });
+    document.querySelector('.repo-home-filelist .show-tree-sidebar-button').addEventListener('click', () => {
+      toggleSidebar(el, true);
+    });
 
-  const isSigned = sidebarElement.hasAttribute('data-is-signed');
+    const fileTree = document.querySelector('#view-file-tree');
+    const baseUrl = fileTree.getAttribute('data-api-base-url');
+    const treePath = fileTree.getAttribute('data-tree-path');
+    const refType = fileTree.getAttribute('data-current-ref-type');
+    const refName = fileTree.getAttribute('data-current-ref-short-name');
+    const refString = (refType ? (`/${refType}`) : '') + (refName ? (`/${refName}`) : '');
 
-  document.querySelector('.hide-tree-sidebar-button').addEventListener('click', () => {
-    toggleSidebar(false, isSigned);
-  });
-  document.querySelector('.repo-home-filelist .show-tree-sidebar-button').addEventListener('click', () => {
-    toggleSidebar(true, isSigned);
-  });
+    const selectedItem = ref(treePath);
 
-  const fileTree = document.querySelector('#view-file-tree');
-  const baseUrl = fileTree.getAttribute('data-api-base-url');
-  const treePath = fileTree.getAttribute('data-tree-path');
-  const refType = fileTree.getAttribute('data-current-ref-type');
-  const refName = fileTree.getAttribute('data-current-ref-short-name');
-  const refString = (refType ? (`/${refType}`) : '') + (refName ? (`/${refName}`) : '');
+    const files = await loadChildren(treePath, true);
 
-  const selectedItem = ref(treePath);
+    fileTree.classList.remove('is-loading');
+    const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (path: string) => {
+      window.history.pushState(null, null, `${baseUrl}/src${refString}/${path}`);
+      selectedItem.value = path;
+      loadContent(el);
+    }});
+    fileTreeView.mount(fileTree);
 
-  const files = await loadChildren(treePath, true);
-
-  fileTree.classList.remove('is-loading');
-  const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren, loadContent: (path: string) => {
-    window.history.pushState(null, null, `${baseUrl}/src${refString}/${path}`);
-    selectedItem.value = path;
-    loadContent();
-  }});
-  fileTreeView.mount(fileTree);
-
-  window.addEventListener('popstate', () => {
-    selectedItem.value = extractPath(window.location.href);
-    loadContent();
+    window.addEventListener('popstate', () => {
+      selectedItem.value = extractPath(window.location.href);
+      loadContent(el);
+    });
   });
 }
 

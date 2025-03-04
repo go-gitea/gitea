@@ -19,7 +19,7 @@
 
 		<div class="{{Iif $showSidebar "repo-grid-filelist-sidebar" (Iif .RepoPreferences.ShowFileViewTreeSidebar "repo-grid-tree-sidebar" "repo-grid-filelist-only")}}">
 			{{if .TreeNames}}
-				<div class="repo-view-file-tree-sidebar not-mobile {{if not .RepoPreferences.ShowFileViewTreeSidebar}}tw-hidden{{end}}" {{if .IsSigned}} data-is-signed {{end}}>{{template "repo/view_file_tree_sidebar" .}}</div>
+				<div class="repo-view-file-tree-sidebar not-mobile {{if not .RepoPreferences.ShowFileViewTreeSidebar}}tw-hidden{{end}}" data-global-init="initViewFileTreeSidebar" {{if .IsSigned}} data-is-signed {{end}}>{{template "repo/view_file_tree_sidebar" .}}</div>
 			{{end}}
 
 			<div class="repo-home-filelist">
