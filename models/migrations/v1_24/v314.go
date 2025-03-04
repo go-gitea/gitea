@@ -12,5 +12,11 @@ func AddEphemeralToActionRunner(x *xorm.Engine) error {
 		Ephemeral bool `xorm:"ephemeral"`
 	}
 
-	return x.Sync(new(ActionRunner))
+	if err := x.Sync(new(ActionRunner)); err != nil {
+		return err
+	}
+
+	// update all records to set ephemeral to false
+	_, err := x.Exec("UPDATE `action_runner` SET `ephemeral` = false WHERE `ephemeral` IS NULL")
+	return err
 }
