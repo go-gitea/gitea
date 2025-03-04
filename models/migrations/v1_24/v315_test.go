@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Ini2UI(t *testing.T) {
+func Test_MigrateIniToDatabase(t *testing.T) {
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0)
+	x, deferable := base.PrepareTestEnv(t, 0, new(Setting))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return

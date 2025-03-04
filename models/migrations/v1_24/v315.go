@@ -42,6 +42,8 @@ func MigrateIniToDatabase(x *xorm.Engine) error {
 		return err
 	}
 
+	sess.Sync(new(Setting))
+
 	_ = getRevision(sess) // prepare the "revision" key ahead
 
 	_, err = sess.Exec("UPDATE system_setting SET version=version+1 WHERE setting_key=?", keyRevision)
