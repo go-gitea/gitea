@@ -316,7 +316,7 @@ func runHookPostReceive(c *cli.Context) error {
 	setup(ctx, c.Bool("debug"))
 
 	// First of all run update-server-info no matter what
-	if _, _, err := git.NewCommand(ctx, "update-server-info").RunStdString(nil); err != nil {
+	if _, _, err := git.NewCommand("update-server-info").RunStdString(ctx, nil); err != nil {
 		return fmt.Errorf("Failed to call 'git update-server-info': %w", err)
 	}
 

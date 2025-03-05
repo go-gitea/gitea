@@ -1122,7 +1122,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	cmdCtx, cmdCancel := context.WithCancel(ctx)
 	defer cmdCancel()
 
-	cmdDiff := git.NewCommand(cmdCtx)
+	cmdDiff := git.NewCommand()
 	objectFormat, err := gitRepo.GetObjectFormat()
 	if err != nil {
 		return nil, err
@@ -1173,7 +1173,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 
 	go func() {
 		stderr := &bytes.Buffer{}
-		if err := cmdDiff.Run(&git.RunOpts{
+		if err := cmdDiff.Run(cmdCtx, &git.RunOpts{
 			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
 			Dir:     repoPath,
 			Stdout:  writer,
