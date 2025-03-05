@@ -120,6 +120,33 @@ jobs:
         with:
           name: jmeter-test-results
           path: reports/
+  
+  lighthouse-tests:
+    runs-on: ubuntu-latest
+    needs: [api-tests, selenium-tests, notification-service-tests] 
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Lighthouse CLI
+        run: npm install -g lighthouse
+
+      - name: Run Lighthouse Performance Audit
+        run: |
+          lighthouse https://fox-one-promptly.ngrok-free.app \
+            --output=json \
+            --output=html \
+            --output-path=./lighthouse.html \
+            --chrome-flags="--headless"
+
+      - name: Debug - List Files
+        run: ls -alh
+
+      - name: Upload Lighthouse Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: lighthouse-report.html
 
 
 
