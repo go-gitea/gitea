@@ -73,7 +73,7 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
-GOTESTFLAGS ?= -vet=off
+GOTESTFLAGS ?=
 ifeq ($(RACE_ENABLED),true)
 	GOFLAGS += -race
 	GOTESTFLAGS += -race
