@@ -160,7 +160,7 @@ func initDefaultConfig() {
 		UI: &UIStruct{
 			ExplorePagingNum:          config.ValueJSON[int]("ui.explore_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "EXPLORE_PAGING_NUM"}).WithDefault(20),
 			SitemapPagingNum:          config.ValueJSON[int]("ui.sitemap_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "SITEMAP_PAGING_NUM"}).WithDefault(20),
-			IssuePagingNum:            config.ValueJSON[int]("ui.issue_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "ISSUE_PAGING_NUM"}).WithDefault(5),
+			IssuePagingNum:            config.ValueJSON[int]("ui.issue_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "ISSUE_PAGING_NUM"}).WithDefault(20),
 			RepoSearchPagingNum:       config.ValueJSON[int]("ui.repo_search_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "REPO_SEARCH_PAGING_NUM"}).WithDefault(20),
 			MembersPagingNum:          config.ValueJSON[int]("ui.members_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "MEMBERS_PAGING_NUM"}).WithDefault(20),
 			FeedMaxCommitNum:          config.ValueJSON[int]("ui.feed_max_commit_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "FEED_MAX_COMMIT_NUM"}).WithDefault(20),

@@ -6,17 +6,18 @@ package v1_24 //nolint
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/models/migrations/base"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_MigrateIniToDatabase(t *testing.T) {
-	if err := db.InitEngine(t.Context()); err != nil {
-		t.Fatal(err)
+	// Prepare and load the testing database
+	x, deferable := base.PrepareTestEnv(t, 0, new(Setting))
+	defer deferable()
+	if x == nil || t.Failed() {
+		return
 	}
-	x := unittest.GetXORMEngine()
 
 	assert.NoError(t, MigrateIniToDatabase(x))
 
