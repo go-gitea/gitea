@@ -29,8 +29,8 @@ type WriteCloserError interface {
 // This is needed otherwise the git cat-file will hang for invalid repositories.
 func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
-	err := NewCommand(ctx, "rev-parse").
-		Run(&RunOpts{
+	err := NewCommand("rev-parse").
+		Run(ctx, &RunOpts{
 			Dir:    repoPath,
 			Stderr: &stderr,
 		})
@@ -61,8 +61,8 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(ctx, "cat-file", "--batch-check").
-			Run(&RunOpts{
+		err := NewCommand("cat-file", "--batch-check").
+			Run(ctx, &RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,
@@ -109,8 +109,8 @@ func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(ctx, "cat-file", "--batch").
-			Run(&RunOpts{
+		err := NewCommand("cat-file", "--batch").
+			Run(ctx, &RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
 				Stdout: batchStdoutWriter,

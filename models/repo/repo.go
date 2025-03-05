@@ -839,6 +839,9 @@ func GetRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
 func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repository, error) {
 	repos := make(map[int64]*Repository, len(ids))
+	if len(ids) == 0 {
+		return repos, nil
+	}
 	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 
