@@ -1,8 +1,9 @@
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {
   initRepoCommentFormAndSidebar,
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
-  initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
-  initRepoIssueTitleEdit, initRepoIssueWipToggle,
+  initRepoIssueComments, initRepoIssueReferenceIssue,
+  initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
   initRepoPullRequestUpdate,
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
@@ -20,10 +21,10 @@ import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 
-function initRepoBranchTagSelector(selector: string) {
-  for (const elRoot of document.querySelectorAll(selector)) {
+function initRepoBranchTagSelector() {
+  registerGlobalInitFunc('initRepoBranchTagSelector', async (elRoot: HTMLInputElement) => {
     createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
-  }
+  });
 }
 
 export function initBranchSelectorTabs() {
@@ -42,7 +43,7 @@ export function initRepository() {
   const pageContent = document.querySelector('.page-content.repository');
   if (!pageContent) return;
 
-  initRepoBranchTagSelector('.js-branch-tag-selector');
+  initRepoBranchTagSelector();
   initRepoCommentFormAndSidebar();
 
   // Labels
@@ -53,6 +54,7 @@ export function initRepository() {
   initRepoCloneButtons();
   initCitationFileCopyContent();
   initRepoSettings();
+  initRepoIssueWipNewTitle();
 
   // Issues
   if (pageContent.matches('.page-content.repository.view.issue')) {
@@ -66,7 +68,6 @@ export function initRepository() {
     initRepoIssueReferenceIssue();
 
     initRepoIssueCommentDelete();
-    initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoPullRequestUpdate();
     initCompReactionSelector();

@@ -45,7 +45,7 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 			return scanner.Err()
 		},
 	}
-	err = NewCommand(ctx, "ls-tree", "-r", "--", "HEAD").Run(opts)
+	err = NewCommand("ls-tree", "-r", "--", "HEAD").Run(ctx, opts)
 	if err != nil {
 		return nil, fmt.Errorf("GetTemplateSubmoduleCommits: error running git ls-tree: %v", err)
 	}
@@ -56,8 +56,8 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 // It is only for generating new repos based on existing template, requires the .gitmodules file to be already present in the work dir.
 func AddTemplateSubmoduleIndexes(ctx context.Context, repoPath string, submodules []TemplateSubmoduleCommit) error {
 	for _, submodule := range submodules {
-		cmd := NewCommand(ctx, "update-index", "--add", "--cacheinfo", "160000").AddDynamicArguments(submodule.Commit, submodule.Path)
-		if stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath}); err != nil {
+		cmd := NewCommand("update-index", "--add", "--cacheinfo", "160000").AddDynamicArguments(submodule.Commit, submodule.Path)
+		if stdout, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repoPath}); err != nil {
 			log.Error("Unable to add %s as submodule to repo %s: stdout %s\nError: %v", submodule.Path, repoPath, stdout, err)
 			return err
 		}

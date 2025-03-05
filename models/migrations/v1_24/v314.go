@@ -7,16 +7,13 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddEphemeralToActionRunner(x *xorm.Engine) error {
-	type ActionRunner struct {
-		Ephemeral bool `xorm:"ephemeral"`
-	}
-
-	if err := x.Sync(new(ActionRunner)); err != nil {
+func UpdateOwnerIDOfRepoLevelActionsTables(x *xorm.Engine) error {
+	if _, err := x.Exec("UPDATE `action_runner` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0"); err != nil {
 		return err
 	}
-
-	// update all records to set ephemeral to false
-	_, err := x.Exec("UPDATE `action_runner` SET `ephemeral` = false WHERE `ephemeral` IS NULL")
+	if _, err := x.Exec("UPDATE `action_variable` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0"); err != nil {
+		return err
+	}
+	_, err := x.Exec("UPDATE `secret` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0")
 	return err
 }
