@@ -57,6 +57,7 @@ function reloadContentScript(sidebarEl: HTMLElement, contentEl: Element) {
 }
 
 export function initViewFileTreeSidebar() {
+  let popstateListenerForViewFilePageAdded = false;
   registerGlobalInitFunc('initViewFileTreeSidebar', async (el: HTMLElement) => {
     el.querySelector('.hide-tree-sidebar-button').addEventListener('click', () => {
       toggleSidebar(el, false);
@@ -84,12 +85,12 @@ export function initViewFileTreeSidebar() {
     }});
     fileTreeView.mount(fileTree);
 
-    if (!window.popstateListenerForViewFilePageAdded) {
+    if (!popstateListenerForViewFilePageAdded) {
       window.addEventListener('popstate', () => {
         selectedItem.value = getSelectedPath(refString);
         loadContent(el);
       });
-      window.popstateListenerForViewFilePageAdded = true;
+      popstateListenerForViewFilePageAdded = true;
     }
   });
 }

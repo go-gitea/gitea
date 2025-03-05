@@ -74,6 +74,5 @@ interface Window {
   turnstile: any,
   hcaptcha: any,
   codeEditors: any[],
-  popstateListenerForViewFilePageAdded: boolean,
   updateCloneStates: () => void,
 }
