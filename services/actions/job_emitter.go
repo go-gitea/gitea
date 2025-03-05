@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
-	notifier "code.gitea.io/gitea/services/notify"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
@@ -76,7 +76,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 	CreateCommitStatus(ctx, jobs...)
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
-		notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 	return nil
 }

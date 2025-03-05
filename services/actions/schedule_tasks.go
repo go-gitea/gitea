@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-	notifier "code.gitea.io/gitea/services/notify"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -158,7 +158,7 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		log.Error("LoadAttributes: %v", err)
 	}
 	for _, job := range allJobs {
-		notifier.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
+		notify_service.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
 	}
 
 	// Return nil if no errors occurred

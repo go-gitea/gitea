@@ -33,7 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	actions_service "code.gitea.io/gitea/services/actions"
 	context_module "code.gitea.io/gitea/services/context"
-	notifier "code.gitea.io/gitea/services/notify"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
 	"xorm.io/builder"
@@ -460,7 +460,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 
 	actions_service.CreateCommitStatus(ctx, job)
 	_ = job.LoadAttributes(ctx)
-	notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 
 	return nil
 }
@@ -559,7 +559,7 @@ func Cancel(ctx *context_module.Context) {
 
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
-		notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 
 	ctx.JSON(http.StatusOK, struct{}{})
@@ -605,7 +605,7 @@ func Approve(ctx *context_module.Context) {
 
 	for _, job := range updatedjobs {
 		_ = job.LoadAttributes(ctx)
-		notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 
 	ctx.JSON(http.StatusOK, struct{}{})

@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	notifier "code.gitea.io/gitea/services/notify"
+	notify_service "code.gitea.io/gitea/services/notify"
 )
 
 // StopZombieTasks stops the task which have running status, but haven't been updated for a long time
@@ -71,7 +71,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 	CreateCommitStatus(ctx, jobs...)
 	for _, job := range jobs {
 		_ = job.LoadAttributes(ctx)
-		notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 	}
 	return nil
 }
@@ -103,7 +103,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		CreateCommitStatus(ctx, job)
 		if updated {
 			_ = job.LoadAttributes(ctx)
-			notifier.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
 	}
 
