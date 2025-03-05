@@ -200,6 +200,7 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
 	initAllLoggers()
+	checkForRemovedSettings(CfgProvider)
 
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
@@ -212,7 +213,6 @@ func LoadSettings() {
 	loadWebhookFrom(CfgProvider)
 	loadMigrationsFrom(CfgProvider)
 	loadIndexerFrom(CfgProvider)
-	loadTaskFrom(CfgProvider)
 	LoadQueueSettings()
 	loadProjectFrom(CfgProvider)
 	loadMimeTypeMapFrom(CfgProvider)

@@ -169,14 +169,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 
-	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
-	// if these are removed, the warning will not be shown
-	if sec.HasKey("ENABLE_ACME") {
-		EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
-	} else {
-		deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
-		EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
-	}
+	EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
 
 	Protocol = HTTP
 	protocolCfg := sec.Key("PROTOCOL").String()
@@ -191,29 +184,15 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
 
-			if sec.HasKey("ACME_ACCEPTTOS") {
-				AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
-			} else {
-				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS", "v1.19.0")
-				AcmeTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
-			}
+			AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
+
 			if !AcmeTOS {
 				log.Fatal("ACME TOS is not accepted (ACME_ACCEPTTOS).")
 			}
 
-			if sec.HasKey("ACME_DIRECTORY") {
-				AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
-			} else {
-				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY", "v1.19.0")
-				AcmeLiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
-			}
+			AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
 
-			if sec.HasKey("ACME_EMAIL") {
-				AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
-			} else {
-				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
-				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
-			}
+			AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
 			if AcmeEmail == "" {
 				log.Fatal("ACME Email is not set (ACME_EMAIL).")
 			}
