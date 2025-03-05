@@ -10,7 +10,6 @@ import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
-import {observeAddedElement} from '../modules/observer.ts';
 import {initGlobalDropdown} from './common-page.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
