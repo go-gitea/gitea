@@ -7,7 +7,6 @@ on:
 jobs:
   lighthouse-tests:
     runs-on: ubuntu-latest
-    needs: [api-tests, selenium-tests, notification-service-tests] 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
