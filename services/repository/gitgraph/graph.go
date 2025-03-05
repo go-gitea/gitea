@@ -22,7 +22,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 		page = 1
 	}
 
-	graphCmd := git.NewCommand(r.Ctx, "log", "--graph", "--date-order", "--decorate=full")
+	graphCmd := git.NewCommand("log", "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
 		graphCmd.AddArguments("--exclude=" + git.PullPrefix + "*")
@@ -53,7 +53,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 
 	scanner := bufio.NewScanner(stdoutReader)
 
-	if err := graphCmd.Run(&git.RunOpts{
+	if err := graphCmd.Run(r.Ctx, &git.RunOpts{
 		Dir:    r.Path,
 		Stdout: stdoutWriter,
 		Stderr: stderr,

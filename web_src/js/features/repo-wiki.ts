@@ -1,4 +1,3 @@
-import {initMarkupContent} from '../markup/content.ts';
 import {validateTextareaNonEmpty, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {fomanticMobileScreen} from '../modules/fomantic.ts';
 import {POST} from '../modules/fetch.ts';
@@ -31,8 +30,7 @@ async function initRepoWikiFormEditor() {
         const response = await POST(editor.previewUrl, {data: formData});
         const data = await response.text();
         lastContent = newContent;
-        previewTarget.innerHTML = `<div class="markup ui segment">${data}</div>`;
-        initMarkupContent();
+        previewTarget.innerHTML = `<div class="render-content markup ui segment">${data}</div>`;
       } catch (error) {
         console.error('Error rendering preview:', error);
       } finally {
