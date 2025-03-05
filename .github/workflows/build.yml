@@ -30,4 +30,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-report
-          path: reports/lighthouse.html
+          path: reports/lighthouse.report.html
+
