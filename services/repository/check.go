@@ -86,10 +86,10 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args git.TrustedCmdA
 // GitGcRepo calls 'git gc' to remove unnecessary files and optimize the local repository
 func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
 	log.Trace("Running git gc on %-v", repo)
-	command := git.NewCommand(ctx, "gc").AddArguments(args...)
+	command := git.NewCommand("gc").AddArguments(args...)
 	var stdout string
 	var err error
-	stdout, _, err = command.RunStdString(&git.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})
+	stdout, _, err = command.RunStdString(ctx, &git.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})
 	if err != nil {
 		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
 		desc := fmt.Sprintf("Repository garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)

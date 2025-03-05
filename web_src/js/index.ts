@@ -20,15 +20,8 @@ import {initStopwatch} from './features/stopwatch.ts';
 import {initFindFileInRepo} from './features/repo-findfile.ts';
 import {initMarkupContent} from './markup/content.ts';
 import {initPdfViewer} from './render/pdf.ts';
-
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
-import {
-  initRepoIssueReferenceRepositorySearch,
-  initRepoIssueWipTitle,
-  initRepoPullRequestMergeInstruction,
-  initRepoPullRequestAllowMaintainerEdit,
-  initRepoPullRequestReview, initRepoIssueSidebarList, initRepoIssueFilterItemLabel,
-} from './features/repo-issue.ts';
+import {initRepoPullRequestAllowMaintainerEdit, initRepoPullRequestReview, initRepoIssueSidebarDependency, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
 import {initAdminCommon} from './features/admin/common.ts';
@@ -137,13 +130,10 @@ onDomReady(() => {
     initRepoIssueContentHistory,
     initRepoIssueList,
     initRepoIssueFilterItemLabel,
-    initRepoIssueSidebarList,
-    initRepoIssueReferenceRepositorySearch,
-    initRepoIssueWipTitle,
+    initRepoIssueSidebarDependency,
     initRepoMigration,
     initRepoMigrationStatusChecker,
     initRepoProject,
-    initRepoPullRequestMergeInstruction,
     initRepoPullRequestAllowMaintainerEdit,
     initRepoPullRequestReview,
     initRepoRelease,

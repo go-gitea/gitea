@@ -11,7 +11,7 @@ import (
 
 // doMergeStyleMerge merges the tracking branch into the current HEAD - which is assumed to be the staging branch (equal to the pr.BaseBranch)
 func doMergeStyleMerge(ctx *mergeContext, message string) error {
-	cmd := git.NewCommand(ctx, "merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
+	cmd := git.NewCommand("merge", "--no-ff", "--no-commit").AddDynamicArguments(trackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleMerge, cmd); err != nil {
 		log.Error("%-v Unable to merge tracking into base: %v", ctx.pr, err)
 		return err

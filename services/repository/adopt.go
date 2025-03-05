@@ -90,8 +90,8 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
-		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+		if stdout, _, err := git.NewCommand("update-server-info").
+			RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}

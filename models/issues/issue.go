@@ -595,6 +595,9 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 // If keepOrder is true, the order of the returned issues will be the same as the given IDs.
 func GetIssuesByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (IssueList, error) {
 	issues := make([]*Issue, 0, len(issueIDs))
+	if len(issueIDs) == 0 {
+		return issues, nil
+	}
 
 	if err := db.GetEngine(ctx).In("id", issueIDs).Find(&issues); err != nil {
 		return nil, err

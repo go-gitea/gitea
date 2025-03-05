@@ -59,7 +59,7 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	actualCommitID, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
+	actualCommitID, _, err := NewCommand("rev-parse", "--verify").AddDynamicArguments(commitID).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	actualCommitID = strings.TrimSpace(actualCommitID)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||

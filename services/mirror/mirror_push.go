@@ -30,14 +30,14 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(addr, path string) error {
-		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push").AddDynamicArguments(m.RemoteName, addr)
-		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		cmd := git.NewCommand("remote", "add", "--mirror=push").AddDynamicArguments(m.RemoteName, addr)
+		if _, _, err := cmd.RunStdString(ctx, &git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, _, err := git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		if _, _, err := git.NewCommand("config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunStdString(ctx, &git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, _, err := git.NewCommand(ctx, "config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
+		if _, _, err := git.NewCommand("config", "--add").AddDynamicArguments("remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunStdString(ctx, &git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
 		return nil
@@ -61,15 +61,15 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
-	cmd := git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(m.RemoteName)
+	cmd := git.NewCommand("remote", "rm").AddDynamicArguments(m.RemoteName)
 	_ = m.GetRepository(ctx)
 
-	if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {
+	if _, _, err := cmd.RunStdString(ctx, &git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.WikiPath()}); err != nil {
+		if _, _, err := cmd.RunStdString(ctx, &git.RunOpts{Dir: m.Repo.WikiPath()}); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
 		}

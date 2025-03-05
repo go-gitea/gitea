@@ -67,8 +67,8 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, _, err := git.NewCommand(ctx, "clone").AddDynamicArguments(repoPath, tmpDir).
-		RunStdString(&git.RunOpts{Dir: "", Env: env}); err != nil {
+	if stdout, _, err := git.NewCommand("clone").AddDynamicArguments(repoPath, tmpDir).
+		RunStdString(ctx, &git.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git clone: %w", err)
 	}
@@ -299,8 +299,8 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
-		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+		if stdout, _, err := git.NewCommand("update-server-info").
+			RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			rollbackRepo = repo
 			rollbackRepo.OwnerID = u.ID
@@ -312,7 +312,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		if len(opts.License) > 0 {
 			licenses = append(licenses, ConvertLicenseName(opts.License))
 
-			stdout, _, err := git.NewCommand(ctx, "rev-parse", "HEAD").RunStdString(&git.RunOpts{Dir: repoPath})
+			stdout, _, err := git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 			if err != nil {
 				log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 				rollbackRepo = repo

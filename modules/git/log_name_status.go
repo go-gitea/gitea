@@ -34,7 +34,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 		_ = stdoutWriter.Close()
 	}
 
-	cmd := NewCommand(ctx)
+	cmd := NewCommand()
 	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
 
 	var files []string
@@ -64,7 +64,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 
 	go func() {
 		stderr := strings.Builder{}
-		err := cmd.Run(&RunOpts{
+		err := cmd.Run(ctx, &RunOpts{
 			Dir:    repository,
 			Stdout: stdoutWriter,
 			Stderr: &stderr,

@@ -153,9 +153,9 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string, sizes ...int) (pushedFil
 	t.Run("CommitAndPushLFS", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		prefix := "lfs-data-file-"
-		err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").Run(&git.RunOpts{Dir: dstPath})
+		err := git.NewCommand("lfs").AddArguments("install").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
-		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track").AddDynamicArguments(prefix + "*").RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err = git.NewCommand("lfs").AddArguments("track").AddDynamicArguments(prefix+"*").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
@@ -271,20 +271,20 @@ func lockTest(t *testing.T, repoPath string) {
 }
 
 func lockFileTest(t *testing.T, filename, repoPath string) {
-	_, _, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err := git.NewCommand("lfs").AddArguments("locks").RunStdString(git.DefaultContext, &git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock").AddDynamicArguments(filename).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand("lfs").AddArguments("lock").AddDynamicArguments(filename).RunStdString(git.DefaultContext, &git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand("lfs").AddArguments("locks").RunStdString(git.DefaultContext, &git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock").AddDynamicArguments(filename).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand("lfs").AddArguments("unlock").AddDynamicArguments(filename).RunStdString(git.DefaultContext, &git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
 }
 
 func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	_, _, err = git.NewCommand("push", "origin", "master").RunStdString(git.DefaultContext, &git.RunOpts{Dir: repoPath}) // Push
 	assert.NoError(t, err)
 	return name
 }
@@ -386,7 +386,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		// Try to force push without force push permissions, which should fail
 		t.Run("ForcePushWithoutForcePermissions", func(t *testing.T) {
 			t.Run("CreateDivergentHistory", func(t *testing.T) {
-				git.NewCommand(git.DefaultContext, "reset", "--hard", "HEAD~1").Run(&git.RunOpts{Dir: dstPath})
+				git.NewCommand("reset", "--hard", "HEAD~1").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 				_, err := generateCommitWithNewData(testFileSizeSmall, dstPath, "user2@example.com", "User Two", "branch-data-file-new")
 				assert.NoError(t, err)
 			})
@@ -785,7 +785,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 		})
 
 		t.Run("Push", func(t *testing.T) {
-			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic=" + headBranch).Run(&git.RunOpts{Dir: dstPath})
+			err := git.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic="+headBranch).Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			require.NoError(t, err)
 
 			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+1)
@@ -803,7 +803,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			assert.Contains(t, "Testing commit 1", prMsg.Body)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin").AddDynamicArguments("HEAD:refs/for/master/test/" + headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err = git.NewCommand("push", "origin").AddDynamicArguments("HEAD:refs/for/master/test/"+headBranch).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			require.NoError(t, err)
 
 			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
@@ -851,7 +851,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 		})
 
 		t.Run("Push2", func(t *testing.T) {
-			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic=" + headBranch).Run(&git.RunOpts{Dir: dstPath})
+			err := git.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").AddDynamicArguments("topic="+headBranch).Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			require.NoError(t, err)
 
 			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
@@ -861,7 +861,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			assert.False(t, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin").AddDynamicArguments("HEAD:refs/for/master/test/" + headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err = git.NewCommand("push", "origin").AddDynamicArguments("HEAD:refs/for/master/test/"+headBranch).RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			require.NoError(t, err)
 
 			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)

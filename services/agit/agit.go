@@ -182,9 +182,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		if !forcePush.Value() {
-			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
+			output, _, err := git.NewCommand("rev-list", "--max-count=1").
 				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
-				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
+				RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
 			if err != nil {
 				return nil, fmt.Errorf("failed to detect force push: %w", err)
 			} else if len(output) > 0 {

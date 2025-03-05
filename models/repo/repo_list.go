@@ -21,11 +21,6 @@ import (
 	"xorm.io/builder"
 )
 
-// FindReposMapByIDs find repos as map
-func FindReposMapByIDs(ctx context.Context, repoIDs []int64, res map[int64]*Repository) error {
-	return db.GetEngine(ctx).In("id", repoIDs).Find(&res)
-}
-
 // RepositoryListDefaultPageSize is the default number of repositories
 // to load in memory when running administrative tasks on all (or almost
 // all) of them.

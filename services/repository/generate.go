@@ -236,8 +236,8 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return err
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
-		RunStdString(&git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
+	if stdout, _, err := git.NewCommand("remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
+		RunStdString(ctx, &git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git remote add: %w", err)
 	}
@@ -371,8 +371,8 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return generateRepo, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+	if stdout, _, err := git.NewCommand("update-server-info").
+		RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
 		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
 		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %w", err)
 	}

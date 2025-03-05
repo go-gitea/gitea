@@ -8,7 +8,7 @@
 		<div class="item-section-right">
 			{{if and $.UpdateAllowed $.UpdateByRebaseAllowed}}
 				<div class="tw-inline-block">
-					<div class="ui buttons update-button">
+					<div id="update-pr-branch-with-base" class="ui buttons">
 						<button class="ui button" data-do="{{$.Link}}/update" data-redirect="{{$.Link}}">
 							<span class="button-text">
 								{{ctx.Locale.Tr "repo.pulls.update_branch"}}

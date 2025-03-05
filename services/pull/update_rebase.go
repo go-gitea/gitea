@@ -27,7 +27,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	defer cancel()
 
 	// Determine the old merge-base before the rebase - we use this for LFS push later on
-	oldMergeBase, _, _ := git.NewCommand(ctx, "merge-base").AddDashesAndList(baseBranch, trackingBranch).RunStdString(&git.RunOpts{Dir: mergeCtx.tmpBasePath})
+	oldMergeBase, _, _ := git.NewCommand("merge-base").AddDashesAndList(baseBranch, trackingBranch).RunStdString(ctx, &git.RunOpts{Dir: mergeCtx.tmpBasePath})
 	oldMergeBase = strings.TrimSpace(oldMergeBase)
 
 	// Rebase the tracking branch on to the base as the staging branch
@@ -62,7 +62,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		headUser = pr.HeadRepo.Owner
 	}
 
-	pushCmd := git.NewCommand(ctx, "push", "-f", "head_repo").
+	pushCmd := git.NewCommand("push", "-f", "head_repo").
 		AddDynamicArguments(stagingBranch + ":" + git.BranchPrefix + pr.HeadBranch)
 
 	// Push back to the head repository.
@@ -71,7 +71,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	mergeCtx.outbuf.Reset()
 	mergeCtx.errbuf.Reset()
 
-	if err := pushCmd.Run(&git.RunOpts{
+	if err := pushCmd.Run(ctx, &git.RunOpts{
 		Env: repo_module.FullPushingEnvironment(
 			headUser,
 			doer,

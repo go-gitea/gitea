@@ -9,10 +9,10 @@ import (
 
 // LineBlame returns the latest commit at the given line
 func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Commit, error) {
-	res, _, err := NewCommand(repo.Ctx, "blame").
+	res, _, err := NewCommand("blame").
 		AddOptionFormat("-L %d,%d", line, line).
 		AddOptionValues("-p", revision).
-		AddDashesAndList(file).RunStdString(&RunOpts{Dir: path})
+		AddDashesAndList(file).RunStdString(repo.Ctx, &RunOpts{Dir: path})
 	if err != nil {
 		return nil, err
 	}

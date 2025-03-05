@@ -60,7 +60,7 @@ func DefaultFeatures() *Features {
 }
 
 func loadGitVersionFeatures() (*Features, error) {
-	stdout, _, runErr := NewCommand(DefaultContext, "version").RunStdString(nil)
+	stdout, _, runErr := NewCommand("version").RunStdString(DefaultContext, nil)
 	if runErr != nil {
 		return nil, runErr
 	}

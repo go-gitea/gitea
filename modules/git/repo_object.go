@@ -68,13 +68,13 @@ func (repo *Repository) HashObject(reader io.Reader) (ObjectID, error) {
 func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) {
 	var cmd *Command
 	if save {
-		cmd = NewCommand(repo.Ctx, "hash-object", "-w", "--stdin")
+		cmd = NewCommand("hash-object", "-w", "--stdin")
 	} else {
-		cmd = NewCommand(repo.Ctx, "hash-object", "--stdin")
+		cmd = NewCommand("hash-object", "--stdin")
 	}
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err := cmd.Run(&RunOpts{
+	err := cmd.Run(repo.Ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdin:  reader,
 		Stdout: stdout,

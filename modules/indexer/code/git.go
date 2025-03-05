@@ -16,7 +16,7 @@ import (
 )
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
-	stdout, _, err := git.NewCommand(ctx, "show-ref", "-s").AddDynamicArguments(git.BranchPrefix + repo.DefaultBranch).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+	stdout, _, err := git.NewCommand("show-ref", "-s").AddDynamicArguments(git.BranchPrefix+repo.DefaultBranch).RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if err != nil {
 		return "", err
 	}
@@ -32,8 +32,8 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision s
 
 	needGenesis := len(status.CommitSha) == 0
 	if !needGenesis {
-		hasAncestorCmd := git.NewCommand(ctx, "merge-base").AddDynamicArguments(status.CommitSha, revision)
-		stdout, _, _ := hasAncestorCmd.RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		hasAncestorCmd := git.NewCommand("merge-base").AddDynamicArguments(status.CommitSha, revision)
+		stdout, _, _ := hasAncestorCmd.RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 		needGenesis = len(stdout) == 0
 	}
 
@@ -86,7 +86,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]internal.FileUpdate, error) {
 // genesisChanges get changes to add repo to the indexer for the first time
 func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*internal.RepoChanges, error) {
 	var changes internal.RepoChanges
-	stdout, _, runErr := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision).RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
+	stdout, _, runErr := git.NewCommand("ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -98,8 +98,8 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 
 // nonGenesisChanges get changes since the previous indexer update
 func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*internal.RepoChanges, error) {
-	diffCmd := git.NewCommand(ctx, "diff", "--name-status").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
-	stdout, _, runErr := diffCmd.RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+	diffCmd := git.NewCommand("diff", "--name-status").AddDynamicArguments(repo.CodeIndexerStatus.CommitSha, revision)
+	stdout, _, runErr := diffCmd.RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if runErr != nil {
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
@@ -115,9 +115,9 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	updatedFilenames := make([]string, 0, 10)
 
 	updateChanges := func() error {
-		cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
+		cmd := git.NewCommand("ls-tree", "--full-tree", "-l").AddDynamicArguments(revision).
 			AddDashesAndList(updatedFilenames...)
-		lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
+		lsTreeStdout, _, err := cmd.RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return err
 		}

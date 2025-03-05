@@ -488,7 +488,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 	if pr.Head.CloneURL == "" || pr.Head.Ref == "" {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = git.NewCommand(ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -518,7 +518,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 	if !ok {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = git.NewCommand(ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -553,7 +553,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 			fetchArg = git.BranchPrefix + fetchArg
 		}
 
-		_, _, err = git.NewCommand(ctx, "fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+		_, _, err = git.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
 		if err != nil {
 			log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 			// We need to continue here so that the Head.Ref is reset and we attempt to set the gitref for the PR
@@ -577,7 +577,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 		pr.Head.SHA = headSha
 	}
 	if pr.Head.SHA != "" {
-		_, _, err = git.NewCommand(ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+		_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
 		if err != nil {
 			log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 		}
