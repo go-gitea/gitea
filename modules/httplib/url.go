@@ -102,25 +102,77 @@ func MakeAbsoluteURL(ctx context.Context, link string) string {
 	return GuessCurrentHostURL(ctx) + "/" + strings.TrimPrefix(link, "/")
 }
 
-func IsCurrentGiteaSiteURL(ctx context.Context, s string) bool {
+type urlType int
+
+const (
+	urlTypeGiteaAbsolute     urlType = iota + 1 // "http://gitea/subpath"
+	urlTypeGiteaPageRelative                    // "/subpath"
+	urlTypeGiteaSiteRelative                    // "?key=val"
+	urlTypeUnknown                              // "http://other"
+)
+
+func detectURLRoutePath(ctx context.Context, s string) (routePath string, ut urlType) {
 	u, err := url.Parse(s)
 	if err != nil {
-		return false
+		return "", urlTypeUnknown
 	}
+	cleanedPath := ""
 	if u.Path != "" {
-		cleanedPath := util.PathJoinRelX(u.Path)
-		if cleanedPath == "" || cleanedPath == "." {
-			u.Path = "/"
-		} else {
-			u.Path = "/" + cleanedPath + "/"
-		}
+		cleanedPath = util.PathJoinRelX(u.Path)
+		cleanedPath = util.Iif(cleanedPath == ".", "", "/"+cleanedPath)
 	}
 	if urlIsRelative(s, u) {
-		return u.Path == "" || strings.HasPrefix(strings.ToLower(u.Path), strings.ToLower(setting.AppSubURL+"/"))
+		if u.Path == "" {
+			return "", urlTypeGiteaPageRelative
+		}
+		if strings.HasPrefix(strings.ToLower(cleanedPath+"/"), strings.ToLower(setting.AppSubURL+"/")) {
+			return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaSiteRelative
+		}
+		return "", urlTypeUnknown
 	}
-	if u.Path == "" {
-		u.Path = "/"
-	}
+	u.Path = cleanedPath + "/"
 	urlLower := strings.ToLower(u.String())
-	return strings.HasPrefix(urlLower, strings.ToLower(setting.AppURL)) || strings.HasPrefix(urlLower, strings.ToLower(GuessCurrentAppURL(ctx)))
+	if strings.HasPrefix(urlLower, strings.ToLower(setting.AppURL)) {
+		return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaAbsolute
+	}
+	guessedCurURL := GuessCurrentAppURL(ctx)
+	if strings.HasPrefix(urlLower, strings.ToLower(guessedCurURL)) {
+		return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaAbsolute
+	}
+	return "", urlTypeUnknown
+}
+
+func IsCurrentGiteaSiteURL(ctx context.Context, s string) bool {
+	_, ut := detectURLRoutePath(ctx, s)
+	return ut != urlTypeUnknown
+}
+
+type GiteaSiteURL struct {
+	RoutePath   string
+	OwnerName   string
+	RepoName    string
+	RepoSubPath string
+}
+
+func ParseGiteaSiteURL(ctx context.Context, s string) *GiteaSiteURL {
+	routePath, ut := detectURLRoutePath(ctx, s)
+	if ut == urlTypeUnknown || ut == urlTypeGiteaPageRelative {
+		return nil
+	}
+	ret := &GiteaSiteURL{RoutePath: routePath}
+	fields := strings.SplitN(strings.TrimPrefix(ret.RoutePath, "/"), "/", 3)
+
+	// TODO: now it only does a quick check for some known reserved paths, should do more strict checks in the future
+	if fields[0] == "attachments" {
+		return ret
+	}
+	if len(fields) < 2 {
+		return ret
+	}
+	ret.OwnerName = fields[0]
+	ret.RepoName = fields[1]
+	if len(fields) == 3 {
+		ret.RepoSubPath = "/" + fields[2]
+	}
+	return ret
 }
