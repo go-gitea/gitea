@@ -131,7 +131,6 @@ func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ct
 	if attachment.Size+b64embedder.estimateSize > b64embedder.maxSize {
 		return "", fmt.Errorf("total embedded images exceed max limit")
 	}
-	b64embedder.estimateSize += attachment.Size
 
 	fr, err := storage.Attachments.Open(attachment.RelativePath())
 	if err != nil {
@@ -152,6 +151,7 @@ func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ct
 
 	encoded := base64.StdEncoding.EncodeToString(content)
 	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType.GetMimeType(), encoded)
+	b64embedder.estimateSize += int64(len(dataURI))
 	return dataURI, nil
 }
 
