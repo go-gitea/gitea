@@ -502,11 +502,11 @@ func TestEmbedBase64Images(t *testing.T) {
 	att2ImgBase64 := fmt.Sprintf(`<img src="%s"/>`, att2Base64)
 
 	t.Run("ComposeMessage", func(t *testing.T) {
-		issue.Content = fmt.Sprintf(`MSG-BEFORE <image src="attachments/%s"> MSG-AFTER`, att1.UUID)
-		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "content"))
-
 		subjectTemplates = texttmpl.Must(texttmpl.New("issue/new").Parse(subjectTpl))
 		bodyTemplates = template.Must(template.New("issue/new").Parse(bodyTpl))
+
+		issue.Content = fmt.Sprintf(`MSG-BEFORE <image src="attachments/%s"> MSG-AFTER`, att1.UUID)
+		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "content"))
 
 		recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 		msgs, err := composeIssueCommentMessages(&mailCommentContext{
@@ -514,15 +514,11 @@ func TestEmbedBase64Images(t *testing.T) {
 			Issue:      issue,
 			Doer:       user,
 			ActionType: activities_model.ActionCreateIssue,
-			Content:    issue.Content, // strings.ReplaceAll(issue.Content, `src="`, `src="`+setting.AppURL),
+			Content:    issue.Content,
 		}, "en-US", recipients, false, "issue create")
 		require.NoError(t, err)
 
 		mailBody := msgs[0].Body
-		re := regexp.MustCompile(`MSG-BEFORE.*MSG-AFTER`)
-		matches := re.FindStringSubmatch(mailBody)
-		require.NotEmpty(t, matches)
-		mailBody = matches[0]
 		assert.Regexp(t, `MSG-BEFORE <a[^>]+><img src="data:image/png;base64,iVBORw0KGgo="/></a> MSG-AFTER`, mailBody)
 	})
 
