@@ -2,8 +2,8 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {
   initRepoCommentFormAndSidebar,
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
-  initRepoIssueComments, initRepoIssueDependencyDelete, initRepoIssueReferenceIssue,
-  initRepoIssueTitleEdit, initRepoIssueWipToggle,
+  initRepoIssueComments, initRepoIssueReferenceIssue,
+  initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
   initRepoPullRequestUpdate,
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
@@ -54,6 +54,7 @@ export function initRepository() {
   initRepoCloneButtons();
   initCitationFileCopyContent();
   initRepoSettings();
+  initRepoIssueWipNewTitle();
 
   // Issues
   if (pageContent.matches('.page-content.repository.view.issue')) {
@@ -67,7 +68,6 @@ export function initRepository() {
     initRepoIssueReferenceIssue();
 
     initRepoIssueCommentDelete();
-    initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoPullRequestUpdate();
     initCompReactionSelector();
