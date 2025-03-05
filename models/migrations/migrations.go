@@ -374,6 +374,7 @@ func prepareMigrationTasks() []*migration {
 		// Gitea 1.23.0-rc0 ends at migration ID number 311 (database version 312)
 		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_24.AddDeleteBranchAfterMergeForAutoMerge),
 		newMigration(313, "Move PinOrder from issue table to a new table issue_pin", v1_24.MovePinOrderToTableIssuePin),
+		newMigration(314, "Update OwnerID as zero for repository level action tables", v1_24.UpdateOwnerIDOfRepoLevelActionsTables),
 	}
 	return preparedMigrations
 }
