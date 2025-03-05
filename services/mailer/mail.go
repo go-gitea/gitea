@@ -6,8 +6,6 @@ package mailer
 
 import (
 	"bytes"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/typesniffer"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -20,9 +18,11 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/typesniffer"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
 	"golang.org/x/net/html"
@@ -151,7 +151,7 @@ func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ct
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(content)
-	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
+	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType.GetMimeType(), encoded)
 	return dataURI, nil
 }
 
