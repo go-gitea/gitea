@@ -17,8 +17,8 @@ import (
 func TestSettingShowUserEmailExplore(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	showUserEmail := setting.Config().UI.ShowUserEmail
 	showUserEmailValue := config.Value[bool]{}
+	showUserEmail := showUserEmailValue.WithDefault(true)
 	setting.Config().UI.ShowUserEmail = showUserEmailValue.WithDefault(true)
 
 	session := loginUser(t, "user2")
@@ -30,6 +30,7 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 		"user34@example.com",
 	)
 
+	showUserEmailValue = config.Value[bool]{}
 	setting.Config().UI.ShowUserEmail = showUserEmailValue.WithDefault(false)
 
 	req = NewRequest(t, "GET", "/explore/users?sort=alphabetically")
