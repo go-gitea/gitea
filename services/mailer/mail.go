@@ -6,13 +6,14 @@ package mailer
 
 import (
 	"bytes"
+	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"context"
 	"encoding/base64"
 	"fmt"
 	"html/template"
 	"io"
 	"mime"
-	"net/http"
 	"regexp"
 	"strings"
 	texttmpl "text/template"
@@ -54,22 +55,23 @@ func sanitizeSubject(subject string) string {
 }
 
 type mailAttachmentBase64Embedder struct {
-	doer    *user_model.User
-	repo    *repo_model.Repository
-	maxSize int64
+	doer         *user_model.User
+	repo         *repo_model.Repository
+	maxSize      int64
+	estimateSize int64
 }
 
 func newMailAttachmentBase64Embedder(doer *user_model.User, repo *repo_model.Repository, maxSize int64) *mailAttachmentBase64Embedder {
 	return &mailAttachmentBase64Embedder{doer: doer, repo: repo, maxSize: maxSize}
 }
 
-func (b64embedder *mailAttachmentBase64Embedder) Base64InlineImages(ctx context.Context, body string) (string, error) {
-	doc, err := html.Parse(strings.NewReader(body))
+func (b64embedder *mailAttachmentBase64Embedder) Base64InlineImages(ctx context.Context, body template.HTML) (template.HTML, error) {
+	doc, err := html.Parse(strings.NewReader(string(body)))
 	if err != nil {
-		return "", fmt.Errorf("%w", err)
+		return "", fmt.Errorf("html.Parse failed: %w", err)
 	}
 
-	var totalEmbeddedImagesSize int64
+	b64embedder.estimateSize = int64(len(string(body)))
 
 	var processNode func(*html.Node)
 	processNode = func(n *html.Node) {
@@ -77,19 +79,19 @@ func (b64embedder *mailAttachmentBase64Embedder) Base64InlineImages(ctx context.
 			if n.Data == "img" {
 				for i, attr := range n.Attr {
 					if attr.Key == "src" {
-						attachmentPath := attr.Val
-						dataURI, err := b64embedder.AttachmentSrcToBase64DataURI(ctx, attachmentPath, &totalEmbeddedImagesSize)
+						attachmentSrc := attr.Val
+						dataURI, err := b64embedder.AttachmentSrcToBase64DataURI(ctx, attachmentSrc)
 						if err != nil {
-							log.Trace("attachmentSrcToDataURI not possible: %v", err) // Not an error, just skip. This is probably an image from outside the gitea instance.
-							continue
+							// Not an error, just skip. This is probably an image from outside the gitea instance.
+							log.Trace("Unable to embed attachment %q to mail body: %v", attachmentSrc, err)
+						} else {
+							n.Attr[i].Val = dataURI
 						}
-						n.Attr[i].Val = dataURI
 						break
 					}
 				}
 			}
 		}
-
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			processNode(c)
 		}
@@ -100,22 +102,24 @@ func (b64embedder *mailAttachmentBase64Embedder) Base64InlineImages(ctx context.
 	var buf bytes.Buffer
 	err = html.Render(&buf, doc)
 	if err != nil {
-		log.Error("Failed to render modified HTML: %v", err)
-		return "", err
+		return "", fmt.Errorf("html.Render failed: %w", err)
 	}
-	return buf.String(), nil
+	return template.HTML(buf.String()), nil
 }
 
-func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ctx context.Context, attachmentPath string, totalEmbeddedImagesSize *int64) (string, error) {
-	if !strings.HasPrefix(attachmentPath, setting.AppURL) { // external image
-		return "", fmt.Errorf("external image")
+func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ctx context.Context, attachmentSrc string) (string, error) {
+	parsedSrc := httplib.ParseGiteaSiteURL(ctx, attachmentSrc)
+	var attachmentUUID string
+	if parsedSrc != nil {
+		var ok bool
+		attachmentUUID, ok = strings.CutPrefix(parsedSrc.RoutePath, "/attachments/")
+		if !ok {
+			attachmentUUID, ok = strings.CutPrefix(parsedSrc.RepoSubPath, "/attachments/")
+		}
+		if !ok {
+			return "", fmt.Errorf("not an attachment")
+		}
 	}
-	parts := strings.Split(attachmentPath, "/attachments/")
-	if len(parts) <= 1 {
-		return "", fmt.Errorf("invalid attachment path: %s", attachmentPath)
-	}
-
-	attachmentUUID := parts[len(parts)-1]
 	attachment, err := repo_model.GetAttachmentByUUID(ctx, attachmentUUID)
 	if err != nil {
 		return "", err
@@ -124,6 +128,10 @@ func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ct
 	if attachment.RepoID != b64embedder.repo.ID {
 		return "", fmt.Errorf("attachment does not belong to the repository")
 	}
+	if attachment.Size+b64embedder.estimateSize > b64embedder.maxSize {
+		return "", fmt.Errorf("total embedded images exceed max limit")
+	}
+	b64embedder.estimateSize += attachment.Size
 
 	fr, err := storage.Attachments.Open(attachment.RelativePath())
 	if err != nil {
@@ -134,26 +142,16 @@ func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ct
 	lr := &io.LimitedReader{R: fr, N: b64embedder.maxSize + 1}
 	content, err := io.ReadAll(lr)
 	if err != nil {
-		return "", err
-	}
-	if int64(len(content)) > b64embedder.maxSize {
-		return "", fmt.Errorf("file size exceeds the embedded image max limit \\(%d bytes\\)", b64embedder.maxSize)
+		return "", fmt.Errorf("LimitedReader ReadAll: %w", err)
 	}
 
-	if *totalEmbeddedImagesSize+int64(len(content)) > setting.MailService.Base64EmbedImagesMaxSizePerEmail {
-		return "", fmt.Errorf("total embedded images exceed max limit: %d > %d", *totalEmbeddedImagesSize+int64(len(content)), setting.MailService.Base64EmbedImagesMaxSizePerEmail)
-	}
-	*totalEmbeddedImagesSize += int64(len(content))
-
-	mimeType := http.DetectContentType(content)
-
-	if !strings.HasPrefix(mimeType, "image/") {
+	mimeType := typesniffer.DetectContentType(content)
+	if !mimeType.IsImage() {
 		return "", fmt.Errorf("not an image")
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(content)
 	dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
-
 	return dataURI, nil
 }
 
