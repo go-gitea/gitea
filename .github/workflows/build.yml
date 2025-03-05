@@ -2,7 +2,7 @@ name: Build and Test
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ dev ]
 
 jobs:
   build:
