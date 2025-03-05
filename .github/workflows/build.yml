@@ -5,30 +5,39 @@ on:
     branches: [ dev ]
 
 jobs:
-  lighthouse-tests:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Install Lighthouse CLI
-        run: npm install -g lighthouse
+    - name: Set up Go environment
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.23.4'
 
-      - name: Run Lighthouse Performance Audit
-        run: |
-          mkdir -p reports
-          lighthouse https://fox-one-promptly.ngrok-free.app \
-            --output=json \
-            --output=html \
-            --output-path=reports/lighthouse.html \
-            --chrome-flags="--headless"
+    - name: Install dependencies
+      run: go mod download
 
-      - name: Debug - List Files
-        run: ls -alh reports
+    - name: Run unit tests
+      run: go test ./... -v
+      continue-on-error: true
 
-      - name: Upload Lighthouse Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: lighthouse-report
-          path: reports/lighthouse.report.html
+    - name: Run linting
+      run: |
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+        golangci-lint run
 
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/gitea:latest .
+
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Push Docker image
+      run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/gitea:latest

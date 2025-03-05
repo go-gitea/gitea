@@ -123,7 +123,7 @@ jobs:
   
   lighthouse-tests:
     runs-on: ubuntu-latest
-    needs: [api-tests, selenium-tests, notification-service-tests] 
+    needs: [api-tests, selenium-tests, notification-service-tests]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -133,20 +133,21 @@ jobs:
 
       - name: Run Lighthouse Performance Audit
         run: |
+          mkdir -p reports
           lighthouse https://fox-one-promptly.ngrok-free.app \
             --output=json \
             --output=html \
-            --output-path=./lighthouse.html \
+            --output-path=reports/lighthouse.html \
             --chrome-flags="--headless"
 
       - name: Debug - List Files
-        run: ls -alh
+        run: ls -alh reports
 
       - name: Upload Lighthouse Report
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-report
-          path: lighthouse-report.html
+          path: reports/lighthouse.report.html
 
 
 
