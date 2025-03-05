@@ -210,6 +210,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Get diff stats for commit
 	if opts.Stat {
+		// FIXME: it should not call GitDiff, here it only needs "--shortdiff"
 		diff, err := gitdiff.GetDiff(ctx, gitRepo, &gitdiff.DiffOptions{
 			AfterCommitID: commit.ID.String(),
 		})
