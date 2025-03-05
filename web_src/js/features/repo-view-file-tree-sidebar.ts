@@ -27,7 +27,7 @@ function childrenLoader(sidebarEl: HTMLElement) {
     const fileTree = sidebarEl.querySelector('#view-file-tree');
     const apiBaseUrl = fileTree.getAttribute('data-api-base-url');
     const refTypeNameSubURL = fileTree.getAttribute('data-current-ref-type-name-sub-url');
-    const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${encodeURIComponent(path ?? '')}?recursive=${recursive ?? false}`);
+    const response = await GET(encodeURI(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${path ?? ''}?recursive=${recursive ?? false}`));
     const json = await response.json();
     if (json instanceof Array) {
       return json.map((i) => ({
@@ -78,8 +78,8 @@ export function initViewFileTreeSidebar() {
 
     fileTree.classList.remove('is-loading');
     const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren: childrenLoader(el), loadContent: (path: string) => {
-      selectedItem.value = getSelectedPath(refString, `${baseUrl}/src${refString}/${path}`);
-      window.history.pushState(null, null, `${baseUrl}/src${refString}/${encodeURIComponent(path)}`);
+      window.history.pushState(null, null, encodeURI(`${baseUrl}/src${refString}/${path}`));
+      selectedItem.value = path;
       loadContent(el);
     }});
     fileTreeView.mount(fileTree);
@@ -94,7 +94,7 @@ export function initViewFileTreeSidebar() {
   });
 }
 
-function getSelectedPath(ref: string, url?: string) {
-  const path = url ?? (new URL(window.location.href).pathname);
+function getSelectedPath(ref: string) {
+  const path = decodeURI(new URL(window.location.href).pathname);
   return path.substring(path.indexOf(ref) + ref.length + 1);
 }
