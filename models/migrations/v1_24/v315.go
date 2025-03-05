@@ -9,14 +9,8 @@ import (
 
 func AddEphemeralToActionRunner(x *xorm.Engine) error {
 	type ActionRunner struct {
-		Ephemeral bool `xorm:"ephemeral"`
+		Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync(new(ActionRunner)); err != nil {
-		return err
-	}
-
-	// update all records to set ephemeral to false
-	_, err := x.Exec("UPDATE `action_runner` SET `ephemeral` = false WHERE `ephemeral` IS NULL")
-	return err
+	return x.Sync(new(ActionRunner))
 }
