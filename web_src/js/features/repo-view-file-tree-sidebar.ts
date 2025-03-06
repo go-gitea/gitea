@@ -12,6 +12,8 @@ async function toggleSidebar(sidebarEl: HTMLElement, visibility: boolean) {
   toggleElem(sidebarEl, visibility);
   toggleElem(showBtnEl, !visibility);
 
+  // FIXME: need to remove "full height" style from parent element
+
   if (!sidebarEl.hasAttribute('data-is-signed')) return;
 
   // save to session

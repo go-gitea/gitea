@@ -77,29 +77,6 @@
   z-index: 8;
 }
 
-.repo-grid-tree-sidebar .view-file-tree-sidebar-top {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25em;
-}
-
-.repo-grid-tree-sidebar .view-file-tree-sidebar-top .button {
-  padding: 6px 10px !important;
-  height: 30px;
-  flex-shrink: 0;
-  margin: 0;
-}
-
-.repo-grid-tree-sidebar .view-file-tree-sidebar-top .sidebar-ref {
-  display: flex;
-  gap: 0.25em;
-}
-
-.repo-grid-tree-sidebar .view-file-tree-sidebar-bottom {
-  flex: 1;
-  overflow: auto;
-}
-
 .repo-grid-tree-sidebar .repo-button-row {
   margin-top: 0 !important;
 }

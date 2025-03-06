@@ -1,13 +1,12 @@
-<div class="view-file-tree-sidebar-top">
-	<div class="sidebar-header">
-		<button class="hide-tree-sidebar-button ui compact basic button icon" title="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
-			{{svg "octicon-sidebar-expand" 20 "icon"}}
-		</button>
-		<b> Files</b>
-	</div>
-	<!--// TODO: Dynamically move components such as refSelector and createPR here-->
+<div class="flex-text-block">
+	<button class="hide-tree-sidebar-button ui compact tiny icon button" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
+		{{svg "octicon-sidebar-expand"}}
+	</button>
+	<b>Files</b>
 </div>
-<div class="view-file-tree-sidebar-bottom">
+
+<!--// TODO: Dynamically move components such as refSelector and createPR here-->
+<div class="view-file-tree-sidebar-bottom tw-overflow-auto">
 	<div id="view-file-tree" class="is-loading"
 		data-api-base-url="{{.RepoLink}}"
 		data-tree-path="{{$.TreePath}}"
