@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/attachment"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
@@ -110,9 +111,8 @@ func TestComposeIssueComment(t *testing.T) {
 	bodyTemplates = template.Must(template.New("issue/comment").Parse(bodyTpl))
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
-	msgs, err := composeIssueCommentMessages(&mailCommentContext{
-		Context: t.Context(),
-		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
+	msgs, err := composeIssueCommentMessages(t.Context(), &mailComment{
+		Issue: issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
 		Content: fmt.Sprintf("test @%s %s#%d body", doer.Name, issue.Repo.FullName(), issue.Index),
 		Comment: comment,
 	}, "en-US", recipients, false, "issue comment")
@@ -150,6 +150,22 @@ func TestComposeIssueComment(t *testing.T) {
 	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, issue.HTMLURL()))
 }
 
+func TestMailMentionsComment(t *testing.T) {
+	doer, _, issue, comment := prepareMailerTest(t)
+	comment.Poster = doer
+	subjectTemplates = texttmpl.Must(texttmpl.New("issue/comment").Parse(subjectTpl))
+	bodyTemplates = template.Must(template.New("issue/comment").Parse(bodyTpl))
+	mails := 0
+
+	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
+		mails = len(msgs)
+	})()
+
+	err := MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, []*user_model.User{})
+	require.NoError(t, err)
+	assert.Equal(t, 3, mails)
+}
+
 func TestComposeIssueMessage(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
@@ -157,9 +173,8 @@ func TestComposeIssueMessage(t *testing.T) {
 	bodyTemplates = template.Must(template.New("issue/new").Parse(bodyTpl))
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
-	msgs, err := composeIssueCommentMessages(&mailCommentContext{
-		Context: t.Context(),
-		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
+	msgs, err := composeIssueCommentMessages(t.Context(), &mailComment{
+		Issue: issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
 		Content: "test body",
 	}, "en-US", recipients, false, "issue create")
 	assert.NoError(t, err)
@@ -204,32 +219,28 @@ func TestTemplateSelection(t *testing.T) {
 		assert.Contains(t, wholemsg, expBody)
 	}
 
-	msg := testComposeIssueCommentMessage(t, &mailCommentContext{
-		Context: t.Context(),
-		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
+	msg := testComposeIssueCommentMessage(t, &mailComment{
+		Issue: issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
 		Content: "test body",
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/new/subject", "issue/new/body")
 
-	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
-		Context: t.Context(),
-		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
+	msg = testComposeIssueCommentMessage(t, &mailComment{
+		Issue: issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/default/subject", "issue/default/body")
 
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2, Repo: repo, Poster: doer})
 	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4, Issue: pull})
-	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
-		Context: t.Context(),
-		Issue:   pull, Doer: doer, ActionType: activities_model.ActionCommentPull,
+	msg = testComposeIssueCommentMessage(t, &mailComment{
+		Issue: pull, Doer: doer, ActionType: activities_model.ActionCommentPull,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "pull/comment/subject", "pull/comment/body")
 
-	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
-		Context: t.Context(),
-		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCloseIssue,
+	msg = testComposeIssueCommentMessage(t, &mailComment{
+		Issue: issue, Doer: doer, ActionType: activities_model.ActionCloseIssue,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "Re: [user2/repo1] issue1 (#1)", "issue/close/body")
@@ -246,9 +257,8 @@ func TestTemplateServices(t *testing.T) {
 		bodyTemplates = template.Must(template.New("issue/default").Parse(tplBody))
 
 		recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
-		msg := testComposeIssueCommentMessage(t, &mailCommentContext{
-			Context: t.Context(),
-			Issue:   issue, Doer: doer, ActionType: actionType,
+		msg := testComposeIssueCommentMessage(t, &mailComment{
+			Issue: issue, Doer: doer, ActionType: actionType,
 			Content: "test body", Comment: comment,
 		}, recipients, fromMention, "TestTemplateServices")
 
@@ -280,8 +290,8 @@ func TestTemplateServices(t *testing.T) {
 		"//Re: //")
 }
 
-func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, recipients []*user_model.User, fromMention bool, info string) *sender_service.Message {
-	msgs, err := composeIssueCommentMessages(ctx, "en-US", recipients, fromMention, info)
+func testComposeIssueCommentMessage(t *testing.T, ctx *mailComment, recipients []*user_model.User, fromMention bool, info string) *sender_service.Message {
+	msgs, err := composeIssueCommentMessages(t.Context(), ctx, "en-US", recipients, fromMention, info)
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 1)
 	return msgs[0]
@@ -290,10 +300,10 @@ func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, recip
 func TestGenerateAdditionalHeaders(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
-	ctx := &mailCommentContext{Context: t.Context(), Issue: issue, Doer: doer}
+	comment := &mailComment{Issue: issue, Doer: doer}
 	recipient := &user_model.User{Name: "test", Email: "test@gitea.com"}
 
-	headers := generateAdditionalHeaders(ctx, "dummy-reason", recipient)
+	headers := generateAdditionalHeaders(comment, "dummy-reason", recipient)
 
 	expected := map[string]string{
 		"List-ID":                   "user2/repo1 <repo1.user2.localhost>",
@@ -480,7 +490,7 @@ func TestFromDisplayName(t *testing.T) {
 
 func TestEmbedBase64Images(t *testing.T) {
 	user, repo, issue, att1, att2 := prepareMailerBase64Test(t)
-	ctx := &mailCommentContext{Context: t.Context(), Issue: issue, Doer: user}
+	// comment := &mailComment{Issue: issue, Doer: user}
 
 	imgExternalURL := "https://via.placeholder.com/10"
 	imgExternalImg := fmt.Sprintf(`<img src="%s"/>`, imgExternalURL)
@@ -509,8 +519,7 @@ func TestEmbedBase64Images(t *testing.T) {
 		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "content"))
 
 		recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
-		msgs, err := composeIssueCommentMessages(&mailCommentContext{
-			Context:    t.Context(),
+		msgs, err := composeIssueCommentMessages(t.Context(), &mailComment{
 			Issue:      issue,
 			Doer:       user,
 			ActionType: activities_model.ActionCreateIssue,
@@ -526,7 +535,7 @@ func TestEmbedBase64Images(t *testing.T) {
 		mailBody := "<html><head></head><body><p>Test1</p>" + imgExternalImg + "<p>Test2</p>" + att1Img + "<p>Test3</p></body></html>"
 		expectedMailBody := "<html><head></head><body><p>Test1</p>" + imgExternalImg + "<p>Test2</p>" + att1ImgBase64 + "<p>Test3</p></body></html>"
 		b64embedder := newMailAttachmentBase64Embedder(user, repo, 1024)
-		resultMailBody, err := b64embedder.Base64InlineImages(ctx, template.HTML(mailBody))
+		resultMailBody, err := b64embedder.Base64InlineImages(t.Context(), template.HTML(mailBody))
 		require.NoError(t, err)
 		assert.Equal(t, expectedMailBody, string(resultMailBody))
 	})
@@ -534,13 +543,13 @@ func TestEmbedBase64Images(t *testing.T) {
 	t.Run("LimitedEmailBodySize", func(t *testing.T) {
 		mailBody := fmt.Sprintf("<html><head></head><body>%s%s</body></html>", att1Img, att2Img)
 		b64embedder := newMailAttachmentBase64Embedder(user, repo, 1024)
-		resultMailBody, err := b64embedder.Base64InlineImages(ctx, template.HTML(mailBody))
+		resultMailBody, err := b64embedder.Base64InlineImages(t.Context(), template.HTML(mailBody))
 		require.NoError(t, err)
 		expected := fmt.Sprintf("<html><head></head><body>%s%s</body></html>", att1ImgBase64, att2Img)
 		assert.Equal(t, expected, string(resultMailBody))
 
 		b64embedder = newMailAttachmentBase64Embedder(user, repo, 4096)
-		resultMailBody, err = b64embedder.Base64InlineImages(ctx, template.HTML(mailBody))
+		resultMailBody, err = b64embedder.Base64InlineImages(t.Context(), template.HTML(mailBody))
 		require.NoError(t, err)
 		expected = fmt.Sprintf("<html><head></head><body>%s%s</body></html>", att1ImgBase64, att2ImgBase64)
 		assert.Equal(t, expected, string(resultMailBody))
