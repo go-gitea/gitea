@@ -468,6 +468,18 @@ func renderExclusiveLabelScopes(ctx *context.Context) {
 		ctx.ServerError("GetAllRepoLabels", err)
 		return
 	}
+
+	if ctx.Repo.Owner.IsOrganization() {
+		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, "", db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetAllRepoLabels", err)
+			return
+		}
+
+		labels = append(labels, orgLabels...)
+	}
+
+	// This treats org- and repo-level label scopes equivalently.
 	scopeSet := make(map[string]bool, 0)
 	for _, label := range labels {
 		scope := label.ExclusiveScope()
