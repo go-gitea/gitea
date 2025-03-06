@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	_ "image/jpeg" // Needed for jpeg support
 	"mime"
 	"net/mail"
 	"net/url"
@@ -17,8 +18,6 @@ import (
 	"sync"
 	"time"
 	"unicode"
-
-	_ "image/jpeg" // Needed for jpeg support
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -197,11 +196,11 @@ func (u *User) BeforeUpdate() {
 	u.Description = util.TruncateRunes(u.Description, 255)
 }
 
-// AfterLoad is invoked from XORM after filling all the fields of this object.
-func (u *User) AfterLoad() {
+func (u *User) GetTheme(ctx context.Context) string {
 	if u.Theme == "" {
-		u.Theme = setting.Config().UI.DefaultTheme.Value(context.Background())
+		return setting.Config().UI.DefaultTheme.Value(ctx)
 	}
+	return u.Theme
 }
 
 // SetLastLogin set time to last login

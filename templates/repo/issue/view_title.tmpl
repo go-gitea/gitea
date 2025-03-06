@@ -126,7 +126,7 @@
 					{{if .Issue.OriginalAuthor}}
 						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr .Issue.OriginalAuthor}}
 					{{else if gt .Issue.Poster.ID 0}}
-						{{ctx.Locale.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink .Issue.Poster.GetDisplayName ctx}}
+						{{ctx.Locale.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink (.Issue.Poster.GetDisplayName ctx)}}
 					{{else}}
 						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr .Issue.Poster.GetDisplayName ctx}}
 					{{end}}

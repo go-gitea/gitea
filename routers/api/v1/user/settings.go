@@ -24,7 +24,7 @@ func GetUserSettings(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
-	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx, ctx.Doer))
 }
 
 // UpdateUserSettings returns user settings
@@ -61,5 +61,5 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx, ctx.Doer))
 }

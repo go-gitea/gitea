@@ -264,11 +264,11 @@ func evalTokens(tokens ...any) (any, error) {
 }
 
 func userThemeName(ctx context.Context, user *user_model.User) string {
-	if user == nil || user.Theme == "" {
+	if user == nil || user.GetTheme(ctx) == "" {
 		return setting.Config().UI.DefaultTheme.Value(ctx)
 	}
-	if webtheme.IsThemeAvailable(ctx, user.Theme) {
-		return user.Theme
+	if webtheme.IsThemeAvailable(ctx, user.GetTheme(ctx)) {
+		return user.GetTheme(ctx)
 	}
 	return setting.Config().UI.DefaultTheme.Value(ctx)
 }
