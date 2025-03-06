@@ -25,6 +25,10 @@ import (
 	"code.gitea.io/gitea/services/mailer/token"
 )
 
+// maxEmailBodySize is the approximate maximum size of an email body in bytes
+// Many e-mail service providers have limitations on the size of the email body, it's usually from 10MB to 25MB
+const maxEmailBodySize = 9_000_000
+
 func fallbackMailSubject(issue *issues_model.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
@@ -64,12 +68,20 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	// This is the body of the new issue or comment, not the mail body
 	rctx := renderhelper.NewRenderContextRepoComment(ctx.Context, ctx.Issue.Repo).WithUseAbsoluteLink(true)
-	body, err := markdown.RenderString(rctx,
-		ctx.Content)
+	body, err := markdown.RenderString(rctx, ctx.Content)
 	if err != nil {
 		return nil, err
 	}
 
+	if setting.MailService.EmbedAttachmentImages {
+		attEmbedder := newMailAttachmentBase64Embedder(ctx.Doer, ctx.Issue.Repo, maxEmailBodySize)
+		bodyAfterEmbedding, err := attEmbedder.Base64InlineImages(ctx, body)
+		if err != nil {
+			log.Error("Failed to embed images in mail body: %v", err)
+		} else {
+			body = bodyAfterEmbedding
+		}
+	}
 	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
 
 	if actName != "new" {
