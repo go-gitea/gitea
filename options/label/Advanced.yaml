@@ -22,12 +22,12 @@ labels:
     description: Breaking change that won't be backward compatible
   - name: "Reviewed/Duplicate"
     exclusive: true
-    exclusive_order: 50
+    exclusive_order: 1
     color: 616161
     description: This issue or pull request already exists
   - name: "Reviewed/Invalid"
     exclusive: true
-    exclusive_order: 100
+    exclusive_order: 2
     color: 546e7a
     description: Invalid issue
   - name: "Reviewed/Confirmed"
@@ -37,12 +37,12 @@ labels:
     description: Issue has been confirmed
   - name: "Reviewed/Won't Fix"
     exclusive: true
-    exclusive_order: 75
+    exclusive_order: 3
     color: eeeeee
     description: This issue won't be fixed
   - name: "Status/Need More Info"
     exclusive: true
-    exclusive_order: 25
+    exclusive_order: 1
     color: 424242
     description: Feedback is required to reproduce issue or to continue work
   - name: "Status/Blocked"
@@ -52,7 +52,7 @@ labels:
     description: Something is blocking this issue or pull request
   - name: "Status/Abandoned"
     exclusive: true
-    exclusive_order: 100
+    exclusive_order: 2
     color: "222222"
     description: Somebody has started to work on this but abandoned work
   - name: "Priority/Critical"
