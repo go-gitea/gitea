@@ -129,7 +129,7 @@ func TestAPIViewPulls(t *testing.T) {
 		assert.NoError(t, err)
 		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
 		assert.NoError(t, err)
-		assert.EqualValues(t, pull.ChangedFiles, patch.NumFiles)
+		assert.Len(t, patch.Files, pull.ChangedFiles)
 
 		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
 			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {

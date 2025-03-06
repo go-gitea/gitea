@@ -176,15 +176,15 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
 func (repo *Repository) GetDiffShortStat(base, head string) (numFiles, totalAdditions, totalDeletions int, err error) {
-	numFiles, totalAdditions, totalDeletions, err = GetDiffShortStat(repo.Ctx, repo.Path, nil, base+"..."+head)
+	numFiles, totalAdditions, totalDeletions, err = GetDiffWithShortStat(repo.Ctx, repo.Path, nil, base+"..."+head)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		return GetDiffShortStat(repo.Ctx, repo.Path, nil, base, head)
+		return GetDiffWithShortStat(repo.Ctx, repo.Path, nil, base, head)
 	}
 	return numFiles, totalAdditions, totalDeletions, err
 }
 
-// GetDiffShortStat counts number of changed files, number of additions and deletions
-func GetDiffShortStat(ctx context.Context, repoPath string, trustedArgs TrustedCmdArgs, dynamicArgs ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
+// GetDiffWithShortStat counts number of changed files, number of additions and deletions
+func GetDiffWithShortStat(ctx context.Context, repoPath string, trustedArgs TrustedCmdArgs, dynamicArgs ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
 	// Now if we call:
 	// $ git diff --shortstat 1ebb35b98889ff77299f24d82da426b434b0cca0...788b8b1440462d477f45b0088875
 	// we get:
