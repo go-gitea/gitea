@@ -1,5 +1,4 @@
 {{$isTreePathRoot := not .TreeNames}}
-{{$showSidebar := and $isTreePathRoot (not .HideRepoInfo) (not .IsBlame)}}
 
 {{template "repo/sub_menu" .}}
 <div class="repo-button-row">
