@@ -58,7 +58,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 
 	if ctx.Repo.TreePath == ".editorconfig" {
-		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx, ctx.Repo.Commit)
 		if editorconfigWarning != nil {
 			ctx.Data["FileWarning"] = strings.TrimSpace(editorconfigWarning.Error())
 		}
@@ -216,7 +216,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			status := &charset.EscapeStatus{}
 			statuses := make([]*charset.EscapeStatus, len(fileContent))
 			for i, line := range fileContent {
-				statuses[i], fileContent[i] = charset.EscapeControlHTML(line, ctx.Locale)
+				statuses[i], fileContent[i] = charset.EscapeControlHTML(ctx, line, ctx.Locale)
 				status = status.Or(statuses[i])
 			}
 			ctx.Data["EscapeStatus"] = status

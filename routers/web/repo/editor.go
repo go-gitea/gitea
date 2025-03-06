@@ -201,7 +201,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 // GetEditorConfig returns a editorconfig JSON string for given treePath or "null"
 func GetEditorConfig(ctx *context.Context, treePath string) string {
-	ec, _, err := ctx.Repo.GetEditorconfig()
+	ec, _, err := ctx.Repo.GetEditorconfig(ctx)
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {

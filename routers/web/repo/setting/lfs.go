@@ -310,7 +310,7 @@ func LFSFileGet(ctx *context.Context) {
 		// Building code view blocks with line number on server side.
 		// FIXME: the logic is not right here: it first calls EscapeControlReader then calls HTMLEscapeString: double-escaping
 		escapedContent := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent, ctx.Locale)
+		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(ctx, rd, escapedContent, ctx.Locale)
 
 		var output bytes.Buffer
 		lines := strings.Split(escapedContent.String(), "\n")

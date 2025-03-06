@@ -103,13 +103,13 @@ func TestIssueReactionCount(t *testing.T) {
 
 	reactions := reactionsList.GroupByType()
 	assert.Len(t, reactions["heart"], 4)
-	assert.Equal(t, 2, reactions["heart"].GetMoreUserCount())
-	assert.Equal(t, user1.Name+", "+user2.Name, reactions["heart"].GetFirstUsers())
+	assert.Equal(t, 2, reactions["heart"].GetMoreUserCount(t.Context()))
+	assert.Equal(t, user1.Name+", "+user2.Name, reactions["heart"].GetFirstUsers(t.Context()))
 	assert.True(t, reactions["heart"].HasUser(1))
 	assert.False(t, reactions["heart"].HasUser(5))
 	assert.False(t, reactions["heart"].HasUser(0))
 	assert.Len(t, reactions["+1"], 2)
-	assert.Equal(t, 0, reactions["+1"].GetMoreUserCount())
+	assert.Equal(t, 0, reactions["+1"].GetMoreUserCount(t.Context()))
 	assert.Len(t, reactions["-1"], 1)
 }
 

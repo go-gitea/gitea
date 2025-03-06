@@ -21,8 +21,7 @@ var (
 	themeOnce          sync.Once
 )
 
-func initThemes() {
-	ctx := context.Background()
+func initThemes(ctx context.Context) {
 	availableThemes = nil
 	defer func() {
 		availableThemesSet = container.SetOf(availableThemes...)
@@ -65,12 +64,16 @@ func initThemes() {
 	}
 }
 
-func GetAvailableThemes() []string {
-	themeOnce.Do(initThemes)
+func GetAvailableThemes(ctx context.Context) []string {
+	themeOnce.Do(func() {
+		initThemes(ctx)
+	})
 	return availableThemes
 }
 
-func IsThemeAvailable(name string) bool {
-	themeOnce.Do(initThemes)
+func IsThemeAvailable(ctx context.Context, name string) bool {
+	themeOnce.Do(func() {
+		initThemes(ctx)
+	})
 	return availableThemesSet.Contains(name)
 }

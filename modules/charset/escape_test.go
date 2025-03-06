@@ -162,7 +162,7 @@ func TestEscapeControlReader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			output := &strings.Builder{}
-			status, err := EscapeControlReader(strings.NewReader(tt.text), output, &translation.MockLocale{})
+			status, err := EscapeControlReader(t.Context(), strings.NewReader(tt.text), output, &translation.MockLocale{})
 			assert.NoError(t, err)
 			assert.Equal(t, tt.status, *status)
 			outStr := output.String()
@@ -175,10 +175,10 @@ func TestEscapeControlReader(t *testing.T) {
 func TestSettingAmbiguousUnicodeDetection(t *testing.T) {
 	ambiguousUnicodeDetectionValue := setting.Config().UI.AmbiguousUnicodeDetection.Value(t.Context())
 	defer test.MockVariableValue(&ambiguousUnicodeDetectionValue, true)()
-	_, out := EscapeControlHTML("a test", &translation.MockLocale{})
+	_, out := EscapeControlHTML(t.Context(), "a test", &translation.MockLocale{})
 	assert.EqualValues(t, `a<span class="escaped-code-point" data-escaped="[U+00A0]"><span class="char"> </span></span>test`, out)
 	ambiguousUnicodeDetection := config.Value[bool]{}
 	setting.Config().UI.AmbiguousUnicodeDetection = ambiguousUnicodeDetection.WithDefault(false)
-	_, out = EscapeControlHTML("a test", &translation.MockLocale{})
+	_, out = EscapeControlHTML(t.Context(), "a test", &translation.MockLocale{})
 	assert.EqualValues(t, `a test`, out)
 }

@@ -138,13 +138,13 @@
 
 	<div>
 		<h1>TimeSince</h1>
-		<div>Now: {{DateUtils.TimeSince .TimeNow}}</div>
-		<div>5s past: {{DateUtils.TimeSince .TimePast5s}}</div>
-		<div>5s future: {{DateUtils.TimeSince .TimeFuture5s}}</div>
-		<div>2m past: {{DateUtils.TimeSince .TimePast2m}}</div>
-		<div>2m future: {{DateUtils.TimeSince .TimeFuture2m}}</div>
-		<div>1y past: {{DateUtils.TimeSince .TimePast1y}}</div>
-		<div>1y future: {{DateUtils.TimeSince .TimeFuture1y}}</div>
+		<div>Now: {{DateUtils.TimeSince ctx .TimeNow}}</div>
+		<div>5s past: {{DateUtils.TimeSince ctx .TimePast5s}}</div>
+		<div>5s future: {{DateUtils.TimeSince ctx .TimeFuture5s}}</div>
+		<div>2m past: {{DateUtils.TimeSince ctx .TimePast2m}}</div>
+		<div>2m future: {{DateUtils.TimeSince ctx .TimeFuture2m}}</div>
+		<div>1y past: {{DateUtils.TimeSince ctx .TimePast1y}}</div>
+		<div>1y future: {{DateUtils.TimeSince ctx .TimeFuture1y}}</div>
 	</div>
 
 	<div>

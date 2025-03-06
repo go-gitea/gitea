@@ -37,7 +37,7 @@
 					<div class="tw-flex-1 gt-ellipsis">
 						{{$title}}
 						<div class="ui sub header gt-ellipsis">
-							{{$timeSince := DateUtils.TimeSince .Author.When}}
+							{{$timeSince := DateUtils.TimeSince ctx .Author.When}}
 							{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince}}
 						</div>
 					</div>

@@ -209,7 +209,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 			log.Error("Read readme content failed: %v", err)
 		}
 		contentEscaped := template.HTMLEscapeString(util.UnsafeBytesToString(content))
-		ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(template.HTML(contentEscaped), ctx.Locale)
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(ctx, template.HTML(contentEscaped), ctx.Locale)
 	}
 
 	if !fInfo.isLFSFile && ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {

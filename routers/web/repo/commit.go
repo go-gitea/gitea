@@ -144,7 +144,7 @@ func Graph(ctx *context.Context) {
 
 	page := ctx.FormInt("page")
 
-	graph, err := gitgraph.GetCommitGraph(ctx.Repo.GitRepo, page, 0, hidePRRefs, realBranches, files)
+	graph, err := gitgraph.GetCommitGraph(ctx, ctx.Repo.GitRepo, page, 0, hidePRRefs, realBranches, files)
 	if err != nil {
 		ctx.ServerError("GetCommitGraph", err)
 		return

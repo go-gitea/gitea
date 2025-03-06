@@ -133,7 +133,7 @@
 			<dt>{{ctx.Locale.Tr "admin.config.ui.default_show_full_name"}}</dt>
 			<dd>
 				<div class="ui toggle checkbox">
-					<input name="default_show_full_name" type="checkbox" {{if .UI.DefaultShowFullName}}checked{{end}}><label></label>
+					<input name="default_show_full_name" type="checkbox" {{if .UI.DefaultShowFullName ctx}}checked{{end}}><label></label>
 				</div>
 			</dd>
 			<dt>{{ctx.Locale.Tr "admin.config.ui.search_repo_description"}}</dt>

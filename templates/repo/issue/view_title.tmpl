@@ -73,7 +73,7 @@
 					{{end}}
 				{{end}}
 				{{if .Issue.PullRequest.HasMerged}}
-					{{$mergedStr:= DateUtils.TimeSince .Issue.PullRequest.MergedUnix}}
+					{{$mergedStr:= DateUtils.TimeSince ctx .Issue.PullRequest.MergedUnix}}
 					{{if .Issue.OriginalAuthor}}
 						{{.Issue.OriginalAuthor}}
 						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
@@ -121,7 +121,7 @@
 					</span>
 				{{end}}
 			{{else}}
-				{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
+				{{$createdStr:= DateUtils.TimeSince ctx .Issue.CreatedUnix}}
 				<span class="time-desc">
 					{{if .Issue.OriginalAuthor}}
 						{{ctx.Locale.Tr "repo.issues.opened_by_fake" $createdStr .Issue.OriginalAuthor}}

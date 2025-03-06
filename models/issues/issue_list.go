@@ -251,7 +251,7 @@ func (issues IssueList) LoadAssignees(ctx context.Context) error {
 		}
 		rows, err := db.GetEngine(ctx).Table("issue_assignees").
 			Join("INNER", "`user`", "`user`.id = `issue_assignees`.assignee_id").
-			In("`issue_assignees`.issue_id", issueIDs[:limit]).OrderBy(user_model.GetOrderByName()).
+			In("`issue_assignees`.issue_id", issueIDs[:limit]).OrderBy(user_model.GetOrderByName(ctx)).
 			Rows(new(AssigneeIssue))
 		if err != nil {
 			return err

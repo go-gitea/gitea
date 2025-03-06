@@ -27,7 +27,6 @@ import (
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() template.FuncMap {
-	ctx := context.Background()
 	return map[string]any{
 		"ctx": func() any { return nil }, // template context function
 
@@ -106,7 +105,7 @@ func NewFuncMap() template.FuncMap {
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
-		"DefaultShowFullName": func() bool {
+		"DefaultShowFullName": func(ctx context.Context) bool {
 			return setting.Config().UI.DefaultShowFullName.Value(ctx)
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
@@ -264,12 +263,11 @@ func evalTokens(tokens ...any) (any, error) {
 	return n.Value, err
 }
 
-func userThemeName(user *user_model.User) string {
-	ctx := context.Background()
+func userThemeName(ctx context.Context, user *user_model.User) string {
 	if user == nil || user.Theme == "" {
 		return setting.Config().UI.DefaultTheme.Value(ctx)
 	}
-	if webtheme.IsThemeAvailable(user.Theme) {
+	if webtheme.IsThemeAvailable(ctx, user.Theme) {
 		return user.Theme
 	}
 	return setting.Config().UI.DefaultTheme.Value(ctx)

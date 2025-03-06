@@ -81,7 +81,7 @@
 						{{$index := index .GetIssueInfos 0}}
 						{{ctx.Locale.Tr "action.auto_merge_pull_request" (printf "%s/pulls/%s" (.GetRepoLink ctx) $index) $index (.ShortRepoPath ctx)}}
 					{{end}}
-					{{DateUtils.TimeSince .GetCreate}}
+					{{DateUtils.TimeSince ctx .GetCreate}}
 				</div>
 				{{if .GetOpType.InActions "commit_repo" "mirror_sync_push"}}
 					{{$push := ActionContent2Commits .}}
