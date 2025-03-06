@@ -102,7 +102,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		// Unsupported sort type for search
 		fallthrough
 	default:
-		if strings.HasPrefix(opts.SortType, "scope-") {
+		if strings.HasPrefix(opts.SortType, issues_model.ScopeSortPrefix) {
 			searchOpt.SortBy = internal.SortBy(opts.SortType)
 		} else {
 			searchOpt.SortBy = SortByUpdatedDesc

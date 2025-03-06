@@ -35,7 +35,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 	case internal.SortByDeadlineAsc:
 		sortType = "nearduedate"
 	default:
-		if strings.HasPrefix(string(options.SortBy), "scope-") {
+		if strings.HasPrefix(string(options.SortBy), issue_model.ScopeSortPrefix) {
 			sortType = string(options.SortBy)
 		} else {
 			sortType = "newest"
