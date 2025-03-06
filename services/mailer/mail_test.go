@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/attachment"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
@@ -147,6 +148,22 @@ func TestComposeIssueComment(t *testing.T) {
 	// text/html
 	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, doer.HTMLURL()))
 	assert.Contains(t, string(b), fmt.Sprintf(`href="%s"`, issue.HTMLURL()))
+}
+
+func TestMailMentionsComment(t *testing.T) {
+	doer, _, issue, comment := prepareMailerTest(t)
+	comment.Poster = doer
+	subjectTemplates = texttmpl.Must(texttmpl.New("issue/comment").Parse(subjectTpl))
+	bodyTemplates = template.Must(template.New("issue/comment").Parse(bodyTpl))
+	mails := 0
+
+	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
+		mails = len(msgs)
+	})()
+
+	err := MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, []*user_model.User{})
+	require.NoError(t, err)
+	assert.Equal(t, 3, mails)
 }
 
 func TestComposeIssueMessage(t *testing.T) {
