@@ -202,7 +202,7 @@ func GetPullDiffStats(ctx *context.Context) {
 
 	diffShortStat, err := gitdiff.GetDiffShortStat(ctx.Repo.GitRepo, mergeBaseCommitID, headCommitID)
 	if err != nil {
-		ctx.ServerError("GetDiffWithShortStat", err)
+		ctx.ServerError("GetDiffShortStat", err)
 		return
 	}
 
@@ -773,7 +773,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	diffShortStat, err := gitdiff.GetDiffShortStat(ctx.Repo.GitRepo, startCommitID, endCommitID)
 	if err != nil {
-		ctx.ServerError("GetDiffWithShortStat", err)
+		ctx.ServerError("GetDiffShortStat", err)
 		return
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat

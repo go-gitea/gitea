@@ -494,6 +494,8 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			// Calculate diff
 			startCommitID = pr.MergeBase
 
+			// FIXME: it causes performance regressions, because in many cases end users do not need these information
+			// But "git diff --shortstat" is slow on large repositories, this call makes the API slow
 			apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
 			if err != nil {
 				log.Error("GetDiffShortStat: %v", err)
