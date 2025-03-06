@@ -7,7 +7,7 @@ import {registerGlobalEventFunc} from '../modules/observer.ts';
 const {i18n} = window.config;
 
 export function initCopyContent() {
-  registerGlobalEventFunc('click', 'onCopyContentButtonClick', async (btn: HTMLInputElement) => {
+  registerGlobalEventFunc('click', 'onCopyContentButtonClick', async (btn: HTMLElement) => {
     if (btn.classList.contains('disabled') || btn.classList.contains('is-loading')) return;
     let content;
     let isRasterImage = false;

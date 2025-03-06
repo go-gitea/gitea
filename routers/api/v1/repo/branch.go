@@ -594,12 +594,6 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	isPlainRule := !git_model.IsRuleNameSpecial(ruleName)
-	var isBranchExist bool
-	if isPlainRule {
-		isBranchExist = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), ruleName)
-	}
-
 	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, ruleName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -716,7 +710,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		BlockAdminMergeOverride:       form.BlockAdminMergeOverride,
 	}
 
-	if err := git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
+	if err := pull_service.CreateOrUpdateProtectedBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		ForcePushUserIDs: forcePushAllowlistUsers,
@@ -728,36 +722,6 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}); err != nil {
 		ctx.APIErrorInternal(err)
 		return
-	}
-
-	if isBranchExist {
-		if err := pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, ruleName); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-	} else {
-		if !isPlainRule {
-			if ctx.Repo.GitRepo == nil {
-				ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
-				if err != nil {
-					ctx.APIErrorInternal(err)
-					return
-				}
-			}
-			// FIXME: since we only need to recheck files protected rules, we could improve this
-			matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.Repository.ID, ruleName)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-
-			for _, branchName := range matchedBranches {
-				if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, branchName); err != nil {
-					ctx.APIErrorInternal(err)
-					return
-				}
-			}
-		}
 	}
 
 	// Reload from db to get all whitelists
