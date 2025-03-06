@@ -44,9 +44,9 @@
 					{{if .OriginalAuthor}}
 						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
 					{{else if gt .Poster.ID 0}}
-						{{ctx.Locale.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.GetDisplayName}}
+						{{ctx.Locale.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName ctx)}}
 					{{else}}
-						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .Poster.GetDisplayName}}
+						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .Poster.GetDisplayName ctx}}
 					{{end}}
 					{{if .IsPull}}
 						<div class="branches flex-text-inline">
@@ -137,7 +137,7 @@
 				{{if .Assignees}}
 				<div class="text grey">
 					{{range .Assignees}}
-						<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
+						<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName ctx}}">
 							{{ctx.AvatarUtils.Avatar . 20}}
 						</a>
 					{{end}}
