@@ -820,7 +820,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 	if !fileOnly {
 		// note: use mergeBase is set to false because we already have the merge base from the pull request info
-		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, pull.MergeBase, headCommitID)
+		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, startCommitID, endCommitID)
 		if err != nil {
 			ctx.ServerError("GetDiffTree", err)
 			return
