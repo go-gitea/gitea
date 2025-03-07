@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/caddyserver/certmagic"
 )
@@ -68,9 +69,15 @@ func runACME(listenAddr string, m http.Handler) error {
 	// And one more thing, no idea why we should set the global default variables here
 	// But it seems that the current ACME code needs these global variables to make renew work.
 	// Otherwise, "renew" will use incorrect storage path
+	oldDefaultACME := certmagic.DefaultACME
 	certmagic.Default.Storage = &certmagic.FileStorage{Path: setting.AcmeLiveDirectory}
 	certmagic.DefaultACME = certmagic.ACMEIssuer{
-		CA:                      setting.AcmeURL,
+		// try to use the default values provided by DefaultACME
+		CA:        util.IfZero(setting.AcmeURL, oldDefaultACME.CA),
+		TestCA:    oldDefaultACME.TestCA,
+		Logger:    oldDefaultACME.Logger,
+		HTTPProxy: oldDefaultACME.HTTPProxy,
+
 		TrustedRoots:            certPool,
 		Email:                   setting.AcmeEmail,
 		Agreed:                  setting.AcmeTOS,
