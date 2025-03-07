@@ -47,7 +47,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	if err := t.Clone(ctx, opts.OldBranch, false); err != nil {
 		return nil, err
 	}
-	if err := t.SetDefaultIndex(t.gitRepo.Ctx); err != nil {
+	if err := t.SetDefaultIndex(ctx); err != nil {
 		return nil, err
 	}
 	if err := t.RefreshIndex(ctx); err != nil {
