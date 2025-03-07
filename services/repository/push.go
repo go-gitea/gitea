@@ -208,7 +208,15 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 
 					// only update branch can trigger pull request task because the pull request hasn't been created yet when creaing a branch
-					go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, isForcePush, opts.OldCommitID, opts.NewCommitID)
+					go pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{
+						RepoID:      repo.ID,
+						Doer:        pusher,
+						Branch:      branch,
+						IsSync:      true,
+						IsForcePush: isForcePush,
+						OldCommitID: opts.OldCommitID,
+						NewCommitID: opts.NewCommitID,
+					})
 
 					if isForcePush {
 						log.Trace("Push %s is a force push", opts.NewCommitID)
