@@ -5,6 +5,7 @@ package migrations
 
 import (
 	"compress/gzip"
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
@@ -247,7 +248,7 @@ func restoreOldDB(t *testing.T, version string) {
 	}
 }
 
-func wrappedMigrate(x *xorm.Engine) error {
+func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {
 	currentEngine = x
 	return migrations.Migrate(x)
 }
@@ -264,7 +265,7 @@ func doMigrationTest(t *testing.T, version string) {
 
 	beans, _ := db.NamesToBean()
 
-	err = db.InitEngineWithMigration(t.Context(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x *xorm.Engine) error {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
@@ -272,7 +273,7 @@ func doMigrationTest(t *testing.T, version string) {
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
-	err = db.InitEngineWithMigration(t.Context(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x *xorm.Engine) error {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
