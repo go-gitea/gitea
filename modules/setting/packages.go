@@ -103,6 +103,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.LimitSizeRubyGems = mustBytes(sec, "LIMIT_SIZE_RUBYGEMS")
 	Packages.LimitSizeSwift = mustBytes(sec, "LIMIT_SIZE_SWIFT")
 	Packages.LimitSizeVagrant = mustBytes(sec, "LIMIT_SIZE_VAGRANT")
+	Packages.DefaultRPMSignEnabled = sec.Key("DEFAULT_RPM_SIGN_ENABLED").MustBool(false)
 	Packages.RetainMavenSnapshotBuilds = sec.Key("RETAIN_MAVEN_SNAPSHOT_BUILDS").MustInt(Packages.RetainMavenSnapshotBuilds)
 	return nil
 }
