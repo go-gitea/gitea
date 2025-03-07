@@ -279,7 +279,7 @@ func extractBuildNumberFromFileName(filename string) (int, error) {
 
 	buildNumber, err := strconv.Atoi(buildNumberStr)
 	if err != nil {
-		return 0, fmt.Errorf("failed to convert build number to integer: '%s'", buildNumberStr)
+		return 0, fmt.Errorf("failed to convert maven package build number to integer: '%s'", buildNumberStr)
 	}
 
 	return buildNumber, nil

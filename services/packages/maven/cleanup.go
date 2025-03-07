@@ -51,7 +51,7 @@ func CleanupSnapshotVersions(ctx context.Context) error {
 }
 
 func isSnapshotVersion(version string) bool {
-	return strings.Contains(version, "-SNAPSHOT")
+	return strings.HasSuffix(version, "-SNAPSHOT")
 }
 
 func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int) error {
@@ -92,7 +92,12 @@ func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int) 
 }
 
 func extractMaxBuildNumberFromMetadata(ctx context.Context, metadataFile *packages.PackageFile) (int, error) {
-	content, _, _, err := packages_service.GetPackageFileStream(ctx, metadataFile)
+	pb, err := packages.GetBlobByID(ctx, metadataFile.BlobID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get package blob: %w", err)
+	}
+
+	content, _, _, err := packages_service.GetPackageBlobStream(ctx, metadataFile, pb, nil, true)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get package file stream: %w", err)
 	}
