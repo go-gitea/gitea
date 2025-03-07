@@ -336,6 +336,9 @@ func UpdateColumnSorting(ctx context.Context, cl ColumnList) error {
 
 func GetColumnsByIDs(ctx context.Context, projectID int64, columnsIDs []int64) (ColumnList, error) {
 	columns := make([]*Column, 0, 5)
+	if len(columnsIDs) == 0 {
+		return columns, nil
+	}
 	if err := db.GetEngine(ctx).
 		Where("project_id =?", projectID).
 		In("id", columnsIDs).

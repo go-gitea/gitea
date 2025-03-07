@@ -83,8 +83,8 @@ export function initRepoGraphGit() {
   }
 
   const flowSelectRefsDropdown = document.querySelector('#flow-select-refs-dropdown');
-  fomanticQuery(flowSelectRefsDropdown).dropdown('set selected', dropdownSelected);
-  fomanticQuery(flowSelectRefsDropdown).dropdown({
+  const $dropdown = fomanticQuery(flowSelectRefsDropdown);
+  $dropdown.dropdown({
     clearable: true,
     fullTextSeach: 'exact',
     onRemove(toRemove: string) {
@@ -110,6 +110,7 @@ export function initRepoGraphGit() {
       updateGraph();
     },
   });
+  $dropdown.dropdown('set selected', dropdownSelected);
 
   graphContainer.addEventListener('mouseenter', (e: DOMEvent<MouseEvent>) => {
     if (e.target.matches('#rev-list li')) {
