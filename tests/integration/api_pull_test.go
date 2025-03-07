@@ -51,7 +51,6 @@ func TestAPIViewPulls(t *testing.T) {
 	assert.Empty(t, pull.RequestedReviewersTeams)
 	assert.EqualValues(t, 5, pull.RequestedReviewers[0].ID)
 	assert.EqualValues(t, 6, pull.RequestedReviewers[1].ID)
-	assert.EqualValues(t, 1, pull.ChangedFiles)
 
 	if assert.EqualValues(t, 5, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
@@ -59,22 +58,23 @@ func TestAPIViewPulls(t *testing.T) {
 		assert.NoError(t, err)
 		patch, err := gitdiff.ParsePatch(context.Background(), 1000, 5000, 10, bytes.NewReader(bs), "")
 		assert.NoError(t, err)
-		if assert.Len(t, patch.Files, pull.ChangedFiles) {
+		if assert.Len(t, patch.Files, 1) {
 			assert.Equal(t, "File-WoW", patch.Files[0].Name)
 			// FIXME: The old name should be empty if it's a file add type
 			assert.Equal(t, "File-WoW", patch.Files[0].OldName)
-			assert.EqualValues(t, pull.Additions, patch.Files[0].Addition)
-			assert.EqualValues(t, pull.Deletions, patch.Files[0].Deletion)
+			assert.EqualValues(t, 1, patch.Files[0].Addition)
+			assert.EqualValues(t, 0, patch.Files[0].Deletion)
 			assert.Equal(t, gitdiff.DiffFileAdd, patch.Files[0].Type)
 		}
 
 		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
 			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
-				if assert.Len(t, files, pull.ChangedFiles) {
+				if assert.Len(t, files, 1) {
 					assert.Equal(t, "File-WoW", files[0].Filename)
 					assert.Empty(t, files[0].PreviousFilename)
-					assert.EqualValues(t, pull.Additions, files[0].Additions)
-					assert.EqualValues(t, pull.Deletions, files[0].Deletions)
+					assert.EqualValues(t, 1, files[0].Additions)
+					assert.EqualValues(t, 1, files[0].Changes)
+					assert.EqualValues(t, 0, files[0].Deletions)
 					assert.Equal(t, "added", files[0].Status)
 				}
 			}))
@@ -88,7 +88,6 @@ func TestAPIViewPulls(t *testing.T) {
 	assert.EqualValues(t, 4, pull.RequestedReviewers[1].ID)
 	assert.EqualValues(t, 2, pull.RequestedReviewers[2].ID)
 	assert.EqualValues(t, 5, pull.RequestedReviewers[3].ID)
-	assert.EqualValues(t, 1, pull.ChangedFiles)
 
 	if assert.EqualValues(t, 2, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
@@ -96,45 +95,44 @@ func TestAPIViewPulls(t *testing.T) {
 		assert.NoError(t, err)
 		patch, err := gitdiff.ParsePatch(context.Background(), 1000, 5000, 10, bytes.NewReader(bs), "")
 		assert.NoError(t, err)
-		if assert.Len(t, patch.Files, pull.ChangedFiles) {
+		if assert.Len(t, patch.Files, 1) {
 			assert.Equal(t, "README.md", patch.Files[0].Name)
 			assert.Equal(t, "README.md", patch.Files[0].OldName)
-			assert.EqualValues(t, pull.Additions, patch.Files[0].Addition)
-			assert.EqualValues(t, pull.Deletions, patch.Files[0].Deletion)
+			assert.EqualValues(t, 4, patch.Files[0].Addition)
+			assert.EqualValues(t, 1, patch.Files[0].Deletion)
 			assert.Equal(t, gitdiff.DiffFileChange, patch.Files[0].Type)
 		}
 
 		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
 			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
-				if assert.Len(t, files, pull.ChangedFiles) {
+				if assert.Len(t, files, 1) {
 					assert.Equal(t, "README.md", files[0].Filename)
 					// FIXME: The PreviousFilename name should be the same as Filename if it's a file change
 					assert.Equal(t, "", files[0].PreviousFilename)
-					assert.EqualValues(t, pull.Additions, files[0].Additions)
-					assert.EqualValues(t, pull.Deletions, files[0].Deletions)
+					assert.EqualValues(t, 4, files[0].Additions)
+					assert.EqualValues(t, 1, files[0].Deletions)
 					assert.Equal(t, "changed", files[0].Status)
 				}
 			}))
 	}
 
-	pull = pulls[2]
+	pull = pulls[0]
 	assert.EqualValues(t, 1, pull.Poster.ID)
-	assert.Len(t, pull.RequestedReviewers, 1)
+	assert.Len(t, pull.RequestedReviewers, 2)
 	assert.Empty(t, pull.RequestedReviewersTeams)
-	assert.EqualValues(t, 1, pull.RequestedReviewers[0].ID)
-	assert.EqualValues(t, 0, pull.ChangedFiles)
+	assert.EqualValues(t, 5, pull.RequestedReviewers[0].ID)
 
-	if assert.EqualValues(t, 1, pull.ID) {
+	if assert.EqualValues(t, 5, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 		patch, err := gitdiff.ParsePatch(context.Background(), 1000, 5000, 10, bytes.NewReader(bs), "")
 		assert.NoError(t, err)
-		assert.EqualValues(t, pull.ChangedFiles, patch.NumFiles)
+		assert.EqualValues(t, 1, patch.NumFiles)
 
 		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
 			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
-				assert.Len(t, files, pull.ChangedFiles)
+				assert.Len(t, files, 1)
 			}))
 	}
 }
