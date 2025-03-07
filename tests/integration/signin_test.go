@@ -96,7 +96,7 @@ func TestSigninWithRememberMe(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
-func TestEnablePasswordSignInForm(t *testing.T) {
+func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	mockLinkAccount := func(ctx *context.Context) {
@@ -138,5 +138,23 @@ func TestEnablePasswordSignInForm(t *testing.T) {
 		web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
 		resp = MakeRequest(t, req, http.StatusOK)
 		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/link_account_signin']", true)
+	})
+
+	t.Run("EnablePasskeyAuth=false", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
+
+		req := NewRequest(t, "GET", "/user/login")
+		resp := MakeRequest(t, req, http.StatusOK)
+		NewHTMLParser(t, resp.Body).AssertElement(t, ".signin-passkey", false)
+	})
+
+	t.Run("EnablePasskeyAuth=true", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, true)()
+
+		req := NewRequest(t, "GET", "/user/login")
+		resp := MakeRequest(t, req, http.StatusOK)
+		NewHTMLParser(t, resp.Body).AssertElement(t, ".signin-passkey", true)
 	})
 }
