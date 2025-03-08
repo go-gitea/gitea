@@ -16,27 +16,27 @@ func GetDiffPreview(ctx context.Context, repo *repo_model.Repository, branch, tr
 	if branch == "" {
 		branch = repo.DefaultBranch
 	}
-	t, err := NewTemporaryUploadRepository(ctx, repo)
+	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
 		return nil, err
 	}
 	defer t.Close()
-	if err := t.Clone(branch, true); err != nil {
+	if err := t.Clone(ctx, branch, true); err != nil {
 		return nil, err
 	}
-	if err := t.SetDefaultIndex(); err != nil {
+	if err := t.SetDefaultIndex(ctx); err != nil {
 		return nil, err
 	}
 
 	// Add the object to the database
-	objectHash, err := t.HashObject(strings.NewReader(content))
+	objectHash, err := t.HashObject(ctx, strings.NewReader(content))
 	if err != nil {
 		return nil, err
 	}
 
 	// Add the object to the index
-	if err := t.AddObjectToIndex("100644", objectHash, treePath); err != nil {
+	if err := t.AddObjectToIndex(ctx, "100644", objectHash, treePath); err != nil {
 		return nil, err
 	}
-	return t.DiffIndex()
+	return t.DiffIndex(ctx)
 }
