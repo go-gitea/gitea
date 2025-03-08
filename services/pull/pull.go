@@ -417,11 +417,10 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 
 		if opts.IsSync {
-			requests := issues_model.PullRequestList(prs)
-			if err = requests.LoadAttributes(ctx); err != nil {
+			if err = prs.LoadAttributes(ctx); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(ctx, requests, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
+			if invalidationErr := checkForInvalidation(ctx, prs, opts.RepoID, opts.Doer, opts.Branch); invalidationErr != nil {
 				log.Error("checkForInvalidation: %v", invalidationErr)
 			}
 			if err == nil {
@@ -530,14 +529,14 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := git.NewCommand(ctx, "diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
+	cmd := git.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
 
 	stderr := new(bytes.Buffer)
-	if err := cmd.Run(&git.RunOpts{
+	if err := cmd.Run(ctx, &git.RunOpts{
 		Dir:    prCtx.tmpBasePath,
 		Stdout: stdoutWriter,
 		Stderr: stderr,
@@ -654,7 +653,7 @@ func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 		return err
 	}
 
-	_, _, err = git.NewCommand(ctx, "update-ref").AddDynamicArguments(pr.GetGitRefName(), pr.HeadCommitID).RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	_, _, err = git.NewCommand("update-ref").AddDynamicArguments(pr.GetGitRefName(), pr.HeadCommitID).RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}
@@ -670,7 +669,7 @@ func retargetBranchPulls(ctx context.Context, doer *user_model.User, repoID int6
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
@@ -697,11 +696,11 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
-	issues_model.PullRequestList(prs).SetHeadRepo(repo)
-	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
+	prs.SetHeadRepo(repo)
+	if err := prs.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -732,11 +731,11 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 		return err
 	}
 
-	if err := issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+	if err := prs.LoadAttributes(ctx); err != nil {
 		return err
 	}
-	issues_model.PullRequestList(prs).SetBaseRepo(repo)
-	if err := issues_model.PullRequestList(prs).LoadRepositories(ctx); err != nil {
+	prs.SetBaseRepo(repo)
+	if err := prs.LoadRepositories(ctx); err != nil {
 		return err
 	}
 
@@ -769,7 +768,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 			return err
 		}
 
-		if err = issues_model.PullRequestList(prs).LoadAttributes(ctx); err != nil {
+		if err = prs.LoadAttributes(ctx); err != nil {
 			return err
 		}
 
