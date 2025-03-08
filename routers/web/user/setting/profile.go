@@ -338,13 +338,7 @@ func Repos(ctx *context.Context) {
 func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
-
-	allThemes := webtheme.GetAvailableThemes(ctx)
-	if webtheme.IsThemeAvailable(ctx, setting.Config().UI.DefaultTheme.Value(ctx)) {
-		allThemes = util.SliceRemoveAll(allThemes, setting.Config().UI.DefaultTheme.Value(ctx))
-		allThemes = append([]string{setting.Config().UI.DefaultTheme.Value(ctx)}, allThemes...) // move the default theme to the top
-	}
-	ctx.Data["AllThemes"] = allThemes
+	ctx.Data["AllThemes"] = webtheme.GetAvailableThemes()
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	var hiddenCommentTypes *big.Int
@@ -374,7 +368,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if !webtheme.IsThemeAvailable(ctx, form.Theme) {
+	if !webtheme.IsThemeAvailable(form.Theme) {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
