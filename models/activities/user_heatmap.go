@@ -19,17 +19,7 @@ type UserHeatmapData struct {
 	Contributions int64              `json:"contributions"`
 }
 
-// GetUserHeatmapDataByUser returns an array of UserHeatmapData
-func GetUserHeatmapDataByUser(ctx context.Context, user, doer *user_model.User) ([]*UserHeatmapData, error) {
-	return getUserHeatmapData(ctx, user, nil, doer)
-}
-
-// GetUserHeatmapDataByUserTeam returns an array of UserHeatmapData
-func GetUserHeatmapDataByUserTeam(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
-	return getUserHeatmapData(ctx, user, team, doer)
-}
-
-func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
+func GetUserHeatmapData(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
 	if !ActivityReadable(user, doer) {
