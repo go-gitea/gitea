@@ -297,7 +297,7 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 	}
 	if diffLineType != DiffLinePlain {
 		// it seems that Gitea doesn't need the line wrapper of Chroma, so do not add them back
-		// if the line wrappers are still needed in the future, it can be added back by "diffToHTML(hcd.lineWrapperTags. ...)"
+		// if the line wrappers are still needed in the future, it can be added back by "diffLineWithHighlightWrapper(hcd.lineWrapperTags. ...)"
 		lineHTML = hcd.diffLineWithHighlight(diffLineType, diff1, diff2)
 	}
 	return DiffInlineWithUnicodeEscape(lineHTML, locale)
