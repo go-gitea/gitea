@@ -320,11 +320,11 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 	hcd := newHighlightCodeDiff()
 	var diff1, diff2, lineHTML template.HTML
 	if leftLine != nil {
-		diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, diffSection.file.highlightedOldLines)
+		diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, diffSection.file.highlightedLeftLines)
 		lineHTML = util.Iif(diffLineType == DiffLinePlain, diff1, "")
 	}
 	if rightLine != nil {
-		diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, diffSection.file.highlightedNewLines)
+		diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, diffSection.file.highlightedRightLines)
 		lineHTML = util.Iif(diffLineType == DiffLinePlain, diff2, "")
 	}
 	if diffLineType != DiffLinePlain {
@@ -394,8 +394,8 @@ type DiffFile struct {
 	HasChangedSinceLastReview bool // User specific
 
 	// for render purpose only, TODO: in the future, we only need to store the related diff lines to save memory
-	highlightedOldLines map[int]template.HTML
-	highlightedNewLines map[int]template.HTML
+	highlightedLeftLines  map[int]template.HTML
+	highlightedRightLines map[int]template.HTML
 }
 
 // GetType returns type of diff file.
@@ -1277,10 +1277,10 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 
 		if !setting.Git.DisableDiffHighlight {
 			if limitedContent.LeftContent != nil && limitedContent.LeftContent.buf.Len() < MaxDiffHighlightEntireFileSize {
-				diffFile.highlightedOldLines = highlightCodeLines(diffFile, limitedContent.LeftContent.buf.String())
+				diffFile.highlightedLeftLines = highlightCodeLines(diffFile, true /* left */, limitedContent.LeftContent.buf.String())
 			}
 			if limitedContent.RightContent != nil && limitedContent.RightContent.buf.Len() < MaxDiffHighlightEntireFileSize {
-				diffFile.highlightedNewLines = highlightCodeLines(diffFile, limitedContent.RightContent.buf.String())
+				diffFile.highlightedRightLines = highlightCodeLines(diffFile, false /* right */, limitedContent.RightContent.buf.String())
 			}
 		}
 	}
@@ -1288,12 +1288,24 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 	return diff, nil
 }
 
-func highlightCodeLines(diffFile *DiffFile, content string) map[int]template.HTML {
+func highlightCodeLines(diffFile *DiffFile, isLeft bool, content string) map[int]template.HTML {
 	highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, content)
 	splitLines := strings.Split(string(highlightedNewContent), "\n")
 	lines := make(map[int]template.HTML, len(splitLines))
-	for i, line := range splitLines {
-		lines[i] = template.HTML(line)
+	// only save the highlighted lines we need, but not the whole file, to save memory
+	for _, sec := range diffFile.Sections {
+		for _, ln := range sec.Lines {
+			lineIdx := ln.LeftIdx
+			if !isLeft {
+				lineIdx = ln.RightIdx
+			}
+			if lineIdx >= 1 {
+				idx := lineIdx - 1
+				if idx < len(splitLines) {
+					lines[idx] = template.HTML(splitLines[idx])
+				}
+			}
+		}
 	}
 	return lines
 }
