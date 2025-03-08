@@ -321,12 +321,17 @@ func Diff(ctx *context.Context) {
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
-		FileOnly:           fileOnly,
 	}, files...)
 	if err != nil {
 		ctx.NotFound(err)
 		return
 	}
+	diffShortStat, err := gitdiff.GetDiffShortStat(gitRepo, "", commitID)
+	if err != nil {
+		ctx.ServerError("GetDiffShortStat", err)
+		return
+	}
+	ctx.Data["DiffShortStat"] = diffShortStat
 
 	parents := make([]string, commit.ParentCount())
 	for i := 0; i < commit.ParentCount(); i++ {
@@ -383,7 +388,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
 	ctx.Data["Parents"] = parents
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
+	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
 	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 		return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
