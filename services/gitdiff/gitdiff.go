@@ -533,13 +533,13 @@ parsingLoop:
 		}
 
 		if maxFiles > -1 && len(diff.Files) >= maxFiles {
-			lastFile := createDiffFile(diff, line)
+			lastFile := createDiffFile(line)
 			diff.End = lastFile.Name
 			diff.IsIncomplete = true
 			break parsingLoop
 		}
 
-		curFile = createDiffFile(diff, line)
+		curFile = createDiffFile(line)
 		if skipping {
 			if curFile.Name != skipToFile {
 				line, err = skipToNextDiffHead(input)
@@ -1013,7 +1013,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 	}
 }
 
-func createDiffFile(diff *Diff, line string) *DiffFile {
+func createDiffFile(line string) *DiffFile {
 	// The a/ and b/ filenames are the same unless rename/copy is involved.
 	// Especially, even for a creation or a deletion, /dev/null is not used
 	// in place of the a/ or b/ filenames.
