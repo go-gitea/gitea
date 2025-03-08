@@ -28,7 +28,7 @@ import (
 	"code.gitea.io/gitea/tests"
 )
 
-var testE2eWebRoutes *web.Route
+var testE2eWebRoutes *web.Router
 
 func TestMain(m *testing.M) {
 	defer log.GetManager().Close()
@@ -39,13 +39,6 @@ func TestMain(m *testing.M) {
 
 	tests.InitTest(false)
 	testE2eWebRoutes = routers.NormalRoutes()
-
-	os.Unsetenv("GIT_AUTHOR_NAME")
-	os.Unsetenv("GIT_AUTHOR_EMAIL")
-	os.Unsetenv("GIT_AUTHOR_DATE")
-	os.Unsetenv("GIT_COMMITTER_NAME")
-	os.Unsetenv("GIT_COMMITTER_EMAIL")
-	os.Unsetenv("GIT_COMMITTER_DATE")
 
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
@@ -73,10 +66,10 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-// TestE2e should be the only test e2e necessary. It will collect all "*.test.e2e.js" files in this directory and build a test for each.
+// TestE2e should be the only test e2e necessary. It will collect all "*.test.e2e.ts" files in this directory and build a test for each.
 func TestE2e(t *testing.T) {
 	// Find the paths of all e2e test files in test directory.
-	searchGlob := filepath.Join(filepath.Dir(setting.AppPath), "tests", "e2e", "*.test.e2e.js")
+	searchGlob := filepath.Join(filepath.Dir(setting.AppPath), "tests", "e2e", "*.test.e2e.ts")
 	paths, err := filepath.Glob(searchGlob)
 	if err != nil {
 		t.Fatal(err)
@@ -107,7 +100,7 @@ func TestE2e(t *testing.T) {
 				cmd.Stdout = &stdout
 				cmd.Stderr = &stderr
 
-				err := cmd.Run()
+				err = cmd.Run()
 				if err != nil {
 					// Currently colored output is conflicting. Using Printf until that is resolved.
 					fmt.Printf("%v", stdout.String())

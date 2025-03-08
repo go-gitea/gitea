@@ -5,6 +5,7 @@ package httplib
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -52,16 +53,16 @@ func getRequestScheme(req *http.Request) string {
 	return ""
 }
 
-func getForwardedHost(req *http.Request) string {
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
-	return req.Header.Get("X-Forwarded-Host")
+// GuessCurrentAppURL tries to guess the current full app URL (with sub-path) by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
+func GuessCurrentAppURL(ctx context.Context) string {
+	return GuessCurrentHostURL(ctx) + setting.AppSubURL + "/"
 }
 
-// GuessCurrentAppURL tries to guess the current full URL by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
-func GuessCurrentAppURL(ctx context.Context) string {
+// GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
+func GuessCurrentHostURL(ctx context.Context) string {
 	req, ok := ctx.Value(RequestContextKey).(*http.Request)
 	if !ok {
-		return setting.AppURL
+		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
 	// If no scheme provided by reverse proxy, then do not guess the AppURL, use the configured one.
 	// At the moment, if site admin doesn't configure the proxy headers correctly, then Gitea would guess wrong.
@@ -74,41 +75,104 @@ func GuessCurrentAppURL(ctx context.Context) string {
 	// So in the future maybe it should introduce a new config option, to let site admin decide how to guess the AppURL.
 	reqScheme := getRequestScheme(req)
 	if reqScheme == "" {
-		return setting.AppURL
+		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
-	reqHost := getForwardedHost(req)
-	if reqHost == "" {
-		reqHost = req.Host
-	}
-	return reqScheme + "://" + reqHost + setting.AppSubURL + "/"
+	// X-Forwarded-Host has many problems: non-standard, not well-defined (X-Forwarded-Port or not), conflicts with Host header.
+	// So do not use X-Forwarded-Host, just use Host header directly.
+	return reqScheme + "://" + req.Host
 }
 
-func MakeAbsoluteURL(ctx context.Context, s string) string {
-	if IsRelativeURL(s) {
-		return GuessCurrentAppURL(ctx) + strings.TrimPrefix(s, "/")
+func GuessCurrentHostDomain(ctx context.Context) string {
+	_, host, _ := strings.Cut(GuessCurrentHostURL(ctx), "://")
+	domain, _, _ := net.SplitHostPort(host)
+	return util.IfZero(domain, host)
+}
+
+// MakeAbsoluteURL tries to make a link to an absolute URL:
+// * If link is empty, it returns the current app URL.
+// * If link is absolute, it returns the link.
+// * Otherwise, it returns the current host URL + link, the link itself should have correct sub-path (AppSubURL) if needed.
+func MakeAbsoluteURL(ctx context.Context, link string) string {
+	if link == "" {
+		return GuessCurrentAppURL(ctx)
 	}
-	return s
+	if !IsRelativeURL(link) {
+		return link
+	}
+	return GuessCurrentHostURL(ctx) + "/" + strings.TrimPrefix(link, "/")
+}
+
+type urlType int
+
+const (
+	urlTypeGiteaAbsolute     urlType = iota + 1 // "http://gitea/subpath"
+	urlTypeGiteaPageRelative                    // "/subpath"
+	urlTypeGiteaSiteRelative                    // "?key=val"
+	urlTypeUnknown                              // "http://other"
+)
+
+func detectURLRoutePath(ctx context.Context, s string) (routePath string, ut urlType) {
+	u, err := url.Parse(s)
+	if err != nil {
+		return "", urlTypeUnknown
+	}
+	cleanedPath := ""
+	if u.Path != "" {
+		cleanedPath = util.PathJoinRelX(u.Path)
+		cleanedPath = util.Iif(cleanedPath == ".", "", "/"+cleanedPath)
+	}
+	if urlIsRelative(s, u) {
+		if u.Path == "" {
+			return "", urlTypeGiteaPageRelative
+		}
+		if strings.HasPrefix(strings.ToLower(cleanedPath+"/"), strings.ToLower(setting.AppSubURL+"/")) {
+			return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaSiteRelative
+		}
+		return "", urlTypeUnknown
+	}
+	u.Path = cleanedPath + "/"
+	urlLower := strings.ToLower(u.String())
+	if strings.HasPrefix(urlLower, strings.ToLower(setting.AppURL)) {
+		return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaAbsolute
+	}
+	guessedCurURL := GuessCurrentAppURL(ctx)
+	if strings.HasPrefix(urlLower, strings.ToLower(guessedCurURL)) {
+		return cleanedPath[len(setting.AppSubURL):], urlTypeGiteaAbsolute
+	}
+	return "", urlTypeUnknown
 }
 
 func IsCurrentGiteaSiteURL(ctx context.Context, s string) bool {
-	u, err := url.Parse(s)
-	if err != nil {
-		return false
+	_, ut := detectURLRoutePath(ctx, s)
+	return ut != urlTypeUnknown
+}
+
+type GiteaSiteURL struct {
+	RoutePath   string
+	OwnerName   string
+	RepoName    string
+	RepoSubPath string
+}
+
+func ParseGiteaSiteURL(ctx context.Context, s string) *GiteaSiteURL {
+	routePath, ut := detectURLRoutePath(ctx, s)
+	if ut == urlTypeUnknown || ut == urlTypeGiteaPageRelative {
+		return nil
 	}
-	if u.Path != "" {
-		cleanedPath := util.PathJoinRelX(u.Path)
-		if cleanedPath == "" || cleanedPath == "." {
-			u.Path = "/"
-		} else {
-			u.Path += "/" + cleanedPath + "/"
-		}
+	ret := &GiteaSiteURL{RoutePath: routePath}
+	fields := strings.SplitN(strings.TrimPrefix(ret.RoutePath, "/"), "/", 3)
+
+	// TODO: now it only does a quick check for some known reserved paths, should do more strict checks in the future
+	if fields[0] == "attachments" {
+		return ret
 	}
-	if urlIsRelative(s, u) {
-		return u.Path == "" || strings.HasPrefix(strings.ToLower(u.Path), strings.ToLower(setting.AppSubURL+"/"))
+	if len(fields) < 2 {
+		return ret
 	}
-	if u.Path == "" {
-		u.Path = "/"
+	ret.OwnerName = fields[0]
+	ret.RepoName = fields[1]
+	if len(fields) == 3 {
+		ret.RepoSubPath = "/" + fields[2]
 	}
-	urlLower := strings.ToLower(u.String())
-	return strings.HasPrefix(urlLower, strings.ToLower(setting.AppURL)) || strings.HasPrefix(urlLower, strings.ToLower(GuessCurrentAppURL(ctx)))
+	return ret
 }

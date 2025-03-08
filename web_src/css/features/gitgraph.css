@@ -57,6 +57,12 @@
   white-space: nowrap;
   display: flex;
   align-items: center;
+  gap: 0.25em;
+}
+
+#git-graph-container li .ui.label.commit-id-short {
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 #git-graph-container li .node-relation {
@@ -110,23 +116,6 @@
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-#git-graph-container #rev-list .sha.label {
-  padding-top: 5px;
-  padding-bottom: 3px;
-}
-
-#git-graph-container #rev-list .sha.label .ui.detail.icon.button {
-  padding-top: 3px;
-  margin-top: -5px;
-  padding-bottom: 1px;
-}
-
-#git-graph-container #rev-list .author img.ui.avatar {
-  width: auto;
-  height: 18px;
-  max-width: none;
 }
 
 #git-graph-container #graph-raw-list {

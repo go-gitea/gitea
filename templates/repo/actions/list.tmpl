@@ -76,6 +76,11 @@
 						</button>
 					{{end}}
 				</div>
+
+				{{if .WorkflowDispatchConfig}}
+					{{template "repo/actions/workflow_dispatch" .}}
+				{{end}}
+
 				{{template "repo/actions/runs_list" .}}
 			</div>
 		</div>

@@ -101,14 +101,14 @@ func Index(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Type:    packages_model.TypeHelm,
 		Name: packages_model.SearchValue{
 			ExactMatch: true,
-			Value:      ctx.Params("package"),
+			Value:      ctx.PathParam("package"),
 		},
 		HasFileWithName: filename,
 		IsInternal:      optional.Some(false),
@@ -130,7 +130,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

@@ -4,6 +4,7 @@
 package vagrant
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -44,7 +45,7 @@ func CheckAuthenticate(ctx *context.Context) {
 }
 
 func CheckBoxAvailable(ctx *context.Context) {
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeVagrant, ctx.Params("name"))
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeVagrant, ctx.PathParam("name"))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -101,7 +102,7 @@ func packageDescriptorToMetadata(baseURL string, pd *packages_model.PackageDescr
 }
 
 func EnumeratePackageVersions(ctx *context.Context) {
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeVagrant, ctx.Params("name"))
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeVagrant, ctx.PathParam("name"))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -136,14 +137,14 @@ func EnumeratePackageVersions(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	boxName := ctx.Params("name")
-	boxVersion := ctx.Params("version")
+	boxName := ctx.PathParam("name")
+	boxVersion := ctx.PathParam("version")
 	_, err := version.NewSemver(boxVersion)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	boxProvider := ctx.Params("provider")
+	boxProvider := ctx.PathParam("provider")
 	if !strings.HasSuffix(boxProvider, ".box") {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -222,15 +223,15 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeVagrant,
-			Name:        ctx.Params("name"),
-			Version:     ctx.Params("version"),
+			Name:        ctx.PathParam("name"),
+			Version:     ctx.PathParam("version"),
 		},
 		&packages_service.PackageFileInfo{
-			Filename: ctx.Params("provider"),
+			Filename: ctx.PathParam("provider"),
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

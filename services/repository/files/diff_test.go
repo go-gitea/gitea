@@ -18,7 +18,7 @@ import (
 func TestGetDiffPreview(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
@@ -30,8 +30,6 @@ func TestGetDiffPreview(t *testing.T) {
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
 
 	expectedDiff := &gitdiff.Diff{
-		TotalAddition: 2,
-		TotalDeletion: 1,
 		Files: []*gitdiff.DiffFile{
 			{
 				Name:        "README.md",
@@ -114,7 +112,6 @@ func TestGetDiffPreview(t *testing.T) {
 		},
 		IsIncomplete: false,
 	}
-	expectedDiff.NumFiles = len(expectedDiff.Files)
 
 	t.Run("with given branch", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, treePath, content)
@@ -140,7 +137,7 @@ func TestGetDiffPreview(t *testing.T) {
 func TestGetDiffPreviewErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)

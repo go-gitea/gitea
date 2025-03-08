@@ -58,6 +58,8 @@ type (
 	}
 )
 
+type msteamsConvertor struct{}
+
 // Create implements PayloadConvertor Create method
 func (m msteamsConvertor) Create(p *api.CreatePayload) (MSTeamsPayload, error) {
 	// created tag/branch
@@ -152,13 +154,13 @@ func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 
 // Issue implements PayloadConvertor Issue method
 func (m msteamsConvertor) Issue(p *api.IssuePayload) (MSTeamsPayload, error) {
-	title, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
+	title, _, extraMarkdown, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
 		p.Repository,
 		p.Sender,
 		title,
-		attachmentText,
+		extraMarkdown,
 		p.Issue.HTMLURL,
 		color,
 		&MSTeamsFact{"Issue #:", fmt.Sprintf("%d", p.Issue.ID)},
@@ -182,13 +184,13 @@ func (m msteamsConvertor) IssueComment(p *api.IssueCommentPayload) (MSTeamsPaylo
 
 // PullRequest implements PayloadConvertor PullRequest method
 func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload, error) {
-	title, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
+	title, _, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	return createMSTeamsPayload(
 		p.Repository,
 		p.Sender,
 		title,
-		attachmentText,
+		extraMarkdown,
 		p.PullRequest.HTMLURL,
 		color,
 		&MSTeamsFact{"Pull request #:", fmt.Sprintf("%d", p.PullRequest.ID)},
@@ -301,6 +303,20 @@ func (m msteamsConvertor) Package(p *api.PackagePayload) (MSTeamsPayload, error)
 	), nil
 }
 
+func (m msteamsConvertor) Status(p *api.CommitStatusPayload) (MSTeamsPayload, error) {
+	title, color := getStatusPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repo,
+		p.Sender,
+		title,
+		"",
+		p.TargetURL,
+		color,
+		&MSTeamsFact{"CommitStatus:", p.Context},
+	), nil
+}
+
 func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTarget string, color int, fact *MSTeamsFact) MSTeamsPayload {
 	facts := make([]MSTeamsFact, 0, 2)
 	if r != nil {
@@ -343,10 +359,11 @@ func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTar
 	}
 }
 
-type msteamsConvertor struct{}
+func newMSTeamsRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+	var pc payloadConvertor[MSTeamsPayload] = msteamsConvertor{}
+	return newJSONRequest(pc, w, t, true)
+}
 
-var _ payloadConvertor[MSTeamsPayload] = msteamsConvertor{}
-
-func newMSTeamsRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	return newJSONRequest(msteamsConvertor{}, w, t, true)
+func init() {
+	RegisterWebhookRequester(webhook_module.MSTEAMS, newMSTeamsRequest)
 }

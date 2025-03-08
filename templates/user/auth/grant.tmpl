@@ -8,8 +8,11 @@
 			<div class="ui attached segment">
 				{{template "base/alert" .}}
 				<p>
+					{{if not .AdditionalScopes}}
 					<b>{{ctx.Locale.Tr "auth.authorize_application_description"}}</b><br>
-					{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}
+					{{end}}
+					{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}<br>
+					{{ctx.Locale.Tr "auth.authorize_application_with_scopes" (HTMLFormat "<b>%s</b>" .Scope)}}
 				</p>
 			</div>
 			<div class="ui attached segment">

@@ -11,10 +11,10 @@
 		</span>
 	{{end}}
 	</div>
-	<div class="content gt-word-break profile-avatar-name">
+	<div class="content tw-break-anywhere profile-avatar-name">
 		{{if .ContextUser.FullName}}<span class="header text center">{{.ContextUser.FullName}}</span>{{end}}
 		<span class="username text center">{{.ContextUser.Name}} {{if .IsAdmin}}
-					<a class="muted" href="{{AppSubUrl}}/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">
+					<a class="muted" href="{{AppSubUrl}}/-/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">
 						{{svg "octicon-gear" 18}}
 					</a>
 				{{end}}</span>
@@ -25,7 +25,7 @@
 			{{end}}
 		</div>
 	</div>
-	<div class="extra content gt-word-break">
+	<div class="extra content tw-break-anywhere">
 		<ul>
 			{{if .UserBlocking}}
 				<li class="text red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>
@@ -48,16 +48,8 @@
 				<li>
 					{{svg "octicon-mail"}}
 					<a class="tw-flex-1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
-					<a href="{{AppSubUrl}}/user/settings#privacy-user-settings">
-						{{if .ShowUserEmail}}
-							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.limited"}}">
-								{{svg "octicon-unlock"}}
-							</i>
-						{{else}}
-							<i data-tooltip-content="{{ctx.Locale.Tr "user.email_visibility.private"}}">
-								{{svg "octicon-lock"}}
-							</i>
-						{{end}}
+					<a class="flex-text-inline" href="{{AppSubUrl}}/user/settings#privacy-user-settings" data-tooltip-content="{{ctx.Locale.Tr (Iif .ShowUserEmail "user.email_visibility.limited" "user.email_visibility.private")}}">
+						{{svg (Iif .ShowUserEmail "octicon-unlock" "octicon-lock")}}
 					</a>
 				</li>
 			{{else}}
@@ -87,7 +79,7 @@
 					</li>
 				{{end}}
 			{{end}}
-			<li>{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateTime "short" .ContextUser.CreatedUnix)}}</span></li>
+			<li>{{svg "octicon-calendar"}} <span>{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .ContextUser.CreatedUnix)}}</span></li>
 			{{if and .Orgs .HasOrgsVisible}}
 			<li>
 				<ul class="user-orgs">
@@ -100,6 +92,9 @@
 					</li>
 					{{end}}
 				{{end}}
+					{{if .ShowMoreOrgs}}
+						<li><a class="tw-align-center" href="{{.ContextUser.HomeLink}}?tab=organizations" data-tooltip-content="{{ctx.Locale.Tr "user.show_more"}}">{{svg "octicon-kebab-horizontal" 28 "icon tw-p-1"}}</a></li>
+					{{end}}
 				</ul>
 			</li>
 			{{end}}

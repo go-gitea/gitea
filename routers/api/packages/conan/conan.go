@@ -5,12 +5,14 @@ package conan
 
 import (
 	std_ctx "context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
@@ -21,6 +23,7 @@ import (
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -72,11 +75,11 @@ func baseURL(ctx *context.Context) string {
 // ExtractPathParameters is a middleware to extract common parameters from path
 func ExtractPathParameters(ctx *context.Context) {
 	rref, err := conan_module.NewRecipeReference(
-		ctx.Params("name"),
-		ctx.Params("version"),
-		ctx.Params("user"),
-		ctx.Params("channel"),
-		ctx.Params("recipe_revision"),
+		ctx.PathParam("name"),
+		ctx.PathParam("version"),
+		ctx.PathParam("user"),
+		ctx.PathParam("channel"),
+		ctx.PathParam("recipe_revision"),
 	)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -85,14 +88,14 @@ func ExtractPathParameters(ctx *context.Context) {
 
 	ctx.Data[recipeReferenceKey] = rref
 
-	reference := ctx.Params("package_reference")
+	reference := ctx.PathParam("package_reference")
 
 	var pref *conan_module.PackageReference
 	if reference != "" {
 		pref, err = conan_module.NewPackageReference(
 			rref,
 			reference,
-			ctx.Params("package_revision"),
+			ctx.PathParam("package_revision"),
 		)
 		if err != nil {
 			apiError(ctx, http.StatusBadRequest, err)
@@ -117,7 +120,20 @@ func Authenticate(ctx *context.Context) {
 		return
 	}
 
-	token, err := packages_service.CreateAuthorizationToken(ctx.Doer)
+	packageScope := auth_service.GetAccessScope(ctx.Data)
+	if has, err := packageScope.HasAnyScope(
+		auth_model.AccessTokenScopeReadPackage,
+		auth_model.AccessTokenScopeWritePackage,
+		auth_model.AccessTokenScopeAll,
+	); !has {
+		if err != nil {
+			log.Error("Error checking access scope: %v", err)
+		}
+		apiError(ctx, http.StatusForbidden, nil)
+		return
+	}
+
+	token, err := packages_service.CreateAuthorizationToken(ctx.Doer, packageScope)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -130,9 +146,23 @@ func Authenticate(ctx *context.Context) {
 func CheckCredentials(ctx *context.Context) {
 	if ctx.Doer == nil {
 		ctx.Status(http.StatusUnauthorized)
-	} else {
-		ctx.Status(http.StatusOK)
+		return
 	}
+
+	packageScope := auth_service.GetAccessScope(ctx.Data)
+	if has, err := packageScope.HasAnyScope(
+		auth_model.AccessTokenScopeReadPackage,
+		auth_model.AccessTokenScopeWritePackage,
+		auth_model.AccessTokenScopeAll,
+	); !has {
+		if err != nil {
+			log.Error("Error checking access scope: %v", err)
+		}
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 // RecipeSnapshot displays the recipe files with their md5 hash
@@ -154,7 +184,7 @@ func serveSnapshot(ctx *context.Context, fileKey string) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -215,7 +245,7 @@ func serveDownloadURLs(ctx *context.Context, fileKey, downloadURL string) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -304,7 +334,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
@@ -444,7 +474,7 @@ func DownloadPackageFile(ctx *context.Context) {
 func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
-	filename := ctx.Params("filename")
+	filename := ctx.PathParam("filename")
 	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
@@ -464,7 +494,7 @@ func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKe
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -480,7 +510,7 @@ func DeleteRecipeV1(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	if err := deleteRecipeOrPackage(ctx, rref, true, nil, false); err != nil {
-		if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, conan_model.ErrPackageReferenceNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -495,7 +525,7 @@ func DeleteRecipeV2(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	if err := deleteRecipeOrPackage(ctx, rref, rref.Revision == "", nil, false); err != nil {
-		if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, conan_model.ErrPackageReferenceNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -542,7 +572,7 @@ func DeletePackageV1(ctx *context.Context) {
 		for _, reference := range references {
 			pref, _ := conan_module.NewPackageReference(currentRref, reference.Value, conan_module.DefaultRevision)
 			if err := deleteRecipeOrPackage(ctx, currentRref, true, pref, true); err != nil {
-				if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+				if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, conan_model.ErrPackageReferenceNotExist) {
 					apiError(ctx, http.StatusNotFound, err)
 				} else {
 					apiError(ctx, http.StatusInternalServerError, err)
@@ -561,7 +591,7 @@ func DeletePackageV2(ctx *context.Context) {
 
 	if pref != nil { // has package reference
 		if err := deleteRecipeOrPackage(ctx, rref, false, pref, pref.Revision == ""); err != nil {
-			if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+			if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, conan_model.ErrPackageReferenceNotExist) {
 				apiError(ctx, http.StatusNotFound, err)
 			} else {
 				apiError(ctx, http.StatusInternalServerError, err)
@@ -586,7 +616,7 @@ func DeletePackageV2(ctx *context.Context) {
 		pref, _ := conan_module.NewPackageReference(rref, reference.Value, conan_module.DefaultRevision)
 
 		if err := deleteRecipeOrPackage(ctx, rref, false, pref, true); err != nil {
-			if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+			if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, conan_model.ErrPackageReferenceNotExist) {
 				apiError(ctx, http.StatusNotFound, err)
 			} else {
 				apiError(ctx, http.StatusInternalServerError, err)
@@ -720,7 +750,7 @@ func LatestRecipeRevision(ctx *context.Context) {
 
 	revision, err := conan_model.GetLastRecipeRevision(ctx, ctx.Package.Owner.ID, rref)
 	if err != nil {
-		if err == conan_model.ErrRecipeReferenceNotExist || err == conan_model.ErrPackageReferenceNotExist {
+		if errors.Is(err, conan_model.ErrRecipeReferenceNotExist) || errors.Is(err, conan_model.ErrPackageReferenceNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -737,7 +767,7 @@ func LatestPackageRevision(ctx *context.Context) {
 
 	revision, err := conan_model.GetLastPackageRevision(ctx, ctx.Package.Owner.ID, pref)
 	if err != nil {
-		if err == conan_model.ErrRecipeReferenceNotExist || err == conan_model.ErrPackageReferenceNotExist {
+		if errors.Is(err, conan_model.ErrRecipeReferenceNotExist) || errors.Is(err, conan_model.ErrPackageReferenceNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -767,7 +797,7 @@ func listRevisionFiles(ctx *context.Context, fileKey string) {
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)

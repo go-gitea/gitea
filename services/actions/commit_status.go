@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -53,8 +54,18 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 			return fmt.Errorf("head commit is missing in event payload")
 		}
 		sha = payload.HeadCommit.ID
-	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
-		event = "pull_request"
+	case // pull_request
+		webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestSync,
+		webhook_module.HookEventPullRequestAssign,
+		webhook_module.HookEventPullRequestLabel,
+		webhook_module.HookEventPullRequestReviewRequest,
+		webhook_module.HookEventPullRequestMilestone:
+		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
+			event = "pull_request_target"
+		} else {
+			event = "pull_request"
+		}
 		payload, err := run.GetPullRequestEventPayload()
 		if err != nil {
 			return fmt.Errorf("GetPullRequestEventPayload: %w", err)
@@ -123,18 +134,16 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	if err != nil {
 		return fmt.Errorf("HashTypeInterfaceFromHashString: %w", err)
 	}
-	if err := commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID.String(), &git_model.CommitStatus{
+	status := git_model.CommitStatus{
 		SHA:         sha,
 		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
 		Description: description,
 		Context:     ctxname,
 		CreatorID:   creator.ID,
 		State:       state,
-	}); err != nil {
-		return fmt.Errorf("NewCommitStatus: %w", err)
 	}
 
-	return nil
+	return commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID.String(), &status)
 }
 
 func toCommitStatus(status actions_model.Status) api.CommitStatusState {

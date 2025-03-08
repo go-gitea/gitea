@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-fed/httpsig"
+	"github.com/42wim/httpsig"
 )
 
 const (

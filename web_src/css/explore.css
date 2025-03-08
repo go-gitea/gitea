@@ -1,13 +1,4 @@
-.explore .secondary-nav {
-  border-width: 1px !important;
-}
-
-.explore .secondary-nav .svg {
-  width: 16px;
-  text-align: center;
-  margin-right: 5px;
-}
-
+/* FIXME: need to refactor the repo branches list page and move these styles to proper place */
 .ui.repository.branches .info {
   font-size: 12px;
   color: var(--color-text-light);
@@ -19,13 +10,4 @@
   max-width: 72em;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.ui.repository.branches .overflow-visible {
-  overflow: visible;
-}
-
-/* fix alignment of PR popup in branches table */
-.ui.repository.branches table .ui.popup {
-  text-align: left;
 }

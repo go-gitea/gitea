@@ -94,9 +94,9 @@ func TestAPISearchRepo(t *testing.T) {
 	}{
 		{
 			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-				nil:   {count: 35},
-				user:  {count: 35},
-				user2: {count: 35},
+				nil:   {count: 36},
+				user:  {count: 36},
+				user2: {count: 36},
 			},
 		},
 		{
@@ -471,6 +471,15 @@ func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
 	assert.Equal(t, "Repository is not a mirror", errRespJSON["message"])
 }
 
+func testAPIOrgCreateRepo(t *testing.T, session *TestSession, orgName, repoName string, status int) {
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos", orgName), &api.CreateRepoOption{
+		Name: repoName,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, status)
+}
+
 func TestAPIOrgRepoCreate(t *testing.T) {
 	testCases := []struct {
 		ctxUserID         int64
@@ -488,11 +497,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 	for _, testCase := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID})
 		session := loginUser(t, user.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos", testCase.orgName), &api.CreateRepoOption{
-			Name: testCase.repoName,
-		}).AddTokenAuth(token)
-		MakeRequest(t, req, testCase.expectedStatus)
+		testAPIOrgCreateRepo(t, session, testCase.orgName, testCase.repoName, testCase.expectedStatus)
 	}
 }
 
@@ -718,8 +723,8 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var reviewers []*api.User
 	DecodeJSON(t, resp, &reviewers)
-	if assert.Len(t, reviewers, 3) {
-		assert.ElementsMatch(t, []int64{1, 4, 11}, []int64{reviewers[0].ID, reviewers[1].ID, reviewers[2].ID})
+	if assert.Len(t, reviewers, 1) {
+		assert.ElementsMatch(t, []int64{2}, []int64{reviewers[0].ID})
 	}
 }
 
@@ -735,5 +740,5 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	var assignees []*api.User
 	DecodeJSON(t, resp, &assignees)
-	assert.Len(t, assignees, 1)
+	assert.Len(t, assignees, 2)
 }

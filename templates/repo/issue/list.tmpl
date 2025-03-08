@@ -7,7 +7,7 @@
 	{{if .PinnedIssues}}
 		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
 			{{range .PinnedIssues}}
-				<div class="issue-card gt-word-break {{if $.IsRepoAdmin}}tw-cursor-grab{{end}}" data-move-url="{{$.Link}}/move_pin" data-issue-id="{{.ID}}">
+				<div class="issue-card tw-break-anywhere {{if $.IsRepoAdmin}}tw-cursor-grab{{end}}" data-move-url="{{$.Link}}/move_pin" data-issue-id="{{.ID}}">
 					{{template "repo/issue/card" (dict "Issue" . "Page" $ "isPinnedIssueCard" true)}}
 				</div>
 			{{end}}
@@ -40,7 +40,7 @@
 					<div class="ui compact tiny secondary menu">
 						<span class="item" data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
 							{{svg "octicon-clock"}}
-							{{.TotalTrackedTime | Sec2Time}}
+							{{.TotalTrackedTime | Sec2Hour}}
 						</span>
 					</div>
 				{{end}}

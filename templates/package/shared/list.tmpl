@@ -24,7 +24,7 @@
 					<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 				</div>
 				<div class="flex-item-body">
-					{{$timeStr := TimeSinceUnix .Version.CreatedUnix ctx.Locale}}
+					{{$timeStr := DateUtils.TimeSince .Version.CreatedUnix}}
 					{{$hasRepositoryAccess := false}}
 					{{if .Repository}}
 						{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}

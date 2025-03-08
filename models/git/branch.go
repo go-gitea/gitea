@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -166,12 +167,28 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 			BranchName: branchName,
 		}
 	}
+	// FIXME: this design is not right: it doesn't check `branch.IsDeleted`, it doesn't make sense to make callers to check IsDeleted again and again.
+	// It causes inconsistency with `GetBranches` and `git.GetBranch`, and will lead to strange bugs
+	// In the future, there should be 2 functions: `GetBranchExisting` and `GetBranchWithDeleted`
 	return &branch, nil
 }
 
-func GetBranches(ctx context.Context, repoID int64, branchNames []string) ([]*Branch, error) {
+func GetBranches(ctx context.Context, repoID int64, branchNames []string, includeDeleted bool) ([]*Branch, error) {
 	branches := make([]*Branch, 0, len(branchNames))
-	return branches, db.GetEngine(ctx).Where("repo_id=?", repoID).In("name", branchNames).Find(&branches)
+
+	sess := db.GetEngine(ctx).Where("repo_id=?", repoID).In("name", branchNames)
+	if !includeDeleted {
+		sess.And("is_deleted=?", false)
+	}
+	return branches, sess.Find(&branches)
+}
+
+func BranchesToNamesSet(branches []*Branch) container.Set[string] {
+	names := make(container.Set[string], len(branches))
+	for _, branch := range branches {
+		names.Add(branch.Name)
+	}
+	return names
 }
 
 func AddBranches(ctx context.Context, branches []*Branch) error {
@@ -392,6 +409,13 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 		return err
 	}
 
+	// 4.1 Update all not merged pull request head branch name
+	if _, err = sess.Table("pull_request").Where("head_repo_id=? AND head_branch=? AND has_merged=?",
+		repo.ID, from, false).
+		Update(map[string]any{"head_branch": to}); err != nil {
+		return err
+	}
+
 	// 5. insert renamed branch record
 	renamedBranch := &RenamedBranch{
 		RepoID: repo.ID,
@@ -419,6 +443,8 @@ type FindRecentlyPushedNewBranchesOptions struct {
 }
 
 type RecentlyPushedNewBranch struct {
+	BranchRepo        *repo_model.Repository
+	BranchName        string
 	BranchDisplayName string
 	BranchLink        string
 	BranchCompareURL  string
@@ -427,7 +453,8 @@ type RecentlyPushedNewBranch struct {
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 2 hours which has no opened PRs created
 // if opts.CommitAfterUnix is 0, we will find the branches that were committed to in the last 2 hours
-// if opts.ListOptions is not set, we will only display top 2 latest branch
+// if opts.ListOptions is not set, we will only display top 2 latest branches.
+// Protected branches will be skipped since they are unlikely to be used to create new PRs.
 func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, opts *FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
 	if doer == nil {
 		return []*RecentlyPushedNewBranch{}, nil
@@ -486,6 +513,18 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 		opts.MaxCount = 2
 	}
 	for _, branch := range branches {
+		// whether the branch is protected
+		protected, err := IsBranchProtected(ctx, branch.RepoID, branch.Name)
+		if err != nil {
+			return nil, fmt.Errorf("IsBranchProtected: %v", err)
+		}
+		if protected {
+			// Skip protected branches,
+			// since updates to protected branches often come from PR merges,
+			// and they are unlikely to be used to create new PRs.
+			continue
+		}
+
 		// whether branch have already created PR
 		count, err := db.GetEngine(ctx).Table("pull_request").
 			// we should not only use branch name here, because if there are branches with same name in other repos,
@@ -506,7 +545,9 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 				branchDisplayName = fmt.Sprintf("%s:%s", branch.Repo.FullName(), branchDisplayName)
 			}
 			newBranches = append(newBranches, &RecentlyPushedNewBranch{
+				BranchRepo:        branch.Repo,
 				BranchDisplayName: branchDisplayName,
+				BranchName:        branch.Name,
 				BranchLink:        fmt.Sprintf("%s/src/branch/%s", branch.Repo.Link(), util.PathEscapeSegments(branch.Name)),
 				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
 				CommitTime:        branch.CommitTime,

@@ -160,12 +160,34 @@ func UpdateExternalUserByExternalID(ctx context.Context, external *ExternalLogin
 	return err
 }
 
+// EnsureLinkExternalToUser link the external user to the user
+func EnsureLinkExternalToUser(ctx context.Context, external *ExternalLoginUser) error {
+	has, err := db.Exist[ExternalLoginUser](ctx, builder.Eq{
+		"external_id":     external.ExternalID,
+		"login_source_id": external.LoginSourceID,
+	})
+	if err != nil {
+		return err
+	}
+
+	if has {
+		_, err = db.GetEngine(ctx).Where("external_id=? AND login_source_id=?", external.ExternalID, external.LoginSourceID).AllCols().Update(external)
+		return err
+	}
+
+	_, err = db.GetEngine(ctx).Insert(external)
+	return err
+}
+
 // FindExternalUserOptions represents an options to find external users
 type FindExternalUserOptions struct {
 	db.ListOptions
-	Provider string
-	UserID   int64
-	OrderBy  string
+	Provider        string
+	UserID          int64
+	LoginSourceID   int64
+	HasRefreshToken bool
+	Expired         bool
+	OrderBy         string
 }
 
 func (opts FindExternalUserOptions) ToConds() builder.Cond {
@@ -176,9 +198,22 @@ func (opts FindExternalUserOptions) ToConds() builder.Cond {
 	if opts.UserID > 0 {
 		cond = cond.And(builder.Eq{"user_id": opts.UserID})
 	}
+	if opts.Expired {
+		cond = cond.And(builder.Lt{"expires_at": time.Now()})
+	}
+	if opts.HasRefreshToken {
+		cond = cond.And(builder.Neq{"refresh_token": ""})
+	}
+	if opts.LoginSourceID != 0 {
+		cond = cond.And(builder.Eq{"login_source_id": opts.LoginSourceID})
+	}
 	return cond
 }
 
 func (opts FindExternalUserOptions) ToOrders() string {
 	return opts.OrderBy
+}
+
+func IterateExternalLogin(ctx context.Context, opts FindExternalUserOptions, f func(ctx context.Context, u *ExternalLoginUser) error) error {
+	return db.Iterate(ctx, opts.ToConds(), f)
 }

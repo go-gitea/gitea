@@ -10,7 +10,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type Repository interface {
@@ -37,67 +39,33 @@ func OpenWikiRepository(ctx context.Context, repo Repository) (*git.Repository, 
 
 // contextKey is a value for use with context.WithValue.
 type contextKey struct {
-	name string
+	repoPath string
 }
-
-// RepositoryContextKey is a context key. It is used with context.Value() to get the current Repository for the context
-var RepositoryContextKey = &contextKey{"repository"}
-
-// RepositoryFromContext attempts to get the repository from the context
-func repositoryFromContext(ctx context.Context, repo Repository) *git.Repository {
-	value := ctx.Value(RepositoryContextKey)
-	if value == nil {
-		return nil
-	}
-
-	if gitRepo, ok := value.(*git.Repository); ok && gitRepo != nil {
-		if gitRepo.Path == repoPath(repo) {
-			return gitRepo
-		}
-	}
-
-	return nil
-}
-
-type nopCloser func()
-
-func (nopCloser) Close() error { return nil }
 
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
+// The caller must call "defer gitRepo.Close()"
 func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Repository, io.Closer, error) {
-	gitRepo := repositoryFromContext(ctx, repo)
-	if gitRepo != nil {
-		return gitRepo, nopCloser(nil), nil
+	reqCtx := reqctx.FromContext(ctx)
+	if reqCtx != nil {
+		gitRepo, err := RepositoryFromRequestContextOrOpen(reqCtx, repo)
+		return gitRepo, util.NopCloser{}, err
 	}
-
 	gitRepo, err := OpenRepository(ctx, repo)
 	return gitRepo, gitRepo, err
 }
 
-// repositoryFromContextPath attempts to get the repository from the context
-func repositoryFromContextPath(ctx context.Context, path string) *git.Repository {
-	value := ctx.Value(RepositoryContextKey)
-	if value == nil {
-		return nil
+// RepositoryFromRequestContextOrOpen opens the repository at the given relative path in the provided request context.
+// Caller shouldn't close the git repo manually, the git repo will be automatically closed when the request context is done.
+func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Repository) (*git.Repository, error) {
+	ck := contextKey{repoPath: repoPath(repo)}
+	if gitRepo, ok := ctx.Value(ck).(*git.Repository); ok {
+		return gitRepo, nil
 	}
-
-	if repo, ok := value.(*git.Repository); ok && repo != nil {
-		if repo.Path == path {
-			return repo
-		}
+	gitRepo, err := git.OpenRepository(ctx, ck.repoPath)
+	if err != nil {
+		return nil, err
 	}
-
-	return nil
-}
-
-// RepositoryFromContextOrOpenPath attempts to get the repository from the context or just opens it
-// Deprecated: Use RepositoryFromContextOrOpen instead
-func RepositoryFromContextOrOpenPath(ctx context.Context, path string) (*git.Repository, io.Closer, error) {
-	gitRepo := repositoryFromContextPath(ctx, path)
-	if gitRepo != nil {
-		return gitRepo, nopCloser(nil), nil
-	}
-
-	gitRepo, err := git.OpenRepository(ctx, path)
-	return gitRepo, gitRepo, err
+	ctx.AddCloser(gitRepo)
+	ctx.SetContextValue(ck, gitRepo)
+	return gitRepo, nil
 }

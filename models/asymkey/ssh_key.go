@@ -229,35 +229,26 @@ func UpdatePublicKeyUpdated(ctx context.Context, id int64) error {
 
 // PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
 func PublicKeysAreExternallyManaged(ctx context.Context, keys []*PublicKey) ([]bool, error) {
-	sources := make([]*auth.Source, 0, 5)
+	sourceCache := make(map[int64]*auth.Source, len(keys))
 	externals := make([]bool, len(keys))
-keyloop:
+
 	for i, key := range keys {
 		if key.LoginSourceID == 0 {
 			externals[i] = false
-			continue keyloop
+			continue
 		}
 
-		var source *auth.Source
-
-	sourceloop:
-		for _, s := range sources {
-			if s.ID == key.LoginSourceID {
-				source = s
-				break sourceloop
-			}
-		}
-
-		if source == nil {
+		source, ok := sourceCache[key.LoginSourceID]
+		if !ok {
 			var err error
 			source, err = auth.GetSourceByID(ctx, key.LoginSourceID)
 			if err != nil {
 				if auth.IsErrSourceNotExist(err) {
 					externals[i] = false
-					sources[i] = &auth.Source{
+					sourceCache[key.LoginSourceID] = &auth.Source{
 						ID: key.LoginSourceID,
 					}
-					continue keyloop
+					continue
 				}
 				return nil, err
 			}

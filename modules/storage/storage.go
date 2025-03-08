@@ -63,7 +63,7 @@ type ObjectStorage interface {
 	Save(path string, r io.Reader, size int64) (int64, error)
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
-	URL(path, name string) (*url.URL, error)
+	URL(path, name string, reqParams url.Values) (*url.URL, error)
 	IterateObjects(path string, iterator func(path string, obj Object) error) error
 }
 
@@ -93,7 +93,7 @@ func Clean(storage ObjectStorage) error {
 }
 
 // SaveFrom saves data to the ObjectStorage with path p from the callback
-func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) error) error {
+func SaveFrom(objStorage ObjectStorage, path string, callback func(w io.Writer) error) error {
 	pr, pw := io.Pipe()
 	defer pr.Close()
 	go func() {
@@ -103,7 +103,7 @@ func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) err
 		}
 	}()
 
-	_, err := objStorage.Save(p, pr, -1)
+	_, err := objStorage.Save(path, pr, -1)
 	return err
 }
 
@@ -131,7 +131,7 @@ var (
 	ActionsArtifacts ObjectStorage = uninitializedStorage
 )
 
-// Init init the stoarge
+// Init init the storage
 func Init() error {
 	for _, f := range []func() error{
 		initAttachments,

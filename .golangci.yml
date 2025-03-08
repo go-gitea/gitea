@@ -19,9 +19,12 @@ linters:
     - revive
     - staticcheck
     - stylecheck
+    - testifylint
     - typecheck
     - unconvert
     - unused
+    - unparam
+    - usetesting
     - wastedassign
 
 run:
@@ -33,6 +36,10 @@ output:
   show-stats: true
 
 linters-settings:
+  testifylint:
+    disable:
+      - go-require
+      - require-error
   stylecheck:
     checks: ["all", "-ST1005", "-ST1003"]
   nakedret:
@@ -95,6 +102,8 @@ linters-settings:
             desc: do not use the ini package, use gitea's config system instead
           - pkg: gitea.com/go-chi/cache
             desc: do not use the go-chi cache package, use gitea's cache system
+  usetesting:
+    os-temp-dir: true
 
 issues:
   max-issues-per-linter: 0

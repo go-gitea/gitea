@@ -11,6 +11,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/builder"
 )
 
@@ -38,9 +40,8 @@ func TestAPIPullReview(t *testing.T) {
 
 	var reviews []*api.PullReview
 	DecodeJSON(t, resp, &reviews)
-	if !assert.Len(t, reviews, 6) {
-		return
-	}
+	require.Len(t, reviews, 8)
+
 	for _, r := range reviews {
 		assert.EqualValues(t, pullIssue.HTMLURL(), r.HTMLPullURL)
 	}
@@ -422,7 +423,9 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 		pullIssue.ID, user8.ID, 1, 1, 2, false)
 
 	// user8 dismiss review
-	_, err = issue_service.ReviewRequest(db.DefaultContext, pullIssue, user8, user8, false)
+	permUser8, err := access_model.GetUserRepoPermission(db.DefaultContext, pullIssue.Repo, user8)
+	assert.NoError(t, err)
+	_, err = issue_service.ReviewRequest(db.DefaultContext, pullIssue, user8, &permUser8, user8, false)
 	assert.NoError(t, err)
 
 	reviewsCountCheck(t,

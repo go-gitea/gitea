@@ -12,7 +12,7 @@
 					{{svg "octicon-triangle-down" 14 "dropdown icon tw-ml-1"}}
 				</span>
 				<div class="context user overflow menu">
-					<div class="ui header">
+					<div class="header">
 						{{ctx.Locale.Tr "home.switch_dashboard_context"}}
 					</div>
 					<div class="scrolling menu items">
@@ -56,7 +56,7 @@
 					</span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="context user overflow menu">
-						<div class="ui header">
+						<div class="header">
 							{{ctx.Locale.Tr "home.filter_by_team_repositories"}}
 						</div>
 						<div class="scrolling menu items">
@@ -81,17 +81,17 @@
 			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
 			</a>
-			{{if not .UnitIssuesGlobalDisabled}}
+			{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
 			<a class="{{if .PageIsIssues}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/issues{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-issue-opened"}}&nbsp;{{ctx.Locale.Tr "issues"}}
 			</a>
 			{{end}}
-			{{if not .UnitPullsGlobalDisabled}}
+			{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
 			<a class="{{if .PageIsPulls}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/pulls{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-git-pull-request"}}&nbsp;{{ctx.Locale.Tr "pull_requests"}}
 			</a>
 			{{end}}
-			{{if and .ShowMilestonesDashboardPage (not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled))}}
+			{{if and .ShowMilestonesDashboardPage (not (and ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled))}}
 			<a class="{{if .PageIsMilestonesDashboard}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/milestones{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
 				{{svg "octicon-milestone"}}&nbsp;{{ctx.Locale.Tr "milestones"}}
 			</a>

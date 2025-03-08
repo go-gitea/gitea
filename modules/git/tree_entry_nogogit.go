@@ -9,23 +9,17 @@ import "code.gitea.io/gitea/modules/log"
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
-	ID ObjectID
-
+	ID    ObjectID
 	ptree *Tree
 
 	entryMode EntryMode
 	name      string
-
-	size     int64
-	sized    bool
-	fullName string
+	size      int64
+	sized     bool
 }
 
 // Name returns the name of the entry
 func (te *TreeEntry) Name() string {
-	if te.fullName != "" {
-		return te.fullName
-	}
 	return te.name
 }
 
@@ -42,9 +36,13 @@ func (te *TreeEntry) Size() int64 {
 		return te.size
 	}
 
-	wr, rd, cancel := te.ptree.repo.CatFileBatchCheck(te.ptree.repo.Ctx)
+	wr, rd, cancel, err := te.ptree.repo.CatFileBatchCheck(te.ptree.repo.Ctx)
+	if err != nil {
+		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), te.ptree.repo.Path, err)
+		return 0
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(te.ID.String() + "\n"))
+	_, err = wr.Write([]byte(te.ID.String() + "\n"))
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), te.ptree.repo.Path, err)
 		return 0

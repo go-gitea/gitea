@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -32,72 +31,6 @@ func init() {
 func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error {
 	_, err := db.GetEngine(ctx).Where("project_id=?", projectID).Delete(&ProjectIssue{})
 	return err
-}
-
-// NumIssues return counter of all issues assigned to a project
-func (p *Project) NumIssues(ctx context.Context) int {
-	c, err := db.GetEngine(ctx).Table("project_issue").
-		Where("project_id=?", p.ID).
-		GroupBy("issue_id").
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumIssues: %v", err)
-		return 0
-	}
-	return int(c)
-}
-
-// NumClosedIssues return counter of closed issues assigned to a project
-func (p *Project) NumClosedIssues(ctx context.Context) int {
-	c, err := db.GetEngine(ctx).Table("project_issue").
-		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumClosedIssues: %v", err)
-		return 0
-	}
-	return int(c)
-}
-
-// NumOpenIssues return counter of open issues assigned to a project
-func (p *Project) NumOpenIssues(ctx context.Context) int {
-	c, err := db.GetEngine(ctx).Table("project_issue").
-		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumOpenIssues: %v", err)
-		return 0
-	}
-	return int(c)
-}
-
-// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectColumn(ctx context.Context, column *Column, sortedIssueIDs map[int64]int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		sess := db.GetEngine(ctx)
-		issueIDs := util.ValuesOfMap(sortedIssueIDs)
-
-		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", column.ProjectID).In("issue_id", issueIDs).Count()
-		if err != nil {
-			return err
-		}
-		if int(count) != len(sortedIssueIDs) {
-			return fmt.Errorf("all issues have to be added to a project first")
-		}
-
-		for sorting, issueID := range sortedIssueIDs {
-			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }
 
 func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
@@ -140,4 +73,10 @@ func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Colum
 		}
 		return nil
 	})
+}
+
+// DeleteAllProjectIssueByIssueIDsAndProjectIDs delete all project's issues by issue's and project's ids
+func DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx context.Context, issueIDs, projectIDs []int64) error {
+	_, err := db.GetEngine(ctx).In("project_id", projectIDs).In("issue_id", issueIDs).Delete(&ProjectIssue{})
+	return err
 }

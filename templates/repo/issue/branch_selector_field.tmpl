@@ -1,3 +1,17 @@
+{{/* TODO: RemoveIssueRef: the Issue.Ref will be removed in 1.24 or 1.25 if no end user really needs it or there could be better alternative then.
+PR: https://github.com/go-gitea/gitea/pull/32744
+
+The Issue.Ref was added by Add possibility to record branch or tag information in an issue (#780)
+After 8 years, this "branch selector" does nothing more than saving the branch/tag name into database and displays it.
+
+There are still users using it:
+* @didim99: it is a really useful feature to specify a branch in which issue found.
+
+Still needs to figure out:
+* Could the "recording branch/tag name" be replaced by other approaches?
+	* Write the branch name in the issue title/body then it will still be displayed, eg: `[bug] (fix/ui-broken-bug) there is a bug ....`
+* Is "GitHub-like development sidebar (`#31899`)" good enough (or better) for your usage?
+*/}}
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Reference}}">
 <div class="ui dropdown select-branch branch-selector-dropdown ellipsis-items-nowrap {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}}"
@@ -29,7 +43,7 @@
 			{{range .Branches}}
 				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector" title="{{.}}">{{.}}</div>
 			{{else}}
-				<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
+				<div class="item disabled">{{ctx.Locale.Tr "no_results_found"}}</div>
 			{{end}}
 		</div>
 		<div id="tag-list" class="scrolling menu reference-list-menu tw-hidden">
@@ -39,11 +53,10 @@
 			{{range .Tags}}
 				<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>
 			{{else}}
-				<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
+				<div class="item disabled">{{ctx.Locale.Tr "no_results_found"}}</div>
 			{{end}}
 		</div>
 	</div>
 </div>
-
 <div class="divider"></div>
 {{end}}

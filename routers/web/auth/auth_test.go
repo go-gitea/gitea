@@ -71,7 +71,7 @@ func TestSignUpOAuth2ButMissingFields(t *testing.T) {
 
 	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockStore("dummy-sid")}
 	ctx, resp := contexttest.MockContext(t, "/user/oauth2/dummy-auth-source/callback?code=dummy-code", mockOpt)
-	ctx.SetParams("provider", "dummy-auth-source")
+	ctx.SetPathParam("provider", "dummy-auth-source")
 	SignInOAuthCallback(ctx)
 	assert.Equal(t, http.StatusSeeOther, resp.Code)
 	assert.Equal(t, "/user/link_account", test.RedirectURL(resp))

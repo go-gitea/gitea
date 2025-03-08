@@ -4,75 +4,99 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="flex-container">
+			{{$queryLink := QueryBuild "?" "type" $.ViewType "sort" $.SortType "state" $.State "q" $.Keyword "labels" .SelectLabels "fuzzy" $.IsFuzzy}}
 			<div class="flex-container-nav">
 				<div class="ui secondary vertical filter menu tw-bg-transparent">
-					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="?type=your_repositories&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">
+					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{QueryBuild $queryLink "type" "your_repositories"}}">
 						{{ctx.Locale.Tr "home.issues.in_your_repos"}}
 						<strong>{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="?type=assigned&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">
+					<a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{QueryBuild $queryLink "type" "assigned"}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}
 						<strong>{{CountFmt .IssueStats.AssignCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="?type=created_by&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">
+					<a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{QueryBuild $queryLink "type" "created_by"}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}
 						<strong>{{CountFmt .IssueStats.CreateCount}}</strong>
 					</a>
 					{{if .PageIsPulls}}
-						<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="?type=review_requested&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">
+						<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="{{QueryBuild $queryLink "type" "review_requested"}}">
 							{{ctx.Locale.Tr "repo.issues.filter_type.review_requested"}}
 							<strong>{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
 						</a>
-						<a class="{{if eq .ViewType "reviewed_by"}}active{{end}} item" href="?type=reviewed_by&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">
+						<a class="{{if eq .ViewType "reviewed_by"}}active{{end}} item" href="{{QueryBuild $queryLink "type" "reviewed_by"}}">
 							{{ctx.Locale.Tr "repo.issues.filter_type.reviewed_by_you"}}
 							<strong>{{CountFmt .IssueStats.ReviewedCount}}</strong>
 						</a>
 					{{end}}
-					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="?type=mentioned&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">
+					<a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{QueryBuild $queryLink "type" "mentioned"}}">
 						{{ctx.Locale.Tr "repo.issues.filter_type.mentioning_you"}}
 						<strong>{{CountFmt .IssueStats.MentionCount}}</strong>
 					</a>
 				</div>
 			</div>
+
+			{{$queryLinkWithFilter := QueryBuild $queryLink "poster" $.FilterPosterUsername "assignee" $.FilterAssigneeUsername}}
 			<div class="flex-container-main content">
 				<div class="list-header">
-					<div class="small-menu-items ui compact tiny menu list-header-toggle">
-						<a class="item{{if not .IsShowClosed}} active{{end}}" href="?type={{$.ViewType}}&sort={{$.SortType}}&state=open&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">
-							{{svg "octicon-issue-opened" 16 "tw-mr-2"}}
+					<div class="small-menu-items ui compact tiny menu list-header-toggle flex-items-block">
+						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{QueryBuild $queryLink "state" "open"}}">
+							{{svg "octicon-issue-opened"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 						</a>
-						<a class="item{{if .IsShowClosed}} active{{end}}" href="?type={{$.ViewType}}&sort={{$.SortType}}&state=closed&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">
-							{{svg "octicon-issue-closed" 16 "tw-mr-2"}}
+						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{QueryBuild $queryLink "state" "closed"}}">
+							{{svg "octicon-issue-closed"}}
 							{{ctx.Locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 						</a>
 					</div>
 					<form class="list-header-search ui form ignore-dirty">
-						<div class="ui small search fluid action input">
-							<input type="hidden" name="type" value="{{$.ViewType}}">
-							<input type="hidden" name="sort" value="{{$.SortType}}">
-							<input type="hidden" name="state" value="{{$.State}}">
-							{{if .PageIsPulls}}
-								{{template "shared/search/combo_fuzzy" dict "Value" $.Keyword "IsFuzzy" $.IsFuzzy "Placeholder" (ctx.Locale.Tr "search.pull_kind") "Tooltip" (ctx.Locale.Tr "explorer.go")}}
-							{{else}}
-								{{template "shared/search/combo_fuzzy" dict "Value" $.Keyword "IsFuzzy" $.IsFuzzy "Placeholder" (ctx.Locale.Tr "search.issue_kind") "Tooltip" (ctx.Locale.Tr "explorer.go")}}
-							{{end}}
-						</div>
+						<input type="hidden" name="type" value="{{$.ViewType}}">
+						<input type="hidden" name="sort" value="{{$.SortType}}">
+						<input type="hidden" name="state" value="{{$.State}}">
+						{{template "shared/search/combo_fuzzy" dict "Value" $.Keyword "IsFuzzy" $.IsFuzzy "Placeholder" (ctx.Locale.Tr (Iif .PageIsPulls "search.pull_kind" "search.issue_kind")) "Tooltip" (ctx.Locale.Tr "explore.go_to")}}
 					</form>
-					<!-- Sort -->
-					<div class="list-header-sort ui small dropdown type jump item">
-						<span class="text tw-whitespace-nowrap">
-							{{ctx.Locale.Tr "repo.issues.filter_sort"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="?type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-							<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="?type={{$.ViewType}}&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="?type={{$.ViewType}}&sort=latest&state={{$.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-							<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?type={{$.ViewType}}&sort=oldest&state={{$.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-							<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="?type={{$.ViewType}}&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-							<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="?type={{$.ViewType}}&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-							<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="?type={{$.ViewType}}&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-							<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="?type={{$.ViewType}}&sort=farduedate&state={{$.State}}&q={{$.Keyword}}&fuzzy={{.IsFuzzy}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+
+					<div class="list-header-filters">
+						{{if $.Labels}}
+							{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLinkWithFilter "SupportArchivedLabel" true}}
+						{{end}}
+
+						{{/* at the moment there is no easy way to get poster candidates on this page, so only show a username input, search for what the end user enters */}}
+						{{if ne $.ViewType "created_by"}}
+							{{template "repo/issue/filter_item_user_fetch" dict
+								"QueryParamKey" "poster"
+								"QueryLink" $queryLinkWithFilter
+								"SelectedUsername" $.FilterPosterUsername
+								"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_poster")
+							}}
+						{{end}}
+
+						{{/* at the moment there is no easy way to get assignee candidates on this page, so only show a username input, search for what the end user enters */}}
+						{{if ne $.ViewType "assigned"}}
+							{{template "repo/issue/filter_item_user_fetch" dict
+								"QueryParamKey" "assignee"
+								"QueryLink" $queryLinkWithFilter
+								"SelectedUsername" $.FilterAssigneeUsername
+								"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_assignee")
+							}}
+						{{end}}
+
+						<!-- Sort -->
+						<div class="item ui small dropdown jump">
+							<span class="text tw-whitespace-nowrap">
+								{{ctx.Locale.Tr "repo.issues.filter_sort"}}
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							</span>
+							<div class="menu">
+								<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "recentupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+								<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "leastupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+								<a class="{{if eq .SortType "latest"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "latest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+								<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "oldest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+								<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "mostcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+								<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "leastcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+								<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "nearduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+								<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{QueryBuild $queryLinkWithFilter "sort" "farduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+							</div>
 						</div>
 					</div>
 				</div>

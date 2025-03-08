@@ -1,14 +1,12 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository view issue packages">
+<div role="main" aria-label="{{.Title}}" class="page-content repository packages">
 	{{template "shared/user/org_profile_avatar" .}}
 	<div class="ui container">
 		{{template "user/overview/header" .}}
 		<div class="issue-title-header">
-			<div class="issue-title">
-				<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
-			</div>
+			<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 			<div>
-				{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}
+				{{$timeStr := DateUtils.TimeSince .PackageDescriptor.Version.CreatedUnix}}
 				{{if .HasRepositoryAccess}}
 					{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink .PackageDescriptor.Creator.GetDisplayName .PackageDescriptor.Repository.Link .PackageDescriptor.Repository.FullName}}
 				{{else}}
@@ -19,6 +17,7 @@
 		<div class="issue-content">
 			<div class="issue-content-left">
 				{{template "package/content/alpine" .}}
+				{{template "package/content/arch" .}}
 				{{template "package/content/cargo" .}}
 				{{template "package/content/chef" .}}
 				{{template "package/content/composer" .}}
@@ -42,14 +41,15 @@
 			</div>
 			<div class="issue-content-right ui segment">
 				<strong>{{ctx.Locale.Tr "packages.details"}}</strong>
-				<div class="ui relaxed list">
-					<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName 16 "tw-mr-2"}} {{.PackageDescriptor.Package.Type.Name}}</div>
+				<div class="ui relaxed list flex-items-block">
+					<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName}} {{.PackageDescriptor.Package.Type.Name}}</div>
 					{{if .HasRepositoryAccess}}
-					<div class="item">{{svg "octicon-repo" 16 "tw-mr-2"}} <a href="{{.PackageDescriptor.Repository.Link}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
+					<div class="item">{{svg "octicon-repo"}} <a href="{{.PackageDescriptor.Repository.Link}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
 					{{end}}
-					<div class="item">{{svg "octicon-calendar" 16 "tw-mr-2"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix ctx.Locale}}</div>
-					<div class="item">{{svg "octicon-download" 16 "tw-mr-2"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
+					<div class="item">{{svg "octicon-calendar"}} {{DateUtils.TimeSince .PackageDescriptor.Version.CreatedUnix}}</div>
+					<div class="item">{{svg "octicon-download"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
 					{{template "package/metadata/alpine" .}}
+					{{template "package/metadata/arch" .}}
 					{{template "package/metadata/cargo" .}}
 					{{template "package/metadata/chef" .}}
 					{{template "package/metadata/composer" .}}
@@ -70,7 +70,7 @@
 					{{template "package/metadata/swift" .}}
 					{{template "package/metadata/vagrant" .}}
 					{{if not (and (eq .PackageDescriptor.Package.Type "container") .PackageDescriptor.Metadata.Manifests)}}
-					<div class="item">{{svg "octicon-database" 16 "tw-mr-2"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
+					<div class="item">{{svg "octicon-database"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
 					{{end}}
 				</div>
 				{{if not (eq .PackageDescriptor.Package.Type "container")}}
@@ -92,18 +92,18 @@
 				{{range .LatestVersions}}
 					<div class="item tw-flex">
 						<a class="tw-flex-1 gt-ellipsis" title="{{.Version}}" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-						<span class="text small">{{DateTime "short" .CreatedUnix}}</span>
+						<span class="text small">{{DateUtils.AbsoluteShort .CreatedUnix}}</span>
 					</div>
 				{{end}}
 				</div>
 				{{if or .CanWritePackages .HasRepositoryAccess}}
 					<div class="divider"></div>
-					<div class="ui relaxed list">
+					<div class="ui relaxed list flex-items-block">
 						{{if .HasRepositoryAccess}}
-						<div class="item">{{svg "octicon-issue-opened" 16 "tw-mr-2"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{ctx.Locale.Tr "repo.issues"}}</a></div>
+						<div class="item">{{svg "octicon-issue-opened"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{ctx.Locale.Tr "repo.issues"}}</a></div>
 						{{end}}
 						{{if .CanWritePackages}}
-						<div class="item">{{svg "octicon-tools" 16 "tw-mr-2"}} <a href="{{.Link}}/settings">{{ctx.Locale.Tr "repo.settings"}}</a></div>
+						<div class="item">{{svg "octicon-tools"}} <a href="{{.Link}}/settings">{{ctx.Locale.Tr "repo.settings"}}</a></div>
 						{{end}}
 					</div>
 				{{end}}

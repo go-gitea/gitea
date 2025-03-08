@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -24,15 +25,19 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
-func newMatrixRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func init() {
+	RegisterWebhookRequester(webhook_module.MATRIX, newMatrixRequest)
+}
+
+func newMatrixRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &MatrixMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("GetMatrixPayload meta json: %w", err)
 	}
-	mc := matrixConvertor{
+	var pc payloadConvertor[MatrixPayload] = matrixConvertor{
 		MsgType: messageTypeText[meta.MessageType],
 	}
-	payload, err := newPayload(mc, []byte(t.PayloadContent), t.EventType)
+	payload, err := newPayload(pc, []byte(t.PayloadContent), t.EventType)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -52,7 +57,7 @@ func newMatrixRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	return req, body, addDefaultHeaders(req, []byte(w.Secret), t, body) // likely useless, but has always been sent historially
+	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body) // likely useless, but has always been sent historially
 }
 
 const matrixPayloadSizeLimit = 1024 * 64
@@ -86,8 +91,6 @@ type MatrixPayload struct {
 	FormattedBody string               `json:"formatted_body"`
 	Commits       []*api.PayloadCommit `json:"io.gitea.commits,omitempty"`
 }
-
-var _ payloadConvertor[MatrixPayload] = matrixConvertor{}
 
 type matrixConvertor struct {
 	MsgType string
@@ -238,6 +241,13 @@ func (m matrixConvertor) Package(p *api.PackagePayload) (MatrixPayload, error) {
 	case api.HookPackageDeleted:
 		text = fmt.Sprintf("[%s] Package deleted by %s", packageLink, senderLink)
 	}
+
+	return m.newPayload(text)
+}
+
+func (m matrixConvertor) Status(p *api.CommitStatusPayload) (MatrixPayload, error) {
+	refLink := htmlLinkFormatter(p.TargetURL, fmt.Sprintf("%s [%s]", p.Context, base.ShortSha(p.SHA)))
+	text := fmt.Sprintf("Commit Status changed: %s - %s", refLink, p.Description)
 
 	return m.newPayload(text)
 }

@@ -33,7 +33,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // https://dnf.readthedocs.io/en/latest/conf_ref.html
 func GetRepositoryConfig(ctx *context.Context) {
-	group := ctx.Params("group")
+	group := ctx.PathParam("group")
 
 	var groupParts []string
 	if group != "" {
@@ -71,7 +71,7 @@ func CheckRepositoryFileExistence(ctx *context.Context) {
 		return
 	}
 
-	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.Params("filename"), ctx.Params("group"))
+	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.PathParam("filename"), ctx.PathParam("group"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.Status(http.StatusNotFound)
@@ -100,8 +100,8 @@ func GetRepositoryFile(ctx *context.Context) {
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
-			Filename:     ctx.Params("filename"),
-			CompositeKey: ctx.Params("group"),
+			Filename:     ctx.PathParam("filename"),
+			CompositeKey: ctx.PathParam("group"),
 		},
 	)
 	if err != nil {
@@ -133,6 +133,22 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	if setting.Packages.DefaultRPMSignEnabled || ctx.FormBool("sign") {
+		priv, _, err := rpm_service.GetOrCreateKeyPair(ctx, ctx.Package.Owner.ID)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		signedBuf, err := rpm_service.SignPackage(buf, priv)
+		if err != nil {
+			apiError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		defer signedBuf.Close()
+
+		buf = signedBuf
+	}
+
 	pck, err := rpm_module.ParsePackage(buf)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -142,7 +158,6 @@ func UploadPackageFile(ctx *context.Context) {
 		}
 		return
 	}
-
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -153,7 +168,7 @@ func UploadPackageFile(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	group := ctx.Params("group")
+	group := ctx.PathParam("group")
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -202,8 +217,8 @@ func UploadPackageFile(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	name := ctx.Params("name")
-	version := ctx.Params("version")
+	name := ctx.PathParam("name")
+	version := ctx.PathParam("version")
 
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
@@ -214,8 +229,8 @@ func DownloadPackageFile(ctx *context.Context) {
 			Version:     version,
 		},
 		&packages_service.PackageFileInfo{
-			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.Params("architecture")),
-			CompositeKey: ctx.Params("group"),
+			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.PathParam("architecture")),
+			CompositeKey: ctx.PathParam("group"),
 		},
 	)
 	if err != nil {
@@ -231,10 +246,10 @@ func DownloadPackageFile(ctx *context.Context) {
 }
 
 func DeletePackageFile(webctx *context.Context) {
-	group := webctx.Params("group")
-	name := webctx.Params("name")
-	version := webctx.Params("version")
-	architecture := webctx.Params("architecture")
+	group := webctx.PathParam("group")
+	name := webctx.PathParam("name")
+	version := webctx.PathParam("version")
+	architecture := webctx.PathParam("architecture")
 
 	var pd *packages_model.PackageDescriptor
 

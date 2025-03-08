@@ -79,8 +79,8 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			} else if subModule != nil {
 				subModuleURL = subModule.URL
 			}
-			subModuleFile := NewSubModuleFile(commitsInfo[i].Commit, subModuleURL, entry.ID.String())
-			commitsInfo[i].SubModuleFile = subModuleFile
+			subModuleFile := NewCommitSubmoduleFile(subModuleURL, entry.ID.String())
+			commitsInfo[i].SubmoduleFile = subModuleFile
 		}
 	}
 
@@ -124,7 +124,10 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 		return nil, err
 	}
 
-	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch(ctx)
+	batchStdinWriter, batchReader, cancel, err := commit.repo.CatFileBatch(ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 
 	commitsMap := map[string]*Commit{}

@@ -24,15 +24,9 @@ func NewHTMLParser(t testing.TB, body *bytes.Buffer) *HTMLDoc {
 	return &HTMLDoc{doc: doc}
 }
 
-// GetInputValueByID for get input value by id
-func (doc *HTMLDoc) GetInputValueByID(id string) string {
-	text, _ := doc.doc.Find("#" + id).Attr("value")
-	return text
-}
-
 // GetInputValueByName for get input value by name
 func (doc *HTMLDoc) GetInputValueByName(name string) string {
-	text, _ := doc.doc.Find("input[name=\"" + name + "\"]").Attr("value")
+	text, _ := doc.doc.Find(`input[name="` + name + `"]`).Attr("value")
 	return text
 }
 

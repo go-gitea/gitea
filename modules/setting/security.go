@@ -13,8 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// Security settings
+
 var (
-	// Security settings
 	InstallLock                        bool
 	SecretKey                          string
 	InternalToken                      string // internal access token
@@ -27,7 +28,7 @@ var (
 	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
-	DisableGitHooks                    bool
+	DisableGitHooks                    = true
 	DisableWebhooks                    bool
 	OnlyAllowPushIfGiteaEnvironmentSet bool
 	PasswordComplexity                 []string
@@ -37,6 +38,7 @@ var (
 	DisableQueryAuthToken              bool
 	CSRFCookieName                     = "_csrf"
 	CSRFCookieHTTPOnly                 = true
+	RecordUserSignupMetadata           = false
 )
 
 // loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set
@@ -163,6 +165,8 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 
 	// TODO: default value should be true in future releases
 	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(false)
+
+	RecordUserSignupMetadata = sec.Key("RECORD_USER_SIGNUP_METADATA").MustBool(false)
 
 	// warn if the setting is set to false explicitly
 	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {

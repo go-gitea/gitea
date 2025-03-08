@@ -44,16 +44,16 @@
 								{{end}}
 							</div>
 							<a class="notifications-link tw-flex tw-flex-1 tw-flex-col silenced" href="{{.Link ctx}}">
-								<div class="notifications-top-row tw-text-13">
+								<div class="notifications-top-row tw-text-13 tw-break-anywhere">
 									{{.Repository.FullName}} {{if .Issue}}<span class="text light-3">#{{.Issue.Index}}</span>{{end}}
 									{{if eq .Status 3}}
 										{{svg "octicon-pin" 13 "text blue tw-mt-0.5 tw-ml-1"}}
 									{{end}}
 								</div>
 								<div class="notifications-bottom-row tw-text-16 tw-py-0.5">
-									<span class="issue-title">
+									<span class="issue-title tw-break-anywhere">
 										{{if .Issue}}
-											{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
+											{{.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
 										{{else}}
 											{{.Repository.FullName}}
 										{{end}}
@@ -62,9 +62,9 @@
 							</a>
 							<div class="notifications-updated tw-items-center tw-mr-2">
 								{{if .Issue}}
-									{{TimeSinceUnix .Issue.UpdatedUnix ctx.Locale}}
+									{{DateUtils.TimeSince .Issue.UpdatedUnix}}
 								{{else}}
-									{{TimeSinceUnix .UpdatedUnix ctx.Locale}}
+									{{DateUtils.TimeSince .UpdatedUnix}}
 								{{end}}
 							</div>
 							<div class="notifications-buttons tw-items-center tw-justify-end tw-gap-1 tw-px-1">

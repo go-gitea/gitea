@@ -26,3 +26,46 @@
   status: 1
   started: 1683636528
   stopped: 1683636626
+-
+  id: 194
+  run_id: 793
+  repo_id: 4
+  owner_id: 1
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  is_fork_pull_request: 0
+  name: job1 (1)
+  attempt: 1
+  job_id: job1
+  task_id: 49
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+-
+  id: 195
+  run_id: 793
+  repo_id: 4
+  owner_id: 1
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  is_fork_pull_request: 0
+  name: job1 (2)
+  attempt: 1
+  job_id: job1
+  task_id: 50
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+-
+  id: 196
+  run_id: 793
+  repo_id: 4
+  owner_id: 1
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  is_fork_pull_request: 0
+  name: job2
+  attempt: 1
+  job_id: job2
+  needs: '["job1"]'
+  task_id: 51
+  status: 5
+  started: 1683636528
+  stopped: 1683636626

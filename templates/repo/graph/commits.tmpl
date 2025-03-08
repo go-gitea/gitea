@@ -5,46 +5,24 @@
 				{{if $commit.OnlyRelation}}
 					<span></span>
 				{{else}}
-					<span class="sha" id="{{$commit.ShortRev}}">
-						{{$class := "ui sha label"}}
-						{{if $commit.Commit.Signature}}
-							{{$class = (print $class " isSigned")}}
-							{{if $commit.Verification.Verified}}
-								{{if eq $commit.Verification.TrustStatus "trusted"}}
-									{{$class = (print $class " isVerified")}}
-								{{else if eq $commit.Verification.TrustStatus "untrusted"}}
-									{{$class = (print $class " isVerifiedUntrusted")}}
-								{{else}}
-									{{$class = (print $class " isVerifiedUnmatched")}}
-								{{end}}
-							{{else if $commit.Verification.Warning}}
-								{{$class = (print $class " isWarning")}}
-							{{end}}
-						{{end}}
-						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="{{$class}}">
-							<span class="shortsha">{{ShortSha $commit.Commit.ID.String}}</span>
-							{{- if $commit.Commit.Signature -}}
-								{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
-							{{- end -}}
-						</a>
+					{{template "repo/commit_sign_badge" dict "Commit" $commit.Commit "CommitBaseLink" (print $.RepoLink "/commit") "CommitSignVerification" $commit.Verification}}
+
+					<span class="message tw-inline-block gt-ellipsis">
+						<span>{{ctx.RenderUtils.RenderCommitMessage $commit.Subject ($.Repository.ComposeMetas ctx)}}</span>
 					</span>
-					<span class="message tw-inline-block gt-ellipsis tw-mr-2">
-						<span>{{RenderCommitMessage $.Context $commit.Subject ($.Repository.ComposeMetas ctx)}}</span>
-					</span>
-					<span class="commit-refs tw-flex tw-items-center tw-mr-1">
+
+					<span class="commit-refs flex-text-inline">
 						{{range $commit.Refs}}
 							{{$refGroup := .RefGroup}}
 							{{if eq $refGroup "pull"}}
 								{{if or (not $.HidePRRefs) (SliceUtils.Contains $.SelectedBranches .Name)}}
 									<!-- it's intended to use issues not pulls, if it's a pull you will get redirected -->
-									<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.Context ctx.Consts.RepoUnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
+									<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
 										{{svg "octicon-git-pull-request"}} #{{.ShortName}}
 									</a>
 								{{end}}
 							{{else if eq $refGroup "tags"}}
-								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
-									{{svg "octicon-tag"}} {{.ShortName}}
-								</a>
+								{{- template "repo/tag/name" dict "RepoLink" $.Repository.Link "TagName" .ShortName -}}
 							{{else if eq $refGroup "remotes"}}
 								<a class="ui labelled basic tiny button" href="{{$.RepoLink}}/src/commit/{{$commit.Rev|PathEscape}}">
 									{{svg "octicon-cross-reference"}} {{.ShortName}}
@@ -58,20 +36,22 @@
 							{{end}}
 						{{end}}
 					</span>
-					<span class="author tw-flex tw-items-center tw-mr-2">
+
+					<span class="author flex-text-inline">
 						{{$userName := $commit.Commit.Author.Name}}
 						{{if $commit.User}}
 							{{if and $commit.User.FullName DefaultShowFullName}}
 								{{$userName = $commit.User.FullName}}
 							{{end}}
-							<span class="tw-mr-1">{{ctx.AvatarUtils.Avatar $commit.User}}</span>
+							{{ctx.AvatarUtils.Avatar $commit.User 18}}
 							<a href="{{$commit.User.HomeLink}}">{{$userName}}</a>
 						{{else}}
-							<span class="tw-mr-1">{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $userName}}</span>
+							{{ctx.AvatarUtils.AvatarByEmail $commit.Commit.Author.Email $userName 18}}
 							{{$userName}}
 						{{end}}
 					</span>
-					<span class="time tw-flex tw-items-center">{{DateTime "full" $commit.Date}}</span>
+
+					<span class="time flex-text-inline">{{DateUtils.FullTime $commit.Date}}</span>
 				{{end}}
 			</li>
 		{{end}}

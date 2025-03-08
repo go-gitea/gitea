@@ -11,13 +11,13 @@ import (
 	"code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
-	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -62,11 +62,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		notify_service.DeleteRepository(ctx, doer, repo)
 	}
 
-	if err := DeleteRepositoryDirectly(ctx, doer, repo.ID); err != nil {
-		return err
-	}
-
-	return packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID)
+	return DeleteRepositoryDirectly(ctx, doer, repo.ID)
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
@@ -96,6 +92,12 @@ func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoN
 
 // Init start repository service
 func Init(ctx context.Context) error {
+	licenseUpdaterQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo_license_updater", repoLicenseUpdater)
+	if licenseUpdaterQueue == nil {
+		return fmt.Errorf("unable to create repo_license_updater queue")
+	}
+	go graceful.GetManager().RunWithCancel(licenseUpdaterQueue)
+
 	if err := repo_module.LoadRepoConfig(); err != nil {
 		return err
 	}
@@ -120,6 +122,31 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	}
 
 	return committer.Commit()
+}
+
+func UpdateRepositoryVisibility(ctx context.Context, repo *repo_model.Repository, isPrivate bool) (err error) {
+	ctx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer committer.Close()
+
+	repo.IsPrivate = isPrivate
+
+	if err = repo_module.UpdateRepository(ctx, repo, true); err != nil {
+		return fmt.Errorf("UpdateRepositoryVisibility: %w", err)
+	}
+
+	return committer.Commit()
+}
+
+func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error) {
+	return UpdateRepositoryVisibility(ctx, repo, false)
+}
+
+func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err error) {
+	return UpdateRepositoryVisibility(ctx, repo, true)
 }
 
 // LinkedRepository returns the linked repo if any

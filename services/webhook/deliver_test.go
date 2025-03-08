@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -118,7 +117,7 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, hookTask)
 
-	assert.NoError(t, Deliver(context.Background(), hookTask))
+	assert.NoError(t, Deliver(t.Context(), hookTask))
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
@@ -185,7 +184,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, hookTask)
 
-		assert.NoError(t, Deliver(context.Background(), hookTask))
+		assert.NoError(t, Deliver(t.Context(), hookTask))
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
@@ -211,7 +210,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, hookTask)
 
-		assert.NoError(t, Deliver(context.Background(), hookTask))
+		assert.NoError(t, Deliver(t.Context(), hookTask))
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
@@ -280,7 +279,7 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, hookTask)
 
-			assert.NoError(t, Deliver(context.Background(), hookTask))
+			assert.NoError(t, Deliver(t.Context(), hookTask))
 
 			select {
 			case gotBody := <-cases[typ].gotBody:

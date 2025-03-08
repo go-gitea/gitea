@@ -3,7 +3,7 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.runners.runner_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		<div class="ui right">
-			<div class="ui top right pointing dropdown">
+			<div class="ui top right pointing dropdown jump">
 				<button class="ui primary tiny button">
 					{{ctx.Locale.Tr "actions.runners.new"}}
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -17,14 +17,18 @@
 						Registration Token
 					</div>
 					<div class="ui input">
-						<input type="text" value="{{.RegistrationToken}}">
+						<input type="text" value="{{.RegistrationToken}}" readonly>
 						<button class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.RegistrationToken}}">
 							{{svg "octicon-copy" 14}}
 						</button>
 					</div>
 					<div class="divider"></div>
 					<div class="item">
-						<a href="{{$.Link}}/reset_registration_token">{{ctx.Locale.Tr "actions.runners.reset_registration_token"}}</a>
+						<a class="link-action" data-url="{{$.Link}}/reset_registration_token"
+							data-modal-confirm="{{ctx.Locale.Tr "actions.runners.reset_registration_token_confirm"}}"
+						>
+							{{ctx.Locale.Tr "actions.runners.reset_registration_token"}}
+						</a>
 					</div>
 				</div>
 			</div>
@@ -70,10 +74,10 @@
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
 						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
-						<td class="runner-tags">
+						<td class="tw-flex tw-flex-wrap tw-gap-2 runner-tags">
 							{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}
 						</td>
-						<td>{{if .LastOnline}}{{TimeSinceUnix .LastOnline ctx.Locale}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
+						<td>{{if .LastOnline}}{{DateUtils.TimeSince .LastOnline}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 						<td class="runner-ops">
 							{{if .Editable $.RunnerOwnerID $.RunnerRepoID}}
 							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>

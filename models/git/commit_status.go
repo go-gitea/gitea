@@ -171,13 +171,17 @@ func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (in
 	return newIdx, nil
 }
 
-func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
+func (status *CommitStatus) loadRepository(ctx context.Context) (err error) {
 	if status.Repo == nil {
 		status.Repo, err = repo_model.GetRepositoryByID(ctx, status.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %w", status.RepoID, err)
 		}
 	}
+	return nil
+}
+
+func (status *CommitStatus) loadCreator(ctx context.Context) (err error) {
 	if status.Creator == nil && status.CreatorID > 0 {
 		status.Creator, err = user_model.GetUserByID(ctx, status.CreatorID)
 		if err != nil {
@@ -185,6 +189,13 @@ func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
 		}
 	}
 	return nil
+}
+
+func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
+	if err := status.loadRepository(ctx); err != nil {
+		return err
+	}
+	return status.loadCreator(ctx)
 }
 
 // APIURL returns the absolute APIURL to this commit-status.
@@ -196,6 +207,25 @@ func (status *CommitStatus) APIURL(ctx context.Context) string {
 // LocaleString returns the locale string name of the Status
 func (status *CommitStatus) LocaleString(lang translation.Locale) string {
 	return lang.TrString("repo.commitstatus." + status.State.String())
+}
+
+// HideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions
+func (status *CommitStatus) HideActionsURL(ctx context.Context) {
+	if status.RepoID == 0 {
+		return
+	}
+
+	if status.Repo == nil {
+		if err := status.loadRepository(ctx); err != nil {
+			log.Error("loadRepository: %v", err)
+			return
+		}
+	}
+
+	prefix := fmt.Sprintf("%s/actions", status.Repo.Link())
+	if strings.HasPrefix(status.TargetURL, prefix) {
+		status.TargetURL = ""
+	}
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
@@ -466,43 +496,23 @@ type SignCommitWithStatuses struct {
 	*asymkey_model.SignCommit
 }
 
-// ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) []*SignCommitWithStatuses {
-	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
-
-	for _, c := range oldCommits {
-		commit := &SignCommitWithStatuses{
-			SignCommit: c,
-		}
-		statuses, _, err := GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
-		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
-		} else {
-			commit.Statuses = statuses
-			commit.Status = CalcCommitStatus(statuses)
-		}
-
-		newCommits = append(newCommits, commit)
-	}
-	return newCommits
-}
-
 // hashCommitStatusContext hash context
 func hashCommitStatusContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
 
-// ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
-	return ParseCommitsWithStatus(ctx,
-		asymkey_model.ParseCommitsWithSignature(
-			ctx,
-			user_model.ValidateCommitsWithEmails(ctx, commits),
-			repo.GetTrustModel(),
-			func(user *user_model.User) (bool, error) {
-				return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
-			},
-		),
-		repo,
-	)
+// CommitStatusesHideActionsURL hide Gitea Actions urls
+func CommitStatusesHideActionsURL(ctx context.Context, statuses []*CommitStatus) {
+	idToRepos := make(map[int64]*repo_model.Repository)
+	for _, status := range statuses {
+		if status == nil {
+			continue
+		}
+
+		if status.Repo == nil {
+			status.Repo = idToRepos[status.RepoID]
+		}
+		status.HideActionsURL(ctx)
+		idToRepos[status.RepoID] = status.Repo
+	}
 }

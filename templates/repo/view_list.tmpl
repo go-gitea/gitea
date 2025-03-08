@@ -1,73 +1,57 @@
-<table id="repo-files-table" class="ui single line table tw-mt-0" {{if .HasFilesWithoutLatestCommit}}hx-indicator="tr.notready td.message span" hx-trigger="load" hx-swap="morph" hx-post="{{.LastCommitLoaderURL}}"{{end}}>
-	<thead>
-		<tr class="commit-list">
-			<th class="tw-overflow-hidden" colspan="2">
-				<div class="tw-flex">
-					<div class="latest-commit">
-						{{template "repo/latest_commit" .}}
-					</div>
-				</div>
-			</th>
-			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When ctx.Locale}}{{end}}{{end}}</th>
-		</tr>
-	</thead>
-	<tbody>
-		{{if .HasParentPath}}
-			<tr class="has-parent">
-				<td colspan="3">{{svg "octicon-reply"}}<a class="muted" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">..</a></td>
-			</tr>
-		{{end}}
-		{{range $item := .Files}}
+{{/* use grid layout, still use the old ID because there are many other CSS styles depending on this ID */}}
+<div id="repo-files-table" {{if .HasFilesWithoutLatestCommit}}hx-indicator="#repo-files-table .repo-file-cell.message" hx-trigger="load" hx-swap="morph" hx-post="{{.LastCommitLoaderURL}}"{{end}}>
+	<div class="repo-file-line repo-file-last-commit">
+		{{template "repo/latest_commit" .}}
+		<div>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}</div>
+	</div>
+	{{if .HasParentPath}}
+	<a class="repo-file-line parent-link silenced" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">
+		{{svg "octicon-file-directory-fill"}} ..
+	</a>
+	{{end}}
+	{{range $item := .Files}}
+		<div class="repo-file-item">
 			{{$entry := $item.Entry}}
 			{{$commit := $item.Commit}}
-			{{$subModuleFile := $item.SubModuleFile}}
-			<tr data-entryname="{{$entry.Name}}" data-ready="{{if $commit}}true{{else}}false{{end}}" class="{{if not $commit}}not{{end}}ready entry">
-				<td class="name four wide">
-					<span class="truncate">
-						{{if $entry.IsSubModule}}
-							{{svg "octicon-file-submodule"}}
-							{{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}} {{/* FIXME: the usage of AppUrl seems incorrect, it would be fixed in the future, use AppSubUrl instead */}}
-							{{if $refURL}}
-								<a class="muted" href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{PathEscape $subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
+			{{$submoduleFile := $item.SubmoduleFile}}
+			<div class="repo-file-cell name {{if not $commit}}notready{{end}}">
+				{{if $entry.IsSubModule}}
+					{{svg "octicon-file-submodule"}}
+					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
+					{{if $submoduleLink}}
+						<a class="muted" href="{{$submoduleLink.RepoWebLink}}">{{$entry.Name}}</a> <span class="at">@</span> <a href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
+					{{else}}
+						{{$entry.Name}} <span class="at">@</span> {{ShortSha $submoduleFile.RefID}}
+					{{end}}
+				{{else}}
+					{{if $entry.IsDir}}
+						{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
+						{{svg "octicon-file-directory-fill"}}
+						<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
+							{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
+							{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
+							{{if eq $subJumpablePathFieldLast 0}}
+								{{$subJumpablePathName}}
 							{{else}}
-								{{$entry.Name}}<span class="at">@</span>{{ShortSha $subModuleFile.RefID}}
+								{{$subJumpablePathPrefixes := slice $subJumpablePathFields 0 $subJumpablePathFieldLast}}
+								<span class="text light-2">{{StringUtils.Join $subJumpablePathPrefixes "/"}}</span>/{{index $subJumpablePathFields $subJumpablePathFieldLast}}
 							{{end}}
-						{{else}}
-							{{if $entry.IsDir}}
-								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
-								{{svg "octicon-file-directory-fill"}}
-								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
-									{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
-									{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
-									{{if eq $subJumpablePathFieldLast 0}}
-										{{$subJumpablePathName}}
-									{{else}}
-										{{$subJumpablePathPrefixes := slice $subJumpablePathFields 0 $subJumpablePathFieldLast}}
-										<span class="text light-2">{{StringUtils.Join $subJumpablePathPrefixes "/"}}</span>/{{index $subJumpablePathFields $subJumpablePathFieldLast}}
-									{{end}}
-								</a>
-							{{else}}
-								{{svg (printf "octicon-%s" (EntryIcon $entry))}}
-								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
-							{{end}}
-						{{end}}
-					</span>
-				</td>
-				<td class="message nine wide">
-					<span class="truncate">
-						{{if $commit}}
-							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
-							{{RenderCommitMessageLinkSubject $.Context $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
-						{{else}}
-							<div class="ui active tiny slow centered inline"></div>
-						{{end}}
-					</span>
-				</td>
-				<td class="text right age three wide">{{if $commit}}{{TimeSince $commit.Committer.When ctx.Locale}}{{end}}</td>
-			</tr>
-		{{end}}
-	</tbody>
-</table>
-{{if and .ReadmeExist (or .IsMarkup .IsPlainText)}}
-	{{template "repo/view_file" .}}
-{{end}}
+						</a>
+					{{else}}
+						{{svg (printf "octicon-%s" (EntryIcon $entry))}}
+						<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+					{{end}}
+				{{end}}
+			</div>
+			<div class="repo-file-cell message loading-icon-2px">
+				{{if $commit}}
+					{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
+					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
+				{{else}}
+					… {{/* will be loaded again by LastCommitLoaderURL */}}
+				{{end}}
+			</div>
+			<div class="repo-file-cell age">{{if $commit}}{{DateUtils.TimeSince $commit.Committer.When}}{{end}}</div>
+		</div>
+	{{end}}
+</div>
