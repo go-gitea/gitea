@@ -182,15 +182,9 @@ diff --git "\\a/README.md" "\\b/README.md"
 			}
 
 			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
-			if got.NumFiles != 1 {
+			if len(got.Files) != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return
-			}
-			if got.TotalAddition != testcase.addition {
-				t.Errorf("ParsePath(%q) does not have correct totalAddition %d, wanted %d", testcase.name, got.TotalAddition, testcase.addition)
-			}
-			if got.TotalDeletion != testcase.deletion {
-				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
 			}
 			file := got.Files[0]
 			if file.Addition != testcase.addition {
@@ -407,15 +401,9 @@ index 6961180..9ba1a00 100644
 			}
 
 			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
-			if got.NumFiles != 1 {
+			if len(got.Files) != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return
-			}
-			if got.TotalAddition != testcase.addition {
-				t.Errorf("ParsePath(%q) does not have correct totalAddition %d, wanted %d", testcase.name, got.TotalAddition, testcase.addition)
-			}
-			if got.TotalDeletion != testcase.deletion {
-				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
 			}
 			file := got.Files[0]
 			if file.Addition != testcase.addition {

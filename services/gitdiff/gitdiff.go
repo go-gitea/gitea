@@ -382,8 +382,8 @@ func (diffFile *DiffFile) GetType() int {
 }
 
 // GetTailSection creates a fake DiffLineSection if the last section is not the end of the file
-func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) *DiffSection {
-	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
+func (diffFile *DiffFile) GetTailSection(leftCommit, rightCommit *git.Commit) *DiffSection {
+	if len(diffFile.Sections) == 0 || leftCommit == nil || diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
 		return nil
 	}
 
@@ -452,12 +452,10 @@ func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 
 // Diff represents a difference between two git trees.
 type Diff struct {
-	Start, End                   string
-	NumFiles                     int
-	TotalAddition, TotalDeletion int
-	Files                        []*DiffFile
-	IsIncomplete                 bool
-	NumViewedFiles               int // user-specific
+	Start, End     string
+	Files          []*DiffFile
+	IsIncomplete   bool
+	NumViewedFiles int // user-specific
 }
 
 // LoadComments loads comments into each line
@@ -699,8 +697,6 @@ parsingLoop:
 				}
 				// Otherwise do nothing with this line, but now switch to parsing hunks
 				lineBytes, isFragment, err := parseHunks(ctx, curFile, maxLines, maxLineCharacters, input)
-				diff.TotalAddition += curFile.Addition
-				diff.TotalDeletion += curFile.Deletion
 				if err != nil {
 					if err != io.EOF {
 						return diff, err
@@ -773,7 +769,6 @@ parsingLoop:
 		}
 	}
 
-	diff.NumFiles = len(diff.Files)
 	return diff, nil
 }
 
@@ -1104,7 +1099,26 @@ type DiffOptions struct {
 	MaxFiles           int
 	WhitespaceBehavior git.TrustedCmdArgs
 	DirectComparison   bool
-	FileOnly           bool
+}
+
+func guessBeforeCommitForDiff(gitRepo *git.Repository, beforeCommitID string, afterCommit *git.Commit) (actualBeforeCommit *git.Commit, actualBeforeCommitID git.ObjectID, err error) {
+	commitObjectFormat := afterCommit.ID.Type()
+	isBeforeCommitIDEmpty := beforeCommitID == "" || beforeCommitID == commitObjectFormat.EmptyObjectID().String()
+
+	if isBeforeCommitIDEmpty && afterCommit.ParentCount() == 0 {
+		actualBeforeCommitID = commitObjectFormat.EmptyTree()
+	} else {
+		if isBeforeCommitIDEmpty {
+			actualBeforeCommit, err = afterCommit.Parent(0)
+		} else {
+			actualBeforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		actualBeforeCommitID = actualBeforeCommit.ID
+	}
+	return actualBeforeCommit, actualBeforeCommitID, nil
 }
 
 // GetDiff builds a Diff between two commits of a repository.
@@ -1113,46 +1127,19 @@ type DiffOptions struct {
 func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	repoPath := gitRepo.Path
 
-	var beforeCommit *git.Commit
-	commit, err := gitRepo.GetCommit(opts.AfterCommitID)
+	afterCommit, err := gitRepo.GetCommit(opts.AfterCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	cmdCtx, cmdCancel := context.WithCancel(ctx)
-	defer cmdCancel()
-
-	cmdDiff := git.NewCommand()
-	objectFormat, err := gitRepo.GetObjectFormat()
+	actualBeforeCommit, actualBeforeCommitID, err := guessBeforeCommitForDiff(gitRepo, opts.BeforeCommitID, afterCommit)
 	if err != nil {
 		return nil, err
 	}
 
-	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String()) && commit.ParentCount() == 0 {
-		cmdDiff.AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
-			AddArguments(opts.WhitespaceBehavior...).
-			AddDynamicArguments(objectFormat.EmptyTree().String()).
-			AddDynamicArguments(opts.AfterCommitID)
-	} else {
-		actualBeforeCommitID := opts.BeforeCommitID
-		if len(actualBeforeCommitID) == 0 {
-			parentCommit, err := commit.Parent(0)
-			if err != nil {
-				return nil, err
-			}
-			actualBeforeCommitID = parentCommit.ID.String()
-		}
-
-		cmdDiff.AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
-			AddArguments(opts.WhitespaceBehavior...).
-			AddDynamicArguments(actualBeforeCommitID, opts.AfterCommitID)
-		opts.BeforeCommitID = actualBeforeCommitID
-
-		beforeCommit, err = gitRepo.GetCommit(opts.BeforeCommitID)
-		if err != nil {
-			return nil, err
-		}
-	}
+	cmdDiff := git.NewCommand().
+		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
+		AddArguments(opts.WhitespaceBehavior...)
 
 	// In git 2.31, git diff learned --skip-to which we can use to shortcut skip to file
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
@@ -1163,7 +1150,11 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		parsePatchSkipToFile = ""
 	}
 
+	cmdDiff.AddDynamicArguments(actualBeforeCommitID.String(), opts.AfterCommitID)
 	cmdDiff.AddDashesAndList(files...)
+
+	cmdCtx, cmdCancel := context.WithCancel(ctx)
+	defer cmdCancel()
 
 	reader, writer := io.Pipe()
 	defer func() {
@@ -1214,7 +1205,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 
 		// Populate Submodule URLs
 		if diffFile.SubmoduleDiffInfo != nil {
-			diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, beforeCommit, commit)
+			diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, actualBeforeCommit, afterCommit)
 		}
 
 		if !isVendored.Has() {
@@ -1227,75 +1218,45 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		}
 		diffFile.IsGenerated = isGenerated.Value()
 
-		tailSection := diffFile.GetTailSection(gitRepo, beforeCommit, commit)
+		tailSection := diffFile.GetTailSection(actualBeforeCommit, afterCommit)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 	}
-
-	if opts.FileOnly {
-		return diff, nil
-	}
-
-	stats, err := GetPullDiffStats(gitRepo, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion = stats.NumFiles, stats.TotalAddition, stats.TotalDeletion
-
 	return diff, nil
 }
 
-type PullDiffStats struct {
+type DiffShortStat struct {
 	NumFiles, TotalAddition, TotalDeletion int
 }
 
-// GetPullDiffStats
-func GetPullDiffStats(gitRepo *git.Repository, opts *DiffOptions) (*PullDiffStats, error) {
+func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
 	repoPath := gitRepo.Path
 
-	diff := &PullDiffStats{}
-
-	separator := "..."
-	if opts.DirectComparison {
-		separator = ".."
-	}
-
-	objectFormat, err := gitRepo.GetObjectFormat()
+	afterCommit, err := gitRepo.GetCommit(afterCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	diffPaths := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
-	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == objectFormat.EmptyObjectID().String() {
-		diffPaths = []string{objectFormat.EmptyTree().String(), opts.AfterCommitID}
-	}
-
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
-	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		// git >= 2.28 now returns an error if base and head have become unrelated.
-		// previously it would return the results of git diff --shortstat base head so let's try that...
-		diffPaths = []string{opts.BeforeCommitID, opts.AfterCommitID}
-		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, nil, diffPaths...)
-	}
+	_, actualBeforeCommitID, err := guessBeforeCommitForDiff(gitRepo, beforeCommitID, afterCommit)
 	if err != nil {
 		return nil, err
 	}
 
+	diff := &DiffShortStat{}
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(gitRepo.Ctx, repoPath, nil, actualBeforeCommitID.String(), afterCommitID)
+	if err != nil {
+		return nil, err
+	}
 	return diff, nil
 }
 
-// SyncAndGetUserSpecificDiff is like GetDiff, except that user specific data such as which files the given user has already viewed on the given PR will also be set
-// Additionally, the database asynchronously is updated if files have changed since the last review
-func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
-	diff, err := GetDiff(ctx, gitRepo, opts, files...)
-	if err != nil {
-		return nil, err
-	}
+// SyncUserSpecificDiff inserts user-specific data such as which files the user has already viewed on the given diff
+// Additionally, the database is updated asynchronously if files have changed since the last review
+func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions, files ...string) error {
 	review, err := pull_model.GetNewestReviewState(ctx, userID, pull.ID)
 	if err != nil || review == nil || review.UpdatedFiles == nil {
-		return diff, err
+		return err
 	}
 
 	latestCommit := opts.AfterCommitID
@@ -1348,11 +1309,11 @@ outer:
 		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
 			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
-			return nil, err
+			return err
 		}
 	}
 
-	return diff, nil
+	return nil
 }
 
 // CommentAsDiff returns c.Patch as *Diff
