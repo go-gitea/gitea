@@ -408,11 +408,6 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Dif
 		return nil, fmt.Errorf("unable to run diff-index pipeline in temporary repo: %w", err)
 	}
 
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(ctx, t.basePath, git.TrustedCmdArgs{"--cached"}, "HEAD")
-	if err != nil {
-		return nil, err
-	}
-
 	return diff, nil
 }
 

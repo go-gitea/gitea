@@ -15,11 +15,11 @@
 			{{template "shared/misc/tabtitle" (ctx.Locale.Tr "repo.pulls.tab_files")}}
 			<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
 		</a>
-		{{if or .Diff.TotalAddition .Diff.TotalDeletion}}
+		{{if or .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
 		<span class="tw-ml-auto tw-pl-3 tw-whitespace-nowrap tw-pr-0 tw-font-bold tw-flex tw-items-center tw-gap-2">
-			<span><span class="text green">{{if .Diff.TotalAddition}}+{{.Diff.TotalAddition}}{{end}}</span> <span class="text red">{{if .Diff.TotalDeletion}}-{{.Diff.TotalDeletion}}{{end}}</span></span>
+			<span><span class="text green">{{if .DiffShortStat.TotalAddition}}+{{.DiffShortStat.TotalAddition}}{{end}}</span> <span class="text red">{{if .DiffShortStat.TotalDeletion}}-{{.DiffShortStat.TotalDeletion}}{{end}}</span></span>
 			<span class="diff-stats-bar">
-				<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .Diff.TotalAddition "/" "(" .Diff.TotalAddition "+" .Diff.TotalDeletion "+" 0.0 ")"}}%"></div>
+				<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .DiffShortStat.TotalAddition "/" "(" .DiffShortStat.TotalAddition "+" .DiffShortStat.TotalDeletion "+" 0.0 ")"}}%"></div>
 			</span>
 		</span>
 		{{end}}

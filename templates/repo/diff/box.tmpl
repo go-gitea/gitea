@@ -1,4 +1,4 @@
-{{$showFileTree := (and (not .DiffNotAvailable) (gt .Diff.NumFiles 1))}}
+{{$showFileTree := (and (not .DiffNotAvailable) (gt .DiffShortStat.NumFiles 1))}}
 <div>
 	<div class="diff-detail-box">
 		<div class="tw-flex tw-items-center tw-flex-wrap tw-gap-2 tw-ml-0.5">
@@ -19,7 +19,7 @@
 			{{end}}
 			{{if not .DiffNotAvailable}}
 				<div class="diff-detail-stats tw-flex tw-items-center tw-flex-wrap">
-					{{svg "octicon-diff" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion}}
+					{{svg "octicon-diff" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .DiffShortStat.NumFiles .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
 				</div>
 			{{end}}
 		</div>
@@ -27,9 +27,9 @@
 			{{if and .PageIsPullFiles $.SignedUserID (not .DiffNotAvailable)}}
 				<div class="not-mobile tw-flex tw-items-center tw-flex-col tw-whitespace-nowrap tw-mr-1">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
-						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
+						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .DiffShortStat.NumFiles}}
 					</label>
-					<progress id="viewed-files-summary" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></progress>
+					<progress id="viewed-files-summary" value="{{.Diff.NumViewedFiles}}" max="{{.DiffShortStat.NumFiles}}"></progress>
 				</div>
 			{{end}}
 			{{template "repo/diff/whitespace_dropdown" .}}
