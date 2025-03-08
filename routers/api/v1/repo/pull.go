@@ -1591,7 +1591,6 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	maxLines := setting.Git.MaxGitDiffLines
 
 	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
-	// FIXME: when using "skip-to", the NumFiles (totalNumberOfFiles, totalNumberOfPages) will be wrong
 	// FIXME: it doesn't need to call "GetDiff" to do various parsing and highlighting
 	diff, err := gitdiff.GetDiff(ctx, baseGitRepo,
 		&gitdiff.DiffOptions{
@@ -1608,9 +1607,14 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
+	diffShortStat, err := gitdiff.GetDiffShortStat(baseGitRepo, startCommitID, endCommitID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	listOptions := utils.GetListOptions(ctx)
 
-	totalNumberOfFiles := diff.NumFiles
+	totalNumberOfFiles := diffShortStat.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
 
 	start, limit := listOptions.GetSkipTake()
