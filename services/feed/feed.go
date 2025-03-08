@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // GetFeeds returns actions according to the provided options
@@ -25,73 +26,19 @@ func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activ
 // * Original action: UserID=1 (the real actor), ActUserID=1
 // * Organization action: UserID=100 (the repo's org), ActUserID=1
 // * Watcher action: UserID=20 (a user who is watching a repo), ActUserID=1
-func notifyWatchers(ctx context.Context, act *activities_model.Action) error {
-	var watchers []*repo_model.Watch
-	var repo *repo_model.Repository
-	var err error
-	var permCode []bool
-	var permIssue []bool
-	var permPR []bool
-
-	repoChanged := repo == nil || repo.ID != act.RepoID
-
-	if repoChanged {
-		// Add feeds for user self and all watchers.
-		watchers, err = repo_model.GetWatchers(ctx, act.RepoID)
-		if err != nil {
-			return fmt.Errorf("get watchers: %w", err)
-		}
-	}
-
+func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers []*repo_model.Watch, permCode, permIssue, permPR []bool) error {
 	// Add feed for actioner.
 	act.UserID = act.ActUserID
-	if err = db.Insert(ctx, act); err != nil {
+	if err := db.Insert(ctx, act); err != nil {
 		return fmt.Errorf("insert new actioner: %w", err)
-	}
-
-	if repoChanged {
-		act.LoadRepo(ctx)
-		repo = act.Repo
-
-		// check repo owner exist.
-		if err := act.Repo.LoadOwner(ctx); err != nil {
-			return fmt.Errorf("can't get repo owner: %w", err)
-		}
-	} else if act.Repo == nil {
-		act.Repo = repo
 	}
 
 	// Add feed for organization
 	if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
 		act.ID = 0
 		act.UserID = act.Repo.Owner.ID
-		if err = db.Insert(ctx, act); err != nil {
+		if err := db.Insert(ctx, act); err != nil {
 			return fmt.Errorf("insert new actioner: %w", err)
-		}
-	}
-
-	if repoChanged {
-		permCode = make([]bool, len(watchers))
-		permIssue = make([]bool, len(watchers))
-		permPR = make([]bool, len(watchers))
-		for i, watcher := range watchers {
-			user, err := user_model.GetUserByID(ctx, watcher.UserID)
-			if err != nil {
-				permCode[i] = false
-				permIssue[i] = false
-				permPR[i] = false
-				continue
-			}
-			perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
-			if err != nil {
-				permCode[i] = false
-				permIssue[i] = false
-				permPR[i] = false
-				continue
-			}
-			permCode[i] = perm.CanRead(unit.TypeCode)
-			permIssue[i] = perm.CanRead(unit.TypeIssues)
-			permPR[i] = perm.CanRead(unit.TypePullRequests)
 		}
 	}
 
@@ -118,7 +65,7 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action) error {
 			}
 		}
 
-		if err = db.Insert(ctx, act); err != nil {
+		if err := db.Insert(ctx, act); err != nil {
 			return fmt.Errorf("insert new action: %w", err)
 		}
 	}
@@ -129,8 +76,64 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action) error {
 // NotifyWatchersActions creates batch of actions for every watcher.
 func NotifyWatchers(ctx context.Context, acts ...*activities_model.Action) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		if len(acts) == 0 {
+			return nil
+		}
+
+		repoID := acts[0].RepoID
+		if repoID == 0 {
+			setting.PanicInDevOrTesting("action should belong to a repo")
+			return nil
+		}
+		if err := acts[0].LoadRepo(ctx); err != nil {
+			return err
+		}
+		repo := acts[0].Repo
+		if err := repo.LoadOwner(ctx); err != nil {
+			return err
+		}
+
+		actUserID := acts[0].ActUserID
+
+		// Add feeds for user self and all watchers.
+		watchers, err := repo_model.GetWatchers(ctx, repoID)
+		if err != nil {
+			return fmt.Errorf("get watchers: %w", err)
+		}
+
+		permCode := make([]bool, len(watchers))
+		permIssue := make([]bool, len(watchers))
+		permPR := make([]bool, len(watchers))
+		for i, watcher := range watchers {
+			user, err := user_model.GetUserByID(ctx, watcher.UserID)
+			if err != nil {
+				permCode[i] = false
+				permIssue[i] = false
+				permPR[i] = false
+				continue
+			}
+			perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
+			if err != nil {
+				permCode[i] = false
+				permIssue[i] = false
+				permPR[i] = false
+				continue
+			}
+			permCode[i] = perm.CanRead(unit.TypeCode)
+			permIssue[i] = perm.CanRead(unit.TypeIssues)
+			permPR[i] = perm.CanRead(unit.TypePullRequests)
+		}
+
 		for _, act := range acts {
-			if err := notifyWatchers(ctx, act); err != nil {
+			if act.RepoID != repoID {
+				setting.PanicInDevOrTesting("action should belong to the same repo, expected[%d], got[%d] ", repoID, act.RepoID)
+			}
+			if act.ActUserID != actUserID {
+				setting.PanicInDevOrTesting("action should have the same actor, expected[%d], got[%d] ", actUserID, act.ActUserID)
+			}
+
+			act.Repo = repo
+			if err := notifyWatchers(ctx, act, watchers, permCode, permIssue, permPR); err != nil {
 				return err
 			}
 		}

@@ -198,15 +198,13 @@ func (a *Action) LoadActUser(ctx context.Context) {
 	}
 }
 
-func (a *Action) LoadRepo(ctx context.Context) {
+func (a *Action) LoadRepo(ctx context.Context) error {
 	if a.Repo != nil {
-		return
+		return nil
 	}
 	var err error
 	a.Repo, err = repo_model.GetRepositoryByID(ctx, a.RepoID)
-	if err != nil {
-		log.Error("repo_model.GetRepositoryByID(%d): %v", a.RepoID, err)
-	}
+	return err
 }
 
 // GetActFullName gets the action's user full name.
@@ -248,7 +246,7 @@ func (a *Action) GetActDisplayNameTitle(ctx context.Context) string {
 
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName(ctx context.Context) string {
-	a.LoadRepo(ctx)
+	_ = a.LoadRepo(ctx)
 	if a.Repo == nil {
 		return "(non-existing-repo)"
 	}
@@ -263,7 +261,7 @@ func (a *Action) ShortRepoUserName(ctx context.Context) string {
 
 // GetRepoName returns the name of the action repository.
 func (a *Action) GetRepoName(ctx context.Context) string {
-	a.LoadRepo(ctx)
+	_ = a.LoadRepo(ctx)
 	if a.Repo == nil {
 		return "(non-existing-repo)"
 	}
