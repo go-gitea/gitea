@@ -1592,7 +1592,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
 	// FIXME: it doesn't need to call "GetDiff" to do various parsing and highlighting
-	diff, err := gitdiff.GetDiff(ctx, baseGitRepo,
+	diff, err := gitdiff.GetDiffForAPI(ctx, baseGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
 			AfterCommitID:      endCommitID,

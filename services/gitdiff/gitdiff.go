@@ -106,7 +106,7 @@ type DiffHTMLOperation struct {
 const BlobExcerptChunkSize = 20
 
 // MaxDiffHighlightEntireFileSize is the maximum file size that will be highlighted with "entire file diff"
-const MaxDiffHighlightEntireFileSize = 500 * 1024
+const MaxDiffHighlightEntireFileSize = 1 * 1024 * 1024
 
 // GetType returns the type of DiffLine.
 func (d *DiffLine) GetType() int {
@@ -1160,20 +1160,21 @@ func guessBeforeCommitForDiff(gitRepo *git.Repository, beforeCommitID string, af
 	return actualBeforeCommit, actualBeforeCommitID, nil
 }
 
-// GetDiff builds a Diff between two commits of a repository.
+// getDiffBasic builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+// Returned beforeCommit could be nil if the afterCommit doesn't have parent commit
+func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (_ *Diff, beforeCommit, afterCommit *git.Commit, err error) {
 	repoPath := gitRepo.Path
 
-	afterCommit, err := gitRepo.GetCommit(opts.AfterCommitID)
+	afterCommit, err = gitRepo.GetCommit(opts.AfterCommitID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
-	actualBeforeCommit, actualBeforeCommitID, err := guessBeforeCommitForDiff(gitRepo, opts.BeforeCommitID, afterCommit)
+	beforeCommit, beforeCommitID, err := guessBeforeCommitForDiff(gitRepo, opts.BeforeCommitID, afterCommit)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	cmdDiff := git.NewCommand().
@@ -1189,7 +1190,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 		parsePatchSkipToFile = ""
 	}
 
-	cmdDiff.AddDynamicArguments(actualBeforeCommitID.String(), opts.AfterCommitID)
+	cmdDiff.AddDynamicArguments(beforeCommitID.String(), opts.AfterCommitID)
 	cmdDiff.AddDashesAndList(files...)
 
 	cmdCtx, cmdCancel := context.WithCancel(ctx)
@@ -1219,12 +1220,25 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 	// Ensure the git process is killed if it didn't exit already
 	cmdCancel()
 	if err != nil {
-		return nil, fmt.Errorf("unable to ParsePatch: %w", err)
+		return nil, nil, nil, fmt.Errorf("unable to ParsePatch: %w", err)
 	}
 	diff.Start = opts.SkipTo
+	return diff, beforeCommit, afterCommit, nil
+}
 
-	checker, deferable := gitRepo.CheckAttributeReader(opts.AfterCommitID)
-	defer deferable()
+func GetDiffForAPI(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+	diff, _, _, err := getDiffBasic(ctx, gitRepo, opts, files...)
+	return diff, err
+}
+
+func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+	diff, beforeCommit, afterCommit, err := getDiffBasic(ctx, gitRepo, opts, files...)
+	if err != nil {
+		return nil, err
+	}
+
+	checker, deferrable := gitRepo.CheckAttributeReader(opts.AfterCommitID)
+	defer deferrable()
 
 	for _, diffFile := range diff.Files {
 		isVendored := optional.None[bool]()
@@ -1244,7 +1258,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 
 		// Populate Submodule URLs
 		if diffFile.SubmoduleDiffInfo != nil {
-			diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, actualBeforeCommit, afterCommit)
+			diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, beforeCommit, afterCommit)
 		}
 
 		if !isVendored.Has() {
@@ -1256,14 +1270,12 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
 		}
 		diffFile.IsGenerated = isGenerated.Value()
-		tailSection, limitedContent := diffFile.GetTailSectionAndLimitedContent(actualBeforeCommit, afterCommit)
+		tailSection, limitedContent := diffFile.GetTailSectionAndLimitedContent(beforeCommit, afterCommit)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
 		if !setting.Git.DisableDiffHighlight {
-			// FIXME: it's not right to highlight code here for all cases, because this function is also used for non-rendering purpose
-			// For example: API
 			if limitedContent.LeftContent != nil && limitedContent.LeftContent.buf.Len() < MaxDiffHighlightEntireFileSize {
 				diffFile.highlightedOldLines = highlightCodeLines(diffFile, limitedContent.LeftContent.buf.String())
 			}
@@ -1272,6 +1284,7 @@ func GetDiff(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, fi
 			}
 		}
 	}
+
 	return diff, nil
 }
 
