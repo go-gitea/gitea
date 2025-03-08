@@ -24,15 +24,15 @@
 					<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 				</div>
 				<div class="flex-item-body">
-					{{$timeStr := DateUtils.TimeSince .Version.CreatedUnix}}
+					{{$timeStr := DateUtils.TimeSince ctx .Version.CreatedUnix}}
 					{{$hasRepositoryAccess := false}}
 					{{if .Repository}}
 						{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
 					{{end}}
 					{{if $hasRepositoryAccess}}
-						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink .Creator.GetDisplayName .Repository.Link .Repository.FullName}}
+						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName ctx) .Repository.Link .Repository.FullName}}
 					{{else}}
-						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink .Creator.GetDisplayName}}
+						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink .Creator.GetDisplayName ctx}}
 					{{end}}
 				</div>
 			</div>

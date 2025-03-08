@@ -22,7 +22,7 @@
 						{{ctx.Locale.Tr "actions.runs.commit"}}
 						<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
 						{{ctx.Locale.Tr "actions.runs.pushed_by"}}
-						<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
+						<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName ctx}}</a>
 					{{- end -}}
 				</div>
 			</div>
@@ -33,7 +33,7 @@
 					<a class="ui label run-list-ref gt-ellipsis" href="{{.RefLink}}" data-tooltip-content="{{.PrettyRef}}">{{.PrettyRef}}</a>
 				{{end}}
 				<div class="run-list-item-right">
-					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
+					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince ctx .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
 				</div>
 			</div>

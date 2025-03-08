@@ -339,10 +339,10 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.appearance")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
-	allThemes := webtheme.GetAvailableThemes()
-	if webtheme.IsThemeAvailable(setting.UI.DefaultTheme) {
-		allThemes = util.SliceRemoveAll(allThemes, setting.UI.DefaultTheme)
-		allThemes = append([]string{setting.UI.DefaultTheme}, allThemes...) // move the default theme to the top
+	allThemes := webtheme.GetAvailableThemes(ctx)
+	if webtheme.IsThemeAvailable(ctx, setting.Config().UI.DefaultTheme.Value(ctx)) {
+		allThemes = util.SliceRemoveAll(allThemes, setting.Config().UI.DefaultTheme.Value(ctx))
+		allThemes = append([]string{setting.Config().UI.DefaultTheme.Value(ctx)}, allThemes...) // move the default theme to the top
 	}
 	ctx.Data["AllThemes"] = allThemes
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
@@ -374,7 +374,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if !webtheme.IsThemeAvailable(form.Theme) {
+	if !webtheme.IsThemeAvailable(ctx, form.Theme) {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return

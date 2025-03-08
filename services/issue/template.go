@@ -4,6 +4,7 @@
 package issue
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -109,7 +110,7 @@ func IsTemplateConfig(path string) bool {
 
 // ParseTemplatesFromDefaultBranch parses the issue templates in the repo's default branch,
 // returns valid templates and the errors of invalid template files (the errors map is guaranteed to be non-nil).
-func ParseTemplatesFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repository) (ret struct {
+func ParseTemplatesFromDefaultBranch(ctx context.Context, repo *repo.Repository, gitRepo *git.Repository) (ret struct {
 	IssueTemplates []*api.IssueTemplate
 	TemplateErrors map[string]error
 },
@@ -140,7 +141,7 @@ func ParseTemplatesFromDefaultBranch(repo *repo.Repository, gitRepo *git.Reposit
 				continue
 			}
 			fullName := path.Join(dirName, entry.Name())
-			if it, err := template.UnmarshalFromEntry(entry, dirName); err != nil {
+			if it, err := template.UnmarshalFromEntry(ctx, entry, dirName); err != nil {
 				ret.TemplateErrors[fullName] = err
 			} else {
 				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
@@ -178,8 +179,8 @@ func GetTemplateConfigFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repo
 	return GetDefaultTemplateConfig(), nil
 }
 
-func HasTemplatesOrContactLinks(repo *repo.Repository, gitRepo *git.Repository) bool {
-	ret := ParseTemplatesFromDefaultBranch(repo, gitRepo)
+func HasTemplatesOrContactLinks(ctx context.Context, repo *repo.Repository, gitRepo *git.Repository) bool {
+	ret := ParseTemplatesFromDefaultBranch(ctx, repo, gitRepo)
 	if len(ret.IssueTemplates) > 0 {
 		return true
 	}

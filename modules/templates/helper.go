@@ -5,6 +5,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"html/template"
@@ -104,8 +105,8 @@ func NewFuncMap() template.FuncMap {
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
-		"DefaultShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
+		"DefaultShowFullName": func(ctx context.Context) bool {
+			return setting.Config().UI.DefaultShowFullName.Value(ctx)
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
@@ -262,14 +263,14 @@ func evalTokens(tokens ...any) (any, error) {
 	return n.Value, err
 }
 
-func userThemeName(user *user_model.User) string {
-	if user == nil || user.Theme == "" {
-		return setting.UI.DefaultTheme
+func userThemeName(ctx context.Context, user *user_model.User) string {
+	if user == nil || user.GetTheme(ctx) == "" {
+		return setting.Config().UI.DefaultTheme.Value(ctx)
 	}
-	if webtheme.IsThemeAvailable(user.Theme) {
-		return user.Theme
+	if webtheme.IsThemeAvailable(ctx, user.GetTheme(ctx)) {
+		return user.GetTheme(ctx)
 	}
-	return setting.UI.DefaultTheme
+	return setting.Config().UI.DefaultTheme.Value(ctx)
 }
 
 func isQueryParamEmpty(v any) bool {

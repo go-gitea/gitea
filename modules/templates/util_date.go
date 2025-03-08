@@ -4,6 +4,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"html/template"
@@ -35,8 +36,8 @@ func (du *DateUtils) FullTime(time any) template.HTML {
 	return dateTimeFormat("full", time)
 }
 
-func (du *DateUtils) TimeSince(time any) template.HTML {
-	return TimeSince(time)
+func (du *DateUtils) TimeSince(ctx context.Context, time any) template.HTML {
+	return TimeSince(ctx, time)
 }
 
 // ParseLegacy parses the datetime in legacy format, eg: "2016-01-02" in server's timezone.
@@ -125,8 +126,8 @@ func timeSinceTo(then any, now time.Time) template.HTML {
 }
 
 // TimeSince renders relative time HTML given a time
-func TimeSince(then any) template.HTML {
-	if setting.UI.PreferredTimestampTense == "absolute" {
+func TimeSince(ctx context.Context, then any) template.HTML {
+	if setting.Config().UI.PreferredTimestampTense.Value(ctx) == "absolute" {
 		return dateTimeFormat("full", then)
 	}
 	return timeSinceTo(then, time.Now())

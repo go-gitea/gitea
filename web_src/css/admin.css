@@ -17,6 +17,14 @@
   padding: 5px 0;
 }
 
+.admin form dl.admin-dl-horizontal dt,
+.admin form dl.admin-dl-horizontal dd {
+  height: 38px;
+  line-height: 38px;
+  padding: 0;
+  margin-bottom: 5px;
+}
+
 .admin dl.admin-dl-horizontal dt {
   width: 300px;
   max-width: calc(100% - 100px - 1em);

@@ -156,7 +156,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	converter := SpecializedMarkdown(ctx)
 	lw := &limitWriter{
 		w:     output,
-		limit: setting.UI.MaxDisplayFileSize * 3,
+		limit: setting.Config().UI.MaxDisplayFileSize.Value(ctx) * 3,
 	}
 
 	// FIXME: should we include a timeout to abort the renderer if it takes too long?

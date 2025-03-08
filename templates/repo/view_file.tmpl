@@ -16,7 +16,7 @@
 			{{if .LatestCommit}}
 				{{if .LatestCommit.Committer}}
 					<div class="text grey age">
-						{{DateUtils.TimeSince .LatestCommit.Committer.When}}
+						{{DateUtils.TimeSince ctx .LatestCommit.Committer.When}}
 					</div>
 				{{end}}
 			{{end}}

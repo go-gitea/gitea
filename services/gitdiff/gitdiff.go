@@ -181,9 +181,9 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 }
 
 // escape a line's content or return <br> needed for copy/paste purposes
-func getLineContent(content string, locale translation.Locale) DiffInline {
+func getLineContent(ctx context.Context, content string, locale translation.Locale) DiffInline {
 	if len(content) > 0 {
-		return DiffInlineWithUnicodeEscape(template.HTML(html.EscapeString(content)), locale)
+		return DiffInlineWithUnicodeEscape(ctx, template.HTML(html.EscapeString(content)), locale)
 	}
 	return DiffInline{EscapeStatus: &charset.EscapeStatus{}, Content: "<br>"}
 }
@@ -284,22 +284,22 @@ type DiffInline struct {
 }
 
 // DiffInlineWithUnicodeEscape makes a DiffInline with hidden unicode characters escaped
-func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) DiffInline {
-	status, content := charset.EscapeControlHTML(s, locale)
+func DiffInlineWithUnicodeEscape(ctx context.Context, s template.HTML, locale translation.Locale) DiffInline {
+	status, content := charset.EscapeControlHTML(ctx, s, locale)
 	return DiffInline{EscapeStatus: status, Content: content}
 }
 
 // DiffInlineWithHighlightCode makes a DiffInline with code highlight and hidden unicode characters escaped
-func DiffInlineWithHighlightCode(fileName, language, code string, locale translation.Locale) DiffInline {
+func DiffInlineWithHighlightCode(ctx context.Context, fileName, language, code string, locale translation.Locale) DiffInline {
 	highlighted, _ := highlight.Code(fileName, language, code)
-	status, content := charset.EscapeControlHTML(highlighted, locale)
+	status, content := charset.EscapeControlHTML(ctx, highlighted, locale)
 	return DiffInline{EscapeStatus: status, Content: content}
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
-func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, locale translation.Locale) DiffInline {
+func (diffSection *DiffSection) GetComputedInlineDiffFor(ctx context.Context, diffLine *DiffLine, locale translation.Locale) DiffInline {
 	if setting.Git.DisableDiffHighlight {
-		return getLineContent(diffLine.Content[1:], locale)
+		return getLineContent(ctx, diffLine.Content[1:], locale)
 	}
 
 	var (
@@ -316,26 +316,26 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
-		return getLineContent(diffLine.Content[1:], locale)
+		return getLineContent(ctx, diffLine.Content[1:], locale)
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:], locale)
+			return DiffInlineWithHighlightCode(ctx, diffSection.FileName, language, diffLine.Content[1:], locale)
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:], locale)
+			return DiffInlineWithHighlightCode(ctx, diffSection.FileName, language, diffLine.Content[1:], locale)
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:], locale)
+			return DiffInlineWithHighlightCode(ctx, diffSection.FileName, language, diffLine.Content[1:], locale)
 		}
-		return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content, locale)
+		return DiffInlineWithHighlightCode(ctx, diffSection.FileName, language, diffLine.Content, locale)
 	}
 
 	hcd := newHighlightCodeDiff()
@@ -343,7 +343,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	// it seems that Gitea doesn't need the line wrapper of Chroma, so do not add them back
 	// if the line wrappers are still needed in the future, it can be added back by "diffToHTML(hcd.lineWrapperTags. ...)"
 	diffHTML := diffToHTML(nil, diffRecord, diffLine.Type)
-	return DiffInlineWithUnicodeEscape(template.HTML(diffHTML), locale)
+	return DiffInlineWithUnicodeEscape(ctx, template.HTML(diffHTML), locale)
 }
 
 // DiffFile represents a file diff.

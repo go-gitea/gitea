@@ -24,13 +24,13 @@
 		<div class="meta">
 			<span class="text light grey muted-links">
 				{{if not $.Page.Repository}}{{.Repo.FullName}}{{end}}#{{.Index}}
-				{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
+				{{$timeStr := DateUtils.TimeSince ctx .GetLastEventTimestamp}}
 				{{if .OriginalAuthor}}
 					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
 				{{else if gt .Poster.ID 0}}
-					{{ctx.Locale.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.GetDisplayName}}
+					{{ctx.Locale.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName ctx)}}
 				{{else}}
-					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .Poster.GetDisplayName}}
+					{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .Poster.GetDisplayName ctx}}
 				{{end}}
 			</span>
 		</div>

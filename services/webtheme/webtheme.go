@@ -4,6 +4,7 @@
 package webtheme
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"sync"
@@ -20,18 +21,18 @@ var (
 	themeOnce          sync.Once
 )
 
-func initThemes() {
+func initThemes(ctx context.Context) {
 	availableThemes = nil
 	defer func() {
 		availableThemesSet = container.SetOf(availableThemes...)
-		if !availableThemesSet.Contains(setting.UI.DefaultTheme) {
-			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
+		if !availableThemesSet.Contains(setting.Config().UI.DefaultTheme.Value(ctx)) {
+			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.Config().UI.DefaultTheme.Value(ctx))
 		}
 	}()
 	cssFiles, err := public.AssetFS().ListFiles("/assets/css")
 	if err != nil {
 		log.Error("Failed to list themes: %v", err)
-		availableThemes = []string{setting.UI.DefaultTheme}
+		availableThemes = []string{setting.Config().UI.DefaultTheme.Value(ctx)}
 		return
 	}
 	var foundThemes []string
@@ -46,8 +47,8 @@ func initThemes() {
 		}
 		foundThemes = append(foundThemes, name)
 	}
-	if len(setting.UI.Themes) > 0 {
-		allowedThemes := container.SetOf(setting.UI.Themes...)
+	if len(setting.Config().UI.Themes.Value(ctx)) > 0 {
+		allowedThemes := container.SetOf(setting.Config().UI.Themes.Value(ctx)...)
 		for _, theme := range foundThemes {
 			if allowedThemes.Contains(theme) {
 				availableThemes = append(availableThemes, theme)
@@ -59,16 +60,20 @@ func initThemes() {
 	sort.Strings(availableThemes)
 	if len(availableThemes) == 0 {
 		setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
-		availableThemes = []string{setting.UI.DefaultTheme}
+		availableThemes = []string{setting.Config().UI.DefaultTheme.Value(ctx)}
 	}
 }
 
-func GetAvailableThemes() []string {
-	themeOnce.Do(initThemes)
+func GetAvailableThemes(ctx context.Context) []string {
+	themeOnce.Do(func() {
+		initThemes(ctx)
+	})
 	return availableThemes
 }
 
-func IsThemeAvailable(name string) bool {
-	themeOnce.Do(initThemes)
+func IsThemeAvailable(ctx context.Context, name string) bool {
+	themeOnce.Do(func() {
+		initThemes(ctx)
+	})
 	return availableThemesSet.Contains(name)
 }

@@ -8,6 +8,7 @@
 package charset
 
 import (
+	"context"
 	"html/template"
 	"io"
 	"strings"
@@ -21,15 +22,15 @@ import (
 const RuneNBSP = 0xa0
 
 // EscapeControlHTML escapes the unicode control sequences in a provided html document
-func EscapeControlHTML(html template.HTML, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, output template.HTML) {
+func EscapeControlHTML(ctx context.Context, html template.HTML, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, output template.HTML) {
 	sb := &strings.Builder{}
-	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), sb, locale, allowed...) // err has been handled in EscapeControlReader
+	escaped, _ = EscapeControlReader(ctx, strings.NewReader(string(html)), sb, locale, allowed...) // err has been handled in EscapeControlReader
 	return escaped, template.HTML(sb.String())
 }
 
 // EscapeControlReader escapes the unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
-func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
-	if !setting.UI.AmbiguousUnicodeDetection {
+func EscapeControlReader(ctx context.Context, reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
+	if !setting.Config().UI.AmbiguousUnicodeDetection.Value(ctx) {
 		_, err = io.Copy(writer, reader)
 		return &EscapeStatus{}, err
 	}

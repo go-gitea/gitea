@@ -150,7 +150,7 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 	go func() {
 		sb := &strings.Builder{}
 		// We allow NBSP here this is rendered
-		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
+		escaped, _ = charset.EscapeControlReader(ctx, markupRd, sb, ctx.Locale, charset.RuneNBSP)
 		output = template.HTML(sb.String())
 		close(done)
 	}()
