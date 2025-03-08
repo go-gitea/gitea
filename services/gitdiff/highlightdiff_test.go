@@ -57,15 +57,20 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 }
 
 func TestDiffWithHighlightTagMatch(t *testing.T) {
-	totalOverflow := 0
-	for i := 0; i < 100; i++ {
-		hcd := newHighlightCodeDiff()
-		hcd.placeholderMaxCount = i
-		output := string(hcd.diffLineWithHighlight(DiffLineDel, `<span class="k">&lt;</span>`, `<span class="k">&gt;</span>`))
-		totalOverflow += hcd.placeholderOverflowCount
-		c1 := strings.Count(output, "<span")
-		c2 := strings.Count(output, "</span")
-		assert.Equal(t, c1, c2)
+	f := func(t *testing.T, lineType DiffLineType) {
+		totalOverflow := 0
+		for i := 0; ; i++ {
+			hcd := newHighlightCodeDiff()
+			hcd.placeholderMaxCount = i
+			output := string(hcd.diffLineWithHighlight(lineType, `<span class="k">&lt;</span>`, `<span class="k">&gt;</span>`))
+			totalOverflow += hcd.placeholderOverflowCount
+			assert.Equal(t, strings.Count(output, "<span"), strings.Count(output, "</span"))
+			if hcd.placeholderOverflowCount == 0 {
+				break
+			}
+		}
+		assert.NotZero(t, totalOverflow)
 	}
-	assert.NotZero(t, totalOverflow)
+	t.Run("DiffLineAdd", func(t *testing.T) { f(t, DiffLineAdd) })
+	t.Run("DiffLineDel", func(t *testing.T) { f(t, DiffLineDel) })
 }
