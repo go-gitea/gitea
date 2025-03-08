@@ -37,6 +37,6 @@ func TestSharedWorker(t *testing.T) {
 
 	m.Close()
 
-	logs := w.(*dummyWriter).GetLogs()
+	logs := w.(*dummyWriter).FetchLogs()
 	assert.Equal(t, []string{"msg-1\n", "msg-2\n", "msg-3\n"}, logs)
 }
