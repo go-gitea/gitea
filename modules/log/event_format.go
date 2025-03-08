@@ -125,15 +125,19 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 			buf = append(buf, resetBytes...)
 		}
 	}
-	if flags&(Lshortfile|Llongfile) != 0 {
+	if flags&(Lshortfile|Llongfile) != 0 && event.Filename != "" {
 		if mode.Colorize {
 			buf = append(buf, fgGreenBytes...)
 		}
 		file := event.Filename
 		if flags&Lmedfile == Lmedfile {
-			startIndex := len(file) - 20
-			if startIndex > 0 {
-				file = "..." + file[startIndex:]
+			fileLen := len(file)
+			const softLimit = 20
+			if fileLen > softLimit {
+				slashIndex := strings.LastIndexByte(file[:fileLen-softLimit], '/')
+				if slashIndex != -1 {
+					file = ".../" + file[slashIndex+1:]
+				}
 			}
 		} else if flags&Lshortfile != 0 {
 			startIndex := strings.LastIndexByte(file, '/')
@@ -157,14 +161,22 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 		if mode.Colorize {
 			buf = append(buf, fgGreenBytes...)
 		}
-		funcname := event.Caller
+		funcName := event.Caller
+		shortFuncName := funcName
 		if flags&Lshortfuncname != 0 {
-			lastIndex := strings.LastIndexByte(funcname, '.')
-			if lastIndex > 0 && len(funcname) > lastIndex+1 {
-				funcname = funcname[lastIndex+1:]
+			// funcName = "code.gitea.io/gitea/modules/foo/bar.MyFunc.func1.2()"
+			slashPos := strings.LastIndexByte(funcName, '/')
+			dotPos := strings.IndexByte(funcName[slashPos+1:], '.')
+			if dotPos > 0 {
+				// shortFuncName = "MyFunc.func1.2()"
+				shortFuncName = funcName[slashPos+1+dotPos+1:]
+				if strings.Contains(shortFuncName, ".") {
+					shortFuncName = strings.ReplaceAll(shortFuncName, ".func", ".")
+				}
 			}
+			funcName = shortFuncName
 		}
-		buf = append(buf, funcname...)
+		buf = append(buf, funcName...)
 		if mode.Colorize {
 			buf = append(buf, resetBytes...)
 		}

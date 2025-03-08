@@ -29,7 +29,7 @@ const stackLevel = 8
 
 // Log a message with defined skip and at logging level
 func (l *XORMLogBridge) Log(skip int, level log.Level, format string, v ...any) {
-	l.logger.Log(skip+1, level, format, v...)
+	l.logger.Log(skip+1, &log.Event{Level: level}, format, v...)
 }
 
 // Debug show debug log

@@ -92,7 +92,7 @@ func (lr *accessLogRecorder) record(start time.Time, respWriter ResponseWriter, 
 		log.Error("Could not execute access logger template: %v", err.Error())
 	}
 
-	lr.logger.Log(1, log.INFO, "%s", buf.String())
+	lr.logger.Log(1, &log.Event{Level: log.INFO}, "%s", buf.String())
 }
 
 func newAccessLogRecorder() *accessLogRecorder {
