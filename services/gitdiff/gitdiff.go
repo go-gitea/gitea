@@ -357,34 +357,44 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 
 // DiffFile represents a file diff.
 type DiffFile struct {
-	Name                      string
-	NameHash                  string
-	OldName                   string
-	Index                     int
-	Addition, Deletion        int
-	Type                      DiffFileType
-	IsCreated                 bool
-	IsDeleted                 bool
-	IsBin                     bool
-	IsLFSFile                 bool
-	IsRenamed                 bool
-	IsAmbiguous               bool
-	Sections                  []*DiffSection
-	IsIncomplete              bool
-	IsIncompleteLineTooLong   bool
-	IsProtected               bool
-	IsGenerated               bool
-	IsVendored                bool
+	// only used internally to parse Ambiguous filenames
+	isAmbiguous bool
+
+	// basic fields (parsed from diff result)
+	Name        string
+	NameHash    string
+	OldName     string
+	Addition    int
+	Deletion    int
+	Type        DiffFileType
+	Mode        string
+	OldMode     string
+	IsCreated   bool
+	IsDeleted   bool
+	IsBin       bool
+	IsLFSFile   bool
+	IsRenamed   bool
+	IsSubmodule bool
+	// basic fields but for render purpose only
+	Sections                []*DiffSection
+	IsIncomplete            bool
+	IsIncompleteLineTooLong bool
+
+	// will be filled by the extra loop in GitDiff
+	Language          string
+	IsGenerated       bool
+	IsVendored        bool
+	SubmoduleDiffInfo *SubmoduleDiffInfo // IsSubmodule==true, then there must be a SubmoduleDiffInfo
+
+	// will be filled by route handler
+	IsProtected bool
+
+	// will be filled by SyncUserSpecificDiff
 	IsViewed                  bool // User specific
 	HasChangedSinceLastReview bool // User specific
-	Language                  string
-	Mode                      string
-	OldMode                   string
 
-	IsSubmodule       bool // if IsSubmodule==true, then there must be a SubmoduleDiffInfo
-	SubmoduleDiffInfo *SubmoduleDiffInfo
-
-	highlightedOldLines map[int]template.HTML // TODO: in the future, we only need to store the related diff lines to save memory
+	// for render purpose only, TODO: in the future, we only need to store the related diff lines to save memory
+	highlightedOldLines map[int]template.HTML
 	highlightedNewLines map[int]template.HTML
 }
 
@@ -645,28 +655,28 @@ parsingLoop:
 			case strings.HasPrefix(line, "rename from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
-				if curFile.IsAmbiguous {
+				if curFile.isAmbiguous {
 					curFile.OldName = prepareValue(line, "rename from ")
 				}
 			case strings.HasPrefix(line, "rename to "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
-				if curFile.IsAmbiguous {
+				if curFile.isAmbiguous {
 					curFile.Name = prepareValue(line, "rename to ")
-					curFile.IsAmbiguous = false
+					curFile.isAmbiguous = false
 				}
 			case strings.HasPrefix(line, "copy from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
-				if curFile.IsAmbiguous {
+				if curFile.isAmbiguous {
 					curFile.OldName = prepareValue(line, "copy from ")
 				}
 			case strings.HasPrefix(line, "copy to "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
-				if curFile.IsAmbiguous {
+				if curFile.isAmbiguous {
 					curFile.Name = prepareValue(line, "copy to ")
-					curFile.IsAmbiguous = false
+					curFile.isAmbiguous = false
 				}
 			case strings.HasPrefix(line, "new file"):
 				curFile.Type = DiffFileAdd
@@ -693,7 +703,7 @@ parsingLoop:
 				curFile.IsBin = true
 			case strings.HasPrefix(line, "--- "):
 				// Handle ambiguous filenames
-				if curFile.IsAmbiguous {
+				if curFile.isAmbiguous {
 					// The shortest string that can end up here is:
 					// "--- a\t\n" without the quotes.
 					// This line has a len() of 7 but doesn't contain a oldName.
@@ -711,7 +721,7 @@ parsingLoop:
 				// Otherwise do nothing with this line
 			case strings.HasPrefix(line, "+++ "):
 				// Handle ambiguous filenames
-				if curFile.IsAmbiguous {
+				if curFile.isAmbiguous {
 					if len(line) > 6 && line[4] == 'b' {
 						curFile.Name = line[6 : len(line)-1]
 						if line[len(line)-2] == '\t' {
@@ -723,7 +733,7 @@ parsingLoop:
 					} else {
 						curFile.Name = curFile.OldName
 					}
-					curFile.IsAmbiguous = false
+					curFile.isAmbiguous = false
 				}
 				// Otherwise do nothing with this line, but now switch to parsing hunks
 				lineBytes, isFragment, err := parseHunks(ctx, curFile, maxLines, maxLineCharacters, input)
@@ -1047,12 +1057,11 @@ func createDiffFile(diff *Diff, line string) *DiffFile {
 	//
 	// Path names are quoted if necessary.
 	//
-	// This means that you should always be able to determine the file name even when there
+	// This means that you should always be able to determine the file name even when
 	// there is potential ambiguity...
 	//
 	// but we can be simpler with our heuristics by just forcing git to prefix things nicely
 	curFile := &DiffFile{
-		Index:    len(diff.Files) + 1,
 		Type:     DiffFileChange,
 		Sections: make([]*DiffSection, 0, 10),
 	}
@@ -1064,7 +1073,7 @@ func createDiffFile(diff *Diff, line string) *DiffFile {
 	curFile.OldName, oldNameAmbiguity = readFileName(rd)
 	curFile.Name, newNameAmbiguity = readFileName(rd)
 	if oldNameAmbiguity && newNameAmbiguity {
-		curFile.IsAmbiguous = true
+		curFile.isAmbiguous = true
 		// OK we should bet that the oldName and the newName are the same if they can be made to be same
 		// So we need to start again ...
 		if (len(line)-len(cmdDiffHead)-1)%2 == 0 {
