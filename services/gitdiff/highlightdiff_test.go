@@ -5,84 +5,67 @@ package gitdiff
 
 import (
 	"fmt"
+	"html/template"
+	"strings"
 	"testing"
 
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDiffWithHighlight(t *testing.T) {
-	hcd := newHighlightCodeDiff()
-	diffs := hcd.diffWithHighlight(
-		"		run('<>')\n",
-		"		run(db)\n",
-	)
+	t.Run("DiffLineAddDel", func(t *testing.T) {
+		hcd := newHighlightCodeDiff()
+		codeA := template.HTML(`x <span class="k">foo</span> y`)
+		codeB := template.HTML(`x <span class="k">bar</span> y`)
+		outDel := hcd.diffLineWithHighlight(DiffLineDel, codeA, codeB)
+		assert.Equal(t, `x <span class="k"><span class="removed-code">foo</span></span> y`, string(outDel))
+		outAdd := hcd.diffLineWithHighlight(DiffLineAdd, codeA, codeB)
+		assert.Equal(t, `x <span class="k"><span class="added-code">bar</span></span> y`, string(outAdd))
+	})
 
-	expected := "\t\trun(<span class=\"removed-code\">'<>'</></span>)\n"
-
-	output := diffToHTML(nil, diffs, DiffLineDel)
-	assert.Equal(t, expected, output)
-
-	expected = `		run(<span class="added-code">db</span>)
-`
-	output = diffToHTML(nil, diffs, DiffLineAdd)
-	assert.Equal(t, expected, output)
-
-	hcd = newHighlightCodeDiff()
-	hcd.placeholderTokenMap['O'] = "<span>"
-	hcd.placeholderTokenMap['C'] = "</span>"
-	diff := diffmatchpatch.Diff{}
-
-	diff.Text = "C"
-	hcd.recoverOneDiff(&diff)
-	assert.Equal(t, "", diff.Text)
+	t.Run("OpenCloseTags", func(t *testing.T) {
+		hcd := newHighlightCodeDiff()
+		hcd.placeholderTokenMap['O'], hcd.placeholderTokenMap['C'] = "<span>", "</span>"
+		assert.Equal(t, "<span></span>", string(hcd.recoverOneDiff("OC")))
+		assert.Equal(t, "<span></span>", string(hcd.recoverOneDiff("O")))
+		assert.Equal(t, "", string(hcd.recoverOneDiff("C")))
+	})
 }
 
 func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	hcd := newHighlightCodeDiff()
-	diffs := hcd.diffWithHighlight(
-		"a='\U00100000'",
-		"a='\U0010FFFD''",
-	)
+	output := hcd.diffLineWithHighlight(DiffLineDel, "a='\U00100000'", "a='\U0010FFFD''")
 	assert.Equal(t, "", hcd.placeholderTokenMap[0x00100000])
 	assert.Equal(t, "", hcd.placeholderTokenMap[0x0010FFFD])
-
 	expected := fmt.Sprintf(`a='<span class="removed-code">%s</span>'`, "\U00100000")
-	output := diffToHTML(hcd.lineWrapperTags, diffs, DiffLineDel)
-	assert.Equal(t, expected, output)
+	assert.Equal(t, expected, string(output))
 
 	hcd = newHighlightCodeDiff()
-	diffs = hcd.diffWithHighlight(
-		"a='\U00100000'",
-		"a='\U0010FFFD'",
-	)
+	output = hcd.diffLineWithHighlight(DiffLineAdd, "a='\U00100000'", "a='\U0010FFFD'")
 	expected = fmt.Sprintf(`a='<span class="added-code">%s</span>'`, "\U0010FFFD")
-	output = diffToHTML(nil, diffs, DiffLineAdd)
-	assert.Equal(t, expected, output)
+	assert.Equal(t, expected, string(output))
 }
 
 func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 	hcd := newHighlightCodeDiff()
 	hcd.placeholderMaxCount = 0
-	diffs := hcd.diffWithHighlight(
-		"'",
-		``,
-	)
-	output := diffToHTML(nil, diffs, DiffLineDel)
-	expected := `<span class="removed-code">'</span>`
-	assert.Equal(t, expected, output)
+	placeHolderAmp := string(rune(0xFFFD))
+	output := hcd.diffLineWithHighlight(DiffLineDel, `<span class="k">&lt;</span>`, `<span class="k">&gt;</span>`)
+	assert.Equal(t, placeHolderAmp+"lt;", string(output))
+	output = hcd.diffLineWithHighlight(DiffLineAdd, `<span class="k">&lt;</span>`, `<span class="k">&gt;</span>`)
+	assert.Equal(t, placeHolderAmp+"gt;", string(output))
+}
 
-	hcd = newHighlightCodeDiff()
-	hcd.placeholderMaxCount = 0
-	diffs = hcd.diffWithHighlight(
-		"a this_is_not_html_at_this_point b",
-		"a this_is_is_still_not_html_at_this_point_its_just_a_string b",
-	)
-	output = diffToHTML(nil, diffs, DiffLineDel)
-	expected = "a this_is_not_html_at_this_point b"
-	assert.Equal(t, expected, output)
-
-	output = diffToHTML(nil, diffs, DiffLineAdd)
-	expected = "a this_is_<span class=\"added-code\">is_still_</span>not_html_at_this_point<span class=\"added-code\">_its_just_a_string</span> b"
-	assert.Equal(t, expected, output)
+func TestDiffWithHighlightTagMatch(t *testing.T) {
+	totalOverflow := 0
+	for i := 0; i < 100; i++ {
+		hcd := newHighlightCodeDiff()
+		hcd.placeholderMaxCount = i
+		output := string(hcd.diffLineWithHighlight(DiffLineDel, `<span class="k">&lt;</span>`, `<span class="k">&gt;</span>`))
+		totalOverflow += hcd.placeholderOverflowCount
+		c1 := strings.Count(output, "<span")
+		c2 := strings.Count(output, "</span")
+		assert.Equal(t, c1, c2)
+	}
+	assert.NotZero(t, totalOverflow)
 }

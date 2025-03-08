@@ -207,38 +207,6 @@ type DiffSection struct {
 	Lines    []*DiffLine
 }
 
-var (
-	addedCodePrefix   = []byte(`<span class="added-code">`)
-	removedCodePrefix = []byte(`<span class="removed-code">`)
-	codeTagSuffix     = []byte(`</span>`)
-)
-
-func diffToHTML(lineWrapperTags []string, diffs []DiffHTMLOperation, lineType DiffLineType) template.HTML {
-	buf := bytes.NewBuffer(nil)
-	// restore the line wrapper tags <span class="line"> and <span class="cl">, if necessary
-	for _, tag := range lineWrapperTags {
-		buf.WriteString(tag)
-	}
-	for _, diff := range diffs {
-		switch {
-		case diff.Type == diffmatchpatch.DiffEqual:
-			buf.WriteString(string(diff.HTML))
-		case diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
-			buf.Write(addedCodePrefix)
-			buf.WriteString(string(diff.HTML))
-			buf.Write(codeTagSuffix)
-		case diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
-			buf.Write(removedCodePrefix)
-			buf.WriteString(string(diff.HTML))
-			buf.Write(codeTagSuffix)
-		}
-	}
-	for range lineWrapperTags {
-		buf.WriteString("</span>")
-	}
-	return template.HTML(buf.String())
-}
-
 // GetLine gets a specific line by type (add or del) and file line number
 func (diffSection *DiffSection) GetLine(lineType DiffLineType, idx int) *DiffLine {
 	var (
@@ -328,10 +296,9 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 		lineHTML = util.Iif(diffLineType == DiffLinePlain, diff2, "")
 	}
 	if diffLineType != DiffLinePlain {
-		diffRecord := hcd.diffWithHighlight(diff1, diff2)
 		// it seems that Gitea doesn't need the line wrapper of Chroma, so do not add them back
 		// if the line wrappers are still needed in the future, it can be added back by "diffToHTML(hcd.lineWrapperTags. ...)"
-		lineHTML = diffToHTML(nil, diffRecord, diffLineType)
+		lineHTML = hcd.diffLineWithHighlight(diffLineType, diff1, diff2)
 	}
 	return DiffInlineWithUnicodeEscape(lineHTML, locale)
 }
@@ -380,7 +347,7 @@ type DiffFile struct {
 	IsIncomplete            bool
 	IsIncompleteLineTooLong bool
 
-	// will be filled by the extra loop in GitDiff
+	// will be filled by the extra loop in GitDiffForRender
 	Language          string
 	IsGenerated       bool
 	IsVendored        bool
@@ -393,7 +360,7 @@ type DiffFile struct {
 	IsViewed                  bool // User specific
 	HasChangedSinceLastReview bool // User specific
 
-	// for render purpose only, TODO: in the future, we only need to store the related diff lines to save memory
+	// for render purpose only, will be filled by the extra loop in GitDiffForRender
 	highlightedLeftLines  map[int]template.HTML
 	highlightedRightLines map[int]template.HTML
 }
