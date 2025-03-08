@@ -21,7 +21,7 @@ func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activ
 	return activities_model.GetFeeds(ctx, opts)
 }
 
-// NotifyWatchers creates batch of actions for every watcher.
+// notifyWatchers creates batch of actions for every watcher.
 // It could insert duplicate actions for a repository action, like this:
 // * Original action: UserID=1 (the real actor), ActUserID=1
 // * Organization action: UserID=100 (the repo's org), ActUserID=1
