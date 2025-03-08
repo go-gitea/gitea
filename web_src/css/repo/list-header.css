@@ -5,6 +5,10 @@
   gap: .5rem;
 }
 
+.list-header > .ui.button {
+  margin: 0;
+}
+
 .list-header-search {
   display: flex;
   flex: 1;
