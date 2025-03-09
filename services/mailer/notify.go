@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+    actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -202,4 +203,65 @@ func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *
 	if err := SendRepoTransferNotifyMail(ctx, doer, newOwner, repo); err != nil {
 		log.Error("SendRepoTransferNotifyMail: %v", err)
 	}
+func (m *mailNotifier) ActionRunFinished(ctx context.Context, run *actions_model.ActionRun) {
+    if run.Status != actions_model.StatusSuccess && run.Status != actions_model.StatusFailure {
+        return
+    }
+
+    if err := run.LoadAttributes(ctx); err != nil {
+        log.Error("LoadAttributes: %v", err)
+        return
+    }
+
+    subject := fmt.Sprintf("[%s] Workflow run %s: %s",
+        run.Repo.FullName(),
+        run.WorkflowID,
+        run.Status,
+    )
+
+    commitSHA := run.CommitSHA
+    if len(commitSHA) > 7 {
+        commitSHA = commitSHA[:7]
+    }
+
+    body := fmt.Sprintf(`Workflow "%s" run #%d has completed with status: %s
+Repository: %s
+Branch: %s
+Commit: %s
+Triggered by: %s
+View the run details here: %s`,
+        run.WorkflowID,
+        run.Index,
+        run.Status,
+        run.Repo.FullName(),
+        run.PrettyRef(),
+        commitSHA,
+        run.TriggerUser.Name,
+        run.HTMLURL(),
+    )
+
+    // Send to repo owner
+    if run.Repo.Owner.Email != "" &&
+        run.Repo.Owner.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
+        if err := mailer.SendAsyncEmail(ctx, mailer.Mail{
+            To:      []string{run.Repo.Owner.Email},
+            Subject: subject,
+            Body:    body,
+        }); err != nil {
+            log.Error("Failed to send email to repo owner %s: %v", run.Repo.Owner.Email, err)
+        }
+    }
+
+    // Send to trigger user
+    if run.TriggerUser.ID != run.Repo.Owner.ID &&
+        run.TriggerUser.Email != "" &&
+        run.TriggerUser.EmailNotificationsPreference != user_model.EmailNotificationsDisabled {
+        if err := mailer.SendAsyncEmail(ctx, mailer.Mail{
+            To:      []string{run.TriggerUser.Email},
+            Subject: subject,
+            Body:    body,
+        }); err != nil {
+            log.Error("Failed to send email to trigger user %s: %v", run.TriggerUser.Email, err)
+        }
+    }
 }
