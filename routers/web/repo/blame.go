@@ -97,7 +97,7 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount(nil)
 	if err != nil {
 		ctx.NotFound(err)
 		return
