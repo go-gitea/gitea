@@ -268,7 +268,7 @@ func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) Dif
 	return DiffInline{EscapeStatus: status, Content: content}
 }
 
-func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *DiffLine, highlightLines map[int]template.HTML) template.HTML {
+func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *DiffLine, fileLanguage string, highlightLines map[int]template.HTML) template.HTML {
 	h, ok := highlightLines[lineIdx-1]
 	if ok {
 		return h
@@ -279,20 +279,27 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
-
-	h, _ = highlight.Code(diffSection.Name, diffSection.file.Language, diffLine.Content[1:])
+	h, _ = highlight.Code(diffSection.Name, fileLanguage, diffLine.Content[1:])
 	return h
 }
 
 func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
+	var fileLanguage string
+	var highlightedLeftLines, highlightedRightLines map[int]template.HTML
+	// when a "diff section" is manually prepared by ExcerptBlob, it doesn't have "file" information
+	if diffSection.file != nil {
+		fileLanguage = diffSection.file.Language
+		highlightedLeftLines, highlightedRightLines = diffSection.file.highlightedLeftLines, diffSection.file.highlightedRightLines
+	}
+
 	hcd := newHighlightCodeDiff()
 	var diff1, diff2, lineHTML template.HTML
 	if leftLine != nil {
-		diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, diffSection.file.highlightedLeftLines)
+		diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
 		lineHTML = util.Iif(diffLineType == DiffLinePlain, diff1, "")
 	}
 	if rightLine != nil {
-		diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, diffSection.file.highlightedRightLines)
+		diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
 		lineHTML = util.Iif(diffLineType == DiffLinePlain, diff2, "")
 	}
 	if diffLineType != DiffLinePlain {
