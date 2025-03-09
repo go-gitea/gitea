@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/queue"
@@ -25,7 +24,6 @@ import (
 var (
 	classifier      *licenseclassifier.Classifier
 	LicenseFileName = "LICENSE"
-	licenseAliases  map[string]string
 
 	// licenseUpdaterQueue represents a queue to handle update repo licenses
 	licenseUpdaterQueue *queue.WorkerPoolQueue[*LicenseUpdaterOptions]
@@ -38,34 +36,6 @@ func AddRepoToLicenseUpdaterQueue(opts *LicenseUpdaterOptions) error {
 	return licenseUpdaterQueue.Push(opts)
 }
 
-func loadLicenseAliases() error {
-	if licenseAliases != nil {
-		return nil
-	}
-
-	data, err := options.AssetFS().ReadFile("license", "etc", "license-aliases.json")
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(data, &licenseAliases)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func ConvertLicenseName(name string) string {
-	if err := loadLicenseAliases(); err != nil {
-		return name
-	}
-
-	v, ok := licenseAliases[name]
-	if ok {
-		return v
-	}
-	return name
-}
-
 func InitLicenseClassifier() error {
 	// threshold should be 0.84~0.86 or the test will be failed
 	classifier = licenseclassifier.NewClassifier(.85)
@@ -74,20 +44,13 @@ func InitLicenseClassifier() error {
 		return err
 	}
 
-	existLicense := make(container.Set[string])
-	if len(licenseFiles) > 0 {
-		for _, licenseFile := range licenseFiles {
-			licenseName := ConvertLicenseName(licenseFile)
-			if existLicense.Contains(licenseName) {
-				continue
-			}
-			existLicense.Add(licenseName)
-			data, err := options.License(licenseFile)
-			if err != nil {
-				return err
-			}
-			classifier.AddContent("License", licenseFile, licenseName, data)
+	for _, licenseFile := range licenseFiles {
+		licenseName := licenseFile
+		data, err := options.License(licenseFile)
+		if err != nil {
+			return err
 		}
+		classifier.AddContent("License", licenseName, licenseName, data)
 	}
 	return nil
 }
