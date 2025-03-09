@@ -24,6 +24,7 @@ import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
 import {initRepoPullRequestAllowMaintainerEdit, initRepoPullRequestReview, initRepoIssueSidebarDependency, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
+import {initViewFileTreeSidebar} from './features/repo-view-file-tree-sidebar.ts';
 import {initAdminCommon} from './features/admin/common.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
@@ -139,6 +140,7 @@ onDomReady(() => {
     initRepoRelease,
     initRepoReleaseNew,
     initRepoTopicBar,
+    initViewFileTreeSidebar,
     initRepoWikiForm,
     initRepository,
     initRepositoryActionView,

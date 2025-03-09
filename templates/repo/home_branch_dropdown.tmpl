@@ -1,0 +1,12 @@
+{{template "repo/branch_dropdown" dict
+	"Repository" .ctxData.Repository
+	"ShowTabBranches" true
+	"ShowTabTags" true
+	"CurrentRefType" .ctxData.RefFullName.RefType
+	"CurrentRefShortName" .ctxData.RefFullName.ShortName
+	"CurrentTreePath" .ctxData.TreePath
+	"RefLinkTemplate" "{RepoLink}/src/{RefType}/{RefShortName}/{TreePath}"
+	"AllowCreateNewRef" .ctxData.CanCreateBranch
+	"ShowViewAllRefsEntry" true
+	"ContainerClasses" .containerClasses
+}}
