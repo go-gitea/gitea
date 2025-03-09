@@ -310,7 +310,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		// update licenses
 		var licenses []string
 		if len(opts.License) > 0 {
-			licenses = append(licenses, ConvertLicenseName(opts.License))
+			licenses = append(licenses, opts.License)
 
 			stdout, _, err := git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 			if err != nil {
