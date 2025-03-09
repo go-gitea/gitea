@@ -25,6 +25,19 @@ type AdminCreateUserForm struct {
 	Visibility         structs.VisibleType
 }
 
+// AdminCreateBadgeForm form for admin to create badge
+type AdminCreateBadgeForm struct {
+	Slug        string `binding:"Required;Slug"`
+	Description string
+	ImageURL    string `binding:"ValidImageUrl"`
+}
+
+// Validate validates form fields
+func (f *AdminCreateBadgeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // Validate validates form fields
 func (f *AdminCreateUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
