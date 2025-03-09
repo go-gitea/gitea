@@ -1,5 +1,5 @@
-import {CropperCanvas, CropperImage} from 'cropperjs';
 import {createElementFromHTML, showElem, type DOMEvent} from '../../utils/dom.ts';
+import type {CropperCanvas, CropperImage} from 'cropperjs';
 
 type CropperOpts = {
   container: HTMLElement,
@@ -14,7 +14,7 @@ async function initCompCropper({container, fileInput, imageSource}: CropperOpts)
 
   const canvasEl = createElementFromHTML<CropperCanvas>(`
     <cropper-canvas background>
-      <cropper-image src="${imageSource.src}" rotatable scalable skewable translatable></cropper-image>
+      <cropper-image src="${imageSource.src}" scalable skewable translatable></cropper-image>
       <cropper-shade hidden></cropper-shade>
       <cropper-handle action="select" plain></cropper-handle>
       <cropper-selection initial-coverage="0.5" initial-aspect-ratio="1" movable resizable>
