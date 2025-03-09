@@ -163,3 +163,40 @@ func TestRepoActions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
 }
+
+func TestNotifyWatchers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	action := &activities_model.Action{
+		ActUserID: 8,
+		RepoID:    1,
+		OpType:    activities_model.ActionStarRepo,
+	}
+	assert.NoError(t, NotifyWatchers(db.DefaultContext, action))
+
+	// One watchers are inactive, thus action is only created for user 8, 1, 4, 11
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    8,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    1,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    4,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    11,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+}
