@@ -5,30 +5,17 @@ import {parse} from 'node:path';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {exit} from 'node:process';
+import * as fs from 'node:fs';
 
 const glob = (pattern) => fastGlob.sync(pattern, {
   cwd: fileURLToPath(new URL('..', import.meta.url)),
   absolute: true,
 });
 
-function doExit(err) {
-  if (err) console.error(err);
-  exit(err ? 1 : 0);
-}
-
-async function processFile(file, {prefix, fullName} = {}) {
-  let name;
-  if (fullName) {
-    name = fullName;
-  } else {
-    name = parse(file).name;
-    if (prefix) name = `${prefix}-${name}`;
-    if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
-  }
-
+async function optimizeSvgFile(file, name) {
   // Set the `xmlns` attribute so that the files are displayable in standalone documents
   // The svg backend module will strip the attribute during startup for inline display
-  const {data} = optimize(await readFile(file, 'utf8'), {
+  return optimize(await readFile(file, 'utf8'), {
     plugins: [
       {name: 'preset-default'},
       {name: 'removeDimensions'},
@@ -44,28 +31,55 @@ async function processFile(file, {prefix, fullName} = {}) {
       },
     ],
   });
+}
 
+async function processAssetsSvgFile(file, {prefix, fullName} = {}) {
+  let name = fullName;
+  if (!name) {
+    name = parse(file).name;
+    if (prefix) name = `${prefix}-${name}`;
+    if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
+  }
+  const {data} = await optimizeSvgFile(file, name);
   await writeFile(fileURLToPath(new URL(`../public/assets/img/svg/${name}.svg`, import.meta.url)), data);
 }
 
-function processFiles(pattern, opts) {
-  return glob(pattern).map((file) => processFile(file, opts));
+function processAssetsSvgFiles(pattern, opts) {
+  return glob(pattern).map((file) => processAssetsSvgFile(file, opts));
+}
+
+async function processMaterialFileIcons() {
+  const files = glob('node_modules/material-icon-theme/icons/*.svg');
+  // we want the symbols are ordered in the JSON, so manually construct the JSON
+  const svgSymbols = [];
+  for (const file of files) {
+    const {data} = await optimizeSvgFile(file, 'fileicon');
+    const svgName = parse(file).name;
+    svgSymbols.push(`  "${svgName}": "${data.replace(/"/g, `'`)}"`);
+  }
+  const output = `{
+${svgSymbols.join(',\n')}
+}`;
+  fs.writeFileSync(fileURLToPath(new URL(`../options/fileicon/material-icon-svgs.json`, import.meta.url)), output);
+
+  const iconRules = await readFile(fileURLToPath(new URL(`../node_modules/material-icon-theme/dist/material-icons.json`, import.meta.url)));
+  const iconRulesPretty = JSON.stringify(JSON.parse(iconRules), null, 2);
+  fs.writeFileSync(fileURLToPath(new URL(`../options/fileicon/material-icon-rules.json`, import.meta.url)), iconRulesPretty);
 }
 
 async function main() {
-  try {
-    await mkdir(fileURLToPath(new URL('../public/assets/img/svg', import.meta.url)), {recursive: true});
-  } catch {}
-
+  await mkdir(fileURLToPath(new URL('../public/assets/img/svg', import.meta.url)), {recursive: true});
   await Promise.all([
-    ...processFiles('node_modules/@primer/octicons/build/svg/*-16.svg', {prefix: 'octicon'}),
-    ...processFiles('web_src/svg/*.svg'),
-    ...processFiles('public/assets/img/gitea.svg', {fullName: 'gitea-gitea'}),
+    ...processAssetsSvgFiles('node_modules/@primer/octicons/build/svg/*-16.svg', {prefix: 'octicon'}),
+    ...processAssetsSvgFiles('web_src/svg/*.svg'),
+    ...processAssetsSvgFiles('public/assets/img/gitea.svg', {fullName: 'gitea-gitea'}),
+    processMaterialFileIcons(),
   ]);
 }
 
 try {
-  doExit(await main());
+  await main();
 } catch (err) {
-  doExit(err);
+  console.error(err);
+  exit(1);
 }

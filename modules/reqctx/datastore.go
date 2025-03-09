@@ -94,6 +94,9 @@ type RequestContext interface {
 }
 
 func FromContext(ctx context.Context) RequestContext {
+	if rc, ok := ctx.(RequestContext); ok {
+		return rc
+	}
 	// here we must use the current ctx and the underlying store
 	// the current ctx guarantees that the ctx deadline/cancellation/values are respected
 	// the underlying store guarantees that the request-specific data is available
