@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	db_model "code.gitea.io/gitea/models/db"
+	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer/issues/bleve"
@@ -290,6 +292,11 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 		// So if the user creates an issue and list issues immediately, the issue may not be listed because the indexer needs time to index the issue.
 		// Even worse, the external indexer like elastic search may not be available for a while,
 		// and the user may not be able to list issues completely until it is available again.
+		indexer = db.NewIndexer()
+	}
+
+	if strings.HasPrefix(string(opts.SortBy), issue_model.ScopeSortPrefix) {
+		// Sorting by label scope is currently only supported by the DB indexer.
 		indexer = db.NewIndexer()
 	}
 

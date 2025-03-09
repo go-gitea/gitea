@@ -4,8 +4,11 @@
 package issues
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/optional"
 )
 
@@ -99,7 +102,11 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		// Unsupported sort type for search
 		fallthrough
 	default:
-		searchOpt.SortBy = SortByUpdatedDesc
+		if strings.HasPrefix(opts.SortType, issues_model.ScopeSortPrefix) {
+			searchOpt.SortBy = internal.SortBy(opts.SortType)
+		} else {
+			searchOpt.SortBy = SortByUpdatedDesc
+		}
 	}
 
 	return searchOpt

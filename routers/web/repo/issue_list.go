@@ -6,7 +6,10 @@ package repo
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -459,6 +462,37 @@ func UpdateIssueStatus(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+func renderExclusiveLabelScopes(ctx *context.Context) {
+	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetAllRepoLabels", err)
+		return
+	}
+
+	if ctx.Repo.Owner.IsOrganization() {
+		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, "", db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetAllRepoLabels", err)
+			return
+		}
+
+		labels = append(labels, orgLabels...)
+	}
+
+	// This treats org- and repo-level label scopes equivalently.
+	scopeSet := make(map[string]bool, 0)
+	for _, label := range labels {
+		scope := label.ExclusiveScope()
+		if len(scope) > 0 {
+			scopeSet[scope] = true
+		}
+	}
+
+	scopes := slices.Collect(maps.Keys(scopeSet))
+	sort.Strings(scopes)
+	ctx.Data["ExclusiveLabelScopes"] = scopes
+}
+
 func renderMilestones(ctx *context.Context) {
 	// Get milestones
 	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
@@ -774,6 +808,11 @@ func Issues(ctx *context.Context) {
 	}
 
 	renderMilestones(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	renderExclusiveLabelScopes(ctx)
 	if ctx.Written() {
 		return
 	}
