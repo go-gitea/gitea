@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"net/url"
 	"strings"
 	"testing"
 
@@ -14,15 +13,17 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOrgCounts(t *testing.T) {
-	onGiteaRun(t, testOrgCounts)
+	defer tests.PrepareTestEnv(t)()
+	testOrgCounts(t)
 }
 
-func testOrgCounts(t *testing.T, u *url.URL) {
+func testOrgCounts(t *testing.T) {
 	orgOwner := "user2"
 	orgName := "testOrg"
 	orgCollaborator := "user4"
