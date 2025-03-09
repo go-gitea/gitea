@@ -27,6 +27,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
@@ -363,6 +364,9 @@ func handleWorkflows(
 			continue
 		}
 		CreateCommitStatus(ctx, alljobs...)
+		for _, job := range alljobs {
+			notify_service.WorkflowJobStatusUpdate(ctx, input.Repo, input.Doer, job, nil)
+		}
 	}
 	return nil
 }

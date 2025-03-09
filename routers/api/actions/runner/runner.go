@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"code.gitea.io/actions-proto-go/runner/v1/runnerv1connect"
@@ -210,13 +211,17 @@ func (s *Service) UpdateTask(
 	if err := task.LoadJob(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load job: %v", err)
 	}
-	if err := task.Job.LoadRun(ctx); err != nil {
+	if err := task.Job.LoadAttributes(ctx); err != nil {
 		return nil, status.Errorf(codes.Internal, "load run: %v", err)
 	}
 
 	// don't create commit status for cron job
 	if task.Job.Run.ScheduleID == 0 {
 		actions_service.CreateCommitStatus(ctx, task.Job)
+	}
+
+	if task.Status.IsDone() {
+		notify_service.WorkflowJobStatusUpdate(ctx, task.Job.Run.Repo, task.Job.Run.TriggerUser, task.Job, task)
 	}
 
 	if req.Msg.State.Result != runnerv1.Result_RESULT_UNSPECIFIED {

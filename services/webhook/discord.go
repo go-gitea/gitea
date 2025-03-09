@@ -271,6 +271,12 @@ func (d discordConvertor) Status(p *api.CommitStatusPayload) (DiscordPayload, er
 	return d.createPayload(p.Sender, text, "", p.TargetURL, color), nil
 }
 
+func (d discordConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DiscordPayload, error) {
+	text, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.WorkflowJob.HTMLURL, color), nil
+}
+
 func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {

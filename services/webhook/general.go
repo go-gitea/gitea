@@ -325,6 +325,37 @@ func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatte
 	return text, color
 }
 
+func getWorkflowJobPayloadInfo(p *api.WorkflowJobPayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
+	description := p.WorkflowJob.Conclusion
+	if description == "" {
+		description = p.WorkflowJob.Status
+	}
+	refLink := linkFormatter(p.WorkflowJob.HTMLURL, fmt.Sprintf("%s(#%d)", p.WorkflowJob.Name, p.WorkflowJob.RunID)+"["+base.ShortSha(p.WorkflowJob.HeadSha)+"]:"+description)
+
+	text = fmt.Sprintf("Workflow Job %s: %s", p.Action, refLink)
+	switch description {
+	case "waiting":
+		color = orangeColor
+	case "queued":
+		color = orangeColorLight
+	case "success":
+		color = greenColor
+	case "failure":
+		color = redColor
+	case "cancelled":
+		color = yellowColor
+	case "skipped":
+		color = purpleColor
+	default:
+		color = greyColor
+	}
+	if withSender {
+		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+	}
+
+	return text, color
+}
+
 // ToHook convert models.Webhook to api.Hook
 // This function is not part of the convert package to prevent an import cycle
 func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
