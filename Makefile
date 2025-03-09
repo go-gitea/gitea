@@ -906,10 +906,6 @@ update-translations:
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
 
-.PHONY: generate-license
-generate-license: ## update license files
-	$(GO) run build/generate-licenses.go
-
 .PHONY: generate-gitignore
 generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go
