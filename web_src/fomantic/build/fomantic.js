@@ -1,9 +1,7 @@
 import './components/api.js';
 import './components/dropdown.js';
-import './components/form.js';
 import './components/modal.js';
 import './components/search.js';
-import './components/tab.js';
 
 // Hard forked from Fomantic 2.8.7
 
