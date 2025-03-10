@@ -5,7 +5,10 @@ package webhook
 
 import (
 	"context"
+	"fmt"
 
+	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -940,4 +943,115 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
+}
+
+func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
+	source := EventSource{
+		Repository: repo,
+		Owner:      repo.Owner,
+	}
+
+	var org *api.Organization
+	if repo.Owner.IsOrganization() {
+		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
+	}
+
+	err := job.LoadAttributes(ctx)
+	if err != nil {
+		log.Error("Error loading job attributes: %v", err)
+		return
+	}
+
+	jobIndex := 0
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
+	if err != nil {
+		log.Error("Error loading getting run jobs: %v", err)
+		return
+	}
+	for i, j := range jobs {
+		if j.ID == job.ID {
+			jobIndex = i
+			break
+		}
+	}
+
+	status, conclusion := toActionStatus(job.Status)
+	var runnerID int64
+	var runnerName string
+	var steps []*api.ActionWorkflowStep
+
+	if task != nil {
+		runnerID = task.RunnerID
+		if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
+			runnerName = runner.Name
+		}
+		for i, step := range task.Steps {
+			stepStatus, stepConclusion := toActionStatus(job.Status)
+			steps = append(steps, &api.ActionWorkflowStep{
+				Name:        step.Name,
+				Number:      int64(i),
+				Status:      stepStatus,
+				Conclusion:  stepConclusion,
+				StartedAt:   step.Started.AsTime().UTC(),
+				CompletedAt: step.Stopped.AsTime().UTC(),
+			})
+		}
+	}
+
+	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventWorkflowJob, &api.WorkflowJobPayload{
+		Action: status,
+		WorkflowJob: &api.ActionWorkflowJob{
+			ID: job.ID,
+			// missing api endpoint for this location
+			URL:     fmt.Sprintf("%s/actions/runs/%d/jobs/%d", repo.APIURL(), job.RunID, job.ID),
+			HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), jobIndex),
+			RunID:   job.RunID,
+			// Missing api endpoint for this location, artifacts are available under a nested url
+			RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),
+			Name:        job.Name,
+			Labels:      job.RunsOn,
+			RunAttempt:  job.Attempt,
+			HeadSha:     job.Run.CommitSHA,
+			HeadBranch:  git.RefName(job.Run.Ref).BranchName(),
+			Status:      status,
+			Conclusion:  conclusion,
+			RunnerID:    runnerID,
+			RunnerName:  runnerName,
+			Steps:       steps,
+			CreatedAt:   job.Created.AsTime().UTC(),
+			StartedAt:   job.Started.AsTime().UTC(),
+			CompletedAt: job.Stopped.AsTime().UTC(),
+		},
+		Organization: org,
+		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
+		Sender:       convert.ToUser(ctx, sender, nil),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func toActionStatus(status actions_model.Status) (string, string) {
+	var action string
+	var conclusion string
+	switch status {
+	// This is a naming conflict of the webhook between Gitea and GitHub Actions
+	case actions_model.StatusWaiting:
+		action = "queued"
+	case actions_model.StatusBlocked:
+		action = "waiting"
+	case actions_model.StatusRunning:
+		action = "in_progress"
+	}
+	if status.IsDone() {
+		action = "completed"
+		switch status {
+		case actions_model.StatusSuccess:
+			conclusion = "success"
+		case actions_model.StatusCancelled:
+			conclusion = "cancelled"
+		case actions_model.StatusFailure:
+			conclusion = "failure"
+		}
+	}
+	return action, conclusion
 }

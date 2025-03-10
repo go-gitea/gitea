@@ -176,6 +176,12 @@ func (dc dingtalkConvertor) Status(p *api.CommitStatusPayload) (DingtalkPayload,
 	return createDingtalkPayload(text, text, "Status Changed", p.TargetURL), nil
 }
 
+func (dingtalkConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DingtalkPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "Workflow Job", p.WorkflowJob.HTMLURL), nil
+}
+
 func createDingtalkPayload(title, text, singleTitle, singleURL string) DingtalkPayload {
 	return DingtalkPayload{
 		MsgType: "actionCard",

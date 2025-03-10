@@ -317,6 +317,20 @@ func (m msteamsConvertor) Status(p *api.CommitStatusPayload) (MSTeamsPayload, er
 	), nil
 }
 
+func (msteamsConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MSTeamsPayload, error) {
+	title, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repo,
+		p.Sender,
+		title,
+		"",
+		p.WorkflowJob.HTMLURL,
+		color,
+		&MSTeamsFact{"WorkflowJob:", p.WorkflowJob.Name},
+	), nil
+}
+
 func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTarget string, color int, fact *MSTeamsFact) MSTeamsPayload {
 	facts := make([]MSTeamsFact, 0, 2)
 	if r != nil {
