@@ -67,19 +67,20 @@ func (r *mockRunner) doPing(t *testing.T) {
 	assert.Equal(t, "Hello, mock-runner!", resp.Msg.Data)
 }
 
-func (r *mockRunner) doRegister(t *testing.T, name, token string, labels []string) {
+func (r *mockRunner) doRegister(t *testing.T, name, token string, labels []string, ephemeral bool) {
 	r.doPing(t)
 	resp, err := r.client.runnerServiceClient.Register(t.Context(), connect.NewRequest(&runnerv1.RegisterRequest{
-		Name:    name,
-		Token:   token,
-		Version: "mock-runner-version",
-		Labels:  labels,
+		Name:      name,
+		Token:     token,
+		Version:   "mock-runner-version",
+		Labels:    labels,
+		Ephemeral: ephemeral,
 	}))
 	assert.NoError(t, err)
 	r.client = newMockRunnerClient(resp.Msg.Runner.Uuid, resp.Msg.Runner.Token)
 }
 
-func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, runnerName string, labels []string) {
+func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, runnerName string, labels []string, ephemeral bool) {
 	session := loginUser(t, ownerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runners/registration-token", ownerName, repoName)).AddTokenAuth(token)
@@ -88,7 +89,7 @@ func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, run
 		Token string `json:"token"`
 	}
 	DecodeJSON(t, resp, &registrationToken)
-	r.doRegister(t, runnerName, registrationToken.Token, labels)
+	r.doRegister(t, runnerName, registrationToken.Token, labels, ephemeral)
 }
 
 func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1.Task {
