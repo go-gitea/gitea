@@ -37,6 +37,10 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision s
 		needGenesis = len(stdout) == 0
 	}
 
+	// TODO: check if zoekt index file meta status is not sync with db index status, if not, get genesis changes
+	//if setting.Indexer.RepoType == "zoekt" {
+	//}
+
 	if needGenesis {
 		return genesisChanges(ctx, repo, revision)
 	}
