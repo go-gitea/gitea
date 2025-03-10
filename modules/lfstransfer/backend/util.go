@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -105,7 +107,30 @@ func toInternalLFSURL(s string) string {
 	return setting.LocalURL + "api/internal/repo/" + routePath
 }
 
+func isInternalLFSURL(s string) bool {
+	if !strings.HasPrefix(s, setting.LocalURL) {
+		return false
+	}
+	u, err := url.Parse(s)
+	if err != nil {
+		return false
+	}
+	routePath := util.PathJoinRelX(u.Path)
+	subRoutePath, cut := strings.CutPrefix(routePath, "api/internal/repo/")
+	if !cut {
+		return false
+	}
+	fields := strings.SplitN(subRoutePath, "/", 3)
+	if len(fields) < 3 || !strings.HasPrefix(fields[2], "info/lfs") {
+		return false
+	}
+	return true
+}
+
 func newInternalRequestLFS(ctx context.Context, internalURL, method string, headers map[string]string, body any) *httplib.Request {
+	if !isInternalLFSURL(internalURL) {
+		return nil
+	}
 	req := private.NewInternalRequest(ctx, internalURL, method)
 	for k, v := range headers {
 		req.Header(k, v)

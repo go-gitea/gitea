@@ -29,3 +29,24 @@ func TestToInternalLFSURL(t *testing.T) {
 		assert.Equal(t, c.expected, toInternalLFSURL(c.url), c.url)
 	}
 }
+
+func TestIsInternalLFSURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.LocalURL, "http://localurl/")()
+	cases := []struct {
+		url      string
+		expected bool
+	}{
+		{"", false},
+		{"http://otherurl/api/internal/repo/owner/repo/info/lfs/any", false},
+		{"http://localurl/api/internal/repo/owner/repo/info/lfs/any", true},
+		{"http://localurl/api/internal/repo/owner/repo/info", false},
+		{"http://localurl/api/internal/misc/owner/repo/info/lfs/any", false},
+		{"http://localurl/api/internal/owner/repo/info/lfs/any", false},
+		{"http://localurl/api/internal/foo/bar", false},
+	}
+	for _, c := range cases {
+		req := newInternalRequestLFS(t.Context(), c.url, "GET", nil, nil)
+		assert.Equal(t, c.expected, req != nil, c.url)
+		assert.Equal(t, c.expected, isInternalLFSURL(c.url), c.url)
+	}
+}

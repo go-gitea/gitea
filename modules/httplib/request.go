@@ -15,6 +15,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 var defaultSetting = Settings{"GiteaServer", 60 * time.Second, 60 * time.Second, nil, nil}
@@ -101,6 +103,9 @@ func (r *Request) Param(key, value string) *Request {
 
 // Body adds request raw body. It supports string, []byte and io.Reader as body.
 func (r *Request) Body(data any) *Request {
+	if r == nil {
+		return nil
+	}
 	switch t := data.(type) {
 	case nil: // do nothing
 	case string:
@@ -193,6 +198,9 @@ func (r *Request) getResponse() (*http.Response, error) {
 // Response executes request client gets response manually.
 // Caller MUST close the response body if no error occurs
 func (r *Request) Response() (*http.Response, error) {
+	if r == nil {
+		return nil, errors.New("invalid request")
+	}
 	return r.getResponse()
 }
 
