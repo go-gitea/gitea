@@ -1604,6 +1604,12 @@ td .commit-summary {
   margin-right: 0;
 }
 
+.ui.label.scope-middle {
+  border-radius: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .ui.label.scope-right {
   border-bottom-left-radius: 0;
   border-top-left-radius: 0;
