@@ -15,8 +15,8 @@
 			{{$commit := $item.Commit}}
 			{{$submoduleFile := $item.SubmoduleFile}}
 			<div class="repo-file-cell name {{if not $commit}}notready{{end}}">
+				{{ctx.RenderUtils.RenderFileIcon $entry}}
 				{{if $entry.IsSubModule}}
-					{{svg "octicon-file-submodule"}}
 					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
 					{{if $submoduleLink}}
 						<a class="muted" href="{{$submoduleLink.RepoWebLink}}">{{$entry.Name}}</a> <span class="at">@</span> <a href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
@@ -26,7 +26,6 @@
 				{{else}}
 					{{if $entry.IsDir}}
 						{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
-						{{svg "octicon-file-directory-fill"}}
 						<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 							{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
 							{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
@@ -38,7 +37,6 @@
 							{{end}}
 						</a>
 					{{else}}
-						{{svg (printf "octicon-%s" (EntryIcon $entry))}}
 						<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 					{{end}}
 				{{end}}

@@ -43,13 +43,10 @@ func init() {
 // GetSchedulesMapByIDs returns the schedules by given id slice.
 func GetSchedulesMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionSchedule, error) {
 	schedules := make(map[int64]*ActionSchedule, len(ids))
+	if len(ids) == 0 {
+		return schedules, nil
+	}
 	return schedules, db.GetEngine(ctx).In("id", ids).Find(&schedules)
-}
-
-// GetReposMapByIDs returns the repos by given id slice.
-func GetReposMapByIDs(ctx context.Context, ids []int64) (map[int64]*repo_model.Repository, error) {
-	repos := make(map[int64]*repo_model.Repository, len(ids))
-	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 
 // CreateScheduleTask creates new schedule task.
