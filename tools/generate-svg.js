@@ -63,8 +63,18 @@ async function processMaterialFileIcons() {
   }
   fs.writeFileSync(fileURLToPath(new URL(`../options/fileicon/material-icon-svgs.json`, import.meta.url)), JSON.stringify(svgSymbols, null, 2));
 
-  const iconRules = await readFile(fileURLToPath(new URL(`../node_modules/material-icon-theme/dist/material-icons.json`, import.meta.url)));
-  const iconRulesPretty = JSON.stringify(JSON.parse(iconRules), null, 2);
+  const iconRulesJson = await readFile(fileURLToPath(new URL(`../node_modules/material-icon-theme/dist/material-icons.json`, import.meta.url)));
+  const iconRules = JSON.parse(iconRulesJson);
+  // The rules are from VSCode material-icon-theme, we need to adjust them to our needs
+  // 1. We only use lowercase filenames to match (it should be good enough for most cases and more efficient)
+  // 2. We do not have a "Language ID" system: https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers
+  //    * So we just treat the "Language ID" as file extension, it is not always true, but it is good enough for most cases.
+  delete iconRules.iconDefinitions;
+  for (const [k, v] of Object.entries(iconRules.fileNames)) iconRules.fileNames[k.toLowerCase()] = v;
+  for (const [k, v] of Object.entries(iconRules.folderNames)) iconRules.folderNames[k.toLowerCase()] = v;
+  for (const [k, v] of Object.entries(iconRules.fileExtensions)) iconRules.fileExtensions[k.toLowerCase()] = v;
+  for (const [k, v] of Object.entries(iconRules.languageIds)) iconRules.fileExtensions[k.toLowerCase()] = v;
+  const iconRulesPretty = JSON.stringify(iconRules, null, 2);
   fs.writeFileSync(fileURLToPath(new URL(`../options/fileicon/material-icon-rules.json`, import.meta.url)), iconRulesPretty);
 }
 

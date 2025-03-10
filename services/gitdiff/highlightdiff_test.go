@@ -23,6 +23,16 @@ func TestDiffWithHighlight(t *testing.T) {
 		assert.Equal(t, `x <span class="k"><span class="added-code">bar</span></span> y`, string(outAdd))
 	})
 
+	t.Run("CleanUp", func(t *testing.T) {
+		hcd := newHighlightCodeDiff()
+		codeA := template.HTML(`<span class="cm>this is a comment</span>`)
+		codeB := template.HTML(`<span class="cm>this is updated comment</span>`)
+		outDel := hcd.diffLineWithHighlight(DiffLineDel, codeA, codeB)
+		assert.Equal(t, `<span class="cm>this is <span class="removed-code">a</span> comment</span>`, string(outDel))
+		outAdd := hcd.diffLineWithHighlight(DiffLineAdd, codeA, codeB)
+		assert.Equal(t, `<span class="cm>this is <span class="added-code">updated</span> comment</span>`, string(outAdd))
+	})
+
 	t.Run("OpenCloseTags", func(t *testing.T) {
 		hcd := newHighlightCodeDiff()
 		hcd.placeholderTokenMap['O'], hcd.placeholderTokenMap['C'] = "<span>", "</span>"

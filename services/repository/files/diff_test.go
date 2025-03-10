@@ -47,7 +47,6 @@ func TestGetDiffPreview(t *testing.T) {
 				Sections: []*gitdiff.DiffSection{
 					{
 						FileName: "README.md",
-						Name:     "",
 						Lines: []*gitdiff.DiffLine{
 							{
 								LeftIdx:  0,
