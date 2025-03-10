@@ -4,6 +4,8 @@ import {pathEscapeSegments, pathUnescapeSegments} from '../utils/url.ts';
 import {GET, PUT} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
 
+const {appSubUrl} = window.config;
+
 async function toggleSidebar(sidebarEl: HTMLElement, shouldShow: boolean) {
   const showBtnEl = sidebarEl.parentElement.querySelector('.show-tree-sidebar-button');
   const containerClassList = sidebarEl.parentElement.classList;
@@ -17,7 +19,7 @@ async function toggleSidebar(sidebarEl: HTMLElement, shouldShow: boolean) {
   if (!sidebarEl.hasAttribute('data-is-signed')) return;
 
   // save to session
-  await PUT('/repo/preferences', {
+  await PUT(`${appSubUrl}/repo/preferences`, {
     data: {
       show_file_view_tree_sidebar: shouldShow,
     },
