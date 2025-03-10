@@ -80,7 +80,7 @@ func HomeSitemap(ctx *context.Context) {
 		}
 		count := int(cnt)
 		idx := 1
-		for i := 0; i < count; i += setting.UI.SitemapPagingNum {
+		for i := 0; i < count; i += setting.Config().UI.SitemapPagingNum.Value(ctx) {
 			m.Add(sitemap.URL{URL: setting.AppURL + "explore/users/sitemap-" + strconv.Itoa(idx) + ".xml"})
 			idx++
 		}
@@ -99,7 +99,7 @@ func HomeSitemap(ctx *context.Context) {
 	}
 	count := int(cnt)
 	idx := 1
-	for i := 0; i < count; i += setting.UI.SitemapPagingNum {
+	for i := 0; i < count; i += setting.Config().UI.SitemapPagingNum.Value(ctx) {
 		m.Add(sitemap.URL{URL: setting.AppURL + "explore/repos/sitemap-" + strconv.Itoa(idx) + ".xml"})
 		idx++
 	}

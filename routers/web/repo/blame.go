@@ -91,7 +91,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 
-	if fileSize >= setting.UI.MaxDisplayFileSize {
+	if fileSize >= setting.Config().UI.MaxDisplayFileSize.Value(ctx) {
 		ctx.Data["IsFileTooLarge"] = true
 		ctx.HTML(http.StatusOK, tplRepoHome)
 		return
@@ -278,7 +278,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 				commitCnt++
 
 				// User avatar image
-				commitSince := templates.TimeSince(commit.Author.When)
+				commitSince := templates.TimeSince(ctx, commit.Author.When)
 
 				var avatar string
 				if commit.User != nil {
@@ -309,7 +309,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 				lexerName = lexerNameForLine
 			}
 
-			br.EscapeStatus, br.Code = charset.EscapeControlHTML(line, ctx.Locale)
+			br.EscapeStatus, br.Code = charset.EscapeControlHTML(ctx, line, ctx.Locale)
 			rows = append(rows, br)
 			escapeStatus = escapeStatus.Or(br.EscapeStatus)
 		}

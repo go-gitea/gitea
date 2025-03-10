@@ -2,7 +2,7 @@
 <div id="repo-files-table" {{if .HasFilesWithoutLatestCommit}}hx-indicator="#repo-files-table .repo-file-cell.message" hx-trigger="load" hx-swap="morph" hx-post="{{.LastCommitLoaderURL}}"{{end}}>
 	<div class="repo-file-line repo-file-last-commit">
 		{{template "repo/latest_commit" .}}
-		<div>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}</div>
+		<div>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince ctx .LatestCommit.Committer.When}}{{end}}</div>
 	</div>
 	{{if .HasParentPath}}
 	<a class="repo-file-line parent-link silenced" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">
@@ -49,7 +49,7 @@
 					… {{/* will be loaded again by LastCommitLoaderURL */}}
 				{{end}}
 			</div>
-			<div class="repo-file-cell age">{{if $commit}}{{DateUtils.TimeSince $commit.Committer.When}}{{end}}</div>
+			<div class="repo-file-cell age">{{if $commit}}{{DateUtils.TimeSince ctx $commit.Committer.When}}{{end}}</div>
 		</div>
 	{{end}}
 </div>

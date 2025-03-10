@@ -50,7 +50,7 @@
 								{{svg (MigrationIcon $release.Repo.GetOriginalURLHostname) 20 "tw-mr-1"}}{{$release.OriginalAuthor}}
 							{{else if $release.Publisher}}
 								{{ctx.AvatarUtils.Avatar $release.Publisher 20 "tw-mr-1"}}
-								<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
+								<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName ctx}}</a>
 							{{else}}
 								Ghost
 							{{end}}
@@ -59,7 +59,7 @@
 								{{ctx.Locale.Tr "repo.released_this"}}
 							</span>
 							{{if $release.CreatedUnix}}
-								<span class="time">{{DateUtils.TimeSince $release.CreatedUnix}}</span>
+								<span class="time">{{DateUtils.TimeSince ctx $release.CreatedUnix}}</span>
 							{{end}}
 							{{if and (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 								| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{$release.TagName | PathEscapeSegments}}...{{$release.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" $release.NumCommitsBehind}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" $release.TargetBehind}}</span>

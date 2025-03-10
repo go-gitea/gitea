@@ -4,6 +4,7 @@
 package webtheme
 
 import (
+	"context"
 	"regexp"
 	"sort"
 	"strings"
@@ -105,7 +106,7 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 	return themeInfo
 }
 
-func initThemes() {
+func initThemes(ctx context.Context) {
 	availableThemes = nil
 	defer func() {
 		availableThemeInternalNames = container.Set[string]{}
@@ -133,8 +134,8 @@ func initThemes() {
 			foundThemes = append(foundThemes, parseThemeMetaInfo(fileName, util.UnsafeBytesToString(content)))
 		}
 	}
-	if len(setting.UI.Themes) > 0 {
-		allowedThemes := container.SetOf(setting.UI.Themes...)
+	if len(setting.Config().UI.Themes.Value(ctx)) > 0 {
+		allowedThemes := container.SetOf(setting.Config().UI.Themes.Value(ctx)...)
 		for _, theme := range foundThemes {
 			if allowedThemes.Contains(theme.InternalName) {
 				availableThemes = append(availableThemes, theme)
@@ -155,12 +156,16 @@ func initThemes() {
 	}
 }
 
-func GetAvailableThemes() []*ThemeMetaInfo {
-	themeOnce.Do(initThemes)
+func GetAvailableThemes(ctx context.Context) []*ThemeMetaInfo {
+	themeOnce.Do(func() {
+		initThemes(ctx)
+	})
 	return availableThemes
 }
 
-func IsThemeAvailable(internalName string) bool {
-	themeOnce.Do(initThemes)
+func IsThemeAvailable(ctx context.Context, internalName string) bool {
+	themeOnce.Do(func() {
+		initThemes(ctx)
+	})
 	return availableThemeInternalNames.Contains(internalName)
 }

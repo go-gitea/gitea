@@ -16,7 +16,7 @@
 				{{$needDivider = true}}
 				<div class="item context js-aria-clickable quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
 				{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
-					<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
+					<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName ctx}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
 				{{end}}
 				{{if or ctx.RootData.Permission.IsAdmin .IsCommentPoster ctx.RootData.HasIssuesOrPullsWritePermission}}
 					<div class="divider"></div>
@@ -33,10 +33,10 @@
 					<div class="divider"></div>
 				{{end}}
 				{{if $canUserBlock}}
-				<div class="item context js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{.item.Poster.Name}}" data-modal-modal-blockee-name="{{.item.Poster.GetDisplayName}}" data-modal-modal-form.action="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</div>
+				<div class="item context js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{.item.Poster.Name}}" data-modal-modal-blockee-name="{{.item.Poster.GetDisplayName ctx}}" data-modal-modal-form.action="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.user"}}</div>
 				{{end}}
 				{{if $canOrgBlock}}
-				<div class="item context js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{.item.Poster.Name}}" data-modal-modal-blockee-name="{{.item.Poster.GetDisplayName}}" data-modal-modal-form.action="{{ctx.RootData.Repository.Owner.OrganisationLink}}/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.org"}}</div>
+				<div class="item context js-aria-clickable show-modal" data-modal="#block-user-modal" data-modal-modal-blockee="{{.item.Poster.Name}}" data-modal-modal-blockee-name="{{.item.Poster.GetDisplayName ctx}}" data-modal-modal-form.action="{{ctx.RootData.Repository.Owner.OrganisationLink}}/settings/blocked_users">{{ctx.Locale.Tr "user.block.block.org"}}</div>
 				{{end}}
 			{{end}}
 		{{end}}

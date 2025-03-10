@@ -64,7 +64,7 @@ func Projects(ctx *context.Context) {
 	projects, total, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
-			PageSize: setting.UI.IssuePagingNum,
+			PageSize: setting.Config().UI.IssuePagingNum.Value(ctx),
 		},
 		OwnerID:  ctx.ContextUser.ID,
 		IsClosed: optional.Some(isShowClosed),
@@ -121,10 +121,10 @@ func Projects(ctx *context.Context) {
 
 	numPages := 0
 	if total > 0 {
-		numPages = (int(total) - 1/setting.UI.IssuePagingNum)
+		numPages = (int(total) - 1/setting.Config().UI.IssuePagingNum.Value(ctx))
 	}
 
-	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
+	pager := context.NewPagination(int(total), setting.Config().UI.IssuePagingNum.Value(ctx), page, numPages)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

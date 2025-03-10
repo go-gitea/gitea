@@ -175,7 +175,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 		return
 	}
 
-	if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+	if fInfo.fileSize >= setting.Config().UI.MaxDisplayFileSize.Value(ctx) {
 		// Pretend that this is a normal text file to display 'This file is too large to be shown'
 		ctx.Data["IsFileTooLarge"] = true
 		ctx.Data["IsTextFile"] = true
@@ -209,7 +209,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 			log.Error("Read readme content failed: %v", err)
 		}
 		contentEscaped := template.HTMLEscapeString(util.UnsafeBytesToString(content))
-		ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(template.HTML(contentEscaped), ctx.Locale)
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(ctx, template.HTML(contentEscaped), ctx.Locale)
 	}
 
 	if !fInfo.isLFSFile && ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {

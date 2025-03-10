@@ -240,7 +240,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 		Email:              "GiteaBot@gitea.io\r\n",
 		Passwd:             ";p['////..-++']",
 		IsAdmin:            false,
-		Theme:              setting.UI.DefaultTheme,
+		Theme:              setting.Config().UI.DefaultTheme.Value(t.Context()),
 		MustChangePassword: false,
 	}
 

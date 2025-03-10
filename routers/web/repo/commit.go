@@ -144,7 +144,7 @@ func Graph(ctx *context.Context) {
 
 	page := ctx.FormInt("page")
 
-	graph, err := gitgraph.GetCommitGraph(ctx.Repo.GitRepo, page, 0, hidePRRefs, realBranches, files)
+	graph, err := gitgraph.GetCommitGraph(ctx, ctx.Repo.GitRepo, page, 0, hidePRRefs, realBranches, files)
 	if err != nil {
 		ctx.ServerError("GetCommitGraph", err)
 		return
@@ -168,7 +168,7 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
-	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
+	paginator := context.NewPagination(int(graphCommitsCount), setting.Config().UI.GraphMaxCommitNum.Value(ctx), page, 5)
 	paginator.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = paginator
 	if ctx.FormBool("div-only") {

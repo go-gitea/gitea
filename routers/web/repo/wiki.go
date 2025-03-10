@@ -300,7 +300,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		done := make(chan struct{})
 		go func() {
 			// We allow NBSP here this is rendered
-			escaped, _ = charset.EscapeControlReader(markupRd, buf, ctx.Locale, charset.RuneNBSP)
+			escaped, _ = charset.EscapeControlReader(ctx, markupRd, buf, ctx.Locale, charset.RuneNBSP)
 			output = buf.String()
 			buf.Reset()
 			close(done)

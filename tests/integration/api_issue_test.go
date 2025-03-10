@@ -268,8 +268,8 @@ func TestAPISearchIssues(t *testing.T) {
 
 	// as this API was used in the frontend, it uses UI page size
 	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
+	if expectedIssueCount > setting.Config().UI.IssuePagingNum.Value(t.Context()) {
+		expectedIssueCount = setting.Config().UI.IssuePagingNum.Value(t.Context())
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
@@ -372,8 +372,8 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 
 	// as this API was used in the frontend, it uses UI page size
 	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
+	if expectedIssueCount > setting.Config().UI.IssuePagingNum.Value(t.Context()) {
+		expectedIssueCount = setting.Config().UI.IssuePagingNum.Value(t.Context())
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")

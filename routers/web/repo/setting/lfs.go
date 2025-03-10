@@ -55,10 +55,10 @@ func LFSFiles(ctx *context.Context) {
 	}
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
+	pager := context.NewPagination(int(total), setting.Config().UI.ExplorePagingNum.Value(ctx), page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs")
 	ctx.Data["PageIsSettingsLFS"] = true
-	lfsMetaObjects, err := git_model.GetLFSMetaObjects(ctx, ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
+	lfsMetaObjects, err := git_model.GetLFSMetaObjects(ctx, ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.Config().UI.ExplorePagingNum.Value(ctx))
 	if err != nil {
 		ctx.ServerError("LFSFiles", err)
 		return
@@ -87,10 +87,10 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["Total"] = total
 
-	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
+	pager := context.NewPagination(int(total), setting.Config().UI.ExplorePagingNum.Value(ctx), page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs_locks")
 	ctx.Data["PageIsSettingsLFS"] = true
-	lfsLocks, err := git_model.GetLFSLockByRepoID(ctx, ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
+	lfsLocks, err := git_model.GetLFSLockByRepoID(ctx, ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.Config().UI.ExplorePagingNum.Value(ctx))
 	if err != nil {
 		ctx.ServerError("LFSLocks", err)
 		return
@@ -296,7 +296,7 @@ func LFSFileGet(ctx *context.Context) {
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
 	switch {
 	case st.IsRepresentableAsText():
-		if meta.Size >= setting.UI.MaxDisplayFileSize {
+		if meta.Size >= setting.Config().UI.MaxDisplayFileSize.Value(ctx) {
 			ctx.Data["IsFileTooLarge"] = true
 			break
 		}
@@ -310,7 +310,7 @@ func LFSFileGet(ctx *context.Context) {
 		// Building code view blocks with line number on server side.
 		// FIXME: the logic is not right here: it first calls EscapeControlReader then calls HTMLEscapeString: double-escaping
 		escapedContent := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent, ctx.Locale)
+		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(ctx, rd, escapedContent, ctx.Locale)
 
 		var output bytes.Buffer
 		lines := strings.Split(escapedContent.String(), "\n")

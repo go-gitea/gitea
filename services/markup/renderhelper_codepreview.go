@@ -67,7 +67,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", err
 	}
 
-	if blob.Size() > setting.UI.MaxDisplayFileSize {
+	if blob.Size() > setting.Config().UI.MaxDisplayFileSize.Value(ctx) {
 		return "", fmt.Errorf("file is too large")
 	}
 
@@ -101,7 +101,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	escapeStatus := &charset.EscapeStatus{}
 	lineEscapeStatus := make([]*charset.EscapeStatus, len(highlightLines))
 	for i, hl := range highlightLines {
-		lineEscapeStatus[i], hl.FormattedContent = charset.EscapeControlHTML(hl.FormattedContent, webCtx.Base.Locale, charset.RuneNBSP)
+		lineEscapeStatus[i], hl.FormattedContent = charset.EscapeControlHTML(ctx, hl.FormattedContent, webCtx.Base.Locale, charset.RuneNBSP)
 		escapeStatus = escapeStatus.Or(lineEscapeStatus[i])
 	}
 
