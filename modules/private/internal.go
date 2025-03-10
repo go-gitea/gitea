@@ -40,6 +40,10 @@ func NewInternalRequest(ctx context.Context, url, method string) *httplib.Reques
 Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
 	}
 
+	if !strings.HasPrefix(url, setting.LocalURL) {
+		log.Fatal("Invalid internal request URL: %q", url)
+	}
+
 	req := httplib.NewRequest(url, method).
 		SetContext(ctx).
 		Header("X-Real-IP", getClientIP()).
