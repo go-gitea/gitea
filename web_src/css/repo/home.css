@@ -49,23 +49,14 @@
   }
 }
 
-.repo-view-with-sidebar {
-  display: grid;
-  grid-template-columns: 300px auto;
-  grid-template-rows: auto auto 1fr;
+.repo-view-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--page-spacing);
 }
 
 .repo-view-content {
-  min-width: 0;
-  grid-column: 1;
-  grid-row: 1 / 4;
-}
-
-.repo-view-with-sidebar .repo-view-content {
-  min-width: 0;
-  grid-column: 2;
-  grid-row: 1 / 4;
-  margin-left: 1rem;
+  flex: 1;
 }
 
 #view-file-tree.is-loading {
@@ -73,6 +64,7 @@
 }
 
 .repo-view-with-sidebar .repo-view-file-tree-sidebar {
+  flex: 0 1 15%;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -83,18 +75,16 @@
   z-index: 8;
 }
 
-.repo-view-with-sidebar .repo-button-row {
+.repo-view-container .repo-button-row {
   margin-top: 0 !important;
 }
 
 @media (max-width: 767.98px) {
   .repo-view-with-sidebar {
-    grid-template-columns: auto;
-    grid-template-rows: auto auto auto;
+    flex: 1 1 0;
   }
   .repo-view-content {
-    grid-column: 1;
-    grid-row: 2;
+    flex: 1 1 0;
   }
 }
 

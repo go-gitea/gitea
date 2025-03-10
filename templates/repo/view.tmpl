@@ -16,7 +16,7 @@
 
 		{{template "repo/code/recently_pushed_new_branches" .}}
 
-		<div class="{{Iif .RepoPreferences.ShowFileViewTreeSidebar "repo-view-with-sidebar" "repo-view-content-only"}}">
+		<div class="repo-view-container {{Iif .RepoPreferences.ShowFileViewTreeSidebar "repo-view-with-sidebar" "repo-view-content-only"}}">
 			<div class="repo-view-file-tree-sidebar not-mobile {{if not .RepoPreferences.ShowFileViewTreeSidebar}}tw-hidden{{end}}" {{if .IsSigned}} data-is-signed {{end}}>{{template "repo/view_file_tree_sidebar" .}}</div>
 			<div class="repo-view-content">
 				{{template "repo/view_content" .}}
