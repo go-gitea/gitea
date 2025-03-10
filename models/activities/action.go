@@ -442,6 +442,7 @@ type GetFeedsOptions struct {
 	OnlyPerformedBy bool                   // only actions performed by requested user
 	IncludeDeleted  bool                   // include deleted actions
 	Date            string                 // the day we want activity for: YYYY-MM-DD
+	DontCount       bool                   // do counting in GetFeeds
 }
 
 // ActivityReadable return whether doer can read activities of user
