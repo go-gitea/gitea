@@ -9,6 +9,7 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -236,7 +237,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, inner_bleve.NumericEqualityQuery(options.PosterID.Value(), "poster_id"))
 	}
 
-	if options.AssigneeID.Has() {
+	if options.AnyAssigneeOnly {
+		queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(optional.Some[int64](1), optional.None[int64](), "assignee_id"))
+	} else if options.AssigneeID.Has() {
 		queries = append(queries, inner_bleve.NumericEqualityQuery(options.AssigneeID.Value(), "assignee_id"))
 	}
 

@@ -186,7 +186,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterEq("poster_id", options.PosterID.Value()))
 	}
 
-	if options.AssigneeID.Has() {
+	if options.AnyAssigneeOnly {
+		query.And(inner_meilisearch.NewFilterGte("assignee_id", 1))
+	} else if options.AssigneeID.Has() {
 		query.And(inner_meilisearch.NewFilterEq("assignee_id", options.AssigneeID.Value()))
 	}
 

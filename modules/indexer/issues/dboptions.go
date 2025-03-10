@@ -47,6 +47,8 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 
 	if opts.AssigneeID.Value() == db.NoConditionID {
 		searchOpt.AssigneeID = optional.Some[int64](0) // FIXME: this is inconsistent from other places, 0 means "no assignee"
+	} else if opts.AssigneeID.Value() == db.AnyConditionID {
+		searchOpt.AnyAssigneeOnly = true
 	} else if opts.AssigneeID.Value() != 0 {
 		searchOpt.AssigneeID = opts.AssigneeID
 	}

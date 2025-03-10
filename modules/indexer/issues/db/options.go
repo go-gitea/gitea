@@ -49,12 +49,17 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		return value
 	}
 
+	assigneeID := optional.Some(convertID(options.AssigneeID))
+	if options.AnyAssigneeOnly {
+		assigneeID = optional.Some(db.AnyConditionID)
+	}
+
 	opts := &issue_model.IssuesOptions{
 		Paginator:          options.Paginator,
 		RepoIDs:            options.RepoIDs,
 		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
-		AssigneeID:         optional.Some(convertID(options.AssigneeID)),
+		AssigneeID:         assigneeID,
 		PosterID:           options.PosterID,
 		MentionedID:        convertID(options.MentionID),
 		ReviewRequestedID:  convertID(options.ReviewRequestedID),
