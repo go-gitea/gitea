@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Move patches
         run: mv patches /tmp/patches
@@ -52,18 +54,18 @@ jobs:
           fi
 
       - name: Clean tags and push new
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git tag -d "${{ inputs.tag }}" || echo "Local tag does not exist, skipping delete."
           git push --delete origin "${{ inputs.tag }}" || echo "Remote tag does not exist, skipping delete."
           git tag -a "${{ inputs.tag }}" -m "Tagging version ${{ inputs.tag }} after applying patches"
           git push origin "${{ inputs.tag }}" --force
           echo '{"ref":"${{ inputs.tag }}"}' | gh workflow run build.yml --ref "ci"	--repo "blender/gitea" --json
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Push branch
         if: always()
         run: git push origin apply-patches-${{ inputs.tag }} --force
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
