@@ -4,6 +4,7 @@
 package backend
 
 import (
+	"context"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -46,7 +47,7 @@ func TestIsInternalLFSURL(t *testing.T) {
 		{"http://localurl/api/internal/foo/bar", false},
 	}
 	for _, c := range cases {
-		req := newInternalRequestLFS(t.Context(), c.url, "GET", nil, nil)
+		req := newInternalRequestLFS(context.Background(), c.url, "GET", nil, nil)
 		assert.Equal(t, c.expected, req != nil, c.url)
 		assert.Equal(t, c.expected, isInternalLFSURL(c.url), c.url)
 	}
