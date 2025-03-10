@@ -50,7 +50,7 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 
 // renderCommentMarkdown renders the comment markdown to html
 func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
-	act.LoadRepo(ctx)
+	_ = act.LoadRepo(ctx)
 	if act.Repo == nil {
 		return ""
 	}
