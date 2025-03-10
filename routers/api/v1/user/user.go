@@ -160,7 +160,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	heatmap, err := feed_service.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
+	heatmap, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

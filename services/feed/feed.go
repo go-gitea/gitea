@@ -89,7 +89,7 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 			return fmt.Errorf("count user feeds: %w", err)
 		}
 
-		cache.GetCache().Put(userFeedCacheKey(act.UserID), fmt.Sprintf("%d", total), setting.CacheService.TTLSeconds())
+		_ = cache.GetCache().Put(userFeedCacheKey(act.UserID), fmt.Sprintf("%d", total), setting.CacheService.TTLSeconds())
 	}
 
 	return nil
