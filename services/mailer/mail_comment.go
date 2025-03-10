@@ -25,9 +25,8 @@ func MailParticipantsComment(ctx context.Context, c *issues_model.Comment, opTyp
 	if c.Type == issues_model.CommentTypePullRequestPush {
 		content = ""
 	}
-	if err := mailIssueCommentToParticipants(
-		&mailCommentContext{
-			Context:    ctx,
+	if err := mailIssueCommentToParticipants(ctx,
+		&mailComment{
 			Issue:      issue,
 			Doer:       c.Poster,
 			ActionType: opType,
@@ -48,9 +47,8 @@ func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *i
 
 	visited := make(container.Set[int64], len(mentions)+1)
 	visited.Add(c.Poster.ID)
-	if err = mailIssueCommentBatch(
-		&mailCommentContext{
-			Context:    ctx,
+	if err = mailIssueCommentBatch(ctx,
+		&mailComment{
 			Issue:      pr.Issue,
 			Doer:       c.Poster,
 			ActionType: activities_model.ActionCommentPull,

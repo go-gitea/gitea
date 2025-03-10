@@ -30,14 +30,11 @@ func TestGetDiffPreview(t *testing.T) {
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
 
 	expectedDiff := &gitdiff.Diff{
-		TotalAddition: 2,
-		TotalDeletion: 1,
 		Files: []*gitdiff.DiffFile{
 			{
 				Name:        "README.md",
 				OldName:     "README.md",
 				NameHash:    "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
-				Index:       1,
 				Addition:    2,
 				Deletion:    1,
 				Type:        2,
@@ -114,7 +111,6 @@ func TestGetDiffPreview(t *testing.T) {
 		},
 		IsIncomplete: false,
 	}
-	expectedDiff.NumFiles = len(expectedDiff.Files)
 
 	t.Run("with given branch", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, treePath, content)
