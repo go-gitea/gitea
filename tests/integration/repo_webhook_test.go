@@ -27,6 +27,7 @@ import (
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewWebHookLink(t *testing.T) {
@@ -380,12 +381,14 @@ func Test_WebhookPullRequest(t *testing.T) {
 
 		// 3. validate the webhook is triggered
 		assert.EqualValues(t, "pull_request", triggeredEvent)
-		assert.Len(t, payloads, 1)
+		require.Len(t, payloads, 1)
 		assert.EqualValues(t, "repo1", payloads[0].PullRequest.Base.Repository.Name)
 		assert.EqualValues(t, "user2/repo1", payloads[0].PullRequest.Base.Repository.FullName)
 		assert.EqualValues(t, "repo1", payloads[0].PullRequest.Head.Repository.Name)
 		assert.EqualValues(t, "user2/repo1", payloads[0].PullRequest.Head.Repository.FullName)
-		assert.EqualValues(t, 0, payloads[0].PullRequest.Additions)
+		assert.EqualValues(t, 0, *payloads[0].PullRequest.Additions)
+		assert.EqualValues(t, 0, *payloads[0].PullRequest.ChangedFiles)
+		assert.EqualValues(t, 0, *payloads[0].PullRequest.Deletions)
 	})
 }
 

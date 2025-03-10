@@ -25,12 +25,15 @@ import (
 	"code.gitea.io/gitea/services/mailer/token"
 )
 
+// maxEmailBodySize is the approximate maximum size of an email body in bytes
+// Many e-mail service providers have limitations on the size of the email body, it's usually from 10MB to 25MB
+const maxEmailBodySize = 9_000_000
+
 func fallbackMailSubject(issue *issues_model.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
-type mailCommentContext struct {
-	context.Context
+type mailComment struct {
 	Issue                 *issues_model.Issue
 	Doer                  *user_model.User
 	ActionType            activities_model.ActionType
@@ -39,7 +42,7 @@ type mailCommentContext struct {
 	ForceDoerNotification bool
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*sender_service.Message, error) {
+func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*sender_service.Message, error) {
 	var (
 		subject string
 		link    string
@@ -50,36 +53,44 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	)
 
 	commentType := issues_model.CommentTypeComment
-	if ctx.Comment != nil {
-		commentType = ctx.Comment.Type
-		link = ctx.Issue.HTMLURL() + "#" + ctx.Comment.HashTag()
+	if comment.Comment != nil {
+		commentType = comment.Comment.Type
+		link = comment.Issue.HTMLURL() + "#" + comment.Comment.HashTag()
 	} else {
-		link = ctx.Issue.HTMLURL()
+		link = comment.Issue.HTMLURL()
 	}
 
 	reviewType := issues_model.ReviewTypeComment
-	if ctx.Comment != nil && ctx.Comment.Review != nil {
-		reviewType = ctx.Comment.Review.Type
+	if comment.Comment != nil && comment.Comment.Review != nil {
+		reviewType = comment.Comment.Review.Type
 	}
 
 	// This is the body of the new issue or comment, not the mail body
-	rctx := renderhelper.NewRenderContextRepoComment(ctx.Context, ctx.Issue.Repo).WithUseAbsoluteLink(true)
-	body, err := markdown.RenderString(rctx,
-		ctx.Content)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, comment.Issue.Repo).WithUseAbsoluteLink(true)
+	body, err := markdown.RenderString(rctx, comment.Content)
 	if err != nil {
 		return nil, err
 	}
 
-	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
+	if setting.MailService.EmbedAttachmentImages {
+		attEmbedder := newMailAttachmentBase64Embedder(comment.Doer, comment.Issue.Repo, maxEmailBodySize)
+		bodyAfterEmbedding, err := attEmbedder.Base64InlineImages(ctx, body)
+		if err != nil {
+			log.Error("Failed to embed images in mail body: %v", err)
+		} else {
+			body = bodyAfterEmbedding
+		}
+	}
+	actType, actName, tplName := actionToTemplate(comment.Issue, comment.ActionType, commentType, reviewType)
 
 	if actName != "new" {
 		prefix = "Re: "
 	}
-	fallback = prefix + fallbackMailSubject(ctx.Issue)
+	fallback = prefix + fallbackMailSubject(comment.Issue)
 
-	if ctx.Comment != nil && ctx.Comment.Review != nil {
+	if comment.Comment != nil && comment.Comment.Review != nil {
 		reviewComments = make([]*issues_model.Comment, 0, 10)
-		for _, lines := range ctx.Comment.Review.CodeComments {
+		for _, lines := range comment.Comment.Review.CodeComments {
 			for _, comments := range lines {
 				reviewComments = append(reviewComments, comments...)
 			}
@@ -92,12 +103,12 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"FallbackSubject": fallback,
 		"Body":            body,
 		"Link":            link,
-		"Issue":           ctx.Issue,
-		"Comment":         ctx.Comment,
-		"IsPull":          ctx.Issue.IsPull,
-		"User":            ctx.Issue.Repo.MustOwner(ctx),
-		"Repo":            ctx.Issue.Repo.FullName(),
-		"Doer":            ctx.Doer,
+		"Issue":           comment.Issue,
+		"Comment":         comment.Comment,
+		"IsPull":          comment.Issue.IsPull,
+		"User":            comment.Issue.Repo.MustOwner(ctx),
+		"Repo":            comment.Issue.Repo.FullName(),
+		"Doer":            comment.Doer,
 		"IsMention":       fromMention,
 		"SubjectPrefix":   prefix,
 		"ActionType":      actType,
@@ -128,22 +139,22 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
-	msgID := generateMessageIDForIssue(ctx.Issue, ctx.Comment, ctx.ActionType)
-	reference := generateMessageIDForIssue(ctx.Issue, nil, activities_model.ActionType(0))
+	msgID := generateMessageIDForIssue(comment.Issue, comment.Comment, comment.ActionType)
+	reference := generateMessageIDForIssue(comment.Issue, nil, activities_model.ActionType(0))
 
 	var replyPayload []byte
-	if ctx.Comment != nil {
-		if ctx.Comment.Type.HasMailReplySupport() {
-			replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Comment)
+	if comment.Comment != nil {
+		if comment.Comment.Type.HasMailReplySupport() {
+			replyPayload, err = incoming_payload.CreateReferencePayload(comment.Comment)
 		}
 	} else {
-		replyPayload, err = incoming_payload.CreateReferencePayload(ctx.Issue)
+		replyPayload, err = incoming_payload.CreateReferencePayload(comment.Issue)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	unsubscribePayload, err := incoming_payload.CreateReferencePayload(ctx.Issue)
+	unsubscribePayload, err := incoming_payload.CreateReferencePayload(comment.Issue)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +163,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	for _, recipient := range recipients {
 		msg := sender_service.NewMessageFrom(
 			recipient.Email,
-			fromDisplayName(ctx.Doer),
+			fromDisplayName(comment.Doer),
 			setting.MailService.FromEmail,
 			subject,
 			mailBody.String(),
@@ -163,7 +174,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		msg.SetHeader("In-Reply-To", reference)
 
 		references := []string{reference}
-		listUnsubscribe := []string{"<" + ctx.Issue.HTMLURL() + ">"}
+		listUnsubscribe := []string{"<" + comment.Issue.HTMLURL() + ">"}
 
 		if setting.IncomingEmail.Enabled {
 			if replyPayload != nil {
@@ -191,7 +202,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		msg.SetHeader("References", references...)
 		msg.SetHeader("List-Unsubscribe", listUnsubscribe...)
 
-		for key, value := range generateAdditionalHeaders(ctx, actType, recipient) {
+		for key, value := range generateAdditionalHeaders(comment, actType, recipient) {
 			msg.SetHeader(key, value)
 		}
 
@@ -291,7 +302,7 @@ func generateMessageIDForIssue(issue *issues_model.Issue, comment *issues_model.
 	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
 }
 
-func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *user_model.User) map[string]string {
+func generateAdditionalHeaders(ctx *mailComment, reason string, recipient *user_model.User) map[string]string {
 	repo := ctx.Issue.Repo
 
 	return map[string]string{

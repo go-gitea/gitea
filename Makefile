@@ -73,7 +73,7 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
-GOTESTFLAGS ?= -vet=off
+GOTESTFLAGS ?=
 ifeq ($(RACE_ENABLED),true)
 	GOFLAGS += -race
 	GOTESTFLAGS += -race
@@ -905,10 +905,6 @@ update-translations:
 	$(SED_INPLACE) -e 's/\\"/"/g' ./translations/*.ini
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
-
-.PHONY: generate-license
-generate-license: ## update license files
-	$(GO) run build/generate-licenses.go
 
 .PHONY: generate-gitignore
 generate-gitignore: ## update gitignore files

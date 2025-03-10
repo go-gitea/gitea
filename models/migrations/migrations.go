@@ -413,7 +413,7 @@ func ExpectedDBVersion() int64 {
 }
 
 // EnsureUpToDate will check if the db is at the correct version
-func EnsureUpToDate(x *xorm.Engine) error {
+func EnsureUpToDate(ctx context.Context, x *xorm.Engine) error {
 	currentDB, err := GetCurrentDBVersion(x)
 	if err != nil {
 		return err
