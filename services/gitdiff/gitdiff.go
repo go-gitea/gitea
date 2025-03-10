@@ -192,9 +192,9 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 }
 
 // escape a line's content or return <br> needed for copy/paste purposes
-func getLineContent(content string, locale translation.Locale) DiffInline {
+func getLineContent(ctx context.Context, content string, locale translation.Locale) DiffInline {
 	if len(content) > 0 {
-		return DiffInlineWithUnicodeEscape(template.HTML(html.EscapeString(content)), locale)
+		return DiffInlineWithUnicodeEscape(ctx, template.HTML(html.EscapeString(content)), locale)
 	}
 	return DiffInline{EscapeStatus: &charset.EscapeStatus{}, Content: "<br>"}
 }
@@ -271,8 +271,8 @@ type DiffInline struct {
 }
 
 // DiffInlineWithUnicodeEscape makes a DiffInline with hidden Unicode characters escaped
-func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) DiffInline {
-	status, content := charset.EscapeControlHTML(s, locale)
+func DiffInlineWithUnicodeEscape(ctx context.Context, s template.HTML, locale translation.Locale) DiffInline {
+	status, content := charset.EscapeControlHTML(ctx, s, locale)
 	return DiffInline{EscapeStatus: status, Content: content}
 }
 
@@ -291,7 +291,7 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	return h
 }
 
-func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
+func (diffSection *DiffSection) getDiffLineForRender(ctx context.Context, diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
 	var fileLanguage string
 	var highlightedLeftLines, highlightedRightLines map[int]template.HTML
 	// when a "diff section" is manually prepared by ExcerptBlob, it doesn't have "file" information
@@ -326,25 +326,25 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 			lineHTML = util.Iif(diffLineType == DiffLineDel, diff1, diff2)
 		}
 	}
-	return DiffInlineWithUnicodeEscape(lineHTML, locale)
+	return DiffInlineWithUnicodeEscape(ctx, lineHTML, locale)
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
-func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, locale translation.Locale) DiffInline {
+func (diffSection *DiffSection) GetComputedInlineDiffFor(ctx context.Context, diffLine *DiffLine, locale translation.Locale) DiffInline {
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
-		return getLineContent(diffLine.Content[1:], locale)
+		return getLineContent(ctx, diffLine.Content[1:], locale)
 	case DiffLineAdd:
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
-		return diffSection.getDiffLineForRender(DiffLineAdd, compareDiffLine, diffLine, locale)
+		return diffSection.getDiffLineForRender(ctx, DiffLineAdd, compareDiffLine, diffLine, locale)
 	case DiffLineDel:
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
-		return diffSection.getDiffLineForRender(DiffLineDel, diffLine, compareDiffLine, locale)
+		return diffSection.getDiffLineForRender(ctx, DiffLineDel, diffLine, compareDiffLine, locale)
 	default: // Plain
 		// TODO: there was an "if" check: `if diffLine.Content >strings.IndexByte(" +-", diffLine.Content[0]) > -1 { ... } else { ... }`
 		// no idea why it needs that check, it seems that the "if" should be always true, so try to simplify the code
-		return diffSection.getDiffLineForRender(DiffLinePlain, nil, diffLine, locale)
+		return diffSection.getDiffLineForRender(ctx, DiffLinePlain, nil, diffLine, locale)
 	}
 }
 
