@@ -430,7 +430,9 @@ func Home(ctx *context.Context) {
 	}
 
 	if ctx.FormBool("only_content") {
-		ctx.HTML(http.StatusOK, tplRepoHomeContent)
+		ctx.HTML(http.StatusOK, tplRepoViewContent)
+	} else if len(treeNames) != 0 {
+		ctx.HTML(http.StatusOK, tplRepoView)
 	} else {
 		ctx.HTML(http.StatusOK, tplRepoHome)
 	}

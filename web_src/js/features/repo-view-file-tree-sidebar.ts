@@ -9,8 +9,8 @@ const {appSubUrl} = window.config;
 async function toggleSidebar(sidebarEl: HTMLElement, shouldShow: boolean) {
   const showBtnEl = sidebarEl.parentElement.querySelector('.show-tree-sidebar-button');
   const containerClassList = sidebarEl.parentElement.classList;
-  containerClassList.toggle('repo-grid-tree-sidebar', shouldShow);
-  containerClassList.toggle('repo-grid-filelist-only', !shouldShow);
+  containerClassList.toggle('repo-view-with-sidebar', shouldShow);
+  containerClassList.toggle('repo-view-content-only', !shouldShow);
   toggleElem(sidebarEl, shouldShow);
   toggleElem(showBtnEl, !shouldShow);
 
@@ -49,7 +49,7 @@ function childrenLoader(sidebarEl: HTMLElement) {
 async function loadContent(sidebarEl: HTMLElement) {
   // load content by path (content based on home_content.tmpl)
   const response = await GET(`${window.location.href}?only_content=true`);
-  const contentEl = sidebarEl.parentElement.querySelector('.repo-home-filelist');
+  const contentEl = sidebarEl.parentElement.querySelector('.repo-view-content');
   contentEl.innerHTML = await response.text();
   reloadContentScript(sidebarEl, contentEl);
 }
@@ -67,7 +67,7 @@ export async function initViewFileTreeSidebar() {
   sidebarEl.querySelector('.hide-tree-sidebar-button').addEventListener('click', () => {
     toggleSidebar(sidebarEl, false);
   });
-  sidebarEl.parentElement.querySelector('.repo-home-filelist .show-tree-sidebar-button').addEventListener('click', () => {
+  sidebarEl.parentElement.querySelector('.repo-view-content .show-tree-sidebar-button').addEventListener('click', () => {
     toggleSidebar(sidebarEl, true);
   });
 

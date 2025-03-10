@@ -95,9 +95,9 @@ func RefBlame(ctx *context.Context) {
 
 	var tplName templates.TplName
 	if ctx.FormBool("only_content") {
-		tplName = tplRepoHomeContent
+		tplName = tplRepoViewContent
 	} else {
-		tplName = tplRepoHome
+		tplName = tplRepoView
 	}
 
 	if fileSize >= setting.UI.MaxDisplayFileSize {
