@@ -105,7 +105,6 @@ func TestAgitPullPush(t *testing.T) {
 			"-o", "title=test-title", "-o", "description=test-description",
 			"HEAD:refs/for/master/test-agit-push",
 		).Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
-		t.Logf("====================================> ERROR: %+v", err)
 		assert.NoError(t, err)
 
 		// check pull request exist
