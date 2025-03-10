@@ -59,11 +59,11 @@ jobs:
           git push origin "${{ inputs.tag }}" --force
           echo '{"ref":"${{ inputs.tag }}"}' | gh workflow run build.yml --ref "ci"	--repo "blender/gitea" --json
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Push branch
         if: always()
         run: git push origin apply-patches-${{ inputs.tag }} --force
         env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
