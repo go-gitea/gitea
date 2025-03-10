@@ -10,6 +10,7 @@ const (
 	SearchModeWords  SearchModeType = "words"
 	SearchModeFuzzy  SearchModeType = "fuzzy"
 	SearchModeRegexp SearchModeType = "regexp"
+	SearchModeZoekt  SearchModeType = "zoekt"
 )
 
 type SearchMode struct {
@@ -39,6 +40,21 @@ func SearchModesExactWordsFuzzy() []SearchMode {
 			ModeValue:    SearchModeFuzzy,
 			TooltipTrKey: "search.fuzzy_tooltip",
 			TitleTrKey:   "search.fuzzy",
+		},
+	}...)
+}
+
+func ZoektSearchModes() []SearchMode {
+	return append(SearchModesExactWords(), []SearchMode{
+		{
+			ModeValue:    SearchModeRegexp,
+			TooltipTrKey: "search.regexp_tooltip",
+			TitleTrKey:   "search.regexp",
+		},
+		{
+			ModeValue:    SearchModeZoekt,
+			TooltipTrKey: "search.zoekt_tooltip",
+			TitleTrKey:   "search.zoekt",
 		},
 	}...)
 }
