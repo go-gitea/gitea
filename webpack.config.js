@@ -77,10 +77,10 @@ export default {
   entry: {
     index: [
       fileURLToPath(new URL('web_src/js/globals.ts', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/fomantic/build/fomantic.js', import.meta.url)),
       fileURLToPath(new URL('web_src/js/index.ts', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
-      fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
+      fileURLToPath(new URL('web_src/fomantic/build/fomantic.css', import.meta.url)),
       fileURLToPath(new URL('web_src/css/index.css', import.meta.url)),
     ],
     webcomponents: [
