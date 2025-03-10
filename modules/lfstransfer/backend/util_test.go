@@ -32,6 +32,7 @@ func TestToInternalLFSURL(t *testing.T) {
 
 func TestIsInternalLFSURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.LocalURL, "http://localurl/")()
+	defer test.MockVariableValue(&setting.InternalToken, "mock-token")()
 	cases := []struct {
 		url      string
 		expected bool
