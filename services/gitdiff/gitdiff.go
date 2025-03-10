@@ -78,7 +78,7 @@ const (
 type DiffLine struct {
 	LeftIdx     int // line number, 1-based
 	RightIdx    int // line number, 1-based
-	Match       int // line number, 1-based
+	Match       int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
 	Type        DiffLineType
 	Content     string
 	Comments    issues_model.CommentList // related PR code comments
@@ -206,8 +206,17 @@ type DiffSection struct {
 	Lines    []*DiffLine
 }
 
+func (diffSection *DiffSection) GetLine(idx int) *DiffLine {
+	if idx <= 0 {
+		return nil
+	}
+	return diffSection.Lines[idx]
+}
+
 // GetLine gets a specific line by type (add or del) and file line number
-func (diffSection *DiffSection) GetLine(lineType DiffLineType, idx int) *DiffLine {
+// This algorithm is not quite right.
+// Actually now we have "Match" field, it is always right, so use it instead in new GetLine
+func (diffSection *DiffSection) getLineLegacy(lineType DiffLineType, idx int) *DiffLine { //nolint:unused
 	var (
 		difference    = 0
 		addCount      = 0
@@ -327,10 +336,10 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	case DiffLineSection:
 		return getLineContent(diffLine.Content[1:], locale)
 	case DiffLineAdd:
-		compareDiffLine := diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
+		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineAdd, compareDiffLine, diffLine, locale)
 	case DiffLineDel:
-		compareDiffLine := diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
+		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineDel, diffLine, compareDiffLine, locale)
 	default: // Plain
 		// TODO: there was an "if" check: `if diffLine.Content >strings.IndexByte(" +-", diffLine.Content[0]) > -1 { ... } else { ... }`
