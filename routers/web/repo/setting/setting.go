@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -906,7 +905,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := actions_model.CleanRepoScheduleTasks(ctx, repo); err != nil {
+		if err := actions_service.CleanRepoScheduleTasks(ctx, repo); err != nil {
 			log.Error("CleanRepoScheduleTasks for archived repo %s/%s: %v", ctx.Repo.Owner.Name, repo.Name, err)
 		}
 
