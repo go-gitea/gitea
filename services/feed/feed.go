@@ -21,9 +21,8 @@ func userFeedCacheKey(userID int64) string {
 	return fmt.Sprintf("user_feed_%d", userID)
 }
 
-// GetFeeds returns actions according to the provided options
-func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int64, error) {
-	opts.DontCount = opts.Actor != nil && opts.RequestedUser != nil && (opts.Actor.IsAdmin || opts.Actor.ID == opts.RequestedUser.ID)
+func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int64, error) {
+	opts.DontCount = opts.RequestedTeam == nil && opts.Date == ""
 	results, cnt, err := activities_model.GetFeeds(ctx, opts)
 	if err != nil {
 		return nil, 0, err
@@ -34,6 +33,11 @@ func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activ
 		})
 	}
 	return results, cnt, err
+}
+
+// GetFeeds returns actions according to the provided options
+func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int64, error) {
+	return activities_model.GetFeeds(ctx, opts)
 }
 
 // notifyWatchers creates batch of actions for every watcher.
