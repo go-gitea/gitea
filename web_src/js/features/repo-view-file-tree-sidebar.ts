@@ -4,13 +4,13 @@ import {pathEscapeSegments, pathUnescapeSegments} from '../utils/url.ts';
 import {GET, PUT} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
 
-async function toggleSidebar(sidebarEl: HTMLElement, visibility: boolean) {
+async function toggleSidebar(sidebarEl: HTMLElement, shouldShow: boolean) {
   const showBtnEl = sidebarEl.parentElement.querySelector('.show-tree-sidebar-button');
   const containerClassList = sidebarEl.parentElement.classList;
-  containerClassList.toggle('repo-grid-tree-sidebar', visibility);
-  containerClassList.toggle('repo-grid-filelist-only', !visibility);
-  toggleElem(sidebarEl, visibility);
-  toggleElem(showBtnEl, !visibility);
+  containerClassList.toggle('repo-grid-tree-sidebar', shouldShow);
+  containerClassList.toggle('repo-grid-filelist-only', !shouldShow);
+  toggleElem(sidebarEl, shouldShow);
+  toggleElem(showBtnEl, !shouldShow);
 
   // FIXME: need to remove "full height" style from parent element
 
@@ -19,7 +19,7 @@ async function toggleSidebar(sidebarEl: HTMLElement, visibility: boolean) {
   // save to session
   await PUT('/repo/preferences', {
     data: {
-      show_file_view_tree_sidebar: visibility,
+      show_file_view_tree_sidebar: shouldShow,
     },
   });
 }
