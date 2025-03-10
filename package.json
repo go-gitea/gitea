@@ -99,6 +99,7 @@
     "eslint-plugin-wc": "2.2.0",
     "happy-dom": "17.1.0",
     "markdownlint-cli": "0.44.0",
+    "material-icon-theme": "5.20.0",
     "nolyfill": "1.0.43",
     "postcss-html": "1.8.0",
     "stylelint": "16.14.1",

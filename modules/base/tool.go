@@ -17,7 +17,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -138,25 +137,4 @@ func Int64sToStrings(ints []int64) []string {
 		strs[i] = strconv.FormatInt(ints[i], 10)
 	}
 	return strs
-}
-
-// EntryIcon returns the octicon name for displaying files/directories
-func EntryIcon(entry *git.TreeEntry) string {
-	switch {
-	case entry.IsLink():
-		te, err := entry.FollowLink()
-		if err != nil {
-			return "file-symlink-file"
-		}
-		if te.IsDir() {
-			return "file-directory-symlink"
-		}
-		return "file-symlink-file"
-	case entry.IsDir():
-		return "file-directory-fill"
-	case entry.IsSubModule():
-		return "file-submodule"
-	}
-
-	return "file"
 }
