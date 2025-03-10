@@ -203,7 +203,6 @@ func getLineContent(content string, locale translation.Locale) DiffInline {
 type DiffSection struct {
 	file     *DiffFile
 	FileName string
-	Name     string
 	Lines    []*DiffLine
 }
 
@@ -279,7 +278,7 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
-	h, _ = highlight.Code(diffSection.Name, fileLanguage, diffLine.Content[1:])
+	h, _ = highlight.Code(diffSection.FileName, fileLanguage, diffLine.Content[1:])
 	return h
 }
 
@@ -292,20 +291,31 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 		highlightedLeftLines, highlightedRightLines = diffSection.file.highlightedLeftLines, diffSection.file.highlightedRightLines
 	}
 
+	var lineHTML template.HTML
 	hcd := newHighlightCodeDiff()
-	var diff1, diff2, lineHTML template.HTML
-	if leftLine != nil {
-		diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
-		lineHTML = util.Iif(diffLineType == DiffLinePlain, diff1, "")
-	}
-	if rightLine != nil {
-		diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
-		lineHTML = util.Iif(diffLineType == DiffLinePlain, diff2, "")
-	}
-	if diffLineType != DiffLinePlain {
-		// it seems that Gitea doesn't need the line wrapper of Chroma, so do not add them back
-		// if the line wrappers are still needed in the future, it can be added back by "diffLineWithHighlightWrapper(hcd.lineWrapperTags. ...)"
-		lineHTML = hcd.diffLineWithHighlight(diffLineType, diff1, diff2)
+	if diffLineType == DiffLinePlain {
+		// left and right are the same, no need to do line-level diff
+		if leftLine != nil {
+			lineHTML = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
+		} else if rightLine != nil {
+			lineHTML = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+		}
+	} else {
+		var diff1, diff2 template.HTML
+		if leftLine != nil {
+			diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
+		}
+		if rightLine != nil {
+			diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+		}
+		if diff1 != "" && diff2 != "" {
+			// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
+			lineHTML = hcd.diffLineWithHighlight(diffLineType, diff1, diff2)
+		} else {
+			// if left is empty or right is empty (a line is fully deleted or added), then we do not need to diff anymore.
+			// the tmpl code already adds background colors for these cases.
+			lineHTML = util.Iif(diffLineType == DiffLineDel, diff1, diff2)
+		}
 	}
 	return DiffInlineWithUnicodeEscape(lineHTML, locale)
 }
@@ -383,15 +393,22 @@ type DiffLimitedContent struct {
 
 // GetTailSectionAndLimitedContent creates a fake DiffLineSection if the last section is not the end of the file
 func (diffFile *DiffFile) GetTailSectionAndLimitedContent(leftCommit, rightCommit *git.Commit) (_ *DiffSection, diffLimitedContent DiffLimitedContent) {
-	if len(diffFile.Sections) == 0 || leftCommit == nil || diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
+	var leftLineCount, rightLineCount int
+	diffLimitedContent = DiffLimitedContent{}
+	if diffFile.IsBin || diffFile.IsLFSFile {
 		return nil, diffLimitedContent
 	}
-
+	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
+		leftLineCount, diffLimitedContent.LeftContent = getCommitFileLineCountAndLimitedContent(leftCommit, diffFile.OldName)
+	}
+	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
+		rightLineCount, diffLimitedContent.RightContent = getCommitFileLineCountAndLimitedContent(rightCommit, diffFile.OldName)
+	}
+	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
+		return nil, diffLimitedContent
+	}
 	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
 	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
-	leftLineCount, leftContent := getCommitFileLineCountAndLimitedContent(leftCommit, diffFile.Name)
-	rightLineCount, rightContent := getCommitFileLineCountAndLimitedContent(rightCommit, diffFile.Name)
-	diffLimitedContent = DiffLimitedContent{LeftContent: leftContent, RightContent: rightContent}
 	if leftLineCount <= lastLine.LeftIdx || rightLineCount <= lastLine.RightIdx {
 		return nil, diffLimitedContent
 	}

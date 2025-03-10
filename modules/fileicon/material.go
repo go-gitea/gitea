@@ -18,13 +18,9 @@ import (
 )
 
 type materialIconRulesData struct {
-	IconDefinitions map[string]*struct {
-		IconPath string `json:"iconPath"`
-	} `json:"iconDefinitions"`
 	FileNames      map[string]string `json:"fileNames"`
 	FolderNames    map[string]string `json:"folderNames"`
 	FileExtensions map[string]string `json:"fileExtensions"`
-	LanguageIDs    map[string]string `json:"languageIds"`
 }
 
 type MaterialIconProvider struct {
@@ -36,6 +32,7 @@ type MaterialIconProvider struct {
 var materialIconProvider MaterialIconProvider
 
 func DefaultMaterialIconProvider() *MaterialIconProvider {
+	materialIconProvider.once.Do(materialIconProvider.loadData)
 	return &materialIconProvider
 }
 
@@ -88,8 +85,6 @@ func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name
 }
 
 func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.TreeEntry) template.HTML {
-	m.once.Do(m.loadData)
-
 	if m.rules == nil {
 		return BasicThemeIcon(entry)
 	}
@@ -101,7 +96,7 @@ func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.Tr
 		return svg.RenderHTML("octicon-file-symlink-file") // TODO: find some better icons for them
 	}
 
-	name := m.findIconName(entry)
+	name := m.findIconNameByGit(entry)
 	if name == "folder" {
 		// the material icon pack's "folder" icon doesn't look good, so use our built-in one
 		return svg.RenderHTML("material-folder-generic")
@@ -112,34 +107,23 @@ func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.Tr
 	return svg.RenderHTML("octicon-file")
 }
 
-func (m *MaterialIconProvider) findIconName(entry *git.TreeEntry) string {
-	if entry.IsSubModule() {
-		return "folder-git"
-	}
-
+func (m *MaterialIconProvider) FindIconName(name string, isDir bool) string {
 	iconsData := m.rules
-	fileName := path.Base(entry.Name())
-
-	if entry.IsDir() {
-		if s, ok := iconsData.FolderNames[fileName]; ok {
-			return s
-		}
-		if s, ok := iconsData.FolderNames[strings.ToLower(fileName)]; ok {
+	fileNameLower := strings.ToLower(path.Base(name))
+	if isDir {
+		if s, ok := iconsData.FolderNames[fileNameLower]; ok {
 			return s
 		}
 		return "folder"
 	}
 
-	if s, ok := iconsData.FileNames[fileName]; ok {
-		return s
-	}
-	if s, ok := iconsData.FileNames[strings.ToLower(fileName)]; ok {
+	if s, ok := iconsData.FileNames[fileNameLower]; ok {
 		return s
 	}
 
-	for i := len(fileName) - 1; i >= 0; i-- {
-		if fileName[i] == '.' {
-			ext := fileName[i+1:]
+	for i := len(fileNameLower) - 1; i >= 0; i-- {
+		if fileNameLower[i] == '.' {
+			ext := fileNameLower[i+1:]
 			if s, ok := iconsData.FileExtensions[ext]; ok {
 				return s
 			}
@@ -147,4 +131,11 @@ func (m *MaterialIconProvider) findIconName(entry *git.TreeEntry) string {
 	}
 
 	return "file"
+}
+
+func (m *MaterialIconProvider) findIconNameByGit(entry *git.TreeEntry) string {
+	if entry.IsSubModule() {
+		return "folder-git"
+	}
+	return m.FindIconName(entry.Name(), entry.IsDir())
 }

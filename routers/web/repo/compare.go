@@ -900,7 +900,6 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	section := &gitdiff.DiffSection{
 		FileName: filePath,
-		Name:     filePath,
 	}
 	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
 		idxLeft -= chunkSize
