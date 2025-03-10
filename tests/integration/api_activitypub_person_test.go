@@ -7,28 +7,28 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/tests"
 
 	ap "github.com/go-ap/activitypub"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestActivityPubPerson(t *testing.T) {
-	setting.Federation.Enabled = true
-	testWebRoutes = routers.NormalRoutes()
-	defer func() {
-		setting.Federation.Enabled = false
-		testWebRoutes = routers.NormalRoutes()
-	}()
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Federation.Enabled, true)()
+	defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
 
-	onGiteaRun(t, func(*testing.T, *url.URL) {
+	t.Run("ExistingPerson", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
 		userID := 2
 		username := "user2"
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/activitypub/user-id/%v", userID))
@@ -56,41 +56,18 @@ func TestActivityPubPerson(t *testing.T) {
 		assert.NotNil(t, pubKeyPem)
 		assert.Regexp(t, "^-----BEGIN PUBLIC KEY-----", pubKeyPem)
 	})
-}
-
-func TestActivityPubMissingPerson(t *testing.T) {
-	setting.Federation.Enabled = true
-	testWebRoutes = routers.NormalRoutes()
-	defer func() {
-		setting.Federation.Enabled = false
-		testWebRoutes = routers.NormalRoutes()
-	}()
-
-	onGiteaRun(t, func(*testing.T, *url.URL) {
+	t.Run("MissingPerson", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 		req := NewRequest(t, "GET", "/api/v1/activitypub/user-id/999999999")
 		resp := MakeRequest(t, req, http.StatusNotFound)
 		assert.Contains(t, resp.Body.String(), "user does not exist")
 	})
-}
+	t.Run("MissingPersonInbox", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		srv := httptest.NewServer(testWebRoutes)
+		defer srv.Close()
+		defer test.MockVariableValue(&setting.AppURL, srv.URL+"/")()
 
-func TestActivityPubPersonInbox(t *testing.T) {
-	setting.Federation.Enabled = true
-	testWebRoutes = routers.NormalRoutes()
-	defer func() {
-		setting.Federation.Enabled = false
-		testWebRoutes = routers.NormalRoutes()
-	}()
-
-	srv := httptest.NewServer(testWebRoutes)
-	defer srv.Close()
-
-	onGiteaRun(t, func(*testing.T, *url.URL) {
-		appURL := setting.AppURL
-		setting.AppURL = srv.URL + "/"
-		defer func() {
-			setting.Database.LogSQL = false
-			setting.AppURL = appURL
-		}()
 		username1 := "user1"
 		ctx := t.Context()
 		user1, err := user_model.GetUserByName(ctx, username1)
