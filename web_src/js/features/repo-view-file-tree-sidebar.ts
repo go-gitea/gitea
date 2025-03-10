@@ -1,5 +1,6 @@
 import {createApp, ref} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
+import {pathEscapeSegments, pathUnescapeSegments} from '../utils/url.ts';
 import {GET, PUT} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
 
@@ -28,7 +29,7 @@ function childrenLoader(sidebarEl: HTMLElement) {
     const fileTree = sidebarEl.querySelector('#view-file-tree');
     const apiBaseUrl = fileTree.getAttribute('data-api-base-url');
     const refTypeNameSubURL = fileTree.getAttribute('data-current-ref-type-name-sub-url');
-    const response = await GET(encodeURI(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${path ?? ''}?recursive=${recursive ?? false}`));
+    const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${pathEscapeSegments(path ?? '')}?recursive=${recursive ?? false}`);
     const json = await response.json();
     if (json instanceof Array) {
       return json.map((i) => ({
@@ -81,7 +82,7 @@ export async function initViewFileTreeSidebar() {
 
   fileTree.classList.remove('is-loading');
   const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren: childrenLoader(sidebarEl), loadContent: (path: string) => {
-    window.history.pushState(null, null, encodeURI(`${baseUrl}/src${refString}/${path}`));
+    window.history.pushState(null, null, `${baseUrl}/src${refString}/${pathEscapeSegments(path)}`);
     selectedItem.value = path;
     loadContent(sidebarEl);
   }});
@@ -94,6 +95,6 @@ export async function initViewFileTreeSidebar() {
 }
 
 function getSelectedPath(ref: string) {
-  const path = decodeURI(new URL(window.location.href).pathname);
+  const path = pathUnescapeSegments(new URL(window.location.href).pathname);
   return path.substring(path.indexOf(ref) + ref.length + 1);
 }

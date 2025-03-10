@@ -2,6 +2,10 @@ export function pathEscapeSegments(s: string): string {
   return s.split('/').map(encodeURIComponent).join('/');
 }
 
+export function pathUnescapeSegments(s: string): string {
+  return s.split('/').map(decodeURIComponent).join('/');
+}
+
 function stripSlash(url: string): string {
   return url.endsWith('/') ? url.slice(0, -1) : url;
 }
