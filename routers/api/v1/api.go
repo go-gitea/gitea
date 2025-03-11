@@ -1168,6 +1168,10 @@ func Routes() *web.Router {
 					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
 				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
 
+				m.Group("/actions/runs", func() {
+					m.Get("/{run_id}/jobs/{job}/logs", repo.DownloadActionsRunLogs)
+				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
+
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
 					m.Group("/{id}", func() {
