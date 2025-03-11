@@ -2,8 +2,7 @@ import $ from 'jquery';
 import {queryElemSiblings} from '../../utils/dom.ts';
 
 export function initFomanticTab() {
-  $.fn.tab = function (this: any, arg0: any) {
-    const autoTabActivation = arg0?.autoTabActivation;
+  $.fn.tab = function (this: any) {
     for (const elBtn of this) {
       const tabName = elBtn.getAttribute('data-tab');
       if (!tabName) continue;
@@ -14,10 +13,6 @@ export function initFomanticTab() {
         elBtn.classList.add('active');
         elTab.classList.add('active');
       });
-      if (autoTabActivation && elBtn.classList.contains('active')) {
-        const elTab = elBtn.querySelector(`.ui.tab[data-tab="${tabName}"]`);
-        elTab.classList.add('active');
-      }
     }
     return this;
   };
