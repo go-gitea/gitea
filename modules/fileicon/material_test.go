@@ -21,4 +21,6 @@ func TestFindIconName(t *testing.T) {
 	p := fileicon.DefaultMaterialIconProvider()
 	assert.Equal(t, "php", p.FindIconName("foo.php", false))
 	assert.Equal(t, "php", p.FindIconName("foo.PHP", false))
+	assert.Equal(t, "javascript", p.FindIconName("foo.js", false))
+	assert.Equal(t, "visualstudio", p.FindIconName("foo.vba", false))
 }
