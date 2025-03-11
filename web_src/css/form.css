@@ -273,6 +273,10 @@ textarea:focus,
   width: 50%;
 }
 
+.ui.form.left-right-form .inline.field .ui.dropdown input.search {
+  width: 100%;
+}
+
 .ui.form.left-right-form .inline.field .inline-right {
   display: inline-flex;
   flex-direction: column;
