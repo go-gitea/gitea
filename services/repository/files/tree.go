@@ -189,26 +189,27 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 /*
 Example 1: (path: /)
 
-	GET /repo/name/tree/
+		GET /repo/name/tree/
 
-	resp:
-	[{
-	    "name": "d1",
-	    "isFile": false,
-	    "path": "d1"
-	},{
-	    "name": "d2",
-	    "isFile": false,
-	    "path": "d2"
-	},{
-	    "name": "d3",
-	    "isFile": false,
-	    "path": "d3"
-	},{
-	    "name": "f1",
-	    "isFile": true,
-	    "path": "f1"
-	},]
+		resp:
+		[{
+		    "name": "d1",
+		  	"type": "commit",
+	    	"path": "d1",
+	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
+		},{
+		    "name": "d2",
+		    "type": "symlink",
+		    "path": "d2"
+		},{
+		    "name": "d3",
+		    "type": "tree",
+		    "path": "d3"
+		},{
+		    "name": "f1",
+		    "type": "blob",
+		    "path": "f1"
+		},]
 
 Example 2: (path: d3)
 
@@ -216,7 +217,7 @@ Example 2: (path: d3)
 	resp:
 	[{
 	    "name": "d3d1",
-	    "isFile": false,
+	    "type": "tree",
 	    "path": "d3/d3d1"
 	}]
 
@@ -226,11 +227,11 @@ Example 3: (path: d3/d3d1)
 	resp:
 	[{
 	    "name": "d3d1f1",
-	    "isFile": true,
+	    "type": "blob",
 	    "path": "d3/d3d1/d3d1f1"
 	},{
-	    "name": "d3d1f1",
-	    "isFile": true,
+	    "name": "d3d1f2",
+	    "type": "blob",
 	    "path": "d3/d3d1/d3d1f2"
 	}]
 */
@@ -262,7 +263,8 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		return nil, err
 	}
 
-	// If the entry is a file, we return a FileContentResponse object
+	// If the entry is a file, an exception will be thrown.
+	// This is because this interface is specifically designed for expanding folders and only supports the retrieval and return of the file list within a folder.
 	if entry.Type() != "tree" {
 		return nil, fmt.Errorf("%s is not a tree", treePath)
 	}
@@ -287,7 +289,8 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		subTreePath := path.Join(treePath, e.Name())
 
 		if strings.Contains(e.Name(), "/") {
-			mapTree[path.Dir(e.Name())] = append(mapTree[path.Dir(e.Name())], &TreeViewNode{
+			dirName := path.Dir(e.Name())
+			mapTree[dirName] = append(mapTree[dirName], &TreeViewNode{
 				Name: path.Base(e.Name()),
 				Type: entryModeString(e.Mode()),
 				Path: subTreePath,
@@ -320,46 +323,48 @@ Example 1: (path: /)
     GET /repo/name/tree/?recursive=true
     resp:
     [{
-        "name": "d1",
-        "isFile": false,
-        "path": "d1"
-    },{
-        "name": "d2",
-        "isFile": false,
-        "path": "d2"
-    },{
-        "name": "d3",
-        "isFile": false,
-        "path": "d3"
-    },{
-        "name": "f1",
-        "isFile": true,
-        "path": "f1"
-    },]
+		    "name": "d1",
+		  	"type": "commit",
+	    	"path": "d1",
+	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
+		},{
+		    "name": "d2",
+		    "type": "symlink",
+		    "path": "d2"
+		},{
+		    "name": "d3",
+		    "type": "tree",
+		    "path": "d3"
+		},{
+		    "name": "f1",
+		    "type": "blob",
+		    "path": "f1"
+		},]
 
 Example 2: (path: d3)
     GET /repo/name/tree/d3?recursive=true
     resp:
     [{
-        "name": "d1",
-        "isFile": false,
-        "path": "d1"
-    },{
-        "name": "d2",
-        "isFile": false,
-        "path": "d2"
-    },{
+		    "name": "d1",
+		  	"type": "commit",
+	    	"path": "d1",
+	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
+		},{
+		    "name": "d2",
+		    "type": "symlink",
+		    "path": "d2"
+		},{
         "name": "d3",
-        "isFile": false,
+		    "type": "tree",
         "path": "d3",
         "children": [{
             "name": "d3d1",
-            "isFile": false,
+		    		"type": "tree",
             "path": "d3/d3d1"
         }]
     },{
         "name": "f1",
-        "isFile": true,
+		    "type": "blob",
         "path": "f1"
     },]
 
@@ -367,34 +372,35 @@ Example 3: (path: d3/d3d1)
     GET /repo/name/tree/d3/d3d1?recursive=true
     resp:
     [{
-        "name": "d1",
-        "isFile": false,
-        "path": "d1"
-    },{
-        "name": "d2",
-        "isFile": false,
-        "path": "d2"
-    },{
+		    "name": "d1",
+		  	"type": "commit",
+	    	"path": "d1",
+	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
+		},{
+		    "name": "d2",
+		    "type": "symlink",
+		    "path": "d2"
+		},{
         "name": "d3",
-        "isFile": false,
+		    "type": "tree",
         "path": "d3",
         "children": [{
             "name": "d3d1",
-            "isFile": false,
+		    		"type": "tree",
             "path": "d3/d3d1",
             "children": [{
                 "name": "d3d1f1",
-                "isFile": true,
+		    				"type": "blob",
                 "path": "d3/d3d1/d3d1f1"
             },{
-                "name": "d3d1f1",
-                "isFile": true,
+                "name": "d3d1f2",
+		    				"type": "blob",
                 "path": "d3/d3d1/d3d1f2"
             }]
         }]
     },{
         "name": "f1",
-        "isFile": true,
+		    "type": "blob",
         "path": "f1"
     },]
 
@@ -402,25 +408,26 @@ Example 4: (path: d2/d2f1)
     GET /repo/name/tree/d2/d2f1?recursive=true
     resp:
     [{
-        "name": "d1",
-        "isFile": false,
-        "path": "d1"
-    },{
+		    "name": "d1",
+		  	"type": "commit",
+	    	"path": "d1",
+	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
+		},{
         "name": "d2",
-        "isFile": false,
+		    "type": "tree",
         "path": "d2",
         "children": [{
             "name": "d2f1",
-            "isFile": true,
+		    		"type": "blob",
             "path": "d2/d2f1"
         }]
     },{
         "name": "d3",
-        "isFile": false,
+		    "type": "tree",
         "path": "d3"
     },{
         "name": "f1",
-        "isFile": true,
+		    "type": "blob",
         "path": "f1"
     },]
 */
