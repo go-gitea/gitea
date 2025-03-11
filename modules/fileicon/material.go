@@ -21,6 +21,7 @@ type materialIconRulesData struct {
 	FileNames      map[string]string `json:"fileNames"`
 	FolderNames    map[string]string `json:"folderNames"`
 	FileExtensions map[string]string `json:"fileExtensions"`
+	LanguageIDs    map[string]string `json:"languageIds"`
 }
 
 type MaterialIconProvider struct {
@@ -107,25 +108,40 @@ func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.Tr
 	return svg.RenderHTML("octicon-file")
 }
 
+func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
+	if _, ok := m.svgs[s]; ok {
+		return s
+	}
+	if s, ok := m.rules.LanguageIDs[s]; ok {
+		if _, ok = m.svgs[s]; ok {
+			return s
+		}
+	}
+	return ""
+}
+
 func (m *MaterialIconProvider) FindIconName(name string, isDir bool) string {
-	iconsData := m.rules
 	fileNameLower := strings.ToLower(path.Base(name))
 	if isDir {
-		if s, ok := iconsData.FolderNames[fileNameLower]; ok {
+		if s, ok := m.rules.FolderNames[fileNameLower]; ok {
 			return s
 		}
 		return "folder"
 	}
 
-	if s, ok := iconsData.FileNames[fileNameLower]; ok {
-		return s
+	if s, ok := m.rules.FileNames[fileNameLower]; ok {
+		if s = m.findIconNameWithLangID(s); s != "" {
+			return s
+		}
 	}
 
 	for i := len(fileNameLower) - 1; i >= 0; i-- {
 		if fileNameLower[i] == '.' {
 			ext := fileNameLower[i+1:]
-			if s, ok := iconsData.FileExtensions[ext]; ok {
-				return s
+			if s, ok := m.rules.FileExtensions[ext]; ok {
+				if s = m.findIconNameWithLangID(s); s != "" {
+					return s
+				}
 			}
 		}
 	}
