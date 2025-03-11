@@ -60,7 +60,7 @@ func getRunJobs(ctx *context.APIContext, runIndex, jobIndex int64) (*actions_mod
 }
 
 func DownloadActionsRunLogs(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs repository downloadActionsRunLogs
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs/{job}/logs repository downloadActionsRunLogs
 	// ---
 	// summary: Downloads the logs for a workflow run redirects to blob url
 	// produces:
