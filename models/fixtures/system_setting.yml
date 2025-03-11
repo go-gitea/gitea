@@ -1,7 +1,7 @@
 -
   id: 1
   setting_key: 'picture.disable_gravatar'
-  setting_value: 'false'
+  setting_value: 'true'
   version: 1
   created: 1653533198
   updated: 1653533198

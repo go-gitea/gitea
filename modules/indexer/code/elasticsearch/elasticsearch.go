@@ -24,13 +24,14 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/olivere/elastic/v7"
 )
 
 const (
-	esRepoIndexerLatestVersion = 2
+	esRepoIndexerLatestVersion = 3
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
@@ -60,6 +61,10 @@ const (
 		"settings": {
     		"analysis": {
       			"analyzer": {
+					"content_analyzer": {
+						"tokenizer": "content_tokenizer",
+						"filter" : ["lowercase"]
+					},
         			"filename_path_analyzer": {
           				"tokenizer": "path_tokenizer"
         			},
@@ -68,6 +73,10 @@ const (
         			}
       			},
 				"tokenizer": {
+					"content_tokenizer": {
+						"type": "simple_pattern_split",
+						"pattern": "[^a-zA-Z0-9]"
+					},
 					"path_tokenizer": {
 						"type": "path_hierarchy",
 						"delimiter": "/"
@@ -104,7 +113,8 @@ const (
 				"content": {
 					"type": "text",
 					"term_vector": "with_positions_offsets",
-					"index": true
+					"index": true,
+					"analyzer": "content_analyzer"
 				},
 				"commit_id": {
 					"type": "keyword",
@@ -133,7 +143,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = git.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return nil, err
 		}
@@ -350,13 +360,19 @@ func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLan
 
 // Search searches for codes and language stats by given conditions.
 func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
-	searchType := esMultiMatchTypePhrasePrefix
-	if opts.IsKeywordFuzzy {
-		searchType = esMultiMatchTypeBestFields
+	var contentQuery elastic.Query
+	keywordAsPhrase, isPhrase := internal.ParseKeywordAsPhrase(opts.Keyword)
+	if isPhrase {
+		contentQuery = elastic.NewMatchPhraseQuery("content", keywordAsPhrase)
+	} else {
+		// TODO: this is the old logic, but not really using "fuzziness"
+		// * IsKeywordFuzzy=true: "best_fields"
+		// * IsKeywordFuzzy=false: "phrase_prefix"
+		contentQuery = elastic.NewMultiMatchQuery("content", opts.Keyword).
+			Type(util.Iif(opts.IsKeywordFuzzy, esMultiMatchTypeBestFields, esMultiMatchTypePhrasePrefix))
 	}
-
 	kwQuery := elastic.NewBoolQuery().Should(
-		elastic.NewMultiMatchQuery(opts.Keyword, "content").Type(searchType),
+		contentQuery,
 		elastic.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(esMultiMatchTypePhrasePrefix),
 	)
 	query := elastic.NewBoolQuery()

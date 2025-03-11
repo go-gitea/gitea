@@ -68,7 +68,7 @@ func pushTestPayload() *api.PushPayload {
 }
 
 func pushTestMultilineCommitMessagePayload() *api.PushPayload {
-	return pushTestPayloadWithCommitMessage("This is a commit summary ⚠️⚠️⚠️⚠️ containing 你好 ⚠️⚠️️\n\nThis is the message body.")
+	return pushTestPayloadWithCommitMessage("chore: This is a commit summary\n\nThis is a commit description.")
 }
 
 func pushTestPayloadWithCommitMessage(message string) *api.PushPayload {
@@ -319,8 +319,8 @@ func packageTestPayload() *api.PackagePayload {
 			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Repository: nil,
-		Organization: &api.User{
-			UserName:  "org1",
+		Organization: &api.Organization{
+			Name:      "org1",
 			AvatarURL: "http://localhost:3000/org1/avatar",
 		},
 		Package: &api.Package{

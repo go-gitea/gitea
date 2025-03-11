@@ -40,7 +40,7 @@
 		{{if $diff}}
 			{{$file := (index $diff.Files 0)}}
 			<div id="code-preview-{{$comment.ID}}" class="ui table segment{{if $resolved}} tw-hidden{{end}}">
-				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
+				<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 					<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
 						<table>
 							<tbody>
@@ -54,10 +54,10 @@
 		<div id="code-comments-{{$comment.ID}}" class="comment-code-cloud ui segment{{if $resolved}} tw-hidden{{end}}">
 			<div class="ui comments tw-mb-0">
 				{{range .comments}}
-					{{$createdSubStr:= TimeSinceUnix .CreatedUnix ctx.Locale}}
+					{{$createdSubStr:= DateUtils.TimeSince .CreatedUnix}}
 					<div class="comment code-comment" id="{{.HashTag}}">
 						<div class="content comment-container">
-							<div class="header comment-header">
+							<div class="comment-header">
 								<div class="comment-header-left tw-flex tw-items-center">
 									{{if not .OriginalAuthor}}
 										<a class="avatar">
@@ -83,7 +83,7 @@
 									{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 									{{if not $.Repository.IsArchived}}
 										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-										{{template "repo/issue/view_content/context_menu" dict "ctxData" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+										{{template "repo/issue/view_content/context_menu" dict "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 									{{end}}
 								</div>
 							</div>

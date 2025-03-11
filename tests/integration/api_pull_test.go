@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
 	"code.gitea.io/gitea/tests"
 
@@ -41,12 +43,28 @@ func TestAPIViewPulls(t *testing.T) {
 	expectedLen := unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}, unittest.Cond("is_pull = ?", true))
 	assert.Len(t, pulls, expectedLen)
 
+	assert.Len(t, pulls, 3)
 	pull := pulls[0]
+	assert.EqualValues(t, 1, pull.Poster.ID)
+	assert.Len(t, pull.RequestedReviewers, 2)
+	assert.Empty(t, pull.RequestedReviewersTeams)
+	assert.EqualValues(t, 5, pull.RequestedReviewers[0].ID)
+	assert.EqualValues(t, 6, pull.RequestedReviewers[1].ID)
+
 	if assert.EqualValues(t, 5, pull.ID) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
-		_, err := io.ReadAll(resp.Body)
+		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		// TODO: use diff to generate stats to test against
+		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
+		assert.NoError(t, err)
+		if assert.Len(t, patch.Files, 1) {
+			assert.Equal(t, "File-WoW", patch.Files[0].Name)
+			// FIXME: The old name should be empty if it's a file add type
+			assert.Equal(t, "File-WoW", patch.Files[0].OldName)
+			assert.EqualValues(t, 1, patch.Files[0].Addition)
+			assert.EqualValues(t, 0, patch.Files[0].Deletion)
+			assert.Equal(t, gitdiff.DiffFileAdd, patch.Files[0].Type)
+		}
 
 		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
 			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
@@ -58,6 +76,62 @@ func TestAPIViewPulls(t *testing.T) {
 					assert.EqualValues(t, 0, files[0].Deletions)
 					assert.Equal(t, "added", files[0].Status)
 				}
+			}))
+	}
+
+	pull = pulls[1]
+	assert.EqualValues(t, 1, pull.Poster.ID)
+	assert.Len(t, pull.RequestedReviewers, 4)
+	assert.Empty(t, pull.RequestedReviewersTeams)
+	assert.EqualValues(t, 3, pull.RequestedReviewers[0].ID)
+	assert.EqualValues(t, 4, pull.RequestedReviewers[1].ID)
+	assert.EqualValues(t, 2, pull.RequestedReviewers[2].ID)
+	assert.EqualValues(t, 5, pull.RequestedReviewers[3].ID)
+
+	if assert.EqualValues(t, 2, pull.ID) {
+		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
+		bs, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
+		assert.NoError(t, err)
+		if assert.Len(t, patch.Files, 1) {
+			assert.Equal(t, "README.md", patch.Files[0].Name)
+			assert.Equal(t, "README.md", patch.Files[0].OldName)
+			assert.EqualValues(t, 4, patch.Files[0].Addition)
+			assert.EqualValues(t, 1, patch.Files[0].Deletion)
+			assert.Equal(t, gitdiff.DiffFileChange, patch.Files[0].Type)
+		}
+
+		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
+			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
+				if assert.Len(t, files, 1) {
+					assert.Equal(t, "README.md", files[0].Filename)
+					// FIXME: The PreviousFilename name should be the same as Filename if it's a file change
+					assert.Equal(t, "", files[0].PreviousFilename)
+					assert.EqualValues(t, 4, files[0].Additions)
+					assert.EqualValues(t, 1, files[0].Deletions)
+					assert.Equal(t, "changed", files[0].Status)
+				}
+			}))
+	}
+
+	pull = pulls[0]
+	assert.EqualValues(t, 1, pull.Poster.ID)
+	assert.Len(t, pull.RequestedReviewers, 2)
+	assert.Empty(t, pull.RequestedReviewersTeams)
+	assert.EqualValues(t, 5, pull.RequestedReviewers[0].ID)
+
+	if assert.EqualValues(t, 5, pull.ID) {
+		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
+		bs, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
+		assert.NoError(t, err)
+		assert.Len(t, patch.Files, 1)
+
+		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
+			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
+				assert.Len(t, files, 1)
 			}))
 	}
 }

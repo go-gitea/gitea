@@ -133,7 +133,7 @@ func InitWebInstalled(ctx context.Context) {
 
 	highlight.NewContext()
 	external.RegisterRenderers()
-	markup.Init(markup_service.ProcessorHelper())
+	markup.Init(markup_service.FormalRenderHelperFuncs())
 
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 support is enabled")
@@ -171,7 +171,7 @@ func InitWebInstalled(ctx context.Context) {
 	auth.Init()
 	mustInit(svg.Init)
 
-	actions_service.Init()
+	mustInitCtx(ctx, actions_service.Init)
 
 	mustInit(repo_service.InitLicenseClassifier)
 
@@ -213,7 +213,7 @@ func NormalRoutes() *web.Router {
 	}
 
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		routing.UpdateFuncInfo(req.Context(), routing.GetFuncInfo(http.NotFound, "GlobalNotFound"))
+		defer routing.RecordFuncInfo(req.Context(), routing.GetFuncInfo(http.NotFound, "GlobalNotFound"))()
 		http.NotFound(w, req)
 	})
 	return r

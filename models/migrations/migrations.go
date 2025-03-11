@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_23"
+	"code.gitea.io/gitea/models/migrations/v1_24"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -364,6 +365,16 @@ func prepareMigrationTasks() []*migration {
 		newMigration(304, "Add index for release sha1", v1_23.AddIndexForReleaseSha1),
 		newMigration(305, "Add Repository Licenses", v1_23.AddRepositoryLicenses),
 		newMigration(306, "Add BlockAdminMergeOverride to ProtectedBranch", v1_23.AddBlockAdminMergeOverrideBranchProtection),
+		newMigration(307, "Fix milestone deadline_unix when there is no due date", v1_23.FixMilestoneNoDueDate),
+		newMigration(308, "Add index(user_id, is_deleted) for action table", v1_23.AddNewIndexForUserDashboard),
+		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
+		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
+		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
+
+		// Gitea 1.23.0-rc0 ends at migration ID number 311 (database version 312)
+		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_24.AddDeleteBranchAfterMergeForAutoMerge),
+		newMigration(313, "Move PinOrder from issue table to a new table issue_pin", v1_24.MovePinOrderToTableIssuePin),
+		newMigration(314, "Update OwnerID as zero for repository level action tables", v1_24.UpdateOwnerIDOfRepoLevelActionsTables),
 	}
 	return preparedMigrations
 }
@@ -402,7 +413,7 @@ func ExpectedDBVersion() int64 {
 }
 
 // EnsureUpToDate will check if the db is at the correct version
-func EnsureUpToDate(x *xorm.Engine) error {
+func EnsureUpToDate(ctx context.Context, x *xorm.Engine) error {
 	currentDB, err := GetCurrentDBVersion(x)
 	if err != nil {
 		return err

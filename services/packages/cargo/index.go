@@ -11,7 +11,6 @@ import (
 	"io"
 	"path"
 	"strconv"
-	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -79,7 +78,7 @@ func RebuildIndex(ctx context.Context, doer, owner *user_model.User) error {
 		"Rebuild Cargo Index",
 		func(t *files_service.TemporaryUploadRepository) error {
 			// Remove all existing content but the Cargo config
-			files, err := t.LsFiles()
+			files, err := t.LsFiles(ctx)
 			if err != nil {
 				return err
 			}
@@ -90,7 +89,7 @@ func RebuildIndex(ctx context.Context, doer, owner *user_model.User) error {
 					break
 				}
 			}
-			if err := t.RemoveFilesFromIndex(files...); err != nil {
+			if err := t.RemoveFilesFromIndex(ctx, files...); err != nil {
 				return err
 			}
 
@@ -205,7 +204,7 @@ func addOrUpdatePackageIndex(ctx context.Context, t *files_service.TemporaryUplo
 		return nil
 	}
 
-	return writeObjectToIndex(t, BuildPackagePath(p.LowerName), b)
+	return writeObjectToIndex(ctx, t, BuildPackagePath(p.LowerName), b)
 }
 
 func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.User) (*repo_model.Repository, error) {
@@ -253,29 +252,29 @@ func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, 
 				return err
 			}
 
-			return writeObjectToIndex(t, ConfigFileName, &b)
+			return writeObjectToIndex(ctx, t, ConfigFileName, &b)
 		},
 	)
 }
 
 // This is a shorter version of CreateOrUpdateRepoFile which allows to perform multiple actions on a git repository
 func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitMessage string, fn func(*files_service.TemporaryUploadRepository) error) error {
-	t, err := files_service.NewTemporaryUploadRepository(ctx, repo)
+	t, err := files_service.NewTemporaryUploadRepository(repo)
 	if err != nil {
 		return err
 	}
 	defer t.Close()
 
 	var lastCommitID string
-	if err := t.Clone(repo.DefaultBranch, true); err != nil {
+	if err := t.Clone(ctx, repo.DefaultBranch, true); err != nil {
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return err
 		}
-		if err := t.Init(repo.ObjectFormatName); err != nil {
+		if err := t.Init(ctx, repo.ObjectFormatName); err != nil {
 			return err
 		}
 	} else {
-		if err := t.SetDefaultIndex(); err != nil {
+		if err := t.SetDefaultIndex(ctx); err != nil {
 			return err
 		}
 
@@ -291,25 +290,30 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 		return err
 	}
 
-	treeHash, err := t.WriteTree()
+	treeHash, err := t.WriteTree(ctx)
 	if err != nil {
 		return err
 	}
 
-	now := time.Now()
-	commitHash, err := t.CommitTreeWithDate(lastCommitID, doer, doer, treeHash, commitMessage, false, now, now)
+	commitOpts := &files_service.CommitTreeUserOptions{
+		ParentCommitID: lastCommitID,
+		TreeHash:       treeHash,
+		CommitMessage:  commitMessage,
+		DoerUser:       doer,
+	}
+	commitHash, err := t.CommitTree(ctx, commitOpts)
 	if err != nil {
 		return err
 	}
 
-	return t.Push(doer, commitHash, repo.DefaultBranch)
+	return t.Push(ctx, doer, commitHash, repo.DefaultBranch)
 }
 
-func writeObjectToIndex(t *files_service.TemporaryUploadRepository, path string, r io.Reader) error {
-	hash, err := t.HashObject(r)
+func writeObjectToIndex(ctx context.Context, t *files_service.TemporaryUploadRepository, path string, r io.Reader) error {
+	hash, err := t.HashObject(ctx, r)
 	if err != nil {
 		return err
 	}
 
-	return t.AddObjectToIndex("100644", hash, path)
+	return t.AddObjectToIndex(ctx, "100644", hash, path)
 }

@@ -66,7 +66,6 @@ type codebaseUser struct {
 // from Codebase
 type CodebaseDownloader struct {
 	base.NullDownloader
-	ctx           context.Context
 	client        *http.Client
 	baseURL       *url.URL
 	projectURL    *url.URL
@@ -77,17 +76,11 @@ type CodebaseDownloader struct {
 	commitMap     map[string]string
 }
 
-// SetContext set context
-func (d *CodebaseDownloader) SetContext(ctx context.Context) {
-	d.ctx = ctx
-}
-
 // NewCodebaseDownloader creates a new downloader
-func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, repoName, username, password string) *CodebaseDownloader {
+func NewCodebaseDownloader(_ context.Context, projectURL *url.URL, project, repoName, username, password string) *CodebaseDownloader {
 	baseURL, _ := url.Parse("https://api3.codebasehq.com")
 
 	downloader := &CodebaseDownloader{
-		ctx:        ctx,
 		baseURL:    baseURL,
 		projectURL: projectURL,
 		project:    project,
@@ -127,7 +120,7 @@ func (d *CodebaseDownloader) FormatCloneURL(opts base.MigrateOptions, remoteAddr
 	return opts.CloneAddr, nil
 }
 
-func (d *CodebaseDownloader) callAPI(endpoint string, parameter map[string]string, result any) error {
+func (d *CodebaseDownloader) callAPI(ctx context.Context, endpoint string, parameter map[string]string, result any) error {
 	u, err := d.baseURL.Parse(endpoint)
 	if err != nil {
 		return err
@@ -141,7 +134,7 @@ func (d *CodebaseDownloader) callAPI(endpoint string, parameter map[string]strin
 		u.RawQuery = query.Encode()
 	}
 
-	req, err := http.NewRequestWithContext(d.ctx, "GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -158,7 +151,7 @@ func (d *CodebaseDownloader) callAPI(endpoint string, parameter map[string]strin
 
 // GetRepoInfo returns repository information
 // https://support.codebasehq.com/kb/projects
-func (d *CodebaseDownloader) GetRepoInfo() (*base.Repository, error) {
+func (d *CodebaseDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, error) {
 	var rawRepository struct {
 		XMLName     xml.Name `xml:"repository"`
 		Name        string   `xml:"name"`
@@ -169,6 +162,7 @@ func (d *CodebaseDownloader) GetRepoInfo() (*base.Repository, error) {
 	}
 
 	err := d.callAPI(
+		ctx,
 		fmt.Sprintf("/%s/%s", d.project, d.repoName),
 		nil,
 		&rawRepository,
@@ -187,7 +181,7 @@ func (d *CodebaseDownloader) GetRepoInfo() (*base.Repository, error) {
 
 // GetMilestones returns milestones
 // https://support.codebasehq.com/kb/tickets-and-milestones/milestones
-func (d *CodebaseDownloader) GetMilestones() ([]*base.Milestone, error) {
+func (d *CodebaseDownloader) GetMilestones(ctx context.Context) ([]*base.Milestone, error) {
 	var rawMilestones struct {
 		XMLName            xml.Name `xml:"ticketing-milestone"`
 		Type               string   `xml:"type,attr"`
@@ -209,6 +203,7 @@ func (d *CodebaseDownloader) GetMilestones() ([]*base.Milestone, error) {
 	}
 
 	err := d.callAPI(
+		ctx,
 		fmt.Sprintf("/%s/milestones", d.project),
 		nil,
 		&rawMilestones,
@@ -245,7 +240,7 @@ func (d *CodebaseDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 // GetLabels returns labels
 // https://support.codebasehq.com/kb/tickets-and-milestones/statuses-priorities-and-categories
-func (d *CodebaseDownloader) GetLabels() ([]*base.Label, error) {
+func (d *CodebaseDownloader) GetLabels(ctx context.Context) ([]*base.Label, error) {
 	var rawTypes struct {
 		XMLName       xml.Name `xml:"ticketing-types"`
 		Type          string   `xml:"type,attr"`
@@ -259,6 +254,7 @@ func (d *CodebaseDownloader) GetLabels() ([]*base.Label, error) {
 	}
 
 	err := d.callAPI(
+		ctx,
 		fmt.Sprintf("/%s/tickets/types", d.project),
 		nil,
 		&rawTypes,
@@ -284,7 +280,7 @@ type codebaseIssueContext struct {
 // GetIssues returns issues, limits are not supported
 // https://support.codebasehq.com/kb/tickets-and-milestones
 // https://support.codebasehq.com/kb/tickets-and-milestones/updating-tickets
-func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
+func (d *CodebaseDownloader) GetIssues(ctx context.Context, _, _ int) ([]*base.Issue, bool, error) {
 	var rawIssues struct {
 		XMLName xml.Name `xml:"tickets"`
 		Type    string   `xml:"type,attr"`
@@ -324,6 +320,7 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	}
 
 	err := d.callAPI(
+		ctx,
 		fmt.Sprintf("/%s/tickets", d.project),
 		nil,
 		&rawIssues,
@@ -358,6 +355,7 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			} `xml:"ticket-note"`
 		}
 		err := d.callAPI(
+			ctx,
 			fmt.Sprintf("/%s/tickets/%d/notes", d.project, issue.TicketID.Value),
 			nil,
 			&notes,
@@ -370,7 +368,7 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			if len(note.Content) == 0 {
 				continue
 			}
-			poster := d.tryGetUser(note.UserID.Value)
+			poster := d.tryGetUser(ctx, note.UserID.Value)
 			comments = append(comments, &base.Comment{
 				IssueIndex:  issue.TicketID.Value,
 				Index:       note.ID.Value,
@@ -390,7 +388,7 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		if issue.Status.TreatAsClosed.Value {
 			state = "closed"
 		}
-		poster := d.tryGetUser(issue.ReporterID.Value)
+		poster := d.tryGetUser(ctx, issue.ReporterID.Value)
 		issues = append(issues, &base.Issue{
 			Title:       issue.Summary,
 			Number:      issue.TicketID.Value,
@@ -419,7 +417,7 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 }
 
 // GetComments returns comments
-func (d *CodebaseDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+func (d *CodebaseDownloader) GetComments(_ context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	context, ok := commentable.GetContext().(codebaseIssueContext)
 	if !ok {
 		return nil, false, fmt.Errorf("unexpected context: %+v", commentable.GetContext())
@@ -430,7 +428,7 @@ func (d *CodebaseDownloader) GetComments(commentable base.Commentable) ([]*base.
 
 // GetPullRequests returns pull requests
 // https://support.codebasehq.com/kb/repositories/merge-requests
-func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
+func (d *CodebaseDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	var rawMergeRequests struct {
 		XMLName      xml.Name `xml:"merge-requests"`
 		Type         string   `xml:"type,attr"`
@@ -443,6 +441,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 	}
 
 	err := d.callAPI(
+		ctx,
 		fmt.Sprintf("/%s/%s/merge_requests", d.project, d.repoName),
 		map[string]string{
 			"query":  `"Target Project" is "` + d.repoName + `"`,
@@ -503,6 +502,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 			} `xml:"comments"`
 		}
 		err := d.callAPI(
+			ctx,
 			fmt.Sprintf("/%s/%s/merge_requests/%d", d.project, d.repoName, mr.ID.Value),
 			nil,
 			&rawMergeRequest,
@@ -531,7 +531,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 				}
 				continue
 			}
-			poster := d.tryGetUser(comment.UserID.Value)
+			poster := d.tryGetUser(ctx, comment.UserID.Value)
 			comments = append(comments, &base.Comment{
 				IssueIndex:  number,
 				Index:       comment.ID.Value,
@@ -547,7 +547,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 			comments = append(comments, &base.Comment{})
 		}
 
-		poster := d.tryGetUser(rawMergeRequest.UserID.Value)
+		poster := d.tryGetUser(ctx, rawMergeRequest.UserID.Value)
 
 		pullRequests = append(pullRequests, &base.PullRequest{
 			Title:       rawMergeRequest.Subject,
@@ -563,12 +563,12 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 			MergedTime:  mergedTime,
 			Head: base.PullRequestBranch{
 				Ref:      rawMergeRequest.SourceRef,
-				SHA:      d.getHeadCommit(rawMergeRequest.SourceRef),
+				SHA:      d.getHeadCommit(ctx, rawMergeRequest.SourceRef),
 				RepoName: d.repoName,
 			},
 			Base: base.PullRequestBranch{
 				Ref:      rawMergeRequest.TargetRef,
-				SHA:      d.getHeadCommit(rawMergeRequest.TargetRef),
+				SHA:      d.getHeadCommit(ctx, rawMergeRequest.TargetRef),
 				RepoName: d.repoName,
 			},
 			ForeignIndex: rawMergeRequest.ID.Value,
@@ -584,7 +584,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 	return pullRequests, true, nil
 }
 
-func (d *CodebaseDownloader) tryGetUser(userID int64) *codebaseUser {
+func (d *CodebaseDownloader) tryGetUser(ctx context.Context, userID int64) *codebaseUser {
 	if len(d.userMap) == 0 {
 		var rawUsers struct {
 			XMLName xml.Name `xml:"users"`
@@ -602,6 +602,7 @@ func (d *CodebaseDownloader) tryGetUser(userID int64) *codebaseUser {
 		}
 
 		err := d.callAPI(
+			ctx,
 			"/users",
 			nil,
 			&rawUsers,
@@ -627,7 +628,7 @@ func (d *CodebaseDownloader) tryGetUser(userID int64) *codebaseUser {
 	return user
 }
 
-func (d *CodebaseDownloader) getHeadCommit(ref string) string {
+func (d *CodebaseDownloader) getHeadCommit(ctx context.Context, ref string) string {
 	commitRef, ok := d.commitMap[ref]
 	if !ok {
 		var rawCommits struct {
@@ -638,6 +639,7 @@ func (d *CodebaseDownloader) getHeadCommit(ref string) string {
 			} `xml:"commit"`
 		}
 		err := d.callAPI(
+			ctx,
 			fmt.Sprintf("/%s/%s/commits/%s", d.project, d.repoName, ref),
 			nil,
 			&rawCommits,

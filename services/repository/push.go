@@ -183,9 +183,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						repo.IsEmpty = false
 						if repo.DefaultBranch != setting.Repository.DefaultBranch {
 							if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
-								if !git.IsErrUnsupportedVersion(err) {
-									return err
-								}
+								return err
 							}
 						}
 						// Update the is empty and default_branch columns
@@ -277,7 +275,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 			} else {
 				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
-				if err = pull_service.CloseBranchPulls(ctx, pusher, repo.ID, branch); err != nil {
+
+				if err := pull_service.AdjustPullsCausedByBranchDeleted(ctx, pusher, repo, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
 				}
@@ -320,9 +319,10 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		RepoID:      repo.ID,
-		TagNames:    tags,
-		IncludeTags: true,
+		RepoID:        repo.ID,
+		TagNames:      tags,
+		IncludeDrafts: true,
+		IncludeTags:   true,
 	})
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
@@ -409,13 +409,17 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 
 			newReleases = append(newReleases, rel)
 		} else {
-			rel.Title = parts[0]
-			rel.Note = note
 			rel.Sha1 = commit.ID.String()
 			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
 			rel.NumCommits = commitsCount
-			if rel.IsTag && author != nil {
-				rel.PublisherID = author.ID
+			if rel.IsTag {
+				rel.Title = parts[0]
+				rel.Note = note
+				if author != nil {
+					rel.PublisherID = author.ID
+				}
+			} else {
+				rel.IsDraft = false
 			}
 			if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 				return fmt.Errorf("Update: %w", err)

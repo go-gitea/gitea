@@ -97,7 +97,7 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 	}
 
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:        buildMinioCredentials(config, credentials.DefaultIAMRoleEndpoint),
+		Creds:        buildMinioCredentials(config),
 		Secure:       config.UseSSL,
 		Transport:    &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
 		Region:       config.Location,
@@ -164,7 +164,7 @@ func (m *MinioStorage) buildMinioDirPrefix(p string) string {
 	return p
 }
 
-func buildMinioCredentials(config setting.MinioStorageConfig, iamEndpoint string) *credentials.Credentials {
+func buildMinioCredentials(config setting.MinioStorageConfig) *credentials.Credentials {
 	// If static credentials are provided, use those
 	if config.AccessKeyID != "" {
 		return credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, "")
@@ -184,7 +184,9 @@ func buildMinioCredentials(config setting.MinioStorageConfig, iamEndpoint string
 		&credentials.FileAWSCredentials{},
 		// read IAM role from EC2 metadata endpoint if available
 		&credentials.IAM{
-			Endpoint: iamEndpoint,
+			// passing in an empty Endpoint lets the IAM Provider
+			// decide which endpoint to resolve internally
+			Endpoint: config.IamEndpoint,
 			Client: &http.Client{
 				Transport: http.DefaultTransport,
 			},
@@ -276,8 +278,12 @@ func (m *MinioStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
-	reqParams := make(url.Values)
+func (m *MinioStorage) URL(path, name string, serveDirectReqParams url.Values) (*url.URL, error) {
+	// copy serveDirectReqParams
+	reqParams, err := url.ParseQuery(serveDirectReqParams.Encode())
+	if err != nil {
+		return nil, err
+	}
 	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
 	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
 	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)

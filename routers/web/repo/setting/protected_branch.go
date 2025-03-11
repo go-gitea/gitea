@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,7 +15,9 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/context"
@@ -26,7 +29,7 @@ import (
 )
 
 const (
-	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
+	tplProtectedBranch templates.TplName = "repo/settings/protected_branch"
 )
 
 // ProtectedBranchRules render the page to protect the repository
@@ -258,7 +261,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 	protectBranch.BlockAdminMergeOverride = f.BlockAdminMergeOverride
 
-	err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
+	if err = pull_service.CreateOrUpdateProtectedBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		ForcePushUserIDs: forcePushAllowlistUsers,
@@ -267,23 +270,9 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
-	})
-	if err != nil {
-		ctx.ServerError("UpdateProtectBranch", err)
+	}); err != nil {
+		ctx.ServerError("CreateOrUpdateProtectedBranch", err)
 		return
-	}
-
-	// FIXME: since we only need to recheck files protected rules, we could improve this
-	matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.Repository.ID, protectBranch.RuleName)
-	if err != nil {
-		ctx.ServerError("FindAllMatchedBranches", err)
-		return
-	}
-	for _, branchName := range matchedBranches {
-		if err = pull_service.CheckPRsForBaseBranch(ctx, ctx.Repo.Repository, branchName); err != nil {
-			ctx.ServerError("CheckPRsForBaseBranch", err)
-			return
-		}
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", protectBranch.RuleName))
@@ -322,12 +311,22 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
 }
 
+func UpdateBranchProtectionPriories(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.ProtectBranchPriorityForm)
+	repo := ctx.Repo.Repository
+
+	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form.IDs); err != nil {
+		ctx.ServerError("UpdateProtectBranchPriorities", err)
+		return
+	}
+}
+
 // RenameBranchPost responses for rename a branch
 func RenameBranchPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RenameBranchForm)
 
 	if !ctx.Repo.CanCreateBranch() {
-		ctx.NotFound("RenameBranch", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -340,8 +339,14 @@ func RenameBranchPost(ctx *context.Context) {
 	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
 	if err != nil {
 		switch {
+		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
+			ctx.Flash.Error(ctx.Tr("repo.branch.rename_default_or_protected_branch_error"))
+			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		case git_model.IsErrBranchAlreadyExists(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.To))
+			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		case errors.Is(err, git_model.ErrBranchIsProtected):
+			ctx.Flash.Error(ctx.Tr("repo.branch.rename_protected_branch_failed"))
 			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
 		default:
 			ctx.ServerError("RenameBranch", err)

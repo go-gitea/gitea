@@ -6,7 +6,6 @@ package integration
 import (
 	"fmt"
 	"net/url"
-	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -205,12 +204,12 @@ func TestPushPullRefs(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		cmd := git.NewCommand(git.DefaultContext, "push", "--delete", "origin", "refs/pull/2/head")
-		stdout, stderr, err := cmd.RunStdString(&git.RunOpts{
+		cmd := git.NewCommand("push", "--delete", "origin", "refs/pull/2/head")
+		stdout, stderr, err := cmd.RunStdString(git.DefaultContext, &git.RunOpts{
 			Dir: dstPath,
 		})
 		assert.Error(t, err)
 		assert.Empty(t, stdout)
-		assert.False(t, strings.Contains(stderr, "[deleted]"), "stderr: %s", stderr)
+		assert.NotContains(t, stderr, "[deleted]", "stderr: %s", stderr)
 	})
 }

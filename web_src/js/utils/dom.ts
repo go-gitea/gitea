@@ -1,11 +1,13 @@
 import {debounce} from 'throttle-debounce';
 import type {Promisable} from 'type-fest';
 import type $ from 'jquery';
+import {isInFrontendUnitTest} from './testhelper.ts';
 
-type ElementArg = Element | string | NodeListOf<Element> | Array<Element> | ReturnType<typeof $>;
-type ElementsCallback = (el: Element) => Promisable<any>;
+type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
+type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
+type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
-type IterableElements = NodeListOf<Element> | Array<Element>;
+export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & { target: Partial<T>; };
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]) {
   if (typeof el === 'string' || el instanceof String) {
@@ -15,7 +17,7 @@ function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: a
     func(el, ...args);
   } else if (el.length !== undefined) {
     // this works for: NodeList, HTMLCollection, Array, jQuery
-    for (const e of (el as IterableElements)) {
+    for (const e of (el as ArrayLikeIterable<Element>)) {
       func(e, ...args);
     }
   } else {
@@ -58,7 +60,7 @@ export function isElemHidden(el: ElementArg) {
   return res[0];
 }
 
-function applyElemsCallback(elems: IterableElements, fn?: ElementsCallback) {
+function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   if (fn) {
     for (const el of elems) {
       fn(el);
@@ -67,19 +69,27 @@ function applyElemsCallback(elems: IterableElements, fn?: ElementsCallback) {
   return elems;
 }
 
-export function queryElemSiblings(el: Element, selector = '*', fn?: ElementsCallback) {
-  return applyElemsCallback(Array.from(el.parentNode.children).filter((child: Element) => {
+export function queryElemSiblings<T extends Element>(el: Element, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  const elems = Array.from(el.parentNode.children) as T[];
+  return applyElemsCallback<T>(elems.filter((child: Element) => {
     return child !== el && child.matches(selector);
   }), fn);
 }
 
 // it works like jQuery.children: only the direct children are selected
-export function queryElemChildren(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback) {
-  return applyElemsCallback(parent.querySelectorAll(`:scope > ${selector}`), fn);
+export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  if (isInFrontendUnitTest()) {
+    // https://github.com/capricorn86/happy-dom/issues/1620 : ":scope" doesn't work
+    const selected = Array.from<T>(parent.children as any).filter((child) => child.matches(selector));
+    return applyElemsCallback<T>(selected, fn);
+  }
+  return applyElemsCallback<T>(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
-export function queryElems(selector: string, fn?: ElementsCallback) {
-  return applyElemsCallback(document.querySelectorAll(selector), fn);
+// it works like parent.querySelectorAll: all descendants are selected
+// in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent
+export function queryElems<T extends HTMLElement>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
 }
 
 export function onDomReady(cb: () => Promisable<void>) {
@@ -92,7 +102,7 @@ export function onDomReady(cb: () => Promisable<void>) {
 
 // checks whether an element is owned by the current document, and whether it is a document fragment or element node
 // if it is, it means it is a "normal" element managed by us, which can be modified safely.
-export function isDocumentFragmentOrElementNode(el: Element) {
+export function isDocumentFragmentOrElementNode(el: Node) {
   try {
     return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
   } catch {
@@ -167,7 +177,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       const isBorderBox = computedStyle.boxSizing === 'border-box';
       const borderAddOn = isBorderBox ? topBorderWidth + bottomBorderWidth : 0;
 
-      const adjustedViewportMarginBottom = bottom < viewportMarginBottom ? bottom : viewportMarginBottom;
+      const adjustedViewportMarginBottom = Math.min(bottom, viewportMarginBottom);
       const curHeight = parseFloat(computedStyle.height);
       const maxHeight = curHeight + bottom - adjustedViewportMarginBottom;
 
@@ -245,12 +255,12 @@ export function loadElem(el: LoadableElement, src: string) {
 // it can't use other transparent polyfill patches because PaleMoon also doesn't support "addEventListener(capture)"
 const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
 
-export function submitEventSubmitter(e) {
+export function submitEventSubmitter(e: any) {
   e = e.originalEvent ?? e; // if the event is wrapped by jQuery, use "originalEvent", otherwise, use the event itself
   return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
 }
 
-function submitEventPolyfillListener(e) {
+function submitEventPolyfillListener(e: DOMEvent<Event>) {
   const form = e.target.closest('form');
   if (!form) return;
   form._submitter = e.target.closest('button:not([type]), button[type="submit"], input[type="submit"]');
@@ -269,8 +279,8 @@ export function initSubmitEventPolyfill() {
  */
 export function isElemVisible(element: HTMLElement): boolean {
   if (!element) return false;
-
-  return Boolean(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+  // checking element.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
+  return Boolean((element.offsetWidth || element.offsetHeight || element.getClientRects().length) && element.style.display !== 'none');
 }
 
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
@@ -281,7 +291,7 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 
   textarea.contentEditable = 'true';
   try {
-    success = document.execCommand('insertText', false, text); // eslint-disable-line deprecation/deprecation
+    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
   } catch {
     success = false;
   }
@@ -298,22 +308,31 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
 }
 
 // Warning: Do not enter any unsanitized variables here
-export function createElementFromHTML(htmlString: string) {
+export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
+  htmlString = htmlString.trim();
+  // some tags like "tr" are special, it must use a correct parent container to create
+  if (htmlString.startsWith('<tr')) {
+    const container = document.createElement('table');
+    container.innerHTML = htmlString;
+    return container.querySelector<T>('tr');
+  }
   const div = document.createElement('div');
-  div.innerHTML = htmlString.trim();
-  return div.firstChild as Element;
+  div.innerHTML = htmlString;
+  return div.firstChild as T;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any>) {
+export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node|string)[]): HTMLElement {
   const el = document.createElement(tagName);
-  for (const [key, value] of Object.entries(attrs)) {
+  for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;
     if (typeof value === 'boolean') {
       el.toggleAttribute(key, value);
     } else {
       el.setAttribute(key, String(value));
     }
-    // TODO: in the future we could make it also support "textContent" and "innerHTML" properties if needed
+  }
+  for (const child of children) {
+    el.append(child instanceof Node ? child : document.createTextNode(child));
   }
   return el;
 }
@@ -327,4 +346,19 @@ export function animateOnce(el: Element, animationClassName: string): Promise<vo
     }, {once: true});
     el.classList.add(animationClassName);
   });
+}
+
+export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, selector: string): T | null {
+  const elems = parent.querySelectorAll<HTMLElement>(selector);
+  const candidates = Array.from(elems).filter(isElemVisible);
+  if (candidates.length > 1) throw new Error(`Expected exactly one visible element matching selector "${selector}", but found ${candidates.length}`);
+  return candidates.length ? candidates[0] as T : null;
+}
+
+export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => Promisable<void>, options?: boolean | AddEventListenerOptions) {
+  parent.addEventListener(type, (e: Event) => {
+    const elem = (e.target as HTMLElement).closest(selector);
+    if (!elem) return;
+    listener(elem as T, e as E);
+  }, options);
 }

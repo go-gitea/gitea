@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/context"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -73,10 +72,10 @@ func GetContentHistoryList(ctx *context.Context) {
 		class := avatars.DefaultAvatarClass + " tw-mr-2"
 		name := html.EscapeString(username)
 		avatarHTML := string(templates.AvatarHTML(src, 28, class, username))
-		timeSinceText := string(timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale))
+		timeSinceHTML := string(templates.TimeSince(item.EditedUnix))
 
 		results = append(results, map[string]any{
-			"name":  avatarHTML + "<strong>" + name + "</strong> " + actionText + " " + timeSinceText,
+			"name":  avatarHTML + "<strong>" + name + "</strong> " + actionText + " " + timeSinceHTML,
 			"value": item.HistoryID,
 		})
 	}
@@ -187,7 +186,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 	if ctx.Doer == nil {
-		ctx.NotFound("Require SignIn", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -203,12 +202,12 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 	if history.IssueID != issue.ID {
-		ctx.NotFound("CompareRepoID", issues_model.ErrCommentNotExist{})
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
 	if commentID != 0 {
 		if history.CommentID != commentID {
-			ctx.NotFound("CompareCommentID", issues_model.ErrCommentNotExist{})
+			ctx.NotFound(issues_model.ErrCommentNotExist{})
 			return
 		}
 
@@ -217,7 +216,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 			return
 		}
 		if comment.IssueID != issue.ID {
-			ctx.NotFound("CompareIssueID", issues_model.ErrCommentNotExist{})
+			ctx.NotFound(issues_model.ErrCommentNotExist{})
 			return
 		}
 	}

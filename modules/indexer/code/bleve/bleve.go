@@ -31,6 +31,7 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
+	"github.com/blevesearch/bleve/v2/analysis/tokenizer/letter"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
@@ -69,7 +70,7 @@ const (
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
 	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 7
+	repoIndexerLatestVersion = 8
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -105,7 +106,7 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]any{
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
-		"tokenizer":     unicode.Name,
+		"tokenizer":     letter.Name,
 		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name},
 	}); err != nil {
 		return nil, err
@@ -157,7 +158,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = git.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return err
 		}
@@ -259,17 +260,28 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	var (
 		indexerQuery query.Query
 		keywordQuery query.Query
+		contentQuery query.Query
 	)
 
 	pathQuery := bleve.NewPrefixQuery(strings.ToLower(opts.Keyword))
 	pathQuery.FieldVal = "Filename"
 	pathQuery.SetBoost(10)
 
-	contentQuery := bleve.NewMatchQuery(opts.Keyword)
-	contentQuery.FieldVal = "Content"
-
-	if opts.IsKeywordFuzzy {
-		contentQuery.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
+	keywordAsPhrase, isPhrase := internal.ParseKeywordAsPhrase(opts.Keyword)
+	if isPhrase {
+		q := bleve.NewMatchPhraseQuery(keywordAsPhrase)
+		q.FieldVal = "Content"
+		if opts.IsKeywordFuzzy {
+			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(keywordAsPhrase)
+		}
+		contentQuery = q
+	} else {
+		q := bleve.NewMatchQuery(opts.Keyword)
+		q.FieldVal = "Content"
+		if opts.IsKeywordFuzzy {
+			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
+		}
+		contentQuery = q
 	}
 
 	keywordQuery = bleve.NewDisjunctionQuery(contentQuery, pathQuery)

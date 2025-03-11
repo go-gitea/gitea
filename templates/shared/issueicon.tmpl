@@ -1,25 +1,26 @@
-{{if .IsPull}}
-	{{if not .PullRequest}}
+{{/* the logic should be kept the same as getIssueIcon/getIssueColor in JS code */}}
+{{- if .IsPull -}}
+	{{- if not .PullRequest -}}
 		No PullRequest
-	{{else}}
-		{{if .IsClosed}}
-			{{if .PullRequest.HasMerged}}
-				{{svg "octicon-git-merge" 16 "text purple"}}
-			{{else}}
-				{{svg "octicon-git-pull-request" 16 "text red"}}
-			{{end}}
-		{{else}}
-			{{if .PullRequest.IsWorkInProgress ctx}}
-				{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
-			{{else}}
-				{{svg "octicon-git-pull-request" 16 "text green"}}
-			{{end}}
-		{{end}}
-	{{end}}
-{{else}}
-	{{if .IsClosed}}
-		{{svg "octicon-issue-closed" 16 "text red"}}
-	{{else}}
-		{{svg "octicon-issue-opened" 16 "text green"}}
-	{{end}}
-{{end}}
+	{{- else -}}
+		{{- if .IsClosed -}}
+			{{- if .PullRequest.HasMerged -}}
+				{{- svg "octicon-git-merge" 16 "text purple" -}}
+			{{- else -}}
+				{{- svg "octicon-git-pull-request-closed" 16 "text red" -}}
+			{{- end -}}
+		{{- else -}}
+			{{- if .PullRequest.IsWorkInProgress ctx -}}
+				{{- svg "octicon-git-pull-request-draft" 16 "text grey" -}}
+			{{- else -}}
+				{{- svg "octicon-git-pull-request" 16 "text green" -}}
+			{{- end -}}
+		{{- end -}}
+	{{- end -}}
+{{- else -}}
+	{{- if .IsClosed -}}
+		{{- svg "octicon-issue-closed" 16 "text red" -}}
+	{{- else -}}
+		{{- svg "octicon-issue-opened" 16 "text green" -}}
+	{{- end -}}
+{{- end -}}

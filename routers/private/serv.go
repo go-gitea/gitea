@@ -25,7 +25,7 @@ import (
 
 // ServNoCommand returns information about the provided keyid
 func ServNoCommand(ctx *context.PrivateContext) {
-	keyID := ctx.PathParamInt64(":keyid")
+	keyID := ctx.PathParamInt64("keyid")
 	if keyID <= 0 {
 		ctx.JSON(http.StatusBadRequest, private.Response{
 			UserMsg: fmt.Sprintf("Bad key id: %d", keyID),
@@ -77,9 +77,9 @@ func ServNoCommand(ctx *context.PrivateContext) {
 
 // ServCommand returns information about the provided keyid
 func ServCommand(ctx *context.PrivateContext) {
-	keyID := ctx.PathParamInt64(":keyid")
-	ownerName := ctx.PathParam(":owner")
-	repoName := ctx.PathParam(":repo")
+	keyID := ctx.PathParamInt64("keyid")
+	ownerName := ctx.PathParam("owner")
+	repoName := ctx.PathParam("repo")
 	mode := perm.AccessMode(ctx.FormInt("mode"))
 
 	// Set the basic parts of the results to return

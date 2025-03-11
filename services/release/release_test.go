@@ -228,7 +228,7 @@ func TestRelease_Update(t *testing.T) {
 		IsTag:        false,
 	}
 	assert.NoError(t, CreateRelease(gitRepo, release, nil, ""))
-	assert.Greater(t, release.ID, int64(0))
+	assert.Positive(t, release.ID)
 
 	release.IsDraft = false
 	tagName := release.TagName

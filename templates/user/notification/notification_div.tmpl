@@ -53,7 +53,7 @@
 								<div class="notifications-bottom-row tw-text-16 tw-py-0.5">
 									<span class="issue-title tw-break-anywhere">
 										{{if .Issue}}
-											{{.Issue.Title | RenderEmoji $.Context | RenderCodeBlock}}
+											{{.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
 										{{else}}
 											{{.Repository.FullName}}
 										{{end}}
@@ -62,9 +62,9 @@
 							</a>
 							<div class="notifications-updated tw-items-center tw-mr-2">
 								{{if .Issue}}
-									{{TimeSinceUnix .Issue.UpdatedUnix ctx.Locale}}
+									{{DateUtils.TimeSince .Issue.UpdatedUnix}}
 								{{else}}
-									{{TimeSinceUnix .UpdatedUnix ctx.Locale}}
+									{{DateUtils.TimeSince .UpdatedUnix}}
 								{{end}}
 							</div>
 							<div class="notifications-buttons tw-items-center tw-justify-end tw-gap-1 tw-px-1">

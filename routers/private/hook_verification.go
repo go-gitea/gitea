@@ -10,9 +10,9 @@ import (
 	"io"
 	"os"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 // This file contains commit verification functions for refs passed across in hooks
@@ -34,12 +34,12 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		// When creating a new branch, the oldCommitID is empty, by using "newCommitID --not --all":
 		// List commits that are reachable by following the newCommitID, exclude "all" existing heads/tags commits
 		// So, it only lists the new commits received, doesn't list the commits already present in the receiving repository
-		command = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(newCommitID).AddArguments("--not", "--all")
+		command = git.NewCommand("rev-list").AddDynamicArguments(newCommitID).AddArguments("--not", "--all")
 	} else {
-		command = git.NewCommand(repo.Ctx, "rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
+		command = git.NewCommand("rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
 	}
 	// This is safe as force pushes are already forbidden
-	err = command.Run(&git.RunOpts{
+	err = command.Run(repo.Ctx, &git.RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
@@ -85,8 +85,8 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 
 	commitID := git.MustIDFromString(sha)
 
-	return git.NewCommand(repo.Ctx, "cat-file", "commit").AddDynamicArguments(sha).
-		Run(&git.RunOpts{
+	return git.NewCommand("cat-file", "commit").AddDynamicArguments(sha).
+		Run(repo.Ctx, &git.RunOpts{
 			Env:    env,
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
@@ -96,7 +96,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 				if err != nil {
 					return err
 				}
-				verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+				verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 				if !verification.Verified {
 					cancel()
 					return &errUnverifiedCommit{

@@ -13,8 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// Security settings
+
 var (
-	// Security settings
 	InstallLock                        bool
 	SecretKey                          string
 	InternalToken                      string // internal access token
@@ -27,7 +28,7 @@ var (
 	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
-	DisableGitHooks                    bool
+	DisableGitHooks                    = true
 	DisableWebhooks                    bool
 	OnlyAllowPushIfGiteaEnvironmentSet bool
 	PasswordComplexity                 []string
