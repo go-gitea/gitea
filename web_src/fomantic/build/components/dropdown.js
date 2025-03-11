@@ -31,9 +31,9 @@ $.fn.dropdown = function(parameters) {
     moduleSelector = $allModules.selector || '',
 
     hasTouch       = ('ontouchstart' in document.documentElement),
-    clickEvent      = hasTouch
-        ? 'touchstart'
-        : 'click',
+    // GITEA-PATCH: always "click" as clickEvent, old code used "touchstart" as clickEvent, it is wrong,
+    // because "touchstart" caused problems when users try to scroll and the touch point is in the dropdown.
+    clickEvent      = 'click',
 
     time           = new Date().getTime(),
     performance    = [],
@@ -768,7 +768,7 @@ $.fn.dropdown = function(parameters) {
                     preSelected = preSelected && preSelected!=="" ? preSelected.split(settings.delimiter) : [];
                 }
                 $.each(preSelected,function(index,value){
-                  $item.filter('[data-value="'+value+'"]')
+                  $item.filter('[data-value="'+CSS.escape(value)+'"]') // GITEA-PATCH: use "CSS.escape" for query selector
                       .addClass(className.filtered)
                   ;
                 });
@@ -1027,7 +1027,7 @@ $.fn.dropdown = function(parameters) {
               $input.append('<option disabled selected value></option>');
               $.each(values, function(index, item) {
                 var
-                  value = settings.templates.deQuote(item[fields.value]),
+                  value = settings.templates.escape(item[fields.value]), // GITEA-PATCH: use "escape" for attribute value
                   name = settings.templates.escape(
                     item[fields.name] || '',
                     settings.preserveHTML
@@ -4180,13 +4180,14 @@ $.fn.dropdown.settings.templates = {
       if( itemType === 'item' ) {
         var
           maybeText = (option[fields.text])
-            ? ' data-text="' + deQuote(option[fields.text]) + '"'
+            ? ' data-text="' + escape(option[fields.text]) + '"' // GITEA-PATCH: use "escape" for attribute value
             : '',
           maybeDisabled = (option[fields.disabled])
             ? className.disabled+' '
             : ''
         ;
-        html += '<div class="'+ maybeDisabled + (option[fields.class] ? deQuote(option[fields.class]) : className.item)+'" data-value="' + deQuote(option[fields.value]) + '"' + maybeText + '>';
+        // GITEA-PATCH: use "escape" for attribute value
+        html += '<div class="'+ maybeDisabled + (option[fields.class] ? deQuote(option[fields.class]) : className.item)+'" data-value="' + escape(option[fields.value]) + '"' + maybeText + '>';
         if(option[fields.image]) {
           html += '<img class="'+(option[fields.imageClass] ? deQuote(option[fields.imageClass]) : className.image)+'" src="' + deQuote(option[fields.image]) + '">';
         }
