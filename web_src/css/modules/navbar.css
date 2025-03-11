@@ -57,6 +57,10 @@
   margin-right: 0;
 }
 
+#navbar .item.active {
+  background: var(--color-active);
+}
+
 @media (max-width: 767.98px) {
   #navbar {
     align-items: stretch;
