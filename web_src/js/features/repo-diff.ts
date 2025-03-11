@@ -221,7 +221,10 @@ function initRepoDiffShowMore() {
       if (!resp) {
         return;
       }
-      $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
+      const $respFileBody = $(resp).find('#diff-file-boxes .diff-file-body .file-body');
+      const respFileBodyChildren = Array.from($respFileBody.children());
+      $target.parent().replaceWith($respFileBody.children());
+      for (const el of respFileBodyChildren) window.htmx.process(el);
       onShowMoreFiles();
     } catch (error) {
       console.error('Error:', error);
