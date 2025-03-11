@@ -4,7 +4,6 @@ import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {hideElem, querySingleVisibleElem, showElem, type DOMEvent} from '../utils/dom.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
-import {initCommentContent, initMarkupContent} from '../markup/content.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
@@ -74,8 +73,6 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
         content.querySelector('.dropzone-attachments').outerHTML = data.attachments;
       }
       comboMarkdownEditor.dropzoneSubmitReload();
-      initMarkupContent();
-      initCommentContent();
     } catch (error) {
       showErrorToast(`Failed to save the content: ${error}`);
       console.error(error);

@@ -191,28 +191,27 @@ func asLogStringer(v any) LogStringer {
 }
 
 // Log prepares the log event, if the level matches, the event will be sent to the writers
-func (l *LoggerImpl) Log(skip int, level Level, format string, logArgs ...any) {
-	if Level(l.level.Load()) > level {
+func (l *LoggerImpl) Log(skip int, event *Event, format string, logArgs ...any) {
+	if Level(l.level.Load()) > event.Level {
 		return
 	}
 
-	event := &Event{
-		Time:   time.Now(),
-		Level:  level,
-		Caller: "?()",
+	if event.Time.IsZero() {
+		event.Time = time.Now()
 	}
-
-	pc, filename, line, ok := runtime.Caller(skip + 1)
-	if ok {
-		fn := runtime.FuncForPC(pc)
-		if fn != nil {
-			event.Caller = fn.Name() + "()"
+	if event.Caller == "" {
+		pc, filename, line, ok := runtime.Caller(skip + 1)
+		if ok {
+			fn := runtime.FuncForPC(pc)
+			if fn != nil {
+				fnName := fn.Name()
+				event.Caller = strings.ReplaceAll(fnName, "[...]", "") + "()" // generic function names are "foo[...]"
+			}
 		}
-	}
-	event.Filename, event.Line = strings.TrimPrefix(filename, projectPackagePrefix), line
-
-	if l.stacktraceLevel.Load() <= int32(level) {
-		event.Stacktrace = Stack(skip + 1)
+		event.Filename, event.Line = strings.TrimPrefix(filename, projectPackagePrefix), line
+		if l.stacktraceLevel.Load() <= int32(event.Level) {
+			event.Stacktrace = Stack(skip + 1)
+		}
 	}
 
 	// get a simple text message without color

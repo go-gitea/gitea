@@ -52,7 +52,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	 2^@repo: go-gitea/gitea
 	*/
 	var results []*GrepResult
-	cmd := NewCommand(ctx, "grep", "--null", "--break", "--heading", "--fixed-strings", "--line-number", "--ignore-case", "--full-name")
+	cmd := NewCommand("grep", "--null", "--break", "--heading", "--fixed-strings", "--line-number", "--ignore-case", "--full-name")
 	cmd.AddOptionValues("--context", fmt.Sprint(opts.ContextLineNumber))
 	if opts.IsFuzzy {
 		words := strings.Fields(search)
@@ -66,7 +66,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	cmd.AddDashesAndList(opts.PathspecList...)
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 	stderr := bytes.Buffer{}
-	err = cmd.Run(&RunOpts{
+	err = cmd.Run(ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
 		Stderr: &stderr,

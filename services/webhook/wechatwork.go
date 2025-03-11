@@ -181,6 +181,12 @@ func (wc wechatworkConvertor) Status(p *api.CommitStatusPayload) (WechatworkPayl
 	return newWechatworkMarkdownPayload(text), nil
 }
 
+func (wc wechatworkConvertor) WorkflowJob(p *api.WorkflowJobPayload) (WechatworkPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, noneLinkFormatter, true)
+
+	return newWechatworkMarkdownPayload(text), nil
+}
+
 func newWechatworkRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	var pc payloadConvertor[WechatworkPayload] = wechatworkConvertor{}
 	return newJSONRequest(pc, w, t, true)

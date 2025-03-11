@@ -11,6 +11,10 @@ import (
 
 func GetUsersMapByIDs(ctx context.Context, userIDs []int64) (map[int64]*User, error) {
 	userMaps := make(map[int64]*User, len(userIDs))
+	if len(userIDs) == 0 {
+		return userMaps, nil
+	}
+
 	left := len(userIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize
