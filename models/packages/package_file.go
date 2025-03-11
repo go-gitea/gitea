@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -24,6 +23,8 @@ func init() {
 }
 
 var (
+	// ErrMetadataFile indicated a metadata file
+	ErrMetadataFile = errors.New("metadata file")
 	// ErrDuplicatePackageFile indicates a duplicated package file error
 	ErrDuplicatePackageFile = util.NewAlreadyExistErrorf("package file already exists")
 	// ErrPackageFileNotExist indicates a package file not exist error
@@ -229,57 +230,69 @@ func HasFiles(ctx context.Context, opts *PackageFileSearchOptions) (bool, error)
 	return db.Exist[PackageFile](ctx, opts.toConds())
 }
 
-// GetFilesByBuildNumber retrieves all files for a package version with build numbers <= maxBuildNumber.
-func GetFilesByBuildNumber(ctx context.Context, versionID int64, maxBuildNumber int) ([]*PackageFile, error) {
-	if maxBuildNumber < 0 {
-		return nil, errors.New("maxBuildNumber must be a non-negative integer")
+// GetFilesBelowBuildNumber retrieves all files for maven snapshot version where the build number is <= maxBuildNumber.
+// Returns two slices: one for filtered files and one for skipped files.
+func GetFilesBelowBuildNumber(ctx context.Context, versionID int64, maxBuildNumber int, classifiers ...string) ([]*PackageFile, []*PackageFile, error) {
+	if maxBuildNumber <= 0 {
+		return nil, nil, errors.New("maxBuildNumber must be a positive integer")
 	}
 
 	files, err := GetFilesByVersionID(ctx, versionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve files: %w", err)
+		return nil, nil, fmt.Errorf("failed to retrieve files: %w", err)
 	}
 
-	var filteredFiles []*PackageFile
+	var filteredFiles, skippedFiles []*PackageFile
 	for _, file := range files {
-		buildNumber, err := extractBuildNumberFromFileName(file.Name)
+		buildNumber, err := extractBuildNumberFromFileName(file.Name, classifiers...)
 		if err != nil {
-			if err.Error() == "metadata file" {
-				continue
+			if !errors.Is(err, ErrMetadataFile) {
+				skippedFiles = append(skippedFiles, file)
 			}
-			log.Warn("Failed to extract build number from file name '%s': %v", file.Name, err)
 			continue
 		}
-
 		if buildNumber <= maxBuildNumber {
 			filteredFiles = append(filteredFiles, file)
 		}
 	}
 
-	log.Info("Filtered %d files out of %d total files for version ID %d with maxBuildNumber %d", len(filteredFiles), len(files), versionID, maxBuildNumber)
-	return filteredFiles, nil
+	return filteredFiles, skippedFiles, nil
 }
 
-// extractBuildNumberFromFileName extracts the build number from the file name.
-func extractBuildNumberFromFileName(filename string) (int, error) {
-	// Skip metadata files
+// extractBuildNumberFromFileName extracts the build number from a Maven snapshot file name.
+// Expected formats:
+//
+//	"artifact-1.0.0-20250311.083409-9.tgz" returns 9
+//	"artifact-to-test-2.0.0-20250311.083409-10-sources.tgz" returns 10
+func extractBuildNumberFromFileName(filename string, classifiers ...string) (int, error) {
 	if strings.Contains(filename, "maven-metadata.xml") {
-		return 0, errors.New("metadata file")
+		return 0, ErrMetadataFile
 	}
 
-	// Split filename by hyphens to extract the build number
-	parts := strings.Split(filename, "-")
-	if len(parts) < 3 {
-		return 0, fmt.Errorf("invalid file name format: '%s'", filename)
+	dotIdx := strings.LastIndex(filename, ".")
+	if dotIdx == -1 {
+		return 0, fmt.Errorf("extract build number from filename: no file extension found in '%s'", filename)
+	}
+	base := filename[:dotIdx]
+
+	// Remove classifier suffix if present.
+	for _, classifier := range classifiers {
+		suffix := "-" + classifier
+		if strings.HasSuffix(base, suffix) {
+			base = base[:len(base)-len(suffix)]
+			break
+		}
 	}
 
-	// Extract the last part before the extension
-	buildNumberWithExt := parts[len(parts)-1]
-	buildNumberStr := strings.Split(buildNumberWithExt, ".")[0]
-
+	// The build number should be the token after the last dash.
+	lastDash := strings.LastIndex(base, "-")
+	if lastDash == -1 {
+		return 0, fmt.Errorf("extract build number from filename: invalid file name format in '%s'", filename)
+	}
+	buildNumberStr := base[lastDash+1:]
 	buildNumber, err := strconv.Atoi(buildNumberStr)
 	if err != nil {
-		return 0, fmt.Errorf("failed to convert maven package build number to integer: '%s'", buildNumberStr)
+		return 0, fmt.Errorf("extract build number from filename: failed to convert build number '%s' to integer in '%s': %v", buildNumberStr, filename, err)
 	}
 
 	return buildNumber, nil

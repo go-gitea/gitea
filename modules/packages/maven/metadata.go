@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -30,6 +31,12 @@ type Dependency struct {
 	GroupID    string `json:"group_id,omitempty"`
 	ArtifactID string `json:"artifact_id,omitempty"`
 	Version    string `json:"version,omitempty"`
+}
+
+// SnapshotMetadata struct holds the build number and the list of classifiers for a snapshot version
+type SnapshotMetadata struct {
+	BuildNumber int      `json:"build_number,omitempty"`
+	Classifiers []string `json:"classifiers,omitempty"`
 }
 
 type pomStruct struct {
@@ -62,7 +69,7 @@ type pomStruct struct {
 	} `xml:"dependencies>dependency"`
 }
 
-type MavenMetadata struct {
+type snapshotMetadataStruct struct {
 	XMLName    xml.Name `xml:"metadata"`
 	GroupID    string   `xml:"groupId"`
 	ArtifactID string   `xml:"artifactId"`
@@ -74,11 +81,10 @@ type MavenMetadata struct {
 			BuildNumber string `xml:"buildNumber"`
 		} `xml:"snapshot"`
 		SnapshotVersions []struct {
-			SnapshotVersion struct {
-				Extension string `xml:"extension"`
-				Value     string `xml:"value"`
-				Updated   string `xml:"updated"`
-			} `xml:"snapshotVersion"`
+			Extension  string `xml:"extension"`
+			Classifier string `xml:"classifier"`
+			Value      string `xml:"value"`
+			Updated    string `xml:"updated"`
 		} `xml:"snapshotVersions>snapshotVersion"`
 	} `xml:"versioning"`
 }
@@ -132,19 +138,30 @@ func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
 	}, nil
 }
 
-// ParseMavenMetadata parses the Maven metadata XML to extract the build number.
-func ParseMavenMetaData(r io.Reader) (string, error) {
-	var metadata MavenMetadata
+// ParseSnapshotVersionMetadata parses the Maven Snapshot Version metadata to extract the build number and list of available classifiers.
+func ParseSnapshotVersionMetaData(r io.Reader) (*SnapshotMetadata, error) {
+	var metadata snapshotMetadataStruct
 
 	dec := xml.NewDecoder(r)
-	dec.CharsetReader = charset.NewReaderLabel // Assuming charset.NewReaderLabel is a function you've set up to handle character encoding.
+	dec.CharsetReader = charset.NewReaderLabel
 	if err := dec.Decode(&metadata); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if metadata.Versioning.Snapshot.BuildNumber == "" {
-		return "", errors.New("no build number in snapshot metadata found")
+	buildNumber, err := strconv.Atoi(metadata.Versioning.Snapshot.BuildNumber)
+	if err != nil {
+		return nil, errors.New("invalid or missing build number in snapshot metadata")
 	}
 
-	return metadata.Versioning.Snapshot.BuildNumber, nil
+	var classifiers []string
+	for _, snapshotVersion := range metadata.Versioning.SnapshotVersions {
+		if snapshotVersion.Classifier != "" {
+			classifiers = append(classifiers, snapshotVersion.Classifier)
+		}
+	}
+
+	return &SnapshotMetadata{
+		BuildNumber: buildNumber,
+		Classifiers: classifiers,
+	}, nil
 }
