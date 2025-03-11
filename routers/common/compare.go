@@ -59,7 +59,7 @@ func parseCompareRouter(router string) (*CompareRouter, error) {
 	dotTimes := 3
 	parts := strings.Split(router, "...")
 	if len(parts) > 2 {
-		return nil, util.NewSilentWrapErrorf(util.ErrInvalidArgument, "invalid compare router: %s", router)
+		return nil, util.NewInvalidArgumentErrorf("invalid compare router: %s", router)
 	}
 	if len(parts) != 2 {
 		parts = strings.Split(router, "..")
@@ -72,7 +72,7 @@ func parseCompareRouter(router string) (*CompareRouter, error) {
 				DotTimes:      dotTimes,
 			}, nil
 		} else if len(parts) > 2 {
-			return nil, util.NewSilentWrapErrorf(util.ErrInvalidArgument, "invalid compare router: %s", router)
+			return nil, util.NewInvalidArgumentErrorf("invalid compare router: %s", router)
 		}
 		dotTimes = 2
 	}
