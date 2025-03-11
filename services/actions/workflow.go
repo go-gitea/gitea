@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
@@ -276,6 +277,9 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		log.Error("FindRunJobs: %v", err)
 	}
 	CreateCommitStatus(ctx, allJobs...)
+	for _, job := range allJobs {
+		notify_service.WorkflowJobStatusUpdate(ctx, repo, doer, job, nil)
+	}
 
 	return nil
 }
