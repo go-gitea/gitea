@@ -65,6 +65,7 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
+	pr.Issue.Repo = pr.BaseRepo
 
 	if pr.BaseRepo.IsFork {
 		return nil, nil
