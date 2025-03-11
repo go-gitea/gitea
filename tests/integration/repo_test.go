@@ -164,7 +164,7 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 
 func TestViewRepoWithSymlinks(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
+	defer test.MockVariableValue(&setting.UI.FileIconTheme, "basic")()
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/repo20.git")
