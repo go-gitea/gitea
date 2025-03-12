@@ -558,6 +558,28 @@ jobs:
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 
+		// create an runner that picks a job and get force cancelled
+		runnerToBeRemoved := newMockRunner()
+		runnerToBeRemoved.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner-to-be-removed", []string{"ubuntu-latest"}, true)
+
+		taskToStopAPIObj := runnerToBeRemoved.fetchTask(t)
+
+		taskToStop := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskToStopAPIObj.Id})
+
+		// verify CleanupEphemeralRunners does not remove the custom crafted runner
+		actions_service.CleanupEphemeralRunners(t.Context())
+
+		runnerToRemove := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: taskToStop.RunnerID})
+
+		err = actions_model.StopTask(t.Context(), taskToStop.ID, actions_model.StatusFailure)
+		assert.NoError(t, err)
+
+		// verify CleanupEphemeralRunners does remove the custom crafted runner
+		actions_service.CleanupEphemeralRunners(t.Context())
+
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runnerToRemove.ID})#
+
+		// this cleanup is required to allow further tests to pass
 		doAPIDeleteRepository(user2APICtx)(t)
 	})
 }
