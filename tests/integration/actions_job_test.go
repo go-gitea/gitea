@@ -577,7 +577,7 @@ jobs:
 		// verify CleanupEphemeralRunners does remove the custom crafted runner
 		actions_service.CleanupEphemeralRunners(t.Context())
 
-		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runnerToRemove.ID})#
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runnerToRemove.ID})
 
 		// this cleanup is required to allow further tests to pass
 		doAPIDeleteRepository(user2APICtx)(t)
