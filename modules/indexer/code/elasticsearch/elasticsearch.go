@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
@@ -24,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/olivere/elastic/v7"
@@ -44,6 +44,10 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_elasticsearch.Indexer
 	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new elasticsearch indexer
@@ -361,15 +365,10 @@ func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLan
 // Search searches for codes and language stats by given conditions.
 func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	var contentQuery elastic.Query
-	keywordAsPhrase, isPhrase := internal.ParseKeywordAsPhrase(opts.Keyword)
-	if isPhrase {
-		contentQuery = elastic.NewMatchPhraseQuery("content", keywordAsPhrase)
-	} else {
-		// TODO: this is the old logic, but not really using "fuzziness"
-		// * IsKeywordFuzzy=true: "best_fields"
-		// * IsKeywordFuzzy=false: "phrase_prefix"
-		contentQuery = elastic.NewMultiMatchQuery("content", opts.Keyword).
-			Type(util.Iif(opts.IsKeywordFuzzy, esMultiMatchTypeBestFields, esMultiMatchTypePhrasePrefix))
+	if opts.SearchMode == indexer.SearchModeExact {
+		contentQuery = elastic.NewMatchPhraseQuery("content", opts.Keyword)
+	} else /* words */ {
+		contentQuery = elastic.NewMultiMatchQuery("content", opts.Keyword).Type(esMultiMatchTypeBestFields).Operator("and")
 	}
 	kwQuery := elastic.NewBoolQuery().Should(
 		contentQuery,
