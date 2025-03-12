@@ -17,7 +17,7 @@ import (
 )
 
 func testRun(m *testing.M) error {
-	gitHomePath, err := os.MkdirTemp(os.TempDir(), "git-home")
+	gitHomePath, err := os.MkdirTemp(setting.TempDir(), "git-home")
 	if err != nil {
 		return fmt.Errorf("unable to create temp dir: %w", err)
 	}
