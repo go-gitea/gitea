@@ -134,7 +134,7 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	if len(uniqueUserIDs) > 0 {
 		if err = e.In("id", uniqueUserIDs.Values()).
 			Where(builder.Eq{"`user`.is_active": true}).
-			OrderBy(user_model.GetOrderByName()).
+			OrderBy(user_model.GetOrderByName(ctx)).
 			Find(&users); err != nil {
 			return nil, err
 		}

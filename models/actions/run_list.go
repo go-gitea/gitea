@@ -134,6 +134,6 @@ func GetActors(ctx context.Context, repoID int64) ([]*user_model.User, error) {
 		GroupBy("`action_run`.trigger_user_id").
 		Where(builder.Eq{"`action_run`.repo_id": repoID}))).
 		Cols("id", "name", "full_name", "avatar", "avatar_email", "use_custom_avatar").
-		OrderBy(user_model.GetOrderByName()).
+		OrderBy(user_model.GetOrderByName(ctx)).
 		Find(&actors)
 }

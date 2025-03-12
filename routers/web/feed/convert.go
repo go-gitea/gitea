@@ -50,7 +50,7 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 
 // renderCommentMarkdown renders the comment markdown to html
 func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
-	act.LoadRepo(ctx)
+	_ = act.LoadRepo(ctx)
 	if act.Repo == nil {
 		return ""
 	}
@@ -77,7 +77,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 		link := &feeds.Link{Href: act.GetCommentHTMLURL(ctx)}
 
 		// title
-		title = act.ActUser.GetDisplayName() + " "
+		title = act.ActUser.GetDisplayName(ctx) + " "
 		var titleExtra template.HTML
 		switch act.OpType {
 		case activities_model.ActionCreateRepo:
@@ -246,7 +246,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			Description: desc,
 			IsPermaLink: "false",
 			Author: &feeds.Author{
-				Name:  act.ActUser.GetDisplayName(),
+				Name:  act.ActUser.GetDisplayName(ctx),
 				Email: act.ActUser.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(act.ID, 10), link.Href),
@@ -302,7 +302,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 			Link:    link,
 			Created: rel.CreatedUnix.AsTime(),
 			Author: &feeds.Author{
-				Name:  rel.Publisher.GetDisplayName(),
+				Name:  rel.Publisher.GetDisplayName(ctx),
 				Email: rel.Publisher.GetEmail(),
 			},
 			Id:      fmt.Sprintf("%v: %v", strconv.FormatInt(rel.ID, 10), link.Href),

@@ -152,13 +152,13 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		needsRollback = true
 
-		cloneCmd := git.NewCommand(txCtx, "clone", "--bare")
+		cloneCmd := git.NewCommand("clone", "--bare")
 		if opts.SingleBranch != "" {
 			cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
 		}
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repoPath).
-			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
+			RunStdBytes(txCtx, &git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 			return fmt.Errorf("git clone: %w", err)
 		}
@@ -167,8 +167,8 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
-		if stdout, _, err := git.NewCommand(txCtx, "update-server-info").
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+		if stdout, _, err := git.NewCommand("update-server-info").
+			RunStdString(txCtx, &git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("git update-server-info: %w", err)
 		}

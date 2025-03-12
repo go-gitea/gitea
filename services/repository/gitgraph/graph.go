@@ -15,14 +15,14 @@ import (
 )
 
 // GetCommitGraph return a list of commit (GraphItems) from all branches
-func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
+func GetCommitGraph(ctx context.Context, r *git.Repository, page, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
 	format := "DATA:%D|%H|%ad|%h|%s"
 
 	if page == 0 {
 		page = 1
 	}
 
-	graphCmd := git.NewCommand(r.Ctx, "log", "--graph", "--date-order", "--decorate=full")
+	graphCmd := git.NewCommand("log", "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
 		graphCmd.AddArguments("--exclude=" + git.PullPrefix + "*")
@@ -33,7 +33,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	}
 
 	graphCmd.AddArguments("-C", "-M", "--date=iso-strict").
-		AddOptionFormat("-n %d", setting.UI.GraphMaxCommitNum*page).
+		AddOptionFormat("-n %d", setting.Config().UI.GraphMaxCommitNum.Value(ctx)*page).
 		AddOptionFormat("--pretty=format:%s", format)
 
 	if len(branches) > 0 {
@@ -49,11 +49,11 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	if err != nil {
 		return nil, err
 	}
-	commitsToSkip := setting.UI.GraphMaxCommitNum * (page - 1)
+	commitsToSkip := setting.Config().UI.GraphMaxCommitNum.Value(ctx) * (page - 1)
 
 	scanner := bufio.NewScanner(stdoutReader)
 
-	if err := graphCmd.Run(&git.RunOpts{
+	if err := graphCmd.Run(r.Ctx, &git.RunOpts{
 		Dir:    r.Path,
 		Stdout: stdoutWriter,
 		Stderr: stderr,

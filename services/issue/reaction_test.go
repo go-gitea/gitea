@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -72,7 +73,8 @@ func TestIssueDeleteReaction(t *testing.T) {
 func TestIssueReactionCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	setting.UI.ReactionMaxUserNum = 2
+	reactionMaxUserNum := config.Value[int]{}
+	setting.Config().UI.ReactionMaxUserNum = reactionMaxUserNum.WithDefault(2)
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -101,13 +103,13 @@ func TestIssueReactionCount(t *testing.T) {
 
 	reactions := reactionsList.GroupByType()
 	assert.Len(t, reactions["heart"], 4)
-	assert.Equal(t, 2, reactions["heart"].GetMoreUserCount())
-	assert.Equal(t, user1.Name+", "+user2.Name, reactions["heart"].GetFirstUsers())
+	assert.Equal(t, 2, reactions["heart"].GetMoreUserCount(t.Context()))
+	assert.Equal(t, user1.Name+", "+user2.Name, reactions["heart"].GetFirstUsers(t.Context()))
 	assert.True(t, reactions["heart"].HasUser(1))
 	assert.False(t, reactions["heart"].HasUser(5))
 	assert.False(t, reactions["heart"].HasUser(0))
 	assert.Len(t, reactions["+1"], 2)
-	assert.Equal(t, 0, reactions["+1"].GetMoreUserCount())
+	assert.Equal(t, 0, reactions["+1"].GetMoreUserCount(t.Context()))
 	assert.Len(t, reactions["-1"], 1)
 }
 

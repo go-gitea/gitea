@@ -263,8 +263,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.CompareURL = ""
 				}
 
-				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
-					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
+				if len(commits.Commits) > setting.Config().UI.FeedMaxCommitNum.Value(ctx) {
+					commits.Commits = commits.Commits[:setting.Config().UI.FeedMaxCommitNum.Value(ctx)]
 				}
 
 				notify_service.PushCommits(ctx, pusher, repo, opts, commits)

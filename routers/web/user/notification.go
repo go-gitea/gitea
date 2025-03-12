@@ -287,7 +287,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 	}
 	issues, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{
 		Paginator: &db.ListOptions{
-			PageSize: setting.UI.IssuePagingNum,
+			PageSize: setting.Config().UI.IssuePagingNum.Value(ctx),
 			Page:     page,
 		},
 		SubscriberID: ctx.Doer.ID,
@@ -352,7 +352,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("notification.subscriptions")
 
 	// redirect to last page if request page is more than total pages
-	pager := context.NewPagination(int(count), setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagination(int(count), setting.Config().UI.IssuePagingNum.Value(ctx), page, 5)
 	if pager.Paginater.Current() < page {
 		ctx.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
 		return
@@ -428,7 +428,7 @@ func NotificationWatching(ctx *context.Context) {
 		WatchedByID:        ctx.Doer.ID,
 		Collaborate:        optional.Some(false),
 		TopicOnly:          ctx.FormBool("topic"),
-		IncludeDescription: setting.UI.SearchRepoDescription,
+		IncludeDescription: setting.Config().UI.SearchRepoDescription.Value(ctx),
 		Archived:           archived,
 		Fork:               fork,
 		Mirror:             mirror,

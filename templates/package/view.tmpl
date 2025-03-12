@@ -8,9 +8,9 @@
 			<div>
 				{{$timeStr := DateUtils.TimeSince .PackageDescriptor.Version.CreatedUnix}}
 				{{if .HasRepositoryAccess}}
-					{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink .PackageDescriptor.Creator.GetDisplayName .PackageDescriptor.Repository.Link .PackageDescriptor.Repository.FullName}}
+					{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName ctx) .PackageDescriptor.Repository.Link .PackageDescriptor.Repository.FullName}}
 				{{else}}
-					{{ctx.Locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink .PackageDescriptor.Creator.GetDisplayName}}
+					{{ctx.Locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName ctx)}}
 				{{end}}
 			</div>
 		</div>

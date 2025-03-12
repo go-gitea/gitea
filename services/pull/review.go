@@ -264,7 +264,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			_ = writer.Close()
 		}()
 
-		patch, err = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		patch, err = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.Config().UI.CodeCommentLines.Value(ctx))
 		if err != nil {
 			log.Error("Error whilst generating patch: %v", err)
 			return nil, err

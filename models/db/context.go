@@ -289,6 +289,9 @@ func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([
 // DecrByIDs decreases the given column for entities of the "bean" type with one of the given ids by one
 // Timestamps of the entities won't be updated
 func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean any) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	_, err := GetEngine(ctx).Decr(decrCol).In("id", ids).NoAutoCondition().NoAutoTime().Update(bean)
 	return err
 }

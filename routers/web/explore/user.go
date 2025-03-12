@@ -44,7 +44,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	}
 
 	if isSitemap {
-		opts.PageSize = setting.UI.SitemapPagingNum
+		opts.PageSize = setting.Config().UI.SitemapPagingNum.Value(ctx)
 	}
 
 	var (
@@ -58,7 +58,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 
 	sortOrder := ctx.FormString("sort")
 	if sortOrder == "" {
-		sortOrder = setting.UI.ExploreDefaultSort
+		sortOrder = setting.Config().UI.ExploreDefaultSort.Value(ctx)
 	}
 	ctx.Data["SortType"] = sortOrder
 
@@ -116,7 +116,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users
 	ctx.Data["UsersTwoFaStatus"] = user_model.UserList(users).GetTwoFaStatus(ctx)
-	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
+	ctx.Data["ShowUserEmail"] = setting.Config().UI.ShowUserEmail.Value(ctx)
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
@@ -147,14 +147,14 @@ func Users(ctx *context.Context) {
 	)
 	sortOrder := ctx.FormString("sort")
 	if sortOrder == "" {
-		sortOrder = util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
+		sortOrder = util.Iif(supportedSortOrders.Contains(setting.Config().UI.ExploreDefaultSort.Value(ctx)), setting.Config().UI.ExploreDefaultSort.Value(ctx), "newest")
 		ctx.SetFormString("sort", sortOrder)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeIndividual,
-		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		ListOptions: db.ListOptions{PageSize: setting.Config().UI.ExplorePagingNum.Value(ctx)},
 		IsActive:    optional.Some(true),
 		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 

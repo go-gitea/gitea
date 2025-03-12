@@ -355,9 +355,9 @@ func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Reposit
 }
 
 // GetFirstUsers returns first reacted user display names separated by comma
-func (list ReactionList) GetFirstUsers() string {
+func (list ReactionList) GetFirstUsers(ctx context.Context) string {
 	var buffer bytes.Buffer
-	rem := setting.UI.ReactionMaxUserNum
+	rem := setting.Config().UI.ReactionMaxUserNum.Value(ctx)
 	for _, reaction := range list {
 		if buffer.Len() > 0 {
 			buffer.WriteString(", ")
@@ -371,9 +371,9 @@ func (list ReactionList) GetFirstUsers() string {
 }
 
 // GetMoreUserCount returns count of not shown users in reaction tooltip
-func (list ReactionList) GetMoreUserCount() int {
-	if len(list) <= setting.UI.ReactionMaxUserNum {
+func (list ReactionList) GetMoreUserCount(ctx context.Context) int {
+	if len(list) <= setting.Config().UI.ReactionMaxUserNum.Value(ctx) {
 		return 0
 	}
-	return len(list) - setting.UI.ReactionMaxUserNum
+	return len(list) - setting.Config().UI.ReactionMaxUserNum.Value(ctx)
 }

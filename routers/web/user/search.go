@@ -21,7 +21,7 @@ func SearchCandidates(ctx *context.Context) {
 		Keyword:     ctx.FormTrim("q"),
 		Type:        user_model.UserTypeIndividual,
 		IsActive:    optional.Some(true),
-		ListOptions: db.ListOptions{PageSize: setting.UI.MembersPagingNum},
+		ListOptions: db.ListOptions{PageSize: setting.Config().UI.MembersPagingNum.Value(ctx)},
 	})
 	if err != nil {
 		ctx.ServerError("Unable to search users", err)

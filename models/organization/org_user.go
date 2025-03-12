@@ -163,7 +163,7 @@ func GetOrgAssignees(ctx context.Context, orgID int64) (_ []*user_model.User, er
 	if len(userIDs) > 0 {
 		if err = e.In("id", uniqueUserIDs.Values()).
 			Where(builder.Eq{"`user`.is_active": true}).
-			OrderBy(user_model.GetOrderByName()).
+			OrderBy(user_model.GetOrderByName(ctx)).
 			Find(&users); err != nil {
 			return nil, err
 		}

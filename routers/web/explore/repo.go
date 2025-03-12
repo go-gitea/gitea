@@ -46,7 +46,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 
 	if isSitemap {
-		opts.PageSize = setting.UI.SitemapPagingNum
+		opts.PageSize = setting.Config().UI.SitemapPagingNum.Value(ctx)
 	}
 
 	var (
@@ -58,7 +58,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	sortOrder := ctx.FormString("sort")
 	if sortOrder == "" {
-		sortOrder = setting.UI.ExploreDefaultSort
+		sortOrder = setting.Config().UI.ExploreDefaultSort.Value(ctx)
 	}
 
 	if order, ok := repo_model.OrderByFlatMap[sortOrder]; ok {
@@ -108,7 +108,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		AllLimited:         true,
 		TopicOnly:          topicOnly,
 		Language:           language,
-		IncludeDescription: setting.UI.SearchRepoDescription,
+		IncludeDescription: setting.Config().UI.SearchRepoDescription.Value(ctx),
 		OnlyShowRelevant:   opts.OnlyShowRelevant,
 		Archived:           archived,
 		Fork:               fork,
@@ -159,7 +159,7 @@ func Repos(ctx *context.Context) {
 		ownerID = ctx.Doer.ID
 	}
 
-	onlyShowRelevant := setting.UI.OnlyShowRelevantRepos
+	onlyShowRelevant := setting.Config().UI.OnlyShowRelevantRepos.Value(ctx)
 
 	_ = ctx.Req.ParseForm() // parse the form first, to prepare the ctx.Req.Form field
 	if len(ctx.Req.Form[relevantReposOnlyParam]) != 0 {
@@ -167,7 +167,7 @@ func Repos(ctx *context.Context) {
 	}
 
 	RenderRepoSearch(ctx, &RepoSearchOptions{
-		PageSize:         setting.UI.ExplorePagingNum,
+		PageSize:         setting.Config().UI.ExplorePagingNum.Value(ctx),
 		OwnerID:          ownerID,
 		Private:          ctx.Doer != nil,
 		TplName:          tplExploreRepos,

@@ -17,7 +17,7 @@
 						<div class="tw-flex">
 							{{$userName := .Author.Name}}
 							{{if .User}}
-								{{if and .User.FullName DefaultShowFullName}}
+								{{if and .User.FullName (DefaultShowFullName ctx) ctx}}
 									{{$userName = .User.FullName}}
 								{{end}}
 								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
@@ -48,7 +48,7 @@
 						{{end}}
 						</span>
 						{{if IsMultilineCommitMessage .Message}}
-						<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
+						<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 						{{if IsMultilineCommitMessage .Message}}

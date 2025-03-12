@@ -5,6 +5,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"html/template"
@@ -59,7 +60,6 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
-		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": migrationIcon,
 		"ActionIcon":    actionIcon,
 		"SortArrow":     sortArrow,
@@ -104,8 +104,8 @@ func NewFuncMap() template.FuncMap {
 		"AssetVersion": func() string {
 			return setting.AssetVersion
 		},
-		"DefaultShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
+		"DefaultShowFullName": func(ctx context.Context) bool {
+			return setting.Config().UI.DefaultShowFullName.Value(ctx)
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime

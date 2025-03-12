@@ -169,8 +169,8 @@ func (org *Organization) OrganisationLink() string {
 }
 
 // ShortName ellipses username to length
-func (org *Organization) ShortName(length int) string {
-	return org.AsUser().ShortName(length)
+func (org *Organization) ShortName(ctx context.Context, length int) string {
+	return org.AsUser().ShortName(ctx, length)
 }
 
 // HomeLink returns the user or organization home page link.

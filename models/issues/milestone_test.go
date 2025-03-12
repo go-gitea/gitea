@@ -98,7 +98,7 @@ func TestGetMilestones(t *testing.T) {
 			milestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 				ListOptions: db.ListOptions{
 					Page:     page,
-					PageSize: setting.UI.IssuePagingNum,
+					PageSize: setting.Config().UI.IssuePagingNum.Value(t.Context()),
 				},
 				RepoID:   repo.ID,
 				IsClosed: optional.Some(false),
@@ -115,7 +115,7 @@ func TestGetMilestones(t *testing.T) {
 			milestones, err = db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 				ListOptions: db.ListOptions{
 					Page:     page,
-					PageSize: setting.UI.IssuePagingNum,
+					PageSize: setting.Config().UI.IssuePagingNum.Value(t.Context()),
 				},
 				RepoID:   repo.ID,
 				IsClosed: optional.Some(true),
@@ -231,7 +231,7 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 			openMilestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 				ListOptions: db.ListOptions{
 					Page:     page,
-					PageSize: setting.UI.IssuePagingNum,
+					PageSize: setting.Config().UI.IssuePagingNum.Value(t.Context()),
 				},
 				RepoIDs:  []int64{repo1.ID, repo2.ID},
 				IsClosed: optional.Some(false),
@@ -249,7 +249,7 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 				issues_model.FindMilestoneOptions{
 					ListOptions: db.ListOptions{
 						Page:     page,
-						PageSize: setting.UI.IssuePagingNum,
+						PageSize: setting.Config().UI.IssuePagingNum.Value(t.Context()),
 					},
 					RepoIDs:  []int64{repo1.ID, repo2.ID},
 					IsClosed: optional.Some(true),
