@@ -562,9 +562,9 @@ jobs:
 		runnerToBeRemoved := newMockRunner()
 		runnerToBeRemoved.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner-to-be-removed", []string{"ubuntu-latest"}, true)
 
-		taskToStopApiObj := runnerToBeRemoved.fetchTask(t)
+		taskToStopAPIObj := runnerToBeRemoved.fetchTask(t)
 
-		taskToStop := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskToStopApiObj.Id})
+		taskToStop := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskToStopAPIObj.Id})
 
 		// verify CleanupEphemeralRunners does not remove the custom crafted runner
 		actions_service.CleanupEphemeralRunners(t.Context())

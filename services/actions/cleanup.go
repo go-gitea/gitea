@@ -146,7 +146,7 @@ func CleanupEphemeralRunners(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("find runners: %w", err)
 	}
-	affected, err := res.RowsAffected()
+	affected, _ := res.RowsAffected()
 	log.Info("Removed %d runners", affected)
 	return nil
 }
