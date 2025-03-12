@@ -17,7 +17,7 @@
 						<div class="tw-flex">
 							{{$userName := .Author.Name}}
 							{{if .User}}
-								{{if and .User.FullName (DefaultShowFullName ctx) ctx}}
+								{{if and .User.FullName (DefaultShowFullName ctx)}}
 									{{$userName = .User.FullName}}
 								{{end}}
 								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
