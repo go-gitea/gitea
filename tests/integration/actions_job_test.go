@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	actions_service "code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"connectrpc.com/connect"
@@ -452,6 +453,9 @@ func TestActionsGiteaContextEphemeral(t *testing.T) {
 		runner := newMockRunner()
 		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, true)
 
+		// verify CleanupEphemeralRunners does not remove this runner
+		actions_service.CleanupEphemeralRunners(t.Context())
+
 		// init the workflow
 		wfTreePath := ".gitea/workflows/pull.yml"
 		wfFileContent := `name: Pull Request
@@ -524,11 +528,17 @@ jobs:
 		token := gtCtx["token"].GetStringValue()
 		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
 
+		// verify CleanupEphemeralRunners does not remove this runner
+		actions_service.CleanupEphemeralRunners(t.Context())
+
 		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
 		}))
 		assert.NoError(t, err)
 		assert.Nil(t, resp.Msg.Task)
+
+		// verify CleanupEphemeralRunners does not remove this runner
+		actions_service.CleanupEphemeralRunners(t.Context())
 
 		runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
 			State: &runnerv1.TaskState{
