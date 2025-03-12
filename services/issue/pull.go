@@ -48,7 +48,7 @@ func IsCodeOwnerFile(f string) bool {
 }
 
 func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
-	return PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, "", "")
+	return PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, "", "") // no commit is provided, then it uses PR's base&head branch
 }
 
 func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_model.PullRequest, startCommitID, endCommitID string) ([]*ReviewRequestNotifier, error) {
