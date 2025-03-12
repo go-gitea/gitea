@@ -132,8 +132,6 @@ func CleanupLogs(ctx context.Context) error {
 	return nil
 }
 
-const deleteEphemeralRunnerBatchSize = 100
-
 // CleanupEphemeralRunners removes used ephemeral runners which are no longer able to process jobs
 func CleanupEphemeralRunners(ctx context.Context) error {
 	subQuery := builder.Select("`action_runner`.id").
