@@ -86,17 +86,17 @@ func handleRequest(w http.ResponseWriter, req *http.Request, fs http.FileSystem,
 		return
 	}
 
-	serveContent(w, req, fi, fi.ModTime(), f)
+	servePublicAsset(w, req, fi, fi.ModTime(), f)
 }
 
 type GzipBytesProvider interface {
 	GzipBytes() []byte
 }
 
-// serveContent serve http content
-func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
+// servePublicAsset serve http content
+func servePublicAsset(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
 	setWellKnownContentType(w, fi.Name())
-
+	httpcache.SetCacheControlInHeader(w.Header(), httpcache.CacheControlForPublicStatic())
 	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
 	if encodings.Contains("gzip") {
 		// try to provide gzip content directly from bindata (provided by vfsgen۰CompressedFileInfo)
@@ -108,11 +108,10 @@ func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modt
 				w.Header().Set("Content-Type", "application/octet-stream")
 			}
 			w.Header().Set("Content-Encoding", "gzip")
-			httpcache.ServeContentWithCacheControl(w, req, fi.Name(), modtime, rdGzip)
+			http.ServeContent(w, req, fi.Name(), modtime, rdGzip)
 			return
 		}
 	}
-
-	httpcache.ServeContentWithCacheControl(w, req, fi.Name(), modtime, content)
+	http.ServeContent(w, req, fi.Name(), modtime, content)
 	return
 }
