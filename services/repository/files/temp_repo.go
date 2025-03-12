@@ -34,11 +34,11 @@ type TemporaryUploadRepository struct {
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
 func NewTemporaryUploadRepository(repo *repo_model.Repository) (*TemporaryUploadRepository, error) {
-	basePath, err := repo_module.CreateTemporaryPath("upload")
+	basePath, cancel, err := repo_module.CreateTemporaryPath("upload")
 	if err != nil {
 		return nil, err
 	}
-	t := &TemporaryUploadRepository{repo: repo, basePath: basePath}
+	t := &TemporaryUploadRepository{repo: repo, basePath: basePath, cancel: cancel}
 	return t, nil
 }
 
