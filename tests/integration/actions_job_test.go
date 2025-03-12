@@ -546,8 +546,6 @@ jobs:
 		}))
 		assert.Error(t, err)
 		assert.Nil(t, resp)
-
-		doAPIDeleteRepository(user2APICtx)(t)
 	})
 }
 
