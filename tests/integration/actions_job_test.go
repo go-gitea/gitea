@@ -577,7 +577,7 @@ jobs:
 		// verify CleanupEphemeralRunners does remove the custom crafted runner
 		actions_service.CleanupEphemeralRunners(t.Context())
 
-		unittest.AssertNotExistsBean(t, runnerToRemove)
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runnerToRemove.ID})
 	})
 }
 
