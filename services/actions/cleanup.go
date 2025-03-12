@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 )
 
 // Cleanup removes expired actions logs, data, artifacts and used ephemeral runners
@@ -134,15 +135,17 @@ const deleteEphemeralRunnerBatchSize = 100
 
 // CleanupEphemeralRunners removes used ephemeral runners which are no longer able to process jobs
 func CleanupEphemeralRunners(ctx context.Context) error {
-	runners := []*actions_model.ActionRunner{}
-	err := db.GetEngine(ctx).Join("INNER", "`action_task`", "`action_task`.`runner_id` = `action_runner`.`id`").Where("`action_runner`.`ephemeral` = ? and `action_task`.`status` NOT IN (?, ?, ?)", true, actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked).Limit(deleteEphemeralRunnerBatchSize).Find(&runners)
+	subQuery := builder.Select("`action_runner`.id").
+		From("`action_runner`").
+		Join("INNER", "`action_task`", "`action_task`.`runner_id` = `action_runner`.`id`").
+		Where(builder.Eq{"`action_runner`.`ephemeral`": true}).
+		And(builder.NotIn("`action_task`.`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked))
+	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
+	res, err := db.GetEngine(ctx).Exec(b)
 	if err != nil {
 		return fmt.Errorf("find runners: %w", err)
 	}
-	count, err := db.GetEngine(ctx).Delete(&runners)
-	if err != nil {
-		return fmt.Errorf("delete runners: %w", err)
-	}
-	log.Info("Removed %d runners", count)
+	affected, err := res.RowsAffected()
+	log.Info("Removed %d runners", affected)
 	return nil
 }

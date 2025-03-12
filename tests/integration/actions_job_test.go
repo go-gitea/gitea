@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	actions_service "code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"connectrpc.com/connect"
@@ -452,6 +453,9 @@ func TestActionsGiteaContextEphemeral(t *testing.T) {
 		runner := newMockRunner()
 		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, true)
 
+		// verify CleanupEphemeralRunners does not remove this runner
+		actions_service.CleanupEphemeralRunners(t.Context())
+
 		// init the workflow
 		wfTreePath := ".gitea/workflows/pull.yml"
 		wfFileContent := `name: Pull Request
@@ -524,11 +528,18 @@ jobs:
 		token := gtCtx["token"].GetStringValue()
 		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
 
+		// verify CleanupEphemeralRunners does not remove this runner
+		actions_service.CleanupEphemeralRunners(t.Context())
+
 		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
 		}))
 		assert.NoError(t, err)
 		assert.Nil(t, resp.Msg.Task)
+
+		// verify CleanupEphemeralRunners does not remove this runner
+		actions_service.CleanupEphemeralRunners(t.Context())
+
 		runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
 			State: &runnerv1.TaskState{
 				Id:     actionTask.ID,
@@ -546,6 +557,27 @@ jobs:
 		}))
 		assert.Error(t, err)
 		assert.Nil(t, resp)
+
+		// create an runner that picks a job and get force cancelled
+		runnerToBeRemoved := newMockRunner()
+		runnerToBeRemoved.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner-to-be-removed", []string{"ubuntu-latest"}, true)
+
+		taskToStopApiObj := runnerToBeRemoved.fetchTask(t)
+
+		taskToStop := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskToStopApiObj.Id})
+
+		// verify CleanupEphemeralRunners does not remove the custom crafted runner
+		actions_service.CleanupEphemeralRunners(t.Context())
+
+		runnerToRemove := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: taskToStop.RunnerID})
+
+		err = actions_model.StopTask(t.Context(), taskToStop.ID, actions_model.StatusFailure)
+		assert.NoError(t, err)
+
+		// verify CleanupEphemeralRunners does remove the custom crafted runner
+		actions_service.CleanupEphemeralRunners(t.Context())
+
+		unittest.AssertNotExistsBean(t, runnerToRemove)
 	})
 }
 
