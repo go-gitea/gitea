@@ -754,17 +754,9 @@ $.api = $.fn.api = function(parameters) {
             ;
           },
           urlEncodedValue: function(value) {
-            var
-              decodedValue   = window.decodeURIComponent(value),
-              encodedValue   = window.encodeURIComponent(value),
-              alreadyEncoded = (decodedValue !== value)
-            ;
-            if(alreadyEncoded) {
-              module.debug('URL value is already encoded, avoiding double encoding', value);
-              return value;
-            }
-            module.verbose('Encoding value using encodeURIComponent', value, encodedValue);
-            return encodedValue;
+            // GITEA-PATCH: always encode the value.
+            // Old code does "decodeURIComponent" first to guess whether the value is encoded, it is not right.
+            return window.encodeURIComponent(value);
           },
           defaultData: function() {
             var
