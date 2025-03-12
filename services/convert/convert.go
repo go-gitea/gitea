@@ -273,7 +273,7 @@ func ToActionRunner(ctx context.Context, runner *actions_model.ActionRunner) *ap
 		OS:        "Unknown",
 		Status:    apiStatus,
 		Busy:      status == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE,
-		Ephemeral: runner.Ephemeral,
+		Ephemeral: false, // TODO runner.Ephemeral
 		Labels:    labels,
 	}
 }

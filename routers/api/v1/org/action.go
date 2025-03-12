@@ -466,15 +466,82 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// GetRunners get org-level runners
 func (Action) GetRunners(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/actions/runners organization getRunners
+	// ---
+	// summary: Get org-level runners
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/RunnerList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	shared.GetRunners(ctx, ctx.Org.Organization.ID, 0)
 }
 
+// GetRunner get an org-level runner
 func (Action) GetRunner(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/actions/runners/{runner_id} organization getRunner
+	// ---
+	// summary: Get an org-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/Runner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	shared.GetRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
+// DeleteRunner delete an org-level runner
 func (Action) DeleteRunner(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/actions/runners/{runner_id} organization deleteRunner
+	// ---
+	// summary: Delete an org-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: runner has been deleted
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
