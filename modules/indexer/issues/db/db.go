@@ -5,9 +5,11 @@ package db
 
 import (
 	"context"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_db "code.gitea.io/gitea/modules/indexer/internal/db"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
@@ -20,6 +22,10 @@ var _ internal.Indexer = &Indexer{}
 // Indexer implements Indexer interface to use database's like search
 type Indexer struct {
 	indexer_internal.Indexer
+}
+
+func (i *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	return indexer.SearchModesExactWords()
 }
 
 func NewIndexer() *Indexer {
@@ -36,6 +42,26 @@ func (i *Indexer) Index(_ context.Context, _ ...*internal.IndexerData) error {
 // Delete dummy function
 func (i *Indexer) Delete(_ context.Context, _ ...int64) error {
 	return nil
+}
+
+func buildMatchQuery(mode indexer.SearchModeType, colName, keyword string) builder.Cond {
+	if mode == indexer.SearchModeExact {
+		return db.BuildCaseInsensitiveLike("issue.name", keyword)
+	}
+
+	// match words
+	cond := builder.NewCond()
+	fields := strings.Fields(keyword)
+	if len(fields) == 0 {
+		return builder.Expr("1=1")
+	}
+	for _, field := range fields {
+		if field == "" {
+			continue
+		}
+		cond = cond.And(db.BuildCaseInsensitiveLike(colName, field))
+	}
+	return cond
 }
 
 // Search searches for issues
@@ -60,14 +86,14 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		subQuery := builder.Select("id").From("issue").Where(repoCond)
 
 		cond = builder.Or(
-			db.BuildCaseInsensitiveLike("issue.name", options.Keyword),
-			db.BuildCaseInsensitiveLike("issue.content", options.Keyword),
+			buildMatchQuery(options.SearchMode, "issue.name", options.Keyword),
+			buildMatchQuery(options.SearchMode, "issue.content", options.Keyword),
 			builder.In("issue.id", builder.Select("issue_id").
 				From("comment").
 				Where(builder.And(
 					builder.Eq{"type": issue_model.CommentTypeComment},
 					builder.In("issue_id", subQuery),
-					db.BuildCaseInsensitiveLike("content", options.Keyword),
+					buildMatchQuery(options.SearchMode, "content", options.Keyword),
 				)),
 			),
 		)

@@ -14,6 +14,7 @@ import (
 	db_model "code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/issues/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/db"
 	"code.gitea.io/gitea/modules/indexer/issues/elasticsearch"
@@ -312,4 +313,12 @@ func CountIssues(ctx context.Context, opts *SearchOptions) (int64, error) {
 
 	_, total, err := SearchIssues(ctx, opts)
 	return total, err
+}
+
+func SupportedSearchModes() []indexer.SearchMode {
+	gi := globalIndexer.Load()
+	if gi == nil {
+		return nil
+	}
+	return (*gi).SupportedSearchModes()
 }
