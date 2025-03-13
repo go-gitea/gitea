@@ -914,7 +914,7 @@ func Routes() *web.Router {
 			m.Group("/runners", func() {
 				m.Get("", reqToken(), reqChecker, act.ListRunners)
 				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
-				m.Get("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
+				m.Post("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
 				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
 			})
