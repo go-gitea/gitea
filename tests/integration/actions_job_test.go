@@ -454,7 +454,8 @@ func TestActionsGiteaContextEphemeral(t *testing.T) {
 		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, true)
 
 		// verify CleanupEphemeralRunners does not remove this runner
-		actions_service.CleanupEphemeralRunners(t.Context())
+		err := actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
 
 		// init the workflow
 		wfTreePath := ".gitea/workflows/pull.yml"
@@ -529,7 +530,8 @@ jobs:
 		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
 
 		// verify CleanupEphemeralRunners does not remove this runner
-		actions_service.CleanupEphemeralRunners(t.Context())
+		err = actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
 
 		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
@@ -538,7 +540,8 @@ jobs:
 		assert.Nil(t, resp.Msg.Task)
 
 		// verify CleanupEphemeralRunners does not remove this runner
-		actions_service.CleanupEphemeralRunners(t.Context())
+		err = actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
 
 		runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
 			State: &runnerv1.TaskState{
@@ -567,7 +570,8 @@ jobs:
 		taskToStop := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskToStopAPIObj.Id})
 
 		// verify CleanupEphemeralRunners does not remove the custom crafted runner
-		actions_service.CleanupEphemeralRunners(t.Context())
+		err = actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
 
 		runnerToRemove := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: taskToStop.RunnerID})
 
@@ -575,7 +579,8 @@ jobs:
 		assert.NoError(t, err)
 
 		// verify CleanupEphemeralRunners does remove the custom crafted runner
-		actions_service.CleanupEphemeralRunners(t.Context())
+		err = actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
 
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runnerToRemove.ID})
 
