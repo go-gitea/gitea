@@ -43,6 +43,7 @@ var hiddenCommentTypeGroups = hiddenCommentTypeGroupsType{
 		/*14*/ issues_model.CommentTypeAddTimeManual,
 		/*15*/ issues_model.CommentTypeCancelTracking,
 		/*26*/ issues_model.CommentTypeDeleteTimeManual,
+		/*38*/ issues_model.CommentTypeChangeTimeEstimate,
 	},
 	"deadline": {
 		/*16*/ issues_model.CommentTypeAddedDeadline,
@@ -65,7 +66,7 @@ var hiddenCommentTypeGroups = hiddenCommentTypeGroupsType{
 	},
 	"project": {
 		/*30*/ issues_model.CommentTypeProject,
-		/*31*/ issues_model.CommentTypeProjectBoard,
+		/*31*/ issues_model.CommentTypeProjectColumn,
 	},
 	"issue_ref": {
 		/*33*/ issues_model.CommentTypeChangeIssueRef,

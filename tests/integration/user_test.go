@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -33,7 +34,7 @@ func TestRenameUsername(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"_csrf":    GetUserCSRFToken(t, session),
 		"name":     "newUsername",
 		"email":    "user2@example.com",
 		"language": "en-US",
@@ -77,7 +78,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		t.Logf("Testing username %s", invalidUsername)
 
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf": GetCSRF(t, session, "/user/settings"),
+			"_csrf": GetUserCSRFToken(t, session),
 			"name":  invalidUsername,
 			"email": "user2@example.com",
 		})
@@ -97,45 +98,15 @@ func TestRenameReservedUsername(t *testing.T) {
 
 	reservedUsernames := []string{
 		// ".", "..", ".well-known", // The names are not only reserved but also invalid
-		"admin",
 		"api",
-		"assets",
-		"attachments",
-		"avatar",
-		"avatars",
-		"captcha",
-		"commits",
-		"debug",
-		"error",
-		"explore",
-		"favicon.ico",
-		"ghost",
-		"issues",
-		"login",
-		"manifest.json",
-		"metrics",
-		"milestones",
-		"new",
-		"notifications",
-		"org",
-		"pulls",
-		"raw",
-		"repo",
-		"repo-avatars",
-		"robots.txt",
-		"search",
-		"serviceworker.js",
-		"ssh_info",
-		"swagger.v1.json",
-		"user",
-		"v2",
+		"name.keys",
 	}
 
 	session := loginUser(t, "user2")
+	locale := translation.NewLocale("en-US")
 	for _, reservedUsername := range reservedUsernames {
-		t.Logf("Testing username %s", reservedUsername)
 		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"_csrf":    GetUserCSRFToken(t, session),
 			"name":     reservedUsername,
 			"email":    "user2@example.com",
 			"language": "en-US",
@@ -145,11 +116,12 @@ func TestRenameReservedUsername(t *testing.T) {
 		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Contains(t,
-			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").TrString("user.form.name_reserved", reservedUsername),
-		)
-
+		actualMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.negative.message").Text())
+		expectedMsg := locale.TrString("user.form.name_reserved", reservedUsername)
+		if strings.Contains(reservedUsername, ".") {
+			expectedMsg = locale.TrString("user.form.name_pattern_not_allowed", reservedUsername)
+		}
+		assert.Equal(t, expectedMsg, actualMsg)
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
 	}
 }
@@ -162,8 +134,7 @@ Note: This user hasn't uploaded any GPG keys.
 
 
 =twTO
------END PGP PUBLIC KEY BLOCK-----
-`)
+-----END PGP PUBLIC KEY BLOCK-----`)
 	// Import key
 	// User1 <user1@example.com>
 	session := loginUser(t, "user1")
@@ -197,8 +168,7 @@ C0TLXKur6NVYQMn01iyL+FZzRpEWNuYF3f9QeeLJ/+l2DafESNhNTy17+RPmacK6
 7XhJ1v6JYuh8kaYaEz8OpZDeh7f6Ho6PzJrsy/TKTKhGgZNINj1iaPFyOkQgKR5M
 GrE0MHOxUbc9tbtyk0F1SuzREUBH
 =DDXw
------END PGP PUBLIC KEY BLOCK-----
-`)
+-----END PGP PUBLIC KEY BLOCK-----`)
 	// Export new key
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -229,8 +199,7 @@ C0TLXKur6NVYQMn01iyL+FZzRpEWNuYF3f9QeeLJ/+l2DafESNhNTy17+RPmacK6
 7XhJ1v6JYuh8kaYaEz8OpZDeh7f6Ho6PzJrsy/TKTKhGgZNINj1iaPFyOkQgKR5M
 GrE0MHOxUbc9tbtyk0F1SuzREUBH
 =WFf5
------END PGP PUBLIC KEY BLOCK-----
-`)
+-----END PGP PUBLIC KEY BLOCK-----`)
 }
 
 func testExportUserGPGKeys(t *testing.T, user, expected string) {
@@ -283,7 +252,7 @@ func TestListStopWatches(t *testing.T) {
 		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
 		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
 		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
-		assert.Greater(t, apiWatches[0].Seconds, int64(0))
+		assert.Positive(t, apiWatches[0].Seconds)
 	}
 }
 
@@ -293,7 +262,7 @@ func TestUserLocationMapLink(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":    GetCSRF(t, session, "/user/settings"),
+		"_csrf":    GetUserCSRFToken(t, session),
 		"name":     "user2",
 		"email":    "user@example.com",
 		"language": "en-US",

@@ -23,7 +23,7 @@ var (
 )
 
 func init() {
-	unhandledItemRequeueDuration.Store(int64(5 * time.Second))
+	unhandledItemRequeueDuration.Store(int64(time.Second))
 }
 
 // workerGroup is a group of workers to work with a WorkerPoolQueue
@@ -63,6 +63,8 @@ func (q *WorkerPoolQueue[T]) doDispatchBatchToWorker(wg *workerGroup[T], flushCh
 	// TODO: the logic could be improved in the future, to avoid a data-race between "doStartNewWorker" and "workerNum"
 	// The root problem is that if we skip "doStartNewWorker" here, the "workerNum" might be decreased by other workers later
 	// So ideally, it should check whether there are enough workers by some approaches, and start new workers if necessary.
+	// This data-race is not serious, as long as a new worker will be started soon to make sure there are enough workers,
+	// so no need to hugely refactor at the moment.
 	q.workerNumMu.Lock()
 	noWorker := q.workerNum == 0
 	if full || noWorker {
@@ -102,7 +104,12 @@ func (q *WorkerPoolQueue[T]) doWorkerHandle(batch []T) {
 	// if none of the items were handled, it should back-off for a few seconds
 	// in this case the handler (eg: document indexer) may have encountered some errors/failures
 	if len(unhandled) == len(batch) && unhandledItemRequeueDuration.Load() != 0 {
+		if q.isFlushing.Load() {
+			return // do not requeue items when flushing, since all items failed, requeue them will continue failing.
+		}
 		log.Error("Queue %q failed to handle batch of %d items, backoff for a few seconds", q.GetName(), len(batch))
+		// TODO: ideally it shouldn't "sleep" here (blocks the worker, then blocks flush).
+		// It could debounce the requeue operation, and try to requeue the items in the future.
 		select {
 		case <-q.ctxRun.Done():
 		case <-time.After(time.Duration(unhandledItemRequeueDuration.Load())):
@@ -136,6 +143,14 @@ func (q *WorkerPoolQueue[T]) basePushForShutdown(items ...T) bool {
 	return true
 }
 
+func resetIdleTicker(t *time.Ticker, dur time.Duration) {
+	t.Reset(dur)
+	select {
+	case <-t.C:
+	default:
+	}
+}
+
 // doStartNewWorker starts a new worker for the queue, the worker reads from worker's channel and handles the items.
 func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 	wp.wg.Add(1)
@@ -145,8 +160,6 @@ func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 
 		log.Debug("Queue %q starts new worker", q.GetName())
 		defer log.Debug("Queue %q stops idle worker", q.GetName())
-
-		atomic.AddInt32(&q.workerStartedCounter, 1) // Only increase counter, used for debugging
 
 		t := time.NewTicker(workerIdleDuration)
 		defer t.Stop()
@@ -169,11 +182,7 @@ func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 				}
 				q.doWorkerHandle(batch)
 				// reset the idle ticker, and drain the tick after reset in case a tick is already triggered
-				t.Reset(workerIdleDuration)
-				select {
-				case <-t.C:
-				default:
-				}
+				resetIdleTicker(t, workerIdleDuration) // key code for TestWorkerPoolQueueWorkerIdleReset
 			case <-t.C:
 				q.workerNumMu.Lock()
 				keepWorking = q.workerNum <= 1 // keep the last worker running
@@ -189,18 +198,36 @@ func (q *WorkerPoolQueue[T]) doStartNewWorker(wp *workerGroup[T]) {
 // doFlush flushes the queue: it tries to read all items from the queue and handles them.
 // It is for testing purpose only. It's not designed to work for a cluster.
 func (q *WorkerPoolQueue[T]) doFlush(wg *workerGroup[T], flush flushType) {
+	q.isFlushing.Store(true)
+	defer q.isFlushing.Store(false)
+
 	log.Debug("Queue %q starts flushing", q.GetName())
 	defer log.Debug("Queue %q finishes flushing", q.GetName())
 
 	// stop all workers, and prepare a new worker context to start new workers
-
 	wg.ctxWorkerCancel()
 	wg.wg.Wait()
 
 	defer func() {
-		close(flush)
+		close(flush.c)
 		wg.doPrepareWorkerContext()
 	}()
+
+	if flush.timeout < 0 {
+		// discard everything
+		wg.batchBuffer = nil
+		for {
+			select {
+			case <-wg.popItemChan:
+			case <-wg.popItemErr:
+			case <-q.batchChan:
+			case <-q.ctxRun.Done():
+				return
+			default:
+				return
+			}
+		}
+	}
 
 	// drain the batch channel first
 loop:
@@ -217,6 +244,9 @@ loop:
 	emptyCounter := 0
 	for {
 		select {
+		case <-q.ctxRun.Done():
+			log.Debug("Queue %q is shutting down", q.GetName())
+			return
 		case data, dataOk := <-wg.popItemChan:
 			if !dataOk {
 				return
@@ -231,9 +261,6 @@ loop:
 			if !q.isCtxRunCanceled() {
 				log.Error("Failed to pop item from queue %q (doFlush): %v", q.GetName(), err)
 			}
-			return
-		case <-q.ctxRun.Done():
-			log.Debug("Queue %q is shutting down", q.GetName())
 			return
 		case <-time.After(20 * time.Millisecond):
 			// There is no reliable way to make sure all queue items are consumed by the Flush, there always might be some items stored in some buffers/temp variables.
@@ -312,6 +339,15 @@ func (q *WorkerPoolQueue[T]) doRun() {
 	var batchDispatchC <-chan time.Time = infiniteTimerC
 	for {
 		select {
+		case flush := <-q.flushChan:
+			// before flushing, it needs to try to dispatch the batch to worker first, in case there is no worker running
+			// after the flushing, there is at least one worker running, so "doFlush" could wait for workers to finish
+			// since we are already in a "flush" operation, so the dispatching function shouldn't read the flush chan.
+			q.doDispatchBatchToWorker(wg, skipFlushChan)
+			q.doFlush(wg, flush)
+		case <-q.ctxRun.Done():
+			log.Debug("Queue %q is shutting down", q.GetName())
+			return
 		case data, dataOk := <-wg.popItemChan:
 			if !dataOk {
 				return
@@ -330,19 +366,10 @@ func (q *WorkerPoolQueue[T]) doRun() {
 		case <-batchDispatchC:
 			batchDispatchC = infiniteTimerC
 			q.doDispatchBatchToWorker(wg, q.flushChan)
-		case flush := <-q.flushChan:
-			// before flushing, it needs to try to dispatch the batch to worker first, in case there is no worker running
-			// after the flushing, there is at least one worker running, so "doFlush" could wait for workers to finish
-			// since we are already in a "flush" operation, so the dispatching function shouldn't read the flush chan.
-			q.doDispatchBatchToWorker(wg, skipFlushChan)
-			q.doFlush(wg, flush)
 		case err := <-wg.popItemErr:
 			if !q.isCtxRunCanceled() {
 				log.Error("Failed to pop item from queue %q (doRun): %v", q.GetName(), err)
 			}
-			return
-		case <-q.ctxRun.Done():
-			log.Debug("Queue %q is shutting down", q.GetName())
 			return
 		}
 	}

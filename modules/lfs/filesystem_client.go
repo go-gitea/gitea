@@ -44,7 +44,7 @@ func (c *FilesystemClient) Download(ctx context.Context, objects []Pointer, call
 		if err != nil {
 			return err
 		}
-
+		defer f.Close()
 		if err := callback(p, f, nil); err != nil {
 			return err
 		}
@@ -75,7 +75,7 @@ func (c *FilesystemClient) Upload(ctx context.Context, objects []Pointer, callba
 			if err != nil {
 				return err
 			}
-
+			defer f.Close()
 			_, err = io.Copy(f, content)
 
 			return err

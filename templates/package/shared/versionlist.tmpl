@@ -25,13 +25,13 @@
 			<div class="flex-item-main">
 				<a class="flex-item-title" href="{{.VersionWebLink}}">{{.Version.LowerVersion}}</a>
 				<div class="flex-item-body">
-					{{ctx.Locale.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix ctx.Locale) .Creator.HomeLink .Creator.GetDisplayName}}
+					{{ctx.Locale.Tr "packages.published_by" (DateUtils.TimeSince .Version.CreatedUnix) .Creator.HomeLink .Creator.GetDisplayName}}
 				</div>
 			</div>
 		</div>
 	</div>
 	{{else}}
-		<p class="gt-py-4">{{ctx.Locale.Tr "packages.filter.no_result"}}</p>
+		<p class="tw-py-4">{{ctx.Locale.Tr "packages.filter.no_result"}}</p>
 	{{end}}
 	{{template "base/paginate" .}}
 </div>

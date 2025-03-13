@@ -1,0 +1,57 @@
+<div class="ui blue info message tw-flex tw-justify-between tw-items-center">
+	<span class="ui text middle">{{ctx.Locale.Tr "actions.workflow.has_workflow_dispatch"}}</span>
+	<button class="ui mini button show-modal" data-modal="#runWorkflowDispatchModal">{{ctx.Locale.Tr "actions.workflow.run"}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}</button>
+</div>
+<div id="runWorkflowDispatchModal" class="ui tiny modal">
+	<div class="content">
+		<form id="runWorkflowDispatchForm" class="ui form" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="ui inline field required tw-flex tw-items-center">
+				<span class="ui inline required field">
+					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
+				</span>
+				<div class="ui inline field dropdown button select-branch branch-selector-dropdown ellipsis-items-nowrap">
+					<input type="hidden" name="ref" hx-sync="this:replace" hx-target="#runWorkflowDispatchModalInputs" hx-swap="innerHTML" hx-get="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}" hx-trigger="change" value="refs/heads/{{index .Branches 0}}">
+					{{svg "octicon-git-branch" 14}}
+					<div class="default text">{{index .Branches 0}}</div>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="menu transition">
+						<div class="ui icon search input">
+							<i class="icon">{{svg "octicon-filter" 16}}</i>
+							<input name="search" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
+						</div>
+						<div class="branch-tag-tab">
+							<a class="branch-tag-item reference column muted active" href="#" data-target="#branch-list">
+								{{svg "octicon-git-branch" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.branches"}}
+							</a>
+							<a class="branch-tag-item reference column muted" href="#" data-target="#tag-list">
+								{{svg "octicon-tag" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.tags"}}
+							</a>
+						</div>
+						<div class="branch-tag-divider"></div>
+						<div id="branch-list" class="scrolling menu reference-list-menu">
+							{{range .Branches}}
+								<div class="item" data-value="refs/heads/{{.}}" title="{{.}}">{{.}}</div>
+							{{else}}
+								<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
+							{{end}}
+						</div>
+						<div id="tag-list" class="scrolling menu reference-list-menu tw-hidden">
+							{{range .Tags}}
+								<div class="item" data-value="refs/tags/{{.}}" title="{{.}}">{{.}}</div>
+							{{else}}
+								<div class="item">{{ctx.Locale.Tr "no_results_found"}}</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="divider"></div>
+
+			<div id="runWorkflowDispatchModalInputs">
+				{{template "repo/actions/workflow_dispatch_inputs" .}}
+			</div>
+		</form>
+	</div>
+</div>

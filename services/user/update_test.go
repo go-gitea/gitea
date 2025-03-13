@@ -35,7 +35,7 @@ func TestUpdateUser(t *testing.T) {
 		Description:                  optional.Some("description"),
 		AllowGitHook:                 optional.Some(true),
 		AllowImportLocal:             optional.Some(true),
-		MaxRepoCreation:              optional.Some[int](10),
+		MaxRepoCreation:              optional.Some(10),
 		IsRestricted:                 optional.Some(true),
 		IsActive:                     optional.Some(false),
 		IsAdmin:                      optional.Some(true),
@@ -94,7 +94,7 @@ func TestUpdateAuth(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	copy := *user
+	userCopy := *user
 
 	assert.NoError(t, UpdateAuth(db.DefaultContext, user, &UpdateAuthOptions{
 		LoginName: optional.Some("new-login"),
@@ -106,8 +106,8 @@ func TestUpdateAuth(t *testing.T) {
 		MustChangePassword: optional.Some(true),
 	}))
 	assert.True(t, user.MustChangePassword)
-	assert.NotEqual(t, copy.Passwd, user.Passwd)
-	assert.NotEqual(t, copy.Salt, user.Salt)
+	assert.NotEqual(t, userCopy.Passwd, user.Passwd)
+	assert.NotEqual(t, userCopy.Salt, user.Salt)
 
 	assert.NoError(t, UpdateAuth(db.DefaultContext, user, &UpdateAuthOptions{
 		ProhibitLogin: optional.Some(true),

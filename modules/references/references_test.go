@@ -249,11 +249,10 @@ func TestFindAllIssueReferences(t *testing.T) {
 	}
 
 	for _, fixture := range alnumFixtures {
-		found, ref := FindRenderizableReferenceAlphanumeric(fixture.input)
+		ref := FindRenderizableReferenceAlphanumeric(fixture.input)
 		if fixture.issue == "" {
-			assert.False(t, found, "Failed to parse: {%s}", fixture.input)
+			assert.Nil(t, ref, "Failed to parse: {%s}", fixture.input)
 		} else {
-			assert.True(t, found, "Failed to parse: {%s}", fixture.input)
 			assert.Equal(t, fixture.issue, ref.Issue, "Failed to parse: {%s}", fixture.input)
 			assert.Equal(t, fixture.refLocation, ref.RefLocation, "Failed to parse: {%s}", fixture.input)
 			assert.Equal(t, fixture.action, ref.Action, "Failed to parse: {%s}", fixture.input)
@@ -392,6 +391,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		{"@gitea,", "@gitea"},
 		{"@gitea;", "@gitea"},
 		{"@gitea/team1;", "@gitea/team1"},
+		{"@user's idea", "@user"},
 	}
 	falseTestCases := []string{
 		"@ 0",
@@ -412,7 +412,6 @@ func TestRegExp_mentionPattern(t *testing.T) {
 
 	for _, testCase := range trueTestCases {
 		found := mentionPattern.FindStringSubmatch(testCase.pat)
-		assert.Len(t, found, 2)
 		assert.Equal(t, testCase.exp, found[1])
 	}
 	for _, testCase := range falseTestCases {
@@ -463,6 +462,7 @@ func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 		"ABC-123:",
 		"\"ABC-123\"",
 		"'ABC-123'",
+		"ABC-123, unknown PR",
 	}
 	falseTestCases := []string{
 		"RC-08",
@@ -526,7 +526,7 @@ func TestCustomizeCloseKeywords(t *testing.T) {
 
 func TestParseCloseKeywords(t *testing.T) {
 	// Test parsing of CloseKeywords and ReopenKeywords
-	assert.Len(t, parseKeywords([]string{""}), 0)
+	assert.Empty(t, parseKeywords([]string{""}))
 	assert.Len(t, parseKeywords([]string{"  aa  ", " bb  ", "99", "#", "", "this is", "cc"}), 3)
 
 	for _, test := range []struct {

@@ -76,23 +76,14 @@ func calcFingerprintNative(publicKeyContent string) (string, error) {
 // CalcFingerprint calculate public key's fingerprint
 func CalcFingerprint(publicKeyContent string) (string, error) {
 	// Call the method based on configuration
-	var (
-		fnName, fp string
-		err        error
-	)
-	if len(setting.SSH.KeygenPath) == 0 {
-		fnName = "calcFingerprintNative"
-		fp, err = calcFingerprintNative(publicKeyContent)
-	} else {
-		fnName = "calcFingerprintSSHKeygen"
-		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
-	}
+	useNative := setting.SSH.KeygenPath == ""
+	calcFn := util.Iif(useNative, calcFingerprintNative, calcFingerprintSSHKeygen)
+	fp, err := calcFn(publicKeyContent)
 	if err != nil {
 		if IsErrKeyUnableVerify(err) {
-			log.Info("%s", publicKeyContent)
 			return "", err
 		}
-		return "", fmt.Errorf("%s: %w", fnName, err)
+		return "", fmt.Errorf("CalcFingerprint(%s): %w", util.Iif(useNative, "native", "ssh-keygen"), err)
 	}
 	return fp, nil
 }

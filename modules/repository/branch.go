@@ -5,6 +5,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -36,6 +37,16 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 }
 
 func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) (int64, error) {
+	objFmt, err := gitRepo.GetObjectFormat()
+	if err != nil {
+		return 0, fmt.Errorf("GetObjectFormat: %w", err)
+	}
+	_, err = db.GetEngine(ctx).ID(repo.ID).Update(&repo_model.Repository{ObjectFormatName: objFmt.Name()})
+	if err != nil {
+		return 0, fmt.Errorf("UpdateRepository: %w", err)
+	}
+	repo.ObjectFormatName = objFmt.Name() // keep consistent with db
+
 	allBranches := container.Set[string]{}
 	{
 		branches, _, err := gitRepo.GetBranchNames(0, 0)

@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"github.com/gobwas/glob"
 )
 
 // Indexer settings
@@ -30,9 +28,11 @@ var Indexer = struct {
 	RepoConnStr          string
 	RepoIndexerName      string
 	MaxIndexerFileSize   int64
-	IncludePatterns      []glob.Glob
-	ExcludePatterns      []glob.Glob
+	IncludePatterns      []*GlobMatcher
+	ExcludePatterns      []*GlobMatcher
 	ExcludeVendored      bool
+
+	TypeBleveMaxFuzzniess int
 }{
 	IssueType:        "bleve",
 	IssuePath:        "indexers/issues.bleve",
@@ -58,7 +58,7 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 		if !filepath.IsAbs(Indexer.IssuePath) {
 			Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
 		}
-		fatalDuplicatedPath("issue_indexer", Indexer.IssuePath)
+		checkOverlappedPath("[indexer].ISSUE_INDEXER_PATH", Indexer.IssuePath)
 	} else {
 		Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
 		if Indexer.IssueType == "meilisearch" {
@@ -90,16 +90,17 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 	Indexer.ExcludeVendored = sec.Key("REPO_INDEXER_EXCLUDE_VENDORED").MustBool(true)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 	Indexer.StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(30 * time.Second)
+	Indexer.TypeBleveMaxFuzzniess = sec.Key("TYPE_BLEVE_MAX_FUZZINESS").MustInt(0)
 }
 
 // IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing
-func IndexerGlobFromString(globstr string) []glob.Glob {
-	extarr := make([]glob.Glob, 0, 10)
+func IndexerGlobFromString(globstr string) []*GlobMatcher {
+	extarr := make([]*GlobMatcher, 0, 10)
 	for _, expr := range strings.Split(strings.ToLower(globstr), ",") {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
-			if g, err := glob.Compile(expr, '.', '/'); err != nil {
-				log.Info("Invalid glob expression '%s' (skipped): %v", expr, err)
+			if g, err := GlobMatcherCompile(expr, '.', '/'); err != nil {
+				log.Warn("Invalid glob expression '%s' (skipped): %v", expr, err)
 			} else {
 				extarr = append(extarr, g)
 			}

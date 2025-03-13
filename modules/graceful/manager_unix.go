@@ -59,8 +59,8 @@ func (g *Manager) start() {
 	go func() {
 		defer func() {
 			close(startupDone)
-			// Close the unused listeners and ignore the error here there's not much we can do with it, they're logged in the CloseProvidedListeners function
-			_ = CloseProvidedListeners()
+			// Close the unused listeners
+			closeProvidedListeners()
 		}()
 		// Wait for all servers to be created
 		g.createServerCond.L.Lock()

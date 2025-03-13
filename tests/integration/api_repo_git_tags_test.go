@@ -30,8 +30,8 @@ func TestAPIGitTags(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Set up git config for the tagger
-	_ = git.NewCommand(git.DefaultContext, "config", "user.name").AddDynamicArguments(user.Name).Run(&git.RunOpts{Dir: repo.RepoPath()})
-	_ = git.NewCommand(git.DefaultContext, "config", "user.email").AddDynamicArguments(user.Email).Run(&git.RunOpts{Dir: repo.RepoPath()})
+	_ = git.NewCommand("config", "user.name").AddDynamicArguments(user.Name).Run(git.DefaultContext, &git.RunOpts{Dir: repo.RepoPath()})
+	_ = git.NewCommand("config", "user.email").AddDynamicArguments(user.Email).Run(git.DefaultContext, &git.RunOpts{Dir: repo.RepoPath()})
 
 	gitRepo, _ := gitrepo.OpenRepository(git.DefaultContext, repo)
 	defer gitRepo.Close()
@@ -80,7 +80,7 @@ func TestAPIDeleteTagByName(t *testing.T) {
 	_ = MakeRequest(t, req, http.StatusNoContent)
 
 	// Make sure that actual releases can't be deleted outright
-	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
+	createNewReleaseUsingAPI(t, token, owner, repo, "release-tag", "", "Release Tag", "test")
 
 	req = NewRequest(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag", owner.Name, repo.Name)).
 		AddTokenAuth(token)

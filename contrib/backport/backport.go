@@ -17,7 +17,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v61/github"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -63,6 +63,11 @@ func main() {
 			Name:  "fork-user",
 			Value: "",
 			Usage: "Forked user name on Github",
+		},
+		&cli.StringFlag{
+			Name:  "gh-access-token",
+			Value: "",
+			Usage: "Access token for GitHub api request",
 		},
 		&cli.BoolFlag{
 			Name:  "no-fetch",
@@ -169,9 +174,10 @@ func runBackport(c *cli.Context) error {
 	fmt.Printf("* Backporting %s to %s as %s\n", pr, localReleaseBranch, backportBranch)
 
 	sha := c.String("cherry-pick")
+	accessToken := c.String("gh-access-token")
 	if sha == "" {
 		var err error
-		sha, err = determineSHAforPR(ctx, pr)
+		sha, err = determineSHAforPR(ctx, pr, accessToken)
 		if err != nil {
 			return err
 		}
@@ -427,13 +433,16 @@ func readVersion() string {
 	return strings.Join(split[:2], ".")
 }
 
-func determineSHAforPR(ctx context.Context, prStr string) (string, error) {
+func determineSHAforPR(ctx context.Context, prStr, accessToken string) (string, error) {
 	prNum, err := strconv.Atoi(prStr)
 	if err != nil {
 		return "", err
 	}
 
 	client := github.NewClient(http.DefaultClient)
+	if accessToken != "" {
+		client = client.WithAuthToken(accessToken)
+	}
 
 	pr, _, err := client.PullRequests.Get(ctx, "go-gitea", "gitea", prNum)
 	if err != nil {

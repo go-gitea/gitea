@@ -24,6 +24,12 @@ func TestAPIRepoSecrets(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
+	t.Run("List", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/secrets", repo.FullName())).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+	})
+
 	t.Run("Create", func(t *testing.T) {
 		cases := []struct {
 			Name           string
@@ -31,7 +37,7 @@ func TestAPIRepoSecrets(t *testing.T) {
 		}{
 			{
 				Name:           "",
-				ExpectedStatus: http.StatusNotFound,
+				ExpectedStatus: http.StatusMethodNotAllowed,
 			},
 			{
 				Name:           "-",

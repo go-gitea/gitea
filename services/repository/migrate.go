@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -121,9 +120,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
-		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+	if stdout, _, err := git.NewCommand("update-server-info").
+		RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
 		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
 	}
@@ -169,7 +167,13 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			lfsClient := lfs.NewClient(endpoint, httpTransport)
 			if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
+				return repo, fmt.Errorf("StoreMissingLfsObjectsInRepository: %w", err)
 			}
+		}
+
+		// Update repo license
+		if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{RepoID: repo.ID}); err != nil {
+			log.Error("Failed to add repo to license updater queue: %v", err)
 		}
 	}
 
@@ -226,9 +230,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 		// this is necessary for sync local tags from remote
 		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
-		if stdout, _, err := git.NewCommand(ctx, "config").
+		if stdout, _, err := git.NewCommand("config").
 			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+			RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
 		}
@@ -247,12 +251,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
 // This also removes possible user credentials.
 func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
-	cmd := git.NewCommand(ctx, "remote", "rm", "origin")
+	cmd := git.NewCommand("remote", "rm", "origin")
 	// if the origin does not exist
-	_, stderr, err := cmd.RunStdString(&git.RunOpts{
+	_, _, err := cmd.RunStdString(ctx, &git.RunOpts{
 		Dir: repoPath,
 	})
-	if err != nil && !strings.HasPrefix(stderr, "fatal: No such remote") {
+	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 	return nil
@@ -270,8 +274,8 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	_, _, err := git.NewCommand(ctx, "remote", "rm", "origin").RunStdString(&git.RunOpts{Dir: repoPath})
-	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+	_, _, err := git.NewCommand("remote", "rm", "origin").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 

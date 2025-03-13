@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -41,7 +42,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 			}
 		}
 		if projectID > 0 {
-			if err := issues_model.ChangeProjectAssign(ctx, issue, issue.Poster, projectID); err != nil {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectID, 0); err != nil {
 				return err
 			}
 		}
@@ -89,15 +90,26 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 		return err
 	}
 
+	var reviewNotifiers []*ReviewRequestNotifier
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
-		if err := PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest); err != nil {
-			return err
+		var err error
+		reviewNotifiers, err = PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest)
+		if err != nil {
+			log.Error("PullRequestCodeOwnersReview: %v", err)
 		}
 	}
 
 	notify_service.IssueChangeTitle(ctx, doer, issue, oldTitle)
+	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
 	return nil
+}
+
+// ChangeTimeEstimate changes the time estimate of this issue, as the given user.
+func ChangeTimeEstimate(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, timeEstimate int64) (err error) {
+	issue.TimeEstimate = timeEstimate
+
+	return issues_model.ChangeIssueTimeEstimate(ctx, issue, doer, timeEstimate)
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.
@@ -185,13 +197,6 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 		}
 	}
 
-	// If the Issue is pinned, we should unpin it before deletion to avoid problems with other pinned Issues
-	if issue.IsPinned() {
-		if err := issue.Unpin(ctx, doer); err != nil {
-			return err
-		}
-	}
-
 	notify_service.DeleteIssue(ctx, doer, issue)
 
 	return nil
@@ -238,8 +243,9 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 	issueRefURLs := make(map[int64]string, len(issues))
 	for _, issue := range issues {
 		if issue.Ref != "" {
-			issueRefEndNames[issue.ID] = git.RefName(issue.Ref).ShortName()
-			issueRefURLs[issue.ID] = git.RefURL(repoLink, issue.Ref)
+			ref := git.RefName(issue.Ref)
+			issueRefEndNames[issue.ID] = ref.ShortName()
+			issueRefURLs[issue.ID] = repoLink + "/src/" + ref.RefWebLinkPath()
 		}
 	}
 	return issueRefEndNames, issueRefURLs
@@ -306,6 +312,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 		&issues_model.Comment{RefIssueID: issue.ID},
 		&issues_model.IssueDependency{DependencyID: issue.ID},
 		&issues_model.Comment{DependentIssueID: issue.ID},
+		&issues_model.IssuePin{IssueID: issue.ID},
 	); err != nil {
 		return err
 	}

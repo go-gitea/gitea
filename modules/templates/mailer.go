@@ -11,9 +11,9 @@ import (
 	"strings"
 	texttmpl "text/template"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
@@ -22,9 +22,9 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
 func mailSubjectTextFuncMap() texttmpl.FuncMap {
 	return texttmpl.FuncMap{
 		"dict": dict,
-		"Eval": Eval,
+		"Eval": evalTokens,
 
-		"EllipsisString": base.EllipsisString,
+		"EllipsisString": util.EllipsisDisplayString,
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -84,9 +84,8 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 			if err = buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content); err != nil {
 				if firstRun {
 					log.Fatal("Failed to parse mail template, err: %v", err)
-				} else {
-					log.Error("Failed to parse mail template, err: %v", err)
 				}
+				log.Error("Failed to parse mail template, err: %v", err)
 			}
 		}
 	}

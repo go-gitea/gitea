@@ -6,7 +6,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -28,7 +27,7 @@ func makePathOutput(workPath, customPath, customConf string) string {
 }
 
 func newTestApp(testCmdAction func(ctx *cli.Context) error) *cli.App {
-	app := NewMainApp("version", "version-extra")
+	app := NewMainApp(AppVersion{})
 	testCmd := &cli.Command{Name: "test-cmd", Action: testCmdAction}
 	prepareSubcommandWithConfig(testCmd, appGlobalFlags())
 	app.Commands = append(app.Commands, testCmd)
@@ -113,37 +112,17 @@ func TestCliCmd(t *testing.T) {
 		_, _ = fmt.Fprint(ctx.App.Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))
 		return nil
 	})
-	var envBackup []string
-	for _, s := range os.Environ() {
-		if strings.HasPrefix(s, "GITEA_") && strings.Contains(s, "=") {
-			envBackup = append(envBackup, s)
-		}
-	}
-	clearGiteaEnv := func() {
-		for _, s := range os.Environ() {
-			if strings.HasPrefix(s, "GITEA_") {
-				_ = os.Unsetenv(s)
-			}
-		}
-	}
-	defer func() {
-		clearGiteaEnv()
-		for _, s := range envBackup {
-			k, v, _ := strings.Cut(s, "=")
-			_ = os.Setenv(k, v)
-		}
-	}()
-
 	for _, c := range cases {
-		clearGiteaEnv()
-		for k, v := range c.env {
-			_ = os.Setenv(k, v)
-		}
-		args := strings.Split(c.cmd, " ") // for test only, "split" is good enough
-		r, err := runTestApp(app, args...)
-		assert.NoError(t, err, c.cmd)
-		assert.NotEmpty(t, c.exp, c.cmd)
-		assert.Contains(t, r.Stdout, c.exp, c.cmd)
+		t.Run(c.cmd, func(t *testing.T) {
+			for k, v := range c.env {
+				t.Setenv(k, v)
+			}
+			args := strings.Split(c.cmd, " ") // for test only, "split" is good enough
+			r, err := runTestApp(app, args...)
+			assert.NoError(t, err, c.cmd)
+			assert.NotEmpty(t, c.exp, c.cmd)
+			assert.Contains(t, r.Stdout, c.exp, c.cmd)
+		})
 	}
 }
 

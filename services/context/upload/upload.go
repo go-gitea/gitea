@@ -28,12 +28,13 @@ func IsErrFileTypeForbidden(err error) bool {
 }
 
 func (err ErrFileTypeForbidden) Error() string {
-	return "This file extension or type is not allowed to be uploaded."
+	return "This file cannot be uploaded or modified due to a forbidden file extension or type."
 }
 
 var wildcardTypeRe = regexp.MustCompile(`^[a-z]+/\*$`)
 
-// Verify validates whether a file is allowed to be uploaded.
+// Verify validates whether a file is allowed to be uploaded. If buf is empty, it will just check if the file
+// has an allowed file extension.
 func Verify(buf []byte, fileName, allowedTypesStr string) error {
 	allowedTypesStr = strings.ReplaceAll(allowedTypesStr, "|", ",") // compat for old config format
 
@@ -56,21 +57,31 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 		return ErrFileTypeForbidden{Type: fullMimeType}
 	}
 	extension := strings.ToLower(path.Ext(fileName))
+	isBufEmpty := len(buf) <= 1
 
 	// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#Unique_file_type_specifiers
 	for _, allowEntry := range allowedTypes {
 		if allowEntry == "*/*" {
 			return nil // everything allowed
-		} else if strings.HasPrefix(allowEntry, ".") && allowEntry == extension {
+		}
+		if strings.HasPrefix(allowEntry, ".") && allowEntry == extension {
 			return nil // extension is allowed
-		} else if mimeType == allowEntry {
+		}
+		if isBufEmpty {
+			continue // skip mime type checks if buffer is empty
+		}
+		if mimeType == allowEntry {
 			return nil // mime type is allowed
-		} else if wildcardTypeRe.MatchString(allowEntry) && strings.HasPrefix(mimeType, allowEntry[:len(allowEntry)-1]) {
+		}
+		if wildcardTypeRe.MatchString(allowEntry) && strings.HasPrefix(mimeType, allowEntry[:len(allowEntry)-1]) {
 			return nil // wildcard match, e.g. image/*
 		}
 	}
 
-	log.Info("Attachment with type %s blocked from upload", fullMimeType)
+	if !isBufEmpty {
+		log.Info("Attachment with type %s blocked from upload", fullMimeType)
+	}
+
 	return ErrFileTypeForbidden{Type: fullMimeType}
 }
 
@@ -86,8 +97,8 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 	} else if uploadType == "comment" {
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
-		if len(ctx.Params(":index")) > 0 {
-			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.Params(":index")) + "/attachments"
+		if len(ctx.PathParam("index")) > 0 {
+			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/" + url.PathEscape(ctx.PathParam("index")) + "/attachments"
 		} else {
 			ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		}

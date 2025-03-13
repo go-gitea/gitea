@@ -21,7 +21,7 @@
 										<div class="ui input">
 											<input class="prompt" name="name_pattern" autocomplete="off" value="{{.name_pattern}}" placeholder="v*" autofocus required>
 										</div>
-										<div class="help">{{ctx.Locale.Tr "repo.settings.tags.protection.pattern.description"}}</div>
+										<div class="help">{{ctx.Locale.Tr "repo.settings.tags.protection.pattern.description" "https://docs.gitea.com/usage/protected-tags"}}</div>
 									</div>
 								</div>
 								<div class="whitelist field">
@@ -106,7 +106,7 @@
 										</td>
 										<td class="right aligned">
 											<a class="ui tiny primary button" href="{{$.RepoLink}}/settings/tags/{{.ID}}">{{ctx.Locale.Tr "edit"}}</a>
-											<form class="gt-dib" action="{{$.RepoLink}}/settings/tags/delete" method="post">
+											<form class="tw-inline-block" action="{{$.RepoLink}}/settings/tags/delete" method="post">
 												{{$.CsrfTokenHtml}}
 												<input type="hidden" name="id" value="{{.ID}}">
 												<button class="ui tiny red button">{{ctx.Locale.Tr "remove"}}</button>

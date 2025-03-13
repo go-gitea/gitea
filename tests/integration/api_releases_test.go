@@ -77,7 +77,7 @@ func TestAPIListReleases(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
 }
 
-func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, owner *user_model.User, repo *repo_model.Repository, name, target, title, desc string) *api.Release {
+func createNewReleaseUsingAPI(t *testing.T, token string, owner *user_model.User, repo *repo_model.Repository, name, target, title, desc string) *api.Release {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
 		TagName:      name,
@@ -120,7 +120,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	target, err := gitRepo.GetTagCommitID("v0.0.1")
 	assert.NoError(t, err)
 
-	newRelease := createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", target, "v0.0.1", "test")
+	newRelease := createNewReleaseUsingAPI(t, token, owner, repo, "v0.0.1", target, "v0.0.1", "test")
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d", owner.Name, repo.Name, newRelease.ID)
 	req := NewRequest(t, "GET", urlStr).
@@ -154,6 +154,31 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	assert.EqualValues(t, rel.Note, newRelease.Note)
 }
 
+func TestAPICreateProtectedTagRelease(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	writer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	session := loginUser(t, writer.LowerName)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	commit, err := gitRepo.GetBranchCommit("master")
+	assert.NoError(t, err)
+
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/releases", repo.OwnerName, repo.Name), &api.CreateReleaseOption{
+		TagName:      "v0.0.1",
+		Title:        "v0.0.1",
+		IsDraft:      false,
+		IsPrerelease: false,
+		Target:       commit.ID.String(),
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+}
+
 func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -162,7 +187,7 @@ func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
+	createNewReleaseUsingAPI(t, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
 }
 
 func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
@@ -180,7 +205,25 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	err = gitRepo.CreateTag("v0.0.1", "master")
 	assert.NoError(t, err)
 
-	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
+	createNewReleaseUsingAPI(t, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
+}
+
+func TestAPICreateReleaseGivenInvalidTarget(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+		TagName: "i-point-to-an-invalid-target",
+		Title:   "Invalid Target",
+		Target:  "invalid-target",
+	}).AddTokenAuth(token)
+
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIGetLatestRelease(t *testing.T) {
@@ -232,20 +275,20 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
+	createNewReleaseUsingAPI(t, token, owner, repo, "release-tag", "", "Release Tag", "test")
 
 	// delete release
-	req := NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag", owner.Name, repo.Name)).
+	req := NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/releases/tags/release-tag", owner.Name, repo.Name).
 		AddTokenAuth(token)
 	_ = MakeRequest(t, req, http.StatusNoContent)
 
 	// make sure release is deleted
-	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag", owner.Name, repo.Name)).
+	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/releases/tags/release-tag", owner.Name, repo.Name).
 		AddTokenAuth(token)
 	_ = MakeRequest(t, req, http.StatusNotFound)
 
 	// delete release tag too
-	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag", owner.Name, repo.Name)).
+	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/tags/release-tag", owner.Name, repo.Name).
 		AddTokenAuth(token)
 	_ = MakeRequest(t, req, http.StatusNoContent)
 }
@@ -258,7 +301,7 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	r := createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
+	r := createNewReleaseUsingAPI(t, token, owner, repo, "release-tag", "", "Release Tag", "test")
 
 	filename := "image.png"
 	buff := generateImg()

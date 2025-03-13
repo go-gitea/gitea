@@ -2,10 +2,10 @@
 	<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}">
 	<button class="fluid ui button">
 		{{if $.IssueWatch.IsWatching}}
-			{{svg "octicon-mute" 16 "gt-mr-3"}}
+			{{svg "octicon-mute" 16 "tw-mr-2"}}
 			{{ctx.Locale.Tr "repo.issues.unsubscribe"}}
 		{{else}}
-			{{svg "octicon-unmute" 16 "gt-mr-3"}}
+			{{svg "octicon-unmute" 16 "tw-mr-2"}}
 			{{ctx.Locale.Tr "repo.issues.subscribe"}}
 		{{end}}
 	</button>

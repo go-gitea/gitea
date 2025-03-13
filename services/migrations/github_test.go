@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
@@ -21,11 +20,12 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	if token == "" {
 		t.Skip("Skipping GitHub migration test because GITHUB_READ_TOKEN is empty")
 	}
-	downloader := NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", token, "go-gitea", "test_repo")
-	err := downloader.RefreshRate()
+	ctx := t.Context()
+	downloader := NewGithubDownloaderV3(ctx, "https://github.com", "", "", token, "go-gitea", "test_repo")
+	err := downloader.RefreshRate(ctx)
 	assert.NoError(t, err)
 
-	repo, err := downloader.GetRepoInfo()
+	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	assertRepositoryEqual(t, &base.Repository{
 		Name:          "test_repo",
@@ -36,11 +36,11 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		DefaultBranch: "master",
 	}, repo)
 
-	topics, err := downloader.GetTopics()
+	topics, err := downloader.GetTopics(ctx)
 	assert.NoError(t, err)
 	assert.Contains(t, topics, "gitea")
 
-	milestones, err := downloader.GetMilestones()
+	milestones, err := downloader.GetMilestones(ctx)
 	assert.NoError(t, err)
 	assertMilestonesEqual(t, []*base.Milestone{
 		{
@@ -63,7 +63,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, milestones)
 
-	labels, err := downloader.GetLabels()
+	labels, err := downloader.GetLabels(ctx)
 	assert.NoError(t, err)
 	assertLabelsEqual(t, []*base.Label{
 		{
@@ -113,7 +113,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, labels)
 
-	releases, err := downloader.GetReleases()
+	releases, err := downloader.GetReleases(ctx)
 	assert.NoError(t, err)
 	assertReleasesEqual(t, []*base.Release{
 		{
@@ -129,7 +129,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, releases)
 
 	// downloader.GetIssues()
-	issues, isEnd, err := downloader.GetIssues(1, 2)
+	issues, isEnd, err := downloader.GetIssues(ctx, 1, 2)
 	assert.NoError(t, err)
 	assert.False(t, isEnd)
 	assertIssuesEqual(t, []*base.Issue{
@@ -218,7 +218,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, issues)
 
 	// downloader.GetComments()
-	comments, _, err := downloader.GetComments(&base.Issue{Number: 2, ForeignIndex: 2})
+	comments, _, err := downloader.GetComments(ctx, &base.Issue{Number: 2, ForeignIndex: 2})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
 		{
@@ -248,7 +248,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, comments)
 
 	// downloader.GetPullRequests()
-	prs, _, err := downloader.GetPullRequests(1, 2)
+	prs, _, err := downloader.GetPullRequests(ctx, 1, 2)
 	assert.NoError(t, err)
 	assertPullRequestsEqual(t, []*base.PullRequest{
 		{
@@ -338,7 +338,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	reviews, err := downloader.GetReviews(&base.PullRequest{Number: 3, ForeignIndex: 3})
+	reviews, err := downloader.GetReviews(ctx, &base.PullRequest{Number: 3, ForeignIndex: 3})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -370,7 +370,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, reviews)
 
-	reviews, err = downloader.GetReviews(&base.PullRequest{Number: 4, ForeignIndex: 4})
+	reviews, err = downloader.GetReviews(ctx, &base.PullRequest{Number: 4, ForeignIndex: 4})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

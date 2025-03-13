@@ -36,9 +36,9 @@ func expandHashReferencesToSha256(x *xorm.Engine) error {
 		if setting.Database.Type.IsMSSQL() {
 			// drop indexes that need to be re-created afterwards
 			droppedIndexes := []string{
-				"DROP INDEX IF EXISTS [IDX_commit_status_context_hash] ON [commit_status]",
-				"DROP INDEX IF EXISTS [UQE_review_state_pull_commit_user] ON [review_state]",
-				"DROP INDEX IF EXISTS [UQE_repo_archiver_s] ON [repo_archiver]",
+				"DROP INDEX [IDX_commit_status_context_hash] ON [commit_status]",
+				"DROP INDEX [UQE_review_state_pull_commit_user] ON [review_state]",
+				"DROP INDEX [UQE_repo_archiver_s] ON [repo_archiver]",
 			}
 			for _, s := range droppedIndexes {
 				_, err := db.Exec(s)
@@ -53,7 +53,7 @@ func expandHashReferencesToSha256(x *xorm.Engine) error {
 			if setting.Database.Type.IsMySQL() {
 				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` MODIFY COLUMN `%s` VARCHAR(64)", alts[0], alts[1]))
 			} else if setting.Database.Type.IsMSSQL() {
-				_, err = db.Exec(fmt.Sprintf("ALTER TABLE [%s] ALTER COLUMN [%s] VARCHAR(64)", alts[0], alts[1]))
+				_, err = db.Exec(fmt.Sprintf("ALTER TABLE [%s] ALTER COLUMN [%s] NVARCHAR(64)", alts[0], alts[1]))
 			} else {
 				_, err = db.Exec(fmt.Sprintf("ALTER TABLE `%s` ALTER COLUMN `%s` TYPE VARCHAR(64)", alts[0], alts[1]))
 			}
@@ -86,13 +86,16 @@ func addObjectFormatNameToRepository(x *xorm.Engine) error {
 		ObjectFormatName string `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
 	}
 
-	if err := x.Sync(new(Repository)); err != nil {
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreIndices:    true,
+		IgnoreConstrains: true,
+	}, new(Repository)); err != nil {
 		return err
 	}
 
 	// Here to catch weird edge-cases where column constraints above are
 	// not applied by the DB backend
-	_, err := x.Exec("UPDATE repository set object_format_name = 'sha1' WHERE object_format_name = '' or object_format_name IS NULL")
+	_, err := x.Exec("UPDATE `repository` set `object_format_name` = 'sha1' WHERE `object_format_name` = '' or `object_format_name` IS NULL")
 	return err
 }
 

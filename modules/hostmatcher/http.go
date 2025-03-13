@@ -13,11 +13,7 @@ import (
 )
 
 // NewDialContext returns a DialContext for Transport, the DialContext will do allow/block list check
-func NewDialContext(usage string, allowList, blockList *HostMatchList) func(ctx context.Context, network, addr string) (net.Conn, error) {
-	return NewDialContextWithProxy(usage, allowList, blockList, nil)
-}
-
-func NewDialContextWithProxy(usage string, allowList, blockList *HostMatchList, proxy *url.URL) func(ctx context.Context, network, addr string) (net.Conn, error) {
+func NewDialContext(usage string, allowList, blockList *HostMatchList, proxy *url.URL) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	// How Go HTTP Client works with redirection:
 	//   transport.RoundTrip URL=http://domain.com, Host=domain.com
 	//   transport.DialContext addrOrHost=domain.com:80

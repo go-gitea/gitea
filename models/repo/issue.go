@@ -53,7 +53,7 @@ func (repo *Repository) IsDependenciesEnabled(ctx context.Context) bool {
 	var u *RepoUnit
 	var err error
 	if u, err = repo.GetUnit(ctx, unit.TypeIssues); err != nil {
-		log.Trace("%s", err)
+		log.Trace("IsDependenciesEnabled: %v", err)
 		return setting.Service.DefaultEnableDependencies
 	}
 	return u.IssuesConfig().EnableDependencies

@@ -84,9 +84,9 @@ func SlackLinkFormatter(url, text string) string {
 // SlackLinkToRef slack-formatter link to a repo ref
 func SlackLinkToRef(repoURL, ref string) string {
 	// FIXME: SHA1 hardcoded here
-	url := git.RefURL(repoURL, ref)
-	refName := git.RefName(ref).ShortName()
-	return SlackLinkFormatter(url, refName)
+	refName := git.RefName(ref)
+	url := repoURL + "/src/" + refName.RefWebLinkPath()
+	return SlackLinkFormatter(url, refName.ShortName())
 }
 
 // Create implements payloadConvertor Create method
@@ -118,17 +118,17 @@ func (s slackConvertor) Fork(p *api.ForkPayload) (SlackPayload, error) {
 
 // Issue implements payloadConvertor Issue method
 func (s slackConvertor) Issue(p *api.IssuePayload) (SlackPayload, error) {
-	text, issueTitle, attachmentText, color := getIssuesPayloadInfo(p, SlackLinkFormatter, true)
+	text, issueTitle, extraMarkdown, color := getIssuesPayloadInfo(p, SlackLinkFormatter, true)
 
 	var attachments []SlackAttachment
-	if attachmentText != "" {
-		attachmentText = SlackTextFormatter(attachmentText)
+	if extraMarkdown != "" {
+		extraMarkdown = SlackTextFormatter(extraMarkdown)
 		issueTitle = SlackTextFormatter(issueTitle)
 		attachments = append(attachments, SlackAttachment{
 			Color:     fmt.Sprintf("%x", color),
 			Title:     issueTitle,
 			TitleLink: p.Issue.HTMLURL,
-			Text:      attachmentText,
+			Text:      extraMarkdown,
 		})
 	}
 
@@ -163,6 +163,18 @@ func (s slackConvertor) Release(p *api.ReleasePayload) (SlackPayload, error) {
 
 func (s slackConvertor) Package(p *api.PackagePayload) (SlackPayload, error) {
 	text, _ := getPackagePayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
+func (s slackConvertor) Status(p *api.CommitStatusPayload) (SlackPayload, error) {
+	text, _ := getStatusPayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
+func (s slackConvertor) WorkflowJob(p *api.WorkflowJobPayload) (SlackPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, SlackLinkFormatter, true)
 
 	return s.createPayload(text, nil), nil
 }
@@ -210,17 +222,17 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 
 // PullRequest implements payloadConvertor PullRequest method
 func (s slackConvertor) PullRequest(p *api.PullRequestPayload) (SlackPayload, error) {
-	text, issueTitle, attachmentText, color := getPullRequestPayloadInfo(p, SlackLinkFormatter, true)
+	text, issueTitle, extraMarkdown, color := getPullRequestPayloadInfo(p, SlackLinkFormatter, true)
 
 	var attachments []SlackAttachment
-	if attachmentText != "" {
-		attachmentText = SlackTextFormatter(p.PullRequest.Body)
+	if extraMarkdown != "" {
+		extraMarkdown = SlackTextFormatter(p.PullRequest.Body)
 		issueTitle = SlackTextFormatter(issueTitle)
 		attachments = append(attachments, SlackAttachment{
 			Color:     fmt.Sprintf("%x", color),
 			Title:     issueTitle,
 			TitleLink: p.PullRequest.HTMLURL,
-			Text:      attachmentText,
+			Text:      extraMarkdown,
 		})
 	}
 
@@ -281,20 +293,22 @@ type slackConvertor struct {
 	Color    string
 }
 
-var _ payloadConvertor[SlackPayload] = slackConvertor{}
-
-func newSlackRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+func newSlackRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &SlackMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
 		return nil, nil, fmt.Errorf("newSlackRequest meta json: %w", err)
 	}
-	sc := slackConvertor{
+	var pc payloadConvertor[SlackPayload] = slackConvertor{
 		Channel:  meta.Channel,
 		Username: meta.Username,
 		IconURL:  meta.IconURL,
 		Color:    meta.Color,
 	}
-	return newJSONRequest(sc, w, t, true)
+	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.SLACK, newSlackRequest)
 }
 
 var slackChannel = regexp.MustCompile(`^#?[a-z0-9_-]{1,80}$`)

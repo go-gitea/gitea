@@ -41,7 +41,7 @@ func TestGetWatchers(t *testing.T) {
 
 	watches, err = repo_model.GetWatchers(db.DefaultContext, unittest.NonexistentID)
 	assert.NoError(t, err)
-	assert.Len(t, watches, 0)
+	assert.Empty(t, watches)
 }
 
 func TestRepository_GetWatchers(t *testing.T) {
@@ -58,7 +58,7 @@ func TestRepository_GetWatchers(t *testing.T) {
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 9})
 	watchers, err = repo_model.GetRepoWatchers(db.DefaultContext, repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
-	assert.Len(t, watchers, 0)
+	assert.Empty(t, watchers)
 }
 
 func TestWatchIfAuto(t *testing.T) {

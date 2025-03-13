@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ctx.Locale.Lang}}" data-theme="{{ThemeName .SignedUser}}">
+<html lang="{{ctx.Locale.Lang}}" data-theme="{{UserThemeName .SignedUser}}">
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{if .Title}}{{.Title}} - {{end}}{{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
@@ -19,12 +19,6 @@
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
 	{{template "base/head_script" .}}
-	<noscript>
-		<style>
-			.dropdown:hover > .menu { display: block; }
-			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
-		</style>
-	</noscript>
 	{{template "base/head_opengraph" .}}
 	{{template "base/head_style" .}}
 	{{template "custom/header" .}}

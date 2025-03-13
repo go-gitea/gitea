@@ -39,7 +39,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 		postData["prerelease"] = "on"
 	}
 	if draft {
-		postData["draft"] = "Save Draft"
+		postData["draft"] = "1"
 	}
 	req = NewRequestWithValues(t, "POST", link, postData)
 
@@ -142,7 +142,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 	rsp := MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	releases := htmlDoc.Find("#release-list li.ui.grid")
+	releases := htmlDoc.Find("#release-list .release-entry")
 	assert.Equal(t, 5, releases.Length())
 
 	links := make([]string, 0, 5)
@@ -173,17 +173,25 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 	}, commitsToMain)
 }
 
-func TestViewSingleReleaseNoLogin(t *testing.T) {
+func TestViewSingleRelease(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user2/repo-release/releases/tag/v1.0")
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	// check the "number of commits to main since this release"
-	releaseList := htmlDoc.doc.Find("#release-list .ahead > a")
-	assert.EqualValues(t, 1, releaseList.Length())
-	assert.EqualValues(t, "3 commits", releaseList.First().Text())
+	t.Run("NoLogin", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo-release/releases/tag/v1.0")
+		resp := MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		// check the "number of commits to main since this release"
+		releaseList := htmlDoc.doc.Find("#release-list .ahead > a")
+		assert.EqualValues(t, 1, releaseList.Length())
+		assert.EqualValues(t, "3 commits", releaseList.First().Text())
+	})
+	t.Run("Login", func(t *testing.T) {
+		session := loginUser(t, "user1")
+		req := NewRequest(t, "GET", "/user2/repo1/releases/tag/delete-tag") // "delete-tag" is the only one with is_tag=true (although strange name)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		// the New Release button should contain the tag name
+		assert.Contains(t, resp.Body.String(), `<a class="ui small primary button" href="/user2/repo1/releases/new?tag=delete-tag">`)
+	})
 }
 
 func TestViewReleaseListLogin(t *testing.T) {
@@ -198,7 +206,7 @@ func TestViewReleaseListLogin(t *testing.T) {
 	rsp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	releases := htmlDoc.Find("#release-list li.ui.grid")
+	releases := htmlDoc.Find("#release-list .release-entry")
 	assert.Equal(t, 3, releases.Length())
 
 	links := make([]string, 0, 5)
@@ -229,12 +237,12 @@ func TestViewTagsList(t *testing.T) {
 	rsp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
-	tags := htmlDoc.Find(".tag-list tr")
+	tags := htmlDoc.Find(".tag-list-row-link")
 	assert.Equal(t, 3, tags.Length())
 
 	tagNames := make([]string, 0, 5)
 	tags.Each(func(i int, s *goquery.Selection) {
-		tagNames = append(tagNames, s.Find(".tag a.gt-df.gt-ac").Text())
+		tagNames = append(tagNames, s.Text())
 	})
 
 	assert.EqualValues(t, []string{"v1.0", "delete-tag", "v1.1"}, tagNames)

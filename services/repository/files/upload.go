@@ -27,6 +27,8 @@ type UploadRepoFileOptions struct {
 	Message      string
 	Files        []string // In UUID format.
 	Signoff      bool
+	Author       *IdentityOptions
+	Committer    *IdentityOptions
 }
 
 type uploadInfo struct {
@@ -80,25 +82,25 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		infos[i] = uploadInfo{upload: upload}
 	}
 
-	t, err := NewTemporaryUploadRepository(ctx, repo)
+	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
 		return err
 	}
 	defer t.Close()
 
 	hasOldBranch := true
-	if err = t.Clone(opts.OldBranch, true); err != nil {
+	if err = t.Clone(ctx, opts.OldBranch, true); err != nil {
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return err
 		}
-		if err = t.Init(repo.ObjectFormatName); err != nil {
+		if err = t.Init(ctx, repo.ObjectFormatName); err != nil {
 			return err
 		}
 		hasOldBranch = false
 		opts.LastCommitID = ""
 	}
 	if hasOldBranch {
-		if err = t.SetDefaultIndex(); err != nil {
+		if err = t.SetDefaultIndex(ctx); err != nil {
 			return err
 		}
 	}
@@ -117,23 +119,28 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	// Copy uploaded files into repository.
 	for i := range infos {
-		if err := copyUploadedLFSFileIntoRepository(&infos[i], filename2attribute2info, t, opts.TreePath); err != nil {
+		if err := copyUploadedLFSFileIntoRepository(ctx, &infos[i], filename2attribute2info, t, opts.TreePath); err != nil {
 			return err
 		}
 	}
 
 	// Now write the tree
-	treeHash, err := t.WriteTree()
+	treeHash, err := t.WriteTree(ctx)
 	if err != nil {
 		return err
 	}
 
-	// make author and committer the doer
-	author := doer
-	committer := doer
-
 	// Now commit the tree
-	commitHash, err := t.CommitTree(opts.LastCommitID, author, committer, treeHash, opts.Message, opts.Signoff)
+	commitOpts := &CommitTreeUserOptions{
+		ParentCommitID:    opts.LastCommitID,
+		TreeHash:          treeHash,
+		CommitMessage:     opts.Message,
+		SignOff:           opts.Signoff,
+		DoerUser:          doer,
+		AuthorIdentity:    opts.Author,
+		CommitterIdentity: opts.Committer,
+	}
+	commitHash, err := t.CommitTree(ctx, commitOpts)
 	if err != nil {
 		return err
 	}
@@ -162,14 +169,14 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// Then push this tree to NewBranch
-	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
+	if err := t.Push(ctx, doer, commitHash, opts.NewBranch); err != nil {
 		return err
 	}
 
 	return repo_model.DeleteUploads(ctx, uploads...)
 }
 
-func copyUploadedLFSFileIntoRepository(info *uploadInfo, filename2attribute2info map[string]map[string]string, t *TemporaryUploadRepository, treePath string) error {
+func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, filename2attribute2info map[string]map[string]string, t *TemporaryUploadRepository, treePath string) error {
 	file, err := os.Open(info.upload.LocalPath())
 	if err != nil {
 		return err
@@ -187,15 +194,15 @@ func copyUploadedLFSFileIntoRepository(info *uploadInfo, filename2attribute2info
 
 		info.lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: t.repo.ID}
 
-		if objectHash, err = t.HashObject(strings.NewReader(pointer.StringContent())); err != nil {
+		if objectHash, err = t.HashObject(ctx, strings.NewReader(pointer.StringContent())); err != nil {
 			return err
 		}
-	} else if objectHash, err = t.HashObject(file); err != nil {
+	} else if objectHash, err = t.HashObject(ctx, file); err != nil {
 		return err
 	}
 
 	// Add the object to the index
-	return t.AddObjectToIndex("100644", objectHash, path.Join(treePath, info.upload.Name))
+	return t.AddObjectToIndex(ctx, "100644", objectHash, path.Join(treePath, info.upload.Name))
 }
 
 func uploadToLFSContentStore(info uploadInfo, contentStore *lfs.ContentStore) error {

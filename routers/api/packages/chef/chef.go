@@ -150,7 +150,7 @@ func EnumeratePackages(ctx *context.Context) {
 
 // https://github.com/chef/chef/blob/main/knife/lib/chef/knife/supermarket_show.rb
 func PackageMetadata(ctx *context.Context) {
-	packageName := ctx.Params("name")
+	packageName := ctx.PathParam("name")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, packageName)
 	if err != nil {
@@ -211,12 +211,12 @@ func PackageMetadata(ctx *context.Context) {
 
 // https://github.com/chef/chef/blob/main/knife/lib/chef/knife/supermarket_show.rb
 func PackageVersionMetadata(ctx *context.Context) {
-	packageName := ctx.Params("name")
-	packageVersion := strings.ReplaceAll(ctx.Params("version"), "_", ".") // Chef calls this endpoint with "_" instead of "."?!
+	packageName := ctx.PathParam("name")
+	packageVersion := strings.ReplaceAll(ctx.PathParam("version"), "_", ".") // Chef calls this endpoint with "_" instead of "."?!
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, packageName, packageVersion)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -325,9 +325,9 @@ func UploadPackage(ctx *context.Context) {
 
 // https://github.com/chef/chef/blob/main/knife/lib/chef/knife/supermarket_download.rb
 func DownloadPackage(ctx *context.Context) {
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, ctx.Params("name"), ctx.Params("version"))
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, ctx.PathParam("name"), ctx.PathParam("version"))
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -354,8 +354,8 @@ func DownloadPackage(ctx *context.Context) {
 
 // https://github.com/chef/chef/blob/main/knife/lib/chef/knife/supermarket_unshare.rb
 func DeletePackageVersion(ctx *context.Context) {
-	packageName := ctx.Params("name")
-	packageVersion := ctx.Params("version")
+	packageName := ctx.PathParam("name")
+	packageVersion := ctx.PathParam("version")
 
 	err := packages_service.RemovePackageVersionByNameAndVersion(
 		ctx,
@@ -368,7 +368,7 @@ func DeletePackageVersion(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -381,7 +381,7 @@ func DeletePackageVersion(ctx *context.Context) {
 
 // https://github.com/chef/chef/blob/main/knife/lib/chef/knife/supermarket_unshare.rb
 func DeletePackage(ctx *context.Context) {
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, ctx.Params("name"))
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeChef, ctx.PathParam("name"))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

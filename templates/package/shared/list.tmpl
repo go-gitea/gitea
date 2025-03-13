@@ -24,7 +24,7 @@
 					<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 				</div>
 				<div class="flex-item-body">
-					{{$timeStr := TimeSinceUnix .Version.CreatedUnix ctx.Locale}}
+					{{$timeStr := DateUtils.TimeSince .Version.CreatedUnix}}
 					{{$hasRepositoryAccess := false}}
 					{{if .Repository}}
 						{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
@@ -50,7 +50,7 @@
 				<p>{{ctx.Locale.Tr "packages.empty.documentation" "https://docs.gitea.com/usage/packages/overview/"}}</p>
 			</div>
 		{{else}}
-			<p class="gt-py-4">{{ctx.Locale.Tr "packages.filter.no_result"}}</p>
+			<p class="tw-py-4">{{ctx.Locale.Tr "packages.filter.no_result"}}</p>
 		{{end}}
 	{{end}}
 	{{template "base/paginate" .}}

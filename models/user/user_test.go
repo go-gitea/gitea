@@ -4,9 +4,8 @@
 package user_test
 
 import (
-	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -23,6 +23,21 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestIsUsableUsername(t *testing.T) {
+	assert.NoError(t, user_model.IsUsableUsername("a"))
+	assert.NoError(t, user_model.IsUsableUsername("foo.wiki"))
+	assert.NoError(t, user_model.IsUsableUsername("foo.git"))
+
+	assert.Error(t, user_model.IsUsableUsername("a--b"))
+	assert.Error(t, user_model.IsUsableUsername("-1_."))
+	assert.Error(t, user_model.IsUsableUsername(".profile"))
+	assert.Error(t, user_model.IsUsableUsername("-"))
+	assert.Error(t, user_model.IsUsableUsername("🌞"))
+	assert.Error(t, user_model.IsUsableUsername("the..repo"))
+	assert.Error(t, user_model.IsUsableUsername("foo.RSS"))
+	assert.Error(t, user_model.IsUsableUsername("foo.PnG"))
+}
 
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -91,7 +106,10 @@ func TestSearchUsers(t *testing.T) {
 	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 4, PageSize: 2}},
 		[]int64{26, 41})
 
-	testOrgSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
+	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
+		[]int64{42})
+
+	testOrgSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 6, PageSize: 2}},
 		[]int64{})
 
 	// test users
@@ -182,7 +200,7 @@ func BenchmarkHashPassword(b *testing.B) {
 	pass := "password1337"
 	u := &user_model.User{Passwd: pass}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		u.SetPassword(pass)
 	}
 }
@@ -197,7 +215,7 @@ func TestNewGitSig(t *testing.T) {
 		assert.NotContains(t, sig.Name, "<")
 		assert.NotContains(t, sig.Name, ">")
 		assert.NotContains(t, sig.Name, "\n")
-		assert.NotEqual(t, len(strings.TrimSpace(sig.Name)), 0)
+		assert.NotEmpty(t, strings.TrimSpace(sig.Name))
 	}
 }
 
@@ -212,7 +230,7 @@ func TestDisplayName(t *testing.T) {
 		if len(strings.TrimSpace(user.FullName)) == 0 {
 			assert.Equal(t, user.Name, displayName)
 		}
-		assert.NotEqual(t, len(strings.TrimSpace(displayName)), 0)
+		assert.NotEmpty(t, strings.TrimSpace(displayName))
 	}
 }
 
@@ -226,7 +244,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailCharIsNotSupported(err))
 }
@@ -240,7 +258,7 @@ func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
@@ -257,10 +275,10 @@ func TestCreateUserCustomTimestamps(t *testing.T) {
 	user.ID = 0
 	user.Email = "unique@example.com"
 	user.CreatedUnix = creationTimestamp
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.NoError(t, err)
 
-	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
+	fetched, err := user_model.GetUserByID(t.Context(), user.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, creationTimestamp, fetched.CreatedUnix)
 	assert.Equal(t, creationTimestamp, fetched.UpdatedUnix)
@@ -282,12 +300,12 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 	user.Email = "unique@example.com"
 	user.CreatedUnix = 0
 	user.UpdatedUnix = 0
-	err := user_model.CreateUser(db.DefaultContext, user)
+	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.NoError(t, err)
 
 	timestampEnd := time.Now().Unix()
 
-	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
+	fetched, err := user_model.GetUserByID(t.Context(), user.ID)
 	assert.NoError(t, err)
 
 	assert.LessOrEqual(t, timestampStart, fetched.CreatedUnix)
@@ -314,19 +332,19 @@ func TestGetUserIDsByNames(t *testing.T) {
 func TestGetMaileableUsersByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	results, err := user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
+	results, err := user_model.GetMailableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	if len(results) > 1 {
-		assert.Equal(t, results[0].ID, 1)
+		assert.Equal(t, 1, results[0].ID)
 	}
 
-	results, err = user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
+	results, err = user_model.GetMailableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	if len(results) > 2 {
-		assert.Equal(t, results[0].ID, 1)
-		assert.Equal(t, results[1].ID, 4)
+		assert.Equal(t, 1, results[0].ID)
+		assert.Equal(t, 4, results[1].ID)
 	}
 }
 
@@ -495,7 +513,7 @@ func Test_ValidateUser(t *testing.T) {
 		{ID: 2, Visibility: structs.VisibleTypePrivate}: true,
 	}
 	for kase, expected := range kases {
-		assert.EqualValues(t, expected, nil == user_model.ValidateUser(kase), fmt.Sprintf("case: %+v", kase))
+		assert.EqualValues(t, expected, nil == user_model.ValidateUser(kase), "case: %+v", kase)
 	}
 }
 
@@ -505,15 +523,16 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 		Expected          string
 		IsNormalizedValid bool
 	}{
-		{"test", "test", true},
+		{"name@example.com", "name", true},
+		{"test'`´name", "testname", true},
 		{"Sinéad.O'Connor", "Sinead.OConnor", true},
 		{"Æsir", "AEsir", true},
-		// \u00e9\u0065\u0301
-		{"éé", "ee", true},
+		{"éé", "ee", true}, // \u00e9\u0065\u0301
 		{"Awareness Hub", "Awareness-Hub", true},
 		{"double__underscore", "double__underscore", false}, // We should consider squashing double non-alpha characters
 		{".bad.", ".bad.", false},
 		{"new😀user", "new😀user", false}, // No plans to support
+		{`"quoted"`, `"quoted"`, false}, // No plans to support
 	}
 	for _, testCase := range testCases {
 		normalizedName, err := user_model.NormalizeUserName(testCase.Input)
@@ -525,4 +544,75 @@ func Test_NormalizeUserFromEmail(t *testing.T) {
 			assert.Error(t, user_model.IsUsableUsername(normalizedName))
 		}
 	}
+}
+
+func TestEmailTo(t *testing.T) {
+	testCases := []struct {
+		fullName string
+		mail     string
+		result   string
+	}{
+		{"Awareness Hub", "awareness@hub.net", "Awareness Hub <awareness@hub.net>"},
+		{"name@example.com", "name@example.com", "name@example.com"},
+		{"Hi Its <Mee>", "ee@mail.box", "Hi Its Mee <ee@mail.box>"},
+		{"Sinéad.O'Connor", "sinead.oconnor@gmail.com", "=?utf-8?q?Sin=C3=A9ad.O'Connor?= <sinead.oconnor@gmail.com>"},
+		{"Æsir", "aesir@gmx.de", "=?utf-8?q?=C3=86sir?= <aesir@gmx.de>"},
+		{"new😀user", "new.user@alo.com", "=?utf-8?q?new=F0=9F=98=80user?= <new.user@alo.com>"},
+		{`"quoted"`, "quoted@test.com", "quoted <quoted@test.com>"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.result, func(t *testing.T) {
+			testUser := &user_model.User{FullName: testCase.fullName, Email: testCase.mail}
+			assert.EqualValues(t, testCase.result, testUser.EmailTo())
+		})
+	}
+}
+
+func TestDisabledUserFeatures(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	testValues := container.SetOf(setting.UserFeatureDeletion,
+		setting.UserFeatureManageSSHKeys,
+		setting.UserFeatureManageGPGKeys)
+
+	oldSetting := setting.Admin.ExternalUserDisableFeatures
+	defer func() {
+		setting.Admin.ExternalUserDisableFeatures = oldSetting
+	}()
+	setting.Admin.ExternalUserDisableFeatures = testValues
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	assert.Empty(t, setting.Admin.UserDisabledFeatures.Values())
+
+	// no features should be disabled with a plain login type
+	assert.LessOrEqual(t, user.LoginType, auth.Plain)
+	assert.Empty(t, user_model.DisabledFeaturesWithLoginType(user).Values())
+	for _, f := range testValues.Values() {
+		assert.False(t, user_model.IsFeatureDisabledWithLoginType(user, f))
+	}
+
+	// check disabled features with external login type
+	user.LoginType = auth.OAuth2
+
+	// all features should be disabled
+	assert.NotEmpty(t, user_model.DisabledFeaturesWithLoginType(user).Values())
+	for _, f := range testValues.Values() {
+		assert.True(t, user_model.IsFeatureDisabledWithLoginType(user, f))
+	}
+}
+
+func TestGetInactiveUsers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// all inactive users
+	// user1's createdunix is 1730468968
+	users, err := user_model.GetInactiveUsers(db.DefaultContext, 0)
+	assert.NoError(t, err)
+	assert.Len(t, users, 1)
+	interval := time.Now().Unix() - 1730468968 + 3600*24
+	users, err = user_model.GetInactiveUsers(db.DefaultContext, time.Duration(interval*int64(time.Second)))
+	assert.NoError(t, err)
+	assert.Empty(t, users)
 }

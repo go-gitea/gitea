@@ -48,11 +48,11 @@ func GetLabelTemplate(ctx *context.APIContext) {
 	//     "$ref": "#/responses/LabelTemplateInfo"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	name := util.PathJoinRelX(ctx.Params("name"))
+	name := util.PathJoinRelX(ctx.PathParam("name"))
 
 	labels, err := repo_module.LoadTemplateLabelsByDisplayName(name)
 	if err != nil {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 

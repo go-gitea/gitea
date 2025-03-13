@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -166,7 +165,7 @@ func runAddSMTP(c *cli.Context) error {
 
 func runUpdateSMTP(c *cli.Context) error {
 	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+		return errors.New("--id flag is missing")
 	}
 
 	ctx, cancel := installSignals()

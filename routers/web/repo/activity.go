@@ -9,12 +9,12 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplActivity base.TplName = "repo/activity"
+	tplActivity templates.TplName = "repo/activity"
 )
 
 // Activity render the page to show repository latest changes
@@ -24,7 +24,7 @@ func Activity(ctx *context.Context) {
 
 	ctx.Data["PageIsPulse"] = true
 
-	ctx.Data["Period"] = ctx.Params("period")
+	ctx.Data["Period"] = ctx.PathParam("period")
 
 	timeUntil := time.Now()
 	var timeFrom time.Time
@@ -48,8 +48,8 @@ func Activity(ctx *context.Context) {
 		ctx.Data["Period"] = "weekly"
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	}
-	ctx.Data["DateFrom"] = timeFrom.UTC().Format(time.RFC3339)
-	ctx.Data["DateUntil"] = timeUntil.UTC().Format(time.RFC3339)
+	ctx.Data["DateFrom"] = timeFrom
+	ctx.Data["DateUntil"] = timeUntil
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
 	var err error
@@ -75,7 +75,7 @@ func ActivityAuthors(ctx *context.Context) {
 	timeUntil := time.Now()
 	var timeFrom time.Time
 
-	switch ctx.Params("period") {
+	switch ctx.PathParam("period") {
 	case "daily":
 		timeFrom = timeUntil.Add(-time.Hour * 24)
 	case "halfweekly":
@@ -94,7 +94,6 @@ func ActivityAuthors(ctx *context.Context) {
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	}
 
-	var err error
 	authors, err := activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10)
 	if err != nil {
 		ctx.ServerError("GetActivityStatsTopAuthors", err)

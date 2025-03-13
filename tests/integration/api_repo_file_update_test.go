@@ -4,7 +4,6 @@
 package integration
 
 import (
-	stdCtx "context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -135,7 +134,7 @@ func TestAPIUpdateFile(t *testing.T) {
 			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
-			gitRepo, _ := gitrepo.OpenRepository(stdCtx.Background(), repo1)
+			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 			commitID, _ := gitRepo.GetBranchCommitID(updateFileOptions.NewBranchName)
 			lasCommit, _ := gitRepo.GetCommitByPath(treePath)
 			expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath, lasCommit.ID.String())

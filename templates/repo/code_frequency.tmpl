@@ -1,4 +1,4 @@
-{{if .Permission.CanRead $.UnitTypeCode}}
+{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 	<div id="repo-code-frequency-chart"
 		data-locale-loading-title="{{ctx.Locale.Tr "graphs.component_loading" (ctx.Locale.Tr "graphs.code_frequency.what")}}"
 		data-locale-loading-title-failed="{{ctx.Locale.Tr "graphs.component_loading_failed" (ctx.Locale.Tr "graphs.code_frequency.what")}}"

@@ -11,14 +11,19 @@ jobs:
     if: github.repository == 'go-gitea/gitea'
     steps:
       - uses: actions/checkout@v4
-      - name: download from crowdin
-        uses: docker://jonasfranz/crowdin
+      - uses: crowdin/github-action@v1
+        with:
+          upload_sources: true
+          upload_translations: false
+          download_sources: false
+          download_translations: true
+          push_translations: false
+          push_sources: false
+          create_pull_request: false
+          config: crowdin.yml
         env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
-          PLUGIN_DOWNLOAD: true
-          PLUGIN_EXPORT_DIR: options/locale/
-          PLUGIN_IGNORE_BRANCH: true
-          PLUGIN_PROJECT_IDENTIFIER: gitea
       - name: update locales
         run: ./build/update-locales.sh
       - name: push translations to repo
@@ -31,19 +36,3 @@ jobs:
           commit_message: "[skip ci] Updated translations via Crowdin"
           remote: "git@github.com:go-gitea/gitea.git"
           ssh_key: ${{ secrets.DEPLOY_KEY }}
-  crowdin-push:
-    runs-on: ubuntu-latest
-    if: github.repository == 'go-gitea/gitea'
-    steps:
-      - uses: actions/checkout@v4
-      - name: push translations to crowdin
-        uses: docker://jonasfranz/crowdin
-        env:
-          CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
-          PLUGIN_UPLOAD: true
-          PLUGIN_EXPORT_DIR: options/locale/
-          PLUGIN_IGNORE_BRANCH: true
-          PLUGIN_PROJECT_IDENTIFIER: gitea
-          PLUGIN_FILES: |
-            locale_en-US.ini: options/locale/locale_en-US.ini
-          PLUGIN_BRANCH: main

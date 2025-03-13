@@ -10,30 +10,29 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/setting"
 
-	"gitea.com/go-chi/cache"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRepository_ContributorsGraph(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
-	mockCache, err := cache.NewCacher(cache.Options{
-		Adapter:  "memory",
-		Interval: 24 * 60,
-	})
+	mockCache, err := cache.NewStringCache(setting.Cache{})
 	assert.NoError(t, err)
 
 	generateContributorStats(nil, mockCache, "key", repo, "404ref")
-	err, isErr := mockCache.Get("key").(error)
-	assert.True(t, isErr)
-	assert.ErrorAs(t, err, &git.ErrNotExist{})
+	var data map[string]*ContributorData
+	_, getErr := mockCache.GetJSON("key", &data)
+	assert.NotNil(t, getErr)
+	assert.ErrorContains(t, getErr.ToError(), "object does not exist")
 
 	generateContributorStats(nil, mockCache, "key2", repo, "master")
-	data, isData := mockCache.Get("key2").(map[string]*ContributorData)
-	assert.True(t, isData)
+	exist, _ := mockCache.GetJSON("key2", &data)
+	assert.True(t, exist)
 	var keys []string
 	for k := range data {
 		keys = append(keys, k)
@@ -48,7 +47,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 
 	assert.EqualValues(t, &ContributorData{
 		Name:         "Ethan Koenig",
-		AvatarLink:   "https://secure.gravatar.com/avatar/b42fb195faa8c61b8d88abfefe30e9e3?d=identicon",
+		AvatarLink:   "/assets/img/avatar_default.png",
 		TotalCommits: 1,
 		Weeks: map[int64]*WeekData{
 			1511654400000: {

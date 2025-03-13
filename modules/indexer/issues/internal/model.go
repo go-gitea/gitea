@@ -4,7 +4,10 @@
 package internal
 
 import (
+	"strconv"
+
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -23,11 +26,12 @@ type IndexerData struct {
 	// Fields used for filtering
 	IsPull             bool               `json:"is_pull"`
 	IsClosed           bool               `json:"is_closed"`
+	IsArchived         bool               `json:"is_archived"`
 	LabelIDs           []int64            `json:"label_ids"`
 	NoLabel            bool               `json:"no_label"` // True if LabelIDs is empty
 	MilestoneID        int64              `json:"milestone_id"`
 	ProjectID          int64              `json:"project_id"`
-	ProjectBoardID     int64              `json:"project_board_id"`
+	ProjectColumnID    int64              `json:"project_board_id"` // the key should be kept as project_board_id to keep compatible
 	PosterID           int64              `json:"poster_id"`
 	AssigneeID         int64              `json:"assignee_id"`
 	MentionIDs         []int64            `json:"mention_ids"`
@@ -74,13 +78,14 @@ type SearchResult struct {
 type SearchOptions struct {
 	Keyword string // keyword to search
 
-	IsFuzzyKeyword bool // if false the levenshtein distance is 0
+	SearchMode indexer.SearchModeType
 
 	RepoIDs   []int64 // repository IDs which the issues belong to
 	AllPublic bool    // if include all public repositories
 
-	IsPull   optional.Option[bool] // if the issues is a pull request
-	IsClosed optional.Option[bool] // if the issues is closed
+	IsPull     optional.Option[bool] // if the issues is a pull request
+	IsClosed   optional.Option[bool] // if the issues is closed
+	IsArchived optional.Option[bool] // if the repo is archived
 
 	IncludedLabelIDs    []int64 // labels the issues have
 	ExcludedLabelIDs    []int64 // labels the issues don't have
@@ -89,8 +94,8 @@ type SearchOptions struct {
 
 	MilestoneIDs []int64 // milestones the issues have
 
-	ProjectID      optional.Option[int64] // project the issues belong to
-	ProjectBoardID optional.Option[int64] // project board the issues belong to
+	ProjectID       optional.Option[int64] // project the issues belong to
+	ProjectColumnID optional.Option[int64] // project column the issues belong to
 
 	PosterID optional.Option[int64] // poster of the issues
 
@@ -106,7 +111,7 @@ type SearchOptions struct {
 	UpdatedAfterUnix  optional.Option[int64]
 	UpdatedBeforeUnix optional.Option[int64]
 
-	db.Paginator
+	Paginator *db.ListOptions
 
 	SortBy SortBy // sort by field
 }
@@ -122,6 +127,12 @@ func (o *SearchOptions) Copy(edit ...func(options *SearchOptions)) *SearchOption
 		e(&v)
 	}
 	return &v
+}
+
+// used for optimized issue index based search
+func (o *SearchOptions) IsKeywordNumeric() bool {
+	_, err := strconv.Atoi(o.Keyword)
+	return err == nil
 }
 
 type SortBy string

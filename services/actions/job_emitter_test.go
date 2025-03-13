@@ -71,9 +71,9 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			want: map[int64]actions_model.Status{},
 		},
 		{
-			name: "with ${{ always() }} condition",
+			name: "`if` is not empty and all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
-				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
+				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
 				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 name: test
@@ -82,15 +82,15 @@ jobs:
   job2:
     runs-on: ubuntu-latest
     needs: job1
-    if: ${{ always() }}
+    if: ${{ always() && needs.job1.result == 'success' }}
     steps:
-      - run: echo "always run"
+      - run: echo "will be checked by act_runner"
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
 		{
-			name: "with always() condition",
+			name: "`if` is not empty and not all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
 				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
@@ -101,15 +101,15 @@ jobs:
   job2:
     runs-on: ubuntu-latest
     needs: job1
-    if: always()
+    if: ${{ always() && needs.job1.result == 'failure' }}
     steps:
-      - run: echo "always run"
+      - run: echo "will be checked by act_runner"
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
 		{
-			name: "without always() condition",
+			name: "`if` is empty and not all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
 				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: job1
     steps:
-      - run: echo "not always run"
+      - run: echo "should be skipped"
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},

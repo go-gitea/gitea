@@ -79,7 +79,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		IsActive: optional.Some(true),
 	}
 
-	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return user, err
 	}
 

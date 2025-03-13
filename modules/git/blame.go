@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"os"
 
@@ -132,19 +131,17 @@ func (r *BlameReader) Close() error {
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
 	var ignoreRevsFile *string
-	if CheckGitVersionAtLeast("2.23") == nil && !bypassBlameIgnore {
+	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
 		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(commit)
 	}
 
-	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain")
+	cmd := NewCommandNoGlobals("blame", "--porcelain")
 	if ignoreRevsFile != nil {
 		// Possible improvement: use --ignore-revs-file /dev/stdin on unix
 		// There is no equivalent on Windows. May be implemented if Gitea uses an external git backend.
 		cmd.AddOptionValues("--ignore-revs-file", *ignoreRevsFile)
 	}
-	cmd.AddDynamicArguments(commit.ID.String()).
-		AddDashesAndList(file).
-		SetDescription(fmt.Sprintf("GetBlame [repo_path: %s]", repoPath))
+	cmd.AddDynamicArguments(commit.ID.String()).AddDashesAndList(file)
 	reader, stdout, err := os.Pipe()
 	if err != nil {
 		if ignoreRevsFile != nil {
@@ -158,7 +155,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	go func() {
 		stderr := bytes.Buffer{}
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		err := cmd.Run(&RunOpts{
+		err := cmd.Run(ctx, &RunOpts{
 			UseContextTimeout: true,
 			Dir:               repoPath,
 			Stdout:            stdout,

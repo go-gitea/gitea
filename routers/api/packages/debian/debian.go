@@ -51,10 +51,10 @@ func GetRepositoryFile(ctx *context.Context) {
 		return
 	}
 
-	key := ctx.Params("distribution")
+	key := ctx.PathParam("distribution")
 
-	component := ctx.Params("component")
-	architecture := strings.TrimPrefix(ctx.Params("architecture"), "binary-")
+	component := ctx.PathParam("component")
+	architecture := strings.TrimPrefix(ctx.PathParam("architecture"), "binary-")
 	if component != "" && architecture != "" {
 		key += "|" + component + "|" + architecture
 	}
@@ -63,12 +63,12 @@ func GetRepositoryFile(ctx *context.Context) {
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
-			Filename:     ctx.Params("filename"),
+			Filename:     ctx.PathParam("filename"),
 			CompositeKey: key,
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -87,14 +87,14 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 		return
 	}
 
-	algorithm := strings.ToLower(ctx.Params("algorithm"))
+	algorithm := strings.ToLower(ctx.PathParam("algorithm"))
 	if algorithm == "md5sum" {
 		algorithm = "md5"
 	}
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		VersionID:     pv.ID,
-		Hash:          strings.ToLower(ctx.Params("hash")),
+		Hash:          strings.ToLower(ctx.PathParam("hash")),
 		HashAlgorithm: algorithm,
 	})
 	if err != nil {
@@ -120,19 +120,19 @@ func GetRepositoryFileByHash(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	distribution := strings.TrimSpace(ctx.Params("distribution"))
-	component := strings.TrimSpace(ctx.Params("component"))
+	distribution := strings.TrimSpace(ctx.PathParam("distribution"))
+	component := strings.TrimSpace(ctx.PathParam("component"))
 	if distribution == "" || component == "" {
 		apiError(ctx, http.StatusBadRequest, "invalid distribution or component")
 		return
 	}
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
@@ -207,8 +207,8 @@ func UploadPackageFile(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	name := ctx.Params("name")
-	version := ctx.Params("version")
+	name := ctx.PathParam("name")
+	version := ctx.PathParam("version")
 
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
@@ -219,8 +219,8 @@ func DownloadPackageFile(ctx *context.Context) {
 			Version:     version,
 		},
 		&packages_service.PackageFileInfo{
-			Filename:     fmt.Sprintf("%s_%s_%s.deb", name, version, ctx.Params("architecture")),
-			CompositeKey: fmt.Sprintf("%s|%s", ctx.Params("distribution"), ctx.Params("component")),
+			Filename:     fmt.Sprintf("%s_%s_%s.deb", name, version, ctx.PathParam("architecture")),
+			CompositeKey: fmt.Sprintf("%s|%s", ctx.PathParam("distribution"), ctx.PathParam("component")),
 		},
 	)
 	if err != nil {
@@ -240,11 +240,11 @@ func DownloadPackageFile(ctx *context.Context) {
 }
 
 func DeletePackageFile(ctx *context.Context) {
-	distribution := ctx.Params("distribution")
-	component := ctx.Params("component")
-	name := ctx.Params("name")
-	version := ctx.Params("version")
-	architecture := ctx.Params("architecture")
+	distribution := ctx.PathParam("distribution")
+	component := ctx.PathParam("component")
+	name := ctx.PathParam("name")
+	version := ctx.PathParam("version")
+	architecture := ctx.PathParam("architecture")
 
 	owner := ctx.Package.Owner
 

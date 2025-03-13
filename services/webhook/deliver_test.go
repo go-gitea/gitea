@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -107,7 +106,6 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	err := hook.SetHeaderAuthorization("Bearer s3cr3t-t0ken")
 	assert.NoError(t, err)
 	assert.NoError(t, webhook_model.CreateWebhook(db.DefaultContext, hook))
-	db.GetEngine(db.DefaultContext).NoAutoTime().DB().Logger.ShowSQL(true)
 
 	hookTask := &webhook_model.HookTask{
 		HookID:         hook.ID,
@@ -119,7 +117,7 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, hookTask)
 
-	assert.NoError(t, Deliver(context.Background(), hookTask))
+	assert.NoError(t, Deliver(t.Context(), hookTask))
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
@@ -186,7 +184,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, hookTask)
 
-		assert.NoError(t, Deliver(context.Background(), hookTask))
+		assert.NoError(t, Deliver(t.Context(), hookTask))
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
@@ -212,7 +210,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, hookTask)
 
-		assert.NoError(t, Deliver(context.Background(), hookTask))
+		assert.NoError(t, Deliver(t.Context(), hookTask))
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
@@ -259,7 +257,6 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 
 	for typ := range cases {
 		cases[typ].gotBody = make(chan []byte, 1)
-		typ := typ // TODO: remove this workaround when Go >= 1.22
 		t.Run(typ, func(t *testing.T) {
 			t.Parallel()
 			hook := &webhook_model.Webhook{
@@ -282,7 +279,7 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, hookTask)
 
-			assert.NoError(t, Deliver(context.Background(), hookTask))
+			assert.NoError(t, Deliver(t.Context(), hookTask))
 
 			select {
 			case gotBody := <-cases[typ].gotBody:

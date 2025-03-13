@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/alpine"
+	"code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/modules/packages/cargo"
 	"code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/packages/composer"
@@ -109,9 +110,12 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	if err != nil {
 		return nil, err
 	}
-	repository, err := repo_model.GetRepositoryByID(ctx, p.RepoID)
-	if err != nil && !repo_model.IsErrRepoNotExist(err) {
-		return nil, err
+	var repository *repo_model.Repository
+	if p.RepoID > 0 {
+		repository, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
+		if err != nil && !repo_model.IsErrRepoNotExist(err) {
+			return nil, err
+		}
 	}
 	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
 	if err != nil {
@@ -150,6 +154,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	switch p.Type {
 	case TypeAlpine:
 		metadata = &alpine.VersionMetadata{}
+	case TypeArch:
+		metadata = &arch.VersionMetadata{}
 	case TypeCargo:
 		metadata = &cargo.Metadata{}
 	case TypeChef:

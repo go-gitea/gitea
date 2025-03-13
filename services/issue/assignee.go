@@ -61,7 +61,12 @@ func ToggleAssigneeWithNotify(ctx context.Context, issue *issues_model.Issue, do
 }
 
 // ReviewRequest add or remove a review request from a user for this PR, and make comment for it.
-func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer, reviewer *user_model.User, isAdd bool) (comment *issues_model.Comment, err error) {
+func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, permDoer *access_model.Permission, reviewer *user_model.User, isAdd bool) (comment *issues_model.Comment, err error) {
+	err = isValidReviewRequest(ctx, reviewer, doer, isAdd, issue, permDoer)
+	if err != nil {
+		return nil, err
+	}
+
 	if isAdd {
 		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer)
 	} else {
@@ -79,8 +84,8 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer, reviewe
 	return comment, err
 }
 
-// IsValidReviewRequest Check permission for ReviewRequest
-func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) error {
+// isValidReviewRequest Check permission for ReviewRequest
+func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) error {
 	if reviewer.IsOrganization() {
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be added as reviewer",
@@ -109,12 +114,12 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 	}
 
-	lastreview, err := issues_model.GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
+	lastReview, err := issues_model.GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
 	if err != nil && !issues_model.IsErrReviewNotExist(err) {
 		return err
 	}
 
-	canDoerChangeReviewRequests := CanDoerChangeReviewRequests(ctx, doer, issue.Repo, issue)
+	canDoerChangeReviewRequests := CanDoerChangeReviewRequests(ctx, doer, issue.Repo, issue.PosterID)
 
 	if isAdd {
 		if !permReviewer.CanAccessAny(perm.AccessModeRead, unit.TypePullRequests) {
@@ -137,7 +142,7 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			return nil
 		}
 
-		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastreview != nil && lastreview.Type != issues_model.ReviewTypeRequest {
+		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastReview != nil && lastReview.Type != issues_model.ReviewTypeRequest {
 			return nil
 		}
 
@@ -152,7 +157,7 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		return nil
 	}
 
-	if lastreview != nil && lastreview.Type == issues_model.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
+	if lastReview != nil && lastReview.Type == issues_model.ReviewTypeRequest && lastReview.ReviewerID == doer.ID {
 		return nil
 	}
 
@@ -163,8 +168,8 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 	}
 }
 
-// IsValidTeamReviewRequest Check permission for ReviewRequest Team
-func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
+// isValidTeamReviewRequest Check permission for ReviewRequest Team
+func isValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
 	if doer.IsOrganization() {
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be doer to add reviewer",
@@ -173,7 +178,7 @@ func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 		}
 	}
 
-	canDoerChangeReviewRequests := CanDoerChangeReviewRequests(ctx, doer, issue.Repo, issue)
+	canDoerChangeReviewRequests := CanDoerChangeReviewRequests(ctx, doer, issue.Repo, issue.PosterID)
 
 	if isAdd {
 		if issue.Repo.IsPrivate {
@@ -212,6 +217,10 @@ func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 
 // TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
 func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *issues_model.Comment, err error) {
+	err = isValidTeamReviewRequest(ctx, reviewer, doer, isAdd, issue)
+	if err != nil {
+		return nil, err
+	}
 	if isAdd {
 		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer)
 	} else {
@@ -226,16 +235,33 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 		return nil, nil
 	}
 
+	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)
+}
+
+func ReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewNotifiers []*ReviewRequestNotifier) {
+	for _, reviewNotifier := range reviewNotifiers {
+		if reviewNotifier.Reviewer != nil {
+			notify_service.PullRequestReviewRequest(ctx, issue.Poster, issue, reviewNotifier.Reviewer, reviewNotifier.IsAdd, reviewNotifier.Comment)
+		} else if reviewNotifier.ReviewTeam != nil {
+			if err := teamReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifier.ReviewTeam, reviewNotifier.IsAdd, reviewNotifier.Comment); err != nil {
+				log.Error("teamReviewRequestNotify: %v", err)
+			}
+		}
+	}
+}
+
+// teamReviewRequestNotify notify all user in this team
+func teamReviewRequestNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool, comment *issues_model.Comment) error {
 	// notify all user in this team
 	if err := comment.LoadIssue(ctx); err != nil {
-		return nil, err
+		return err
 	}
 
 	members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
 		TeamID: reviewer.ID,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	for _, member := range members {
@@ -246,13 +272,16 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 		notify_service.PullRequestReviewRequest(ctx, doer, issue, member, isAdd, comment)
 	}
 
-	return comment, err
+	return err
 }
 
 // CanDoerChangeReviewRequests returns if the doer can add/remove review requests of a PR
-func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue) bool {
+func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, posterID int64) bool {
+	if repo.IsArchived {
+		return false
+	}
 	// The poster of the PR can change the reviewers
-	if doer.ID == issue.PosterID {
+	if doer.ID == posterID {
 		return true
 	}
 

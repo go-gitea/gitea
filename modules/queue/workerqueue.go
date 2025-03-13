@@ -6,6 +6,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -32,19 +33,21 @@ type WorkerPoolQueue[T any] struct {
 	baseConfig    *BaseConfig
 	baseQueue     baseQueue
 
-	batchChan chan []T
-	flushChan chan flushType
+	batchChan  chan []T
+	flushChan  chan flushType
+	isFlushing atomic.Bool
 
 	batchLength     int
 	workerNum       int
 	workerMaxNum    int
 	workerActiveNum int
 	workerNumMu     sync.Mutex
-
-	workerStartedCounter int32
 }
 
-type flushType chan struct{}
+type flushType struct {
+	timeout time.Duration
+	c       chan struct{}
+}
 
 var _ ManagedWorkerPoolQueue = (*WorkerPoolQueue[any])(nil)
 
@@ -106,12 +109,12 @@ func (q *WorkerPoolQueue[T]) FlushWithContext(ctx context.Context, timeout time.
 	if timeout > 0 {
 		after = time.After(timeout)
 	}
-	c := make(flushType)
+	flush := flushType{timeout: timeout, c: make(chan struct{})}
 
 	// send flush request
 	// if it blocks, it means that there is a flush in progress or the queue hasn't been started yet
 	select {
-	case q.flushChan <- c:
+	case q.flushChan <- flush:
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-q.ctxRun.Done():
@@ -122,7 +125,7 @@ func (q *WorkerPoolQueue[T]) FlushWithContext(ctx context.Context, timeout time.
 
 	// wait for flush to finish
 	select {
-	case <-c:
+	case <-flush.c:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -239,6 +242,9 @@ func NewWorkerPoolQueueWithContext[T any](ctx context.Context, name string, queu
 	w.origHandler = handler
 	w.safeHandler = func(t ...T) (unhandled []T) {
 		defer func() {
+			// FIXME: there is no ctx support in the handler, so process manager is unable to restore the labels
+			// so here we explicitly set the "queue ctx" labels again after the handler is done
+			pprof.SetGoroutineLabels(w.ctxRun)
 			err := recover()
 			if err != nil {
 				log.Error("Recovered from panic in queue %q handler: %v\n%s", name, err, log.Stack(2))

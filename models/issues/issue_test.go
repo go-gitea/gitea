@@ -4,7 +4,6 @@
 package issues_test
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -155,7 +155,7 @@ func TestIssues(t *testing.T) {
 	}{
 		{
 			issues_model.IssuesOptions{
-				AssigneeID: 1,
+				AssigneeID: optional.Some(int64(1)),
 				SortType:   "oldest",
 			},
 			[]int64{1, 6},
@@ -325,7 +325,7 @@ func TestCorrectIssueStats(t *testing.T) {
 	wg.Wait()
 
 	// Now we will get all issueID's that match the "Bugs are nasty" query.
-	issues, err := issues_model.Issues(context.TODO(), &issues_model.IssuesOptions{
+	issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
 		Paginator: &db.ListOptions{
 			PageSize: issueAmount,
 		},
@@ -433,7 +433,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
 	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
-	assert.EqualValues(t, milestone.ID, 1)
+	assert.EqualValues(t, 1, milestone.ID)
 	reaction := &issues_model.Reaction{
 		Type:   "heart",
 		UserID: owner.ID,

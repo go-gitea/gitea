@@ -17,7 +17,7 @@ import (
 )
 
 func GetWorkflowBadge(ctx *context.Context) {
-	workflowFile := ctx.Params("workflow_name")
+	workflowFile := ctx.PathParam("workflow_name")
 	branch := ctx.Req.URL.Query().Get("branch")
 	if branch == "" {
 		branch = ctx.Repo.Repository.DefaultBranch

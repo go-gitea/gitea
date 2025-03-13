@@ -208,14 +208,14 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 		webhook_module.HookEventIssueAssign,
 		webhook_module.HookEventIssueLabel,
 		webhook_module.HookEventIssueMilestone:
-		return matchIssuesEvent(commit, payload.(*api.IssuePayload), evt)
+		return matchIssuesEvent(payload.(*api.IssuePayload), evt)
 
 	case // issue_comment
 		webhook_module.HookEventIssueComment,
 		// `pull_request_comment` is same as `issue_comment`
 		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_comment-use-issue_comment
 		webhook_module.HookEventPullRequestComment:
-		return matchIssueCommentEvent(commit, payload.(*api.IssueCommentPayload), evt)
+		return matchIssueCommentEvent(payload.(*api.IssueCommentPayload), evt)
 
 	case // pull_request
 		webhook_module.HookEventPullRequest,
@@ -229,19 +229,19 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 	case // pull_request_review
 		webhook_module.HookEventPullRequestReviewApproved,
 		webhook_module.HookEventPullRequestReviewRejected:
-		return matchPullRequestReviewEvent(commit, payload.(*api.PullRequestPayload), evt)
+		return matchPullRequestReviewEvent(payload.(*api.PullRequestPayload), evt)
 
 	case // pull_request_review_comment
 		webhook_module.HookEventPullRequestReviewComment:
-		return matchPullRequestReviewCommentEvent(commit, payload.(*api.PullRequestPayload), evt)
+		return matchPullRequestReviewCommentEvent(payload.(*api.PullRequestPayload), evt)
 
 	case // release
 		webhook_module.HookEventRelease:
-		return matchReleaseEvent(commit, payload.(*api.ReleasePayload), evt)
+		return matchReleaseEvent(payload.(*api.ReleasePayload), evt)
 
 	case // registry_package
 		webhook_module.HookEventPackage:
-		return matchPackageEvent(commit, payload.(*api.PackagePayload), evt)
+		return matchPackageEvent(payload.(*api.PackagePayload), evt)
 
 	default:
 		log.Warn("unsupported event %q", triggedEvent)
@@ -347,7 +347,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 	return matchTimes == len(evt.Acts())
 }
 
-func matchIssuesEvent(commit *git.Commit, issuePayload *api.IssuePayload, evt *jobparser.Event) bool {
+func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
 		return true
@@ -495,7 +495,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 	return activityTypeMatched && matchTimes == len(evt.Acts())
 }
 
-func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCommentPayload, evt *jobparser.Event) bool {
+func matchIssueCommentEvent(issueCommentPayload *api.IssueCommentPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
 		return true
@@ -527,7 +527,7 @@ func matchIssueCommentEvent(commit *git.Commit, issueCommentPayload *api.IssueCo
 	return matchTimes == len(evt.Acts())
 }
 
-func matchPullRequestReviewEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
+func matchPullRequestReviewEvent(prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
 		return true
@@ -576,7 +576,7 @@ func matchPullRequestReviewEvent(commit *git.Commit, prPayload *api.PullRequestP
 	return matchTimes == len(evt.Acts())
 }
 
-func matchPullRequestReviewCommentEvent(commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
+func matchPullRequestReviewCommentEvent(prPayload *api.PullRequestPayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
 		return true
@@ -625,7 +625,7 @@ func matchPullRequestReviewCommentEvent(commit *git.Commit, prPayload *api.PullR
 	return matchTimes == len(evt.Acts())
 }
 
-func matchReleaseEvent(commit *git.Commit, payload *api.ReleasePayload, evt *jobparser.Event) bool {
+func matchReleaseEvent(payload *api.ReleasePayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
 		return true
@@ -662,7 +662,7 @@ func matchReleaseEvent(commit *git.Commit, payload *api.ReleasePayload, evt *job
 	return matchTimes == len(evt.Acts())
 }
 
-func matchPackageEvent(commit *git.Commit, payload *api.PackagePayload, evt *jobparser.Event) bool {
+func matchPackageEvent(payload *api.PackagePayload, evt *jobparser.Event) bool {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
 		return true

@@ -30,6 +30,7 @@ type PullRequestMeta struct {
 	HasMerged        bool       `json:"merged"`
 	Merged           *time.Time `json:"merged_at"`
 	IsWorkInProgress bool       `json:"draft"`
+	HTMLURL          string     `json:"html_url"`
 }
 
 // RepositoryMeta basic repository information
@@ -176,19 +177,20 @@ const (
 // IssueTemplate represents an issue template for a repository
 // swagger:model
 type IssueTemplate struct {
-	Name     string              `json:"name" yaml:"name"`
-	Title    string              `json:"title" yaml:"title"`
-	About    string              `json:"about" yaml:"about"` // Using "description" in a template file is compatible
-	Labels   IssueTemplateLabels `json:"labels" yaml:"labels"`
-	Ref      string              `json:"ref" yaml:"ref"`
-	Content  string              `json:"content" yaml:"-"`
-	Fields   []*IssueFormField   `json:"body" yaml:"body"`
-	FileName string              `json:"file_name" yaml:"-"`
+	Name      string                   `json:"name" yaml:"name"`
+	Title     string                   `json:"title" yaml:"title"`
+	About     string                   `json:"about" yaml:"about"` // Using "description" in a template file is compatible
+	Labels    IssueTemplateStringSlice `json:"labels" yaml:"labels"`
+	Assignees IssueTemplateStringSlice `json:"assignees" yaml:"assignees"`
+	Ref       string                   `json:"ref" yaml:"ref"`
+	Content   string                   `json:"content" yaml:"-"`
+	Fields    []*IssueFormField        `json:"body" yaml:"body"`
+	FileName  string                   `json:"file_name" yaml:"-"`
 }
 
-type IssueTemplateLabels []string
+type IssueTemplateStringSlice []string
 
-func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
+func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 	var labels []string
 	if value.IsZero() {
 		*l = labels
@@ -216,7 +218,7 @@ func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
 		*l = labels
 		return nil
 	}
-	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateLabels", value.Line, value.ShortTag())
+	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateStringSlice", value.Line, value.ShortTag())
 }
 
 type IssueConfigContactLink struct {

@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"strings"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -38,27 +38,30 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 
 	u.Avatar = avatars.HashEmail(seed)
 
-	// Don't share the images so that we can delete them easily
-	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, img); err != nil {
-			log.Error("Encode: %v", err)
+	_, err = storage.Avatars.Stat(u.CustomAvatarRelativePath())
+	if err != nil {
+		// If unable to Stat the avatar file (usually it means non-existing), then try to save a new one
+		// Don't share the images so that we can delete them easily
+		if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
+			if err := png.Encode(w, img); err != nil {
+				log.Error("Encode: %v", err)
+			}
+			return nil
+		}); err != nil {
+			return fmt.Errorf("failed to save avatar %s: %w", u.CustomAvatarRelativePath(), err)
 		}
-		return err
-	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
 	}
 
 	if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar").Update(u); err != nil {
 		return err
 	}
 
-	log.Info("New random avatar created: %d", u.ID)
 	return nil
 }
 
 // AvatarLinkWithSize returns a link to the user's avatar with size. size <= 0 means default size
 func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
-	if u.IsGhost() {
+	if u.IsGhost() || u.IsGiteaActions() {
 		return avatars.DefaultAvatarLink()
 	}
 
@@ -89,13 +92,11 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	return avatars.GenerateEmailAvatarFastLink(ctx, u.AvatarEmail, size)
 }
 
-// AvatarLink returns the full avatar link with http host
+// AvatarLink returns the full avatar url with http host.
+// TODO: refactor it to a relative URL, but it is still used in API response at the moment
 func (u *User) AvatarLink(ctx context.Context) string {
-	link := u.AvatarLinkWithSize(ctx, 0)
-	if !strings.HasPrefix(link, "//") && !strings.Contains(link, "://") {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL+"/")
-	}
-	return link
+	relLink := u.AvatarLinkWithSize(ctx, 0) // it can't be empty
+	return httplib.MakeAbsoluteURL(ctx, relLink)
 }
 
 // IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data

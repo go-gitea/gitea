@@ -10,14 +10,14 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplNotices base.TplName = "admin/notice"
+	tplNotices templates.TplName = "admin/notice"
 )
 
 // Notices show notices for admin
@@ -74,5 +74,5 @@ func EmptyNotices(ctx *context.Context) {
 
 	log.Trace("System notices deleted by admin (%s): [start: %d]", ctx.Doer.Name, 0)
 	ctx.Flash.Success(ctx.Tr("admin.notices.delete_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/notices")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/notices")
 }

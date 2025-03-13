@@ -8,8 +8,8 @@ import (
 	"context"
 	"fmt"
 	"net/mail"
-	"regexp"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
@@ -152,8 +152,6 @@ func UpdateEmailAddress(ctx context.Context, email *EmailAddress) error {
 	return err
 }
 
-var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-
 // ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
 	if err := validateEmailBasic(email); err != nil {
@@ -256,14 +254,6 @@ func IsEmailUsed(ctx context.Context, email string) (bool, error) {
 	return db.GetEngine(ctx).Where("lower_email=?", strings.ToLower(email)).Get(&EmailAddress{})
 }
 
-// DeleteInactiveEmailAddresses deletes inactive email addresses
-func DeleteInactiveEmailAddresses(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).
-		Where("is_activated = ?", false).
-		Delete(new(EmailAddress))
-	return err
-}
-
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(ctx context.Context, email *EmailAddress) error {
 	ctx, committer, err := db.TxContext(ctx)
@@ -361,14 +351,12 @@ func ChangeInactivePrimaryEmail(ctx context.Context, uid int64, oldEmailAddr, ne
 
 // VerifyActiveEmailCode verifies active email code when active account
 func VerifyActiveEmailCode(ctx context.Context, code, email string) *EmailAddress {
-	minutes := setting.Service.ActiveCodeLives
-
 	if user := GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
-		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
-
-		if base.VerifyTimeLimitCode(data, minutes, prefix) {
+		opts := &TimeLimitCodeOptions{Purpose: TimeLimitCodeActivateEmail, NewEmail: email}
+		data := makeTimeLimitCodeHashData(opts, user)
+		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
 			emailAddress := &EmailAddress{UID: user.ID, Email: email}
 			if has, _ := db.GetEngine(ctx).Get(emailAddress); has {
 				return emailAddress
@@ -404,6 +392,7 @@ type SearchEmailOptions struct {
 
 // SearchEmailResult is an e-mail address found in the user or email_address table
 type SearchEmailResult struct {
+	ID          int64
 	UID         int64
 	Email       string
 	IsActivated bool
@@ -494,10 +483,10 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 	// Activate/deactivate a user's primary email address and account
 	if addr.IsPrimary {
-		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID, "email": email})
+		user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID})
 		if err != nil {
 			return err
-		} else if !exist {
+		} else if !exist || !strings.EqualFold(user.Email, email) {
 			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
 		}
 
@@ -522,7 +511,7 @@ func validateEmailBasic(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	if !emailRegexp.MatchString(email) {
+	if !globalVars().emailRegexp.MatchString(email) {
 		return ErrEmailCharIsNotSupported{email}
 	}
 
@@ -552,4 +541,14 @@ func IsEmailDomainAllowed(email string) bool {
 	}
 
 	return validation.IsEmailDomainListed(setting.Service.EmailDomainAllowList, email)
+}
+
+func GetActivatedEmailAddresses(ctx context.Context, uid int64) ([]string, error) {
+	emails := make([]string, 0, 2)
+	if err := db.GetEngine(ctx).Table("email_address").Select("email").
+		Where("uid=? AND is_activated=?", uid, true).Asc("id").
+		Find(&emails); err != nil {
+		return nil, err
+	}
+	return emails, nil
 }

@@ -2,11 +2,18 @@
 
 .flex-container {
   display: flex !important;
-  gap: 16px;
+  gap: var(--page-spacing);
+  margin-top: var(--page-spacing);
 }
 
+/* small options menu on the left, used in settings/admin pages */
 .flex-container-nav {
   width: 240px;
+}
+
+/* wide sidebar on the right, used in frontpage */
+.flex-container-sidebar {
+  width: 35%;
 }
 
 .flex-container-main {
@@ -18,7 +25,9 @@
   .flex-container {
     flex-direction: column;
   }
-  .flex-container-nav {
+  .flex-container-nav,
+  .flex-container-sidebar {
+    order: -1;
     width: auto;
   }
 }

@@ -4,13 +4,6 @@ modifies/docs:
           - "**/*.md"
           - "docs/**"
 
-modifies/frontend:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "web_src/**"
-          - "tailwind.config.js"
-          - "webpack.config.js"
-
 modifies/templates:
   - changed-files:
       - all-globs-to-any-file:
@@ -48,15 +41,15 @@ modifies/internal:
           - ".dockerignore"
           - "docker/**"
           - ".editorconfig"
-          - ".eslintrc.yaml"
+          - ".eslintrc.cjs"
           - ".golangci.yml"
           - ".gitpod.yml"
           - ".markdownlint.yaml"
           - ".spectral.yaml"
-          - ".stylelintrc.yaml"
+          - "stylelint.config.js"
           - ".yamllint.yaml"
           - ".github/**"
-          - ".gitea/"
+          - ".gitea/**"
           - ".devcontainer/**"
           - "build.go"
           - "build/**"
@@ -77,8 +70,14 @@ modifies/go:
       - any-glob-to-any-file:
           - "**/*.go"
 
-modifies/js:
+modifies/frontend:
   - changed-files:
       - any-glob-to-any-file:
-          - "**/*.js"
-          - "**/*.vue"
+          - "*.js"
+          - "*.ts"
+          - "web_src/**"
+
+docs-update-needed:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "custom/conf/app.example.ini"

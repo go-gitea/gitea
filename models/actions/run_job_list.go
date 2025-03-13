@@ -16,14 +16,9 @@ import (
 type ActionJobList []*ActionRunJob
 
 func (jobs ActionJobList) GetRunIDs() []int64 {
-	ids := make(container.Set[int64], len(jobs))
-	for _, j := range jobs {
-		if j.RunID == 0 {
-			continue
-		}
-		ids.Add(j.RunID)
-	}
-	return ids.Values()
+	return container.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
+		return j.RunID, j.RunID != 0
+	})
 }
 
 func (jobs ActionJobList) LoadRuns(ctx context.Context, withRepo bool) error {

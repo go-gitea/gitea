@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_meilisearch "code.gitea.io/gitea/modules/indexer/internal/meilisearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
@@ -18,7 +19,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 3
+	issueIndexerLatestVersion = 4
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -33,6 +34,10 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_meilisearch.Indexer
 	indexer_internal.Indexer // do not composite inner_meilisearch.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new meilisearch indexer
@@ -61,6 +66,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"is_public",
 			"is_pull",
 			"is_closed",
+			"is_archived",
 			"label_ids",
 			"no_label",
 			"milestone_id",
@@ -145,6 +151,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.IsClosed.Has() {
 		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.Value()))
 	}
+	if options.IsArchived.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_archived", options.IsArchived.Value()))
+	}
 
 	if options.NoLabelOnly {
 		query.And(inner_meilisearch.NewFilterEq("no_label", true))
@@ -174,8 +183,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	if options.ProjectID.Has() {
 		query.And(inner_meilisearch.NewFilterEq("project_id", options.ProjectID.Value()))
 	}
-	if options.ProjectBoardID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectBoardID.Value()))
+	if options.ProjectColumnID.Has() {
+		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectColumnID.Value()))
 	}
 
 	if options.PosterID.Has() {
@@ -218,9 +227,16 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	skip, limit := indexer_internal.ParsePaginator(options.Paginator, maxTotalHits)
 
-	keyword := options.Keyword
-	if !options.IsFuzzyKeyword {
-		// to make it non fuzzy ("typo tolerance" in meilisearch terms), we have to quote the keyword(s)
+	counting := limit == 0
+	if counting {
+		// If set limit to 0, it will be 20 by default, and -1 is not allowed.
+		// See https://www.meilisearch.com/docs/reference/api/search#limit
+		// So set limit to 1 to make the cost as low as possible, then clear the result before returning.
+		limit = 1
+	}
+
+	keyword := options.Keyword // default to match "words"
+	if options.SearchMode == indexer.SearchModeExact {
 		// https://www.meilisearch.com/docs/reference/api/search#phrase-search
 		keyword = doubleQuoteKeyword(keyword)
 	}
@@ -234,6 +250,10 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if counting {
+		searchRes.Hits = nil
 	}
 
 	hits, err := convertHits(searchRes)

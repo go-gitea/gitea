@@ -1,4 +1,4 @@
-<button class="ui basic button gt-mr-0" hx-post="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
+<button class="ui basic button tw-mr-0" hx-post="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
 	{{if $.IsFollowing}}
 		{{ctx.Locale.Tr "user.unfollow"}}
 	{{else}}

@@ -39,8 +39,6 @@ type SearchUserOptions struct {
 	IsTwoFactorEnabled optional.Option[bool]
 	IsProhibitLogin    optional.Option[bool]
 	IncludeReserved    bool
-
-	ExtraParamStrings map[string]string
 }
 
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
@@ -65,7 +63,19 @@ func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Sess
 			builder.Like{"LOWER(full_name)", lowerKeyword},
 		)
 		if opts.SearchByEmail {
-			keywordCond = keywordCond.Or(builder.Like{"LOWER(email)", lowerKeyword})
+			var emailCond builder.Cond
+			emailCond = builder.Like{"LOWER(email)", lowerKeyword}
+			if opts.Actor == nil {
+				emailCond = emailCond.And(builder.Eq{"keep_email_private": false})
+			} else if !opts.Actor.IsAdmin {
+				emailCond = emailCond.And(
+					builder.Or(
+						builder.Eq{"keep_email_private": false},
+						builder.Eq{"id": opts.Actor.ID},
+					),
+				)
+			}
+			keywordCond = keywordCond.Or(emailCond)
 		}
 
 		cond = cond.And(keywordCond)
@@ -140,7 +150,7 @@ func SearchUsers(ctx context.Context, opts *SearchUserOptions) (users []*User, _
 
 	sessQuery := opts.toSearchQueryBase(ctx).OrderBy(opts.OrderBy.String())
 	defer sessQuery.Close()
-	if opts.Page != 0 {
+	if opts.Page > 0 {
 		sessQuery = db.SetSessionPagination(sessQuery, opts)
 	}
 

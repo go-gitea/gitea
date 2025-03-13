@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/services/pull"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRenderConversation(t *testing.T) {
@@ -40,19 +42,16 @@ func TestRenderConversation(t *testing.T) {
 	var preparedComment *issues_model.Comment
 	run("prepare", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
 		comment, err := pull.CreateCodeComment(ctx, pr.Issue.Poster, ctx.Repo.GitRepo, pr.Issue, 1, "content", "", false, 0, pr.HeadCommitID, nil)
-		if !assert.NoError(t, err) {
-			return
-		}
+		require.NoError(t, err)
+
 		comment.Invalidated = true
 		err = issues_model.UpdateCommentInvalidate(ctx, comment)
-		if !assert.NoError(t, err) {
-			return
-		}
+		require.NoError(t, err)
+
 		preparedComment = comment
 	})
-	if !assert.NotNil(t, preparedComment) {
-		return
-	}
+	require.NotNil(t, preparedComment)
+
 	run("diff with outdated", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
 		ctx.Data["ShowOutdatedComments"] = true
 		renderConversation(ctx, preparedComment, "diff")
@@ -72,5 +71,21 @@ func TestRenderConversation(t *testing.T) {
 		ctx.Data["ShowOutdatedComments"] = false
 		renderConversation(ctx, preparedComment, "timeline")
 		assert.Contains(t, resp.Body.String(), `<div id="code-comments-`)
+	})
+	run("diff non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+		err := db.TruncateBeans(db.DefaultContext, &issues_model.Review{})
+		assert.NoError(t, err)
+		ctx.Data["ShowOutdatedComments"] = true
+		renderConversation(ctx, preparedComment, "diff")
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.NotContains(t, resp.Body.String(), `status-page-500`)
+	})
+	run("timeline non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
+		err := db.TruncateBeans(db.DefaultContext, &issues_model.Review{})
+		assert.NoError(t, err)
+		ctx.Data["ShowOutdatedComments"] = true
+		renderConversation(ctx, preparedComment, "timeline")
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.NotContains(t, resp.Body.String(), `status-page-500`)
 	})
 }

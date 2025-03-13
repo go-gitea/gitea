@@ -88,8 +88,8 @@ func SetLogSQL(ctx *context.PrivateContext) {
 
 // RemoveLogger removes a logger
 func RemoveLogger(ctx *context.PrivateContext) {
-	logger := ctx.Params("logger")
-	writer := ctx.Params("writer")
+	logger := ctx.PathParam("logger")
+	writer := ctx.PathParam("writer")
 	err := log.GetManager().GetLogger(logger).RemoveWriter(writer)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{

@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,7 @@ func TestPackageAPI(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	session := loginUser(t, user.Name)
 	tokenReadPackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
-	tokenDeletePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWritePackage)
+	tokenWritePackage := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWritePackage)
 
 	packageName := "test-package"
 	packageVersion := "1.0.3"
@@ -86,7 +87,7 @@ func TestPackageAPI(t *testing.T) {
 		t.Run("RepositoryLink", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			p, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
+			_, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
 			assert.NoError(t, err)
 
 			// no repository link
@@ -98,8 +99,15 @@ func TestPackageAPI(t *testing.T) {
 			DecodeJSON(t, resp, &ap1)
 			assert.Nil(t, ap1.Repository)
 
+			// create a repository
+			newRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
+				Name: "repo4",
+			})
+			assert.NoError(t, err)
+
 			// link to public repository
-			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 1))
+			req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, newRepo.Name)).AddTokenAuth(tokenWritePackage)
+			MakeRequest(t, req, http.StatusCreated)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
 				AddTokenAuth(tokenReadPackage)
@@ -108,10 +116,15 @@ func TestPackageAPI(t *testing.T) {
 			var ap2 *api.Package
 			DecodeJSON(t, resp, &ap2)
 			assert.NotNil(t, ap2.Repository)
-			assert.EqualValues(t, 1, ap2.Repository.ID)
+			assert.EqualValues(t, newRepo.ID, ap2.Repository.ID)
 
-			// link to private repository
-			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 2))
+			// link to repository without write access, should fail
+			req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, "repo3")).AddTokenAuth(tokenWritePackage)
+			MakeRequest(t, req, http.StatusNotFound)
+
+			// remove link
+			req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/unlink", user.Name, packageName)).AddTokenAuth(tokenWritePackage)
+			MakeRequest(t, req, http.StatusNoContent)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
 				AddTokenAuth(tokenReadPackage)
@@ -121,7 +134,18 @@ func TestPackageAPI(t *testing.T) {
 			DecodeJSON(t, resp, &ap3)
 			assert.Nil(t, ap3.Repository)
 
-			assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, 2))
+			// force link to a repository the currently logged-in user doesn't have access to
+			privateRepoID := int64(6)
+			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, privateRepoID))
+
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(tokenReadPackage)
+			resp = MakeRequest(t, req, http.StatusOK)
+
+			var ap4 *api.Package
+			DecodeJSON(t, resp, &ap4)
+			assert.Nil(t, ap4.Repository)
+
+			assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, privateRepoID))
 		})
 	})
 
@@ -152,11 +176,11 @@ func TestPackageAPI(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s", user.Name, packageName, packageVersion)).
-			AddTokenAuth(tokenDeletePackage)
+			AddTokenAuth(tokenWritePackage)
 		MakeRequest(t, req, http.StatusNotFound)
 
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
-			AddTokenAuth(tokenDeletePackage)
+			AddTokenAuth(tokenWritePackage)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }

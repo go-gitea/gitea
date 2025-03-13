@@ -46,7 +46,7 @@ func (r *stripRenderer) Render(w io.Writer, source []byte, doc ast.Node) error {
 				coalesce := prevSibIsText
 				r.processString(
 					w,
-					v.Text(source),
+					v.Text(source), //nolint:staticcheck
 					coalesce)
 				if v.SoftLineBreak() {
 					r.doubleSpace(w)
@@ -54,7 +54,7 @@ func (r *stripRenderer) Render(w io.Writer, source []byte, doc ast.Node) error {
 			}
 			return ast.WalkContinue, nil
 		case *ast.Link:
-			r.processLink(w, v.Destination)
+			r.processLink(v.Destination)
 			return ast.WalkSkipChildren, nil
 		case *ast.AutoLink:
 			// This could be a reference to an issue or pull - if so convert it
@@ -124,7 +124,7 @@ func (r *stripRenderer) processAutoLink(w io.Writer, link []byte) {
 	_, _ = w.Write([]byte(parts[4]))
 }
 
-func (r *stripRenderer) processLink(w io.Writer, link []byte) {
+func (r *stripRenderer) processLink(link []byte) {
 	// Links are processed out of band
 	r.links = append(r.links, string(link))
 }

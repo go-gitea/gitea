@@ -1,3 +1,6 @@
+/* based on Fomantic UI message module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
 .ui.message {
   background: var(--color-box-body);
   color: var(--color-text);
@@ -96,4 +99,16 @@
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
   border-color: var(--color-warning-border);
+}
+
+.ui.message > .close.icon {
+  cursor: pointer;
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  opacity: .7;
+}
+
+.ui.message > .close.icon:hover {
+  opacity: 1;
 }

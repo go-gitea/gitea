@@ -7,5 +7,5 @@ package git
 type CommitInfo struct {
 	Entry         *TreeEntry
 	Commit        *Commit
-	SubModuleFile *SubModuleFile
+	SubmoduleFile *CommitSubmoduleFile
 }

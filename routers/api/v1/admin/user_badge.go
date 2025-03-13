@@ -33,7 +33,7 @@ func ListUserBadges(ctx *context.APIContext) {
 
 	badges, maxResults, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserBadges", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -67,10 +67,10 @@ func AddUserBadges(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	form := web.GetForm(ctx).(*api.UserBadgeOption)
-	badges := prepareBadgesForReplaceOrAdd(ctx, *form)
+	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.AddUserBadges(ctx, ctx.ContextUser, badges); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ReplaceUserBadges", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -103,17 +103,17 @@ func DeleteUserBadges(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.UserBadgeOption)
-	badges := prepareBadgesForReplaceOrAdd(ctx, *form)
+	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.RemoveUserBadges(ctx, ctx.ContextUser, badges); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ReplaceUserBadges", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	ctx.Status(http.StatusNoContent)
 }
 
-func prepareBadgesForReplaceOrAdd(ctx *context.APIContext, form api.UserBadgeOption) []*user_model.Badge {
+func prepareBadgesForReplaceOrAdd(form api.UserBadgeOption) []*user_model.Badge {
 	badges := make([]*user_model.Badge, len(form.BadgeSlugs))
 	for i, badge := range form.BadgeSlugs {
 		badges[i] = &user_model.Badge{
