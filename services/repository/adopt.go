@@ -55,7 +55,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repo.RepoPath(), err)
+			log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 			return err
 		}
 		if !isExist {
@@ -80,8 +80,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 	}
 
 	if err := func() error {
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
-		if err := adoptRepository(ctx, repoPath, repo, opts.DefaultBranch); err != nil {
+		if err := adoptRepository(ctx, repo, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("adoptRepository: %w", err)
 		}
 
@@ -90,7 +89,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		}
 
 		if stdout, _, err := git.NewCommand("update-server-info").
-			RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
+			RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
@@ -106,17 +105,17 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, repo *repo_model.Repository, defaultBranch string) (err error) {
-	isExist, err := util.IsExist(repoPath)
+func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBranch string) (err error) {
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return err
 	}
 	if !isExist {
-		return fmt.Errorf("adoptRepository: path does not already exist: %s", repoPath)
+		return fmt.Errorf("adoptRepository: path does not already exist: %s", repo.FullName())
 	}
 
-	if err := repo_module.CreateDelegateHooks(repoPath); err != nil {
+	if err := repo_module.CreateDelegateHooks(repo.RepoPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 

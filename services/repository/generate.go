@@ -258,7 +258,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 	if err != nil {
-		return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
+		return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.FullName(), err)
 	}
 
 	defer func() {
@@ -352,7 +352,7 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 
 	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", generateRepo.RepoPath(), err)
+		log.Error("Unable to check if %s exists. Error: %v", generateRepo.FullName(), err)
 		return nil, err
 	}
 	if isExist {

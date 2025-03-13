@@ -125,7 +125,7 @@ func CheckInitRepository(ctx context.Context, repo *repo_model.Repository) (err 
 	// Somehow the directory could exist.
 	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.RepoPath(), err)
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return err
 	}
 	if isExist {

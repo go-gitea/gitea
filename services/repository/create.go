@@ -148,7 +148,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 	if opts.AutoInit {
 		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
+			return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.FullName(), err)
 		}
 		defer func() {
 			if err := util.RemoveAll(tmpDir); err != nil {
@@ -258,7 +258,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 
 		isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repo.RepoPath(), err)
+			log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 			return err
 		}
 		if isExist {
@@ -269,7 +269,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			//
 			// Previously Gitea would just delete and start afresh - this was naughty.
 			// So we will now fail and delegate to other functionality to adopt or delete
-			log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.RepoPath())
+			log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
 			return repo_model.ErrRepoFilesAlreadyExist{
 				Uname: u.Name,
 				Name:  repo.Name,
@@ -354,11 +354,11 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 
 	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.RepoPath(), err)
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {
-		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.RepoPath())
+		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
 		return repo_model.ErrRepoFilesAlreadyExist{
 			Uname: u.Name,
 			Name:  repo.Name,
