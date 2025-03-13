@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/indexer"
 	path_filter "code.gitea.io/gitea/modules/indexer/code/bleve/token/path"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
@@ -134,6 +135,10 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_bleve.Indexer
 	indexer_internal.Indexer // do not composite inner_bleve.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new bleve local indexer
@@ -267,19 +272,18 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	pathQuery.FieldVal = "Filename"
 	pathQuery.SetBoost(10)
 
-	keywordAsPhrase, isPhrase := internal.ParseKeywordAsPhrase(opts.Keyword)
-	if isPhrase {
-		q := bleve.NewMatchPhraseQuery(keywordAsPhrase)
+	if opts.SearchMode == indexer.SearchModeExact {
+		q := bleve.NewMatchPhraseQuery(opts.Keyword)
 		q.FieldVal = "Content"
-		if opts.IsKeywordFuzzy {
-			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(keywordAsPhrase)
-		}
 		contentQuery = q
-	} else {
+	} else /* words */ {
 		q := bleve.NewMatchQuery(opts.Keyword)
 		q.FieldVal = "Content"
-		if opts.IsKeywordFuzzy {
+		if opts.SearchMode == indexer.SearchModeFuzzy {
+			// this logic doesn't seem right, it is only used to pass the test-case `Keyword:    "dESCRIPTION"`, which doesn't seem to be a real-life use-case.
 			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
+		} else {
+			q.Operator = query.MatchQueryOperatorAnd
 		}
 		contentQuery = q
 	}
