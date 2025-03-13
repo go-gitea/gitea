@@ -200,6 +200,9 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
 		}
 		cond = cond.And(c)
+	} else if !opts.WithAvailable {
+		c := builder.NewCond().And(builder.Eq{"repo_id": 0, "owner_id": 0})
+		cond = cond.And(c)
 	}
 
 	if opts.Filter != "" {
