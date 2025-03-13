@@ -376,7 +376,7 @@ type TestPullRequestOptions struct {
 	RepoID      int64
 	Doer        *user_model.User
 	Branch      string
-	IsSync      bool
+	IsSync      bool // whether it's a pull request synchronization
 	IsForcePush bool
 	OldCommitID string
 	NewCommitID string
