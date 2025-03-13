@@ -149,6 +149,20 @@ jobs:
 					)
 				}
 
+				// download task logs from API and check content
+				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%s/jobs/0/logs", user2.Name, repo.Name, runIndex)).
+					AddTokenAuth(token)
+				resp = MakeRequest(t, req, http.StatusOK)
+				logTextLines = strings.Split(strings.TrimSpace(resp.Body.String()), "\n")
+				assert.Len(t, logTextLines, len(tc.outcome.logRows))
+				for idx, lr := range tc.outcome.logRows {
+					assert.Equal(
+						t,
+						fmt.Sprintf("%s %s", lr.Time.AsTime().Format("2006-01-02T15:04:05.0000000Z07:00"), lr.Content),
+						logTextLines[idx],
+					)
+				}
+
 				resetFunc()
 			})
 		}
