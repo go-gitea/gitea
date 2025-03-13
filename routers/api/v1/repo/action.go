@@ -526,8 +526,33 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
 }
 
-// GetRunners get repo-level runners
-func (Action) GetRunners(ctx *context.APIContext) {
+// CreateRegistrationToken returns the token to register repo runners
+func (Action) CreateRegistrationToken(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runners/registration-token repository repoCreateRunnerRegistrationToken
+	// ---
+	// summary: Get a repository's actions runner registration token
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RegistrationToken"
+
+	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
+}
+
+// ListRunners get repo-level runners
+func (Action) ListRunners(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runners organization getRunners
 	// ---
 	// summary: Get repo-level runners
@@ -551,7 +576,7 @@ func (Action) GetRunners(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	shared.GetRunners(ctx, 0, ctx.Repo.Repository.ID)
+	shared.ListRunners(ctx, 0, ctx.Repo.Repository.ID)
 }
 
 // GetRunner get an repo-level runner
@@ -589,7 +614,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 
 // DeleteRunner delete an repo-level runner
 func (Action) DeleteRunner(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/{runner_id} organization deleteRunner
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runners/{runner_id} organization deleteRunner
 	// ---
 	// summary: Delete an repo-level runner
 	// produces:

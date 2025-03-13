@@ -912,8 +912,9 @@ func Routes() *web.Router {
 			})
 
 			m.Group("/runners", func() {
-				m.Get("", reqToken(), reqChecker, act.GetRunners)
+				m.Get("", reqToken(), reqChecker, act.ListRunners)
 				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
+				m.Get("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
 				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
 			})
@@ -1046,7 +1047,11 @@ func Routes() *web.Router {
 				})
 
 				m.Group("/runners", func() {
+					m.Get("", reqToken(), user.ListRunners)
 					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
+					m.Post("/registration-token", reqToken(), user.CreateRegistrationToken)
+					m.Get("/{runner_id}", reqToken(), user.GetRunner)
+					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
 				})
 			})
 
@@ -1682,6 +1687,12 @@ func Routes() *web.Router {
 				m.Combo("/{id}").Get(admin.GetHook).
 					Patch(bind(api.EditHookOption{}), admin.EditHook).
 					Delete(admin.DeleteHook)
+			})
+			m.Group("/actions/runners", func() {
+				m.Get("", admin.ListRunners)
+				m.Post("/registration-token", admin.CreateRegistrationToken)
+				m.Get("/{runner_id}", admin.GetRunner)
+				m.Delete("/{runner_id}", admin.DeleteRunner)
 			})
 			m.Group("/runners", func() {
 				m.Get("/registration-token", admin.GetRegistrationToken)

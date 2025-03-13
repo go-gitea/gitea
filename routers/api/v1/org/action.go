@@ -189,6 +189,27 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	shared.GetRegistrationToken(ctx, ctx.Org.Organization.ID, 0)
 }
 
+// https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization
+// CreateRegistrationToken returns the token to register org runners
+func (Action) CreateRegistrationToken(ctx *context.APIContext) {
+	// swagger:operation POST /orgs/{org}/actions/runners/registration-token organization orgCreateRunnerRegistrationToken
+	// ---
+	// summary: Get an organization's actions runner registration token
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RegistrationToken"
+
+	shared.GetRegistrationToken(ctx, ctx.Org.Organization.ID, 0)
+}
+
 // ListVariables list org-level variables
 func (Action) ListVariables(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/actions/variables organization getOrgVariablesList
@@ -466,8 +487,8 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// GetRunners get org-level runners
-func (Action) GetRunners(ctx *context.APIContext) {
+// ListRunners get org-level runners
+func (Action) ListRunners(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/actions/runners organization getRunners
 	// ---
 	// summary: Get org-level runners
@@ -486,7 +507,7 @@ func (Action) GetRunners(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	shared.GetRunners(ctx, ctx.Org.Organization.ID, 0)
+	shared.ListRunners(ctx, ctx.Org.Organization.ID, 0)
 }
 
 // GetRunner get an org-level runner
@@ -519,7 +540,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 
 // DeleteRunner delete an org-level runner
 func (Action) DeleteRunner(ctx *context.APIContext) {
-	// swagger:operation GET /orgs/{org}/actions/runners/{runner_id} organization deleteRunner
+	// swagger:operation DELETE /orgs/{org}/actions/runners/{runner_id} organization deleteRunner
 	// ---
 	// summary: Delete an org-level runner
 	// produces:

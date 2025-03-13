@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net/http"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	"xorm.io/builder"
 )
 
 // RegistrationToken is response related to registration token
@@ -36,7 +36,7 @@ func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
 	ctx.JSON(http.StatusOK, RegistrationToken{Token: token.Token})
 }
 
-func GetRunners(ctx *context.APIContext, ownerID, repoID int64) {
+func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 	runners, total, err := db.FindAndCount[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
@@ -81,10 +81,16 @@ func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 		ctx.APIErrorNotFound("No permission to delete this runner")
 		return
 	}
-	if runner.Status() == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE {
+	exist, err := db.Exist[actions_model.ActionTask](ctx, builder.Eq{"`runner_id`": runner.ID}.And(builder.In("`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked)))
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if exist {
 		ctx.APIError(http.StatusConflict, "Runner is active")
 		return
 	}
+
 	err = actions_model.DeleteRunner(ctx, runner.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
