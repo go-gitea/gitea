@@ -1169,8 +1169,8 @@ func Routes() *web.Router {
 				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
 
 				m.Group("/actions/runs", func() {
-					m.Get("/{run_id}/jobs/{job}/logs", repo.DownloadActionsRunLogs)
-				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
+					m.Get("/{run}/jobs/{job}/logs", repo.DownloadActionsRunJobLogs)
+				}, reqToken(), reqRepoReader(unit.TypeActions))
 
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
