@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -124,7 +123,7 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	if len(serverMACs) > 0 {
 		SSH.ServerMACs = serverMACs
 	}
-	SSH.KeyTestPath = os.TempDir()
+	SSH.KeyTestPath = TempDir()
 	if err = sec.MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
 	}

@@ -3,6 +3,13 @@
 
 package setting
 
+import (
+	"log"
+	"os"
+	"path/filepath"
+	"sync"
+)
+
 // Global settings
 var (
 	// RunUser is the OS user that Gitea is running as. ini:"RUN_USER"
@@ -15,4 +22,22 @@ var (
 
 	// AppName is the Application name, used in the page title. ini: "APP_NAME"
 	AppName string
+
+	tempDir        string
+	createTempOnce sync.Once
 )
+
+// TempDir returns the OS temp directory
+func TempDir() string {
+	tempDir = filepath.Join(os.TempDir(), "gitea")
+	createTempOnce.Do(func() {
+		if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+			log.Fatalf("Failed to create temp directory %s: %v", tempDir, err)
+		}
+	})
+	return tempDir
+}
+
+func CleanUpTempDirs() {
+	//_ = os.RemoveAll(TempDir())
+}

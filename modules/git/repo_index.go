@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -67,7 +68,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilena
 		}
 	}
 
-	tmpDir, err = os.MkdirTemp("", "index")
+	tmpDir, err = os.MkdirTemp(setting.TempDir(), "index")
 	if err != nil {
 		return "", "", nil, err
 	}

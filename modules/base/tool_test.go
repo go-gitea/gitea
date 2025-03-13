@@ -54,6 +54,7 @@ func TestVerifyTimeLimitCode(t *testing.T) {
 JWT_SECRET = %s
 `, secret))
 		setting.LoadCommonSettings()
+		setting.CleanUpTempDirs()
 	}
 
 	initGeneralSecret("KZb_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko")

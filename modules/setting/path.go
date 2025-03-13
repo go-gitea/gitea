@@ -91,6 +91,7 @@ func (s *stringWithDefault) Set(v string) {
 func InitWorkPathAndCommonConfig(getEnvFn func(name string) string, args ArgWorkPathAndCustomConf) {
 	InitWorkPathAndCfgProvider(getEnvFn, args)
 	LoadCommonSettings()
+	CleanUpTempDirs()
 }
 
 // InitWorkPathAndCfgProvider will set AppWorkPath, CustomPath and CustomConf, init default config provider by CustomConf
