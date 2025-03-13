@@ -35,7 +35,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 				return nil, false, nil
 			}
 			// task has been finished, remove it
-			_, err = db.GetEngine(ctx).Delete(runner)
+			_, err = db.DeleteByID[actions_model.ActionRunner](ctx, runner.ID)
 			if err != nil {
 				return nil, false, err
 			}
