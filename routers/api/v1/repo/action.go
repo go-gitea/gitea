@@ -182,7 +182,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "204":
-	//     description: delete one secret of the organization
+	//     description: delete one secret of the repository
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -553,7 +553,7 @@ func (Action) CreateRegistrationToken(ctx *context.APIContext) {
 
 // ListRunners get repo-level runners
 func (Action) ListRunners(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/runners organization getRunners
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runners repository getRepoRunners
 	// ---
 	// summary: Get repo-level runners
 	// produces:
@@ -571,7 +571,7 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/RunnerList"
+	//     "$ref": "#/definitions/ActionRunnersResponse"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -581,7 +581,7 @@ func (Action) ListRunners(ctx *context.APIContext) {
 
 // GetRunner get an repo-level runner
 func (Action) GetRunner(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/{runner_id} organization getRunner
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/{runner_id} repository getRepoRunner
 	// ---
 	// summary: Get an repo-level runner
 	// produces:
@@ -604,7 +604,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/Runner"
+	//     "$ref": "#/definitions/ActionRunner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -614,7 +614,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 
 // DeleteRunner delete an repo-level runner
 func (Action) DeleteRunner(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runners/{runner_id} organization deleteRunner
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runners/{runner_id} repository deleteRepoRunner
 	// ---
 	// summary: Delete an repo-level runner
 	// produces:

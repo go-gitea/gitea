@@ -489,7 +489,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 
 // ListRunners get org-level runners
 func (Action) ListRunners(ctx *context.APIContext) {
-	// swagger:operation GET /orgs/{org}/actions/runners organization getRunners
+	// swagger:operation GET /orgs/{org}/actions/runners organization getOrgRunners
 	// ---
 	// summary: Get org-level runners
 	// produces:
@@ -502,7 +502,7 @@ func (Action) ListRunners(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/RunnerList"
+	//     "$ref": "#/definitions/ActionRunnersResponse"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -512,7 +512,7 @@ func (Action) ListRunners(ctx *context.APIContext) {
 
 // GetRunner get an org-level runner
 func (Action) GetRunner(ctx *context.APIContext) {
-	// swagger:operation GET /orgs/{org}/actions/runners/{runner_id} organization getRunner
+	// swagger:operation GET /orgs/{org}/actions/runners/{runner_id} organization getOrgRunner
 	// ---
 	// summary: Get an org-level runner
 	// produces:
@@ -530,7 +530,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/Runner"
+	//     "$ref": "#/definitions/ActionRunner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -540,7 +540,7 @@ func (Action) GetRunner(ctx *context.APIContext) {
 
 // DeleteRunner delete an org-level runner
 func (Action) DeleteRunner(ctx *context.APIContext) {
-	// swagger:operation DELETE /orgs/{org}/actions/runners/{runner_id} organization deleteRunner
+	// swagger:operation DELETE /orgs/{org}/actions/runners/{runner_id} organization deleteOrgRunner
 	// ---
 	// summary: Delete an org-level runner
 	// produces:

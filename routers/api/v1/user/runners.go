@@ -42,14 +42,14 @@ func CreateRegistrationToken(ctx *context.APIContext) {
 
 // ListRunners get user-level runners
 func ListRunners(ctx *context.APIContext) {
-	// swagger:operation GET /user/actions/runners user getRunners
+	// swagger:operation GET /user/actions/runners user getUserRunners
 	// ---
 	// summary: Get user-level runners
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/RunnerList"
+	//     "$ref": "#/definitions/ActionRunnersResponse"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -59,7 +59,7 @@ func ListRunners(ctx *context.APIContext) {
 
 // GetRunner get an user-level runner
 func GetRunner(ctx *context.APIContext) {
-	// swagger:operation GET /user/actions/runners/{runner_id} user getRunner
+	// swagger:operation GET /user/actions/runners/{runner_id} user getUserRunner
 	// ---
 	// summary: Get an user-level runner
 	// produces:
@@ -72,7 +72,7 @@ func GetRunner(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/Runner"
+	//     "$ref": "#/definitions/ActionRunner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -82,7 +82,7 @@ func GetRunner(ctx *context.APIContext) {
 
 // DeleteRunner delete an user-level runner
 func DeleteRunner(ctx *context.APIContext) {
-	// swagger:operation DELETE /user/actions/runners/{runner_id} user deleteRunner
+	// swagger:operation DELETE /user/actions/runners/{runner_id} user deleteUserRunner
 	// ---
 	// summary: Delete an user-level runner
 	// produces:

@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	actions_model "code.gitea.io/gitea/models/actions"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
@@ -31,6 +30,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
+
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 )
 
 // ToEmail convert models.EmailAddress to api.Email

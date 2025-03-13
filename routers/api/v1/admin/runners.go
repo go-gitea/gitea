@@ -42,14 +42,14 @@ func CreateRegistrationToken(ctx *context.APIContext) {
 
 // ListRunners get global runners
 func ListRunners(ctx *context.APIContext) {
-	// swagger:operation GET /admin/actions/runners admin getRunners
+	// swagger:operation GET /admin/actions/runners admin getAdminRunners
 	// ---
 	// summary: Get global runners
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/RunnerList"
+	//     "$ref": "#/definitions/ActionRunnersResponse"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -59,7 +59,7 @@ func ListRunners(ctx *context.APIContext) {
 
 // GetRunner get an global runner
 func GetRunner(ctx *context.APIContext) {
-	// swagger:operation GET /admin/actions/runners/{runner_id} admin getRunner
+	// swagger:operation GET /admin/actions/runners/{runner_id} admin getAdminRunner
 	// ---
 	// summary: Get an global runner
 	// produces:
@@ -72,7 +72,7 @@ func GetRunner(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/definitions/Runner"
+	//     "$ref": "#/definitions/ActionRunner"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -82,7 +82,7 @@ func GetRunner(ctx *context.APIContext) {
 
 // DeleteRunner delete an global runner
 func DeleteRunner(ctx *context.APIContext) {
-	// swagger:operation DELETE /admin/actions/runners/{runner_id} admin deleteRunner
+	// swagger:operation DELETE /admin/actions/runners/{runner_id} admin deleteAdminRunner
 	// ---
 	// summary: Delete an global runner
 	// produces:

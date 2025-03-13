@@ -84,10 +84,10 @@
           "admin"
         ],
         "summary": "Get global runners",
-        "operationId": "getRunners",
+        "operationId": "getAdminRunners",
         "responses": {
           "200": {
-            "$ref": "#/definitions/RunnerList"
+            "$ref": "#/definitions/ActionRunnersResponse"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -124,7 +124,7 @@
           "admin"
         ],
         "summary": "Get an global runner",
-        "operationId": "getRunner",
+        "operationId": "getAdminRunner",
         "parameters": [
           {
             "type": "string",
@@ -136,7 +136,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/Runner"
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -154,7 +154,7 @@
           "admin"
         ],
         "summary": "Delete an global runner",
-        "operationId": "deleteRunner",
+        "operationId": "deleteAdminRunner",
         "parameters": [
           {
             "type": "string",
@@ -1808,7 +1808,7 @@
           "organization"
         ],
         "summary": "Get org-level runners",
-        "operationId": "getRunners",
+        "operationId": "getOrgRunners",
         "parameters": [
           {
             "type": "string",
@@ -1820,7 +1820,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/RunnerList"
+            "$ref": "#/definitions/ActionRunnersResponse"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -1890,7 +1890,7 @@
           "organization"
         ],
         "summary": "Get an org-level runner",
-        "operationId": "getRunner",
+        "operationId": "getOrgRunner",
         "parameters": [
           {
             "type": "string",
@@ -1909,7 +1909,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/Runner"
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -1927,7 +1927,7 @@
           "organization"
         ],
         "summary": "Delete an org-level runner",
-        "operationId": "deleteRunner",
+        "operationId": "deleteOrgRunner",
         "parameters": [
           {
             "type": "string",
@@ -4427,10 +4427,10 @@
           "application/json"
         ],
         "tags": [
-          "organization"
+          "repository"
         ],
         "summary": "Get repo-level runners",
-        "operationId": "getRunners",
+        "operationId": "getRepoRunners",
         "parameters": [
           {
             "type": "string",
@@ -4449,7 +4449,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/RunnerList"
+            "$ref": "#/definitions/ActionRunnersResponse"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4530,10 +4530,10 @@
           "application/json"
         ],
         "tags": [
-          "organization"
+          "repository"
         ],
         "summary": "Get an repo-level runner",
-        "operationId": "getRunner",
+        "operationId": "getRepoRunner",
         "parameters": [
           {
             "type": "string",
@@ -4559,7 +4559,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/Runner"
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4574,10 +4574,10 @@
           "application/json"
         ],
         "tags": [
-          "organization"
+          "repository"
         ],
         "summary": "Delete an repo-level runner",
-        "operationId": "deleteRunner",
+        "operationId": "deleteRepoRunner",
         "parameters": [
           {
             "type": "string",
@@ -4809,7 +4809,7 @@
         ],
         "responses": {
           "204": {
-            "description": "delete one secret of the organization"
+            "description": "delete one secret of the repository"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -17128,10 +17128,10 @@
           "user"
         ],
         "summary": "Get user-level runners",
-        "operationId": "getRunners",
+        "operationId": "getUserRunners",
         "responses": {
           "200": {
-            "$ref": "#/definitions/RunnerList"
+            "$ref": "#/definitions/ActionRunnersResponse"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -17183,7 +17183,7 @@
           "user"
         ],
         "summary": "Get an user-level runner",
-        "operationId": "getRunner",
+        "operationId": "getUserRunner",
         "parameters": [
           {
             "type": "string",
@@ -17195,7 +17195,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/definitions/Runner"
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -17213,7 +17213,7 @@
           "user"
         ],
         "summary": "Delete an user-level runner",
-        "operationId": "deleteRunner",
+        "operationId": "deleteUserRunner",
         "parameters": [
           {
             "type": "string",

@@ -11,6 +11,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +35,7 @@ func TestAPIRunnerUserApi(t *testing.T) {
 	assert.Len(t, runnerList.Entries, 1)
 	assert.Equal(t, "runner_to_be_deleted-user", runnerList.Entries[0].Name)
 	assert.Equal(t, int64(34346), runnerList.Entries[0].ID)
-	assert.Equal(t, false, runnerList.Entries[0].Ephemeral)
+	assert.False(t, runnerList.Entries[0].Ephemeral)
 	assert.Len(t, runnerList.Entries[0].Labels, 2)
 	assert.Equal(t, "runner_to_be_deleted", runnerList.Entries[0].Labels[0].Name)
 	assert.Equal(t, "linux", runnerList.Entries[0].Labels[1].Name)
@@ -48,7 +49,7 @@ func TestAPIRunnerUserApi(t *testing.T) {
 
 	assert.Equal(t, "runner_to_be_deleted-user", runner.Name)
 	assert.Equal(t, int64(34346), runner.ID)
-	assert.Equal(t, false, runner.Ephemeral)
+	assert.False(t, runner.Ephemeral)
 	assert.Len(t, runner.Labels, 2)
 	assert.Equal(t, "runner_to_be_deleted", runner.Labels[0].Name)
 	assert.Equal(t, "linux", runner.Labels[1].Name)

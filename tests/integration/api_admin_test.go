@@ -414,7 +414,7 @@ func TestAPIRunnerAdminApi(t *testing.T) {
 	assert.Len(t, runnerList.Entries, 1)
 	assert.Equal(t, "runner_to_be_deleted", runnerList.Entries[0].Name)
 	assert.Equal(t, int64(34344), runnerList.Entries[0].ID)
-	assert.Equal(t, false, runnerList.Entries[0].Ephemeral)
+	assert.False(t, runnerList.Entries[0].Ephemeral)
 	assert.Len(t, runnerList.Entries[0].Labels, 2)
 	assert.Equal(t, "runner_to_be_deleted", runnerList.Entries[0].Labels[0].Name)
 	assert.Equal(t, "linux", runnerList.Entries[0].Labels[1].Name)
@@ -428,7 +428,7 @@ func TestAPIRunnerAdminApi(t *testing.T) {
 
 	assert.Equal(t, "runner_to_be_deleted", runner.Name)
 	assert.Equal(t, int64(34344), runner.ID)
-	assert.Equal(t, false, runner.Ephemeral)
+	assert.False(t, runner.Ephemeral)
 	assert.Len(t, runner.Labels, 2)
 	assert.Equal(t, "runner_to_be_deleted", runner.Labels[0].Name)
 	assert.Equal(t, "linux", runner.Labels[1].Name)
