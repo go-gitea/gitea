@@ -350,10 +350,9 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return nil, err
 	}
 
-	repoPath := generateRepo.RepoPath()
-	isExist, err := util.IsExist(repoPath)
+	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", generateRepo.RepoPath(), err)
 		return nil, err
 	}
 	if isExist {
@@ -363,7 +362,7 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	if err = repo_module.CheckInitRepository(ctx, owner.Name, generateRepo.Name, generateRepo.ObjectFormatName); err != nil {
+	if err = repo_module.CheckInitRepository(ctx, generateRepo); err != nil {
 		return generateRepo, err
 	}
 
@@ -372,7 +371,7 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	if stdout, _, err := git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
+		RunStdString(ctx, &git.RunOpts{Dir: generateRepo.RepoPath()}); err != nil {
 		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
 		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %w", err)
 	}

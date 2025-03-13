@@ -52,12 +52,10 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	repoPath := repo_model.RepoPath(u.Name, repo.Name)
-
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		isExist, err := util.IsExist(repoPath)
+		isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+			log.Error("Unable to check if %s exists. Error: %v", repo.RepoPath(), err)
 			return err
 		}
 		if !isExist {
@@ -82,6 +80,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 	}
 
 	if err := func() error {
+		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		if err := adoptRepository(ctx, repoPath, repo, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("adoptRepository: %w", err)
 		}

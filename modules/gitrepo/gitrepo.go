@@ -69,3 +69,7 @@ func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Reposito
 	ctx.SetContextValue(ck, gitRepo)
 	return gitRepo, nil
 }
+
+func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
+	return util.IsExist(repoPath(repo))
+}
