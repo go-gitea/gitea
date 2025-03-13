@@ -437,7 +437,7 @@ func TestAPIRunnerAdminApi(t *testing.T) {
 	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/admin/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
-	// Verify get the runner has been deleted
+	// Verify runner deletion
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/admin/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
