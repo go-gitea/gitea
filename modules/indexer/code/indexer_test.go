@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 
 	_ "code.gitea.io/gitea/models"
 	_ "code.gitea.io/gitea/models/actions"
@@ -240,7 +241,7 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 				total, res, langs, err := indexer.Search(t.Context(), &internal.SearchOptions{
 					RepoIDs:    kw.RepoIDs,
 					Keyword:    kw.Keyword,
-					SearchMode: kw.SearchMode,
+					SearchMode: util.IfZero(kw.SearchMode, indexer_module.SearchModeWords),
 					Paginator: &db.ListOptions{
 						Page:     1,
 						PageSize: 10,

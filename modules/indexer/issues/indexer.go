@@ -282,7 +282,7 @@ const (
 
 // SearchIssues search issues by options.
 func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, error) {
-	indexer := *globalIndexer.Load()
+	ix := *globalIndexer.Load()
 
 	if opts.Keyword == "" || opts.IsKeywordNumeric() {
 		// This is a conservative shortcut.
@@ -291,10 +291,9 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 		// So if the user creates an issue and list issues immediately, the issue may not be listed because the indexer needs time to index the issue.
 		// Even worse, the external indexer like elastic search may not be available for a while,
 		// and the user may not be able to list issues completely until it is available again.
-		indexer = db.NewIndexer()
+		ix = db.NewIndexer()
 	}
-
-	result, err := indexer.Search(ctx, opts)
+	result, err := ix.Search(ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}
