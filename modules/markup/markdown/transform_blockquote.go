@@ -115,6 +115,9 @@ func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Read
 
 	// grab these nodes and make sure we adhere to the attention blockquote structure
 	firstParagraph := v.FirstChild()
+	if firstParagraph == nil {
+		return ast.WalkContinue, nil
+	}
 	g.applyElementDir(firstParagraph)
 
 	attentionType, processedNodes := g.extractBlockquoteAttentionEmphasis(firstParagraph, reader)
