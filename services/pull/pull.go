@@ -376,7 +376,7 @@ type TestPullRequestOptions struct {
 	RepoID      int64
 	Doer        *user_model.User
 	Branch      string
-	IsSync      bool // whether it's a pull request synchronization
+	IsSync      bool // True means it's a pull request synchronization, false means it's triggered for pull request merging or updating
 	IsForcePush bool
 	OldCommitID string
 	NewCommitID string
