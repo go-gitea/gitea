@@ -356,12 +356,12 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	)
 
 	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
-	pushCmd := git.NewCommand(ctx, "push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
+	pushCmd := git.NewCommand("push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.
 	// This cause an api call to "/api/internal/hook/post-receive/...",
 	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
-	if err := pushCmd.Run(mergeCtx.RunOpts()); err != nil {
+	if err := pushCmd.Run(ctx, mergeCtx.RunOpts()); err != nil {
 		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: mergeCtx.outbuf.String(),
@@ -386,13 +386,13 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 }
 
 func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
-	cmdCommit := git.NewCommand(ctx, "commit").AddOptionFormat("--message=%s", message)
+	cmdCommit := git.NewCommand("commit").AddOptionFormat("--message=%s", message)
 	if ctx.signKeyID == "" {
 		cmdCommit.AddArguments("--no-gpg-sign")
 	} else {
 		cmdCommit.AddOptionFormat("-S%s", ctx.signKeyID)
 	}
-	if err := cmdCommit.Run(ctx.RunOpts()); err != nil {
+	if err := cmdCommit.Run(ctx, ctx.RunOpts()); err != nil {
 		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("git commit %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}
@@ -453,7 +453,7 @@ func (err ErrMergeDivergingFastForwardOnly) Error() string {
 }
 
 func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *git.Command) error {
-	if err := cmd.Run(ctx.RunOpts()); err != nil {
+	if err := cmd.Run(ctx, ctx.RunOpts()); err != nil {
 		// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
 			// We have a merge conflict error

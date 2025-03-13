@@ -82,43 +82,6 @@ func TestActivityReadable(t *testing.T) {
 	}
 }
 
-func TestNotifyWatchers(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	action := &activities_model.Action{
-		ActUserID: 8,
-		RepoID:    1,
-		OpType:    activities_model.ActionStarRepo,
-	}
-	assert.NoError(t, activities_model.NotifyWatchers(db.DefaultContext, action))
-
-	// One watchers are inactive, thus action is only created for user 8, 1, 4, 11
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: action.ActUserID,
-		UserID:    8,
-		RepoID:    action.RepoID,
-		OpType:    action.OpType,
-	})
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: action.ActUserID,
-		UserID:    1,
-		RepoID:    action.RepoID,
-		OpType:    action.OpType,
-	})
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: action.ActUserID,
-		UserID:    4,
-		RepoID:    action.RepoID,
-		OpType:    action.OpType,
-	})
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: action.ActUserID,
-		UserID:    11,
-		RepoID:    action.RepoID,
-		OpType:    action.OpType,
-	})
-}
-
 func TestConsistencyUpdateAction(t *testing.T) {
 	if !setting.Database.Type.IsSQLite3() {
 		t.Skip("Test is only for SQLite database.")

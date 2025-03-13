@@ -73,6 +73,7 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
+GOTESTFLAGS ?=
 ifeq ($(RACE_ENABLED),true)
 	GOFLAGS += -race
 	GOTESTFLAGS += -race
@@ -114,8 +115,6 @@ LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
-FOMANTIC_WORK_DIR := web_src/fomantic
-
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
 WEBPACK_CONFIGS := webpack.config.js tailwind.config.js
 WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
@@ -139,7 +138,7 @@ TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
 
-TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
+TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
@@ -311,10 +310,10 @@ lint-frontend: lint-js lint-css ## lint frontend files
 lint-frontend-fix: lint-js-fix lint-css-fix ## lint frontend files and fix issues
 
 .PHONY: lint-backend
-lint-backend: lint-go lint-go-vet lint-go-gopls lint-editorconfig ## lint backend files
+lint-backend: lint-go lint-go-gitea-vet lint-go-gopls lint-editorconfig ## lint backend files
 
 .PHONY: lint-backend-fix
-lint-backend-fix: lint-go-fix lint-go-vet lint-editorconfig ## lint backend files and fix issues
+lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js files
@@ -365,9 +364,9 @@ lint-go-windows:
 	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
 	golangci-lint run
 
-.PHONY: lint-go-vet
-lint-go-vet: ## lint go files with vet
-	@echo "Running go vet..."
+.PHONY: lint-go-gitea-vet
+lint-go-gitea-vet: ## lint go files with gitea-vet
+	@echo "Running gitea-vet..."
 	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet ./...
 
@@ -470,7 +469,9 @@ tidy-check: tidy
 go-licenses: $(GO_LICENSE_FILE) ## regenerate go licenses
 
 $(GO_LICENSE_FILE): go.mod go.sum
-	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
+	@rm -rf $(GO_LICENSE_FILE)
+	$(GO) install $(GO_LICENSES_PACKAGE)
+	-GOOS=linux CGO_ENABLED=1 go-licenses save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
 	$(GO) run build/generate-go-licenses.go $(GO_LICENSE_TMP_DIR) $(GO_LICENSE_FILE)
 	@rm -rf $(GO_LICENSE_TMP_DIR)
 
@@ -844,19 +845,6 @@ update-py: node-check | node_modules ## update py dependencies
 	poetry install
 	@touch .venv
 
-.PHONY: fomantic
-fomantic: ## build fomantic files
-	rm -rf $(FOMANTIC_WORK_DIR)/build
-	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
-	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
-	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
-	$(SED_INPLACE) -e 's/  overrideBrowserslist\r/  overrideBrowserslist: ["defaults"]\r/g' $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/tasks/config/tasks.js
-	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
-	# fomantic uses "touchstart" as click event for some browsers, it's not ideal, so we force fomantic to always use "click" as click event
-	$(SED_INPLACE) -e 's/clickEvent[ \t]*=/clickEvent = "click", unstableClickEvent =/g' $(FOMANTIC_WORK_DIR)/build/semantic.js
-	$(SED_INPLACE) -e 's/\r//g' $(FOMANTIC_WORK_DIR)/build/semantic.css $(FOMANTIC_WORK_DIR)/build/semantic.js
-	rm -f $(FOMANTIC_WORK_DIR)/build/*.min.*
-
 .PHONY: webpack
 webpack: $(WEBPACK_DEST) ## build webpack files
 
@@ -902,10 +890,6 @@ update-translations:
 	$(SED_INPLACE) -e 's/\\"/"/g' ./translations/*.ini
 	mv ./translations/*.ini ./options/locale/
 	rmdir ./translations
-
-.PHONY: generate-license
-generate-license: ## update license files
-	$(GO) run build/generate-licenses.go
 
 .PHONY: generate-gitignore
 generate-gitignore: ## update gitignore files
