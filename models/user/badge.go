@@ -86,6 +86,7 @@ func AddUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 			} else if !has {
 				return fmt.Errorf("badge with slug %s doesn't exist", badge.Slug)
 			}
+			// FIXME check uniqueness
 			if err := db.Insert(ctx, &UserBadge{
 				BadgeID: badge.ID,
 				UserID:  u.ID,
@@ -105,13 +106,23 @@ func RemoveUserBadge(ctx context.Context, u *User, badge *Badge) error {
 // RemoveUserBadges removes badges from a user.
 func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		badgeSlugs := make([]string, 0, len(badges))
 		for _, badge := range badges {
-			if _, err := db.GetEngine(ctx).
-				Join("INNER", "badge", "badge.id = `user_badge`.badge_id").
-				Where("`user_badge`.user_id=? AND `badge`.slug=?", u.ID, badge.Slug).
-				Delete(&UserBadge{}); err != nil {
+			badgeSlugs = append(badgeSlugs, badge.Slug)
+		}
+		var userBadges []UserBadge
+		if err := db.GetEngine(ctx).Table("user_badge").
+			Join("INNER", "badge", "badge.id = `user_badge`.badge_id").
+			Where("`user_badge`.user_id = ?", u.ID).In("`badge`.slug", badgeSlugs).
+			Find(&userBadges); err != nil {
+			return err
+		}
+		userBadgeIDs := make([]int64, 0, len(userBadges))
+		for _, ub := range userBadges {
+			userBadgeIDs = append(userBadgeIDs, ub.ID)
+		}
+		if _, err := db.GetEngine(ctx).Table("user_badge").In("id", userBadgeIDs).Delete(); err != nil {
 				return err
-			}
 		}
 		return nil
 	})
