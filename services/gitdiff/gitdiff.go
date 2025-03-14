@@ -1237,7 +1237,7 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 		return nil, err
 	}
 
-	checker, deferrable := gitRepo.CheckAttributeReader(opts.AfterCommitID)
+	checker, deferrable := gitRepo.CheckAttributeReader(ctx, opts.AfterCommitID)
 	defer deferrable()
 
 	for _, diffFile := range diff.Files {

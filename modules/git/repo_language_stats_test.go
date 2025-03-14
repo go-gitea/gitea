@@ -20,7 +20,7 @@ func TestRepository_GetLanguageStats(t *testing.T) {
 
 	defer gitRepo.Close()
 
-	stats, err := gitRepo.GetLanguageStats("8fee858da5796dfb37704761701bb8e800ad9ef3")
+	stats, err := gitRepo.GetLanguageStats(t.Context(), "8fee858da5796dfb37704761701bb8e800ad9ef3")
 	require.NoError(t, err)
 
 	assert.EqualValues(t, map[string]int64{
