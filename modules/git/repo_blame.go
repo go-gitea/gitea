@@ -4,15 +4,16 @@
 package git
 
 import (
+	"context"
 	"fmt"
 )
 
 // LineBlame returns the latest commit at the given line
-func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Commit, error) {
+func (repo *Repository) LineBlame(ctx context.Context, revision, path, file string, line uint) (*Commit, error) {
 	res, _, err := NewCommand("blame").
 		AddOptionFormat("-L %d,%d", line, line).
 		AddOptionValues("-p", revision).
-		AddDashesAndList(file).RunStdString(repo.Ctx, &RunOpts{Dir: path})
+		AddDashesAndList(file).RunStdString(ctx, &RunOpts{Dir: path})
 	if err != nil {
 		return nil, err
 	}

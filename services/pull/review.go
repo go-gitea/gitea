@@ -51,7 +51,7 @@ var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or 
 // If the line got changed the comment is going to be invalidated.
 func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
-	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
+	commit, err := repo.LineBlame(ctx, branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
 	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
 		c.Invalidated = true
 		return issues_model.UpdateCommentInvalidate(ctx, c)
@@ -233,7 +233,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			// FIXME validate treePath
 			// Get latest commit referencing the commented line
 			// No need for get commit for base branch changes
-			commit, err := gitRepo.LineBlame(head, gitRepo.Path, treePath, uint(line))
+			commit, err := gitRepo.LineBlame(ctx, head, gitRepo.Path, treePath, uint(line))
 			if err == nil {
 				commitID = commit.ID.String()
 			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
