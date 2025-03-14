@@ -254,12 +254,12 @@ func (c *Commit) CommitsBeforeLimit(ctx context.Context, num int) ([]*Commit, er
 }
 
 // CommitsBeforeUntil returns the commits between commitID to current revision
-func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
+func (c *Commit) CommitsBeforeUntil(ctx context.Context, commitID string) ([]*Commit, error) {
 	endCommit, err := c.repo.GetCommit(commitID)
 	if err != nil {
 		return nil, err
 	}
-	return c.repo.CommitsBetween(c, endCommit)
+	return c.repo.CommitsBetween(ctx, c, endCommit)
 }
 
 // SearchCommitsOptions specify the parameters for SearchCommits

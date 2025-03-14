@@ -530,7 +530,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID [%s]: %v", m.Repo, result.newCommitID, err)
 			continue
 		}
-		commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
+		commits, err := gitRepo.CommitsBetweenIDs(ctx, newCommitID, oldCommitID)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get CommitsBetweenIDs [new_commit_id: %s, old_commit_id: %s]: %v", m.Repo, newCommitID, oldCommitID, err)
 			continue

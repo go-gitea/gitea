@@ -32,7 +32,7 @@ func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
 	}
 	defer gitRepo.Close()
 
-	commits, err := gitRepo.CommitsBetweenIDs(trackingBranch, "HEAD")
+	commits, err := gitRepo.CommitsBetweenIDs(ctx, trackingBranch, "HEAD")
 	if err != nil {
 		log.Error("%-v Unable to get commits between: %s %s: %v", ctx.pr, "HEAD", trackingBranch, err)
 		return nil, err
