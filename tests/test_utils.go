@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/test"
@@ -69,7 +68,6 @@ func InitTest(requireGitea bool) {
 
 	unittest.InitSettings()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
-	repo_module.CleanUpTemporaryPaths()
 
 	if err := git.InitFull(context.Background()); err != nil {
 		log.Fatal("git.InitOnceWithSync: %v", err)

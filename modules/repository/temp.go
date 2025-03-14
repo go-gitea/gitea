@@ -24,12 +24,6 @@ func localCopyPath() string {
 	return setting.Repository.Local.LocalCopyPath
 }
 
-func CleanUpTemporaryPaths() {
-	if err := util.RemoveAll(localCopyPath()); err != nil {
-		log.Error("Unable to remove local repository temporary copy path: %s (%v)", localCopyPath(), err)
-	}
-}
-
 // CreateTemporaryPath creates a temporary path
 func CreateTemporaryPath(prefix string) (string, context.CancelFunc, error) {
 	if err := os.MkdirAll(localCopyPath(), os.ModePerm); err != nil {
