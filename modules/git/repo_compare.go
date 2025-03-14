@@ -31,7 +31,7 @@ type CompareInfo struct {
 }
 
 // GetMergeBase checks and returns merge base of two branches and the reference used as base.
-func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, string, error) {
+func (repo *Repository) GetMergeBase(ctx context.Context, tmpRemote, base, head string) (string, string, error) {
 	if tmpRemote == "" {
 		tmpRemote = "origin"
 	}
@@ -39,13 +39,13 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 	if tmpRemote != "origin" {
 		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
 		// Fetch commit into a temporary branch in order to be able to handle commits and tags
-		_, _, err := NewCommand("fetch", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base+":"+tmpBaseName).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+		_, _, err := NewCommand("fetch", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base+":"+tmpBaseName).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 		if err == nil {
 			base = tmpBaseName
 		}
 	}
 
-	stdout, _, err := NewCommand("merge-base").AddDashesAndList(base, head).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand("merge-base").AddDashesAndList(base, head).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	return strings.TrimSpace(stdout), base, err
 }
 

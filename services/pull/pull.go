@@ -142,7 +142,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			return err
 		}
 
-		compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
+		compareInfo, err := baseGitRepo.GetCompareInfo(ctx, pr.BaseRepo.RepoPath(),
 			git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
 		if err != nil {
 			return err
@@ -524,7 +524,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	defer tmpRepo.Close()
 
 	// Find the merge-base
-	_, base, err := tmpRepo.GetMergeBase("", "base", "tracking")
+	_, base, err := tmpRepo.GetMergeBase(ctx, "", "base", "tracking")
 	if err != nil {
 		return false, fmt.Errorf("GetMergeBase: %w", err)
 	}
@@ -1088,7 +1088,7 @@ func GetPullCommits(ctx *gitea_context.Context, issue *issues_model.Issue) ([]Co
 	if pull.HasMerged {
 		baseBranch = pull.MergeBase
 	}
-	prInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(), baseBranch, pull.GetGitRefName(), true, false)
+	prInfo, err := baseGitRepo.GetCompareInfo(ctx, pull.BaseRepo.RepoPath(), baseBranch, pull.GetGitRefName(), true, false)
 	if err != nil {
 		return nil, "", err
 	}
