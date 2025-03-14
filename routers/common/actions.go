@@ -39,11 +39,8 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 	}
 
 	var curJob *actions_model.ActionRunJob
-	for _, job := range runJobs {
-		if job.ID == jobIndex {
-			curJob = job
-			break
-		}
+	if jobIndex >= 0 && jobIndex < int64(len(runJobs)) {
+		curJob = runJobs[jobIndex]
 	}
 	if curJob == nil {
 		ctx.HTTPError(http.StatusNotFound)

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -149,8 +150,9 @@ jobs:
 					)
 				}
 
+				runID, _ := strconv.ParseInt(task.Context.GetFields()["run_id"].GetStringValue(), 10, 64)
 				// download task logs from API and check content
-				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%s/jobs/0/logs", user2.Name, repo.Name, runIndex)).
+				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/jobs/0/logs", user2.Name, repo.Name, runID)).
 					AddTokenAuth(token)
 				resp = MakeRequest(t, req, http.StatusOK)
 				logTextLines = strings.Split(strings.TrimSpace(resp.Body.String()), "\n")
