@@ -99,7 +99,7 @@ func (hcd *highlightCodeDiff) diffLineWithHighlightWrapper(lineWrapperTags []str
 
 	dmp := defaultDiffMatchPatch()
 	diffs := dmp.DiffMain(convertedCodeA, convertedCodeB, true)
-	diffs = dmp.DiffCleanupEfficiency(diffs)
+	diffs = dmp.DiffCleanupSemantic(diffs)
 
 	buf := bytes.NewBuffer(nil)
 
