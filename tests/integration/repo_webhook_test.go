@@ -11,10 +11,12 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
@@ -22,6 +24,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/tests"
 
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -603,5 +606,148 @@ func Test_WebhookStatus_NoWrongTrigger(t *testing.T) {
 
 		// 3. validate the webhook is triggered with right event
 		assert.EqualValues(t, "push", trigger)
+	})
+}
+
+func Test_WebhookWorkflowJob(t *testing.T) {
+	var payloads []api.WorkflowJobPayload
+	var triggeredEvent string
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		assert.Contains(t, r.Header["X-Github-Event-Type"], "workflow_job", "X-GitHub-Event-Type should contain workflow_job")
+		assert.Contains(t, r.Header["X-Gitea-Event-Type"], "workflow_job", "X-Gitea-Event-Type should contain workflow_job")
+		assert.Contains(t, r.Header["X-Gogs-Event-Type"], "workflow_job", "X-Gogs-Event-Type should contain workflow_job")
+		content, _ := io.ReadAll(r.Body)
+		var payload api.WorkflowJobPayload
+		err := json.Unmarshal(content, &payload)
+		assert.NoError(t, err)
+		payloads = append(payloads, payload)
+		triggeredEvent = "workflow_job"
+	}, http.StatusOK)
+	defer provider.Close()
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// 1. create a new webhook with special webhook for repo1
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "workflow_job")
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+
+		gitRepo1, err := gitrepo.OpenRepository(t.Context(), repo1)
+		assert.NoError(t, err)
+
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, "user2", "repo1", "mock-runner", []string{"ubuntu-latest"})
+
+		// 2. trigger the webhooks
+
+		// add workflow file to the repo
+		// init the workflow
+		wfTreePath := ".gitea/workflows/push.yml"
+		wfFileContent := `name: Push
+on: push
+jobs:
+  wf1-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'test the webhook'
+  wf2-job:
+    runs-on: ubuntu-latest
+    needs: wf1-job
+    steps:
+      - run: echo 'cmd 1'
+      - run: echo 'cmd 2'
+`
+		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, fmt.Sprintf("create %s", wfTreePath), wfFileContent)
+		createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+
+		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
+		assert.NoError(t, err)
+
+		// 3. validate the webhook is triggered
+		assert.EqualValues(t, "workflow_job", triggeredEvent)
+		assert.Len(t, payloads, 2)
+		assert.EqualValues(t, "queued", payloads[0].Action)
+		assert.EqualValues(t, "queued", payloads[0].WorkflowJob.Status)
+		assert.EqualValues(t, []string{"ubuntu-latest"}, payloads[0].WorkflowJob.Labels)
+		assert.EqualValues(t, commitID, payloads[0].WorkflowJob.HeadSha)
+		assert.EqualValues(t, "repo1", payloads[0].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[0].Repo.FullName)
+
+		assert.EqualValues(t, "waiting", payloads[1].Action)
+		assert.EqualValues(t, "waiting", payloads[1].WorkflowJob.Status)
+		assert.EqualValues(t, commitID, payloads[1].WorkflowJob.HeadSha)
+		assert.EqualValues(t, "repo1", payloads[1].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[1].Repo.FullName)
+
+		// 4. Execute a single Job
+		task := runner.fetchTask(t)
+		outcome := &mockTaskOutcome{
+			result:   runnerv1.Result_RESULT_SUCCESS,
+			execTime: time.Millisecond,
+		}
+		runner.execTask(t, task, outcome)
+
+		// 5. validate the webhook is triggered
+		assert.EqualValues(t, "workflow_job", triggeredEvent)
+		assert.Len(t, payloads, 5)
+		assert.EqualValues(t, "in_progress", payloads[2].Action)
+		assert.EqualValues(t, "in_progress", payloads[2].WorkflowJob.Status)
+		assert.EqualValues(t, "mock-runner", payloads[2].WorkflowJob.RunnerName)
+		assert.EqualValues(t, commitID, payloads[2].WorkflowJob.HeadSha)
+		assert.EqualValues(t, "repo1", payloads[2].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[2].Repo.FullName)
+
+		assert.EqualValues(t, "completed", payloads[3].Action)
+		assert.EqualValues(t, "completed", payloads[3].WorkflowJob.Status)
+		assert.EqualValues(t, "mock-runner", payloads[3].WorkflowJob.RunnerName)
+		assert.EqualValues(t, "success", payloads[3].WorkflowJob.Conclusion)
+		assert.EqualValues(t, commitID, payloads[3].WorkflowJob.HeadSha)
+		assert.EqualValues(t, "repo1", payloads[3].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[3].Repo.FullName)
+		assert.Contains(t, payloads[3].WorkflowJob.URL, fmt.Sprintf("/actions/runs/%d/jobs/%d", payloads[3].WorkflowJob.RunID, payloads[3].WorkflowJob.ID))
+		assert.Contains(t, payloads[3].WorkflowJob.URL, payloads[3].WorkflowJob.RunURL)
+		assert.Contains(t, payloads[3].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", 0))
+		assert.Len(t, payloads[3].WorkflowJob.Steps, 1)
+
+		assert.EqualValues(t, "queued", payloads[4].Action)
+		assert.EqualValues(t, "queued", payloads[4].WorkflowJob.Status)
+		assert.EqualValues(t, []string{"ubuntu-latest"}, payloads[4].WorkflowJob.Labels)
+		assert.EqualValues(t, commitID, payloads[4].WorkflowJob.HeadSha)
+		assert.EqualValues(t, "repo1", payloads[4].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[4].Repo.FullName)
+
+		// 6. Execute a single Job
+		task = runner.fetchTask(t)
+		outcome = &mockTaskOutcome{
+			result:   runnerv1.Result_RESULT_FAILURE,
+			execTime: time.Millisecond,
+		}
+		runner.execTask(t, task, outcome)
+
+		// 7. validate the webhook is triggered
+		assert.EqualValues(t, "workflow_job", triggeredEvent)
+		assert.Len(t, payloads, 7)
+		assert.EqualValues(t, "in_progress", payloads[5].Action)
+		assert.EqualValues(t, "in_progress", payloads[5].WorkflowJob.Status)
+		assert.EqualValues(t, "mock-runner", payloads[5].WorkflowJob.RunnerName)
+
+		assert.EqualValues(t, commitID, payloads[5].WorkflowJob.HeadSha)
+		assert.EqualValues(t, "repo1", payloads[5].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[5].Repo.FullName)
+
+		assert.EqualValues(t, "completed", payloads[6].Action)
+		assert.EqualValues(t, "completed", payloads[6].WorkflowJob.Status)
+		assert.EqualValues(t, "failure", payloads[6].WorkflowJob.Conclusion)
+		assert.EqualValues(t, "mock-runner", payloads[6].WorkflowJob.RunnerName)
+		assert.EqualValues(t, commitID, payloads[6].WorkflowJob.HeadSha)
+		assert.EqualValues(t, "repo1", payloads[6].Repo.Name)
+		assert.EqualValues(t, "user2/repo1", payloads[6].Repo.FullName)
+		assert.Contains(t, payloads[6].WorkflowJob.URL, fmt.Sprintf("/actions/runs/%d/jobs/%d", payloads[6].WorkflowJob.RunID, payloads[6].WorkflowJob.ID))
+		assert.Contains(t, payloads[6].WorkflowJob.URL, payloads[6].WorkflowJob.RunURL)
+		assert.Contains(t, payloads[6].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", 1))
+		assert.Len(t, payloads[6].WorkflowJob.Steps, 2)
 	})
 }
