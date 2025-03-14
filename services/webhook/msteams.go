@@ -303,6 +303,34 @@ func (m msteamsConvertor) Package(p *api.PackagePayload) (MSTeamsPayload, error)
 	), nil
 }
 
+func (m msteamsConvertor) Status(p *api.CommitStatusPayload) (MSTeamsPayload, error) {
+	title, color := getStatusPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repo,
+		p.Sender,
+		title,
+		"",
+		p.TargetURL,
+		color,
+		&MSTeamsFact{"CommitStatus:", p.Context},
+	), nil
+}
+
+func (msteamsConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MSTeamsPayload, error) {
+	title, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repo,
+		p.Sender,
+		title,
+		"",
+		p.WorkflowJob.HTMLURL,
+		color,
+		&MSTeamsFact{"WorkflowJob:", p.WorkflowJob.Name},
+	), nil
+}
+
 func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTarget string, color int, fact *MSTeamsFact) MSTeamsPayload {
 	facts := make([]MSTeamsFact, 0, 2)
 	if r != nil {
@@ -348,4 +376,8 @@ func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTar
 func newMSTeamsRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	var pc payloadConvertor[MSTeamsPayload] = msteamsConvertor{}
 	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.MSTEAMS, newMSTeamsRequest)
 }

@@ -7,9 +7,9 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/versioned_migration"
 
 	"github.com/urfave/cli/v2"
 )
@@ -18,7 +18,7 @@ import (
 var CmdMigrate = &cli.Command{
 	Name:        "migrate",
 	Usage:       "Migrate the database",
-	Description: "This is a command for migrating the database, so that you can run gitea admin create-user before starting the server.",
+	Description: `This is a command for migrating the database, so that you can run "gitea admin create user" before starting the server.`,
 	Action:      runMigrate,
 }
 
@@ -36,7 +36,7 @@ func runMigrate(ctx *cli.Context) error {
 	log.Info("Log path: %s", setting.Log.RootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 
-	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {
+	if err := db.InitEngineWithMigration(context.Background(), versioned_migration.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}

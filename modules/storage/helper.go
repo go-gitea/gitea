@@ -30,7 +30,7 @@ func (s discardStorage) Delete(_ string) error {
 	return fmt.Errorf("%s", s)
 }
 
-func (s discardStorage) URL(_, _ string) (*url.URL, error) {
+func (s discardStorage) URL(_, _ string, _ url.Values) (*url.URL, error) {
 	return nil, fmt.Errorf("%s", s)
 }
 

@@ -27,6 +27,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
@@ -116,18 +117,27 @@ func (input *notifyInput) Notify(ctx context.Context) {
 }
 
 func notify(ctx context.Context, input *notifyInput) error {
-	if input.Doer.IsActions() {
+	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && input.Ref.BranchName() == input.Repo.DefaultBranch
+	if input.Doer.IsGiteaActions() {
 		// avoiding triggering cyclically, for example:
 		// a comment of an issue will trigger the runner to add a new comment as reply,
 		// and the new comment will trigger the runner again.
 		log.Debug("ignore executing %v for event %v whose doer is %v", getMethod(ctx), input.Event, input.Doer.Name)
+
+		// we should update schedule tasks in this case, because
+		//   1. schedule tasks cannot be triggered by other events, so cyclic triggering will not occur
+		//   2. some schedule tasks may update the repo periodically, so the refs of schedule tasks need to be updated
+		if shouldDetectSchedules {
+			return DetectAndHandleSchedules(ctx, input.Repo)
+		}
+
 		return nil
 	}
 	if input.Repo.IsEmpty || input.Repo.IsArchived {
 		return nil
 	}
 	if unit_model.TypeActions.UnitGlobalDisabled() {
-		if err := actions_model.CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
+		if err := CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
 			log.Error("CleanRepoScheduleTasks: %v", err)
 		}
 		return nil
@@ -174,7 +184,6 @@ func notify(ctx context.Context, input *notifyInput) error {
 
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && input.Ref.BranchName() == input.Repo.DefaultBranch
 	workflows, schedules, err := actions_module.DetectWorkflows(gitRepo, commit,
 		input.Event,
 		input.Payload,
@@ -333,7 +342,7 @@ func handleWorkflows(
 		// cancel running jobs if the event is push or pull_request_sync
 		if run.Event == webhook_module.HookEventPush ||
 			run.Event == webhook_module.HookEventPullRequestSync {
-			if err := actions_model.CancelPreviousJobs(
+			if err := CancelPreviousJobs(
 				ctx,
 				run.RepoID,
 				run.Ref,
@@ -355,6 +364,9 @@ func handleWorkflows(
 			continue
 		}
 		CreateCommitStatus(ctx, alljobs...)
+		for _, job := range alljobs {
+			notify_service.WorkflowJobStatusUpdate(ctx, input.Repo, input.Doer, job, nil)
+		}
 	}
 	return nil
 }
@@ -464,7 +476,7 @@ func handleSchedules(
 		log.Error("CountSchedules: %v", err)
 		return err
 	} else if count > 0 {
-		if err := actions_model.CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
+		if err := CleanRepoScheduleTasks(ctx, input.Repo); err != nil {
 			log.Error("CleanRepoScheduleTasks: %v", err)
 		}
 	}

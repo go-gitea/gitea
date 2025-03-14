@@ -44,13 +44,12 @@ func CompareDiff(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if ctx.Repo.GitRepo == nil {
-		gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
+		var err error
+		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
-		ctx.Repo.GitRepo = gitRepo
-		defer gitRepo.Close()
 	}
 
 	infoPath := ctx.PathParam("*")
@@ -64,36 +63,33 @@ func CompareDiff(ctx *context.APIContext) {
 		}
 	}
 
-	_, headGitRepo, ci, _, _ := parseCompareInfo(ctx, api.CreatePullRequestOption{
-		Base: infos[0],
-		Head: infos[1],
-	})
+	compareResult, closer := parseCompareInfo(ctx, api.CreatePullRequestOption{Base: infos[0], Head: infos[1]})
 	if ctx.Written() {
 		return
 	}
-	defer headGitRepo.Close()
+	defer closer()
 
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
 
-	apiCommits := make([]*api.Commit, 0, len(ci.Commits))
+	apiCommits := make([]*api.Commit, 0, len(compareResult.compareInfo.Commits))
 	userCache := make(map[string]*user_model.User)
-	for i := 0; i < len(ci.Commits); i++ {
-		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ci.Commits[i], userCache,
+	for i := 0; i < len(compareResult.compareInfo.Commits); i++ {
+		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, compareResult.compareInfo.Commits[i], userCache,
 			convert.ToCommitOptions{
 				Stat:         true,
 				Verification: verification,
 				Files:        files,
 			})
 		if err != nil {
-			ctx.ServerError("toCommit", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		apiCommits = append(apiCommits, apiCommit)
 	}
 
 	ctx.JSON(http.StatusOK, &api.Compare{
-		TotalCommits: len(ci.Commits),
+		TotalCommits: len(compareResult.compareInfo.Commits),
 		Commits:      apiCommits,
 	})
 }

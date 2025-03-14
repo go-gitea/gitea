@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -18,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -43,13 +43,13 @@ type blameRow struct {
 func RefBlame(ctx *context.Context) {
 	fileName := ctx.Repo.TreePath
 	if len(fileName) == 0 {
-		ctx.NotFound("Blame FileName", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
+	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
@@ -98,28 +98,22 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount(nil)
 	if err != nil {
-		ctx.NotFound("GetBlobLineCount", err)
+		ctx.NotFound(err)
 		return
 	}
 
 	bypassBlameIgnore, _ := strconv.ParseBool(ctx.FormString("bypass-blame-ignore"))
 
-	result, err := performBlame(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Commit, fileName, bypassBlameIgnore)
+	result, err := performBlame(ctx, ctx.Repo.Repository, ctx.Repo.Commit, fileName, bypassBlameIgnore)
 	if err != nil {
-		ctx.NotFound("CreateBlameReader", err)
+		ctx.NotFound(err)
 		return
 	}
 
 	ctx.Data["UsesIgnoreRevs"] = result.UsesIgnoreRevs
 	ctx.Data["FaultyIgnoreRevsFile"] = result.FaultyIgnoreRevsFile
-
-	// Get Topics of this repo
-	renderRepoTopics(ctx)
-	if ctx.Written() {
-		return
-	}
 
 	commitNames := processBlameParts(ctx, result.Parts)
 	if ctx.Written() {
@@ -137,10 +131,10 @@ type blameResult struct {
 	FaultyIgnoreRevsFile bool
 }
 
-func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
+func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
 	objectFormat := ctx.Repo.GetObjectFormat()
 
-	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, bypassBlameIgnore)
+	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +150,7 @@ func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, fil
 		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
 			// try again without ignored revs
 
-			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, true)
+			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, true)
 			if err != nil {
 				return nil, err
 			}
@@ -228,7 +222,7 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 			commit, err = ctx.Repo.GitRepo.GetCommit(sha)
 			if err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("Repo.GitRepo.GetCommit", err)
+					ctx.NotFound(err)
 				} else {
 					ctx.ServerError("Repo.GitRepo.GetCommit", err)
 				}
@@ -241,7 +235,12 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 	}
 
 	// populate commit email addresses to later look up avatars.
-	for _, c := range user_model.ValidateCommitsWithEmails(ctx, commits) {
+	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+	if err != nil {
+		ctx.ServerError("ValidateCommitsWithEmails", err)
+		return nil
+	}
+	for _, c := range validatedCommits {
 		commitNames[c.ID.String()] = c
 	}
 
@@ -280,7 +279,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 				commitCnt++
 
 				// User avatar image
-				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale)
+				commitSince := templates.TimeSince(commit.Author.When)
 
 				var avatar string
 				if commit.User != nil {

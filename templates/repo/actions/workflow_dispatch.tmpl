@@ -11,7 +11,7 @@
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
 				</span>
 				<div class="ui inline field dropdown button select-branch branch-selector-dropdown ellipsis-items-nowrap">
-					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}">
+					<input type="hidden" name="ref" hx-sync="this:replace" hx-target="#runWorkflowDispatchModalInputs" hx-swap="innerHTML" hx-get="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}" hx-trigger="change" value="refs/heads/{{index .Branches 0}}">
 					{{svg "octicon-git-branch" 14}}
 					<div class="default text">{{index .Branches 0}}</div>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -49,30 +49,9 @@
 
 			<div class="divider"></div>
 
-			{{range $item := .WorkflowDispatchConfig.Inputs}}
-			<div class="ui field {{if .Required}}required{{end}}">
-				{{if eq .Type "choice"}}
-					<label>{{.Description}}:</label>
-					<select class="ui selection type dropdown" name="{{.Name}}">
-						{{range .Options}}
-						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}} >{{.}}</option>
-						{{end}}
-					</select>
-				{{else if eq .Type "boolean"}}
-					<div class="ui inline checkbox">
-						<label>{{.Description}}</label>
-						<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
-					</div>
-				{{else if eq .Type "number"}}
-					<label>{{.Description}}:</label>
-					<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
-				{{else}}
-					<label>{{.Description}}:</label>
-					<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
-				{{end}}
+			<div id="runWorkflowDispatchModalInputs">
+				{{template "repo/actions/workflow_dispatch_inputs" .}}
 			</div>
-			{{end}}
-			<button class="ui tiny primary button" type="submit">Submit</button>
 		</form>
 	</div>
 </div>

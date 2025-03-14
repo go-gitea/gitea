@@ -389,7 +389,7 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 		return nil, nil
 	}
 	reviews, err := FindReviews(ctx, FindReviewOptions{
-		Type:       ReviewTypePending,
+		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,
 		ReviewerID: reviewer.ID,
 	})
@@ -638,6 +638,10 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 			if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
 				return err
 			}
+		}
+
+		if err := UpdateIssueNumComments(ctx, review.IssueID); err != nil {
+			return err
 		}
 	}
 
@@ -926,17 +930,19 @@ func MarkConversation(ctx context.Context, comment *Comment, doer *user_model.Us
 }
 
 // CanMarkConversation  Add or remove Conversation mark for a code comment permission check
-// the PR writer , offfcial reviewer and poster can do it
+// the PR writer , official reviewer and poster can do it
 func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.User) (permResult bool, err error) {
 	if doer == nil || issue == nil {
 		return false, fmt.Errorf("issue or doer is nil")
 	}
 
+	if err = issue.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+	if issue.Repo.IsArchived {
+		return false, nil
+	}
 	if doer.ID != issue.PosterID {
-		if err = issue.LoadRepo(ctx); err != nil {
-			return false, err
-		}
-
 		p, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return false, err

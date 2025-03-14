@@ -17,15 +17,14 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	db_install "code.gitea.io/gitea/models/db/install"
-	"code.gitea.io/gitea/models/migrations"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -37,14 +36,15 @@ import (
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/versioned_migration"
 
 	"gitea.com/go-chi/session"
 )
 
 const (
 	// tplInstall template for installation page
-	tplInstall     base.TplName = "install"
-	tplPostInstall base.TplName = "post-install"
+	tplInstall     templates.TplName = "install"
+	tplPostInstall templates.TplName = "post-install"
 )
 
 // getSupportedDbTypeNames returns a slice for supported database types and names. The slice is used to keep the order
@@ -62,15 +62,10 @@ func Contexter() func(next http.Handler) http.Handler {
 	envConfigKeys := setting.CollectEnvConfigKeys()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := context.NewBaseContext(resp, req)
-			defer baseCleanUp()
-
+			base := context.NewBaseContext(resp, req)
 			ctx := context.NewWebContext(base, rnd, session.GetSession(req))
-			ctx.AppendContextValue(context.WebContextKey, ctx)
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data.MergeFrom(middleware.ContextData{
-				"Context":        ctx, // TODO: use "ctx" in template and remove this
-				"locale":         ctx.Locale,
+			ctx.Data.MergeFrom(reqctx.ContextData{
 				"Title":          ctx.Locale.Tr("install.install"),
 				"PageIsInstall":  true,
 				"DbTypeNames":    dbTypeNames,
@@ -364,7 +359,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Init the engine with migration
-	if err = db.InitEngineWithMigration(ctx, migrations.Migrate); err != nil {
+	if err = db.InitEngineWithMigration(ctx, versioned_migration.Migrate); err != nil {
 		db.UnsetDefaultEngine()
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)

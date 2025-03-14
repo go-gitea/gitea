@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
@@ -154,8 +155,14 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 	var text string
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
+		// limit the commit message display to just the summary, otherwise it would be hard to read
+		message := strings.TrimRight(strings.SplitN(commit.Message, "\n", 2)[0], "\r")
+
+		// a limit of 50 is set because GitHub does the same
+		if utf8.RuneCountInString(message) > 50 {
+			message = fmt.Sprintf("%.47s...", message)
+		}
+		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text += "\n"
@@ -258,6 +265,18 @@ func (d discordConvertor) Package(p *api.PackagePayload) (DiscordPayload, error)
 	return d.createPayload(p.Sender, text, "", p.Package.HTMLURL, color), nil
 }
 
+func (d discordConvertor) Status(p *api.CommitStatusPayload) (DiscordPayload, error) {
+	text, color := getStatusPayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.TargetURL, color), nil
+}
+
+func (d discordConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DiscordPayload, error) {
+	text, color := getWorkflowJobPayloadInfo(p, noneLinkFormatter, false)
+
+	return d.createPayload(p.Sender, text, "", p.WorkflowJob.HTMLURL, color), nil
+}
+
 func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), meta); err != nil {
@@ -268,6 +287,10 @@ func newDiscordRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_m
 		AvatarURL: meta.IconURL,
 	}
 	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.DISCORD, newDiscordRequest)
 }
 
 func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, error) {

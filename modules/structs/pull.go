@@ -25,11 +25,13 @@ type PullRequest struct {
 	Draft                   bool       `json:"draft"`
 	IsLocked                bool       `json:"is_locked"`
 	Comments                int        `json:"comments"`
+
 	// number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
-	ReviewComments int `json:"review_comments"`
-	Additions      int `json:"additions"`
-	Deletions      int `json:"deletions"`
-	ChangedFiles   int `json:"changed_files"`
+	ReviewComments int `json:"review_comments,omitempty"`
+
+	Additions    *int `json:"additions,omitempty"`
+	Deletions    *int `json:"deletions,omitempty"`
+	ChangedFiles *int `json:"changed_files,omitempty"`
 
 	HTMLURL  string `json:"html_url"`
 	DiffURL  string `json:"diff_url"`
@@ -86,7 +88,9 @@ type CreatePullRequestOption struct {
 	Milestone int64    `json:"milestone"`
 	Labels    []int64  `json:"labels"`
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline      *time.Time `json:"due_date"`
+	Reviewers     []string   `json:"reviewers"`
+	TeamReviewers []string   `json:"team_reviewers"`
 }
 
 // EditPullRequestOption options when modify pull request

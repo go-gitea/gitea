@@ -44,7 +44,7 @@ func init() {
 // TranslatableMessage represents JSON struct that can be translated with a Locale
 type TranslatableMessage struct {
 	Format string
-	Args   []any `json:"omitempty"`
+	Args   []any `json:",omitempty"`
 }
 
 // LoadRepo loads repository of the task
@@ -177,27 +177,6 @@ func GetMigratingTask(ctx context.Context, repoID int64) (*Task, error) {
 		return nil, ErrTaskDoesNotExist{0, repoID, task.Type}
 	}
 	return &task, nil
-}
-
-// GetMigratingTaskByID returns the migrating task by repo's id
-func GetMigratingTaskByID(ctx context.Context, id, doerID int64) (*Task, *migration.MigrateOptions, error) {
-	task := Task{
-		ID:     id,
-		DoerID: doerID,
-		Type:   structs.TaskTypeMigrateRepo,
-	}
-	has, err := db.GetEngine(ctx).Get(&task)
-	if err != nil {
-		return nil, nil, err
-	} else if !has {
-		return nil, nil, ErrTaskDoesNotExist{id, 0, task.Type}
-	}
-
-	var opts migration.MigrateOptions
-	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
-		return nil, nil, err
-	}
-	return &task, &opts, nil
 }
 
 // CreateTask creates a task on database

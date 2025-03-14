@@ -132,12 +132,11 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	}
 	var err error
 	if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-		if err == packages_model.ErrDuplicatePackage {
-			packageCreated = false
-		} else {
+		if !errors.Is(err, packages_model.ErrDuplicatePackage) {
 			log.Error("Error inserting package: %v", err)
 			return nil, false, err
 		}
+		packageCreated = false
 	}
 
 	if packageCreated {
@@ -163,11 +162,10 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		MetadataJSON: string(metadataJSON),
 	}
 	if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		if errors.Is(err, packages_model.ErrDuplicatePackageVersion) && allowDuplicate {
 			versionCreated = false
-		}
-		if err != packages_model.ErrDuplicatePackageVersion || !allowDuplicate {
-			log.Error("Error inserting package: %v", err)
+		} else {
+			log.Error("Error inserting package: %v", err) // other error, or disallowing duplicates
 			return nil, false, err
 		}
 	}
@@ -355,6 +353,8 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 	switch packageType {
 	case packages_model.TypeAlpine:
 		typeSpecificSize = setting.Packages.LimitSizeAlpine
+	case packages_model.TypeArch:
+		typeSpecificSize = setting.Packages.LimitSizeArch
 	case packages_model.TypeCargo:
 		typeSpecificSize = setting.Packages.LimitSizeCargo
 	case packages_model.TypeChef:
@@ -431,7 +431,7 @@ func GetOrCreateInternalPackageVersion(ctx context.Context, ownerID int64, packa
 		}
 		var err error
 		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-			if err != packages_model.ErrDuplicatePackage {
+			if !errors.Is(err, packages_model.ErrDuplicatePackage) {
 				log.Error("Error inserting package: %v", err)
 				return err
 			}
@@ -596,12 +596,12 @@ func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (
 		return nil, nil, nil, err
 	}
 
-	return GetPackageBlobStream(ctx, pf, pb)
+	return GetPackageBlobStream(ctx, pf, pb, nil)
 }
 
 // GetPackageBlobStream returns the content of the specific package blob
 // If the storage supports direct serving and it's enabled, only the direct serving url is returned.
-func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	key := packages_module.BlobHash256Key(pb.HashSHA256)
 
 	cs := packages_module.NewContentStore()
@@ -611,7 +611,7 @@ func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, p
 	var err error
 
 	if cs.ShouldServeDirect() {
-		u, err = cs.GetServeDirectURL(key, pf.Name)
+		u, err = cs.GetServeDirectURL(key, pf.Name, serveDirectReqParams)
 		if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
 			log.Error("Error getting serve direct url: %v", err)
 		}

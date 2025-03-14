@@ -42,7 +42,15 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 
 	if rebase {
 		defer func() {
-			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
+			go AddTestPullRequestTask(TestPullRequestOptions{
+				RepoID:      pr.BaseRepo.ID,
+				Doer:        doer,
+				Branch:      pr.BaseBranch,
+				IsSync:      false,
+				IsForcePush: false,
+				OldCommitID: "",
+				NewCommitID: "",
+			})
 		}()
 
 		return updateHeadByRebaseOnToBase(ctx, pr, doer)
@@ -65,7 +73,9 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
 	}
 
-	// use merge functions but switch repos and branches
+	// TODO: FakePR: it is somewhat hacky, but it is the only way to "merge" at the moment
+	// ideally in the future the "merge" functions should be refactored to decouple from the PullRequest
+	// now use a fake reverse PR to switch head&base repos/branches
 	reversePR := &issues_model.PullRequest{
 		ID: pr.ID,
 
@@ -81,7 +91,15 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, repository.PushTriggerPRUpdateWithBase)
 
 	defer func() {
-		go AddTestPullRequestTask(doer, reversePR.HeadRepo.ID, reversePR.HeadBranch, false, "", "")
+		go AddTestPullRequestTask(TestPullRequestOptions{
+			RepoID:      reversePR.HeadRepo.ID,
+			Doer:        doer,
+			Branch:      reversePR.HeadBranch,
+			IsSync:      false,
+			IsForcePush: false,
+			OldCommitID: "",
+			NewCommitID: "",
+		})
 	}()
 
 	return err

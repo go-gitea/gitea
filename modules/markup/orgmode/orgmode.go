@@ -6,14 +6,15 @@ package markup
 import (
 	"fmt"
 	"html"
+	"html/template"
 	"io"
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
@@ -21,33 +22,36 @@ import (
 )
 
 func init() {
-	markup.RegisterRenderer(Renderer{})
+	markup.RegisterRenderer(renderer{})
 }
 
 // Renderer implements markup.Renderer for orgmode
-type Renderer struct{}
+type renderer struct{}
 
-var _ markup.PostProcessRenderer = (*Renderer)(nil)
+var (
+	_ markup.Renderer            = (*renderer)(nil)
+	_ markup.PostProcessRenderer = (*renderer)(nil)
+)
 
 // Name implements markup.Renderer
-func (Renderer) Name() string {
+func (renderer) Name() string {
 	return "orgmode"
 }
 
 // NeedPostProcess implements markup.PostProcessRenderer
-func (Renderer) NeedPostProcess() bool { return true }
+func (renderer) NeedPostProcess() bool { return true }
 
 // Extensions implements markup.Renderer
-func (Renderer) Extensions() []string {
+func (renderer) Extensions() []string {
 	return []string{".org"}
 }
 
 // SanitizerRules implements markup.Renderer
-func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
+func (renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
 }
 
-// Render renders orgmode rawbytes to HTML
+// Render renders orgmode raw bytes to HTML
 func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	htmlWriter := org.NewHTMLWriter()
 	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool, params map[string]string) string {
@@ -57,10 +61,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 				panic(err)
 			}
 		}()
-		var w strings.Builder
-		if _, err := w.WriteString(`<pre>`); err != nil {
-			return ""
-		}
+		w := &strings.Builder{}
 
 		lexer := lexers.Get(lang)
 		if lexer == nil && lang == "" {
@@ -71,26 +72,20 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			lang = strings.ToLower(lexer.Config().Name)
 		}
 
+		// include language-x class as part of commonmark spec
+		if err := ctx.RenderInternal.FormatWithSafeAttrs(w, `<pre><code class="chroma language-%s">`, lang); err != nil {
+			return ""
+		}
 		if lexer == nil {
-			// include language-x class as part of commonmark spec
-			if _, err := w.WriteString(`<code class="chroma language-` + lang + `">`); err != nil {
-				return ""
-			}
 			if _, err := w.WriteString(html.EscapeString(source)); err != nil {
 				return ""
 			}
 		} else {
-			// include language-x class as part of commonmark spec
-			if _, err := w.WriteString(`<code class="chroma language-` + lang + `">`); err != nil {
-				return ""
-			}
 			lexer = chroma.Coalesce(lexer)
-
 			if _, err := w.WriteString(string(highlight.CodeFromLexer(lexer, source))); err != nil {
 				return ""
 			}
 		}
-
 		if _, err := w.WriteString("</code></pre>"); err != nil {
 			return ""
 		}
@@ -98,11 +93,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		return w.String()
 	}
 
-	w := &Writer{
-		HTMLWriter: htmlWriter,
-		Ctx:        ctx,
-	}
-
+	w := &orgWriter{rctx: ctx, HTMLWriter: htmlWriter}
 	htmlWriter.ExtendingWriter = w
 
 	res, err := org.New().Silent().Parse(input, "").Write(w)
@@ -123,17 +114,18 @@ func RenderString(ctx *markup.RenderContext, content string) (string, error) {
 }
 
 // Render renders orgmode string to HTML string
-func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+func (renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	return Render(ctx, input, output)
 }
 
-// Writer implements org.Writer
-type Writer struct {
+type orgWriter struct {
 	*org.HTMLWriter
-	Ctx *markup.RenderContext
+	rctx *markup.RenderContext
 }
 
-func (r *Writer) resolveLink(kind, link string) string {
+var _ org.Writer = (*orgWriter)(nil)
+
+func (r *orgWriter) resolveLink(kind, link string) string {
 	link = strings.TrimPrefix(link, "file:")
 	if !strings.HasPrefix(link, "#") && // not a URL fragment
 		!markup.IsFullURLString(link) {
@@ -142,48 +134,43 @@ func (r *Writer) resolveLink(kind, link string) string {
 			// so we need to try to guess the link kind again here
 			kind = org.RegularLink{URL: link}.Kind()
 		}
-
-		base := r.Ctx.Links.Base
-		if r.Ctx.IsWiki {
-			base = r.Ctx.Links.WikiLink()
-		} else if r.Ctx.Links.HasBranchInfo() {
-			base = r.Ctx.Links.SrcLink()
-		}
-
 		if kind == "image" || kind == "video" {
-			base = r.Ctx.Links.ResolveMediaLink(r.Ctx.IsWiki)
+			link = r.rctx.RenderHelper.ResolveLink(link, markup.LinkTypeMedia)
+		} else {
+			link = r.rctx.RenderHelper.ResolveLink(link, markup.LinkTypeDefault)
 		}
-
-		link = util.URLJoin(base, link)
 	}
 	return link
 }
 
 // WriteRegularLink renders images, links or videos
-func (r *Writer) WriteRegularLink(l org.RegularLink) {
+func (r *orgWriter) WriteRegularLink(l org.RegularLink) {
 	link := r.resolveLink(l.Kind(), l.URL)
 
+	printHTML := func(html template.HTML, a ...any) {
+		_, _ = fmt.Fprint(r, htmlutil.HTMLFormat(html, a...))
+	}
 	// Inspired by https://github.com/niklasfasching/go-org/blob/6eb20dbda93cb88c3503f7508dc78cbbc639378f/org/html_writer.go#L406-L427
 	switch l.Kind() {
 	case "image":
 		if l.Description == nil {
-			_, _ = fmt.Fprintf(r, `<img src="%s" alt="%s" />`, link, link)
+			printHTML(`<img src="%s" alt="%s">`, link, link)
 		} else {
 			imageSrc := r.resolveLink(l.Kind(), org.String(l.Description...))
-			_, _ = fmt.Fprintf(r, `<a href="%s"><img src="%s" alt="%s" /></a>`, link, imageSrc, imageSrc)
+			printHTML(`<a href="%s"><img src="%s" alt="%s"></a>`, link, imageSrc, imageSrc)
 		}
 	case "video":
 		if l.Description == nil {
-			_, _ = fmt.Fprintf(r, `<video src="%s">%s</video>`, link, link)
+			printHTML(`<video src="%s">%s</video>`, link, link)
 		} else {
 			videoSrc := r.resolveLink(l.Kind(), org.String(l.Description...))
-			_, _ = fmt.Fprintf(r, `<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
+			printHTML(`<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
 		}
 	default:
-		description := link
+		var description any = link
 		if l.Description != nil {
-			description = r.WriteNodesAsString(l.Description...)
+			description = template.HTML(r.WriteNodesAsString(l.Description...)) // orgmode HTMLWriter outputs HTML content
 		}
-		_, _ = fmt.Fprintf(r, `<a href="%s">%s</a>`, link, description)
+		printHTML(`<a href="%s">%s</a>`, link, description)
 	}
 }

@@ -13,9 +13,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -48,7 +53,7 @@ type CreateRepoOptions struct {
 	ObjectFormatName string
 }
 
-func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
+func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -63,9 +68,8 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, _, err := git.NewCommand(ctx, "clone").AddDynamicArguments(repoPath, tmpDir).
-		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
-		RunStdString(&git.RunOpts{Dir: "", Env: env}); err != nil {
+	if stdout, _, err := git.NewCommand("clone").AddDynamicArguments(repo.RepoPath(), tmpDir).
+		RunStdString(ctx, &git.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git clone: %w", err)
 	}
@@ -76,7 +80,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		return fmt.Errorf("GetRepoInitFile[%s]: %w", opts.Readme, err)
 	}
 
-	cloneLink := repo.CloneLink()
+	cloneLink := repo.CloneLink(ctx, nil /* no doer so do not generate user-related SSH link */)
 	match := map[string]string{
 		"Name":           repo.Name,
 		"Description":    repo.Description,
@@ -136,8 +140,8 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 }
 
 // InitRepository initializes README and .gitignore if needed.
-func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
-	if err = repo_module.CheckInitRepository(ctx, repo.OwnerName, repo.Name, opts.ObjectFormatName); err != nil {
+func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
+	if err = repo_module.CheckInitRepository(ctx, repo); err != nil {
 		return err
 	}
 
@@ -145,7 +149,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 	if opts.AutoInit {
 		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
+			return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.FullName(), err)
 		}
 		defer func() {
 			if err := util.RemoveAll(tmpDir); err != nil {
@@ -153,7 +157,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 			}
 		}()
 
-		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
+		if err = prepareRepoCommit(ctx, repo, tmpDir, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %w", err)
 		}
 
@@ -244,7 +248,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	needsUpdateStatus := opts.Status != repo_model.RepositoryReady
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		return repo_module.CreateRepositoryByExample(ctx, doer, u, repo, false, false)
+		return CreateRepositoryByExample(ctx, doer, u, repo, false, false)
 	}); err != nil {
 		return nil, err
 	}
@@ -255,10 +259,9 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			return nil
 		}
 
-		repoPath := repo_model.RepoPath(u.Name, repo.Name)
-		isExist, err := util.IsExist(repoPath)
+		isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+			log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 			return err
 		}
 		if isExist {
@@ -269,15 +272,15 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			//
 			// Previously Gitea would just delete and start afresh - this was naughty.
 			// So we will now fail and delegate to other functionality to adopt or delete
-			log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
+			log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
 			return repo_model.ErrRepoFilesAlreadyExist{
 				Uname: u.Name,
 				Name:  repo.Name,
 			}
 		}
 
-		if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
-			if err2 := util.RemoveAll(repoPath); err2 != nil {
+		if err = initRepository(ctx, doer, repo, opts); err != nil {
+			if err2 := gitrepo.DeleteRepository(ctx, repo); err2 != nil {
 				log.Error("initRepository: %v", err)
 				return fmt.Errorf(
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
@@ -296,9 +299,8 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
-		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+		if stdout, _, err := git.NewCommand("update-server-info").
+			RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
@@ -310,6 +312,20 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			}
 		}
 
+		// update licenses
+		var licenses []string
+		if len(opts.License) > 0 {
+			licenses = append(licenses, opts.License)
+
+			stdout, _, err := git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+			if err != nil {
+				log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+				return fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
+			}
+			if err := repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
+				return err
+			}
+		}
 		return nil
 	}); err != nil {
 		if repo != nil {
@@ -326,4 +342,141 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	}
 
 	return repo, nil
+}
+
+// CreateRepositoryByExample creates a repository for the user/organization.
+func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
+	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
+		return err
+	}
+
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
+	if err != nil {
+		return fmt.Errorf("IsRepositoryExist: %w", err)
+	} else if has {
+		return repo_model.ErrRepoAlreadyExist{
+			Uname: u.Name,
+			Name:  repo.Name,
+		}
+	}
+
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
+		return err
+	}
+	if !overwriteOrAdopt && isExist {
+		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
+		return repo_model.ErrRepoFilesAlreadyExist{
+			Uname: u.Name,
+			Name:  repo.Name,
+		}
+	}
+
+	if err = db.Insert(ctx, repo); err != nil {
+		return err
+	}
+	if err = repo_model.DeleteRedirect(ctx, u.ID, repo.Name); err != nil {
+		return err
+	}
+
+	// insert units for repo
+	defaultUnits := unit.DefaultRepoUnits
+	switch {
+	case isFork:
+		defaultUnits = unit.DefaultForkRepoUnits
+	case repo.IsMirror:
+		defaultUnits = unit.DefaultMirrorRepoUnits
+	case repo.IsTemplate:
+		defaultUnits = unit.DefaultTemplateRepoUnits
+	}
+	units := make([]repo_model.RepoUnit, 0, len(defaultUnits))
+	for _, tp := range defaultUnits {
+		if tp == unit.TypeIssues {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &repo_model.IssuesConfig{
+					EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
+					AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
+					EnableDependencies:               setting.Service.DefaultEnableDependencies,
+				},
+			})
+		} else if tp == unit.TypePullRequests {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &repo_model.PullRequestsConfig{
+					AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true,
+					DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle),
+					AllowRebaseUpdate: true,
+				},
+			})
+		} else if tp == unit.TypeProjects {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+				Config: &repo_model.ProjectsConfig{ProjectsMode: repo_model.ProjectsModeAll},
+			})
+		} else {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   tp,
+			})
+		}
+	}
+
+	if err = db.Insert(ctx, units); err != nil {
+		return err
+	}
+
+	// Remember visibility preference.
+	u.LastRepoVisibility = repo.IsPrivate
+	if err = user_model.UpdateUserCols(ctx, u, "last_repo_visibility"); err != nil {
+		return fmt.Errorf("UpdateUserCols: %w", err)
+	}
+
+	if err = user_model.IncrUserRepoNum(ctx, u.ID); err != nil {
+		return fmt.Errorf("IncrUserRepoNum: %w", err)
+	}
+	u.NumRepos++
+
+	// Give access to all members in teams with access to all repositories.
+	if u.IsOrganization() {
+		teams, err := organization.FindOrgTeams(ctx, u.ID)
+		if err != nil {
+			return fmt.Errorf("FindOrgTeams: %w", err)
+		}
+		for _, t := range teams {
+			if t.IncludesAllRepositories {
+				if err := addRepositoryToTeam(ctx, t, repo); err != nil {
+					return fmt.Errorf("AddRepository: %w", err)
+				}
+			}
+		}
+
+		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
+			return fmt.Errorf("IsUserRepoAdmin: %w", err)
+		} else if !isAdmin {
+			// Make creator repo admin if it wasn't assigned automatically
+			if err = AddOrUpdateCollaborator(ctx, repo, doer, perm.AccessModeAdmin); err != nil {
+				return fmt.Errorf("AddCollaborator: %w", err)
+			}
+		}
+	} else if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
+		// Organization automatically called this in AddRepository method.
+		return fmt.Errorf("RecalculateAccesses: %w", err)
+	}
+
+	if setting.Service.AutoWatchNewRepos {
+		if err = repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
+			return fmt.Errorf("WatchRepo: %w", err)
+		}
+	}
+
+	if err = webhook.CopyDefaultWebhooksToRepo(ctx, repo.ID); err != nil {
+		return fmt.Errorf("CopyDefaultWebhooksToRepo: %w", err)
+	}
+
+	return nil
 }

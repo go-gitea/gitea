@@ -1,0 +1,45 @@
+{{if not .WorkflowDispatchConfig}}
+	<div class="ui error message tw-block">{{/* using "ui message" in "ui form" needs to force to display */}}
+		{{if not .CurWorkflowExists}}
+			{{ctx.Locale.Tr "actions.workflow.not_found" $.CurWorkflow}}
+		{{else}}
+			{{ctx.Locale.Tr "actions.workflow.has_no_workflow_dispatch" $.CurWorkflow}}
+		{{end}}
+	</div>
+{{else}}
+	{{range $item := .WorkflowDispatchConfig.Inputs}}
+		<div class="ui field {{if .Required}}required{{end}}">
+			{{if eq .Type "choice"}}
+				<label>{{or .Description .Name}}:</label>
+				{{/* htmx won't initialize the fomantic dropdown, so it is a standard "select" input */}}
+				<select class="ui selection dropdown" name="{{.Name}}">
+					{{range .Options}}
+						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
+					{{end}}
+				</select>
+			{{else if eq .Type "boolean"}}
+				{{/* htmx doesn't trigger our JS code to attach fomantic label to checkbox, so here we use standard checkbox */}}
+				<label class="tw-flex flex-text-inline">
+					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
+					{{or .Description .Name}}
+				</label>
+			{{else if eq .Type "number"}}
+				<label>{{or .Description .Name}}:</label>
+				<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
+			{{else}}
+				<label>{{or .Description .Name}}:</label>
+				<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
+			{{end}}
+		</div>
+	{{end}}
+	<div class="ui field">
+		<button class="ui tiny primary button" type="submit">{{ctx.Locale.Tr "actions.workflow.run"}}</button>
+	</div>
+{{end}}
+{{range .workflows}}
+	{{if and .ErrMsg (eq .Entry.Name $.CurWorkflow)}}
+		<div class="ui field">
+			<div>{{svg "octicon-alert" 16 "text red"}} {{.ErrMsg}}</div>
+		</div>
+	{{end}}
+{{end}}

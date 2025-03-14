@@ -182,7 +182,6 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 
 	// Annotated tag's name should fail
 	tag3, err := bareRepo1.GetAnnotatedTag(aTagName)
-	assert.Error(t, err)
 	assert.Errorf(t, err, "Length must be 40: %d", len(aTagName))
 	assert.Nil(t, tag3)
 

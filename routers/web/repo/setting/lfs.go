@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
@@ -25,23 +24,24 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsLFS         base.TplName = "repo/settings/lfs"
-	tplSettingsLFSLocks    base.TplName = "repo/settings/lfs_locks"
-	tplSettingsLFSFile     base.TplName = "repo/settings/lfs_file"
-	tplSettingsLFSFileFind base.TplName = "repo/settings/lfs_file_find"
-	tplSettingsLFSPointers base.TplName = "repo/settings/lfs_pointers"
+	tplSettingsLFS         templates.TplName = "repo/settings/lfs"
+	tplSettingsLFSLocks    templates.TplName = "repo/settings/lfs_locks"
+	tplSettingsLFSFile     templates.TplName = "repo/settings/lfs_file"
+	tplSettingsLFSFileFind templates.TplName = "repo/settings/lfs_file_find"
+	tplSettingsLFSPointers templates.TplName = "repo/settings/lfs_pointers"
 )
 
 // LFSFiles shows a repository's LFS files
 func LFSFiles(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSFiles", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	page := ctx.FormInt("page")
@@ -71,7 +71,7 @@ func LFSFiles(ctx *context.Context) {
 // LFSLocks shows a repository's LFS locks
 func LFSLocks(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSLocks", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
@@ -197,7 +197,7 @@ func LFSLocks(ctx *context.Context) {
 // LFSLockFile locks a file
 func LFSLockFile(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSLocks", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	originalPath := ctx.FormString("path")
@@ -238,7 +238,7 @@ func LFSLockFile(ctx *context.Context) {
 // LFSUnlock forcibly unlocks an LFS lock
 func LFSUnlock(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSUnlock", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	_, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
@@ -252,7 +252,7 @@ func LFSUnlock(ctx *context.Context) {
 // LFSFileGet serves a single LFS file
 func LFSFileGet(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSFileGet", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
@@ -260,7 +260,7 @@ func LFSFileGet(ctx *context.Context) {
 
 	p := lfs.Pointer{Oid: oid}
 	if !p.IsValid() {
-		ctx.NotFound("LFSFileGet", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -269,7 +269,7 @@ func LFSFileGet(ctx *context.Context) {
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, oid)
 	if err != nil {
 		if err == git_model.ErrLFSObjectNotExist {
-			ctx.NotFound("LFSFileGet", nil)
+			ctx.NotFound(nil)
 			return
 		}
 		ctx.ServerError("LFSFileGet", err)
@@ -350,13 +350,13 @@ func LFSFileGet(ctx *context.Context) {
 // LFSDelete disassociates the provided oid from the repository and if the lfs file is no longer associated with any repositories - deletes it
 func LFSDelete(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSDelete", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	oid := ctx.PathParam("oid")
 	p := lfs.Pointer{Oid: oid}
 	if !p.IsValid() {
-		ctx.NotFound("LFSDelete", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -381,13 +381,13 @@ func LFSDelete(ctx *context.Context) {
 // LFSFileFind guesses a sha for the provided oid (or uses the provided sha) and then finds the commits that contain this sha
 func LFSFileFind(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSFind", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	oid := ctx.FormString("oid")
 	size := ctx.FormInt64("size")
 	if len(oid) == 0 || size == 0 {
-		ctx.NotFound("LFSFind", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	sha := ctx.FormString("sha")
@@ -421,7 +421,7 @@ func LFSFileFind(ctx *context.Context) {
 // LFSPointerFiles will search the repository for pointer files and report which are missing LFS files in the content store
 func LFSPointerFiles(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSFileGet", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["PageIsSettingsLFS"] = true
@@ -532,7 +532,7 @@ func LFSPointerFiles(ctx *context.Context) {
 // LFSAutoAssociate auto associates accessible lfs files
 func LFSAutoAssociate(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSAutoAssociate", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	oids := ctx.FormStrings("oid")

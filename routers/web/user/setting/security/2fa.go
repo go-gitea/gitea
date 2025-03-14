@@ -27,7 +27,7 @@ import (
 // RegenerateScratchTwoFactor regenerates the user's 2FA scratch code.
 func RegenerateScratchTwoFactor(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -39,8 +39,9 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		} else {
+			ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		}
-		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		return
 	}
 
@@ -62,7 +63,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 // DisableTwoFactor deletes the user's 2FA settings.
 func DisableTwoFactor(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -74,8 +75,9 @@ func DisableTwoFactor(ctx *context.Context) {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		} else {
+			ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		}
-		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		return
 	}
 
@@ -84,8 +86,9 @@ func DisableTwoFactor(ctx *context.Context) {
 			// There is a potential DB race here - we must have been disabled by another request in the intervening period
 			ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		} else {
+			ctx.ServerError("SettingsTwoFactor: Failed to DeleteTwoFactorByID", err)
 		}
-		ctx.ServerError("SettingsTwoFactor: Failed to DeleteTwoFactorByID", err)
 		return
 	}
 
@@ -154,7 +157,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 // EnrollTwoFactor shows the page where the user can enroll into 2FA.
 func EnrollTwoFactor(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -184,7 +187,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 // EnrollTwoFactorPost handles enrolling the user into 2FA.
 func EnrollTwoFactorPost(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 

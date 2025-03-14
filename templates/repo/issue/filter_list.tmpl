@@ -1,57 +1,10 @@
-<!-- Label -->
-<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter">
-	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_label"}}
-	</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_label"}}">
-		</div>
-		<div class="ui checkbox compact archived-label-filter">
-			<input name="archived" type="checkbox"
-				id="archived-filter-checkbox"
-				{{if .ShowArchivedLabels}}checked{{end}}
-			>
-			<label for="archived-filter-checkbox">
-				{{ctx.Locale.Tr "repo.issues.label_archived_filter"}}
-				<i class="tw-ml-1" data-tooltip-content={{ctx.Locale.Tr "repo.issues.label_archive_tooltip"}}>
-					{{svg "octicon-info"}}
-				</i>
-			</label>
-		</div>
-		<span class="info">{{ctx.Locale.Tr "repo.issues.filter_label_exclude"}}</span>
-		<div class="divider"></div>
-		<a class="{{if .AllLabels}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_no_select"}}</a>
-		<a class="{{if .NoLabel}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels=0&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}</a>
-		{{$previousExclusiveScope := "_no_scope"}}
-		{{range .Labels}}
-			{{$exclusiveScope := .ExclusiveScope}}
-			{{if and (ne $previousExclusiveScope $exclusiveScope)}}
-				<div class="divider"></div>
-			{{end}}
-			{{$previousExclusiveScope = $exclusiveScope}}
-			<a class="item label-filter-item tw-flex tw-items-center" {{if .IsArchived}}data-is-archived{{end}} href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}" data-label-id="{{.ID}}">
-				{{if .IsExcluded}}
-					{{svg "octicon-circle-slash"}}
-				{{else if .IsSelected}}
-					{{if $exclusiveScope}}
-						{{svg "octicon-dot-fill"}}
-					{{else}}
-						{{svg "octicon-check"}}
-					{{end}}
-				{{end}}
-				{{RenderLabel $.Context ctx.Locale .}}
-				<p class="tw-ml-auto">{{template "repo/issue/labels/label_archived" .}}</p>
-			</a>
-		{{end}}
-	</div>
-</div>
+{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+
+{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 
 {{if not .Milestone}}
 <!-- Milestone -->
-<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} dropdown jump item">
+<div class="item ui dropdown jump {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}}">
 	<span class="text">
 		{{ctx.Locale.Tr "repo.issues.filter_milestone"}}
 	</span>
@@ -62,13 +15,13 @@
 			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_milestone"}}">
 		</div>
 		<div class="divider"></div>
-		<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=0&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_all"}}</a>
-		<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID -1}}active selected {{end}}{{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone=-1&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_none"}}</a>
+		<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{QueryBuild $queryLink "milestone" 0}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_all"}}</a>
+		<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID -1}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" -1}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_none"}}</a>
 		{{if .OpenMilestones}}
 			<div class="divider"></div>
 			<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
 			{{range .OpenMilestones}}
-			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
+			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" .ID}}">
 				{{svg "octicon-milestone" 16 "mr-2"}}
 				{{.Name}}
 			</a>
@@ -78,7 +31,7 @@
 			<div class="divider"></div>
 			<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_closed"}}</div>
 			{{range .ClosedMilestones}}
-			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
+			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" .ID}}">
 				{{svg "octicon-milestone" 16 "mr-2"}}
 				{{.Name}}
 			</a>
@@ -89,7 +42,7 @@
 {{end}}
 
 <!-- Project -->
-<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
+<div class="item ui dropdown jump {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}}">
 	<span class="text">
 		{{ctx.Locale.Tr "repo.issues.filter_project"}}
 	</span>
@@ -99,15 +52,15 @@
 			<i class="icon">{{svg "octicon-search" 16}}</i>
 			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_project"}}">
 		</div>
-		<a class="{{if not .ProjectID}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
-		<a class="{{if eq .ProjectID -1}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&project=-1&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
+		<a class="{{if not .ProjectID}}active selected {{end}}item" href="{{QueryBuild $queryLink "project" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_project_all"}}</a>
+		<a class="{{if eq .ProjectID -1}}active selected {{end}}item" href="{{QueryBuild $queryLink "project" -1}}">{{ctx.Locale.Tr "repo.issues.filter_project_none"}}</a>
 		{{if .OpenProjects}}
 			<div class="divider"></div>
 			<div class="header">
 				{{ctx.Locale.Tr "repo.issues.new.open_projects"}}
 			</div>
 			{{range .OpenProjects}}
-				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item tw-flex" href="?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
+				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item tw-flex" href="{{QueryBuild $queryLink "project" .ID}}">
 					{{svg .IconName 18 "tw-mr-2 tw-shrink-0"}}<span class="gt-ellipsis">{{.Title}}</span>
 				</a>
 			{{end}}
@@ -118,7 +71,7 @@
 				{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}
 			</div>
 			{{range .ClosedProjects}}
-				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{.ID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
+				<a class="{{if $.ProjectID}}{{if eq $.ProjectID .ID}}active selected{{end}}{{end}} item" href="{{QueryBuild $queryLink "project" .ID}}">
 					{{svg .IconName 18 "tw-mr-2"}}{{.Title}}
 				</a>
 			{{end}}
@@ -126,81 +79,59 @@
 	</div>
 </div>
 
-<!-- Author -->
-<div class="ui dropdown jump item user-remote-search" data-tooltip-content="{{ctx.Locale.Tr "repo.author_search_tooltip"}}"
-	data-search-url="{{if .Milestone}}{{$.RepoLink}}/issues/posters{{else}}{{$.Link}}/posters{{end}}"
-	data-selected-user-id="{{$.PosterID}}"
-	data-action-jump-url="?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={user_id}{{if $.ShowArchivedLabels}}&archived=true{{end}}"
->
-	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_poster"}}
-	</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_poster"}}">
-		</div>
-		<a class="item" data-value="0">{{ctx.Locale.Tr "repo.issues.filter_poster_no_select"}}</a>
-	</div>
-</div>
+{{/* TODO: the UserSearchUrl is old logic but not right, milestone could also have "pull request" posters */}}
+{{template "repo/issue/filter_item_user_fetch" dict
+	"QueryParamKey" "poster"
+	"QueryLink" $queryLink
+	"UserSearchUrl" (Iif .Milestone (print $.RepoLink "/issues/posters") (print $.Link "/posters"))
+	"SelectedUsername" $.PosterUsername
+	"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_poster")
+}}
 
-<!-- Assignee -->
-<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
-	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_assignee"}}
-	</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignee"}}">
-		</div>
-		<a class="{{if not .AssigneeID}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
-		<a class="{{if eq .AssigneeID -1}}active selected {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee=-1&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee"}}</a>
-		<div class="divider"></div>
-		{{range .Assignees}}
-			<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item tw-flex" href="?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{.ID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">
-				{{ctx.AvatarUtils.Avatar . 20}}{{template "repo/search_name" .}}
-			</a>
-		{{end}}
-	</div>
-</div>
+{{template "repo/issue/filter_item_user_assign" dict
+	"QueryParamKey" "assignee"
+	"QueryLink" $queryLink
+	"UserSearchList" $.Assignees
+	"SelectedUserId" $.AssigneeID
+	"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_assignee")
+	"TextZeroValue" (ctx.Locale.Tr "repo.issues.filter_assginee_no_select")
+	"TextNegativeOne" (ctx.Locale.Tr "repo.issues.filter_assginee_no_assignee")
+}}
 
 {{if .IsSigned}}
 	<!-- Type -->
-	<div class="ui dropdown type jump item">
+	<div class="item ui dropdown jump">
 		<span class="text">
 			{{ctx.Locale.Tr "repo.issues.filter_type"}}
 		</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			<a class="{{if eq .ViewType "all"}}active {{end}}item" href="?q={{$.Keyword}}&type=all&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}</a>
-			<a class="{{if eq .ViewType "assigned"}}active {{end}}item" href="?q={{$.Keyword}}&type=assigned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
-			<a class="{{if eq .ViewType "created_by"}}active {{end}}item" href="?q={{$.Keyword}}&type=created_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
+			<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "all"}}">{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}</a>
+			<a class="{{if eq .ViewType "assigned"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "assigned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
+			<a class="{{if eq .ViewType "created_by"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "created_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
 			{{if .PageIsPullList}}
-				<a class="{{if eq .ViewType "review_requested"}}active {{end}}item" href="?q={{$.Keyword}}&type=review_requested&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_type.review_requested"}}</a>
-				<a class="{{if eq .ViewType "reviewed_by"}}active {{end}}item" href="?q={{$.Keyword}}&type=reviewed_by&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_type.reviewed_by_you"}}</a>
+				<a class="{{if eq .ViewType "review_requested"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "review_requested"}}">{{ctx.Locale.Tr "repo.issues.filter_type.review_requested"}}</a>
+				<a class="{{if eq .ViewType "reviewed_by"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "reviewed_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.reviewed_by_you"}}</a>
 			{{end}}
-			<a class="{{if eq .ViewType "mentioned"}}active {{end}}item" href="?q={{$.Keyword}}&type=mentioned&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_type.mentioning_you"}}</a>
+			<a class="{{if eq .ViewType "mentioned"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "mentioned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.mentioning_you"}}</a>
 		</div>
 	</div>
 {{end}}
 
 <!-- Sort -->
-<div class="list-header-sort ui small dropdown downward type jump item">
+<div class="item ui dropdown jump">
 	<span class="text">
 		{{ctx.Locale.Tr "repo.issues.filter_sort"}}
 	</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
-		<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort=latest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
-		<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort=oldest&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
-		<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort=recentupdate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-		<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort=leastupdate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-		<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort=mostcomment&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-		<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort=leastcomment&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-		<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort=nearduedate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-		<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="?q={{$.Keyword}}&type={{$.ViewType}}&sort=farduedate&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&project={{$.ProjectID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
+		<a class="{{if or (eq .SortType "latest") (not .SortType)}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "latest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</a>
+		<a class="{{if eq .SortType "oldest"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "oldest"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+		<a class="{{if eq .SortType "recentupdate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "recentupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+		<a class="{{if eq .SortType "leastupdate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "leastupdate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+		<a class="{{if eq .SortType "mostcomment"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "mostcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+		<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "leastcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+		<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "nearduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+		<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "farduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 	</div>
 </div>

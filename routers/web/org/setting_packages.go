@@ -7,17 +7,17 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	shared "code.gitea.io/gitea/routers/web/shared/packages"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsPackages            base.TplName = "org/settings/packages"
-	tplSettingsPackagesRuleEdit    base.TplName = "org/settings/packages_cleanup_rules_edit"
-	tplSettingsPackagesRulePreview base.TplName = "org/settings/packages_cleanup_rules_preview"
+	tplSettingsPackages            templates.TplName = "org/settings/packages"
+	tplSettingsPackagesRuleEdit    templates.TplName = "org/settings/packages_cleanup_rules_edit"
+	tplSettingsPackagesRulePreview templates.TplName = "org/settings/packages_cleanup_rules_preview"
 )
 
 func Packages(ctx *context.Context) {

@@ -23,6 +23,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -133,23 +134,26 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
-					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
+					// in case there is dirty data, for example, the "github.com/git/git" repository has tags pointing to non-existing commits
+					if !errors.Is(err, util.ErrNotExist) {
+						log.Error("Unable to get tag commit: gitRepo.GetCommit(%s) in %s/%s[%d]: %v", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
+					}
+				} else {
+					commits := repo_module.NewPushCommits()
+					commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
+					commits.CompareURL = repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), opts.NewCommitID)
+
+					notify_service.PushCommits(
+						ctx, pusher, repo,
+						&repo_module.PushUpdateOptions{
+							RefFullName: opts.RefFullName,
+							OldCommitID: objectFormat.EmptyObjectID().String(),
+							NewCommitID: opts.NewCommitID,
+						}, commits)
+
+					addTags = append(addTags, tagName)
+					notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 				}
-
-				commits := repo_module.NewPushCommits()
-				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
-				commits.CompareURL = repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), opts.NewCommitID)
-
-				notify_service.PushCommits(
-					ctx, pusher, repo,
-					&repo_module.PushUpdateOptions{
-						RefFullName: opts.RefFullName,
-						OldCommitID: objectFormat.EmptyObjectID().String(),
-						NewCommitID: opts.NewCommitID,
-					}, commits)
-
-				addTags = append(addTags, tagName)
-				notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.RefFullName.IsBranch() {
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -166,7 +170,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			branch := opts.RefFullName.BranchName()
 			if !opts.IsDelRef() {
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-				go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
@@ -183,9 +186,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						repo.IsEmpty = false
 						if repo.DefaultBranch != setting.Repository.DefaultBranch {
 							if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
-								if !git.IsErrUnsupportedVersion(err) {
-									return err
-								}
+								return err
 							}
 						}
 						// Update the is empty and default_branch columns
@@ -209,6 +210,17 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}
+
+					// only update branch can trigger pull request task because the pull request hasn't been created yet when creaing a branch
+					go pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{
+						RepoID:      repo.ID,
+						Doer:        pusher,
+						Branch:      branch,
+						IsSync:      true,
+						IsForcePush: isForcePush,
+						OldCommitID: opts.OldCommitID,
+						NewCommitID: opts.NewCommitID,
+					})
 
 					if isForcePush {
 						log.Trace("Push %s is a force push", opts.NewCommitID)
@@ -277,7 +289,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 			} else {
 				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
-				if err = pull_service.CloseBranchPulls(ctx, pusher, repo.ID, branch); err != nil {
+
+				if err := pull_service.AdjustPullsCausedByBranchDeleted(ctx, pusher, repo, branch); err != nil {
 					// close all related pulls
 					log.Error("close related pull request failed: %v", err)
 				}
@@ -320,9 +333,10 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 
 	releases, err := db.Find[repo_model.Release](ctx, repo_model.FindReleasesOptions{
-		RepoID:      repo.ID,
-		TagNames:    tags,
-		IncludeTags: true,
+		RepoID:        repo.ID,
+		TagNames:      tags,
+		IncludeDrafts: true,
+		IncludeTags:   true,
 	})
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
@@ -409,13 +423,17 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 
 			newReleases = append(newReleases, rel)
 		} else {
-			rel.Title = parts[0]
-			rel.Note = note
 			rel.Sha1 = commit.ID.String()
 			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
 			rel.NumCommits = commitsCount
-			if rel.IsTag && author != nil {
-				rel.PublisherID = author.ID
+			if rel.IsTag {
+				rel.Title = parts[0]
+				rel.Note = note
+				if author != nil {
+					rel.PublisherID = author.ID
+				}
+			} else {
+				rel.IsDraft = false
 			}
 			if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 				return fmt.Errorf("Update: %w", err)

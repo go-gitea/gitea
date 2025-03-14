@@ -10,21 +10,20 @@
 						{{if .Repository.ArchivedUnix.IsZero}}
 							{{ctx.Locale.Tr "repo.archive.title"}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.archive.title_date" (DateTime "long" .Repository.ArchivedUnix)}}
+							{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
 						{{end}}
 					</div>
 				{{end}}
+
 				{{if .Repository.IsBroken}}
-						<div class="ui segment center">
-							{{ctx.Locale.Tr "repo.broken_message"}}
-						</div>
+					<div class="ui segment center">{{ctx.Locale.Tr "repo.broken_message"}}</div>
+				{{else if .RepoHasContentsWithoutBranch}}
+					<div class="ui segment center">{{ctx.Locale.Tr "repo.no_branch"}}</div>
 				{{else if .CanWriteCode}}
-					<h4 class="ui top attached header">
-						{{ctx.Locale.Tr "repo.quick_guide"}}
-					</h4>
+					<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.quick_guide"}}</h4>
 					<div class="ui attached guide table segment empty-repo-guide">
 						<div class="item">
-							<h3>{{ctx.Locale.Tr "repo.clone_this_repo"}} <small>{{ctx.Locale.Tr "repo.clone_helper" "http://git-scm.com/book/en/Git-Basics-Getting-a-Git-Repository"}}</small></h3>
+							<h3>{{ctx.Locale.Tr "repo.clone_this_repo"}} <small>{{ctx.Locale.Tr "repo.clone_helper" "http://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository"}}</small></h3>
 
 							<div class="repo-button-row">
 								{{if and .CanWriteCode (not .Repository.IsArchived)}}
@@ -37,9 +36,7 @@
 									</a>
 									{{end}}
 								{{end}}
-								<div class="clone-panel ui action small input tw-flex-1">
-									{{template "repo/clone_buttons" .}}
-								</div>
+								{{template "repo/clone_buttons" .}}
 							</div>
 						</div>
 
@@ -68,13 +65,10 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
 						{{end}}
-					{{else}}
-						<div class="ui segment center">
-							{{ctx.Locale.Tr "repo.empty_message"}}
-						</div>
-					{{end}}
-					{{template "repo/clone_script" .}}
-				</div>
+					</div>
+				{{else}}
+					<div class="ui segment center">{{ctx.Locale.Tr "repo.empty_message"}}</div>
+				{{end}}
 			</div>
 		</div>
 	</div>

@@ -170,6 +170,18 @@ func (dc dingtalkConvertor) Package(p *api.PackagePayload) (DingtalkPayload, err
 	return createDingtalkPayload(text, text, "view package", p.Package.HTMLURL), nil
 }
 
+func (dc dingtalkConvertor) Status(p *api.CommitStatusPayload) (DingtalkPayload, error) {
+	text, _ := getStatusPayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "Status Changed", p.TargetURL), nil
+}
+
+func (dingtalkConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DingtalkPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "Workflow Job", p.WorkflowJob.HTMLURL), nil
+}
+
 func createDingtalkPayload(title, text, singleTitle, singleURL string) DingtalkPayload {
 	return DingtalkPayload{
 		MsgType: "actionCard",
@@ -189,4 +201,8 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) DingtalkP
 func newDingtalkRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	var pc payloadConvertor[DingtalkPayload] = dingtalkConvertor{}
 	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.DINGTALK, newDingtalkRequest)
 }

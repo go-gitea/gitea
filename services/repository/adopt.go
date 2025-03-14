@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
@@ -53,10 +52,9 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	repoPath := repo_model.RepoPath(u.Name, repo.Name)
-	isExist, err := util.IsExist(repoPath)
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return nil, err
 	}
 	if !isExist {
@@ -68,7 +66,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 
 	// create the repository database operations first
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		return repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true, false)
+		return CreateRepositoryByExample(ctx, doer, u, repo, true, false)
 	}); err != nil {
 		return nil, err
 	}
@@ -79,8 +77,13 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
 			return fmt.Errorf("getRepositoryByID: %w", err)
 		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 
-		if err := adoptRepository(ctx, repoPath, repo, opts.DefaultBranch); err != nil {
+	if err := func() error {
+		if err := adoptRepository(ctx, repo, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("adoptRepository: %w", err)
 		}
 
@@ -88,16 +91,8 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
-		// Initialize Issue Labels if selected
-		if len(opts.IssueLabels) > 0 {
-			if err := repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				return fmt.Errorf("InitializeLabels: %w", err)
-			}
-		}
-
-		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+		if stdout, _, err := git.NewCommand("update-server-info").
+			RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
@@ -109,35 +104,28 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		}
 
 		return nil
-	}); err != nil {
-		if repo != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-				// add system notice
-				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when adopt repository: %v", errDelete); err != nil {
-					log.Error("CreateRepositoryNotice: %v", err)
-				}
-			}
+	}(); err != nil {
+		if errDel := DeleteRepository(ctx, doer, repo, false /* no notify */); errDel != nil {
+			log.Error("Failed to delete repository %s that could not be adopted: %v", repo.FullName(), errDel)
 		}
 		return nil, err
 	}
-
 	notify_service.AdoptRepository(ctx, doer, u, repo)
 
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, repo *repo_model.Repository, defaultBranch string) (err error) {
-	isExist, err := util.IsExist(repoPath)
+func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBranch string) (err error) {
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return err
 	}
 	if !isExist {
-		return fmt.Errorf("adoptRepository: path does not already exist: %s", repoPath)
+		return fmt.Errorf("adoptRepository: path does not already exist: %s", repo.FullName())
 	}
 
-	if err := repo_module.CreateDelegateHooks(repoPath); err != nil {
+	if err := repo_module.CreateDelegateHooks(repo.RepoPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 

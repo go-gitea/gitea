@@ -92,15 +92,15 @@ func SigningKey(ctx context.Context, repoPath string) (string, *git.Signature) {
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
 		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _, _ := git.NewCommand(ctx, "config", "--get", "commit.gpgsign").RunStdString(&git.RunOpts{Dir: repoPath})
+		value, _, _ := git.NewCommand("config", "--get", "commit.gpgsign").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 		sign, valid := git.ParseBool(strings.TrimSpace(value))
 		if !sign || !valid {
 			return "", nil
 		}
 
-		signingKey, _, _ := git.NewCommand(ctx, "config", "--get", "user.signingkey").RunStdString(&git.RunOpts{Dir: repoPath})
-		signingName, _, _ := git.NewCommand(ctx, "config", "--get", "user.name").RunStdString(&git.RunOpts{Dir: repoPath})
-		signingEmail, _, _ := git.NewCommand(ctx, "config", "--get", "user.email").RunStdString(&git.RunOpts{Dir: repoPath})
+		signingKey, _, _ := git.NewCommand("config", "--get", "user.signingkey").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		signingName, _, _ := git.NewCommand("config", "--get", "user.name").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		signingEmail, _, _ := git.NewCommand("config", "--get", "user.email").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 		return strings.TrimSpace(signingKey), &git.Signature{
 			Name:  strings.TrimSpace(signingName),
 			Email: strings.TrimSpace(signingEmail),
@@ -216,7 +216,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -272,7 +272,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -347,7 +347,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{baseSigned}
 			}
@@ -363,7 +363,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{headSigned}
 			}
@@ -379,7 +379,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{commitsSigned}
 			}
@@ -393,7 +393,7 @@ Loop:
 				return false, "", nil, err
 			}
 			for _, commit := range commitList {
-				verification := asymkey_model.ParseCommitWithSignature(ctx, commit)
+				verification := ParseCommitWithSignature(ctx, commit)
 				if !verification.Verified {
 					return false, "", nil, &ErrWontSign{commitsSigned}
 				}

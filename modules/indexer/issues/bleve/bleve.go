@@ -6,9 +6,11 @@ package bleve
 import (
 	"context"
 
+	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -23,7 +25,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 4
+	issueIndexerLatestVersion = 5
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
@@ -75,6 +77,7 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 
 	docMapping.AddFieldMappingsAt("is_pull", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("is_closed", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("is_archived", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("label_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_label", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("milestone_id", numberFieldMapping)
@@ -119,6 +122,10 @@ type Indexer struct {
 	indexer_internal.Indexer // do not composite inner_bleve.Indexer directly to avoid exposing too much
 }
 
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	return indexer.SearchModesExactWordsFuzzy()
+}
+
 // NewIndexer creates a new bleve local indexer
 func NewIndexer(indexDir string) *Indexer {
 	inner := inner_bleve.NewIndexer(indexDir, issueIndexerLatestVersion, generateIssueIndexMapping)
@@ -156,16 +163,24 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	var queries []query.Query
 
 	if options.Keyword != "" {
-		fuzziness := 0
-		if options.IsFuzzyKeyword {
-			fuzziness = inner_bleve.GuessFuzzinessByKeyword(options.Keyword)
+		searchMode := util.IfZero(options.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+		if searchMode == indexer.SearchModeWords || searchMode == indexer.SearchModeFuzzy {
+			fuzziness := 0
+			if searchMode == indexer.SearchModeFuzzy {
+				fuzziness = inner_bleve.GuessFuzzinessByKeyword(options.Keyword)
+			}
+			queries = append(queries, bleve.NewDisjunctionQuery([]query.Query{
+				inner_bleve.MatchAndQuery(options.Keyword, "title", issueIndexerAnalyzer, fuzziness),
+				inner_bleve.MatchAndQuery(options.Keyword, "content", issueIndexerAnalyzer, fuzziness),
+				inner_bleve.MatchAndQuery(options.Keyword, "comments", issueIndexerAnalyzer, fuzziness),
+			}...))
+		} else /* exact */ {
+			queries = append(queries, bleve.NewDisjunctionQuery([]query.Query{
+				inner_bleve.MatchPhraseQuery(options.Keyword, "title", issueIndexerAnalyzer, 0),
+				inner_bleve.MatchPhraseQuery(options.Keyword, "content", issueIndexerAnalyzer, 0),
+				inner_bleve.MatchPhraseQuery(options.Keyword, "comments", issueIndexerAnalyzer, 0),
+			}...))
 		}
-
-		queries = append(queries, bleve.NewDisjunctionQuery([]query.Query{
-			inner_bleve.MatchPhraseQuery(options.Keyword, "title", issueIndexerAnalyzer, fuzziness),
-			inner_bleve.MatchPhraseQuery(options.Keyword, "content", issueIndexerAnalyzer, fuzziness),
-			inner_bleve.MatchPhraseQuery(options.Keyword, "comments", issueIndexerAnalyzer, fuzziness),
-		}...))
 	}
 
 	if len(options.RepoIDs) > 0 || options.AllPublic {
@@ -184,6 +199,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsClosed.Has() {
 		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsClosed.Value(), "is_closed"))
+	}
+	if options.IsArchived.Has() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsArchived.Value(), "is_archived"))
 	}
 
 	if options.NoLabelOnly {

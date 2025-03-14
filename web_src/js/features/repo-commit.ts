@@ -1,15 +1,14 @@
 import {createTippy} from '../modules/tippy.ts';
 import {toggleElem} from '../utils/dom.ts';
+import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 export function initRepoEllipsisButton() {
-  for (const button of document.querySelectorAll('.js-toggle-commit-body')) {
-    button.addEventListener('click', function (e) {
-      e.preventDefault();
-      const expanded = this.getAttribute('aria-expanded') === 'true';
-      toggleElem(this.parentElement.querySelector('.commit-body'));
-      this.setAttribute('aria-expanded', String(!expanded));
-    });
-  }
+  registerGlobalEventFunc('click', 'onRepoEllipsisButtonClick', async (el: HTMLInputElement, e: Event) => {
+    e.preventDefault();
+    const expanded = el.getAttribute('aria-expanded') === 'true';
+    toggleElem(el.parentElement.querySelector('.commit-body'));
+    el.setAttribute('aria-expanded', String(!expanded));
+  });
 }
 
 export function initCommitStatuses() {

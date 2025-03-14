@@ -14,7 +14,7 @@ window.addEventListener('load', async () => {
     return 0;
   });
 
-  const ui = SwaggerUI({
+  SwaggerUI({
     spec,
     dom_id: '#swagger-ui',
     deepLinking: true,
@@ -27,6 +27,4 @@ window.addEventListener('load', async () => {
       SwaggerUI.plugins.DownloadUrl,
     ],
   });
-
-  window.ui = ui;
 });
