@@ -10,7 +10,7 @@ import (
 )
 
 func Test_loadMailerFrom(t *testing.T) {
-	kases := map[string]*Mailer{
+	cases := map[string]*Mailer{
 		"smtp.mydomain.com": {
 			SMTPAddr: "smtp.mydomain.com",
 			SMTPPort: "465",
@@ -24,18 +24,15 @@ func Test_loadMailerFrom(t *testing.T) {
 			SMTPPort: "123",
 		},
 	}
-	for host, kase := range kases {
+	for host := range cases {
 		t.Run(host, func(t *testing.T) {
 			cfg, _ := NewConfigProviderFromData("")
 			sec := cfg.Section("mailer")
 			sec.NewKey("ENABLED", "true")
 			sec.NewKey("HOST", host)
 
-			// Check mailer setting
-			loadMailerFrom(cfg)
-
-			assert.EqualValues(t, kase.SMTPAddr, MailService.SMTPAddr)
-			assert.EqualValues(t, kase.SMTPPort, MailService.SMTPPort)
+			// Ensure removed settings catches the removed config setting
+			assert.Error(t, checkForRemovedSettings(cfg))
 		})
 	}
 }

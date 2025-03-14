@@ -150,90 +150,29 @@ MODE = console
 func TestLogConfigLegacyMode(t *testing.T) {
 	tempDir := t.TempDir()
 
-	tempPath := func(file string) string {
-		return filepath.Join(tempDir, file)
-	}
-
-	manager, managerClose := initLoggersByConfig(t, `
+	cfg, err := NewConfigProviderFromData(`
 [log]
-ROOT_PATH = `+tempDir+`
+ROOT_PATH = ` + tempDir + `
 MODE = file
 ROUTER = file
 ACCESS = file
 `)
-	defer managerClose()
+	require.NoError(t, err)
 
-	writerDump := `
-{
-	"file": {
-		"BufferLen": 10000,
-		"Colorize": false,
-		"Expression": "",
-		"Flags": "stdflags",
-		"Level": "info",
-		"Prefix": "",
-		"StacktraceLevel": "none",
-		"WriterOption": {
-			"Compress": true,
-			"CompressionLevel": -1,
-			"DailyRotate": true,
-			"FileName": "$FILENAME",
-			"LogRotate": true,
-			"MaxDays": 7,
-			"MaxSize": 268435456
-		},
-		"WriterType": "file"
-	}
-}
-`
-	writerDumpAccess := `
-{
-	"file.access": {
-		"BufferLen": 10000,
-		"Colorize": false,
-		"Expression": "",
-		"Flags": "none",
-		"Level": "info",
-		"Prefix": "",
-		"StacktraceLevel": "none",
-		"WriterOption": {
-			"Compress": true,
-			"CompressionLevel": -1,
-			"DailyRotate": true,
-			"FileName": "$FILENAME",
-			"LogRotate": true,
-			"MaxDays": 7,
-			"MaxSize": 268435456
-		},
-		"WriterType": "file"
-	}
-}
-`
-	dump := manager.GetLogger(log.DEFAULT).DumpWriters()
-	require.JSONEq(t, strings.ReplaceAll(writerDump, "$FILENAME", tempPath("gitea.log")), toJSON(dump))
-
-	dump = manager.GetLogger("access").DumpWriters()
-	require.JSONEq(t, strings.ReplaceAll(writerDumpAccess, "$FILENAME", tempPath("access.log")), toJSON(dump))
-
-	dump = manager.GetLogger("router").DumpWriters()
-	require.JSONEq(t, strings.ReplaceAll(writerDump, "$FILENAME", tempPath("gitea.log")), toJSON(dump))
+	require.Error(t, checkForRemovedSettings(cfg))
 }
 
 func TestLogConfigLegacyModeDisable(t *testing.T) {
-	manager, managerClose := initLoggersByConfig(t, `
+	cfg, err := NewConfigProviderFromData(`
 [log]
 ROUTER = file
 ACCESS = file
 DISABLE_ROUTER_LOG = true
 ENABLE_ACCESS_LOG = false
 `)
-	defer managerClose()
+	require.NoError(t, err)
 
-	dump := manager.GetLogger("access").DumpWriters()
-	require.JSONEq(t, "{}", toJSON(dump))
-
-	dump = manager.GetLogger("router").DumpWriters()
-	require.JSONEq(t, "{}", toJSON(dump))
+	require.Error(t, checkForRemovedSettings(cfg))
 }
 
 func TestLogConfigNewConfig(t *testing.T) {

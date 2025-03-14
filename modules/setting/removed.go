@@ -3,13 +3,11 @@ package setting
 import (
 	"errors"
 	"fmt"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 // checkForRemovedSettings checks the entire configuration for removed keys and gathers them fataling if any is present
 // Arbitrary permament removal is 3 releases
-func checkForRemovedSettings(rootCfg ConfigProvider) {
+func checkForRemovedSettings(rootCfg ConfigProvider) error {
 	var errs []error
 
 	removedSettings := []struct {
@@ -51,10 +49,7 @@ func checkForRemovedSettings(rootCfg ConfigProvider) {
 		errs = append(errs, fmt.Errorf("removed fallback `[mailer]` `PROTOCOL = smtp+startls` present. Use `[mailer]` `PROTOCOL = smtp+starttls`` instead"))
 	}
 
-	err := errors.Join(errs...)
-	if err != nil {
-		log.Fatal("Encountered errors while loading configuration: %v", err)
-	}
+	return errors.Join(errs...)
 }
 
 func removedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) error {

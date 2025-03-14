@@ -200,7 +200,9 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
 	initAllLoggers()
-	checkForRemovedSettings(CfgProvider)
+	if err := checkForRemovedSettings(CfgProvider); err != nil {
+		log.Fatal("Encountered removed settings while loading configuration: %v", err)
+	}
 
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
