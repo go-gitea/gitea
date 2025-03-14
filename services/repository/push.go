@@ -23,6 +23,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -133,23 +134,26 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
-					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
+					// in case there is dirty data, for example, the "github.com/git/git" repository has tags pointing to non-existing commits
+					if !errors.Is(err, util.ErrNotExist) {
+						log.Error("Unable to get tag commit: gitRepo.GetCommit(%s) in %s/%s[%d]: %v", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
+					}
+				} else {
+					commits := repo_module.NewPushCommits()
+					commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
+					commits.CompareURL = repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), opts.NewCommitID)
+
+					notify_service.PushCommits(
+						ctx, pusher, repo,
+						&repo_module.PushUpdateOptions{
+							RefFullName: opts.RefFullName,
+							OldCommitID: objectFormat.EmptyObjectID().String(),
+							NewCommitID: opts.NewCommitID,
+						}, commits)
+
+					addTags = append(addTags, tagName)
+					notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 				}
-
-				commits := repo_module.NewPushCommits()
-				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
-				commits.CompareURL = repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), opts.NewCommitID)
-
-				notify_service.PushCommits(
-					ctx, pusher, repo,
-					&repo_module.PushUpdateOptions{
-						RefFullName: opts.RefFullName,
-						OldCommitID: objectFormat.EmptyObjectID().String(),
-						NewCommitID: opts.NewCommitID,
-					}, commits)
-
-				addTags = append(addTags, tagName)
-				notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.RefFullName.IsBranch() {
 			if pusher == nil || pusher.ID != opts.PusherID {
