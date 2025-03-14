@@ -34,11 +34,11 @@ type Branch struct {
 }
 
 // GetHEADBranch returns corresponding branch of HEAD.
-func (repo *Repository) GetHEADBranch() (*Branch, error) {
+func (repo *Repository) GetHEADBranch(ctx context.Context) (*Branch, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("nil repo")
 	}
-	stdout, _, err := NewCommand("symbolic-ref", "HEAD").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand("symbolic-ref", "HEAD").RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ type DeleteBranchOptions struct {
 }
 
 // DeleteBranch delete a branch by name on repository.
-func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) error {
+func (repo *Repository) DeleteBranch(ctx context.Context, name string, opts DeleteBranchOptions) error {
 	cmd := NewCommand("branch")
 
 	if opts.Force {
@@ -114,17 +114,17 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 	}
 
 	cmd.AddDashesAndList(name)
-	_, _, err := cmd.RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	_, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repo.Path})
 
 	return err
 }
 
 // CreateBranch create a new branch
-func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
+func (repo *Repository) CreateBranch(ctx context.Context, branch, oldbranchOrCommit string) error {
 	cmd := NewCommand("branch")
 	cmd.AddDashesAndList(branch, oldbranchOrCommit)
 
-	_, _, err := cmd.RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	_, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repo.Path})
 
 	return err
 }
