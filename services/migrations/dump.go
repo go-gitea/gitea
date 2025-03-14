@@ -507,7 +507,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 			remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 		}
 		// ... now add the remote
-		err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+		err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
 		if err != nil {
 			log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
 		} else {

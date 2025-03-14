@@ -130,20 +130,20 @@ func (repo *Repository) CreateBranch(ctx context.Context, branch, oldbranchOrCom
 }
 
 // AddRemote adds a new remote to repository.
-func (repo *Repository) AddRemote(name, url string, fetch bool) error {
+func (repo *Repository) AddRemote(ctx context.Context, name, url string, fetch bool) error {
 	cmd := NewCommand("remote", "add")
 	if fetch {
 		cmd.AddArguments("-f")
 	}
 	cmd.AddDynamicArguments(name, url)
 
-	_, _, err := cmd.RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	_, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	return err
 }
 
 // RemoveRemote removes a remote from repository.
-func (repo *Repository) RemoveRemote(name string) error {
-	_, _, err := NewCommand("remote", "rm").AddDynamicArguments(name).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+func (repo *Repository) RemoveRemote(ctx context.Context, name string) error {
+	_, _, err := NewCommand("remote", "rm").AddDynamicArguments(name).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	return err
 }
 
@@ -153,7 +153,7 @@ func (branch *Branch) GetCommit() (*Commit, error) {
 }
 
 // RenameBranch rename a branch
-func (repo *Repository) RenameBranch(from, to string) error {
-	_, _, err := NewCommand("branch", "-m").AddDynamicArguments(from, to).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+func (repo *Repository) RenameBranch(ctx context.Context, from, to string) error {
+	_, _, err := NewCommand("branch", "-m").AddDynamicArguments(from, to).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	return err
 }
