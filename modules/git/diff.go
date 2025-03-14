@@ -277,9 +277,9 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 }
 
 // GetAffectedFiles returns the affected files between two commits
-func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID string, env []string) ([]string, error) {
+func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldCommitID, newCommitID string, env []string) ([]string, error) {
 	if oldCommitID == emptySha1ObjectID.String() || oldCommitID == emptySha256ObjectID.String() {
-		startCommitID, err := repo.GetCommitBranchStart(env, branchName, newCommitID)
+		startCommitID, err := repo.GetCommitBranchStart(ctx, env, branchName, newCommitID)
 		if err != nil {
 			return nil, err
 		}
@@ -302,7 +302,7 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 
 	// Run `git diff --name-only` to get the names of the changed files
 	err = NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
-		Run(repo.Ctx, &RunOpts{
+		Run(ctx, &RunOpts{
 			Env:    env,
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
