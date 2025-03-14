@@ -440,8 +440,8 @@ func (u *User) EmailTo() string {
 
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
 // returns username otherwise.
-func (u *User) GetDisplayName() string {
-	if setting.UI.DefaultShowFullName {
+func (u *User) GetDisplayName(ctx context.Context) string {
+	if setting.Config().UI.DefaultShowFullName.Value(ctx) {
 		trimmed := strings.TrimSpace(u.FullName)
 		if len(trimmed) > 0 {
 			return trimmed
@@ -482,8 +482,8 @@ func (u *User) GitName() string {
 }
 
 // ShortName ellipses username to length
-func (u *User) ShortName(length int) string {
-	if setting.UI.DefaultShowFullName && len(u.FullName) > 0 {
+func (u *User) ShortName(ctx context.Context, length int) string {
+	if setting.Config().UI.DefaultShowFullName.Value(ctx) && len(u.FullName) > 0 {
 		return util.EllipsisDisplayString(u.FullName, length)
 	}
 	return util.EllipsisDisplayString(u.Name, length)
@@ -1393,8 +1393,8 @@ func FixWrongUserType(ctx context.Context) (int64, error) {
 	return db.GetEngine(ctx).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
 }
 
-func GetOrderByName() string {
-	if setting.UI.DefaultShowFullName {
+func GetOrderByName(ctx context.Context) string {
+	if setting.Config().UI.DefaultShowFullName.Value(ctx) {
 		return "full_name, name"
 	}
 	return "name"

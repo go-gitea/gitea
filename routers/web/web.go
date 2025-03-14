@@ -720,6 +720,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
+			m.Post("/ui", web.Bind(forms.UIForm{}), admin.ChangeUIConfig)
 			m.Post("/test_mail", admin.SendTestMail)
 			m.Post("/test_cache", admin.TestCache)
 			m.Get("/settings", admin.ConfigSettings)

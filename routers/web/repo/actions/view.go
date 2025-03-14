@@ -229,7 +229,7 @@ func ViewPost(ctx *context_module.Context) {
 	}
 
 	pusher := ViewUser{
-		DisplayName: run.TriggerUser.GetDisplayName(),
+		DisplayName: run.TriggerUser.GetDisplayName(ctx),
 		Link:        run.TriggerUser.HomeLink(),
 	}
 	branch := ViewBranch{

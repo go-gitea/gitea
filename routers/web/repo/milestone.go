@@ -46,7 +46,7 @@ func Milestones(ctx *context.Context) {
 	miles, total, err := db.FindAndCount[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
-			PageSize: setting.UI.IssuePagingNum,
+			PageSize: setting.Config().UI.IssuePagingNum.Value(ctx),
 		},
 		RepoID:   ctx.Repo.Repository.ID,
 		IsClosed: optional.Some(isShowClosed),
@@ -91,7 +91,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagination(int(total), setting.Config().UI.IssuePagingNum.Value(ctx), page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

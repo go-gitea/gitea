@@ -177,7 +177,7 @@ func SearchIssues(ctx *context.Context) {
 	// so the default limit is set to fit UI needs
 	limit := ctx.FormInt("limit")
 	if limit == 0 {
-		limit = setting.UI.IssuePagingNum
+		limit = setting.Config().UI.IssuePagingNum.Value(ctx)
 	} else if limit > setting.API.MaxResponseItems {
 		limit = setting.API.MaxResponseItems
 	}
@@ -603,14 +603,14 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	default:
 		total = int(issueStats.OpenCount)
 	}
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagination(total, setting.Config().UI.IssuePagingNum.Value(ctx), page, 5)
 
 	var issues issues_model.IssueList
 	{
 		ids, err := issueIDsFromSearch(ctx, keyword, &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
-				PageSize: setting.UI.IssuePagingNum,
+				PageSize: setting.Config().UI.IssuePagingNum.Value(ctx),
 			},
 			RepoIDs:           []int64{repo.ID},
 			AssigneeID:        optional.Some(assigneeID),

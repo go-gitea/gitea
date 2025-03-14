@@ -202,7 +202,7 @@
 						{{if eq .Poster.ID .Assignee.ID}}
 							{{ctx.Locale.Tr "repo.issues.remove_self_assignment" $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.remove_assignee_at" .Poster.GetDisplayName $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.remove_assignee_at" (.Poster.GetDisplayName ctx) $createdStr}}
 						{{end}}
 					</span>
 				{{else}}
@@ -212,7 +212,7 @@
 						{{if eq .Poster.ID .AssigneeID}}
 							{{ctx.Locale.Tr "repo.issues.self_assign_at" $createdStr}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.add_assignee_at" .Poster.GetDisplayName $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.add_assignee_at" (.Poster.GetDisplayName ctx) $createdStr}}
 						{{end}}
 					</span>
 				{{end}}
@@ -521,10 +521,10 @@
 							{{if eq .PosterID .AssigneeID}}
 								{{ctx.Locale.Tr "repo.issues.review.remove_review_request_self" $createdStr}}
 							{{else}}
-								{{ctx.Locale.Tr "repo.issues.review.remove_review_request" .Assignee.GetDisplayName $createdStr}}
+								{{ctx.Locale.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName ctx) $createdStr}}
 							{{end}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.review.add_review_request" .Assignee.GetDisplayName $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName ctx) $createdStr}}
 						{{end}}
 					{{else}}
 						<!-- If the assigned team is deleted, just displaying "Ghost Team" in the comment -->

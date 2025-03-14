@@ -34,7 +34,7 @@ func IssuePullPosters(ctx *context.Context) {
 func issuePosters(ctx *context.Context, isPullList bool) {
 	repo := ctx.Repo.Repository
 	search := strings.TrimSpace(ctx.FormString("q"))
-	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.UI.DefaultShowFullName)
+	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.Config().UI.DefaultShowFullName.Value(ctx))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
@@ -54,7 +54,7 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 	resp.Results = make([]*userSearchInfo, len(posters))
 	for i, user := range posters {
 		resp.Results[i] = &userSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
-		if setting.UI.DefaultShowFullName {
+		if setting.Config().UI.DefaultShowFullName.Value(ctx) {
 			resp.Results[i].FullName = user.FullName
 		}
 	}

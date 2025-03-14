@@ -47,8 +47,8 @@ func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Rep
 	}
 
 	total = len(res)
-	pageStart := min((page-1)*setting.UI.RepoSearchPagingNum, len(res))
-	pageEnd := min(page*setting.UI.RepoSearchPagingNum, len(res))
+	pageStart := min((page-1)*setting.Config().UI.RepoSearchPagingNum.Value(ctx), len(res))
+	pageEnd := min(page*setting.Config().UI.RepoSearchPagingNum.Value(ctx), len(res))
 	res = res[pageStart:pageEnd]
 	for _, r := range res {
 		searchResults = append(searchResults, &code_indexer.Result{

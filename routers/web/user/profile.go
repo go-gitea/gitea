@@ -113,7 +113,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 
 	sortOrder := ctx.FormString("sort")
 	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
-		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for user home?
+		sortOrder = setting.Config().UI.ExploreDefaultSort.Value(ctx) // TODO: add new default sort order for user home?
 	}
 	ctx.Data["SortType"] = sortOrder
 	orderBy = repo_model.OrderByFlatMap[sortOrder]
@@ -167,7 +167,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		total = int(numFollowing)
 	case "activity":
 		date := ctx.FormString("date")
-		pagingNum = setting.UI.FeedPagingNum
+		pagingNum = setting.Config().UI.FeedPagingNum.Value(ctx)
 		items, count, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
@@ -203,7 +203,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
-			IncludeDescription: setting.UI.SearchRepoDescription,
+			IncludeDescription: setting.Config().UI.SearchRepoDescription.Value(ctx),
 			Archived:           archived,
 			Fork:               fork,
 			Mirror:             mirror,
@@ -230,7 +230,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
-			IncludeDescription: setting.UI.SearchRepoDescription,
+			IncludeDescription: setting.Config().UI.SearchRepoDescription.Value(ctx),
 			Archived:           archived,
 			Fork:               fork,
 			Mirror:             mirror,
@@ -285,7 +285,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 			Collaborate:        optional.Some(false),
 			TopicOnly:          topicOnly,
 			Language:           language,
-			IncludeDescription: setting.UI.SearchRepoDescription,
+			IncludeDescription: setting.Config().UI.SearchRepoDescription.Value(ctx),
 			Archived:           archived,
 			Fork:               fork,
 			Mirror:             mirror,

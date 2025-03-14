@@ -118,7 +118,7 @@
 				</div>
 				{{range .Assignees}}
 					<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-						{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+						{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName ctx}}
 					</div>
 				{{end}}
 			</div>

@@ -22,7 +22,7 @@
 						{{ctx.Locale.Tr "actions.runs.commit"}}
 						<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
 						{{ctx.Locale.Tr "actions.runs.pushed_by"}}
-						<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
+						<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName ctx}}</a>
 					{{- end -}}
 				</div>
 			</div>

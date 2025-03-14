@@ -52,7 +52,7 @@ func ListPackages(ctx *context.Context) {
 
 	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		Paginator: &db.ListOptions{
-			PageSize: setting.UI.PackagesPagingNum,
+			PageSize: setting.Config().UI.PackagesPagingNum.Value(ctx),
 			Page:     page,
 		},
 		OwnerID:    ctx.ContextUser.ID,
@@ -127,7 +127,7 @@ func ListPackages(ctx *context.Context) {
 		}
 	}
 
-	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
+	pager := context.NewPagination(int(total), setting.Config().UI.PackagesPagingNum.Value(ctx), page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -329,7 +329,7 @@ func ListPackageVersions(ctx *context.Context) {
 		page = 1
 	}
 	pagination := &db.ListOptions{
-		PageSize: setting.UI.PackagesPagingNum,
+		PageSize: setting.Config().UI.PackagesPagingNum.Value(ctx),
 		Page:     page,
 	}
 
@@ -399,7 +399,7 @@ func ListPackageVersions(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
+	pager := context.NewPagination(int(total), setting.Config().UI.PackagesPagingNum.Value(ctx), page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
