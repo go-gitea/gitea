@@ -212,7 +212,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
+		commits, err = baseCommit.CommitsByRange(ctx, listOptions.Page, listOptions.PageSize, not)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

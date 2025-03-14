@@ -77,7 +77,7 @@ func Commits(ctx *context.Context) {
 	}
 
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "")
+	commits, err := ctx.Repo.Commit.CommitsByRange(ctx, page, pageSize, "")
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return

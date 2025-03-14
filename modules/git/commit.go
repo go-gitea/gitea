@@ -199,8 +199,8 @@ func (c *Commit) CommitsCount() (int64, error) {
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page, pageSize int, not string) ([]*Commit, error) {
-	return c.repo.commitsByRange(c.ID, page, pageSize, not)
+func (c *Commit) CommitsByRange(ctx context.Context, page, pageSize int, not string) ([]*Commit, error) {
+	return c.repo.commitsByRange(ctx, c.ID, page, pageSize, not)
 }
 
 // CommitsBefore returns all the commits before current revision
