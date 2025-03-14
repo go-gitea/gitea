@@ -74,3 +74,8 @@ func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Reposito
 func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
 	return util.IsExist(repoPath(repo))
 }
+
+// DeleteRepository deletes the repository directory from the disk
+func DeleteRepository(ctx context.Context, repo Repository) error {
+	return util.RemoveAll(repoPath(repo))
+}
