@@ -230,7 +230,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 
 		for _, file := range opts.Files {
-			if err := handleCheckErrors(file, commit, opts); err != nil {
+			if err := handleCheckErrors(ctx, file, commit, opts); err != nil {
 				return nil, err
 			}
 		}
@@ -362,7 +362,7 @@ func (err ErrSHAOrCommitIDNotProvided) Error() string {
 }
 
 // handles the check for various issues for ChangeRepoFiles
-func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
+func handleCheckErrors(ctx context.Context, file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
 	if file.Operation == "update" || file.Operation == "delete" {
 		fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
 		if err != nil {
@@ -381,7 +381,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 			// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
 			// an error, but only if we aren't creating a new branch.
 			if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
-				if changed, err := commit.FileChangedSinceCommit(file.Options.treePath, opts.LastCommitID); err != nil {
+				if changed, err := commit.FileChangedSinceCommit(ctx, file.Options.treePath, opts.LastCommitID); err != nil {
 					return err
 				} else if changed {
 					return ErrCommitIDDoesNotMatch{

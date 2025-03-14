@@ -22,7 +22,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 	if len(fileName) == 0 {
 		return
 	}
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx,
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
 			File:     fileName,

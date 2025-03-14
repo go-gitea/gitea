@@ -238,7 +238,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			return
 		}
 
-		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(
+		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(ctx,
 			git.CommitsByFileAndRangeOptions{
 				Revision: sha,
 				File:     path,

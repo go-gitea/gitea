@@ -440,7 +440,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange(ctx,
 		git.CommitsByFileAndRangeOptions{
 			Revision: "master",
 			File:     pageFilename,
