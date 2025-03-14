@@ -97,10 +97,10 @@
 			</form>
 		</div>
 
-		<h4 class="ui top attached header">
+		<h4 class="ui top attached header" id="avatar">
 			{{ctx.Locale.Tr "settings.avatar"}}
 		</h4>
-		<div class="ui attached segment" id="avatar">
+		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
 				{{if not .DisableGravatar}}
