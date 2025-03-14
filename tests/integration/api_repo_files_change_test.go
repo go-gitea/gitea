@@ -97,8 +97,8 @@ func TestAPIChangeFiles(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusCreated)
 			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 			commitID, _ := gitRepo.GetBranchCommitID(changeFilesOptions.NewBranchName)
-			createLasCommit, _ := gitRepo.GetCommitByPath(createTreePath)
-			updateLastCommit, _ := gitRepo.GetCommitByPath(updateTreePath)
+			createLasCommit, _ := gitRepo.GetCommitByPath(t.Context(), createTreePath)
+			updateLastCommit, _ := gitRepo.GetCommitByPath(t.Context(), updateTreePath)
 			expectedCreateFileResponse := getExpectedFileResponseForCreate(fmt.Sprintf("%v/%v", user2.Name, repo1.Name), commitID, createTreePath, createLasCommit.ID.String())
 			expectedUpdateFileResponse := getExpectedFileResponseForUpdate(commitID, updateTreePath, updateLastCommit.ID.String())
 			var filesResponse api.FilesResponse

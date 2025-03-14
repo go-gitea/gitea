@@ -168,7 +168,7 @@ func TestAPICreateFile(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusCreated)
 			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 			commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
-			latestCommit, _ := gitRepo.GetCommitByPath(treePath)
+			latestCommit, _ := gitRepo.GetCommitByPath(t.Context(), treePath)
 			expectedFileResponse := getExpectedFileResponseForCreate("user2/repo1", commitID, treePath, latestCommit.ID.String())
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
@@ -286,7 +286,7 @@ func TestAPICreateFile(t *testing.T) {
 		emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "empty-repo"}) // public repo
 		gitRepo, _ := gitrepo.OpenRepository(t.Context(), emptyRepo)
 		commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
-		latestCommit, _ := gitRepo.GetCommitByPath(treePath)
+		latestCommit, _ := gitRepo.GetCommitByPath(t.Context(), treePath)
 		expectedFileResponse := getExpectedFileResponseForCreate("user2/empty-repo", commitID, treePath, latestCommit.ID.String())
 		DecodeJSON(t, resp, &fileResponse)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)

@@ -267,7 +267,7 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
-		lastCommit, _ := gitRepo.GetCommitByPath("new/file.txt")
+		lastCommit, _ := gitRepo.GetCommitByPath(ctx, "new/file.txt")
 		expectedFileResponse := getExpectedFileResponseForRepofilesCreate(commitID, lastCommit.ID.String())
 		assert.NotNil(t, expectedFileResponse)
 		if expectedFileResponse != nil {

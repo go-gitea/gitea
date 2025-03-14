@@ -584,7 +584,7 @@ func Wiki(ctx *context.Context) {
 		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
 	}
 	// Get last change information.
-	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)
+	lastCommit, err := wikiRepo.GetCommitByPath(ctx, wikiPath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return
@@ -622,7 +622,7 @@ func WikiRevision(ctx *context.Context) {
 
 	// Get last change information.
 	wikiPath := entry.Name()
-	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)
+	lastCommit, err := wikiRepo.GetCommitByPath(ctx, wikiPath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return
