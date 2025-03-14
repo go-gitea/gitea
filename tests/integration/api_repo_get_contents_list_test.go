@@ -96,7 +96,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	var contentsListResponse []*api.ContentsResponse
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
-	lastCommit, err := gitRepo.GetCommitByPath("README.md")
+	lastCommit, err := gitRepo.GetCommitByPath(t.Context(), "README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse := getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)

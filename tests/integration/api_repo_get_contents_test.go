@@ -100,7 +100,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	var contentsResponse api.ContentsResponse
 	DecodeJSON(t, resp, &contentsResponse)
 	assert.NotNil(t, contentsResponse)
-	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
+	lastCommit, _ := gitRepo.GetCommitByPath(git.DefaultContext, "README.md")
 	expectedContentsResponse := getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 

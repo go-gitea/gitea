@@ -841,7 +841,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
 
-	commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
+	commits, err := gitRepo.CommitsBetweenLimit(ctx, headCommit, mergeBase, limit, 0)
 	if err != nil {
 		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 		return ""
@@ -911,7 +911,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		skip := limit
 		limit = 30
 		for {
-			commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+			commits, err := gitRepo.CommitsBetweenLimit(ctx, headCommit, mergeBase, limit, skip)
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 				return ""

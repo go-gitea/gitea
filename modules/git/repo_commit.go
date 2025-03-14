@@ -74,8 +74,8 @@ func (repo *Repository) getCommitByPathWithID(ctx context.Context, id ObjectID, 
 }
 
 // GetCommitByPath returns the last commit of relative path.
-func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
-	stdout, _, runErr := NewCommand("log", "-1", prettyLogFormat).AddDashesAndList(relpath).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+func (repo *Repository) GetCommitByPath(ctx context.Context, relpath string) (*Commit, error) {
+	stdout, _, runErr := NewCommand("log", "-1", prettyLogFormat).AddDashesAndList(relpath).RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -310,26 +310,26 @@ func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) 
 }
 
 // CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last)
-func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip int) ([]*Commit, error) {
+func (repo *Repository) CommitsBetweenLimit(ctx context.Context, last, before *Commit, limit, skip int) ([]*Commit, error) {
 	var stdout []byte
 	var err error
 	if before == nil {
 		stdout, _, err = NewCommand("rev-list").
 			AddOptionValues("--max-count", strconv.Itoa(limit)).
 			AddOptionValues("--skip", strconv.Itoa(skip)).
-			AddDynamicArguments(last.ID.String()).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+			AddDynamicArguments(last.ID.String()).RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 	} else {
 		stdout, _, err = NewCommand("rev-list").
 			AddOptionValues("--max-count", strconv.Itoa(limit)).
 			AddOptionValues("--skip", strconv.Itoa(skip)).
-			AddDynamicArguments(before.ID.String()+".."+last.ID.String()).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+			AddDynamicArguments(before.ID.String()+".."+last.ID.String()).RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list --max-count n before last so let's try that...
 			stdout, _, err = NewCommand("rev-list").
 				AddOptionValues("--max-count", strconv.Itoa(limit)).
 				AddOptionValues("--skip", strconv.Itoa(skip)).
-				AddDynamicArguments(before.ID.String(), last.ID.String()).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+				AddDynamicArguments(before.ID.String(), last.ID.String()).RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 		}
 	}
 	if err != nil {

@@ -136,7 +136,7 @@ func TestAPIUpdateFile(t *testing.T) {
 			resp := MakeRequest(t, req, http.StatusOK)
 			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 			commitID, _ := gitRepo.GetBranchCommitID(updateFileOptions.NewBranchName)
-			lasCommit, _ := gitRepo.GetCommitByPath(treePath)
+			lasCommit, _ := gitRepo.GetCommitByPath(t.Context(), treePath)
 			expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath, lasCommit.ID.String())
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
