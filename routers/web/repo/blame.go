@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -105,7 +106,7 @@ func RefBlame(ctx *context.Context) {
 
 	bypassBlameIgnore, _ := strconv.ParseBool(ctx.FormString("bypass-blame-ignore"))
 
-	result, err := performBlame(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Commit, fileName, bypassBlameIgnore)
+	result, err := performBlame(ctx, ctx.Repo.Repository, ctx.Repo.Commit, fileName, bypassBlameIgnore)
 	if err != nil {
 		ctx.NotFound(err)
 		return
@@ -130,10 +131,10 @@ type blameResult struct {
 	FaultyIgnoreRevsFile bool
 }
 
-func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
+func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
 	objectFormat := ctx.Repo.GetObjectFormat()
 
-	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, bypassBlameIgnore)
+	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +150,7 @@ func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, fil
 		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
 			// try again without ignored revs
 
-			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, true)
+			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, true)
 			if err != nil {
 				return nil, err
 			}
