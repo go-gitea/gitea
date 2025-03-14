@@ -110,15 +110,13 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return
 		}
 
-		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-
-		if exists, _ := util.IsExist(repoPath); !exists {
+		if exists, _ := gitrepo.IsRepositoryExist(ctx, repo); !exists {
 			return
 		}
 
 		// As the transaction will be failed and hence database changes will be destroyed we only need
 		// to delete the related repository on the filesystem
-		if errDelete := util.RemoveAll(repoPath); errDelete != nil {
+		if errDelete := util.RemoveAll(repo.RepoPath()); errDelete != nil {
 			log.Error("Failed to remove fork repo")
 		}
 	}
