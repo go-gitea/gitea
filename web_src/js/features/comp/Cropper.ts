@@ -13,11 +13,11 @@ async function initCompCropper({container, fileInput, imageSource}: CropperOpts)
   let currentFileLastModified = 0;
 
   const canvasEl = createElementFromHTML<CropperCanvas>(`
-    <cropper-canvas background>
+    <cropper-canvas background theme-color="var(--color-primary)">
       <cropper-image src="${imageSource.src}" scalable skewable translatable></cropper-image>
       <cropper-shade hidden></cropper-shade>
       <cropper-handle action="select" plain></cropper-handle>
-      <cropper-selection initial-coverage="0.5" initial-aspect-ratio="1" movable resizable>
+      <cropper-selection initial-coverage="0.5" initial-aspect-ratio="1" movable resizable outlined>
         <cropper-grid role="grid" covered></cropper-grid>
         <cropper-crosshair centered></cropper-crosshair>
         <cropper-handle action="move" theme-color="#ffffff23"></cropper-handle>
