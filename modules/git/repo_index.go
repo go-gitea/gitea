@@ -15,14 +15,14 @@ import (
 )
 
 // ReadTreeToIndex reads a treeish to the index
-func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
+func (repo *Repository) ReadTreeToIndex(ctx context.Context, treeish string, indexFilename ...string) error {
 	objectFormat, err := repo.GetObjectFormat()
 	if err != nil {
 		return err
 	}
 
 	if len(treeish) != objectFormat.FullLength() {
-		res, _, err := NewCommand("rev-parse", "--verify").AddDynamicArguments(treeish).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+		res, _, err := NewCommand("rev-parse", "--verify").AddDynamicArguments(treeish).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 		if err != nil {
 			return err
 		}
@@ -50,7 +50,7 @@ func (repo *Repository) readTreeToIndex(id ObjectID, indexFilename ...string) er
 }
 
 // ReadTreeToTemporaryIndex reads a treeish to a temporary index file
-func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilename, tmpDir string, cancel context.CancelFunc, err error) {
+func (repo *Repository) ReadTreeToTemporaryIndex(ctx context.Context, treeish string) (tmpIndexFilename, tmpDir string, cancel context.CancelFunc, err error) {
 	defer func() {
 		// if error happens and there is a cancel function, do clean up
 		if err != nil && cancel != nil {
@@ -74,7 +74,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilena
 
 	tmpIndexFilename = filepath.Join(tmpDir, ".tmp-index")
 	cancel = removeDirFn(tmpDir)
-	err = repo.ReadTreeToIndex(treeish, tmpIndexFilename)
+	err = repo.ReadTreeToIndex(ctx, treeish, tmpIndexFilename)
 	if err != nil {
 		return "", "", cancel, err
 	}

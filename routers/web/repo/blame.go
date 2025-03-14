@@ -234,7 +234,7 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames map[string]*user_model.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
-	language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+	language, err := files_service.TryGetContentLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 	if err != nil {
 		log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 	}

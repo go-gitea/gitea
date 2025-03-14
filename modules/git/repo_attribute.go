@@ -282,8 +282,8 @@ func (wr *nulSeparatedAttributeWriter) Close() error {
 }
 
 // Create a check attribute reader for the current repository and provided commit ID
-func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
-	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+func (repo *Repository) CheckAttributeReader(ctx context.Context, commitID string) (*CheckAttributeReader, context.CancelFunc) {
+	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(ctx, commitID)
 	if err != nil {
 		return nil, func() {}
 	}
@@ -301,7 +301,7 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 		IndexFile: indexFilename,
 		WorkTree:  worktree,
 	}
-	ctx, cancel := context.WithCancel(repo.Ctx)
+	ctx, cancel := context.WithCancel(ctx)
 	if err := checker.Init(ctx); err != nil {
 		log.Error("Unable to open checker for %s. Error: %v", commitID, err)
 	} else {

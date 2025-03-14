@@ -62,7 +62,7 @@ func (db *DBIndexer) Index(id int64) error {
 	}
 
 	// Calculate and save language statistics to database
-	stats, err := gitRepo.GetLanguageStats(commitID)
+	stats, err := gitRepo.GetLanguageStats(ctx, commitID)
 	if err != nil {
 		if !setting.IsInTesting {
 			log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.FullName(), err)

@@ -271,8 +271,8 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 }
 
 // TryGetContentLanguage tries to get the (linguist) language of the file content
-func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (string, error) {
-	indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(commitID)
+func TryGetContentLanguage(ctx context.Context, gitRepo *git.Repository, commitID, treePath string) (string, error) {
+	indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(ctx, commitID)
 	if err != nil {
 		return "", err
 	}
