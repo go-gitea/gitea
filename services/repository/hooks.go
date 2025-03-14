@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 
 	"xorm.io/builder"
 )
@@ -32,11 +31,11 @@ func SyncRepositoryHooks(ctx context.Context) error {
 			default:
 			}
 
-			if err := repo_module.CreateDelegateHooks(repo.RepoPath()); err != nil {
+			if err := gitrepo.CreateDelegateHooks(ctx, repo, false); err != nil {
 				return fmt.Errorf("SyncRepositoryHook: %w", err)
 			}
 			if repo.HasWiki() {
-				if err := repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
+				if err := gitrepo.CreateDelegateHooks(ctx, repo, true); err != nil {
 					return fmt.Errorf("SyncRepositoryHook: %w", err)
 				}
 			}
