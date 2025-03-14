@@ -69,3 +69,8 @@ func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Reposito
 	ctx.SetContextValue(ck, gitRepo)
 	return gitRepo, nil
 }
+
+// IsRepositoryExist returns true if the repository directory exists in the disk
+func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
+	return util.IsExist(repoPath(repo))
+}

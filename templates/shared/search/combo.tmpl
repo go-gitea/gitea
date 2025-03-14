@@ -1,8 +1,30 @@
-{{/* Value - value of the search field (for search results page) */}}
-{{/* Disabled (optional) - if search field/button has to be disabled */}}
-{{/* Placeholder (optional) - placeholder text to be used */}}
-{{/* Tooltip (optional) - a tooltip to be displayed on button hover */}}
+{{/* Attributes:
+* Value - value of the search field (for search results page)
+* Disabled (optional) - if search field/button has to be disabled
+* Placeholder (optional) - placeholder text to be used
+* Tooltip (optional) - a tooltip to be displayed on button hover
+* SearchModes - a list of search modes to be displayed in the dropdown
+* SelectedSearchMode - the currently selected search mode
+*/}}
 <div class="ui small fluid action input">
 	{{template "shared/search/input" dict "Value" .Value "Disabled" .Disabled "Placeholder" .Placeholder}}
+	{{if .SearchModes}}
+	<div class="ui small dropdown selection {{if .Disabled}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
+		<div class="text"></div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		<input name="search_mode" type="hidden" value="
+			{{- if .SelectedSearchMode -}}
+				{{- .SelectedSearchMode -}}
+			{{- else -}}
+				{{- $defaultSearchMode := index .SearchModes 0 -}}
+				{{- $defaultSearchMode.ModeValue -}}
+			{{- end -}}
+		">
+		<div class="menu">
+			{{range $mode := .SearchModes}}
+				<div class="item" data-value="{{$mode.ModeValue}}" data-tooltip-content="{{ctx.Locale.Tr $mode.TooltipTrKey}}">{{ctx.Locale.Tr $mode.TitleTrKey}}</div>
+			{{end}}
+		</div>
+	</div>
+	{{end}}
 	{{template "shared/search/button" dict "Disabled" .Disabled "Tooltip" .Tooltip}}
 </div>

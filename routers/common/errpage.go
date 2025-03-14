@@ -32,7 +32,7 @@ func RenderPanicErrorPage(w http.ResponseWriter, req *http.Request, err any) {
 
 	routing.UpdatePanicError(req.Context(), err)
 
-	httpcache.SetCacheControlInHeader(w.Header(), 0, "no-transform")
+	httpcache.SetCacheControlInHeader(w.Header(), &httpcache.CacheControlOptions{NoTransform: true})
 	w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 	tmplCtx := context.TemplateContext{}

@@ -429,3 +429,14 @@ func RedirectRepoTreeToSrc(ctx *context.Context) {
 	}
 	ctx.Redirect(redirect)
 }
+
+func RedirectRepoBlobToCommit(ctx *context.Context) {
+	// redirect "/owner/repo/blob/*" requests to "/owner/repo/src/commit/*"
+	// just like GitHub: browse files of a commit by "https://github/owner/repo/blob/{CommitID}"
+	// TODO: maybe we could guess more types to redirect to the related pages in the future
+	redirect := ctx.Repo.RepoLink + "/src/commit/" + ctx.PathParamRaw("*")
+	if ctx.Req.URL.RawQuery != "" {
+		redirect += "?" + ctx.Req.URL.RawQuery
+	}
+	ctx.Redirect(redirect)
+}
