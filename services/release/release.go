@@ -106,7 +106,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			}
 
 			if len(msg) > 0 {
-				if err = gitRepo.CreateAnnotatedTag(rel.TagName, msg, commit.ID.String()); err != nil {
+				if err = gitRepo.CreateAnnotatedTag(ctx, rel.TagName, msg, commit.ID.String()); err != nil {
 					if strings.Contains(err.Error(), "is not a valid tag name") {
 						return false, ErrInvalidTagName{
 							TagName: rel.TagName,
@@ -114,7 +114,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 					}
 					return false, err
 				}
-			} else if err = gitRepo.CreateTag(rel.TagName, commit.ID.String()); err != nil {
+			} else if err = gitRepo.CreateTag(ctx, rel.TagName, commit.ID.String()); err != nil {
 				if strings.Contains(err.Error(), "is not a valid tag name") {
 					return false, ErrInvalidTagName{
 						TagName: rel.TagName,

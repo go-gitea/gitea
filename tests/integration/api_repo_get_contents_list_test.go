@@ -84,7 +84,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	commitID, _ := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
 	// Make a new tag in repo1
 	newTag := "test_tag"
-	err = gitRepo.CreateTag(newTag, commitID)
+	err = gitRepo.CreateTag(t.Context(), newTag, commitID)
 	assert.NoError(t, err)
 	/*** END SETUP ***/
 
