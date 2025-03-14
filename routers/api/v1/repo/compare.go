@@ -4,12 +4,19 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
-	"strings"
 
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -52,30 +59,67 @@ func CompareDiff(ctx *context.APIContext) {
 		}
 	}
 
-	infoPath := ctx.PathParam("*")
-	infos := []string{ctx.Repo.Repository.DefaultBranch, ctx.Repo.Repository.DefaultBranch}
-	if infoPath != "" {
-		infos = strings.SplitN(infoPath, "...", 2)
-		if len(infos) != 2 {
-			if infos = strings.SplitN(infoPath, "..", 2); len(infos) != 2 {
-				infos = []string{ctx.Repo.Repository.DefaultBranch, infoPath}
+	pathParam := ctx.PathParam("*")
+	baseRepo := ctx.Repo.Repository
+	ci, err := common.ParseComparePathParams(ctx, pathParam, baseRepo, ctx.Repo.GitRepo)
+	if err != nil {
+		switch {
+		case user_model.IsErrUserNotExist(err):
+			ctx.APIErrorNotFound("GetUserByName")
+		case repo_model.IsErrRepoNotExist(err):
+			ctx.APIErrorNotFound("GetRepositoryByOwnerAndName")
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.APIErrorNotFound("ParseComparePathParams")
+		case git.IsErrNotExist(err):
+			ctx.APIErrorNotFound("ParseComparePathParams")
+		default:
+			ctx.APIError(http.StatusInternalServerError, err)
+		}
+		return
+	}
+	defer ci.Close()
+
+	// remove the check when we support compare with carets
+	if ci.CaretTimes > 0 {
+		ctx.APIErrorNotFound("Unsupported compare")
+		return
+	}
+
+	if !ci.IsSameRepo() {
+		// user should have permission to read headrepo's codes
+		permHead, err := access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
+		if err != nil {
+			ctx.APIError(http.StatusInternalServerError, err)
+			return
+		}
+		if !permHead.CanRead(unit.TypeCode) {
+			if log.IsTrace() {
+				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
+					ctx.Doer,
+					ci.HeadRepo,
+					permHead)
 			}
+			ctx.APIErrorNotFound("Can't read headRepo UnitTypeCode")
+			return
 		}
 	}
 
-	compareResult, closer := parseCompareInfo(ctx, api.CreatePullRequestOption{Base: infos[0], Head: infos[1]})
-	if ctx.Written() {
+	ctx.Repo.PullRequest.SameRepo = ci.IsSameRepo()
+	log.Trace("Repo path: %q, base branch: %q, head branch: %q", ctx.Repo.GitRepo.Path, ci.BaseOriRef, ci.HeadOriRef)
+
+	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), ci.BaseOriRef, ci.HeadOriRef, false, false)
+	if err != nil {
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
-	defer closer()
 
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
 
-	apiCommits := make([]*api.Commit, 0, len(compareResult.compareInfo.Commits))
+	apiCommits := make([]*api.Commit, 0, len(ci.CompareInfo.Commits))
 	userCache := make(map[string]*user_model.User)
-	for i := 0; i < len(compareResult.compareInfo.Commits); i++ {
-		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, compareResult.compareInfo.Commits[i], userCache,
+	for i := 0; i < len(ci.CompareInfo.Commits); i++ {
+		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ci.CompareInfo.Commits[i], userCache,
 			convert.ToCommitOptions{
 				Stat:         true,
 				Verification: verification,
@@ -89,7 +133,7 @@ func CompareDiff(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, &api.Compare{
-		TotalCommits: len(compareResult.compareInfo.Commits),
+		TotalCommits: len(ci.CompareInfo.Commits),
 		Commits:      apiCommits,
 	})
 }

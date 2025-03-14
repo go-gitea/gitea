@@ -1287,8 +1287,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	ci := ParseCompareInfo(ctx)
 	defer func() {
-		if ci != nil && ci.HeadGitRepo != nil {
-			ci.HeadGitRepo.Close()
+		if ci != nil {
+			ci.Close()
 		}
 	}()
 	if ctx.Written() {
@@ -1336,8 +1336,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	pullRequest := &issues_model.PullRequest{
 		HeadRepoID:          ci.HeadRepo.ID,
 		BaseRepoID:          repo.ID,
-		HeadBranch:          ci.HeadBranch,
-		BaseBranch:          ci.BaseBranch,
+		HeadBranch:          ci.HeadOriRef,
+		BaseBranch:          ci.BaseOriRef,
 		HeadRepo:            ci.HeadRepo,
 		BaseRepo:            repo,
 		MergeBase:           ci.CompareInfo.MergeBase,
