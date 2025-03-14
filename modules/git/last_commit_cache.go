@@ -4,6 +4,7 @@
 package git
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 
@@ -83,7 +84,7 @@ func (c *LastCommitCache) Get(ref, entryPath string) (*Commit, error) {
 }
 
 // GetCommitByPath gets the last commit for the entry in the provided commit
-func (c *LastCommitCache) GetCommitByPath(commitID, entryPath string) (*Commit, error) {
+func (c *LastCommitCache) GetCommitByPath(ctx context.Context, commitID, entryPath string) (*Commit, error) {
 	sha, err := NewIDFromString(commitID)
 	if err != nil {
 		return nil, err
@@ -94,7 +95,7 @@ func (c *LastCommitCache) GetCommitByPath(commitID, entryPath string) (*Commit, 
 		return lastCommit, err
 	}
 
-	lastCommit, err = c.repo.getCommitByPathWithID(sha, entryPath)
+	lastCommit, err = c.repo.getCommitByPathWithID(ctx, sha, entryPath)
 	if err != nil {
 		return nil, err
 	}
