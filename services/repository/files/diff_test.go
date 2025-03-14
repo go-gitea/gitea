@@ -35,7 +35,6 @@ func TestGetDiffPreview(t *testing.T) {
 				Name:        "README.md",
 				OldName:     "README.md",
 				NameHash:    "8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d",
-				Index:       1,
 				Addition:    2,
 				Deletion:    1,
 				Type:        2,
@@ -48,7 +47,6 @@ func TestGetDiffPreview(t *testing.T) {
 				Sections: []*gitdiff.DiffSection{
 					{
 						FileName: "README.md",
-						Name:     "",
 						Lines: []*gitdiff.DiffLine{
 							{
 								LeftIdx:  0,

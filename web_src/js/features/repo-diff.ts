@@ -196,7 +196,9 @@ function initRepoDiffShowMore() {
       const resp = await response.text();
       const respDoc = parseDom(resp, 'text/html');
       const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body');
-      el.parentElement.replaceWith(...Array.from(respFileBody.children));
+      const respFileBodyChildren = Array.from(respFileBody.children); // respFileBody.children will be empty after replaceWith
+      el.parentElement.replaceWith(...respFileBodyChildren);
+      for (const el of respFileBodyChildren) window.htmx.process(el);
       // FIXME: calling onShowMoreFiles is not quite right here.
       // But since onShowMoreFiles mixes "init diff box" and "init diff body" together,
       // so it still needs to call it to make the "ImageDiff" and something similar work.

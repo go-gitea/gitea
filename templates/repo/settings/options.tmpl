@@ -203,8 +203,17 @@
 							{{range .PushMirrors}}
 							<tr>
 								<td class="tw-break-anywhere">{{.RemoteAddress}}</td>
-								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-								<td>{{if .LastUpdateUnix}}{{DateUtils.FullTime .LastUpdateUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</div>{{end}}</td>
+								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}} ({{.Interval}})</td>
+								<td>
+									<span class="flex-text-block">
+										{{if .LastUpdateUnix}}
+											{{DateUtils.FullTime .LastUpdateUnix}}
+										{{else}}
+											{{ctx.Locale.Tr "never"}}
+										{{end}}
+										{{if .LastError}}<span class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</span>{{end}}
+									</span>
+								</td>
 								<td class="right aligned">
 									<button
 										class="ui tiny button show-modal"
