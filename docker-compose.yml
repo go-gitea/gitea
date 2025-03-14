@@ -1,0 +1,185 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - app-network
+
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/nessie;
+      /usr/bin/mc mb myminio/spark;
+      exit 0;
+      "
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:14
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: nessie
+      POSTGRES_PASSWORD: nessie
+      POSTGRES_DB: nessie
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  nessie:
+    image: projectnessie/nessie:latest
+    container_name: nessie
+    depends_on:
+      - postgres
+    ports:
+      - "19120:19120"
+    environment:
+      QUARKUS_PROFILE: postgresql
+      NESSIE_VERSION_STORE_TYPE: jdbc
+      QUARKUS_DATASOURCE_USERNAME: nessie
+      QUARKUS_DATASOURCE_PASSWORD: nessie
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/nessie
+    networks:
+      - app-network
+
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    networks:
+      - app-network
+
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+
+  spark-thrift-server:
+    image: bitnami/spark:latest
+    container_name: spark-thrift-server
+    depends_on:
+      - spark-master
+      - nessie
+      - minio
+    ports:
+      - "10000:10000"   # Thrift JDBC/ODBC server
+      - "4040:4040"     # Spark UI
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    command: >
+      bash -c "
+        /opt/bitnami/spark/sbin/start-thriftserver.sh \
+        --master spark://spark-master:7077 \
+        --hiveconf hive.server2.thrift.port=10000 \
+        --hiveconf hive.server2.thrift.bind.host=0.0.0.0 \
+        --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
+        --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog \
+        --conf spark.sql.catalog.iceberg.type=nessie \
+        --conf spark.sql.catalog.iceberg.uri=http://nessie:19120/api/v1 \
+        --conf spark.sql.catalog.iceberg.ref=main \
+        --conf spark.sql.catalog.iceberg.catalog-impl=org.apache.iceberg.aws.s3.S3FileIO \
+        --conf spark.sql.catalog.iceberg.s3.endpoint=http://minio:9000 \
+        --conf spark.sql.catalog.iceberg.s3.path-style-access=true \
+        --conf spark.sql.catalog.iceberg.warehouse=s3a://nessie \
+        --conf spark.hadoop.fs.s3a.access.key=minioadmin \
+        --conf spark.hadoop.fs.s3a.secret.key=minioadmin \
+        --conf spark.hadoop.fs.s3a.endpoint=http://minio:9000 \
+        --conf spark.hadoop.fs.s3a.path.style.access=true \
+        --conf spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem \
+        && tail -f /opt/bitnami/spark/logs/*thriftserver*.out
+      "
+    volumes:
+      - spark_logs:/opt/bitnami/spark/logs
+    networks:
+      - app-network
+
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: jupyter
+    depends_on:
+      - spark-master
+      - nessie
+      - minio
+    ports:
+      - "8888:8888"
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      SPARK_OPTS: >
+        --master=spark://spark-master:7077
+        --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
+        --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog
+        --conf spark.sql.catalog.iceberg.type=nessie
+        --conf spark.sql.catalog.iceberg.uri=http://nessie:19120/api/v1
+        --conf spark.sql.catalog.iceberg.ref=main
+        --conf spark.sql.catalog.iceberg.catalog-impl=org.apache.iceberg.aws.s3.S3FileIO
+        --conf spark.sql.catalog.iceberg.s3.endpoint=http://minio:9000
+        --conf spark.sql.catalog.iceberg.s3.path-style-access=true
+        --conf spark.sql.catalog.iceberg.warehouse=s3a://nessie
+        --conf spark.hadoop.fs.s3a.access.key=minioadmin
+        --conf spark.hadoop.fs.s3a.secret.key=minioadmin
+        --conf spark.hadoop.fs.s3a.endpoint=http://minio:9000
+        --conf spark.hadoop.fs.s3a.path.style.access=true
+        --conf spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem
+    volumes:
+      - jupyter_notebooks:/home/jovyan/work
+    command: >
+      start.sh jupyter lab --LabApp.token='' --LabApp.password=''
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  minio_data:
+  postgres_data:
+  spark_logs:
+  jupyter_notebooks:
