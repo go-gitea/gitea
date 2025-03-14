@@ -71,7 +71,7 @@
 						{{if not $.PageIsWiki}}
 							{{/* view single file diff */}}
 							{{if $.FileName}}
-							<a class="btn interact-bg tw-p-2 view-single-diff"  data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
+							<a class="btn interact-bg tw-p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
 								href="{{$commitRepoLink}}/commit/{{.ID.String}}?files={{$.FileName}}"
 							>{{svg "octicon-file-diff"}}</a>
 							{{end}}
