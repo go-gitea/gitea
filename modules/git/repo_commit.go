@@ -199,8 +199,8 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 }
 
 // FileCommitsCount return the number of files at a revision
-func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
-	return CommitsCount(repo.Ctx,
+func (repo *Repository) FileCommitsCount(ctx context.Context, revision, file string) (int64, error) {
+	return CommitsCount(ctx,
 		CommitsCountOptions{
 			RepoPath: repo.Path,
 			Revision: []string{revision},
@@ -275,12 +275,12 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 }
 
 // FilesCountBetween return the number of files changed between two commits
-func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (int, error) {
-	stdout, _, err := NewCommand("diff", "--name-only").AddDynamicArguments(startCommitID+"..."+endCommitID).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+func (repo *Repository) FilesCountBetween(ctx context.Context, startCommitID, endCommitID string) (int, error) {
+	stdout, _, err := NewCommand("diff", "--name-only").AddDynamicArguments(startCommitID+"..."+endCommitID).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// git >= 2.28 now returns an error if startCommitID and endCommitID have become unrelated.
 		// previously it would return the results of git diff --name-only startCommitID endCommitID so let's try that...
-		stdout, _, err = NewCommand("diff", "--name-only").AddDynamicArguments(startCommitID, endCommitID).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+		stdout, _, err = NewCommand("diff", "--name-only").AddDynamicArguments(startCommitID, endCommitID).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	}
 	if err != nil {
 		return 0, err
