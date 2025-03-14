@@ -48,7 +48,7 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	case binary:
 		err = gitRepo.GetDiffBinary(ctx, compareArg, w)
 	default:
-		err = gitRepo.GetDiff(compareArg, w)
+		err = gitRepo.GetDiff(ctx, compareArg, w)
 	}
 
 	if err != nil {

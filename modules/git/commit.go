@@ -302,8 +302,8 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 }
 
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(opts SearchCommitsOptions) ([]*Commit, error) {
-	return c.repo.searchCommits(c.ID, opts)
+func (c *Commit) SearchCommits(ctx context.Context, opts SearchCommitsOptions) ([]*Commit, error) {
+	return c.repo.searchCommits(ctx, c.ID, opts)
 }
 
 // GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision
