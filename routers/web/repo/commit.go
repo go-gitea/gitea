@@ -431,7 +431,7 @@ func RawDiff(ctx *context.Context) {
 			return
 		}
 	}
-	if err := git.GetRawDiff(
+	if err := git.GetRawDiff(ctx,
 		gitRepo,
 		ctx.PathParam("sha"),
 		git.RawDiffType(ctx.PathParam("ext")),

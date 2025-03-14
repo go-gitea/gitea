@@ -315,7 +315,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	sha := ctx.PathParam("sha")
 	diffType := git.RawDiffType(ctx.PathParam("diffType"))
 
-	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
+	if err := git.GetRawDiff(ctx, ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound(sha)
 			return
