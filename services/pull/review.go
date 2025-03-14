@@ -257,7 +257,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			_ = writer.Close()
 		}()
 		go func() {
-			if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, writer); err != nil {
+			if err := git.GetRepoRawDiffForFile(ctx, gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, writer); err != nil {
 				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %w", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
 				return
 			}
