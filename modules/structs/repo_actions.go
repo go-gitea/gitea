@@ -145,7 +145,6 @@ type ActionRunnerLabel struct {
 type ActionRunner struct {
 	ID        int64                `json:"id"`
 	Name      string               `json:"name"`
-	OS        string               `json:"os"`
 	Status    string               `json:"status"`
 	Busy      bool                 `json:"busy"`
 	Ephemeral bool                 `json:"ephemeral"`
