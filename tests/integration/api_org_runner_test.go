@@ -9,8 +9,11 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
+
+	actions_model "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -119,4 +122,36 @@ func TestAPIRunnerDeleteAdminRunnerNotFoundOrgApi(t *testing.T) {
 	// runner.Editable(ownerID, repoID) false
 	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34344)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestAPIRunnerDeleteConflictWhileJobIsRunningOrgApi(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	userUsername := "user2"
+	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteOrganization)
+
+	_, err := db.GetEngine(t.Context()).Insert(&actions_model.ActionTask{
+		RunnerID: 34347,
+		Status:   actions_model.StatusRunning,
+	})
+	assert.NoError(t, err)
+
+	// Verify delete the runner by id is blocked by active job
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34347)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusConflict)
+}
+
+func TestAPIRunnerDeleteNoConflictWhileJobIsDoneOrgApi(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	userUsername := "user2"
+	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteOrganization)
+
+	_, err := db.GetEngine(t.Context()).Insert(&actions_model.ActionTask{
+		RunnerID: 34347,
+		Status:   actions_model.StatusSuccess,
+	})
+	assert.NoError(t, err)
+
+	// Verify delete the runner by id is ok
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34347)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
 }
