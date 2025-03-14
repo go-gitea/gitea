@@ -57,7 +57,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 
 	assert.Equal(t, "69554a6", payloadCommits[0].ID)
 	assert.Equal(t, "not signed commit", payloadCommits[0].Message)
-	assert.Equal(t, "/user2/repo16/commit/69554a6", payloadCommits[0].URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/69554a6", payloadCommits[0].URL)
 	assert.Equal(t, "User2", payloadCommits[0].Committer.Name)
 	assert.Equal(t, "user2", payloadCommits[0].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[0].Author.Name)
@@ -68,7 +68,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 
 	assert.Equal(t, "27566bd", payloadCommits[1].ID)
 	assert.Equal(t, "good signed commit (with not yet validated email)", payloadCommits[1].Message)
-	assert.Equal(t, "/user2/repo16/commit/27566bd", payloadCommits[1].URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/27566bd", payloadCommits[1].URL)
 	assert.Equal(t, "User2", payloadCommits[1].Committer.Name)
 	assert.Equal(t, "user2", payloadCommits[1].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[1].Author.Name)
@@ -79,7 +79,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 
 	assert.Equal(t, "5099b81", payloadCommits[2].ID)
 	assert.Equal(t, "good signed commit", payloadCommits[2].Message)
-	assert.Equal(t, "/user2/repo16/commit/5099b81", payloadCommits[2].URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/5099b81", payloadCommits[2].URL)
 	assert.Equal(t, "User2", payloadCommits[2].Committer.Name)
 	assert.Equal(t, "user2", payloadCommits[2].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[2].Author.Name)
@@ -90,7 +90,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 
 	assert.Equal(t, "69554a6", headCommit.ID)
 	assert.Equal(t, "not signed commit", headCommit.Message)
-	assert.Equal(t, "/user2/repo16/commit/69554a6", headCommit.URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/69554a6", headCommit.URL)
 	assert.Equal(t, "User2", headCommit.Committer.Name)
 	assert.Equal(t, "user2", headCommit.Committer.UserName)
 	assert.Equal(t, "User2", headCommit.Author.Name)
