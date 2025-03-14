@@ -142,7 +142,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-	branch, err := gitRepo.GetHEADBranch()
+	branch, err := gitRepo.GetHEADBranch(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, branch)
 	if branch != nil {
