@@ -55,6 +55,7 @@ async function initCompCropper({container, fileInput, imageSource}: CropperOpts)
       currentFileLastModified = files[0].lastModified;
       const fileURL = URL.createObjectURL(files[0]);
       imageSource.src = fileURL;
+      // @ts-expect-error - https://github.com/go-gitea/gitea/pull/33827
       imgEl.src = fileURL;
       showElem(container);
     }
