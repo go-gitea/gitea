@@ -109,7 +109,7 @@ func (repo *Repository) commitsByRange(ctx context.Context, id ObjectID, page, p
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([]*Commit, error) {
+func (repo *Repository) searchCommits(ctx context.Context, id ObjectID, opts SearchCommitsOptions) ([]*Commit, error) {
 	// add common arguments to git command
 	addCommonSearchArgs := func(c *Command) {
 		// ignore case
@@ -155,7 +155,7 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 
 	// search for commits matching given constraints and keywords in commit msg
 	addCommonSearchArgs(cmd)
-	stdout, _, err := cmd.RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, err := cmd.RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func (repo *Repository) searchCommits(id ObjectID, opts SearchCommitsOptions) ([
 			hashCmd.AddDynamicArguments(v)
 
 			// search with given constraints for commit matching sha hash of v
-			hashMatching, _, err := hashCmd.RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+			hashMatching, _, err := hashCmd.RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 			if err != nil || bytes.Contains(stdout, hashMatching) {
 				continue
 			}

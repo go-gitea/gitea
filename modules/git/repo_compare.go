@@ -226,10 +226,10 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 }
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
-func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
+func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	return NewCommand("diff", "-p").AddDynamicArguments(compareArg).
-		Run(repo.Ctx, &RunOpts{
+		Run(ctx, &RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,

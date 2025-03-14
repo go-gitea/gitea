@@ -192,7 +192,7 @@ func SearchCommits(ctx *context.Context) {
 
 	all := ctx.FormBool("all")
 	opts := git.NewSearchCommitsOptions(query, all)
-	commits, err := ctx.Repo.Commit.SearchCommits(opts)
+	commits, err := ctx.Repo.Commit.SearchCommits(ctx, opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
 		return
