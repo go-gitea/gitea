@@ -384,7 +384,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{commitsSigned}
 			}
 			// need to work out merge-base
-			mergeBaseCommit, _, err := gitRepo.GetMergeBase("", baseCommit, headCommit)
+			mergeBaseCommit, _, err := gitRepo.GetMergeBase(ctx, "", baseCommit, headCommit)
 			if err != nil {
 				return false, "", nil, err
 			}
