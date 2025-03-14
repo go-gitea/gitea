@@ -388,7 +388,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			commitList, err := commit.CommitsBeforeUntil(mergeBaseCommit)
+			commitList, err := commit.CommitsBeforeUntil(ctx, mergeBaseCommit)
 			if err != nil {
 				return false, "", nil, err
 			}

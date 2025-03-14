@@ -201,7 +201,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 					notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 				} else {
-					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
+					l, err = newCommit.CommitsBeforeUntil(ctx, opts.OldCommitID)
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
 					}
