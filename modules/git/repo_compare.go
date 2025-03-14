@@ -119,7 +119,7 @@ func (repo *Repository) GetCompareInfo(ctx context.Context, basePath, baseBranch
 	// Count number of changed files.
 	// This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(remoteBranch, headBranch, directComparison)
+	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(ctx, remoteBranch, headBranch, directComparison)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 
 // GetDiffNumChangedFiles counts the number of changed files
 // This is substantially quicker than shortstat but...
-func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparison bool) (int, error) {
+func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head string, directComparison bool) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	w := &lineCountWriter{}
 	stderr := new(bytes.Buffer)
@@ -151,7 +151,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 
 	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
 	if err := NewCommand("diff", "-z", "--name-only").AddDynamicArguments(base+separator+head).AddArguments("--").
-		Run(repo.Ctx, &RunOpts{
+		Run(ctx, &RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,
@@ -161,7 +161,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
 			stderr.Reset()
-			if err = NewCommand("diff", "-z", "--name-only").AddDynamicArguments(base, head).AddArguments("--").Run(repo.Ctx, &RunOpts{
+			if err = NewCommand("diff", "-z", "--name-only").AddDynamicArguments(base, head).AddArguments("--").Run(ctx, &RunOpts{
 				Dir:    repo.Path,
 				Stdout: w,
 				Stderr: stderr,
