@@ -89,8 +89,8 @@ services:
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=1G
-      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
@@ -141,7 +141,8 @@ services:
       - app-network
 
   jupyter:
-    image: jupyter/pyspark-notebook:latest
+    build:
+      context: .
     container_name: jupyter
     depends_on:
       - spark-master
@@ -151,26 +152,8 @@ services:
       - "8888:8888"
     environment:
       JUPYTER_ENABLE_LAB: "yes"
-      SPARK_OPTS: >
-        --master=spark://spark-master:7077
-        --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
-        --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog
-        --conf spark.sql.catalog.iceberg.type=nessie
-        --conf spark.sql.catalog.iceberg.uri=http://nessie:19120/api/v1
-        --conf spark.sql.catalog.iceberg.ref=main
-        --conf spark.sql.catalog.iceberg.catalog-impl=org.apache.iceberg.aws.s3.S3FileIO
-        --conf spark.sql.catalog.iceberg.s3.endpoint=http://minio:9000
-        --conf spark.sql.catalog.iceberg.s3.path-style-access=true
-        --conf spark.sql.catalog.iceberg.warehouse=s3a://nessie
-        --conf spark.hadoop.fs.s3a.access.key=minioadmin
-        --conf spark.hadoop.fs.s3a.secret.key=minioadmin
-        --conf spark.hadoop.fs.s3a.endpoint=http://minio:9000
-        --conf spark.hadoop.fs.s3a.path.style.access=true
-        --conf spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem
     volumes:
       - jupyter_notebooks:/home/jovyan/work
-    command: >
-      start.sh jupyter lab --LabApp.token='' --LabApp.password=''
     networks:
       - app-network
 
