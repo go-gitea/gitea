@@ -166,7 +166,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			branch := opts.RefFullName.BranchName()
 			if !opts.IsDelRef() {
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-				go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
@@ -207,6 +206,17 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}
+
+					// only update branch can trigger pull request task because the pull request hasn't been created yet when creaing a branch
+					go pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{
+						RepoID:      repo.ID,
+						Doer:        pusher,
+						Branch:      branch,
+						IsSync:      true,
+						IsForcePush: isForcePush,
+						OldCommitID: opts.OldCommitID,
+						NewCommitID: opts.NewCommitID,
+					})
 
 					if isForcePush {
 						log.Trace("Push %s is a force push", opts.NewCommitID)
