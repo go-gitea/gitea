@@ -304,7 +304,7 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		lastCommit, _ := commit.GetCommitByPath(t.Context(), opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String())
 		assert.EqualValues(t, expectedFileResponse.Content, filesResponse.Files[0])
 		assert.EqualValues(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
@@ -340,7 +340,7 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		lastCommit, _ := commit.GetCommitByPath(t.Context(), opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String())
 		// assert that the old file no longer exists in the last commit of the branch
 		fromEntry, err := commit.GetTreeEntryByPath(opts.Files[0].FromTreePath)
@@ -391,7 +391,7 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		lastCommit, _ := commit.GetCommitByPath(git.DefaultContext, opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String())
 		assert.EqualValues(t, expectedFileResponse.Content, filesResponse.Files[0])
 	})

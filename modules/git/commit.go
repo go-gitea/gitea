@@ -77,11 +77,11 @@ func (c *Commit) ParentCount() int {
 }
 
 // GetCommitByPath return the commit of relative path object.
-func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
+func (c *Commit) GetCommitByPath(ctx context.Context, relpath string) (*Commit, error) {
 	if c.repo.LastCommitCache != nil {
-		return c.repo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
+		return c.repo.LastCommitCache.GetCommitByPath(ctx, c.ID.String(), relpath)
 	}
-	return c.repo.getCommitByPathWithID(c.ID, relpath)
+	return c.repo.getCommitByPathWithID(ctx, c.ID, relpath)
 }
 
 // AddChanges marks local changes to be ready for commit.

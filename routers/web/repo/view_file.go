@@ -46,7 +46,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
-	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return

@@ -170,7 +170,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		return nil, err
 	}
 
-	lastCommit, err := commit.GetCommitByPath(treePath)
+	lastCommit, err := commit.GetCommitByPath(ctx, treePath)
 	if err != nil {
 		return nil, err
 	}

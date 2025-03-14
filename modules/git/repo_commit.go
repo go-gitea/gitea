@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 	"strconv"
@@ -53,13 +54,13 @@ func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
 	return repo.GetCommit(commitID)
 }
 
-func (repo *Repository) getCommitByPathWithID(id ObjectID, relpath string) (*Commit, error) {
+func (repo *Repository) getCommitByPathWithID(ctx context.Context, id ObjectID, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
 	if relpath[0] == ':' {
 		relpath = `\` + relpath
 	}
 
-	stdout, _, runErr := NewCommand("log", "-1", prettyLogFormat).AddDynamicArguments(id.String()).AddDashesAndList(relpath).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, runErr := NewCommand("log", "-1", prettyLogFormat).AddDynamicArguments(id.String()).AddDashesAndList(relpath).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -375,8 +376,8 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) ([]*Commit, error
 }
 
 // CommitsCountBetween return numbers of commits between two commits
-func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
-	count, err := CommitsCount(repo.Ctx, CommitsCountOptions{
+func (repo *Repository) CommitsCountBetween(ctx context.Context, start, end string) (int64, error) {
+	count, err := CommitsCount(ctx, CommitsCountOptions{
 		RepoPath: repo.Path,
 		Revision: []string{start + ".." + end},
 	})
@@ -384,7 +385,7 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 		// previously it would return the results of git rev-list before last so let's try that...
-		return CommitsCount(repo.Ctx, CommitsCountOptions{
+		return CommitsCount(ctx, CommitsCountOptions{
 			RepoPath: repo.Path,
 			Revision: []string{start, end},
 		})
