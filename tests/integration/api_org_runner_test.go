@@ -62,3 +62,61 @@ func TestAPIRunnerOrgApi(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
+
+func TestAPIRunnerDeleteReadScopeForbiddenOrgApi(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	userUsername := "user2"
+	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadOrganization)
+
+	// Verify delete the runner by id is forbidden with read scope
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34347)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
+func TestAPIRunnerGetOrgApi(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	userUsername := "user2"
+	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadOrganization)
+	// Verify get the runner by id with read scope
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34347)).AddTokenAuth(token)
+	runnerResp := MakeRequest(t, req, http.StatusOK)
+
+	runner := api.ActionRunner{}
+	DecodeJSON(t, runnerResp, &runner)
+
+	assert.Equal(t, "runner_to_be_deleted-org", runner.Name)
+	assert.Equal(t, int64(34347), runner.ID)
+	assert.False(t, runner.Ephemeral)
+	assert.Len(t, runner.Labels, 2)
+	assert.Equal(t, "runner_to_be_deleted", runner.Labels[0].Name)
+	assert.Equal(t, "linux", runner.Labels[1].Name)
+}
+
+func TestAPIRunnerGetRepoScopeForbiddenOrgApi(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	userUsername := "user2"
+	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadRepository)
+	// Verify get the runner by id with read scope
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34347)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+}
+
+func TestAPIRunnerGetAdminRunnerNotFoundOrgApi(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	userUsername := "user2"
+	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadOrganization)
+	// Verify get a runner by id of different entity is not found
+	// runner.Editable(ownerID, repoID) false
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34344)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestAPIRunnerDeleteAdminRunnerNotFoundOrgApi(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	userUsername := "user2"
+	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteOrganization)
+	// Verify delete a runner by id of different entity is not found
+	// runner.Editable(ownerID, repoID) false
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34344)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+}
