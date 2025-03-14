@@ -397,7 +397,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 		}
 		defer gitRepo.Close()
 
-		err = gitRepo.RenameBranch(oldDefBranch, newBranch)
+		err = gitRepo.RenameBranch(ctx, oldDefBranch, newBranch)
 		if err != nil {
 			return fmt.Errorf("unable to rename default branch: %w", err)
 		}

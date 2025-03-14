@@ -60,11 +60,11 @@ func (repo *Repository) GetCompareInfo(ctx context.Context, basePath, baseBranch
 	if repo.Path != basePath {
 		// Add a temporary remote
 		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
-		if err = repo.AddRemote(tmpRemote, basePath, false); err != nil {
+		if err = repo.AddRemote(ctx, tmpRemote, basePath, false); err != nil {
 			return nil, fmt.Errorf("AddRemote: %w", err)
 		}
 		defer func() {
-			if err := repo.RemoveRemote(tmpRemote); err != nil {
+			if err := repo.RemoveRemote(ctx, tmpRemote); err != nil {
 				logger.Error("GetPullRequestInfo: RemoveRemote: %v", err)
 			}
 		}()
