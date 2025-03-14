@@ -221,7 +221,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefFullName.ShortName(), fileName) // FIXME: legacy code used ShortName
+	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx, ctx.Repo.RefFullName.ShortName(), fileName) // FIXME: legacy code used ShortName
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return
