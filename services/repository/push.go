@@ -356,7 +356,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	emailToUser := make(map[string]*user_model.User)
 
 	for i, lowerTag := range lowerTags {
-		tag, err := gitRepo.GetTag(tags[i])
+		tag, err := gitRepo.GetTag(ctx, tags[i])
 		if err != nil {
 			return fmt.Errorf("GetTag: %w", err)
 		}

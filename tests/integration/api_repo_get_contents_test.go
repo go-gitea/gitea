@@ -88,7 +88,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 	// Make a new tag in repo1
 	newTag := "test_tag"
-	err = gitRepo.CreateTag(newTag, commitID)
+	err = gitRepo.CreateTag(t.Context(), newTag, commitID)
 	assert.NoError(t, err)
 	/*** END SETUP ***/
 
