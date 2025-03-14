@@ -52,7 +52,7 @@ type CreateRepoOptions struct {
 	ObjectFormatName string
 }
 
-func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
+func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -67,7 +67,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, _, err := git.NewCommand("clone").AddDynamicArguments(repoPath, tmpDir).
+	if stdout, _, err := git.NewCommand("clone").AddDynamicArguments(repo.RepoPath(), tmpDir).
 		RunStdString(ctx, &git.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git clone: %w", err)
@@ -139,7 +139,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 }
 
 // InitRepository initializes README and .gitignore if needed.
-func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
+func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	if err = repo_module.CheckInitRepository(ctx, repo); err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 			}
 		}()
 
-		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
+		if err = prepareRepoCommit(ctx, repo, tmpDir, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %w", err)
 		}
 
@@ -276,7 +276,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			}
 		}
 
-		if err = initRepository(ctx, repo.RepoPath(), doer, repo, opts); err != nil {
+		if err = initRepository(ctx, doer, repo, opts); err != nil {
 			if err2 := util.RemoveAll(repo.RepoPath()); err2 != nil {
 				log.Error("initRepository: %v", err)
 				return fmt.Errorf(
