@@ -150,7 +150,7 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+	name2attribute2info, err := gitRepo.CheckAttribute(ctx, git.CheckAttributeOpts{
 		Attributes: []string{"lockable"},
 		Filenames:  filenames,
 		CachedOnly: true,
