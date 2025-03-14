@@ -62,7 +62,7 @@ func (m *MaterialIconProvider) loadData() {
 	log.Debug("Loaded material icon rules and SVG images")
 }
 
-func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name, svg string) template.HTML {
+func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name, svg, extraClass string) template.HTML {
 	data := ctx.GetData()
 	renderedSVGs, _ := data["_RenderedSVGs"].(map[string]bool)
 	if renderedSVGs == nil {
@@ -75,7 +75,7 @@ func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name
 		panic("Invalid SVG icon")
 	}
 	svgID := "svg-mfi-" + name
-	svgCommonAttrs := `class="svg fileicon" width="16" height="16" aria-hidden="true"`
+	svgCommonAttrs := `class="svg git-entry-icon ` + extraClass + `" width="16" height="16" aria-hidden="true"`
 	posOuterBefore := strings.IndexByte(svg, '>')
 	if renderedSVGs[svgID] && posOuterBefore != -1 {
 		return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
@@ -92,7 +92,8 @@ func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.Tr
 
 	if entry.IsLink() {
 		if te, err := entry.FollowLink(); err == nil && te.IsDir() {
-			return svg.RenderHTML("material-folder-symlink")
+			// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
+			return svg.RenderHTML("material-folder-symlink", 16, "octicon-file-directory-symlink")
 		}
 		return svg.RenderHTML("octicon-file-symlink-file") // TODO: find some better icons for them
 	}
@@ -100,10 +101,19 @@ func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.Tr
 	name := m.findIconNameByGit(entry)
 	if name == "folder" {
 		// the material icon pack's "folder" icon doesn't look good, so use our built-in one
-		return svg.RenderHTML("material-folder-generic")
+		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
+		return svg.RenderHTML("material-folder-generic", 16, "octicon-file-directory-fill")
 	}
 	if iconSVG, ok := m.svgs[name]; ok && iconSVG != "" {
-		return m.renderFileIconSVG(ctx, name, iconSVG)
+		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
+		extraClass := "octicon-file"
+		switch {
+		case entry.IsDir():
+			extraClass = "octicon-file-directory-fill"
+		case entry.IsSubModule():
+			extraClass = "octicon-file-submodule"
+		}
+		return m.renderFileIconSVG(ctx, name, iconSVG, extraClass)
 	}
 	return svg.RenderHTML("octicon-file")
 }
