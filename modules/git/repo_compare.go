@@ -245,10 +245,10 @@ func (repo *Repository) GetDiffBinary(ctx context.Context, compareArg string, w 
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
-func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
+func (repo *Repository) GetPatch(ctx context.Context, compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	return NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
-		Run(repo.Ctx, &RunOpts{
+		Run(ctx, &RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,

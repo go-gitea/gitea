@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetFormatPatch(t *testing.T) {
@@ -21,24 +22,15 @@ func TestGetFormatPatch(t *testing.T) {
 	}
 
 	repo, err := openRepositoryWithDefaultContext(clonedPath)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
+	require.NoError(t, err)
 	defer repo.Close()
 
 	rd := &bytes.Buffer{}
-	err = repo.GetPatch("8d92fc95^...8d92fc95", rd)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
+	err = repo.GetPatch(t.Context(), "8d92fc95^...8d92fc95", rd)
+	require.NoError(t, err)
 
 	patchb, err := io.ReadAll(rd)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
+	require.NoError(t, err)
 
 	patch := string(patchb)
 	assert.Regexp(t, "^From 8d92fc95", patch)
