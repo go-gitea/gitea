@@ -195,7 +195,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						}
 					}
 
-					l, err = newCommit.CommitsBeforeLimit(10)
+					l, err = newCommit.CommitsBeforeLimit(ctx, 10)
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
 					}

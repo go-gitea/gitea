@@ -395,14 +395,14 @@ func (repo *Repository) CommitsCountBetween(ctx context.Context, start, end stri
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.
-func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error) {
+func (repo *Repository) commitsBefore(ctx context.Context, id ObjectID, limit int) ([]*Commit, error) {
 	cmd := NewCommand("log", prettyLogFormat)
 	if limit > 0 {
 		cmd.AddOptionFormat("-%d", limit)
 	}
 	cmd.AddDynamicArguments(id.String())
 
-	stdout, _, runErr := cmd.RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, runErr := cmd.RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -414,7 +414,7 @@ func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error)
 
 	commits := make([]*Commit, 0, len(formattedLog))
 	for _, commit := range formattedLog {
-		branches, err := repo.getBranches(os.Environ(), commit.ID.String(), 2)
+		branches, err := repo.getBranches(ctx, os.Environ(), commit.ID.String(), 2)
 		if err != nil {
 			return nil, err
 		}
@@ -429,20 +429,20 @@ func (repo *Repository) commitsBefore(id ObjectID, limit int) ([]*Commit, error)
 	return commits, nil
 }
 
-func (repo *Repository) getCommitsBefore(id ObjectID) ([]*Commit, error) {
-	return repo.commitsBefore(id, 0)
+func (repo *Repository) getCommitsBefore(ctx context.Context, id ObjectID) ([]*Commit, error) {
+	return repo.commitsBefore(ctx, id, 0)
 }
 
-func (repo *Repository) getCommitsBeforeLimit(id ObjectID, num int) ([]*Commit, error) {
-	return repo.commitsBefore(id, num)
+func (repo *Repository) getCommitsBeforeLimit(ctx context.Context, id ObjectID, num int) ([]*Commit, error) {
+	return repo.commitsBefore(ctx, id, num)
 }
 
-func (repo *Repository) getBranches(env []string, commitID string, limit int) ([]string, error) {
+func (repo *Repository) getBranches(ctx context.Context, env []string, commitID string, limit int) ([]string, error) {
 	if DefaultFeatures().CheckVersionAtLeast("2.7.0") {
 		stdout, _, err := NewCommand("for-each-ref", "--format=%(refname:strip=2)").
 			AddOptionFormat("--count=%d", limit).
 			AddOptionValues("--contains", commitID, BranchPrefix).
-			RunStdString(repo.Ctx, &RunOpts{
+			RunStdString(ctx, &RunOpts{
 				Dir: repo.Path,
 				Env: env,
 			})
@@ -454,7 +454,7 @@ func (repo *Repository) getBranches(env []string, commitID string, limit int) ([
 		return branches, nil
 	}
 
-	stdout, _, err := NewCommand("branch").AddOptionValues("--contains", commitID).RunStdString(repo.Ctx, &RunOpts{
+	stdout, _, err := NewCommand("branch").AddOptionValues("--contains", commitID).RunStdString(ctx, &RunOpts{
 		Dir: repo.Path,
 		Env: env,
 	})
@@ -521,11 +521,11 @@ func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error
 }
 
 // GetCommitBranchStart returns the commit where the branch diverged
-func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID string) (string, error) {
+func (repo *Repository) GetCommitBranchStart(ctx context.Context, env []string, branch, endCommitID string) (string, error) {
 	cmd := NewCommand("log", prettyLogFormat)
 	cmd.AddDynamicArguments(endCommitID)
 
-	stdout, _, runErr := cmd.RunStdBytes(repo.Ctx, &RunOpts{
+	stdout, _, runErr := cmd.RunStdBytes(ctx, &RunOpts{
 		Dir: repo.Path,
 		Env: env,
 	})
@@ -538,7 +538,7 @@ func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID s
 	// check the commits one by one until we find a commit contained by another branch
 	// and we think this commit is the divergence point
 	for _, commitID := range parts {
-		branches, err := repo.getBranches(env, string(commitID), 2)
+		branches, err := repo.getBranches(ctx, env, string(commitID), 2)
 		if err != nil {
 			return "", err
 		}

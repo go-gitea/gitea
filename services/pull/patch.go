@@ -535,11 +535,11 @@ func (err ErrFilePathProtected) Unwrap() error {
 }
 
 // CheckFileProtection check file Protection
-func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
+func CheckFileProtection(ctx context.Context, repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
 	if len(patterns) == 0 {
 		return nil, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(ctx, repo, branchName, oldCommitID, newCommitID, env)
 	if err != nil {
 		return nil, err
 	}
@@ -565,11 +565,11 @@ func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommi
 }
 
 // CheckUnprotectedFiles check if the commit only touches unprotected files
-func CheckUnprotectedFiles(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
+func CheckUnprotectedFiles(ctx context.Context, repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
 	if len(patterns) == 0 {
 		return false, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(ctx, repo, branchName, oldCommitID, newCommitID, env)
 	if err != nil {
 		return false, err
 	}
@@ -606,7 +606,7 @@ func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest,
 		return nil
 	}
 
-	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.HeadBranch, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
+	pr.ChangedProtectedFiles, err = CheckFileProtection(ctx, gitRepo, pr.HeadBranch, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
 	if err != nil && !IsErrFilePathProtected(err) {
 		return err
 	}

@@ -204,8 +204,8 @@ func (c *Commit) CommitsByRange(page, pageSize int, not string) ([]*Commit, erro
 }
 
 // CommitsBefore returns all the commits before current revision
-func (c *Commit) CommitsBefore() ([]*Commit, error) {
-	return c.repo.getCommitsBefore(c.ID)
+func (c *Commit) CommitsBefore(ctx context.Context) ([]*Commit, error) {
+	return c.repo.getCommitsBefore(ctx, c.ID)
 }
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
@@ -249,8 +249,8 @@ func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
 }
 
 // CommitsBeforeLimit returns num commits before current revision
-func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
-	return c.repo.getCommitsBeforeLimit(c.ID, num)
+func (c *Commit) CommitsBeforeLimit(ctx context.Context, num int) ([]*Commit, error) {
+	return c.repo.getCommitsBeforeLimit(ctx, c.ID, num)
 }
 
 // CommitsBeforeUntil returns the commits between commitID to current revision
