@@ -24,7 +24,7 @@ type CheckAttributeOpts struct {
 }
 
 // CheckAttribute return the Blame object of file
-func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[string]string, error) {
+func (repo *Repository) CheckAttribute(ctx context.Context, opts CheckAttributeOpts) (map[string]map[string]string, error) {
 	env := []string{}
 
 	if len(opts.IndexFile) > 0 {
@@ -59,7 +59,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	cmd.AddDashesAndList(opts.Filenames...)
 
-	if err := cmd.Run(repo.Ctx, &RunOpts{
+	if err := cmd.Run(ctx, &RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdout: stdOut,

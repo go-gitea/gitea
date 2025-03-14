@@ -21,7 +21,7 @@ import (
 func (repo *Repository) GetLanguageStats(ctx context.Context, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +80,8 @@ func (repo *Repository) GetLanguageStats(ctx context.Context, commitID string) (
 
 	for _, f := range entries {
 		select {
-		case <-repo.Ctx.Done():
-			return sizes, repo.Ctx.Err()
+		case <-ctx.Done():
+			return sizes, ctx.Err()
 		default:
 		}
 

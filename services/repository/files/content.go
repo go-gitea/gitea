@@ -279,7 +279,7 @@ func TryGetContentLanguage(ctx context.Context, gitRepo *git.Repository, commitI
 
 	defer deleteTemporaryFile()
 
-	filename2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+	filename2attribute2info, err := gitRepo.CheckAttribute(ctx, git.CheckAttributeOpts{
 		CachedOnly: true,
 		Attributes: []string{git.AttributeLinguistLanguage, git.AttributeGitlabLanguage},
 		Filenames:  []string{treePath},
