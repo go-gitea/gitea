@@ -72,7 +72,7 @@ func (repo *Repository) GetCompareInfo(ctx context.Context, basePath, baseBranch
 
 	compareInfo := new(CompareInfo)
 
-	compareInfo.HeadCommitID, err = GetFullCommitID(repo.Ctx, repo.Path, headBranch)
+	compareInfo.HeadCommitID, err = GetFullCommitID(ctx, repo.Path, headBranch)
 	if err != nil {
 		compareInfo.HeadCommitID = headBranch
 	}
@@ -96,7 +96,7 @@ func (repo *Repository) GetCompareInfo(ctx context.Context, basePath, baseBranch
 			var logs []byte
 			logs, _, err = NewCommand("log").AddArguments(prettyLogFormat).
 				AddDynamicArguments(baseCommitID+separator+headBranch).AddArguments("--").
-				RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+				RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 			if err != nil {
 				return nil, err
 			}
@@ -109,7 +109,7 @@ func (repo *Repository) GetCompareInfo(ctx context.Context, basePath, baseBranch
 		}
 	} else {
 		compareInfo.Commits = []*Commit{}
-		compareInfo.MergeBase, err = GetFullCommitID(repo.Ctx, repo.Path, remoteBranch)
+		compareInfo.MergeBase, err = GetFullCommitID(ctx, repo.Path, remoteBranch)
 		if err != nil {
 			compareInfo.MergeBase = remoteBranch
 		}
