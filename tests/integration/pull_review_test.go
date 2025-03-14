@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path"
+	"sort"
 	"strings"
 	"testing"
 
@@ -116,7 +117,9 @@ func TestPullView_CodeOwner(t *testing.T) {
 			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(db.DefaultContext, pr)
 			assert.NoError(t, err)
 			assert.Len(t, reviewNotifiers, 2)
-			assert.EqualValues(t, []int64{5, 8}, []int64{reviewNotifiers[0].Reviewer.ID, reviewNotifiers[1].Reviewer.ID})
+			reviewerIDs := []int64{reviewNotifiers[0].Reviewer.ID, reviewNotifiers[1].Reviewer.ID}
+			sort.Slice(reviewerIDs, func(i, j int) bool { return reviewerIDs[i] < reviewerIDs[j] })
+			assert.EqualValues(t, []int64{5, 8}, reviewerIDs)
 
 			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReviewSpecialCommits(db.DefaultContext, pr, resp1.Commit.SHA, resp2.Commit.SHA)
 			assert.NoError(t, err)
