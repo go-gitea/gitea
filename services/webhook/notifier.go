@@ -1030,6 +1030,45 @@ func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_
 	}
 }
 
+func (*webhookNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	source := EventSource{
+		Repository: repo,
+		Owner:      repo.Owner,
+	}
+
+	var org *api.Organization
+	if repo.Owner.IsOrganization() {
+		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
+	}
+
+	status, conclusion := toActionStatus(run.Status)
+
+	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventWorkflowJob, &api.WorkflowRunPayload{
+		Action:   status,
+		Workflow: nil,
+		WorkflowRun: &api.ActionWorkflowRun{
+			ID:        run.ID,
+			RunNumber: run.Index,
+			HTMLURL:   run.HTMLURL(),
+			// Missing api endpoint for this location, artifacts are available under a nested url
+			URL:         fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
+			Event:       run.TriggerEvent,
+			RunAttempt:  0,
+			HeadSha:     run.CommitSHA,
+			HeadBranch:  git.RefName(run.Ref).BranchName(),
+			Status:      status,
+			Conclusion:  conclusion,
+			StartedAt:   run.Started.AsTime().UTC(),
+			CompletedAt: run.Stopped.AsTime().UTC(),
+		},
+		Organization: org,
+		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
+		Sender:       convert.ToUser(ctx, sender, nil),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
 func toActionStatus(status actions_model.Status) (string, string) {
 	var action string
 	var conclusion string

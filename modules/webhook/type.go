@@ -38,6 +38,7 @@ const (
 	HookEventPullRequestReview HookEventType = "pull_request_review"
 	// Actions event only
 	HookEventSchedule    HookEventType = "schedule"
+	HookEventWorkflowRun HookEventType = "workflow_run"
 	HookEventWorkflowJob HookEventType = "workflow_job"
 )
 

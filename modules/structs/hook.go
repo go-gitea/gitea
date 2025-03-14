@@ -470,6 +470,22 @@ func (p *CommitStatusPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
 
+// WorkflowRunPayload represents a payload information of workflow run event.
+type WorkflowRunPayload struct {
+	Action       string             `json:"action"`
+	Workflow     *ActionWorkflow    `json:"workflow"`
+	WorkflowRun  *ActionWorkflowRun `json:"workflow_run"`
+	PullRequest  *PullRequest       `json:"pull_request,omitempty"`
+	Organization *Organization      `json:"organization,omitempty"`
+	Repo         *Repository        `json:"repository"`
+	Sender       *User              `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *WorkflowRunPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
 // WorkflowJobPayload represents a payload information of workflow job event.
 type WorkflowJobPayload struct {
 	Action       string             `json:"action"`

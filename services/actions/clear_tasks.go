@@ -125,6 +125,9 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		if updated {
 			_ = job.LoadAttributes(ctx)
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+			if job.Run != nil {
+				notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+			}
 		}
 	}
 

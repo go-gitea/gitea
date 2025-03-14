@@ -376,6 +376,12 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit
 	}
 }
 
+func WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	for _, notifier := range notifiers {
+		notifier.WorkflowRunStatusUpdate(ctx, repo, sender, run)
+	}
+}
+
 func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
 	for _, notifier := range notifiers {
 		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)

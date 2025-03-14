@@ -87,8 +87,20 @@ type ActionArtifact struct {
 // ActionWorkflowRun represents a WorkflowRun
 type ActionWorkflowRun struct {
 	ID           int64  `json:"id"`
+	URL          string `json:"url"`
+	HTMLURL      string `json:"html_url"`
+	Event        string `json:"event"`
+	RunAttempt   int64  `json:"run_attempt"`
+	RunNumber    int64  `json:"run_number"`
 	RepositoryID int64  `json:"repository_id"`
 	HeadSha      string `json:"head_sha"`
+	HeadBranch   string `json:"head_branch,omitempty"`
+	Status       string `json:"status"`
+	Conclusion   string `json:"conclusion,omitempty"`
+	// swagger:strfmt date-time
+	StartedAt time.Time `json:"started_at,omitempty"`
+	// swagger:strfmt date-time
+	CompletedAt time.Time `json:"completed_at,omitempty"`
 }
 
 // ActionArtifactsResponse returns ActionArtifacts

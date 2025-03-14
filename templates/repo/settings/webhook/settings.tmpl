@@ -267,6 +267,15 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
+					<input name="workflow_run" type="checkbox" {{if .Webhook.HookEvents.Get "workflow_run"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_workflow_run"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_workflow_run_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
 					<input name="workflow_job" type="checkbox" {{if .Webhook.HookEvents.Get "workflow_job"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_workflow_job"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_workflow_job_desc"}}</span>
