@@ -235,7 +235,7 @@ Example 3: (path: d3/d3d1)
 	    "path": "d3/d3d1/d3d1f2"
 	}]
 */
-func GetTreeList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, treePath string, ref git.RefName, recursive bool) ([]*TreeViewNode, error) {
+func GetTreeList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, treePath string, ref git.RefName) ([]*TreeViewNode, error) {
 	if repo.IsEmpty {
 		return nil, nil
 	}
@@ -244,7 +244,7 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 	}
 
 	// Check that the path given in opts.treePath is valid (not a git path)
-	cleanTreePath := CleanUploadFileName(treePath)
+	cleanTreePath := util.PathJoinRel(treePath)
 	if cleanTreePath == "" && treePath != "" {
 		return nil, ErrFilenameInvalid{
 			Path: treePath,
@@ -273,12 +273,8 @@ func GetTreeList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 	if err != nil {
 		return nil, err
 	}
-	var entries git.Entries
-	if recursive {
-		entries, err = gitTree.ListEntriesRecursiveFast()
-	} else {
-		entries, err = gitTree.ListEntries()
-	}
+
+	entries, err := gitTree.ListEntries()
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +436,7 @@ func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, gitRep
 	}
 
 	// Check that the path given in opts.treePath is valid (not a git path)
-	cleanTreePath := CleanUploadFileName(treePath)
+	cleanTreePath := util.PathJoinRel(treePath)
 	if cleanTreePath == "" && treePath != "" {
 		return nil, ErrFilenameInvalid{
 			Path: treePath,

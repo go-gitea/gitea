@@ -63,7 +63,7 @@ func Test_GetTreeList(t *testing.T) {
 
 	refName := git.RefNameFromBranch(ctx1.Repo.Repository.DefaultBranch)
 
-	treeList, err := GetTreeList(ctx1, ctx1.Repo.Repository, ctx1.Repo.GitRepo, "", refName, true)
+	treeList, err := GetTreeList(ctx1, ctx1.Repo.Repository, ctx1.Repo.GitRepo, "", refName)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 1)
 	assert.EqualValues(t, "README.md", treeList[0].Name)
@@ -80,19 +80,14 @@ func Test_GetTreeList(t *testing.T) {
 
 	refName = git.RefNameFromBranch(ctx2.Repo.Repository.DefaultBranch)
 
-	treeList, err = GetTreeList(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "", refName, true)
+	treeList, err = GetTreeList(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "", refName)
 	assert.NoError(t, err)
 	assert.Len(t, treeList, 2)
 
 	assert.EqualValues(t, "doc", treeList[0].Name)
 	assert.EqualValues(t, "doc", treeList[0].Path)
 	assert.EqualValues(t, "tree", treeList[0].Type)
-	assert.Len(t, treeList[0].Children, 1)
-
-	assert.EqualValues(t, "doc.md", treeList[0].Children[0].Name)
-	assert.EqualValues(t, "doc/doc.md", treeList[0].Children[0].Path)
-	assert.EqualValues(t, "blob", treeList[0].Children[0].Type)
-	assert.Empty(t, treeList[0].Children[0].Children)
+	assert.Empty(t, treeList[0].Children)
 
 	assert.EqualValues(t, "README.md", treeList[1].Name)
 	assert.EqualValues(t, "README.md", treeList[1].Path)
