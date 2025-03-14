@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -328,6 +330,21 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 	return true
 }
 
+func prepareHomeTreeSideBarSwitch(ctx *context.Context) {
+	showFileViewTreeSidebar := true
+	if ctx.Doer != nil {
+		v, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowFileViewTreeSidebar, "true")
+		if err != nil {
+			log.Error("GetUserSetting: %v", err)
+		} else {
+			showFileViewTreeSidebar, _ = strconv.ParseBool(v)
+		}
+	}
+	ctx.Data["RepoPreferences"] = &preferencesForm{
+		ShowFileViewTreeSidebar: showFileViewTreeSidebar,
+	}
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if handleRepoHomeFeed(ctx) {
@@ -340,6 +357,8 @@ func Home(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+
+	prepareHomeTreeSideBarSwitch(ctx)
 
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
 	if len(ctx.Repo.Repository.Description) > 0 {
@@ -410,7 +429,13 @@ func Home(ctx *context.Context) {
 		}
 	}
 
-	ctx.HTML(http.StatusOK, tplRepoHome)
+	if ctx.FormBool("only_content") {
+		ctx.HTML(http.StatusOK, tplRepoViewContent)
+	} else if len(treeNames) != 0 {
+		ctx.HTML(http.StatusOK, tplRepoView)
+	} else {
+		ctx.HTML(http.StatusOK, tplRepoHome)
+	}
 }
 
 func RedirectRepoTreeToSrc(ctx *context.Context) {
