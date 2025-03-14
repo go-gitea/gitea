@@ -14,10 +14,11 @@ var colorPattern = regexp.MustCompile("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
 
 // Label represents label information loaded from template
 type Label struct {
-	Name        string `yaml:"name"`
-	Color       string `yaml:"color"`
-	Description string `yaml:"description,omitempty"`
-	Exclusive   bool   `yaml:"exclusive,omitempty"`
+	Name           string `yaml:"name"`
+	Color          string `yaml:"color"`
+	Description    string `yaml:"description,omitempty"`
+	Exclusive      bool   `yaml:"exclusive,omitempty"`
+	ExclusiveOrder int    `yaml:"exclusive_order,omitempty"`
 }
 
 // NormalizeColor normalizes a color string to a 6-character hex code

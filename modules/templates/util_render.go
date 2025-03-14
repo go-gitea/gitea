@@ -10,6 +10,7 @@ import (
 	"math"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -145,6 +146,7 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 	// Scoped label
 	scopeHTML := ut.RenderEmoji(labelScope)
 	itemHTML := ut.RenderEmoji(label.Name[len(labelScope)+1:])
+	orderHTML := ut.RenderEmoji(strconv.Itoa(label.ExclusiveOrder))
 
 	// Make scope and item background colors slightly darker and lighter respectively.
 	// More contrast needed with higher luminance, empirically tweaked.
@@ -174,11 +176,13 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 
 	return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
-		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
+		`<div class="ui label scope-middle" style="color: %s !important; background-color: %s !important">%s</div>`+
+		`<div class="ui label scope-right">%s</div>`+
 		`</span>`,
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
-		textColor, itemColor, itemHTML)
+		textColor, itemColor, itemHTML,
+		orderHTML)
 }
 
 func (ut *RenderUtils) RenderFileIcon(entry *git.TreeEntry) template.HTML {
