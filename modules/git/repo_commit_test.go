@@ -140,11 +140,11 @@ func TestCommitsByFileAndRange(t *testing.T) {
 	defer bareRepo1.Close()
 
 	// "foo" has 3 commits in "master" branch
-	commits, err := bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 1})
+	commits, err := bareRepo1.CommitsByFileAndRange(t.Context(), CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 1})
 	require.NoError(t, err)
 	assert.Len(t, commits, 2)
 
-	commits, err = bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 2})
+	commits, err = bareRepo1.CommitsByFileAndRange(t.Context(), CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 2})
 	require.NoError(t, err)
 	assert.Len(t, commits, 1)
 }

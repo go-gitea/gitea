@@ -190,8 +190,8 @@ func (repo *Repository) searchCommits(ctx context.Context, id ObjectID, opts Sea
 
 // FileChangedBetweenCommits Returns true if the file changed between commit IDs id1 and id2
 // You must ensure that id1 and id2 are valid commit ids.
-func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bool, error) {
-	stdout, _, err := NewCommand("diff", "--name-only", "-z").AddDynamicArguments(id1, id2).AddDashesAndList(filename).RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+func (repo *Repository) FileChangedBetweenCommits(ctx context.Context, filename, id1, id2 string) (bool, error) {
+	stdout, _, err := NewCommand("diff", "--name-only", "-z").AddDynamicArguments(id1, id2).AddDashesAndList(filename).RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 	if err != nil {
 		return false, err
 	}
@@ -216,7 +216,7 @@ type CommitsByFileAndRangeOptions struct {
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
-func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) ([]*Commit, error) {
+func (repo *Repository) CommitsByFileAndRange(ctx context.Context, opts CommitsByFileAndRangeOptions) ([]*Commit, error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -234,7 +234,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		}
 
 		gitCmd.AddDashesAndList(opts.File)
-		err := gitCmd.Run(repo.Ctx, &RunOpts{
+		err := gitCmd.Run(ctx, &RunOpts{
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
 			Stderr: &stderr,
