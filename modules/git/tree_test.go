@@ -35,7 +35,7 @@ func Test_GetTreePathLatestCommit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, "544d8f7a3b15927cddf2299b4b562d6ebd71b6a7", commitID)
 
-	commit, err := repo.GetTreePathLatestCommit("master", "blame.txt")
+	commit, err := repo.GetTreePathLatestCommit(t.Context(), "master", "blame.txt")
 	assert.NoError(t, err)
 	assert.NotNil(t, commit)
 	assert.EqualValues(t, "45fb6cbc12f970b04eacd5cd4165edd11c8d7376", commit.ID.String())
