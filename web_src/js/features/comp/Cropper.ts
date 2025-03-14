@@ -20,7 +20,7 @@ async function initCompCropper({container, fileInput, wrapper}: CropperOpts) {
 
     const [file] = e.target.files;
     const objectUrl = URL.createObjectURL(file);
-    const canvasEl = createElementFromHTML<CropperCanvas>(`
+    const cropperCanvas = createElementFromHTML<CropperCanvas>(`
       <cropper-canvas theme-color="var(--color-primary)">
         <cropper-image src="${objectUrl}" scalable skewable translatable></cropper-image>
         <cropper-shade hidden></cropper-shade>
@@ -38,7 +38,7 @@ async function initCompCropper({container, fileInput, wrapper}: CropperOpts) {
         </cropper-selection>
       </cropper-canvas>
     `);
-    canvasEl.querySelector<CropperSelection>('cropper-selection').addEventListener('change', debounce(async (e) => {
+    cropperCanvas.querySelector<CropperSelection>('cropper-selection').addEventListener('change', debounce(async (e) => {
       const selection = e.target as CropperSelection;
       if (!selection.width || !selection.height) return;
       const canvas = await selection.$toCanvas();
@@ -54,7 +54,7 @@ async function initCompCropper({container, fileInput, wrapper}: CropperOpts) {
       });
     }, 200));
 
-    wrapper.replaceChildren(canvasEl);
+    wrapper.replaceChildren(cropperCanvas);
     showElem(container);
   });
 }
