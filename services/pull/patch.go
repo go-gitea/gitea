@@ -46,7 +46,7 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	case patch:
 		err = gitRepo.GetPatch(compareArg, w)
 	case binary:
-		err = gitRepo.GetDiffBinary(compareArg, w)
+		err = gitRepo.GetDiffBinary(ctx, compareArg, w)
 	default:
 		err = gitRepo.GetDiff(compareArg, w)
 	}
@@ -364,7 +364,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		_ = util.Remove(tmpPatchFile.Name())
 	}()
 
-	if err := gitRepo.GetDiffBinary(pr.MergeBase+"...tracking", tmpPatchFile); err != nil {
+	if err := gitRepo.GetDiffBinary(ctx, pr.MergeBase+"...tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)

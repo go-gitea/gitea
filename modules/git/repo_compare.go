@@ -50,7 +50,7 @@ func (repo *Repository) GetMergeBase(ctx context.Context, tmpRemote, base, head 
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
-func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
+func (repo *Repository) GetCompareInfo(ctx context.Context, basePath, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
 	var (
 		remoteBranch string
 		tmpRemote    string
@@ -77,9 +77,9 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 		compareInfo.HeadCommitID = headBranch
 	}
 
-	compareInfo.MergeBase, remoteBranch, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	compareInfo.MergeBase, remoteBranch, err = repo.GetMergeBase(ctx, tmpRemote, baseBranch, headBranch)
 	if err == nil {
-		compareInfo.BaseCommitID, err = GetFullCommitID(repo.Ctx, repo.Path, remoteBranch)
+		compareInfo.BaseCommitID, err = GetFullCommitID(ctx, repo.Path, remoteBranch)
 		if err != nil {
 			compareInfo.BaseCommitID = remoteBranch
 		}
@@ -237,8 +237,8 @@ func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
-func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
-	return NewCommand("diff", "-p", "--binary", "--histogram").AddDynamicArguments(compareArg).Run(repo.Ctx, &RunOpts{
+func (repo *Repository) GetDiffBinary(ctx context.Context, compareArg string, w io.Writer) error {
+	return NewCommand("diff", "-p", "--binary", "--histogram").AddDynamicArguments(compareArg).Run(ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdout: w,
 	})
