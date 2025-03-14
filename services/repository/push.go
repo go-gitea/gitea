@@ -134,7 +134,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
-					// in case there is dirty data, for example, the "github.com/git/git" repository has tags points to non-existing commits
+					// in case there is dirty data, for example, the "github.com/git/git" repository has tags pointing to non-existing commits
 					if !errors.Is(err, util.ErrNotExist) {
 						log.Error("Unable to get tag commit: gitRepo.GetCommit(%s) in %s/%s[%d]: %v", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 					}
