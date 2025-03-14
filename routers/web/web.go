@@ -1595,7 +1595,8 @@ func registerRoutes(m *web.Router) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.Home)
 			m.Get("/*", context.RepoRefByType(""), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
-		m.Get("/tree/*", repo.RedirectRepoTreeToSrc) // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
+		m.Get("/tree/*", repo.RedirectRepoTreeToSrc)    // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
+		m.Get("/blob/*", repo.RedirectRepoBlobToCommit) // redirect "/owner/repo/blob/*" requests to "/owner/repo/src/commit/*"
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
