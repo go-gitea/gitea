@@ -36,7 +36,7 @@ func (err ErrSHANotFound) Unwrap() error {
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
 func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
-	gitTree, err := gitRepo.GetTree(sha)
+	gitTree, err := gitRepo.GetTree(ctx, sha)
 	if err != nil || gitTree == nil {
 		return nil, ErrSHANotFound{ // TODO: this error has never been catch outside of this function
 			SHA: sha,

@@ -6,6 +6,7 @@
 package git
 
 import (
+	"context"
 	"io"
 )
 
@@ -75,7 +76,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 }
 
 // GetTree find the tree object in the repository.
-func (repo *Repository) GetTree(idStr string) (*Tree, error) {
+func (repo *Repository) GetTree(_ context.Context,idStr string) (*Tree, error) {
 	objectFormat, err := repo.GetObjectFormat()
 	if err != nil {
 		return nil, err

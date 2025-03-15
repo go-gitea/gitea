@@ -170,7 +170,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			require.NoError(t, err)
 
 			defer gitRepo.Close()
-			masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
+			masterTree, err := gitRepo.GetTree(t.Context(), repo.DefaultWikiBranch)
 			assert.NoError(t, err)
 			gitPath := WebPathToGitPath(webPath)
 			entry, err := masterTree.GetTreeEntryByPath(gitPath)
@@ -215,7 +215,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		// Now need to show that the page has been added:
 		gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
 		assert.NoError(t, err)
-		masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
+		masterTree, err := gitRepo.GetTree(t.Context(), repo.DefaultWikiBranch)
 		assert.NoError(t, err)
 		gitPath := WebPathToGitPath(webPath)
 		entry, err := masterTree.GetTreeEntryByPath(gitPath)
@@ -241,7 +241,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
-	masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
+	masterTree, err := gitRepo.GetTree(t.Context(), repo.DefaultWikiBranch)
 	assert.NoError(t, err)
 	gitPath := WebPathToGitPath("Home")
 	_, err = masterTree.GetTreeEntryByPath(gitPath)

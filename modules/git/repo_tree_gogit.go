@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"errors"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -29,14 +30,14 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 }
 
 // GetTree find the tree object in the repository.
-func (repo *Repository) GetTree(idStr string) (*Tree, error) {
+func (repo *Repository) GetTree(ctx context.Context, idStr string) (*Tree, error) {
 	objectFormat, err := repo.GetObjectFormat()
 	if err != nil {
 		return nil, err
 	}
 
 	if len(idStr) != objectFormat.FullLength() {
-		res, _, err := NewCommand("rev-parse", "--verify").AddDynamicArguments(idStr).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+		res, _, err := NewCommand("rev-parse", "--verify").AddDynamicArguments(idStr).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 		if err != nil {
 			return nil, err
 		}
