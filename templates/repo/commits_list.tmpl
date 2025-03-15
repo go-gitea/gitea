@@ -48,7 +48,7 @@
 						{{end}}
 						</span>
 						{{if IsMultilineCommitMessage .Message}}
-						<button class="ui button js-toggle-commit-body ellipsis-button" aria-expanded="false">...</button>
+						<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 						{{if IsMultilineCommitMessage .Message}}
@@ -66,11 +66,20 @@
 						<td class="text right aligned">{{DateUtils.TimeSince .Author.When}}</td>
 					{{end}}
 					<td class="text right aligned tw-py-0">
-						<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
-						{{if not $.PageIsWiki}}{{/* at the moment, wiki doesn't support "view at history point*/}}
+						<button class="btn interact-bg tw-p-2 copy-commit-id" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
+						{{/* at the moment, wiki doesn't support these "view" links like "view at history point" */}}
+						{{if not $.PageIsWiki}}
+							{{/* view single file diff */}}
+							{{if $.FileName}}
+							<a class="btn interact-bg tw-p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
+								href="{{$commitRepoLink}}/commit/{{.ID.String}}?files={{$.FileName}}"
+							>{{svg "octicon-file-diff"}}</a>
+							{{end}}
+
+							{{/* view at history point */}}
 							{{$viewCommitLink := printf "%s/src/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
 							{{if $.FileName}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileName)}}{{end}}
-							<a class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
+							<a class="btn interact-bg tw-p-2 view-commit-path" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
 						{{end}}
 					</td>
 				</tr>

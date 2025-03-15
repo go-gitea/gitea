@@ -10,7 +10,7 @@ import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
-import {observeAddedElement} from '../modules/observer.ts';
+import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
 const {i18n} = window.config;
 
@@ -196,7 +196,9 @@ function initRepoDiffShowMore() {
       const resp = await response.text();
       const respDoc = parseDom(resp, 'text/html');
       const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body');
-      el.parentElement.replaceWith(...Array.from(respFileBody.children));
+      const respFileBodyChildren = Array.from(respFileBody.children); // respFileBody.children will be empty after replaceWith
+      el.parentElement.replaceWith(...respFileBodyChildren);
+      for (const el of respFileBodyChildren) window.htmx.process(el);
       // FIXME: calling onShowMoreFiles is not quite right here.
       // But since onShowMoreFiles mixes "init diff box" and "init diff body" together,
       // so it still needs to call it to make the "ImageDiff" and something similar work.
@@ -254,7 +256,7 @@ export function initRepoDiffView() {
   initExpandAndCollapseFilesButton();
   initRepoDiffHashChangeListener();
 
-  observeAddedElement('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
+  registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
   addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
     invertFileFolding(el.closest('.file-content'), el);
   });

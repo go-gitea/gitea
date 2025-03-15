@@ -5,6 +5,7 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
@@ -20,8 +21,12 @@ type Repository interface {
 	GetOwnerName() string
 }
 
+func absPath(owner, name string) string {
+	return filepath.Join(setting.RepoRootPath, strings.ToLower(owner), strings.ToLower(name)+".git")
+}
+
 func repoPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".git")
+	return absPath(repo.GetOwnerName(), repo.GetName())
 }
 
 func wikiPath(repo Repository) string {
@@ -68,4 +73,23 @@ func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Reposito
 	ctx.AddCloser(gitRepo)
 	ctx.SetContextValue(ck, gitRepo)
 	return gitRepo, nil
+}
+
+// IsRepositoryExist returns true if the repository directory exists in the disk
+func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
+	return util.IsExist(repoPath(repo))
+}
+
+// DeleteRepository deletes the repository directory from the disk
+func DeleteRepository(ctx context.Context, repo Repository) error {
+	return util.RemoveAll(repoPath(repo))
+}
+
+// RenameRepository renames a repository's name on disk
+func RenameRepository(ctx context.Context, repo Repository, newName string) error {
+	newRepoPath := absPath(repo.GetOwnerName(), newName)
+	if err := util.Rename(repoPath(repo), newRepoPath); err != nil {
+		return fmt.Errorf("rename repository directory: %w", err)
+	}
+	return nil
 }

@@ -165,3 +165,17 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 
 	return secrets, nil
 }
+
+func CountWrongRepoLevelSecrets(ctx context.Context) (int64, error) {
+	var result int64
+	_, err := db.GetEngine(ctx).SQL("SELECT count(`id`) FROM `secret` WHERE `repo_id` > 0 AND `owner_id` > 0").Get(&result)
+	return result, err
+}
+
+func UpdateWrongRepoLevelSecrets(ctx context.Context) (int64, error) {
+	result, err := db.GetEngine(ctx).Exec("UPDATE `secret` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0")
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

@@ -236,8 +236,8 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return err
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
-		RunStdString(&git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
+	if stdout, _, err := git.NewCommand("remote", "add", "origin").AddDynamicArguments(repo.RepoPath()).
+		RunStdString(ctx, &git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git remote add: %w", err)
 	}
@@ -258,7 +258,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 	if err != nil {
-		return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.RepoPath(), err)
+		return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.FullName(), err)
 	}
 
 	defer func() {
@@ -350,10 +350,9 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return nil, err
 	}
 
-	repoPath := generateRepo.RepoPath()
-	isExist, err := util.IsExist(repoPath)
+	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", generateRepo.FullName(), err)
 		return nil, err
 	}
 	if isExist {
@@ -363,7 +362,7 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	if err = repo_module.CheckInitRepository(ctx, owner.Name, generateRepo.Name, generateRepo.ObjectFormatName); err != nil {
+	if err = repo_module.CheckInitRepository(ctx, generateRepo); err != nil {
 		return generateRepo, err
 	}
 
@@ -371,8 +370,8 @@ func generateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return generateRepo, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+	if stdout, _, err := git.NewCommand("update-server-info").
+		RunStdString(ctx, &git.RunOpts{Dir: generateRepo.RepoPath()}); err != nil {
 		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
 		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %w", err)
 	}

@@ -1,0 +1,703 @@
+/*!
+ * # Fomantic-UI - Modal
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+
+/*******************************
+             Modal
+*******************************/
+
+.ui.modal {
+  position: absolute;
+  display: none;
+  z-index: 1001;
+  text-align: left;
+  background: #FFFFFF;
+  border: none;
+  box-shadow: 1px 3px 3px 0 rgba(0, 0, 0, 0.2), 1px 3px 15px 2px rgba(0, 0, 0, 0.2);
+  transform-origin: 50% 25%;
+  flex: 0 0 auto;
+  border-radius: 0.28571429rem;
+  -webkit-user-select: text;
+     -moz-user-select: text;
+          user-select: text;
+  will-change: top, left, margin, transform, opacity;
+}
+.ui.modal > :first-child:not(.icon):not(.dimmer),
+.ui.modal > i.icon:first-child + *,
+.ui.modal > .dimmer:first-child + *:not(.icon),
+.ui.modal > .dimmer:first-child + i.icon + * {
+  border-top-left-radius: 0.28571429rem;
+  border-top-right-radius: 0.28571429rem;
+}
+.ui.modal > :last-child {
+  border-bottom-left-radius: 0.28571429rem;
+  border-bottom-right-radius: 0.28571429rem;
+}
+.ui.modal > .ui.dimmer {
+  border-radius: inherit;
+}
+
+
+/*******************************
+            Content
+*******************************/
+
+
+/*--------------
+     Close
+---------------*/
+
+.ui.modal > .close {
+  cursor: pointer;
+  position: absolute;
+  top: -2.5rem;
+  right: -2.5rem;
+  z-index: 1;
+  opacity: 0.8;
+  font-size: 1.25em;
+  color: #FFFFFF;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.625rem 0 0 0;
+}
+.ui.modal > .close:hover {
+  opacity: 1;
+}
+
+/*--------------
+     Header
+---------------*/
+
+.ui.modal > .header {
+  display: block;
+  font-family: var(--fonts-regular);
+  background: #FFFFFF;
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  box-shadow: none;
+  color: rgba(0, 0, 0, 0.85);
+  border-bottom: 1px solid rgba(34, 36, 38, 0.15);
+}
+.ui.modal > .header:not(.ui) {
+  font-size: 1.42857143rem;
+  line-height: 1.28571429em;
+  font-weight: 500;
+}
+
+/*--------------
+     Content
+---------------*/
+
+.ui.modal > .content {
+  display: block;
+  width: 100%;
+  font-size: 1em;
+  line-height: 1.4;
+  padding: 1.5rem;
+  background: #FFFFFF;
+}
+.ui.modal > .image.content {
+  display: flex;
+  flex-direction: row;
+}
+
+/* Image */
+.ui.modal > .content > .image {
+  display: block;
+  flex: 0 1 auto;
+  width: '';
+  align-self: start;
+  max-width: 100%;
+}
+.ui.modal > [class*="top aligned"] {
+  align-self: start;
+}
+.ui.modal > [class*="middle aligned"] {
+  align-self: center;
+}
+.ui.modal > [class*="stretched"] {
+  align-self: stretch;
+}
+
+/* Description */
+.ui.modal > .content > .description {
+  display: block;
+  flex: 1 0 auto;
+  min-width: 0;
+  align-self: start;
+}
+.ui.modal > .content > i.icon + .description,
+.ui.modal > .content > .image + .description {
+  flex: 0 1 auto;
+  min-width: '';
+  width: auto;
+  padding-left: 2em;
+}
+/*rtl:ignore*/
+.ui.modal > .content > .image > i.icon {
+  margin: 0;
+  opacity: 1;
+  width: auto;
+  line-height: 1;
+  font-size: 8rem;
+}
+
+/*--------------
+     Actions
+---------------*/
+
+.ui.modal > .actions {
+  background: #F9FAFB;
+  padding: 1rem 1rem;
+  border-top: 1px solid rgba(34, 36, 38, 0.15);
+  text-align: right;
+}
+.ui.modal .actions > .button:not(.fluid) {
+  margin-left: 0.75em;
+}
+.ui.basic.modal > .actions {
+  border-top: none;
+}
+
+/*-------------------
+       Responsive
+--------------------*/
+
+
+/* Modal Width */
+@media only screen and (max-width: 767.98px) {
+  .ui.modal:not(.fullscreen) {
+    width: 95%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 768px) {
+  .ui.modal:not(.fullscreen) {
+    width: 88%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 992px) {
+  .ui.modal:not(.fullscreen) {
+    width: 850px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1200px) {
+  .ui.modal:not(.fullscreen) {
+    width: 900px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1920px) {
+  .ui.modal:not(.fullscreen) {
+    width: 950px;
+    margin: 0 0 0 0;
+  }
+}
+
+/* Tablet and Mobile */
+@media only screen and (max-width: 991.98px) {
+  .ui.modal > .header {
+    padding-right: 2.25rem;
+  }
+  .ui.modal > .close {
+    top: 1.0535rem;
+    right: 1rem;
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+/* Mobile */
+@media only screen and (max-width: 767.98px) {
+  .ui.modal > .header {
+    padding: 0.75rem 1rem !important;
+    padding-right: 2.25rem !important;
+  }
+  .ui.overlay.fullscreen.modal > .content.content.content {
+    min-height: calc(100vh - 8.1rem);
+  }
+  .ui.overlay.fullscreen.modal > .scrolling.content.content.content {
+    max-height: calc(100vh - 8.1rem);
+  }
+  .ui.modal > .content {
+    display: block;
+    padding: 1rem !important;
+  }
+  .ui.modal > .close {
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+  }
+  /*rtl:ignore*/
+  .ui.modal .image.content {
+    flex-direction: column;
+  }
+  .ui.modal > .content > .image {
+    display: block;
+    max-width: 100%;
+    margin: 0 auto !important;
+    text-align: center;
+    padding: 0 0 1rem !important;
+  }
+  .ui.modal > .content > .image > i.icon {
+    font-size: 5rem;
+    text-align: center;
+  }
+  /*rtl:ignore*/
+  .ui.modal > .content > .description {
+    display: block;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 1rem 0 !important;
+    box-shadow: none;
+  }
+  
+/* Let Buttons Stack */
+  .ui.modal > .actions {
+    padding: 1rem 1rem 0rem !important;
+  }
+  .ui.modal .actions > .buttons,
+  .ui.modal .actions > .button {
+    margin-bottom: 1rem;
+  }
+}
+
+/*--------------
+    Coupling
+---------------*/
+
+.ui.inverted.dimmer > .ui.modal {
+  box-shadow: 1px 3px 10px 2px rgba(0, 0, 0, 0.2);
+}
+
+
+/*******************************
+             Types
+*******************************/
+
+.ui.basic.modal {
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none !important;
+  color: #FFFFFF;
+}
+.ui.basic.modal > .header,
+.ui.basic.modal > .content,
+.ui.basic.modal > .actions {
+  background-color: transparent;
+}
+.ui.basic.modal > .header {
+  color: #FFFFFF;
+  border-bottom: none;
+}
+.ui.basic.modal > .close {
+  top: 1rem;
+  right: 1.5rem;
+  color: #FFFFFF;
+}
+.ui.inverted.dimmer > .basic.modal {
+  color: rgba(0, 0, 0, 0.87);
+}
+.ui.inverted.dimmer > .ui.basic.modal > .header {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/* Resort to margin positioning if legacy */
+.ui.legacy.legacy.modal,
+.ui.legacy.legacy.page.dimmer > .ui.modal {
+  left: 50% !important;
+}
+.ui.legacy.legacy.modal:not(.aligned),
+.ui.legacy.legacy.page.dimmer > .ui.modal:not(.aligned) {
+  top: 50%;
+}
+.ui.legacy.legacy.page.dimmer > .ui.scrolling.modal:not(.aligned),
+.ui.page.dimmer > .ui.scrolling.legacy.legacy.modal:not(.aligned),
+.ui.top.aligned.legacy.legacy.page.dimmer > .ui.modal:not(.aligned),
+.ui.top.aligned.dimmer > .ui.legacy.legacy.modal:not(.aligned) {
+  top: auto;
+}
+.ui.legacy.overlay.fullscreen.modal {
+  margin-top: -2rem !important;
+}
+
+
+/*******************************
+             States
+*******************************/
+
+.ui.loading.modal {
+  display: block;
+  visibility: hidden;
+  z-index: -1;
+}
+.ui.active.modal {
+  display: block;
+}
+
+
+/*******************************
+           Variations
+*******************************/
+
+
+/*--------------
+     Aligned
+  ---------------*/
+
+.modals.dimmer .ui.top.aligned.modal {
+  top: 5vh;
+}
+.modals.dimmer .ui.bottom.aligned.modal {
+  bottom: 5vh;
+}
+@media only screen and (max-width: 767.98px) {
+  .modals.dimmer .ui.top.aligned.modal {
+    top: 1rem;
+  }
+  .modals.dimmer .ui.bottom.aligned.modal {
+    bottom: 1rem;
+  }
+}
+
+/*--------------
+      Scrolling
+  ---------------*/
+
+
+/* Scrolling Dimmer */
+.scrolling.dimmable.dimmed {
+  overflow: hidden;
+}
+.scrolling.dimmable > .dimmer {
+  justify-content: flex-start;
+  position: fixed;
+}
+.scrolling.dimmable.dimmed > .dimmer {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.modals.dimmer .ui.scrolling.modal:not(.fullscreen) {
+  margin: 2rem auto;
+}
+
+/* Fix for Firefox, Edge, IE11 */
+.modals.dimmer .ui.scrolling.modal:not([class*="overlay fullscreen"])::after {
+  content: '\00A0';
+  position: absolute;
+  height: 2rem;
+}
+
+/* Undetached Scrolling */
+.scrolling.undetached.dimmable.dimmed {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.scrolling.undetached.dimmable.dimmed > .dimmer {
+  overflow: hidden;
+}
+.scrolling.undetached.dimmable .ui.scrolling.modal:not(.fullscreen) {
+  position: absolute;
+  left: 50%;
+}
+
+/* Scrolling Content */
+.ui.modal > .scrolling.content {
+  max-height: calc(80vh - 10rem);
+  overflow: auto;
+}
+.ui.overlay.fullscreen.modal > .content {
+  min-height: calc(100vh - 9.1rem);
+}
+.ui.overlay.fullscreen.modal > .scrolling.content {
+  max-height: calc(100vh - 9.1rem);
+}
+
+/*--------------
+     Full Screen
+  ---------------*/
+
+.ui.fullscreen.modal {
+  width: 95%;
+  left: 2.5%;
+  margin: 1em auto;
+}
+.ui.overlay.fullscreen.modal {
+  width: 100%;
+  left: 0;
+  margin: 0 auto;
+  top: 0;
+  border-radius: 0;
+}
+.ui.modal > .close.inside + .header,
+.ui.fullscreen.modal > .header {
+  padding-right: 2.25rem;
+}
+.ui.modal > .close.inside,
+.ui.fullscreen.modal > .close {
+  top: 1.0535rem;
+  right: 1rem;
+  color: rgba(0, 0, 0, 0.87);
+}
+.ui.basic.fullscreen.modal > .close {
+  color: #FFFFFF;
+}
+
+/*--------------
+      Size
+---------------*/
+
+.ui.modal {
+  font-size: 1rem;
+}
+.ui.mini.modal > .header:not(.ui) {
+  font-size: 1.3em;
+}
+@media only screen and (max-width: 767.98px) {
+  .ui.mini.modal {
+    width: 95%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 768px) {
+  .ui.mini.modal {
+    width: 35.2%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 992px) {
+  .ui.mini.modal {
+    width: 340px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1200px) {
+  .ui.mini.modal {
+    width: 360px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1920px) {
+  .ui.mini.modal {
+    width: 380px;
+    margin: 0 0 0 0;
+  }
+}
+.ui.tiny.modal > .header:not(.ui) {
+  font-size: 1.3em;
+}
+@media only screen and (max-width: 767.98px) {
+  .ui.tiny.modal {
+    width: 95%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 768px) {
+  .ui.tiny.modal {
+    width: 52.8%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 992px) {
+  .ui.tiny.modal {
+    width: 510px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1200px) {
+  .ui.tiny.modal {
+    width: 540px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1920px) {
+  .ui.tiny.modal {
+    width: 570px;
+    margin: 0 0 0 0;
+  }
+}
+.ui.small.modal > .header:not(.ui) {
+  font-size: 1.3em;
+}
+@media only screen and (max-width: 767.98px) {
+  .ui.small.modal {
+    width: 95%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 768px) {
+  .ui.small.modal {
+    width: 70.4%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 992px) {
+  .ui.small.modal {
+    width: 680px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1200px) {
+  .ui.small.modal {
+    width: 720px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1920px) {
+  .ui.small.modal {
+    width: 760px;
+    margin: 0 0 0 0;
+  }
+}
+.ui.large.modal > .header:not(.ui) {
+  font-size: 1.6em;
+}
+@media only screen and (max-width: 767.98px) {
+  .ui.large.modal {
+    width: 95%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 768px) {
+  .ui.large.modal {
+    width: 88%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 992px) {
+  .ui.large.modal {
+    width: 1020px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1200px) {
+  .ui.large.modal {
+    width: 1080px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1920px) {
+  .ui.large.modal {
+    width: 1140px;
+    margin: 0 0 0 0;
+  }
+}
+.ui.big.modal > .header:not(.ui) {
+  font-size: 1.6em;
+}
+@media only screen and (max-width: 767.98px) {
+  .ui.big.modal {
+    width: 95%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 768px) {
+  .ui.big.modal {
+    width: 88%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 992px) {
+  .ui.big.modal {
+    width: 1190px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1200px) {
+  .ui.big.modal {
+    width: 1260px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1920px) {
+  .ui.big.modal {
+    width: 1330px;
+    margin: 0 0 0 0;
+  }
+}
+.ui.huge.modal > .header:not(.ui) {
+  font-size: 1.6em;
+}
+@media only screen and (max-width: 767.98px) {
+  .ui.huge.modal {
+    width: 95%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 768px) {
+  .ui.huge.modal {
+    width: 88%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 992px) {
+  .ui.huge.modal {
+    width: 1360px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1200px) {
+  .ui.huge.modal {
+    width: 1440px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1920px) {
+  .ui.huge.modal {
+    width: 1520px;
+    margin: 0 0 0 0;
+  }
+}
+.ui.massive.modal > .header:not(.ui) {
+  font-size: 1.8em;
+}
+@media only screen and (max-width: 767.98px) {
+  .ui.massive.modal {
+    width: 95%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 768px) {
+  .ui.massive.modal {
+    width: 88%;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 992px) {
+  .ui.massive.modal {
+    width: 1530px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1200px) {
+  .ui.massive.modal {
+    width: 1620px;
+    margin: 0 0 0 0;
+  }
+}
+@media only screen and (min-width: 1920px) {
+  .ui.massive.modal {
+    width: 1710px;
+    margin: 0 0 0 0;
+  }
+}
+
+
+/*******************************
+         Theme Overrides
+*******************************/
+
+
+
+/*******************************
+         Site Overrides
+*******************************/
+

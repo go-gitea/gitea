@@ -44,7 +44,6 @@ const DefaultLocale = "C"
 type Command struct {
 	prog             string
 	args             []string
-	parentContext    context.Context
 	globalArgsLength int
 	brokenArgs       []string
 }
@@ -82,7 +81,7 @@ func (c *Command) LogString() string {
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommand(ctx context.Context, args ...internal.CmdArg) *Command {
+func NewCommand(args ...internal.CmdArg) *Command {
 	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, 0, len(globalCommandArgs)+len(args))
 	for _, arg := range globalCommandArgs {
@@ -94,29 +93,21 @@ func NewCommand(ctx context.Context, args ...internal.CmdArg) *Command {
 	return &Command{
 		prog:             GitExecutable,
 		args:             cargs,
-		parentContext:    ctx,
 		globalArgsLength: len(globalCommandArgs),
 	}
 }
 
-// NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+// NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specified args and don't use global command args
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
-func NewCommandContextNoGlobals(ctx context.Context, args ...internal.CmdArg) *Command {
+func NewCommandNoGlobals(args ...internal.CmdArg) *Command {
 	cargs := make([]string, 0, len(args))
 	for _, arg := range args {
 		cargs = append(cargs, string(arg))
 	}
 	return &Command{
-		prog:          GitExecutable,
-		args:          cargs,
-		parentContext: ctx,
+		prog: GitExecutable,
+		args: cargs,
 	}
-}
-
-// SetParentContext sets the parent context for this command
-func (c *Command) SetParentContext(ctx context.Context) *Command {
-	c.parentContext = ctx
-	return c
 }
 
 // isSafeArgumentValue checks if the argument is safe to be used as a value (not an option)
@@ -277,11 +268,11 @@ func CommonCmdServEnvs() []string {
 var ErrBrokenCommand = errors.New("git command is broken")
 
 // Run runs the command with the RunOpts
-func (c *Command) Run(opts *RunOpts) error {
-	return c.run(1, opts)
+func (c *Command) Run(ctx context.Context, opts *RunOpts) error {
+	return c.run(ctx, 1, opts)
 }
 
-func (c *Command) run(skip int, opts *RunOpts) error {
+func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	if len(c.brokenArgs) != 0 {
 		log.Error("git command is broken: %s, broken args: %s", c.LogString(), strings.Join(c.brokenArgs, " "))
 		return ErrBrokenCommand
@@ -305,19 +296,18 @@ func (c *Command) run(skip int, opts *RunOpts) error {
 	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", callerInfo, logArgSanitize(opts.Dir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
 
-	_, span := gtprof.GetTracer().Start(c.parentContext, gtprof.TraceSpanGitRun)
+	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
 	defer span.End()
 	span.SetAttributeString(gtprof.TraceAttrFuncCaller, callerInfo)
 	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
-	var ctx context.Context
 	var cancel context.CancelFunc
 	var finished context.CancelFunc
 
 	if opts.UseContextTimeout {
-		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
+		ctx, cancel, finished = process.GetManager().AddContext(ctx, desc)
 	} else {
-		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, timeout, desc)
+		ctx, cancel, finished = process.GetManager().AddContextTimeout(ctx, timeout, desc)
 	}
 	defer finished()
 
@@ -410,8 +400,8 @@ func IsErrorExitCode(err error, code int) bool {
 }
 
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
-	stdoutBytes, stderrBytes, err := c.runStdBytes(opts)
+func (c *Command) RunStdString(ctx context.Context, opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
+	stdoutBytes, stderrBytes, err := c.runStdBytes(ctx, opts)
 	stdout = util.UnsafeBytesToString(stdoutBytes)
 	stderr = util.UnsafeBytesToString(stderrBytes)
 	if err != nil {
@@ -422,11 +412,11 @@ func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr Run
 }
 
 // RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
-	return c.runStdBytes(opts)
+func (c *Command) RunStdBytes(ctx context.Context, opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+	return c.runStdBytes(ctx, opts)
 }
 
-func (c *Command) runStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+func (c *Command) runStdBytes(ctx context.Context, opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
 	if opts == nil {
 		opts = &RunOpts{}
 	}
@@ -449,7 +439,7 @@ func (c *Command) runStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunS
 		PipelineFunc:      opts.PipelineFunc,
 	}
 
-	err := c.run(2, newOpts)
+	err := c.run(ctx, 2, newOpts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
 		return nil, stderr, &runStdError{err: err, stderr: util.UnsafeBytesToString(stderr)}
