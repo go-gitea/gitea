@@ -35,7 +35,7 @@ func TestDownloadTaskLogs(t *testing.T) {
 		{
 			treePath: ".gitea/workflows/download-task-logs-zstd.yml",
 			fileContent: `name: download-task-logs-zstd
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/download-task-logs-zstd.yml'
@@ -67,7 +67,7 @@ jobs:
 		{
 			treePath: ".gitea/workflows/download-task-logs-no-zstd.yml",
 			fileContent: `name: download-task-logs-no-zstd
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/download-task-logs-no-zstd.yml'
@@ -152,8 +152,5 @@ jobs:
 				resetFunc()
 			})
 		}
-
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		doAPIDeleteRepository(httpContext)(t)
 	})
 }
