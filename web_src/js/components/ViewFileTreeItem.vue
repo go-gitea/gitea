@@ -12,7 +12,7 @@ type Item = {
 
 const props = defineProps<{
   item: Item,
-  loadContent: any;
+  navigateViewContent: any;
   loadChildren: any;
   selectedItem?: any;
 }>();
@@ -35,11 +35,11 @@ const doLoadChildren = async () => {
 
 const doLoadDirContent = () => {
   doLoadChildren();
-  props.loadContent(props.item.fullPath);
+  props.navigateViewContent(props.item.fullPath);
 };
 
 const doLoadFileContent = () => {
-  props.loadContent(props.item.fullPath);
+  props.navigateViewContent(props.item.fullPath);
 };
 
 const doGotoSubModule = () => {
@@ -102,7 +102,7 @@ const doGotoSubModule = () => {
   </div>
 
   <div v-if="children?.length" v-show="!collapsed" class="sub-items">
-    <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :selected-item="selectedItem" :load-content="loadContent" :load-children="loadChildren"/>
+    <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :selected-item="selectedItem" :navigate-view-content="navigateViewContent" :load-children="loadChildren"/>
   </div>
 </template>
 <style scoped>
