@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -200,6 +201,9 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
 	initAllLoggers()
+	if err := errors.Join(checkForRemovedSettings(CfgProvider)...); err != nil {
+		log.Fatal("Encountered removed settings while loading configuration: %v", err)
+	}
 
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
@@ -212,7 +216,6 @@ func LoadSettings() {
 	loadWebhookFrom(CfgProvider)
 	loadMigrationsFrom(CfgProvider)
 	loadIndexerFrom(CfgProvider)
-	loadTaskFrom(CfgProvider)
 	LoadQueueSettings()
 	loadProjectFrom(CfgProvider)
 	loadMimeTypeMapFrom(CfgProvider)

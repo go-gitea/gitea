@@ -97,16 +97,6 @@ func loadGitFrom(rootCfg ConfigProvider) {
 	GitConfig.SetOption("core.logAllRefUpdates", "true")
 	GitConfig.SetOption("gc.reflogExpire", "90")
 
-	secGitReflog := rootCfg.Section("git.reflog")
-	if secGitReflog.HasKey("ENABLED") {
-		deprecatedSetting(rootCfg, "git.reflog", "ENABLED", "git.config", "core.logAllRefUpdates", "1.21")
-		GitConfig.SetOption("core.logAllRefUpdates", secGitReflog.Key("ENABLED").In("true", []string{"true", "false"}))
-	}
-	if secGitReflog.HasKey("EXPIRATION") {
-		deprecatedSetting(rootCfg, "git.reflog", "EXPIRATION", "git.config", "core.reflogExpire", "1.21")
-		GitConfig.SetOption("gc.reflogExpire", secGitReflog.Key("EXPIRATION").String())
-	}
-
 	for _, key := range secGitConfig.Keys() {
 		GitConfig.SetOption(key.Name(), key.String())
 	}
