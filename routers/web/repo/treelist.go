@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -87,24 +86,11 @@ func transformDiffTreeForUI(diffTree *gitdiff.DiffTree, filesViewedState map[str
 	return files
 }
 
-func Tree(ctx *context.Context) {
-	recursive := ctx.FormBool("recursive")
-
-	if ctx.Repo.RefFullName == "" {
-		ctx.ServerError("RefFullName", errors.New("ref_name is invalid"))
-		return
-	}
-
-	var results []*files_service.TreeViewNode
-	var err error
-	if !recursive {
-		results, err = files_service.GetTreeViewNodes(ctx, ctx.Repo.Commit, ctx.Repo.TreePath, "")
-	} else {
-		results, err = files_service.GetTreeViewNodes(ctx, ctx.Repo.Commit, "", ctx.Repo.TreePath)
-	}
+func TreeViewNodes(ctx *context.Context) {
+	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
 	if err != nil {
-		ctx.ServerError("GetTreeInformation", err)
+		ctx.ServerError("GetTreeViewNodes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, results)
+	ctx.JSON(http.StatusOK, map[string]any{"fileTreeNodes": results})
 }

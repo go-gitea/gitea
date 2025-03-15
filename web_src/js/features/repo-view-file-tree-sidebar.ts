@@ -27,22 +27,13 @@ async function toggleSidebar(sidebarEl: HTMLElement, shouldShow: boolean) {
 }
 
 function childrenLoader(sidebarEl: HTMLElement) {
-  return async (path: string, recursive?: boolean) => {
+  return async (treePath: string, subPath: string = '') => {
     const fileTree = sidebarEl.querySelector('#view-file-tree');
-    const apiBaseUrl = fileTree.getAttribute('data-api-base-url');
+    const baseUrl = fileTree.getAttribute('data-api-base-url');
     const refTypeNameSubURL = fileTree.getAttribute('data-current-ref-type-name-sub-url');
-    const response = await GET(`${apiBaseUrl}/tree/${refTypeNameSubURL}/${pathEscapeSegments(path ?? '')}?recursive=${recursive ?? false}`);
+    const response = await GET(`${baseUrl}/tree/${refTypeNameSubURL}/${pathEscapeSegments(treePath)}?sub_path=${encodeURIComponent(subPath)}`);
     const json = await response.json();
-    if (json instanceof Array) {
-      return json.map((i) => ({
-        name: i.name,
-        type: i.type,
-        path: i.path,
-        sub_module_url: i.sub_module_url,
-        children: i.children,
-      }));
-    }
-    return null;
+    return json.fileTreeNodes ?? null;
   };
 }
 
@@ -80,7 +71,7 @@ export async function initViewFileTreeSidebar() {
 
   const selectedItem = ref(getSelectedPath(refString));
 
-  const files = await childrenLoader(sidebarEl)(treePath, true);
+  const files = await childrenLoader(sidebarEl)('', treePath);
 
   fileTree.classList.remove('is-loading');
   const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren: childrenLoader(sidebarEl), loadContent: (path: string) => {

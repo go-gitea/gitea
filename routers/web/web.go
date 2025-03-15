@@ -1177,9 +1177,9 @@ func registerRoutes(m *web.Router) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeList)
 		})
 		m.Group("/tree", func() {
-			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.Tree)
-			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.Tree)
-			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.Tree)
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.TreeViewNodes)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeViewNodes)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
