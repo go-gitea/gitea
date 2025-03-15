@@ -195,13 +195,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						}
 					}
 
-					l, err = newCommit.CommitsBeforeLimit(10)
+					l, err = newCommit.CommitsBeforeLimit(ctx, 10)
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
 					}
 					notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 				} else {
-					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
+					l, err = newCommit.CommitsBeforeUntil(ctx, opts.OldCommitID)
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
 					}
@@ -356,7 +356,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	emailToUser := make(map[string]*user_model.User)
 
 	for i, lowerTag := range lowerTags {
-		tag, err := gitRepo.GetTag(tags[i])
+		tag, err := gitRepo.GetTag(ctx, tags[i])
 		if err != nil {
 			return fmt.Errorf("GetTag: %w", err)
 		}

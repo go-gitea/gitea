@@ -24,7 +24,7 @@ type CheckAttributeOpts struct {
 }
 
 // CheckAttribute return the Blame object of file
-func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[string]string, error) {
+func (repo *Repository) CheckAttribute(ctx context.Context, opts CheckAttributeOpts) (map[string]map[string]string, error) {
 	env := []string{}
 
 	if len(opts.IndexFile) > 0 {
@@ -59,7 +59,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	cmd.AddDashesAndList(opts.Filenames...)
 
-	if err := cmd.Run(repo.Ctx, &RunOpts{
+	if err := cmd.Run(ctx, &RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdout: stdOut,
@@ -282,8 +282,8 @@ func (wr *nulSeparatedAttributeWriter) Close() error {
 }
 
 // Create a check attribute reader for the current repository and provided commit ID
-func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
-	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+func (repo *Repository) CheckAttributeReader(ctx context.Context, commitID string) (*CheckAttributeReader, context.CancelFunc) {
+	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(ctx, commitID)
 	if err != nil {
 		return nil, func() {}
 	}
@@ -301,7 +301,7 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 		IndexFile: indexFilename,
 		WorkTree:  worktree,
 	}
-	ctx, cancel := context.WithCancel(repo.Ctx)
+	ctx, cancel := context.WithCancel(ctx)
 	if err := checker.Init(ctx); err != nil {
 		log.Error("Unable to open checker for %s. Error: %v", commitID, err)
 	} else {

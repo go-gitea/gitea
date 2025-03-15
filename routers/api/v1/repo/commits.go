@@ -180,7 +180,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
-			head, err := ctx.Repo.GitRepo.GetHEADBranch()
+			head, err := ctx.Repo.GitRepo.GetHEADBranch(ctx)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -212,7 +212,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
+		commits, err = baseCommit.CommitsByRange(ctx, listOptions.Page, listOptions.PageSize, not)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -238,7 +238,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			return
 		}
 
-		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(
+		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(ctx,
 			git.CommitsByFileAndRangeOptions{
 				Revision: sha,
 				File:     path,
@@ -315,7 +315,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	sha := ctx.PathParam("sha")
 	diffType := git.RawDiffType(ctx.PathParam("diffType"))
 
-	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
+	if err := git.GetRawDiff(ctx, ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound(sha)
 			return

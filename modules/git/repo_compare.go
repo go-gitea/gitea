@@ -31,7 +31,7 @@ type CompareInfo struct {
 }
 
 // GetMergeBase checks and returns merge base of two branches and the reference used as base.
-func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, string, error) {
+func (repo *Repository) GetMergeBase(ctx context.Context, tmpRemote, base, head string) (string, string, error) {
 	if tmpRemote == "" {
 		tmpRemote = "origin"
 	}
@@ -39,18 +39,18 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 	if tmpRemote != "origin" {
 		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
 		// Fetch commit into a temporary branch in order to be able to handle commits and tags
-		_, _, err := NewCommand("fetch", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base+":"+tmpBaseName).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+		_, _, err := NewCommand("fetch", "--no-tags").AddDynamicArguments(tmpRemote).AddDashesAndList(base+":"+tmpBaseName).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 		if err == nil {
 			base = tmpBaseName
 		}
 	}
 
-	stdout, _, err := NewCommand("merge-base").AddDashesAndList(base, head).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand("merge-base").AddDashesAndList(base, head).RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	return strings.TrimSpace(stdout), base, err
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
-func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
+func (repo *Repository) GetCompareInfo(ctx context.Context, basePath, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
 	var (
 		remoteBranch string
 		tmpRemote    string
@@ -60,11 +60,11 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 	if repo.Path != basePath {
 		// Add a temporary remote
 		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
-		if err = repo.AddRemote(tmpRemote, basePath, false); err != nil {
+		if err = repo.AddRemote(ctx, tmpRemote, basePath, false); err != nil {
 			return nil, fmt.Errorf("AddRemote: %w", err)
 		}
 		defer func() {
-			if err := repo.RemoveRemote(tmpRemote); err != nil {
+			if err := repo.RemoveRemote(ctx, tmpRemote); err != nil {
 				logger.Error("GetPullRequestInfo: RemoveRemote: %v", err)
 			}
 		}()
@@ -72,14 +72,14 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 
 	compareInfo := new(CompareInfo)
 
-	compareInfo.HeadCommitID, err = GetFullCommitID(repo.Ctx, repo.Path, headBranch)
+	compareInfo.HeadCommitID, err = GetFullCommitID(ctx, repo.Path, headBranch)
 	if err != nil {
 		compareInfo.HeadCommitID = headBranch
 	}
 
-	compareInfo.MergeBase, remoteBranch, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	compareInfo.MergeBase, remoteBranch, err = repo.GetMergeBase(ctx, tmpRemote, baseBranch, headBranch)
 	if err == nil {
-		compareInfo.BaseCommitID, err = GetFullCommitID(repo.Ctx, repo.Path, remoteBranch)
+		compareInfo.BaseCommitID, err = GetFullCommitID(ctx, repo.Path, remoteBranch)
 		if err != nil {
 			compareInfo.BaseCommitID = remoteBranch
 		}
@@ -96,7 +96,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 			var logs []byte
 			logs, _, err = NewCommand("log").AddArguments(prettyLogFormat).
 				AddDynamicArguments(baseCommitID+separator+headBranch).AddArguments("--").
-				RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+				RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 			if err != nil {
 				return nil, err
 			}
@@ -109,7 +109,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 		}
 	} else {
 		compareInfo.Commits = []*Commit{}
-		compareInfo.MergeBase, err = GetFullCommitID(repo.Ctx, repo.Path, remoteBranch)
+		compareInfo.MergeBase, err = GetFullCommitID(ctx, repo.Path, remoteBranch)
 		if err != nil {
 			compareInfo.MergeBase = remoteBranch
 		}
@@ -119,7 +119,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 	// Count number of changed files.
 	// This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(remoteBranch, headBranch, directComparison)
+	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(ctx, remoteBranch, headBranch, directComparison)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 
 // GetDiffNumChangedFiles counts the number of changed files
 // This is substantially quicker than shortstat but...
-func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparison bool) (int, error) {
+func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head string, directComparison bool) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	w := &lineCountWriter{}
 	stderr := new(bytes.Buffer)
@@ -151,7 +151,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 
 	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
 	if err := NewCommand("diff", "-z", "--name-only").AddDynamicArguments(base+separator+head).AddArguments("--").
-		Run(repo.Ctx, &RunOpts{
+		Run(ctx, &RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,
@@ -161,7 +161,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
 			stderr.Reset()
-			if err = NewCommand("diff", "-z", "--name-only").AddDynamicArguments(base, head).AddArguments("--").Run(repo.Ctx, &RunOpts{
+			if err = NewCommand("diff", "-z", "--name-only").AddDynamicArguments(base, head).AddArguments("--").Run(ctx, &RunOpts{
 				Dir:    repo.Path,
 				Stdout: w,
 				Stderr: stderr,
@@ -226,10 +226,10 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 }
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
-func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
+func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	return NewCommand("diff", "-p").AddDynamicArguments(compareArg).
-		Run(repo.Ctx, &RunOpts{
+		Run(ctx, &RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,
@@ -237,18 +237,18 @@ func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
-func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
-	return NewCommand("diff", "-p", "--binary", "--histogram").AddDynamicArguments(compareArg).Run(repo.Ctx, &RunOpts{
+func (repo *Repository) GetDiffBinary(ctx context.Context, compareArg string, w io.Writer) error {
+	return NewCommand("diff", "-p", "--binary", "--histogram").AddDynamicArguments(compareArg).Run(ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdout: w,
 	})
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
-func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
+func (repo *Repository) GetPatch(ctx context.Context, compareArg string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	return NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
-		Run(repo.Ctx, &RunOpts{
+		Run(ctx, &RunOpts{
 			Dir:    repo.Path,
 			Stdout: w,
 			Stderr: stderr,

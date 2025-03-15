@@ -77,11 +77,11 @@ func (c *Commit) ParentCount() int {
 }
 
 // GetCommitByPath return the commit of relative path object.
-func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
+func (c *Commit) GetCommitByPath(ctx context.Context, relpath string) (*Commit, error) {
 	if c.repo.LastCommitCache != nil {
-		return c.repo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
+		return c.repo.LastCommitCache.GetCommitByPath(ctx, c.ID.String(), relpath)
 	}
-	return c.repo.getCommitByPathWithID(c.ID, relpath)
+	return c.repo.getCommitByPathWithID(ctx, c.ID, relpath)
 }
 
 // AddChanges marks local changes to be ready for commit.
@@ -199,13 +199,13 @@ func (c *Commit) CommitsCount() (int64, error) {
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page, pageSize int, not string) ([]*Commit, error) {
-	return c.repo.commitsByRange(c.ID, page, pageSize, not)
+func (c *Commit) CommitsByRange(ctx context.Context, page, pageSize int, not string) ([]*Commit, error) {
+	return c.repo.commitsByRange(ctx, c.ID, page, pageSize, not)
 }
 
 // CommitsBefore returns all the commits before current revision
-func (c *Commit) CommitsBefore() ([]*Commit, error) {
-	return c.repo.getCommitsBefore(c.ID)
+func (c *Commit) CommitsBefore(ctx context.Context) ([]*Commit, error) {
+	return c.repo.getCommitsBefore(ctx, c.ID)
 }
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
@@ -249,17 +249,17 @@ func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
 }
 
 // CommitsBeforeLimit returns num commits before current revision
-func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
-	return c.repo.getCommitsBeforeLimit(c.ID, num)
+func (c *Commit) CommitsBeforeLimit(ctx context.Context, num int) ([]*Commit, error) {
+	return c.repo.getCommitsBeforeLimit(ctx, c.ID, num)
 }
 
 // CommitsBeforeUntil returns the commits between commitID to current revision
-func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
+func (c *Commit) CommitsBeforeUntil(ctx context.Context, commitID string) ([]*Commit, error) {
 	endCommit, err := c.repo.GetCommit(commitID)
 	if err != nil {
 		return nil, err
 	}
-	return c.repo.CommitsBetween(c, endCommit)
+	return c.repo.CommitsBetween(ctx, c, endCommit)
 }
 
 // SearchCommitsOptions specify the parameters for SearchCommits
@@ -302,8 +302,8 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 }
 
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(opts SearchCommitsOptions) ([]*Commit, error) {
-	return c.repo.searchCommits(c.ID, opts)
+func (c *Commit) SearchCommits(ctx context.Context, opts SearchCommitsOptions) ([]*Commit, error) {
+	return c.repo.searchCommits(ctx, c.ID, opts)
 }
 
 // GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision
@@ -313,8 +313,8 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 
 // FileChangedSinceCommit Returns true if the file given has changed since the past commit
 // YOU MUST ENSURE THAT pastCommit is a valid commit ID.
-func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
-	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
+func (c *Commit) FileChangedSinceCommit(ctx context.Context, filename, pastCommit string) (bool, error) {
+	return c.repo.FileChangedBetweenCommits(ctx, filename, pastCommit, c.ID.String())
 }
 
 // HasFile returns true if the file given exists on this commit
@@ -468,11 +468,11 @@ func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, err
 }
 
 // GetRepositoryDefaultPublicGPGKey returns the default public key for this commit
-func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, error) {
+func (c *Commit) GetRepositoryDefaultPublicGPGKey(ctx context.Context, forceUpdate bool) (*GPGSettings, error) {
 	if c.repo == nil {
 		return nil, nil
 	}
-	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
+	return c.repo.GetDefaultPublicGPGKey(ctx, forceUpdate)
 }
 
 func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {

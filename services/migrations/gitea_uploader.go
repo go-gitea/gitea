@@ -624,7 +624,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 			}
 			// ... now add the remote
-			err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+			err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
 			if err != nil {
 				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
 			} else {
@@ -735,7 +735,7 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		if pr.Base.Ref != "" && pr.Head.SHA != "" {
 			// A PR against a tag base does not make sense - therefore pr.Base.Ref must be a branch
 			// TODO: should we be checking for the refs/heads/ prefix on the pr.Base.Ref? (i.e. are these actually branches or refs)
-			pr.Base.SHA, _, err = g.gitRepo.GetMergeBase("", git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
+			pr.Base.SHA, _, err = g.gitRepo.GetMergeBase(ctx, "", git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
 			if err != nil {
 				log.Error("Cannot determine the merge base for PR #%d in %s/%s. Error: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -904,7 +904,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 				_ = writer.Close()
 			}()
 			go func(comment *base.ReviewComment) {
-				if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
+				if err := git.GetRepoRawDiffForFile(ctx, g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
 					// We should ignore the error since the commit maybe removed when force push to the pull request
 					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
 				}

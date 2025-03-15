@@ -193,10 +193,10 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(ctx, "master", pageFilename)
 
 	// Get last change information.
-	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
+	lastCommit, err := wikiRepo.GetCommitByPath(ctx, pageFilename)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil
@@ -320,7 +320,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		if i < skip || i >= maxNum || !entry.IsRegular() {
 			continue
 		}
-		c, err := wikiRepo.GetCommitByPath(entry.Name())
+		c, err := wikiRepo.GetCommitByPath(ctx, entry.Name())
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -432,7 +432,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(ctx, "master", pageFilename)
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
@@ -440,7 +440,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange(ctx,
 		git.CommitsByFileAndRangeOptions{
 			Revision: "master",
 			File:     pageFilename,

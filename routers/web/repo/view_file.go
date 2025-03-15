@@ -46,7 +46,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
-	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return
@@ -201,7 +201,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
 			}
 
-			language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+			language, err := files_service.TryGetContentLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 			if err != nil {
 				log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 			}
@@ -276,7 +276,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 
 	if ctx.Repo.GitRepo != nil {
-		checker, deferable := ctx.Repo.GitRepo.CheckAttributeReader(ctx.Repo.CommitID)
+		checker, deferable := ctx.Repo.GitRepo.CheckAttributeReader(ctx, ctx.Repo.CommitID)
 		if checker != nil {
 			defer deferable()
 			attrs, err := checker.CheckPath(ctx.Repo.TreePath)

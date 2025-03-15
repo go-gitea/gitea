@@ -362,7 +362,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(ctx, ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiRepo, entry
@@ -414,7 +414,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["footerContent"] = ""
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(ctx, ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
@@ -424,7 +424,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange(ctx,
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,
@@ -584,7 +584,7 @@ func Wiki(ctx *context.Context) {
 		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
 	}
 	// Get last change information.
-	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)
+	lastCommit, err := wikiRepo.GetCommitByPath(ctx, wikiPath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return
@@ -622,7 +622,7 @@ func WikiRevision(ctx *context.Context) {
 
 	// Get last change information.
 	wikiPath := entry.Name()
-	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)
+	lastCommit, err := wikiRepo.GetCommitByPath(ctx, wikiPath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return

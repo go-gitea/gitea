@@ -241,7 +241,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 		return nil, nil, nil
 	}
 
-	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil, nil

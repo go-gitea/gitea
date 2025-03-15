@@ -322,9 +322,9 @@ index 0000000000..bbbbbbbbbb
 				},
 			)
 
-			commit1, err := gitRepo.GetCommitByPath("patch-file-1.txt")
+			commit1, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-1.txt")
 			require.NoError(t, err)
-			commit2, err := gitRepo.GetCommitByPath("patch-file-2.txt")
+			commit2, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-2.txt")
 			require.NoError(t, err)
 			resp1, _ := testWebGit(t,
 				"/user2/repo1/_cherrypick/"+commit1.ID.String()+"/master", map[string]string{"revert": "true"},

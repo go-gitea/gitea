@@ -27,8 +27,8 @@ const (
 )
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
-func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) error {
-	return GetRepoRawDiffForFile(repo, "", commitID, diffType, "", writer)
+func GetRawDiff(ctx context.Context, repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) error {
+	return GetRepoRawDiffForFile(ctx, repo, "", commitID, diffType, "", writer)
 }
 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
@@ -46,7 +46,7 @@ func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io
 }
 
 // GetRepoRawDiffForFile dumps diff results of file in given commit ID to io.Writer according given repository
-func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
+func GetRepoRawDiffForFile(ctx context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
 	commit, err := repo.GetCommit(endCommit)
 	if err != nil {
 		return err
@@ -89,7 +89,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	}
 
 	stderr := new(bytes.Buffer)
-	if err = cmd.Run(repo.Ctx, &RunOpts{
+	if err = cmd.Run(ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdout: writer,
 		Stderr: stderr,
@@ -277,9 +277,9 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 }
 
 // GetAffectedFiles returns the affected files between two commits
-func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID string, env []string) ([]string, error) {
+func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldCommitID, newCommitID string, env []string) ([]string, error) {
 	if oldCommitID == emptySha1ObjectID.String() || oldCommitID == emptySha256ObjectID.String() {
-		startCommitID, err := repo.GetCommitBranchStart(env, branchName, newCommitID)
+		startCommitID, err := repo.GetCommitBranchStart(ctx, env, branchName, newCommitID)
 		if err != nil {
 			return nil, err
 		}
@@ -302,7 +302,7 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 
 	// Run `git diff --name-only` to get the names of the changed files
 	err = NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
-		Run(repo.Ctx, &RunOpts{
+		Run(ctx, &RunOpts{
 			Env:    env,
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,

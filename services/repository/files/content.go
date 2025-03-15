@@ -170,7 +170,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		return nil, err
 	}
 
-	lastCommit, err := commit.GetCommitByPath(treePath)
+	lastCommit, err := commit.GetCommitByPath(ctx, treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -271,15 +271,15 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 }
 
 // TryGetContentLanguage tries to get the (linguist) language of the file content
-func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (string, error) {
-	indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(commitID)
+func TryGetContentLanguage(ctx context.Context, gitRepo *git.Repository, commitID, treePath string) (string, error) {
+	indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(ctx, commitID)
 	if err != nil {
 		return "", err
 	}
 
 	defer deleteTemporaryFile()
 
-	filename2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+	filename2attribute2info, err := gitRepo.CheckAttribute(ctx, git.CheckAttributeOpts{
 		CachedOnly: true,
 		Attributes: []string{git.AttributeLinguistLanguage, git.AttributeGitlabLanguage},
 		Filenames:  []string{treePath},

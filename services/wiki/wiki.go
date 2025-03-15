@@ -51,12 +51,12 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 
 // prepareGitPath try to find a suitable file path with file name by the given raw wiki name.
 // return: existence, prepared file path with name, error
-func prepareGitPath(gitRepo *git.Repository, defaultWikiBranch string, wikiPath WebPath) (bool, string, error) {
+func prepareGitPath(ctx context.Context, gitRepo *git.Repository, defaultWikiBranch string, wikiPath WebPath) (bool, string, error) {
 	unescaped := string(wikiPath) + ".md"
 	gitPath := WebPathToGitPath(wikiPath)
 
 	// Look for both files
-	filesInIndex, err := gitRepo.LsTree(defaultWikiBranch, unescaped, gitPath)
+	filesInIndex, err := gitRepo.LsTree(ctx, defaultWikiBranch, unescaped, gitPath)
 	if err != nil {
 		if strings.Contains(err.Error(), "Not a valid object name") {
 			return false, gitPath, nil // branch doesn't exist
@@ -134,13 +134,13 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	defer gitRepo.Close()
 
 	if hasDefaultBranch {
-		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
+		if err := gitRepo.ReadTreeToIndex(ctx, "HEAD"); err != nil {
 			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
 			return fmt.Errorf("fnable to read HEAD tree to index in: %s %w", basePath, err)
 		}
 	}
 
-	isWikiExist, newWikiPath, err := prepareGitPath(gitRepo, repo.DefaultWikiBranch, newWikiName)
+	isWikiExist, newWikiPath, err := prepareGitPath(ctx, gitRepo, repo.DefaultWikiBranch, newWikiName)
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		isOldWikiExist := true
 		oldWikiPath := newWikiPath
 		if oldWikiName != newWikiName {
-			isOldWikiExist, oldWikiPath, err = prepareGitPath(gitRepo, repo.DefaultWikiBranch, oldWikiName)
+			isOldWikiExist, oldWikiPath, err = prepareGitPath(ctx, gitRepo, repo.DefaultWikiBranch, oldWikiName)
 			if err != nil {
 				return err
 			}
@@ -209,7 +209,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		commitTreeOpts.Parents = []string{"HEAD"}
 	}
 
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
+	commitHash, err := gitRepo.CommitTree(ctx, doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
 		log.Error("CommitTree failed: %v", err)
 		return err
@@ -290,12 +290,12 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 	defer gitRepo.Close()
 
-	if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
+	if err := gitRepo.ReadTreeToIndex(ctx, "HEAD"); err != nil {
 		log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
 		return fmt.Errorf("unable to read HEAD tree to index in: %s %w", basePath, err)
 	}
 
-	found, wikiPath, err := prepareGitPath(gitRepo, repo.DefaultWikiBranch, wikiName)
+	found, wikiPath, err := prepareGitPath(ctx, gitRepo, repo.DefaultWikiBranch, wikiName)
 	if err != nil {
 		return err
 	}
@@ -332,7 +332,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		commitTreeOpts.NoGPGSign = true
 	}
 
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
+	commitHash, err := gitRepo.CommitTree(ctx, doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
 		return err
 	}
@@ -397,7 +397,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 		}
 		defer gitRepo.Close()
 
-		err = gitRepo.RenameBranch(oldDefBranch, newBranch)
+		err = gitRepo.RenameBranch(ctx, oldDefBranch, newBranch)
 		if err != nil {
 			return fmt.Errorf("unable to rename default branch: %w", err)
 		}

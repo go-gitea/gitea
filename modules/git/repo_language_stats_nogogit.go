@@ -7,6 +7,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"code.gitea.io/gitea/modules/analyze"
@@ -17,10 +18,10 @@ import (
 )
 
 // GetLanguageStats calculates language stats for git repository at specified commit
-func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
+func (repo *Repository) GetLanguageStats(ctx context.Context, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
-	checker, deferable := repo.CheckAttributeReader(commitID)
+	checker, deferable := repo.CheckAttributeReader(ctx, commitID)
 	defer deferable()
 
 	contentBuf := bytes.Buffer{}
@@ -79,8 +80,8 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	for _, f := range entries {
 		select {
-		case <-repo.Ctx.Done():
-			return sizes, repo.Ctx.Err()
+		case <-ctx.Done():
+			return sizes, ctx.Err()
 		default:
 		}
 

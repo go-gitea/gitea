@@ -633,7 +633,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		}
 		commitID = commit.ID.String()
 
-		ok, err := baseGitRepo.IsCommitInBranch(commitID, pr.BaseBranch)
+		ok, err := baseGitRepo.IsCommitInBranch(ctx, commitID, pr.BaseBranch)
 		if err != nil {
 			return err
 		}

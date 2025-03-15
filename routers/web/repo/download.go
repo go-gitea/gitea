@@ -97,7 +97,7 @@ func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
 		return nil, nil
 	}
 
-	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetTreePathLatestCommit", err)
 		return nil, nil

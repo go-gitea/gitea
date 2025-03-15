@@ -88,7 +88,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 	// Make a new tag in repo1
 	newTag := "test_tag"
-	err = gitRepo.CreateTag(newTag, commitID)
+	err = gitRepo.CreateTag(t.Context(), newTag, commitID)
 	assert.NoError(t, err)
 	/*** END SETUP ***/
 
@@ -100,7 +100,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	var contentsResponse api.ContentsResponse
 	DecodeJSON(t, resp, &contentsResponse)
 	assert.NotNil(t, contentsResponse)
-	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
+	lastCommit, _ := gitRepo.GetCommitByPath(git.DefaultContext, "README.md")
 	expectedContentsResponse := getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
@@ -121,7 +121,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	DecodeJSON(t, resp, &contentsResponse)
 	assert.NotNil(t, contentsResponse)
 	branchCommit, _ := gitRepo.GetBranchCommit(ref)
-	lastCommit, _ = branchCommit.GetCommitByPath("README.md")
+	lastCommit, _ = branchCommit.GetCommitByPath(t.Context(), "README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
@@ -133,7 +133,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	DecodeJSON(t, resp, &contentsResponse)
 	assert.NotNil(t, contentsResponse)
 	tagCommit, _ := gitRepo.GetTagCommit(ref)
-	lastCommit, _ = tagCommit.GetCommitByPath("README.md")
+	lastCommit, _ = tagCommit.GetCommitByPath(t.Context(), "README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 

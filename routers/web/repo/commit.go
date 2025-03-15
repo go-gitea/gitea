@@ -77,7 +77,7 @@ func Commits(ctx *context.Context) {
 	}
 
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "")
+	commits, err := ctx.Repo.Commit.CommitsByRange(ctx, page, pageSize, "")
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return
@@ -192,7 +192,7 @@ func SearchCommits(ctx *context.Context) {
 
 	all := ctx.FormBool("all")
 	opts := git.NewSearchCommitsOptions(query, all)
-	commits, err := ctx.Repo.Commit.SearchCommits(opts)
+	commits, err := ctx.Repo.Commit.SearchCommits(ctx, opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
 		return
@@ -221,7 +221,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefFullName.ShortName(), fileName) // FIXME: legacy code used ShortName
+	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx, ctx.Repo.RefFullName.ShortName(), fileName) // FIXME: legacy code used ShortName
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return
@@ -235,7 +235,7 @@ func FileHistory(ctx *context.Context) {
 		page = 1
 	}
 
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx,
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
 			File:     fileName,
@@ -431,7 +431,7 @@ func RawDiff(ctx *context.Context) {
 			return
 		}
 	}
-	if err := git.GetRawDiff(
+	if err := git.GetRawDiff(ctx,
 		gitRepo,
 		ctx.PathParam("sha"),
 		git.RawDiffType(ctx.PathParam("ext")),

@@ -18,19 +18,19 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func getMergeBase(repo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
+func getMergeBase(ctx context.Context, repo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
 	// Add a temporary remote
 	tmpRemote := fmt.Sprintf("mergebase-%d-%d", pr.ID, time.Now().UnixNano())
-	if err := repo.AddRemote(tmpRemote, repo.Path, false); err != nil {
+	if err := repo.AddRemote(ctx, tmpRemote, repo.Path, false); err != nil {
 		return "", fmt.Errorf("AddRemote: %w", err)
 	}
 	defer func() {
-		if err := repo.RemoveRemote(tmpRemote); err != nil {
+		if err := repo.RemoveRemote(ctx, tmpRemote); err != nil {
 			log.Error("getMergeBase: RemoveRemote: %v", err)
 		}
 	}()
 
-	mergeBase, _, err := repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	mergeBase, _, err := repo.GetMergeBase(ctx, tmpRemote, baseBranch, headBranch)
 	return mergeBase, err
 }
 
@@ -102,7 +102,7 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 
 	if startCommitID == "" && endCommitID == "" {
 		// get the mergebase
-		mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+		mergeBase, err := getMergeBase(ctx, repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
 		if err != nil {
 			return nil, err
 		}
