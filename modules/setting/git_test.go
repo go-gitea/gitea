@@ -61,5 +61,5 @@ EXPIRATION = 123
 `)
 	require.NoError(t, err)
 
-	require.Error(t, checkForRemovedSettings(cfg))
+	require.Len(t, checkForRemovedSettings(cfg), 2)
 }

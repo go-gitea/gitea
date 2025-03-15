@@ -159,7 +159,7 @@ ACCESS = file
 `)
 	require.NoError(t, err)
 
-	require.Error(t, checkForRemovedSettings(cfg))
+	require.Len(t, checkForRemovedSettings(cfg), 2)
 }
 
 func TestLogConfigLegacyModeDisable(t *testing.T) {
@@ -172,7 +172,7 @@ ENABLE_ACCESS_LOG = false
 `)
 	require.NoError(t, err)
 
-	require.Error(t, checkForRemovedSettings(cfg))
+	require.Len(t, checkForRemovedSettings(cfg), 4)
 }
 
 func TestLogConfigNewConfig(t *testing.T) {

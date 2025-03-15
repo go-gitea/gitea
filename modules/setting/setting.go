@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -200,7 +201,7 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
 	initAllLoggers()
-	if err := checkForRemovedSettings(CfgProvider); err != nil {
+	if err := errors.Join(checkForRemovedSettings(CfgProvider)...); err != nil {
 		log.Fatal("Encountered removed settings while loading configuration: %v", err)
 	}
 

@@ -32,7 +32,7 @@ func Test_loadMailerFrom(t *testing.T) {
 			sec.NewKey("HOST", host)
 
 			// Ensure removed settings catches the removed config setting
-			assert.Error(t, checkForRemovedSettings(cfg))
+			assert.Len(t, checkForRemovedSettings(cfg), 1)
 		})
 	}
 }
