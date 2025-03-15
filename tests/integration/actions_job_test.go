@@ -434,8 +434,6 @@ jobs:
 		assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["gitea_default_actions_url"].GetStringValue())
 		token := gtCtx["token"].GetStringValue()
 		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
-
-		doAPIDeleteRepository(user2APICtx)(t)
 	})
 }
 
@@ -543,17 +541,13 @@ jobs:
 		err = actions_service.CleanupEphemeralRunners(t.Context())
 		assert.NoError(t, err)
 
-		runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
+		_, err = runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
 			State: &runnerv1.TaskState{
 				Id:     actionTask.ID,
 				Result: runnerv1.Result_RESULT_SUCCESS,
 			},
 		}))
-		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
-			TasksVersion: 0,
-		}))
-		assert.Error(t, err)
-		assert.Nil(t, resp)
+		assert.NoError(t, err)
 
 		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
 			TasksVersion: 0,
@@ -561,7 +555,13 @@ jobs:
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 
-		// create an runner that picks a job and get force cancelled
+		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+			TasksVersion: 0,
+		}))
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+
+		// create a runner that picks a job and get force cancelled
 		runnerToBeRemoved := newMockRunner()
 		runnerToBeRemoved.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner-to-be-removed", []string{"ubuntu-latest"}, true)
 
@@ -583,9 +583,6 @@ jobs:
 		assert.NoError(t, err)
 
 		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runnerToRemove.ID})
-
-		// this cleanup is required to allow further tests to pass
-		doAPIDeleteRepository(user2APICtx)(t)
 	})
 }
 
