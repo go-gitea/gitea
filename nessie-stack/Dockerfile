@@ -1,4 +1,4 @@
-FROM jupyter/pyspark-notebook:latest
+FROM docker.io/jupyter/pyspark-notebook:latest
 
 USER root
 
@@ -11,14 +11,13 @@ RUN wget https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime
     wget https://repo1.maven.org/maven2/org/projectnessie/nessie-integrations/nessie-spark-extensions-3.5_2.12/0.102.5/nessie-spark-extensions-3.5_2.12-0.102.5.jar -P /usr/local/spark/jars/
 
 # Install Python packages (update pyiceberg to match JAR version)
-RUN pip install pyiceberg==0.9.0 pynessie==0.67.0
+RUN pip install pyiceberg==0.9.0 pynessie==0.67.0 findspark
 
 # Create a directory for init scripts
 RUN mkdir -p /usr/local/bin/start-notebook.d
 
 # Create init script to configure Spark environment
-RUN echo '#!/bin/bash\nexport PYSPARK_DRIVER_PYTHON=jupyter\nexport PYSPARK_DRIVER_PYTHON_OPTS="lab --NotebookApp.token=\'\' --NotebookApp.password=\'\'"' > /usr/local/bin/start-notebook.d/spark-config.sh && \
-    chmod +x /usr/local/bin/start-notebook.d/spark-config.sh
+COPY spark-config.sh /usr/local/bin/start-notebook.d/spark-config.sh
 
 USER $NB_UID
 

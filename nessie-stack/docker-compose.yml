@@ -120,11 +120,10 @@ services:
         --hiveconf hive.server2.thrift.port=10000 \
         --hiveconf hive.server2.thrift.bind.host=0.0.0.0 \
         --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
-        --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog \
-        --conf spark.sql.catalog.iceberg.type=nessie \
+        --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkSessionCatalog \
+        --conf spark.sql.catalog.iceberg.type=NessieCatalog \
         --conf spark.sql.catalog.iceberg.uri=http://nessie:19120/api/v1 \
         --conf spark.sql.catalog.iceberg.ref=main \
-        --conf spark.sql.catalog.iceberg.catalog-impl=org.apache.iceberg.aws.s3.S3FileIO \
         --conf spark.sql.catalog.iceberg.s3.endpoint=http://minio:9000 \
         --conf spark.sql.catalog.iceberg.s3.path-style-access=true \
         --conf spark.sql.catalog.iceberg.warehouse=s3a://nessie \
