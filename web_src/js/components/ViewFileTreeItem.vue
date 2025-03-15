@@ -12,9 +12,9 @@ type Item = {
 
 const props = defineProps<{
   item: Item,
-  navigateViewContent: any;
-  loadChildren: any;
-  selectedItem?: any;
+  navigateViewContent:(treePath: string) => void,
+  loadChildren:(treePath: string, subPath?: string) => Promise<Item[]>,
+  selectedItem?: string,
 }>();
 
 const isLoading = ref(false);
@@ -47,8 +47,8 @@ const doGotoSubModule = () => {
 };
 </script>
 
+<!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
 <template>
-  <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
   <div
     v-if="item.entryMode === 'commit'" class="tree-item type-submodule"
     :title="item.entryName"
@@ -62,7 +62,7 @@ const doGotoSubModule = () => {
   </div>
   <div
     v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink"
-    :class="{'selected': selectedItem.value === item.fullPath}"
+    :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadFileContent"
   >
@@ -74,7 +74,7 @@ const doGotoSubModule = () => {
   </div>
   <div
     v-else-if="item.entryMode !== 'tree'" class="tree-item type-file"
-    :class="{'selected': selectedItem.value === item.fullPath}"
+    :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadFileContent"
   >
@@ -86,7 +86,7 @@ const doGotoSubModule = () => {
   </div>
   <div
     v-else class="tree-item type-directory"
-    :class="{'selected': selectedItem.value === item.fullPath}"
+    :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
     @click.stop="doLoadDirContent"
   >
@@ -120,7 +120,7 @@ const doGotoSubModule = () => {
   border-radius: 4px;
 }
 
-.tree-item.entryMode-directory {
+.tree-item.type-directory {
   user-select: none;
 }
 
