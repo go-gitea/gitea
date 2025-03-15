@@ -173,7 +173,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			masterTree, err := gitRepo.GetTree(t.Context(), repo.DefaultWikiBranch)
 			assert.NoError(t, err)
 			gitPath := WebPathToGitPath(webPath)
-			entry, err := masterTree.GetTreeEntryByPath(gitPath)
+			entry, err := masterTree.GetTreeEntryByPath(t.Context(), gitPath)
 			assert.NoError(t, err)
 			assert.EqualValues(t, gitPath, entry.Name(), "%s not added correctly", userTitle)
 		})
@@ -218,12 +218,12 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		masterTree, err := gitRepo.GetTree(t.Context(), repo.DefaultWikiBranch)
 		assert.NoError(t, err)
 		gitPath := WebPathToGitPath(webPath)
-		entry, err := masterTree.GetTreeEntryByPath(gitPath)
+		entry, err := masterTree.GetTreeEntryByPath(t.Context(), gitPath)
 		assert.NoError(t, err)
 		assert.EqualValues(t, gitPath, entry.Name(), "%s not edited correctly", newWikiName)
 
 		if newWikiName != "Home" {
-			_, err := masterTree.GetTreeEntryByPath("Home.md")
+			_, err := masterTree.GetTreeEntryByPath(t.Context(), "Home.md")
 			assert.Error(t, err)
 		}
 		gitRepo.Close()
@@ -244,7 +244,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	masterTree, err := gitRepo.GetTree(t.Context(), repo.DefaultWikiBranch)
 	assert.NoError(t, err)
 	gitPath := WebPathToGitPath("Home")
-	_, err = masterTree.GetTreeEntryByPath(gitPath)
+	_, err = masterTree.GetTreeEntryByPath(t.Context(), gitPath)
 	assert.Error(t, err)
 }
 

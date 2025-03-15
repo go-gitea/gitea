@@ -49,7 +49,7 @@ func UnmarshalFromEntry(ctx context.Context, entry *git.TreeEntry, dir string) (
 
 // UnmarshalFromCommit parses out a valid template from the commit
 func UnmarshalFromCommit(ctx context.Context, commit *git.Commit, filename string) (*api.IssueTemplate, error) {
-	entry, err := commit.GetTreeEntryByPath(filename)
+	entry, err := commit.GetTreeEntryByPath(ctx, filename)
 	if err != nil {
 		return nil, fmt.Errorf("get entry for %q: %w", filename, err)
 	}

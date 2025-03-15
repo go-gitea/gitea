@@ -478,7 +478,7 @@ func (l *limitByteWriter) Write(p []byte) (n int, err error) {
 }
 
 func getCommitFileLineCountAndLimitedContent(ctx context.Context, commit *git.Commit, filePath string) (lineCount int, limitWriter *limitByteWriter) {
-	blob, err := commit.GetBlobByPath(filePath)
+	blob, err := commit.GetBlobByPath(ctx, filePath)
 	if err != nil {
 		return 0, nil
 	}

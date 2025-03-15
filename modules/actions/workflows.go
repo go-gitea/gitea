@@ -44,10 +44,10 @@ func IsWorkflow(path string) bool {
 	return strings.HasPrefix(path, ".gitea/workflows") || strings.HasPrefix(path, ".github/workflows")
 }
 
-func ListWorkflows(commit *git.Commit) (git.Entries, error) {
-	tree, err := commit.SubTree(".gitea/workflows")
+func ListWorkflows(ctx context.Context, commit *git.Commit) (git.Entries, error) {
+	tree, err := commit.SubTree(ctx, ".gitea/workflows")
 	if _, ok := err.(git.ErrNotExist); ok {
-		tree, err = commit.SubTree(".github/workflows")
+		tree, err = commit.SubTree(ctx, ".github/workflows")
 	}
 	if _, ok := err.(git.ErrNotExist); ok {
 		return nil, nil
@@ -104,7 +104,7 @@ func DetectWorkflows(
 	payload api.Payloader,
 	detectSchedule bool,
 ) ([]*DetectedWorkflow, []*DetectedWorkflow, error) {
-	entries, err := ListWorkflows(commit)
+	entries, err := ListWorkflows(ctx, commit)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -149,7 +149,7 @@ func DetectWorkflows(
 }
 
 func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
-	entries, err := ListWorkflows(commit)
+	entries, err := ListWorkflows(ctx, commit)
 	if err != nil {
 		return nil, err
 	}

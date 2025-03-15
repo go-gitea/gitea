@@ -75,7 +75,7 @@ func TestGetClosestParentWithFiles(t *testing.T) {
 		"dir1/dir2/dir3/file.txt",
 		"file.txt",
 	} {
-		treePath := GetClosestParentWithFiles(deletedFile, commit)
+		treePath := GetClosestParentWithFiles(t.Context(), deletedFile, commit)
 		assert.Equal(t, expectedTreePath, treePath)
 	}
 }

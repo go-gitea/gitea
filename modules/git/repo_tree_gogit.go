@@ -13,7 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
+func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error) {
 	gogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(id.RawValue()))
 	if err != nil {
 		if errors.Is(err, plumbing.ErrObjectNotFound) {
@@ -54,7 +54,7 @@ func (repo *Repository) GetTree(ctx context.Context, idStr string) (*Tree, error
 	if err == nil {
 		id = ParseGogitHash(commitObject.TreeHash)
 	}
-	treeObject, err := repo.getTree(id)
+	treeObject, err := repo.getTree(ctx, id)
 	if err != nil {
 		return nil, err
 	}

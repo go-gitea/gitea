@@ -62,7 +62,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	}
 
 	language, _ := files.TryGetContentLanguage(ctx, gitRepo, opts.CommitID, opts.FilePath)
-	blob, err := commit.GetBlobByPath(opts.FilePath)
+	blob, err := commit.GetBlobByPath(ctx, opts.FilePath)
 	if err != nil {
 		return "", err
 	}

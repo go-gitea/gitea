@@ -78,8 +78,8 @@ type PageMeta struct {
 }
 
 // findEntryForFile finds the tree entry for a target filepath.
-func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
-	entry, err := commit.GetTreeEntryByPath(target)
+func findEntryForFile(ctx gocontext.Context, commit *git.Commit, target string) (*git.TreeEntry, error) {
+	entry, err := commit.GetTreeEntryByPath(ctx, target)
 	if err != nil && !git.IsErrNotExist(err) {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 	if unescapedTarget, err = url.QueryUnescape(target); err != nil {
 		return nil, err
 	}
-	return commit.GetTreeEntryByPath(unescapedTarget)
+	return commit.GetTreeEntryByPath(ctx, unescapedTarget)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
@@ -147,7 +147,7 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_service.WebPath) (*git.TreeEntry, string, bool, bool) {
 	isRaw := false
 	gitFilename := wiki_service.WebPathToGitPath(wikiName)
-	entry, err := findEntryForFile(commit, gitFilename)
+	entry, err := findEntryForFile(ctx, commit, gitFilename)
 	if err != nil && !git.IsErrNotExist(err) {
 		ctx.ServerError("findEntryForFile", err)
 		return nil, "", false, false
@@ -155,7 +155,7 @@ func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_ser
 	if entry == nil {
 		// check if the file without ".md" suffix exists
 		gitFilename := strings.TrimSuffix(gitFilename, ".md")
-		entry, err = findEntryForFile(commit, gitFilename)
+		entry, err = findEntryForFile(ctx, commit, gitFilename)
 		if err != nil && !git.IsErrNotExist(err) {
 			ctx.ServerError("findEntryForFile", err)
 			return nil, "", false, false
@@ -654,7 +654,7 @@ func WikiPages(ctx *context.Context) {
 	}
 
 	treePath := "" // To support list sub folders' pages in the future
-	tree, err := commit.SubTree(treePath)
+	tree, err := commit.SubTree(ctx, treePath)
 	if err != nil {
 		ctx.ServerError("SubTree", err)
 		return
@@ -722,7 +722,7 @@ func WikiRaw(ctx *context.Context) {
 	var entry *git.TreeEntry
 	if commit != nil {
 		// Try to find a file with that name
-		entry, err = findEntryForFile(commit, providedGitPath)
+		entry, err = findEntryForFile(ctx, commit, providedGitPath)
 		if err != nil && !git.IsErrNotExist(err) {
 			ctx.ServerError("findFile", err)
 			return
@@ -731,7 +731,7 @@ func WikiRaw(ctx *context.Context) {
 		if entry == nil {
 			// Try to find a wiki page with that name
 			providedGitPath = strings.TrimSuffix(providedGitPath, ".md")
-			entry, err = findEntryForFile(commit, providedGitPath)
+			entry, err = findEntryForFile(ctx, commit, providedGitPath)
 			if err != nil && !git.IsErrNotExist(err) {
 				ctx.ServerError("findFile", err)
 				return

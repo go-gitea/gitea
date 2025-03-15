@@ -181,7 +181,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 }
 
 func tryCreateBlameIgnoreRevsFile(ctx context.Context, commit *Commit) *string {
-	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
+	entry, err := commit.GetTreeEntryByPath(ctx, ".git-blame-ignore-revs")
 	if err != nil {
 		return nil
 	}

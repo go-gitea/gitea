@@ -64,7 +64,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		assert.NotNil(t, commit.Tree)
 		assert.NotNil(t, commit.Tree.repo)
 
-		tree, err := commit.Tree.SubTree(testCase.Path)
+		tree, err := commit.Tree.SubTree(t.Context(), testCase.Path)
 		if err != nil {
 			assert.NoError(t, err, "Unable to get subtree: %s of commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 			// no point trying to do anything else for this test.

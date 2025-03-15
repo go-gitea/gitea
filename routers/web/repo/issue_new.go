@@ -50,7 +50,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 
 	templateErrs := map[string]error{}
 	for _, filename := range templateCandidates {
-		if ok, _ := commit.HasFile(filename); !ok {
+		if ok, _ := commit.HasFile(ctx, filename); !ok {
 			continue
 		}
 		template, err := issue_template.UnmarshalFromCommit(ctx, commit, filename)

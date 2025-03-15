@@ -70,7 +70,7 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 		return nil, err
 	}
 
-	entry, err := commit.GetTreeEntryByPath(treePath)
+	entry, err := commit.GetTreeEntryByPath(ctx, treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 	// We are in a directory, so we return a list of FileContentResponse objects
 	var fileList []*api.ContentsResponse
 
-	gitTree, err := commit.SubTree(treePath)
+	gitTree, err := commit.SubTree(ctx, treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		ref = commit.ID.String()
 	}
 
-	entry, err := commit.GetTreeEntryByPath(treePath)
+	entry, err := commit.GetTreeEntryByPath(ctx, treePath)
 	if err != nil {
 		return nil, err
 	}

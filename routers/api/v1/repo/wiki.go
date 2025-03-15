@@ -4,6 +4,7 @@
 package repo
 
 import (
+	gocontext "context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -456,8 +457,8 @@ func ListPageRevisions(ctx *context.APIContext) {
 }
 
 // findEntryForFile finds the tree entry for a target filepath.
-func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
-	entry, err := commit.GetTreeEntryByPath(target)
+func findEntryForFile(ctx gocontext.Context, commit *git.Commit, target string) (*git.TreeEntry, error) {
+	entry, err := commit.GetTreeEntryByPath(ctx, target)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +471,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 	if unescapedTarget, err = url.QueryUnescape(target); err != nil {
 		return nil, err
 	}
-	return commit.GetTreeEntryByPath(unescapedTarget)
+	return commit.GetTreeEntryByPath(ctx, unescapedTarget)
 }
 
 // findWikiRepoCommit opens the wiki repo and returns the latest commit, writing to context on error.
@@ -517,7 +518,7 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
 // indicating whether the page exists. Writes to ctx if an error occurs.
 func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName wiki_service.WebPath, isSidebarOrFooter bool) (string, string) {
 	gitFilename := wiki_service.WebPathToGitPath(wikiName)
-	entry, err := findEntryForFile(commit, gitFilename)
+	entry, err := findEntryForFile(ctx, commit, gitFilename)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			if !isSidebarOrFooter {

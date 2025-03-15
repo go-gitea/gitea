@@ -10,8 +10,8 @@ import (
 	"io"
 )
 
-func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
-	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error) {
+	wr, rd, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 }
 
 // GetTree find the tree object in the repository.
-func (repo *Repository) GetTree(_ context.Context,idStr string) (*Tree, error) {
+func (repo *Repository) GetTree(ctx context.Context, idStr string) (*Tree, error) {
 	objectFormat, err := repo.GetObjectFormat()
 	if err != nil {
 		return nil, err
@@ -95,5 +95,5 @@ func (repo *Repository) GetTree(_ context.Context,idStr string) (*Tree, error) {
 		return nil, err
 	}
 
-	return repo.getTree(id)
+	return repo.getTree(ctx, id)
 }

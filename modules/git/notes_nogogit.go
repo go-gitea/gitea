@@ -34,13 +34,13 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	var entry *TreeEntry
 	originalCommitID := commitID
 	for len(commitID) > 2 {
-		entry, err = tree.GetTreeEntryByPath(commitID)
+		entry, err = tree.GetTreeEntryByPath(ctx, commitID)
 		if err == nil {
 			path += commitID
 			break
 		}
 		if IsErrNotExist(err) {
-			tree, err = tree.SubTree(commitID[0:2])
+			tree, err = tree.SubTree(ctx, commitID[0:2])
 			path += commitID[0:2] + "/"
 			commitID = commitID[2:]
 		}

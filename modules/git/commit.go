@@ -319,8 +319,8 @@ func (c *Commit) FileChangedSinceCommit(ctx context.Context, filename, pastCommi
 
 // HasFile returns true if the file given exists on this commit
 // This does only mean it's there - it does not mean the file was changed during the commit.
-func (c *Commit) HasFile(filename string) (bool, error) {
-	_, err := c.GetBlobByPath(filename)
+func (c *Commit) HasFile(ctx context.Context, filename string) (bool, error) {
+	_, err := c.GetBlobByPath(ctx, filename)
 	if err != nil {
 		return false, err
 	}
@@ -329,7 +329,7 @@ func (c *Commit) HasFile(filename string) (bool, error) {
 
 // GetFileContent reads a file content as a string or returns false if this was not possible
 func (c *Commit) GetFileContent(ctx context.Context, filename string, limit int) (string, error) {
-	entry, err := c.GetTreeEntryByPath(filename)
+	entry, err := c.GetTreeEntryByPath(ctx, filename)
 	if err != nil {
 		return "", err
 	}

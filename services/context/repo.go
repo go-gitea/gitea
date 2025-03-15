@@ -218,7 +218,7 @@ func (r *Repository) GetEditorconfig(ctx context.Context, optCommit ...*git.Comm
 			return nil, nil, err
 		}
 	}
-	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
+	treeEntry, err := commit.GetTreeEntryByPath(ctx, ".editorconfig")
 	if err != nil {
 		return nil, nil, err
 	}

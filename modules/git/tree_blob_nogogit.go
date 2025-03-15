@@ -6,12 +6,13 @@
 package git
 
 import (
+	"context"
 	"path"
 	"strings"
 )
 
 // GetTreeEntryByPath get the tree entries according the sub dir
-func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
+func (t *Tree) GetTreeEntryByPath(ctx context.Context, relpath string) (*TreeEntry, error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
 			ptree:     t,
@@ -38,7 +39,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 				}
 			}
 		} else {
-			tree, err = tree.SubTree(name)
+			tree, err = tree.SubTree(ctx, name)
 			if err != nil {
 				return nil, err
 			}

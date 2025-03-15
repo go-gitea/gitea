@@ -4,6 +4,7 @@
 package repo
 
 import (
+	gocontext "context"
 	"fmt"
 	"io"
 	"net/http"
@@ -133,7 +134,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	treeNames, treePaths := getParentTreeFields(path.Join(ctx.Repo.TreePath, filePath))
 
 	if !isNewFile {
-		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.TreePath)
 		if err != nil {
 			HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 			return
@@ -408,7 +409,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, treePath)
 	if err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, "GetTreeEntryByPath: "+err.Error())
 		return
@@ -589,7 +590,7 @@ func DeleteFilePost(ctx *context.Context) {
 		if err == nil && commit != nil {
 			// We have the comment, now find what directory we can return the user to
 			// (must have entries)
-			treePath = GetClosestParentWithFiles(treePath, commit)
+			treePath = GetClosestParentWithFiles(ctx, treePath, commit)
 		} else {
 			treePath = "" // otherwise return them to the root of the repo
 		}
@@ -684,7 +685,7 @@ func UploadFilePost(ctx *context.Context) {
 		var newTreePath string
 		for _, part := range treeNames {
 			newTreePath = path.Join(newTreePath, part)
-			entry, err := ctx.Repo.Commit.GetTreeEntryByPath(newTreePath)
+			entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, newTreePath)
 			if err != nil {
 				if git.IsErrNotExist(err) {
 					break // Means there is no item with that name, so we're good
@@ -889,17 +890,17 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 // GetClosestParentWithFiles Recursively gets the path of parent in a tree that has files (used when file in a tree is
 // deleted). Returns "" for the root if no parents other than the root have files. If the given treePath isn't a
 // SubTree or it has no entries, we go up one dir and see if we can return the user to that listing.
-func GetClosestParentWithFiles(treePath string, commit *git.Commit) string {
+func GetClosestParentWithFiles(ctx gocontext.Context, treePath string, commit *git.Commit) string {
 	if len(treePath) == 0 || treePath == "." {
 		return ""
 	}
 	// see if the tree has entries
-	if tree, err := commit.SubTree(treePath); err != nil {
+	if tree, err := commit.SubTree(ctx, treePath); err != nil {
 		// failed to get tree, going up a dir
-		return GetClosestParentWithFiles(path.Dir(treePath), commit)
+		return GetClosestParentWithFiles(ctx, path.Dir(treePath), commit)
 	} else if entries, err := tree.ListEntries(); err != nil || len(entries) == 0 {
 		// no files in this dir, going up a dir
-		return GetClosestParentWithFiles(path.Dir(treePath), commit)
+		return GetClosestParentWithFiles(ctx, path.Dir(treePath), commit)
 	}
 	return treePath
 }

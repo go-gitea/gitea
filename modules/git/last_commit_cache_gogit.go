@@ -51,7 +51,7 @@ func (c *Commit) recursiveCache(ctx context.Context, index cgobject.CommitNode, 
 
 	for entry := range commits {
 		if entryMap[entry].IsDir() {
-			subTree, err := tree.SubTree(entry)
+			subTree, err := tree.SubTree(ctx, entry)
 			if err != nil {
 				return err
 			}

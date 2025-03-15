@@ -120,7 +120,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 		return nil
 	}
 
-	b, err := commit.GetBlobByPath(LicenseFileName)
+	b, err := commit.GetBlobByPath(ctx, LicenseFileName)
 	if err != nil && !git.IsErrNotExist(err) {
 		return fmt.Errorf("GetBlobByPath: %w", err)
 	}

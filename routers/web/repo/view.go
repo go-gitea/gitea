@@ -251,7 +251,7 @@ func LastCommit(ctx *context.Context) {
 }
 
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.SubTree", err)
 		return nil
@@ -260,7 +260,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	// Get current entry user currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return nil

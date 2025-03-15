@@ -15,7 +15,7 @@ func (c *Commit) GetSubModules(ctx context.Context) (*ObjectCache[*SubModule], e
 		return c.submoduleCache, nil
 	}
 
-	entry, err := c.GetTreeEntryByPath(".gitmodules")
+	entry, err := c.GetTreeEntryByPath(ctx, ".gitmodules")
 	if err != nil {
 		if _, ok := err.(ErrNotExist); ok {
 			return nil, nil

@@ -19,7 +19,7 @@ func NewTree(repo *Repository, id ObjectID) *Tree {
 }
 
 // SubTree get a subtree by the sub dir path
-func (t *Tree) SubTree(rpath string) (*Tree, error) {
+func (t *Tree) SubTree(ctx context.Context, rpath string) (*Tree, error) {
 	if len(rpath) == 0 {
 		return t, nil
 	}
@@ -32,12 +32,12 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 		te  *TreeEntry
 	)
 	for _, name := range paths {
-		te, err = p.GetTreeEntryByPath(name)
+		te, err = p.GetTreeEntryByPath(ctx, name)
 		if err != nil {
 			return nil, err
 		}
 
-		g, err = t.repo.getTree(te.ID)
+		g, err = t.repo.getTree(ctx, te.ID)
 		if err != nil {
 			return nil, err
 		}

@@ -364,7 +364,7 @@ func (err ErrSHAOrCommitIDNotProvided) Error() string {
 // handles the check for various issues for ChangeRepoFiles
 func handleCheckErrors(ctx context.Context, file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
 	if file.Operation == "update" || file.Operation == "delete" {
-		fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
+		fromEntry, err := commit.GetTreeEntryByPath(ctx, file.Options.fromTreePath)
 		if err != nil {
 			return err
 		}
@@ -407,7 +407,7 @@ func handleCheckErrors(ctx context.Context, file *ChangeRepoFile, commit *git.Co
 		subTreePath := ""
 		for index, part := range treePathParts {
 			subTreePath = path.Join(subTreePath, part)
-			entry, err := commit.GetTreeEntryByPath(subTreePath)
+			entry, err := commit.GetTreeEntryByPath(ctx, subTreePath)
 			if err != nil {
 				if git.IsErrNotExist(err) {
 					// Means there is no item with that name, so we're good

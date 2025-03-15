@@ -53,7 +53,7 @@ func GetTemplateConfig(ctx context.Context, gitRepo *git.Repository, path string
 		return GetDefaultTemplateConfig(), nil
 	}
 
-	treeEntry, err := commit.GetTreeEntryByPath(path)
+	treeEntry, err := commit.GetTreeEntryByPath(ctx, path)
 	if err != nil {
 		return GetDefaultTemplateConfig(), err
 	}
@@ -126,7 +126,7 @@ func ParseTemplatesFromDefaultBranch(ctx context.Context, repo *repo.Repository,
 	}
 
 	for _, dirName := range templateDirCandidates {
-		tree, err := commit.SubTree(dirName)
+		tree, err := commit.SubTree(ctx, dirName)
 		if err != nil {
 			log.Debug("get sub tree of %s: %v", dirName, err)
 			continue
@@ -167,11 +167,11 @@ func GetTemplateConfigFromDefaultBranch(ctx context.Context, repo *repo.Reposito
 	}
 
 	for _, configName := range templateConfigCandidates {
-		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
+		if _, err := commit.GetTreeEntryByPath(ctx, configName+".yaml"); err == nil {
 			return GetTemplateConfig(ctx, gitRepo, configName+".yaml", commit)
 		}
 
-		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
+		if _, err := commit.GetTreeEntryByPath(ctx, configName+".yml"); err == nil {
 			return GetTemplateConfig(ctx, gitRepo, configName+".yml", commit)
 		}
 	}

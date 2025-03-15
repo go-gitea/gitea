@@ -92,7 +92,7 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 		if entry.Name() != "" {
 			return
 		}
-		tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+		tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.TreePath)
 		if err != nil {
 			HandleGitError(ctx, "Repo.Commit.SubTree", err)
 			return
@@ -356,7 +356,7 @@ func Home(ctx *context.Context) {
 	}
 
 	// get the current git entry which doer user is currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return

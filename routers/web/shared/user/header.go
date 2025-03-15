@@ -134,7 +134,7 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 		return nil, nil
 	}
 
-	profileReadmeBlob, _ = commit.GetBlobByPath("README.md") // no need to handle this error
+	profileReadmeBlob, _ = commit.GetBlobByPath(ctx, "README.md") // no need to handle this error
 	return profileDbRepo, profileReadmeBlob
 }
 
