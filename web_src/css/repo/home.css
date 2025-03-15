@@ -51,37 +51,17 @@
 
 .repo-view-container {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--page-spacing);
+}
+
+.repo-view-container .repo-view-file-tree-container {
+  flex: 0 1 15%;
+  min-width: 0;
+  max-height: 100vh;
 }
 
 .repo-view-content {
   flex: 1;
-}
-
-.repo-view-with-sidebar .repo-view-file-tree-sidebar {
-  flex: 0 1 15%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 100vh;
-  overflow: hidden;
-  position: sticky;
-  top: 14px;
-  z-index: 8;
-}
-
-.repo-view-container .repo-button-row {
-  margin-top: 0 !important;
-}
-
-@media (max-width: 767.98px) {
-  .repo-view-with-sidebar {
-    flex: 1 1 0;
-  }
-  .repo-view-content {
-    flex: 1 1 0;
-  }
 }
 
 .language-stats {

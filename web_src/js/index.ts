@@ -24,7 +24,6 @@ import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
 import {initRepoPullRequestAllowMaintainerEdit, initRepoPullRequestReview, initRepoIssueSidebarDependency, initRepoIssueFilterItemLabel} from './features/repo-issue.ts';
 import {initRepoEllipsisButton, initCommitStatuses} from './features/repo-commit.ts';
 import {initRepoTopicBar} from './features/repo-home.ts';
-import {initViewFileTreeSidebar} from './features/repo-view-file-tree-sidebar.ts';
 import {initAdminCommon} from './features/admin/common.ts';
 import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
@@ -65,6 +64,7 @@ import {initFootLanguageMenu, initGlobalDropdown, initGlobalInput, initGlobalTab
 import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton} from './features/common-button.ts';
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
+import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 
 initGiteaFomantic();
 initSubmitEventPolyfill();
@@ -140,7 +140,7 @@ onDomReady(() => {
     initRepoRelease,
     initRepoReleaseNew,
     initRepoTopicBar,
-    initViewFileTreeSidebar,
+    initRepoViewFileTree,
     initRepoWikiForm,
     initRepository,
     initRepositoryActionView,
