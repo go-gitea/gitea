@@ -35,7 +35,7 @@ func TestDownloadTaskLogs(t *testing.T) {
 		{
 			treePath: ".gitea/workflows/download-task-logs-zstd.yml",
 			fileContent: `name: download-task-logs-zstd
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/download-task-logs-zstd.yml'
@@ -67,7 +67,7 @@ jobs:
 		{
 			treePath: ".gitea/workflows/download-task-logs-no-zstd.yml",
 			fileContent: `name: download-task-logs-no-zstd
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/download-task-logs-no-zstd.yml'
@@ -105,7 +105,7 @@ jobs:
 		apiRepo := createActionsTestRepo(t, token, "actions-download-task-logs", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"})
+		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		for _, tc := range testCases {
 			t.Run(fmt.Sprintf("test %s", tc.treePath), func(t *testing.T) {
@@ -152,8 +152,5 @@ jobs:
 				resetFunc()
 			})
 		}
-
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		doAPIDeleteRepository(httpContext)(t)
 	})
 }

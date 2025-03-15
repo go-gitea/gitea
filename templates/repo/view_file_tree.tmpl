@@ -1,0 +1,15 @@
+<div class="flex-text-block tw-mb-2">
+	<button class="ui compact tiny icon button"
+		data-global-click="onRepoViewFileTreeToggle" data-toggle-action="hide"
+		data-tooltip-content="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
+		{{svg "octicon-sidebar-expand"}}
+	</button>
+	<b>{{ctx.Locale.Tr "files"}}</b>
+</div>
+
+{{/* TODO: Dynamically move components such as refSelector and createPR here */}}
+<div id="view-file-tree" class="tw-overflow-auto tw-h-full is-loading"
+	data-repo-link="{{.RepoLink}}"
+	data-tree-path="{{$.TreePath}}"
+	data-current-ref-name-sub-url="{{.RefTypeNameSubURL}}"
+></div>
