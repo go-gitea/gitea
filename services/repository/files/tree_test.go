@@ -52,133 +52,50 @@ func TestGetTreeBySHA(t *testing.T) {
 	assert.EqualValues(t, expectedTree, tree)
 }
 
-func Test_GetTreeList(t *testing.T) {
+func Test_GetTreeViewNodes(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx1, _ := contexttest.MockContext(t, "user2/repo1")
-	contexttest.LoadRepo(t, ctx1, 1)
-	contexttest.LoadRepoCommit(t, ctx1)
-	contexttest.LoadUser(t, ctx1, 2)
-	contexttest.LoadGitRepo(t, ctx1)
-	defer ctx1.Repo.GitRepo.Close()
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
+	ctx.Repo.RefFullName = git.RefNameFromBranch("sub-home-md-img-check")
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
 
-	refName := git.RefNameFromBranch(ctx1.Repo.Repository.DefaultBranch)
-
-	treeList, err := GetTreeList(ctx1, ctx1.Repo.Repository, ctx1.Repo.GitRepo, "", refName)
+	treeNodes, err := GetTreeViewNodes(ctx, ctx.Repo.Commit, "", "")
 	assert.NoError(t, err)
-	assert.Len(t, treeList, 1)
-	assert.EqualValues(t, "README.md", treeList[0].Name)
-	assert.EqualValues(t, "README.md", treeList[0].Path)
-	assert.EqualValues(t, "blob", treeList[0].Type)
-	assert.Empty(t, treeList[0].Children)
+	assert.Equal(t, []*TreeViewNode{
+		{
+			Name: "docs",
+			Type: "tree",
+			Path: "docs",
+		},
+	}, treeNodes)
 
-	ctx2, _ := contexttest.MockContext(t, "org3/repo3")
-	contexttest.LoadRepo(t, ctx2, 3)
-	contexttest.LoadRepoCommit(t, ctx2)
-	contexttest.LoadUser(t, ctx2, 2)
-	contexttest.LoadGitRepo(t, ctx2)
-	defer ctx2.Repo.GitRepo.Close()
-
-	refName = git.RefNameFromBranch(ctx2.Repo.Repository.DefaultBranch)
-
-	treeList, err = GetTreeList(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "", refName)
+	treeNodes, err = GetTreeViewNodes(ctx, ctx.Repo.Commit, "", "docs/README.md")
 	assert.NoError(t, err)
-	assert.Len(t, treeList, 2)
+	assert.Equal(t, []*TreeViewNode{
+		{
+			Name: "docs",
+			Type: "tree",
+			Path: "docs",
+			Children: []*TreeViewNode{
+				{
+					Name: "README.md",
+					Type: "blob",
+					Path: "docs/README.md",
+				},
+			},
+		},
+	}, treeNodes)
 
-	assert.EqualValues(t, "doc", treeList[0].Name)
-	assert.EqualValues(t, "doc", treeList[0].Path)
-	assert.EqualValues(t, "tree", treeList[0].Type)
-	assert.Empty(t, treeList[0].Children)
-
-	assert.EqualValues(t, "README.md", treeList[1].Name)
-	assert.EqualValues(t, "README.md", treeList[1].Path)
-	assert.EqualValues(t, "blob", treeList[1].Type)
-	assert.Empty(t, treeList[1].Children)
-}
-
-func Test_GetTreeInformation(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx1, _ := contexttest.MockContext(t, "user2/repo1")
-	contexttest.LoadRepo(t, ctx1, 1)
-	contexttest.LoadRepoCommit(t, ctx1)
-	contexttest.LoadUser(t, ctx1, 2)
-	contexttest.LoadGitRepo(t, ctx1)
-	defer ctx1.Repo.GitRepo.Close()
-
-	refName := git.RefNameFromBranch(ctx1.Repo.Repository.DefaultBranch)
-
-	treeList, err := GetTreeInformation(ctx1, ctx1.Repo.Repository, ctx1.Repo.GitRepo, "", refName)
+	treeNodes, err = GetTreeViewNodes(ctx, ctx.Repo.Commit, "docs", "README.md")
 	assert.NoError(t, err)
-	assert.Len(t, treeList, 1)
-	assert.EqualValues(t, "README.md", treeList[0].Name)
-	assert.EqualValues(t, "README.md", treeList[0].Path)
-	assert.EqualValues(t, "blob", treeList[0].Type)
-	assert.Empty(t, treeList[0].Children)
-
-	treeList, err = GetTreeInformation(ctx1, ctx1.Repo.Repository, ctx1.Repo.GitRepo, "README.md", refName)
-	assert.NoError(t, err)
-	assert.Len(t, treeList, 1)
-	assert.EqualValues(t, "README.md", treeList[0].Name)
-	assert.EqualValues(t, "README.md", treeList[0].Path)
-	assert.EqualValues(t, "blob", treeList[0].Type)
-	assert.Empty(t, treeList[0].Children)
-
-	ctx2, _ := contexttest.MockContext(t, "org3/repo3")
-	contexttest.LoadRepo(t, ctx2, 3)
-	contexttest.LoadRepoCommit(t, ctx2)
-	contexttest.LoadUser(t, ctx2, 2)
-	contexttest.LoadGitRepo(t, ctx2)
-	defer ctx2.Repo.GitRepo.Close()
-
-	refName = git.RefNameFromBranch(ctx2.Repo.Repository.DefaultBranch)
-
-	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "", refName)
-	assert.NoError(t, err)
-	assert.Len(t, treeList, 2)
-
-	assert.EqualValues(t, "doc", treeList[0].Name)
-	assert.EqualValues(t, "doc", treeList[0].Path)
-	assert.EqualValues(t, "tree", treeList[0].Type)
-	assert.Empty(t, treeList[0].Children)
-
-	assert.EqualValues(t, "README.md", treeList[1].Name)
-	assert.EqualValues(t, "README.md", treeList[1].Path)
-	assert.EqualValues(t, "blob", treeList[1].Type)
-	assert.Empty(t, treeList[1].Children)
-
-	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "doc", refName)
-	assert.NoError(t, err)
-	assert.Len(t, treeList, 2)
-	assert.EqualValues(t, "doc", treeList[0].Name)
-	assert.EqualValues(t, "doc", treeList[0].Path)
-	assert.EqualValues(t, "tree", treeList[0].Type)
-	assert.Len(t, treeList[0].Children, 1)
-
-	assert.EqualValues(t, "doc.md", treeList[0].Children[0].Name)
-	assert.EqualValues(t, "doc/doc.md", treeList[0].Children[0].Path)
-	assert.EqualValues(t, "blob", treeList[0].Children[0].Type)
-	assert.Empty(t, treeList[0].Children[0].Children)
-
-	assert.EqualValues(t, "README.md", treeList[1].Name)
-	assert.EqualValues(t, "README.md", treeList[1].Path)
-	assert.EqualValues(t, "blob", treeList[1].Type)
-	assert.Empty(t, treeList[1].Children)
-
-	treeList, err = GetTreeInformation(ctx2, ctx2.Repo.Repository, ctx2.Repo.GitRepo, "doc/doc.md", refName)
-	assert.NoError(t, err)
-	assert.Len(t, treeList, 2)
-
-	assert.EqualValues(t, "doc", treeList[0].Name)
-	assert.EqualValues(t, "doc", treeList[0].Path)
-	assert.EqualValues(t, "tree", treeList[0].Type)
-	assert.Len(t, treeList[0].Children, 1)
-
-	assert.EqualValues(t, "doc.md", treeList[0].Children[0].Name)
-	assert.EqualValues(t, "doc/doc.md", treeList[0].Children[0].Path)
-	assert.EqualValues(t, "blob", treeList[0].Children[0].Type)
-	assert.Empty(t, treeList[0].Children[0].Children)
-
-	assert.EqualValues(t, "README.md", treeList[1].Name)
-	assert.EqualValues(t, "README.md", treeList[1].Path)
-	assert.EqualValues(t, "blob", treeList[1].Type)
-	assert.Empty(t, treeList[1].Children)
+	assert.Equal(t, []*TreeViewNode{
+		{
+			Name: "README.md",
+			Type: "blob",
+			Path: "docs/README.md",
+		},
+	}, treeNodes)
 }

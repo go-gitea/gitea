@@ -98,9 +98,9 @@ func Tree(ctx *context.Context) {
 	var results []*files_service.TreeViewNode
 	var err error
 	if !recursive {
-		results, err = files_service.GetTreeList(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.RefFullName)
+		results, err = files_service.GetTreeViewNodes(ctx, ctx.Repo.Commit, ctx.Repo.TreePath, "")
 	} else {
-		results, err = files_service.GetTreeInformation(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.RefFullName)
+		results, err = files_service.GetTreeViewNodes(ctx, ctx.Repo.Commit, "", ctx.Repo.TreePath)
 	}
 	if err != nil {
 		ctx.ServerError("GetTreeInformation", err)

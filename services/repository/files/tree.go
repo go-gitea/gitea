@@ -186,328 +186,38 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 	})
 }
 
-/*
-Example 1: (path: /)
-
-		GET /repo/name/tree/
-
-		resp:
-		[{
-		    "name": "d1",
-		  	"type": "commit",
-	    	"path": "d1",
-	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
-		},{
-		    "name": "d2",
-		    "type": "symlink",
-		    "path": "d2"
-		},{
-		    "name": "d3",
-		    "type": "tree",
-		    "path": "d3"
-		},{
-		    "name": "f1",
-		    "type": "blob",
-		    "path": "f1"
-		},]
-
-Example 2: (path: d3)
-
-	GET /repo/name/tree/d3
-	resp:
-	[{
-	    "name": "d3d1",
-	    "type": "tree",
-	    "path": "d3/d3d1"
-	}]
-
-Example 3: (path: d3/d3d1)
-
-	GET /repo/name/tree/d3/d3d1
-	resp:
-	[{
-	    "name": "d3d1f1",
-	    "type": "blob",
-	    "path": "d3/d3d1/d3d1f1"
-	},{
-	    "name": "d3d1f2",
-	    "type": "blob",
-	    "path": "d3/d3d1/d3d1f2"
-	}]
-*/
-func GetTreeList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, treePath string, ref git.RefName) ([]*TreeViewNode, error) {
-	if repo.IsEmpty {
-		return nil, nil
-	}
-	if ref == "" {
-		ref = git.RefNameFromBranch(repo.DefaultBranch)
-	}
-
-	// Check that the path given in opts.treePath is valid (not a git path)
-	cleanTreePath := util.PathJoinRel(treePath)
-	if cleanTreePath == "" && treePath != "" {
-		return nil, ErrFilenameInvalid{
-			Path: treePath,
-		}
-	}
-	treePath = cleanTreePath
-
-	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(ref.String())
-	if err != nil {
-		return nil, err
-	}
-
-	entry, err := commit.GetTreeEntryByPath(treePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the entry is a file, an exception will be thrown.
-	// This is because this interface is specifically designed for expanding folders and only supports the retrieval and return of the file list within a folder.
-	if entry.Type() != "tree" {
-		return nil, fmt.Errorf("%s is not a tree", treePath)
-	}
-
-	gitTree, err := commit.SubTree(treePath)
-	if err != nil {
-		return nil, err
-	}
-
-	entries, err := gitTree.ListEntries()
-	if err != nil {
-		return nil, err
-	}
-
-	var treeViewNodes []*TreeViewNode
-	mapTree := make(map[string][]*TreeViewNode)
-	for _, e := range entries {
-		subTreePath := path.Join(treePath, e.Name())
-
-		if strings.Contains(e.Name(), "/") {
-			dirName := path.Dir(e.Name())
-			mapTree[dirName] = append(mapTree[dirName], &TreeViewNode{
-				Name: path.Base(e.Name()),
-				Type: entryModeString(e.Mode()),
-				Path: subTreePath,
-			})
-		} else {
-			treeViewNodes = append(treeViewNodes, &TreeViewNode{
-				Name: e.Name(),
-				Type: entryModeString(e.Mode()),
-				Path: subTreePath,
-			})
-		}
-	}
-
-	for _, node := range treeViewNodes {
-		if node.Type == "tree" {
-			node.Children = mapTree[node.Path]
-			sortTreeViewNodes(node.Children)
-		}
-	}
-
-	sortTreeViewNodes(treeViewNodes)
-
-	return treeViewNodes, nil
-}
-
-// GetTreeInformation returns the first level directories and files and all the trees of the path to treePath.
-// If treePath is a directory, list all subdirectories and files of treePath.
-/*
-Example 1: (path: /)
-    GET /repo/name/tree/?recursive=true
-    resp:
-    [{
-		    "name": "d1",
-		  	"type": "commit",
-	    	"path": "d1",
-	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
-		},{
-		    "name": "d2",
-		    "type": "symlink",
-		    "path": "d2"
-		},{
-		    "name": "d3",
-		    "type": "tree",
-		    "path": "d3"
-		},{
-		    "name": "f1",
-		    "type": "blob",
-		    "path": "f1"
-		},]
-
-Example 2: (path: d3)
-    GET /repo/name/tree/d3?recursive=true
-    resp:
-    [{
-		    "name": "d1",
-		  	"type": "commit",
-	    	"path": "d1",
-	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
-		},{
-		    "name": "d2",
-		    "type": "symlink",
-		    "path": "d2"
-		},{
-        "name": "d3",
-		    "type": "tree",
-        "path": "d3",
-        "children": [{
-            "name": "d3d1",
-		    		"type": "tree",
-            "path": "d3/d3d1"
-        }]
-    },{
-        "name": "f1",
-		    "type": "blob",
-        "path": "f1"
-    },]
-
-Example 3: (path: d3/d3d1)
-    GET /repo/name/tree/d3/d3d1?recursive=true
-    resp:
-    [{
-		    "name": "d1",
-		  	"type": "commit",
-	    	"path": "d1",
-	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
-		},{
-		    "name": "d2",
-		    "type": "symlink",
-		    "path": "d2"
-		},{
-        "name": "d3",
-		    "type": "tree",
-        "path": "d3",
-        "children": [{
-            "name": "d3d1",
-		    		"type": "tree",
-            "path": "d3/d3d1",
-            "children": [{
-                "name": "d3d1f1",
-		    				"type": "blob",
-                "path": "d3/d3d1/d3d1f1"
-            },{
-                "name": "d3d1f2",
-		    				"type": "blob",
-                "path": "d3/d3d1/d3d1f2"
-            }]
-        }]
-    },{
-        "name": "f1",
-		    "type": "blob",
-        "path": "f1"
-    },]
-
-Example 4: (path: d2/d2f1)
-    GET /repo/name/tree/d2/d2f1?recursive=true
-    resp:
-    [{
-		    "name": "d1",
-		  	"type": "commit",
-	    	"path": "d1",
-	    	"sub_module_url": "https://gitea.com/gitea/awesome-gitea/tree/887fe27678dced0bd682923b30b2d979575d35d6"
-		},{
-        "name": "d2",
-		    "type": "tree",
-        "path": "d2",
-        "children": [{
-            "name": "d2f1",
-		    		"type": "blob",
-            "path": "d2/d2f1"
-        }]
-    },{
-        "name": "d3",
-		    "type": "tree",
-        "path": "d3"
-    },{
-        "name": "f1",
-		    "type": "blob",
-        "path": "f1"
-    },]
-*/
-func GetTreeInformation(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, treePath string, ref git.RefName) ([]*TreeViewNode, error) {
-	if repo.IsEmpty {
-		return nil, nil
-	}
-	if ref == "" {
-		ref = git.RefNameFromBranch(repo.DefaultBranch)
-	}
-
-	// Check that the path given in opts.treePath is valid (not a git path)
-	cleanTreePath := util.PathJoinRel(treePath)
-	if cleanTreePath == "" && treePath != "" {
-		return nil, ErrFilenameInvalid{
-			Path: treePath,
-		}
-	}
-	treePath = cleanTreePath
-
-	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(ref.String())
-	if err != nil {
-		return nil, err
-	}
-
-	// get root entries
-	rootEntries, err := commit.ListEntries()
-	if err != nil {
-		return nil, err
-	}
-
-	dir := treePath
-	if dir != "" {
-		lastDirEntry, err := commit.GetTreeEntryByPath(treePath)
-		if err != nil {
-			return nil, err
-		}
-		if lastDirEntry.IsRegular() {
-			// path.Dir cannot correctly handle .xxx file
-			dir, _ = path.Split(treePath)
-			dir = strings.TrimRight(dir, "/")
-		}
-	}
-
-	treeViewNodes := make([]*TreeViewNode, 0, len(rootEntries))
-	fields := strings.Split(dir, "/")
-	var parentNode *TreeViewNode
-	for _, entry := range rootEntries {
-		node := newTreeViewNodeFromEntry(ctx, commit, "", entry)
-		treeViewNodes = append(treeViewNodes, node)
-		if dir != "" && fields[0] == entry.Name() {
-			parentNode = node
-		}
-	}
-
-	sortTreeViewNodes(treeViewNodes)
-	if dir == "" || parentNode == nil {
-		return treeViewNodes, nil
-	}
-
-	for i := 1; i < len(fields); i++ {
-		parentNode.Children = []*TreeViewNode{
-			{
-				Name: fields[i],
-				Type: "tree",
-				Path: path.Join(fields[:i+1]...),
-			},
-		}
-		parentNode = parentNode.Children[0]
-	}
-
-	tree, err := commit.Tree.SubTree(dir)
-	if err != nil {
-		return nil, err
-	}
+func listTreeNodes(ctx context.Context, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
 	entries, err := tree.ListEntries()
 	if err != nil {
 		return nil, err
 	}
 
+	subPathDirName, subPathRemaining, _ := strings.Cut(subPath, "/")
+	nodes := make([]*TreeViewNode, 0, len(entries))
 	for _, entry := range entries {
-		parentNode.Children = append(parentNode.Children, newTreeViewNodeFromEntry(ctx, commit, dir, entry))
+		node := newTreeViewNodeFromEntry(ctx, commit, treePath, entry)
+		nodes = append(nodes, node)
+		if entry.IsDir() && subPathDirName == entry.Name() {
+			subTreePath := treePath + "/" + node.Name
+			if subTreePath[0] == '/' {
+				subTreePath = subTreePath[1:]
+			}
+			subNodes, err := listTreeNodes(ctx, commit, entry.Tree(), subTreePath, subPathRemaining)
+			if err != nil {
+				log.Error("listTreeNodes: %v", err)
+			} else {
+				node.Children = subNodes
+			}
+		}
 	}
-	sortTreeViewNodes(parentNode.Children)
-	return treeViewNodes, nil
+	sortTreeViewNodes(nodes)
+	return nodes, nil
+}
+
+func GetTreeViewNodes(ctx context.Context, commit *git.Commit, treePath, subPath string) ([]*TreeViewNode, error) {
+	entry, err := commit.GetTreeEntryByPath(treePath)
+	if err != nil {
+		return nil, err
+	}
+	return listTreeNodes(ctx, commit, entry.Tree(), treePath, subPath)
 }
