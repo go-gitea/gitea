@@ -146,7 +146,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		blob := entry.Blob()
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
+		if blob.Size(ctx) >= setting.UI.MaxDisplayFileSize {
 			ctx.NotFound(err)
 			return
 		}
@@ -159,7 +159,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		defer dataRc.Close()
 
-		ctx.Data["FileSize"] = blob.Size()
+		ctx.Data["FileSize"] = blob.Size(ctx)
 		ctx.Data["FileName"] = blob.Name()
 
 		buf := make([]byte, 1024)
@@ -201,7 +201,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 // GetEditorConfig returns a editorconfig JSON string for given treePath or "null"
 func GetEditorConfig(ctx *context.Context, treePath string) string {
-	ec, _, err := ctx.Repo.GetEditorconfig()
+	ec, _, err := ctx.Repo.GetEditorconfig(ctx)
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {

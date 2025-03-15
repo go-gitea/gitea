@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"io"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -27,6 +28,6 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 }
 
 // Size returns the uncompressed size of the blob
-func (b *Blob) Size() int64 {
+func (b *Blob) Size(_ context.Context) int64 {
 	return b.gogitEncodedObj.Size()
 }

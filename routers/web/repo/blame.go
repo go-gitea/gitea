@@ -67,7 +67,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	blob := entry.Blob()
-	fileSize := blob.Size()
+	fileSize := blob.Size(ctx)
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 
