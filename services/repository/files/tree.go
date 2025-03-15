@@ -140,36 +140,31 @@ func entryModeString(entryMode git.EntryMode) string {
 }
 
 type TreeViewNode struct {
-	Name         string          `json:"name"`
-	Type         string          `json:"type"`
-	Path         string          `json:"path"`
-	SubModuleURL string          `json:"sub_module_url,omitempty"`
+	EntryName    string          `json:"entryName"`
+	EntryMode    string          `json:"entryMode"`
+	FullPath     string          `json:"fullPath"`
+	SubmoduleURL string          `json:"submoduleUrl,omitempty"`
 	Children     []*TreeViewNode `json:"children,omitempty"`
 }
 
 func (node *TreeViewNode) sortLevel() int {
-	switch node.Type {
-	case "tree", "commit":
-		return 0
-	default:
-		return 1
-	}
+	return util.Iif(node.EntryMode == "tree" || node.EntryMode == "commit", 0, 1)
 }
 
 func newTreeViewNodeFromEntry(ctx context.Context, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
 	node := &TreeViewNode{
-		Name: entry.Name(),
-		Type: entryModeString(entry.Mode()),
-		Path: path.Join(parentDir, entry.Name()),
+		EntryName: entry.Name(),
+		EntryMode: entryModeString(entry.Mode()),
+		FullPath:  path.Join(parentDir, entry.Name()),
 	}
 
-	if node.Type == "commit" {
-		if subModule, err := commit.GetSubModule(node.Path); err != nil {
+	if node.EntryMode == "commit" {
+		if subModule, err := commit.GetSubModule(node.FullPath); err != nil {
 			log.Error("GetSubModule: %v", err)
 		} else if subModule != nil {
 			submoduleFile := git.NewCommitSubmoduleFile(subModule.URL, entry.ID.String())
 			webLink := submoduleFile.SubmoduleWebLink(ctx)
-			node.SubModuleURL = webLink.CommitWebLink
+			node.SubmoduleURL = webLink.CommitWebLink
 		}
 	}
 
@@ -179,10 +174,11 @@ func newTreeViewNodeFromEntry(ctx context.Context, commit *git.Commit, parentDir
 // sortTreeViewNodes list directory first and with alpha sequence
 func sortTreeViewNodes(nodes []*TreeViewNode) {
 	sort.Slice(nodes, func(i, j int) bool {
-		if nodes[i].sortLevel() != nodes[j].sortLevel() {
-			return nodes[i].sortLevel() < nodes[j].sortLevel()
+		a, b := nodes[i].sortLevel(), nodes[j].sortLevel()
+		if a != b {
+			return a < b
 		}
-		return nodes[i].Name < nodes[j].Name
+		return nodes[i].EntryName < nodes[j].EntryName
 	})
 }
 
@@ -198,7 +194,7 @@ func listTreeNodes(ctx context.Context, commit *git.Commit, tree *git.Tree, tree
 		node := newTreeViewNodeFromEntry(ctx, commit, treePath, entry)
 		nodes = append(nodes, node)
 		if entry.IsDir() && subPathDirName == entry.Name() {
-			subTreePath := treePath + "/" + node.Name
+			subTreePath := treePath + "/" + node.EntryName
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]
 			}

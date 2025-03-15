@@ -3,10 +3,10 @@ import {SvgIcon} from '../svg.ts';
 import {ref} from 'vue';
 
 type Item = {
-  name: string;
-  path: string;
-  sub_module_url?: string;
-  type: string;
+  entryName: string;
+  entryMode: string;
+  fullPath: string;
+  submoduleUrl?: string;
   children?: Item[];
 };
 
@@ -26,7 +26,7 @@ const doLoadChildren = async () => {
   if (!collapsed.value && props.loadChildren) {
     isLoading.value = true;
     try {
-      children.value = await props.loadChildren(props.item.path);
+      children.value = await props.loadChildren(props.item.fullPath);
     } finally {
       isLoading.value = false;
     }
@@ -35,59 +35,59 @@ const doLoadChildren = async () => {
 
 const doLoadDirContent = () => {
   doLoadChildren();
-  props.loadContent(props.item.path);
+  props.loadContent(props.item.fullPath);
 };
 
 const doLoadFileContent = () => {
-  props.loadContent(props.item.path);
+  props.loadContent(props.item.fullPath);
 };
 
 const doGotoSubModule = () => {
-  location.href = props.item.sub_module_url;
+  location.href = props.item.submoduleUrl;
 };
 </script>
 
 <template>
   <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
   <div
-    v-if="item.type === 'commit'" class="tree-item type-submodule"
-    :title="item.name"
+    v-if="item.entryMode === 'commit'" class="tree-item type-submodule"
+    :title="item.entryName"
     @click.stop="doGotoSubModule"
   >
     <!-- submodule -->
     <div class="item-content">
       <SvgIcon class="text primary" name="octicon-file-submodule"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
   <div
-    v-else-if="item.type === 'symlink'" class="tree-item type-symlink"
-    :class="{'selected': selectedItem.value === item.path}"
-    :title="item.name"
+    v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink"
+    :class="{'selected': selectedItem.value === item.fullPath}"
+    :title="item.entryName"
     @click.stop="doLoadFileContent"
   >
     <!-- symlink -->
     <div class="item-content">
       <SvgIcon name="octicon-file-symlink-file"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
   <div
-    v-else-if="item.type !== 'tree'" class="tree-item type-file"
-    :class="{'selected': selectedItem.value === item.path}"
-    :title="item.name"
+    v-else-if="item.entryMode !== 'tree'" class="tree-item type-file"
+    :class="{'selected': selectedItem.value === item.fullPath}"
+    :title="item.entryName"
     @click.stop="doLoadFileContent"
   >
     <!-- file -->
     <div class="item-content">
       <SvgIcon name="octicon-file"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
+      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
   <div
     v-else class="tree-item type-directory"
-    :class="{'selected': selectedItem.value === item.path}"
-    :title="item.name"
+    :class="{'selected': selectedItem.value === item.fullPath}"
+    :title="item.entryName"
     @click.stop="doLoadDirContent"
   >
     <!-- directory -->
@@ -97,12 +97,12 @@ const doGotoSubModule = () => {
     </div>
     <div class="item-content">
       <SvgIcon class="text primary" :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
-      <span class="gt-ellipsis">{{ item.name }}</span>
+      <span class="gt-ellipsis">{{ item.entryName }}</span>
     </div>
   </div>
 
   <div v-if="children?.length" v-show="!collapsed" class="sub-items">
-    <ViewFileTreeItem v-for="childItem in children" :key="childItem.name" :item="childItem" :selected-item="selectedItem" :load-content="loadContent" :load-children="loadChildren"/>
+    <ViewFileTreeItem v-for="childItem in children" :key="childItem.entryName" :item="childItem" :selected-item="selectedItem" :load-content="loadContent" :load-children="loadChildren"/>
   </div>
 </template>
 <style scoped>
@@ -120,7 +120,7 @@ const doGotoSubModule = () => {
   border-radius: 4px;
 }
 
-.tree-item.type-directory {
+.tree-item.entryMode-directory {
   user-select: none;
 }
 
@@ -150,5 +150,7 @@ const doGotoSubModule = () => {
   display: flex;
   align-items: center;
   gap: 0.25em;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 </style>
