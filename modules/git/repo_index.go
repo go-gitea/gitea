@@ -34,15 +34,15 @@ func (repo *Repository) ReadTreeToIndex(ctx context.Context, treeish string, ind
 	if err != nil {
 		return err
 	}
-	return repo.readTreeToIndex(id, indexFilename...)
+	return repo.readTreeToIndex(ctx, id, indexFilename...)
 }
 
-func (repo *Repository) readTreeToIndex(id ObjectID, indexFilename ...string) error {
+func (repo *Repository) readTreeToIndex(ctx context.Context, id ObjectID, indexFilename ...string) error {
 	var env []string
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
 	}
-	_, _, err := NewCommand("read-tree").AddDynamicArguments(id.String()).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path, Env: env})
+	_, _, err := NewCommand("read-tree").AddDynamicArguments(id.String()).RunStdString(ctx, &RunOpts{Dir: repo.Path, Env: env})
 	if err != nil {
 		return err
 	}
@@ -82,15 +82,15 @@ func (repo *Repository) ReadTreeToTemporaryIndex(ctx context.Context, treeish st
 }
 
 // EmptyIndex empties the index
-func (repo *Repository) EmptyIndex() error {
-	_, _, err := NewCommand("read-tree", "--empty").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+func (repo *Repository) EmptyIndex(ctx context.Context) error {
+	_, _, err := NewCommand("read-tree", "--empty").RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	return err
 }
 
 // LsFiles checks if the given filenames are in the index
-func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
+func (repo *Repository) LsFiles(ctx context.Context, filenames ...string) ([]string, error) {
 	cmd := NewCommand("ls-files", "-z").AddDashesAndList(filenames...)
-	res, _, err := cmd.RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
+	res, _, err := cmd.RunStdBytes(ctx, &RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
 }
 
 // RemoveFilesFromIndex removes given filenames from the index - it does not check whether they are present.
-func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
+func (repo *Repository) RemoveFilesFromIndex(ctx context.Context, filenames ...string) error {
 	objectFormat, err := repo.GetObjectFormat()
 	if err != nil {
 		return err
@@ -118,7 +118,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 			buffer.WriteString("0 blob " + objectFormat.EmptyObjectID().String() + "\t" + file + "\000")
 		}
 	}
-	return cmd.Run(repo.Ctx, &RunOpts{
+	return cmd.Run(ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdin:  bytes.NewReader(buffer.Bytes()),
 		Stdout: stdout,
@@ -133,7 +133,7 @@ type IndexObjectInfo struct {
 }
 
 // AddObjectsToIndex adds the provided object hashes to the index at the provided filenames
-func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
+func (repo *Repository) AddObjectsToIndex(ctx context.Context, objects ...IndexObjectInfo) error {
 	cmd := NewCommand("update-index", "--add", "--replace", "-z", "--index-info")
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
@@ -142,7 +142,7 @@ func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
 		// using format: mode SP type SP sha1 TAB path
 		buffer.WriteString(object.Mode + " blob " + object.Object.String() + "\t" + object.Filename + "\000")
 	}
-	return cmd.Run(repo.Ctx, &RunOpts{
+	return cmd.Run(ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdin:  bytes.NewReader(buffer.Bytes()),
 		Stdout: stdout,
@@ -151,13 +151,13 @@ func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
 }
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
-func (repo *Repository) AddObjectToIndex(mode string, object ObjectID, filename string) error {
-	return repo.AddObjectsToIndex(IndexObjectInfo{Mode: mode, Object: object, Filename: filename})
+func (repo *Repository) AddObjectToIndex(ctx context.Context, mode string, object ObjectID, filename string) error {
+	return repo.AddObjectsToIndex(ctx, IndexObjectInfo{Mode: mode, Object: object, Filename: filename})
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
-func (repo *Repository) WriteTree() (*Tree, error) {
-	stdout, _, runErr := NewCommand("write-tree").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+func (repo *Repository) WriteTree(ctx context.Context) (*Tree, error) {
+	stdout, _, runErr := NewCommand("write-tree").RunStdString(ctx, &RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}

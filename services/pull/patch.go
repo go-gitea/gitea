@@ -298,10 +298,10 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	}
 
 	// Add and remove files in one command, as this is slow with many files otherwise
-	if err := gitRepo.RemoveFilesFromIndex(filesToRemove...); err != nil {
+	if err := gitRepo.RemoveFilesFromIndex(ctx, filesToRemove...); err != nil {
 		return false, nil, err
 	}
-	if err := gitRepo.AddObjectsToIndex(filesToAdd...); err != nil {
+	if err := gitRepo.AddObjectsToIndex(ctx, filesToAdd...); err != nil {
 		return false, nil, err
 	}
 
