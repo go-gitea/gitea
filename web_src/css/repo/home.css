@@ -59,10 +59,6 @@
   flex: 1;
 }
 
-#view-file-tree.is-loading {
-  aspect-ratio: 5.415; /* the size is about 790 x 145 */
-}
-
 .repo-view-with-sidebar .repo-view-file-tree-sidebar {
   flex: 0 1 15%;
   display: flex;

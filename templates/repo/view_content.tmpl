@@ -9,7 +9,17 @@
 		</button>
 	{{end}}
 
-	{{template "repo/home_branch_dropdown" (dict "ctxData" .)}}
+	{{template "repo/branch_dropdown" dict
+		"Repository" .Repository
+		"ShowTabBranches" true
+		"ShowTabTags" true
+		"CurrentRefType" .RefFullName.RefType
+		"CurrentRefShortName" .RefFullName.ShortName
+		"CurrentTreePath" .TreePath
+		"RefLinkTemplate" "{RepoLink}/src/{RefType}/{RefShortName}/{TreePath}"
+		"AllowCreateNewRef" .CanCreateBranch
+		"ShowViewAllRefsEntry" true
+	}}
 
 	{{if and .CanCompareOrPull .RefFullName.IsBranch (not .Repository.IsArchived)}}
 		{{$cmpBranch := ""}}

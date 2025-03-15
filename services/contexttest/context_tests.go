@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
-	git2 "code.gitea.io/gitea/modules/git"
+	git_module "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/session"
@@ -146,7 +146,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	defer gitRepo.Close()
 
 	if repo.RefFullName == "" {
-		repo.RefFullName = git2.RefNameFromBranch(repo.Repository.DefaultBranch)
+		repo.RefFullName = git_module.RefNameFromBranch(repo.Repository.DefaultBranch)
 	}
 	if repo.RefFullName.IsPull() {
 		repo.BranchName = repo.RefFullName.ShortName()
