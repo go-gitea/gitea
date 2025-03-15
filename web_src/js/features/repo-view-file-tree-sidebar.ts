@@ -1,7 +1,6 @@
-import {createApp, ref} from 'vue';
+import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
-import {pathEscapeSegments, pathUnescapeSegments} from '../utils/url.ts';
-import {GET, POST} from '../modules/fetch.ts';
+import {POST} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
 
 const {appSubUrl} = window.config;
@@ -24,70 +23,26 @@ async function toggleSidebar(sidebarEl: HTMLElement, shouldShow: boolean) {
       codeViewShowFileTree: shouldShow,
     },
   });
-}
 
-function childrenLoader(sidebarEl: HTMLElement) {
-  return async (treePath: string, subPath: string = '') => {
-    const fileTree = sidebarEl.querySelector('#view-file-tree');
-    const baseUrl = fileTree.getAttribute('data-api-base-url');
-    const refTypeNameSubURL = fileTree.getAttribute('data-current-ref-type-name-sub-url');
-    const response = await GET(`${baseUrl}/tree/${refTypeNameSubURL}/${pathEscapeSegments(treePath)}?sub_path=${encodeURIComponent(subPath)}`);
-    const json = await response.json();
-    return json.fileTreeNodes ?? null;
-  };
-}
-
-async function loadContent(sidebarEl: HTMLElement) {
-  // load content by path (content based on home_content.tmpl)
-  const response = await GET(`${window.location.href}?only_content=true`);
-  const contentEl = sidebarEl.parentElement.querySelector('.repo-view-content');
-  contentEl.innerHTML = await response.text();
-  reloadContentScript(sidebarEl, contentEl);
-}
-
-function reloadContentScript(sidebarEl: HTMLElement, contentEl: Element) {
-  contentEl.querySelector('.show-tree-sidebar-button')?.addEventListener('click', () => {
-    toggleSidebar(sidebarEl, true);
-  });
+  // FIXME: add event listener for "show-tree-sidebar-button"
 }
 
 export async function initViewFileTreeSidebar() {
-  const sidebarEl = document.querySelector('.repo-view-file-tree-sidebar');
-  if (!sidebarEl || !(sidebarEl instanceof HTMLElement)) return;
+  const sidebar = document.querySelector<HTMLElement>('.repo-view-file-tree-sidebar');
+  const repoViewContent = document.querySelector('.repo-view-content');
+  if (!sidebar || !repoViewContent) return;
 
-  sidebarEl.querySelector('.hide-tree-sidebar-button').addEventListener('click', () => {
-    toggleSidebar(sidebarEl, false);
+  sidebar.querySelector('.hide-tree-sidebar-button').addEventListener('click', () => {
+    toggleSidebar(sidebar, false);
   });
-  sidebarEl.parentElement.querySelector('.repo-view-content .show-tree-sidebar-button').addEventListener('click', () => {
-    toggleSidebar(sidebarEl, true);
+  repoViewContent.querySelector('.show-tree-sidebar-button').addEventListener('click', () => {
+    toggleSidebar(sidebar, true);
   });
 
-  const fileTree = sidebarEl.querySelector('#view-file-tree');
-  const baseUrl = fileTree.getAttribute('data-api-base-url');
-  const treePath = fileTree.getAttribute('data-tree-path');
-  const refType = fileTree.getAttribute('data-current-ref-type');
-  const refName = fileTree.getAttribute('data-current-ref-short-name');
-  const refString = (refType ? (`/${refType}`) : '') + (refName ? (`/${refName}`) : '');
-
-  const selectedItem = ref(getSelectedPath(refString));
-
-  const files = await childrenLoader(sidebarEl)('', treePath);
-
-  fileTree.classList.remove('is-loading');
-  const fileTreeView = createApp(ViewFileTree, {files, selectedItem, loadChildren: childrenLoader(sidebarEl), loadContent: (path: string) => {
-    window.history.pushState(null, null, `${baseUrl}/src${refString}/${pathEscapeSegments(path)}`);
-    selectedItem.value = path;
-    loadContent(sidebarEl);
-  }});
-  fileTreeView.mount(fileTree);
-
-  window.addEventListener('popstate', () => {
-    selectedItem.value = getSelectedPath(refString);
-    loadContent(sidebarEl);
-  });
-}
-
-function getSelectedPath(ref: string) {
-  const path = pathUnescapeSegments(new URL(window.location.href).pathname);
-  return path.substring(path.indexOf(ref) + ref.length + 1);
+  const fileTree = sidebar.querySelector('#view-file-tree');
+  createApp(ViewFileTree, {
+    repoLink: fileTree.getAttribute('data-repo-link'),
+    treePath: fileTree.getAttribute('data-tree-path'),
+    currentRefNameSubURL: fileTree.getAttribute('data-current-ref-name-sub-url'),
+  }).mount(fileTree);
 }

@@ -26,8 +26,7 @@ const doLoadChildren = async () => {
   if (!collapsed.value && props.loadChildren) {
     isLoading.value = true;
     try {
-      const _children = await props.loadChildren(props.item.path);
-      children.value = _children;
+      children.value = await props.loadChildren(props.item.path);
     } finally {
       isLoading.value = false;
     }
@@ -51,7 +50,7 @@ const doGotoSubModule = () => {
 <template>
   <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
   <div
-    v-if="item.type === 'commit'" class="item-submodule"
+    v-if="item.type === 'commit'" class="tree-item type-submodule"
     :title="item.name"
     @click.stop="doGotoSubModule"
   >
@@ -62,7 +61,7 @@ const doGotoSubModule = () => {
     </div>
   </div>
   <div
-    v-else-if="item.type === 'symlink'" class="item-symlink"
+    v-else-if="item.type === 'symlink'" class="tree-item type-symlink"
     :class="{'selected': selectedItem.value === item.path}"
     :title="item.name"
     @click.stop="doLoadFileContent"
@@ -74,7 +73,7 @@ const doGotoSubModule = () => {
     </div>
   </div>
   <div
-    v-else-if="item.type !== 'tree'" class="item-file"
+    v-else-if="item.type !== 'tree'" class="tree-item type-file"
     :class="{'selected': selectedItem.value === item.path}"
     :title="item.name"
     @click.stop="doLoadFileContent"
@@ -86,7 +85,7 @@ const doGotoSubModule = () => {
     </div>
   </div>
   <div
-    v-else class="item-directory"
+    v-else class="tree-item type-directory"
     :class="{'selected': selectedItem.value === item.path}"
     :title="item.name"
     @click.stop="doLoadDirContent"
@@ -115,22 +114,17 @@ const doGotoSubModule = () => {
   border-left: 1px solid var(--color-secondary);
 }
 
-.item-directory.selected,
-.item-symlink.selected,
-.item-file.selected {
+.tree-item.selected {
   color: var(--color-text);
   background: var(--color-active);
   border-radius: 4px;
 }
 
-.item-directory {
+.tree-item.type-directory {
   user-select: none;
 }
 
-.item-file,
-.item-symlink,
-.item-submodule,
-.item-directory {
+.tree-item {
   display: grid;
   grid-template-columns: 16px 1fr;
   grid-template-areas: "toggle content";
@@ -138,10 +132,7 @@ const doGotoSubModule = () => {
   padding: 6px;
 }
 
-.item-file:hover,
-.item-symlink:hover,
-.item-submodule:hover,
-.item-directory:hover {
+.tree-item:hover {
   color: var(--color-text);
   background: var(--color-hover);
   border-radius: 4px;
