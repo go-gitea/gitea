@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -244,13 +245,15 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		ObjectFormatName:                opts.ObjectFormatName,
 	}
 
-	var rollbackRepo *repo_model.Repository
+	needsUpdateStatus := opts.Status != repo_model.RepositoryReady
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
-			return err
-		}
+		return CreateRepositoryByExample(ctx, doer, u, repo, false, false)
+	}); err != nil {
+		return nil, err
+	}
 
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// No need for init mirror.
 		if opts.IsMirror {
 			return nil
@@ -288,8 +291,6 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
 			if err = repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
 				return fmt.Errorf("InitializeLabels: %w", err)
 			}
 		}
@@ -301,9 +302,14 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		if stdout, _, err := git.NewCommand("update-server-info").
 			RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			rollbackRepo = repo
-			rollbackRepo.OwnerID = u.ID
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
+		}
+
+		if needsUpdateStatus {
+			repo.Status = repo_model.RepositoryReady
+			if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+				return fmt.Errorf("UpdateRepositoryCols: %w", err)
+			}
 		}
 
 		// update licenses
@@ -314,8 +320,6 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			stdout, _, err := git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 			if err != nil {
 				log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
 				return fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
 			}
 			if err := repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
@@ -324,9 +328,13 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		}
 		return nil
 	}); err != nil {
-		if rollbackRepo != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, rollbackRepo.ID); errDelete != nil {
+		if repo != nil {
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, repo.ID); errDelete != nil {
 				log.Error("Rollback deleteRepository: %v", errDelete)
+				// add system notice
+				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when create repository: %v", errDelete); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
 			}
 		}
 
