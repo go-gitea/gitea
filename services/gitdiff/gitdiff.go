@@ -1443,10 +1443,8 @@ func GetWhitespaceFlag(whitespaceBehavior string) git.TrustedCmdArgs {
 		"ignore-eol":    {"--ignore-space-at-eol"},
 		"show-all":      nil,
 	}
-
 	if flag, ok := whitespaceFlags[whitespaceBehavior]; ok {
 		return flag
 	}
-	log.Warn("unknown whitespace behavior: %q, default to 'show-all'", whitespaceBehavior)
 	return nil
 }

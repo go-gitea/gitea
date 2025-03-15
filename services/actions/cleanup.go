@@ -9,14 +9,17 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/db"
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
-// Cleanup removes expired actions logs, data and artifacts
+// Cleanup removes expired actions logs, data, artifacts and used ephemeral runners
 func Cleanup(ctx context.Context) error {
 	// clean up expired artifacts
 	if err := CleanupArtifacts(ctx); err != nil {
@@ -26,6 +29,11 @@ func Cleanup(ctx context.Context) error {
 	// clean up old logs
 	if err := CleanupLogs(ctx); err != nil {
 		return fmt.Errorf("cleanup logs: %w", err)
+	}
+
+	// clean up old ephemeral runners
+	if err := CleanupEphemeralRunners(ctx); err != nil {
+		return fmt.Errorf("cleanup old ephemeral runners: %w", err)
 	}
 
 	return nil
@@ -121,5 +129,22 @@ func CleanupLogs(ctx context.Context) error {
 	}
 
 	log.Info("Removed %d logs", count)
+	return nil
+}
+
+// CleanupEphemeralRunners removes used ephemeral runners which are no longer able to process jobs
+func CleanupEphemeralRunners(ctx context.Context) error {
+	subQuery := builder.Select("`action_runner`.id").
+		From(builder.Select("*").From("`action_runner`"), "`action_runner`"). // mysql needs this redundant subquery
+		Join("INNER", "`action_task`", "`action_task`.`runner_id` = `action_runner`.`id`").
+		Where(builder.Eq{"`action_runner`.`ephemeral`": true}).
+		And(builder.NotIn("`action_task`.`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked))
+	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
+	res, err := db.GetEngine(ctx).Exec(b)
+	if err != nil {
+		return fmt.Errorf("find runners: %w", err)
+	}
+	affected, _ := res.RowsAffected()
+	log.Info("Removed %d runners", affected)
 	return nil
 }
