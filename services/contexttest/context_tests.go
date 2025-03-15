@@ -87,7 +87,7 @@ func MockAPIContext(t *testing.T, reqPath string) (*context.APIContext, *httptes
 	base := context.NewBaseContext(resp, req)
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
-	ctx := &context.APIContext{Base: base}
+	ctx := &context.APIContext{Base: base, Repo: &context.Repository{}}
 	chiCtx := chi.NewRouteContext()
 	ctx.SetContextValue(chi.RouteCtxKey, chiCtx)
 	return ctx, resp
