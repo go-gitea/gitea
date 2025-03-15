@@ -8,6 +8,7 @@ package pipeline
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"io"
 	"sort"
 	"strings"
@@ -17,7 +18,7 @@ import (
 )
 
 // FindLFSFile finds commits that contain a provided pointer file hash
-func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
+func FindLFSFile(ctx context.Context, repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
@@ -32,7 +33,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand("rev-list", "--all").Run(repo.Ctx, &git.RunOpts{
+		err := git.NewCommand("rev-list", "--all").Run(ctx, &git.RunOpts{
 			Dir:    repo.Path,
 			Stdout: revListWriter,
 			Stderr: &stderr,
@@ -46,7 +47,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +202,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 			i++
 		}
 	}()
-	go NameRevStdin(repo.Ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
+	go NameRevStdin(ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
 	go func() {
 		defer wg.Done()
 		defer shasToNameWriter.Close()

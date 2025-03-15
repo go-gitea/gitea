@@ -7,6 +7,7 @@ package pipeline
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"sort"
 	"strings"
@@ -20,7 +21,7 @@ import (
 )
 
 // FindLFSFile finds commits that contain a provided pointer file hash
-func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
+func FindLFSFile(ctx context.Context, repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
@@ -105,7 +106,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 			i++
 		}
 	}()
-	go NameRevStdin(repo.Ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
+	go NameRevStdin(ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
 	go func() {
 		defer wg.Done()
 		defer shasToNameWriter.Close()

@@ -407,7 +407,7 @@ func LFSFileFind(ctx *context.Context) {
 	ctx.Data["Size"] = size
 	ctx.Data["SHA"] = sha
 
-	results, err := pipeline.FindLFSFile(ctx.Repo.GitRepo, objectID)
+	results, err := pipeline.FindLFSFile(ctx, ctx.Repo.GitRepo, objectID)
 	if err != nil && err != io.EOF {
 		log.Error("Failure in FindLFSFile: %v", err)
 		ctx.ServerError("LFSFind: FindLFSFile.", err)
