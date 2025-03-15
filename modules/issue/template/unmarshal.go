@@ -71,7 +71,7 @@ func unmarshalFromEntry(ctx context.Context, entry *git.TreeEntry, filename stri
 		return nil, fmt.Errorf("too large: %v > MaxDisplayFileSize", size)
 	}
 
-	r, err := entry.Blob().DataAsync()
+	r, err := entry.Blob().DataAsync(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("data async: %w", err)
 	}

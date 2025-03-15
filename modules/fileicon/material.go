@@ -87,11 +87,11 @@ func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name
 
 func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.TreeEntry) template.HTML {
 	if m.rules == nil {
-		return BasicThemeIcon(entry)
+		return BasicThemeIcon(ctx, entry)
 	}
 
 	if entry.IsLink() {
-		if te, err := entry.FollowLink(); err == nil && te.IsDir() {
+		if te, err := entry.FollowLink(ctx); err == nil && te.IsDir() {
 			// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
 			return svg.RenderHTML("material-folder-symlink", 16, "octicon-file-directory-symlink")
 		}

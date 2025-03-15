@@ -328,13 +328,13 @@ func (c *Commit) HasFile(filename string) (bool, error) {
 }
 
 // GetFileContent reads a file content as a string or returns false if this was not possible
-func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
+func (c *Commit) GetFileContent(ctx context.Context, filename string, limit int) (string, error) {
 	entry, err := c.GetTreeEntryByPath(filename)
 	if err != nil {
 		return "", err
 	}
 
-	r, err := entry.Blob().DataAsync()
+	r, err := entry.Blob().DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}

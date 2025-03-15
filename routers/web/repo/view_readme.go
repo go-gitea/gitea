@@ -68,7 +68,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 			log.Debug("Potential readme file: %s", entry.Name())
 			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].Name(), entry.Blob().Name()) {
 				if entry.IsLink() {
-					target, err := entry.FollowLinks()
+					target, err := entry.FollowLinks(ctx)
 					if err != nil && !git.IsErrBadLink(err) {
 						return "", nil, err
 					} else if target != nil && (target.IsExecutable() || target.IsRegular()) {
@@ -141,7 +141,7 @@ func localizedExtensions(ext, languageCode string) (localizedExts []string) {
 func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFile *git.TreeEntry) {
 	target := readmeFile
 	if readmeFile != nil && readmeFile.IsLink() {
-		target, _ = readmeFile.FollowLinks()
+		target, _ = readmeFile.FollowLinks(ctx)
 	}
 	if target == nil {
 		// if findReadmeFile() failed and/or gave us a broken symlink (which it shouldn't)

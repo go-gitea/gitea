@@ -151,7 +151,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	// OK, now the blob is known to have at most 1024 bytes we can simply read this in one go (This saves reading it twice)
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

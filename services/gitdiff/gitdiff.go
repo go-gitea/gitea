@@ -401,17 +401,17 @@ type DiffLimitedContent struct {
 }
 
 // GetTailSectionAndLimitedContent creates a fake DiffLineSection if the last section is not the end of the file
-func (diffFile *DiffFile) GetTailSectionAndLimitedContent(leftCommit, rightCommit *git.Commit) (_ *DiffSection, diffLimitedContent DiffLimitedContent) {
+func (diffFile *DiffFile) GetTailSectionAndLimitedContent(ctx context.Context, leftCommit, rightCommit *git.Commit) (_ *DiffSection, diffLimitedContent DiffLimitedContent) {
 	var leftLineCount, rightLineCount int
 	diffLimitedContent = DiffLimitedContent{}
 	if diffFile.IsBin || diffFile.IsLFSFile {
 		return nil, diffLimitedContent
 	}
 	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
-		leftLineCount, diffLimitedContent.LeftContent = getCommitFileLineCountAndLimitedContent(leftCommit, diffFile.OldName)
+		leftLineCount, diffLimitedContent.LeftContent = getCommitFileLineCountAndLimitedContent(ctx, leftCommit, diffFile.OldName)
 	}
 	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
-		rightLineCount, diffLimitedContent.RightContent = getCommitFileLineCountAndLimitedContent(rightCommit, diffFile.OldName)
+		rightLineCount, diffLimitedContent.RightContent = getCommitFileLineCountAndLimitedContent(ctx, rightCommit, diffFile.OldName)
 	}
 	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
 		return nil, diffLimitedContent
@@ -477,13 +477,13 @@ func (l *limitByteWriter) Write(p []byte) (n int, err error) {
 	return l.buf.Write(p)
 }
 
-func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string) (lineCount int, limitWriter *limitByteWriter) {
+func getCommitFileLineCountAndLimitedContent(ctx context.Context, commit *git.Commit, filePath string) (lineCount int, limitWriter *limitByteWriter) {
 	blob, err := commit.GetBlobByPath(filePath)
 	if err != nil {
 		return 0, nil
 	}
 	w := &limitByteWriter{limit: MaxDiffHighlightEntireFileSize + 1}
-	lineCount, err = blob.GetBlobLineCount(w)
+	lineCount, err = blob.GetBlobLineCount(ctx, w)
 	if err != nil {
 		return 0, nil
 	}
@@ -1258,7 +1258,7 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 
 		// Populate Submodule URLs
 		if diffFile.SubmoduleDiffInfo != nil {
-			diffFile.SubmoduleDiffInfo.PopulateURL(diffFile, beforeCommit, afterCommit)
+			diffFile.SubmoduleDiffInfo.PopulateURL(ctx, diffFile, beforeCommit, afterCommit)
 		}
 
 		if !isVendored.Has() {
@@ -1270,7 +1270,7 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
 		}
 		diffFile.IsGenerated = isGenerated.Value()
-		tailSection, limitedContent := diffFile.GetTailSectionAndLimitedContent(beforeCommit, afterCommit)
+		tailSection, limitedContent := diffFile.GetTailSectionAndLimitedContent(ctx, beforeCommit, afterCommit)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}

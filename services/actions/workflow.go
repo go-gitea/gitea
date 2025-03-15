@@ -197,7 +197,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 			continue
 		}
 
-		content, err := actions.GetContentFromEntry(entry)
+		content, err := actions.GetContentFromEntry(ctx, entry)
 		if err != nil {
 			return err
 		}

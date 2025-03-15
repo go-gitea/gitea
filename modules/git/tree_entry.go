@@ -5,6 +5,7 @@
 package git
 
 import (
+	"context"
 	"io"
 	"sort"
 	"strings"
@@ -23,13 +24,13 @@ func (te *TreeEntry) Type() string {
 }
 
 // FollowLink returns the entry pointed to by a symlink
-func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
+func (te *TreeEntry) FollowLink(ctx context.Context) (*TreeEntry, error) {
 	if !te.IsLink() {
 		return nil, ErrBadLink{te.Name(), "not a symlink"}
 	}
 
 	// read the link
-	r, err := te.Blob().DataAsync()
+	r, err := te.Blob().DataAsync(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -70,14 +71,14 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 }
 
 // FollowLinks returns the entry ultimately pointed to by a symlink
-func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
+func (te *TreeEntry) FollowLinks(ctx context.Context) (*TreeEntry, error) {
 	if !te.IsLink() {
 		return nil, ErrBadLink{te.Name(), "not a symlink"}
 	}
 	entry := te
 	for i := 0; i < 999; i++ {
 		if entry.IsLink() {
-			next, err := entry.FollowLink()
+			next, err := entry.FollowLink(ctx)
 			if err != nil {
 				return nil, err
 			}

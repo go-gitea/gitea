@@ -132,7 +132,7 @@ func (r *BlameReader) Close() error {
 func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
 	var ignoreRevsFile *string
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
-		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(commit)
+		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(ctx, commit)
 	}
 
 	cmd := NewCommandNoGlobals("blame", "--porcelain")
@@ -180,13 +180,13 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	}, nil
 }
 
-func tryCreateBlameIgnoreRevsFile(commit *Commit) *string {
+func tryCreateBlameIgnoreRevsFile(ctx context.Context, commit *Commit) *string {
 	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
 	if err != nil {
 		return nil
 	}
 
-	r, err := entry.Blob().DataAsync()
+	r, err := entry.Blob().DataAsync(ctx)
 	if err != nil {
 		return nil
 	}

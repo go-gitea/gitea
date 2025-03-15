@@ -4,6 +4,7 @@
 package templates
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"html/template"
@@ -181,11 +182,11 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 		textColor, itemColor, itemHTML)
 }
 
-func (ut *RenderUtils) RenderFileIcon(entry *git.TreeEntry) template.HTML {
+func (ut *RenderUtils) RenderFileIcon(ctx context.Context,entry *git.TreeEntry) template.HTML {
 	if setting.UI.FileIconTheme == "material" {
 		return fileicon.DefaultMaterialIconProvider().FileIcon(ut.ctx, entry)
 	}
-	return fileicon.BasicThemeIcon(entry)
+	return fileicon.BasicThemeIcon(ctx,entry)
 }
 
 // RenderEmoji renders html text with emoji post processors

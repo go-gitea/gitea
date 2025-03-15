@@ -71,7 +71,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", fmt.Errorf("file is too large")
 	}
 
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}

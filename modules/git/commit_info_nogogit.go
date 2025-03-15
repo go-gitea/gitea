@@ -74,7 +74,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 			} else {
 				fullPath = entry.Name()
 			}
-			if subModule, err := commit.GetSubModule(fullPath); err != nil {
+			if subModule, err := commit.GetSubModule(ctx, fullPath); err != nil {
 				return nil, nil, err
 			} else if subModule != nil {
 				subModuleURL = subModule.URL

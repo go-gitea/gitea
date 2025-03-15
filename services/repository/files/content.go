@@ -203,14 +203,14 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	} else if entry.IsLink() {
 		contentsResponse.Type = string(ContentTypeLink)
 		// The target of a symlink file is the content of the file
-		targetFromContent, err := entry.Blob().GetBlobContent(1024)
+		targetFromContent, err := entry.Blob().GetBlobContent(ctx, 1024)
 		if err != nil {
 			return nil, err
 		}
 		contentsResponse.Target = &targetFromContent
 	} else if entry.IsSubModule() {
 		contentsResponse.Type = string(ContentTypeSubmodule)
-		submodule, err := commit.GetSubModule(treePath)
+		submodule, err := commit.GetSubModule(ctx, treePath)
 		if err != nil {
 			return nil, err
 		}
@@ -256,7 +256,7 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 	content := ""
 	if gitBlob.Size(ctx) <= setting.API.DefaultMaxBlobSize {
-		content, err = gitBlob.GetBlobContentBase64()
+		content, err = gitBlob.GetBlobContentBase64(ctx)
 		if err != nil {
 			return nil, err
 		}

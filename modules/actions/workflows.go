@@ -5,6 +5,7 @@ package actions
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"strings"
 
@@ -69,8 +70,8 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 	return ret, nil
 }
 
-func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
-	f, err := entry.Blob().DataAsync()
+func GetContentFromEntry(ctx context.Context, entry *git.TreeEntry) ([]byte, error) {
+	f, err := entry.Blob().DataAsync(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +97,7 @@ func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
 }
 
 func DetectWorkflows(
+	ctx context.Context,
 	gitRepo *git.Repository,
 	commit *git.Commit,
 	triggedEvent webhook_module.HookEventType,
@@ -110,7 +112,7 @@ func DetectWorkflows(
 	workflows := make([]*DetectedWorkflow, 0, len(entries))
 	schedules := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
-		content, err := GetContentFromEntry(entry)
+		content, err := GetContentFromEntry(ctx, entry)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -146,7 +148,7 @@ func DetectWorkflows(
 	return workflows, schedules, nil
 }
 
-func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
+func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
 	entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
@@ -154,7 +156,7 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 
 	wfs := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
-		content, err := GetContentFromEntry(entry)
+		content, err := GetContentFromEntry(ctx, entry)
 		if err != nil {
 			return nil, err
 		}

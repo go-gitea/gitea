@@ -145,7 +145,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (
 	workflows = make([]Workflow, 0, len(entries))
 	for _, entry := range entries {
 		workflow := Workflow{Entry: *entry}
-		content, err := actions.GetContentFromEntry(entry)
+		content, err := actions.GetContentFromEntry(ctx, entry)
 		if err != nil {
 			ctx.ServerError("GetContentFromEntry", err)
 			return nil

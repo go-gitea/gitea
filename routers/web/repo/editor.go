@@ -151,7 +151,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			return
 		}
 
-		dataRc, err := blob.DataAsync()
+		dataRc, err := blob.DataAsync(ctx)
 		if err != nil {
 			ctx.NotFound(err)
 			return

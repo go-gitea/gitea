@@ -1230,7 +1230,7 @@ func GetIssueConfig(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepoIssueConfig"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.JSON(http.StatusOK, issueConfig)
 }
 
@@ -1257,7 +1257,7 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepoIssueConfigValidation"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 
 	if err == nil {
 		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: true, Message: ""})

@@ -64,7 +64,7 @@ type fileInfo struct {
 }
 
 func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileInfo, error) {
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}

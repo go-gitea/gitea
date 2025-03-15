@@ -131,7 +131,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 
 	licenses := make([]string, 0)
 	if b != nil {
-		r, err := b.DataAsync()
+		r, err := b.DataAsync(ctx)
 		if err != nil {
 			return err
 		}

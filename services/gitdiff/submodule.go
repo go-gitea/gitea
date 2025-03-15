@@ -20,7 +20,7 @@ type SubmoduleDiffInfo struct {
 	PreviousRefID string
 }
 
-func (si *SubmoduleDiffInfo) PopulateURL(diffFile *DiffFile, leftCommit, rightCommit *git.Commit) {
+func (si *SubmoduleDiffInfo) PopulateURL(ctx context.Context, diffFile *DiffFile, leftCommit, rightCommit *git.Commit) {
 	si.SubmoduleName = diffFile.Name
 	submoduleCommit := rightCommit // If the submodule is added or updated, check at the right commit
 	if diffFile.IsDeleted {
@@ -30,7 +30,7 @@ func (si *SubmoduleDiffInfo) PopulateURL(diffFile *DiffFile, leftCommit, rightCo
 		return
 	}
 
-	submodule, err := submoduleCommit.GetSubModule(diffFile.GetDiffFileName())
+	submodule, err := submoduleCommit.GetSubModule(ctx, diffFile.GetDiffFileName())
 	if err != nil {
 		log.Error("Unable to PopulateURL for submodule %q: GetSubModule: %v", diffFile.GetDiffFileName(), err)
 		return // ignore the error, do not cause 500 errors for end users

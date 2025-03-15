@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"io"
@@ -22,11 +23,11 @@ func (b *Blob) Name() string {
 }
 
 // GetBlobContent Gets the limited content of the blob as raw text
-func (b *Blob) GetBlobContent(limit int64) (string, error) {
+func (b *Blob) GetBlobContent(ctx context.Context, limit int64) (string, error) {
 	if limit <= 0 {
 		return "", nil
 	}
-	dataRc, err := b.DataAsync()
+	dataRc, err := b.DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -37,8 +38,8 @@ func (b *Blob) GetBlobContent(limit int64) (string, error) {
 
 // GetBlobLineCount gets line count of the blob.
 // It will also try to write the content to w if it's not nil, then we could pre-fetch the content without reading it again.
-func (b *Blob) GetBlobLineCount(w io.Writer) (int, error) {
-	reader, err := b.DataAsync()
+func (b *Blob) GetBlobLineCount(ctx context.Context, w io.Writer) (int, error) {
+	reader, err := b.DataAsync(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -64,8 +65,8 @@ func (b *Blob) GetBlobLineCount(w io.Writer) (int, error) {
 }
 
 // GetBlobContentBase64 Reads the content of the blob with a base64 encode and returns the encoded string
-func (b *Blob) GetBlobContentBase64() (string, error) {
-	dataRc, err := b.DataAsync()
+func (b *Blob) GetBlobContentBase64(ctx context.Context) (string, error) {
+	dataRc, err := b.DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -93,8 +94,8 @@ func (b *Blob) GetBlobContentBase64() (string, error) {
 }
 
 // GuessContentType guesses the content type of the blob.
-func (b *Blob) GuessContentType() (typesniffer.SniffedType, error) {
-	r, err := b.DataAsync()
+func (b *Blob) GuessContentType(ctx context.Context) (typesniffer.SniffedType, error) {
+	r, err := b.DataAsync(ctx)
 	if err != nil {
 		return typesniffer.SniffedType{}, err
 	}

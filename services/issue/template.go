@@ -48,7 +48,7 @@ func GetDefaultTemplateConfig() api.IssueConfig {
 
 // GetTemplateConfig loads the given issue config file.
 // It never returns a nil config.
-func GetTemplateConfig(gitRepo *git.Repository, path string, commit *git.Commit) (api.IssueConfig, error) {
+func GetTemplateConfig(ctx context.Context, gitRepo *git.Repository, path string, commit *git.Commit) (api.IssueConfig, error) {
 	if gitRepo == nil {
 		return GetDefaultTemplateConfig(), nil
 	}
@@ -58,7 +58,7 @@ func GetTemplateConfig(gitRepo *git.Repository, path string, commit *git.Commit)
 		return GetDefaultTemplateConfig(), err
 	}
 
-	reader, err := treeEntry.Blob().DataAsync()
+	reader, err := treeEntry.Blob().DataAsync(ctx)
 	if err != nil {
 		log.Debug("DataAsync: %v", err)
 		return GetDefaultTemplateConfig(), nil
@@ -156,7 +156,7 @@ func ParseTemplatesFromDefaultBranch(ctx context.Context, repo *repo.Repository,
 
 // GetTemplateConfigFromDefaultBranch returns the issue config for this repo.
 // It never returns a nil config.
-func GetTemplateConfigFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repository) (api.IssueConfig, error) {
+func GetTemplateConfigFromDefaultBranch(ctx context.Context, repo *repo.Repository, gitRepo *git.Repository) (api.IssueConfig, error) {
 	if repo.IsEmpty {
 		return GetDefaultTemplateConfig(), nil
 	}
@@ -168,11 +168,11 @@ func GetTemplateConfigFromDefaultBranch(repo *repo.Repository, gitRepo *git.Repo
 
 	for _, configName := range templateConfigCandidates {
 		if _, err := commit.GetTreeEntryByPath(configName + ".yaml"); err == nil {
-			return GetTemplateConfig(gitRepo, configName+".yaml", commit)
+			return GetTemplateConfig(ctx, gitRepo, configName+".yaml", commit)
 		}
 
 		if _, err := commit.GetTreeEntryByPath(configName + ".yml"); err == nil {
-			return GetTemplateConfig(gitRepo, configName+".yml", commit)
+			return GetTemplateConfig(ctx, gitRepo, configName+".yml", commit)
 		}
 	}
 
@@ -185,6 +185,6 @@ func HasTemplatesOrContactLinks(ctx context.Context, repo *repo.Repository, gitR
 		return true
 	}
 
-	issueConfig, _ := GetTemplateConfigFromDefaultBranch(repo, gitRepo)
+	issueConfig, _ := GetTemplateConfigFromDefaultBranch(ctx, repo, gitRepo)
 	return len(issueConfig.ContactLinks) > 0
 }

@@ -72,7 +72,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 			return st
 		}
 
-		st, err := blob.GuessContentType()
+		st, err := blob.GuessContentType(ctx)
 		if err != nil {
 			log.Error("GuessContentType failed: %v", err)
 			return st
@@ -141,7 +141,7 @@ func setCsvCompareContext(ctx *context.Context) {
 				return nil, nil, errTooLarge
 			}
 
-			reader, err := blob.DataAsync()
+			reader, err := blob.DataAsync(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -906,9 +906,9 @@ func ExcerptBlob(ctx *context.Context) {
 		idxRight -= chunkSize
 		leftHunkSize += chunkSize
 		rightHunkSize += chunkSize
-		section.Lines, err = getExcerptLines(commit, filePath, idxLeft-1, idxRight-1, chunkSize)
+		section.Lines, err = getExcerptLines(ctx, commit, filePath, idxLeft-1, idxRight-1, chunkSize)
 	} else if direction == "down" && (idxLeft-lastLeft) > chunkSize {
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, chunkSize)
+		section.Lines, err = getExcerptLines(ctx, commit, filePath, lastLeft, lastRight, chunkSize)
 		lastLeft += chunkSize
 		lastRight += chunkSize
 	} else {
@@ -916,7 +916,7 @@ func ExcerptBlob(ctx *context.Context) {
 		if direction == "down" {
 			offset = 0
 		}
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
+		section.Lines, err = getExcerptLines(ctx, commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
 		leftHunkSize = 0
 		rightHunkSize = 0
 		idxLeft = lastLeft
@@ -958,12 +958,12 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 
-func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
+func getExcerptLines(ctx gocontext.Context, commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
 	blob, err := commit.Tree.GetBlobByPath(filePath)
 	if err != nil {
 		return nil, err
 	}
-	reader, err := blob.DataAsync()
+	reader, err := blob.DataAsync(ctx)
 	if err != nil {
 		return nil, err
 	}

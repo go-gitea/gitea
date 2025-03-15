@@ -3,12 +3,14 @@
 
 package git
 
+import "context"
+
 type SubmoduleWebLink struct {
 	RepoWebLink, CommitWebLink string
 }
 
 // GetSubModules get all the submodules of current revision git tree
-func (c *Commit) GetSubModules() (*ObjectCache[*SubModule], error) {
+func (c *Commit) GetSubModules(ctx context.Context) (*ObjectCache[*SubModule], error) {
 	if c.submoduleCache != nil {
 		return c.submoduleCache, nil
 	}
@@ -21,7 +23,7 @@ func (c *Commit) GetSubModules() (*ObjectCache[*SubModule], error) {
 		return nil, err
 	}
 
-	rd, err := entry.Blob().DataAsync()
+	rd, err := entry.Blob().DataAsync(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +38,8 @@ func (c *Commit) GetSubModules() (*ObjectCache[*SubModule], error) {
 }
 
 // GetSubModule get the submodule according entry name
-func (c *Commit) GetSubModule(entryName string) (*SubModule, error) {
-	modules, err := c.GetSubModules()
+func (c *Commit) GetSubModule(ctx context.Context, entryName string) (*SubModule, error) {
+	modules, err := c.GetSubModules(ctx)
 	if err != nil {
 		return nil, err
 	}
