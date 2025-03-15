@@ -255,7 +255,7 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		return nil, err
 	}
 	content := ""
-	if gitBlob.Size() <= setting.API.DefaultMaxBlobSize {
+	if gitBlob.Size(ctx) <= setting.API.DefaultMaxBlobSize {
 		content, err = gitBlob.GetBlobContentBase64()
 		if err != nil {
 			return nil, err
@@ -264,7 +264,7 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	return &api.GitBlobResponse{
 		SHA:      gitBlob.ID.String(),
 		URL:      repo.APIURL() + "/git/blobs/" + url.PathEscape(gitBlob.ID.String()),
-		Size:     gitBlob.Size(),
+		Size:     gitBlob.Size(ctx),
 		Encoding: "base64",
 		Content:  content,
 	}, nil

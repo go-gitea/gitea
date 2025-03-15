@@ -57,7 +57,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 
 	if ctx.Repo.TreePath == ".editorconfig" {
-		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx, ctx.Repo.Commit)
 		if editorconfigWarning != nil {
 			ctx.Data["FileWarning"] = strings.TrimSpace(editorconfigWarning.Error())
 		}

@@ -8,6 +8,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"io"
 
 	"code.gitea.io/gitea/modules/log"
@@ -62,12 +63,12 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 }
 
 // Size returns the uncompressed size of the blob
-func (b *Blob) Size() int64 {
+func (b *Blob) Size(ctx context.Context) int64 {
 	if b.gotSize {
 		return b.size
 	}
 
-	wr, rd, cancel, err := b.repo.CatFileBatchCheck(b.repo.Ctx)
+	wr, rd, cancel, err := b.repo.CatFileBatchCheck(ctx)
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0

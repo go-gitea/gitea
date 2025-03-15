@@ -88,7 +88,7 @@ func RefBlame(ctx *context.Context) {
 
 	ctx.Data["IsBlame"] = true
 
-	fileSize := blob.Size()
+	fileSize := blob.Size(ctx)
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 
