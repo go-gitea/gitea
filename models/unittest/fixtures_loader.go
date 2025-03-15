@@ -19,7 +19,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-type fixtureItem struct {
+type FixtureItem struct {
 	fileFullPath string
 	tableName    string
 
@@ -35,7 +35,7 @@ type fixturesLoaderInternal struct {
 	xormTableNames   map[string]bool
 	db               *sql.DB
 	dbType           schemas.DBType
-	fixtures         map[string]*fixtureItem
+	fixtures         map[string]*FixtureItem
 	quoteObject      func(string) string
 	paramPlaceholder func(idx int) string
 }
@@ -64,7 +64,7 @@ func (f *fixturesLoaderInternal) preprocessFixtureRow(row []map[string]any) (err
 	return nil
 }
 
-func (f *fixturesLoaderInternal) prepareFixtureItem(fixture *fixtureItem) (err error) {
+func (f *fixturesLoaderInternal) prepareFixtureItem(fixture *FixtureItem) (err error) {
 	fixture.tableNameQuoted = f.quoteObject(fixture.tableName)
 
 	if f.dbType == schemas.MSSQL {
@@ -113,7 +113,7 @@ func (f *fixturesLoaderInternal) prepareFixtureItem(fixture *fixtureItem) (err e
 	return nil
 }
 
-func (f *fixturesLoaderInternal) loadFixtures(tx *sql.Tx, fixture *fixtureItem) (err error) {
+func (f *fixturesLoaderInternal) loadFixtures(tx *sql.Tx, fixture *FixtureItem) (err error) {
 	if fixture.tableNameQuoted == "" {
 		if err = f.prepareFixtureItem(fixture); err != nil {
 			return err
@@ -167,7 +167,7 @@ func (f *fixturesLoaderInternal) Load() error {
 	return nil
 }
 
-func FixturesFileFullPaths(dir string, files []string) (map[string]*fixtureItem, error) {
+func FixturesFileFullPaths(dir string, files []string) (map[string]*FixtureItem, error) {
 	if files != nil && len(files) == 0 {
 		return nil, nil // load nothing
 	}
@@ -181,14 +181,14 @@ func FixturesFileFullPaths(dir string, files []string) (map[string]*fixtureItem,
 			files = append(files, e.Name())
 		}
 	}
-	fixtureItems := map[string]*fixtureItem{}
+	fixtureItems := map[string]*FixtureItem{}
 	for _, file := range files {
 		fileFillPath := file
 		if !filepath.IsAbs(fileFillPath) {
 			fileFillPath = filepath.Join(dir, file)
 		}
 		tableName, _, _ := strings.Cut(filepath.Base(file), ".")
-		fixtureItems[tableName] = &fixtureItem{fileFullPath: fileFillPath, tableName: tableName}
+		fixtureItems[tableName] = &FixtureItem{fileFullPath: fileFillPath, tableName: tableName}
 	}
 	return fixtureItems, nil
 }
