@@ -163,7 +163,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		}
 
 		if isOldWikiExist {
-			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
+			err := gitRepo.RemoveFilesFromIndex(ctx, oldWikiPath)
 			if err != nil {
 				log.Error("RemoveFilesFromIndex failed: %v", err)
 				return err
@@ -179,12 +179,12 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
+	if err := gitRepo.AddObjectToIndex(ctx, "100644", objectHash, newWikiPath); err != nil {
 		log.Error("AddObjectToIndex failed: %v", err)
 		return err
 	}
 
-	tree, err := gitRepo.WriteTree()
+	tree, err := gitRepo.WriteTree(ctx)
 	if err != nil {
 		log.Error("WriteTree failed: %v", err)
 		return err
@@ -300,7 +300,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 	if found {
-		err := gitRepo.RemoveFilesFromIndex(wikiPath)
+		err := gitRepo.RemoveFilesFromIndex(ctx, wikiPath)
 		if err != nil {
 			return err
 		}
@@ -310,7 +310,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
 
-	tree, err := gitRepo.WriteTree()
+	tree, err := gitRepo.WriteTree(ctx)
 	if err != nil {
 		return err
 	}

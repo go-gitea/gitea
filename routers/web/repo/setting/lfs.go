@@ -174,7 +174,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["Lockables"] = lockables
 
-	filelist, err := gitRepo.LsFiles(filenames...)
+	filelist, err := gitRepo.LsFiles(ctx, filenames...)
 	if err != nil {
 		log.Error("Unable to lsfiles in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
