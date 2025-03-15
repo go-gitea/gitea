@@ -44,8 +44,6 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 			reqLFS := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/media/"+lfs)
 			respLFS := MakeRequestNilResponseRecorder(t, reqLFS, http.StatusOK)
 			assert.Equal(t, testFileSizeSmall, respLFS.Length)
-
-			doAPIDeleteRepository(httpContext)
 		})
 	})
 }
