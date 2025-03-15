@@ -77,7 +77,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 	var created bool
 	// Only actual create when publish.
 	if !rel.IsDraft {
-		if !gitRepo.IsTagExist(rel.TagName) {
+		if !gitrepo.IsTagExist(ctx, rel.Repo, rel.TagName) {
 			if err := rel.LoadAttributes(ctx); err != nil {
 				log.Error("LoadAttributes: %v", err)
 				return false, err

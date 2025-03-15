@@ -304,14 +304,14 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		refName, _, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
 
-		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+		} else if gitrepo.IsTagExist(ctx, ctx.Repo.Repository, refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 			if err != nil {
 				ctx.APIErrorInternal(err)

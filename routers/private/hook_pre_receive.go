@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/web"
@@ -447,13 +448,13 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 	baseBranchName := refFullName.ForBranchName()
 
 	baseBranchExist := false
-	if ctx.Repo.GitRepo.IsBranchExist(baseBranchName) {
+	if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, baseBranchName) {
 		baseBranchExist = true
 	}
 
 	if !baseBranchExist {
 		for p, v := range baseBranchName {
-			if v == '/' && ctx.Repo.GitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
+			if v == '/' && gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, baseBranchName[:p]) && p != len(baseBranchName)-1 {
 				baseBranchExist = true
 				break
 			}

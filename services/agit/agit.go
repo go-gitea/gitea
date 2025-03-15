@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
@@ -56,10 +57,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 		baseBranchName := opts.RefFullNames[i].ForBranchName()
 		currentTopicBranch := ""
-		if !gitRepo.IsBranchExist(baseBranchName) {
+		if !gitrepo.IsBranchExist(ctx, repo, baseBranchName) {
 			// try match refs/for/<target-branch>/<topic-branch>
 			for p, v := range baseBranchName {
-				if v == '/' && gitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
+				if v == '/' && gitrepo.IsBranchExist(ctx, repo, baseBranchName[:p]) && p != len(baseBranchName)-1 {
 					currentTopicBranch = baseBranchName[p+1:]
 					baseBranchName = baseBranchName[:p]
 					break
