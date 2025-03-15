@@ -52,7 +52,7 @@ func TestGetTreeBySHA(t *testing.T) {
 	assert.EqualValues(t, expectedTree, tree)
 }
 
-func Test_GetTreeViewNodes(t *testing.T) {
+func TestGetTreeViewNodes(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.Repo.RefFullName = git.RefNameFromBranch("sub-home-md-img-check")
@@ -66,9 +66,9 @@ func Test_GetTreeViewNodes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
-			Name: "docs",
-			Type: "tree",
-			Path: "docs",
+			EntryName: "docs",
+			EntryMode: "tree",
+			FullPath:  "docs",
 		},
 	}, treeNodes)
 
@@ -76,14 +76,14 @@ func Test_GetTreeViewNodes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
-			Name: "docs",
-			Type: "tree",
-			Path: "docs",
+			EntryName: "docs",
+			EntryMode: "tree",
+			FullPath:  "docs",
 			Children: []*TreeViewNode{
 				{
-					Name: "README.md",
-					Type: "blob",
-					Path: "docs/README.md",
+					EntryName: "README.md",
+					EntryMode: "blob",
+					FullPath:  "docs/README.md",
 				},
 			},
 		},
@@ -93,9 +93,9 @@ func Test_GetTreeViewNodes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
-			Name: "README.md",
-			Type: "blob",
-			Path: "docs/README.md",
+			EntryName: "README.md",
+			EntryMode: "blob",
+			FullPath:  "docs/README.md",
 		},
 	}, treeNodes)
 }
