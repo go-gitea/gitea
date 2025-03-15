@@ -331,18 +331,16 @@ func handleRepoHomeFeed(ctx *context.Context) bool {
 }
 
 func prepareHomeTreeSideBarSwitch(ctx *context.Context) {
-	showFileViewTreeSidebar := true
+	showFileTree := true
 	if ctx.Doer != nil {
-		v, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyShowFileViewTreeSidebar, "true")
+		v, err := user_model.GetUserSetting(ctx, ctx.Doer.ID, user_model.SettingsKeyCodeViewShowFileTree, "true")
 		if err != nil {
 			log.Error("GetUserSetting: %v", err)
 		} else {
-			showFileViewTreeSidebar, _ = strconv.ParseBool(v)
+			showFileTree, _ = strconv.ParseBool(v)
 		}
 	}
-	ctx.Data["RepoPreferences"] = &preferencesForm{
-		ShowFileViewTreeSidebar: showFileViewTreeSidebar,
-	}
+	ctx.Data["UserSettingCodeViewShowFileTree"] = showFileTree
 }
 
 // Home render repository home page

@@ -4,7 +4,7 @@
 <div class="repo-button-row">
 	<div class="repo-button-row-left">
 	{{if not $isTreePathRoot}}
-		<button class="show-tree-sidebar-button ui compact basic button icon not-mobile {{if .RepoPreferences.ShowFileViewTreeSidebar}}tw-hidden{{end}}" title="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
+		<button class="show-tree-sidebar-button ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" title="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
 			{{svg "octicon-sidebar-collapse"}}
 		</button>
 	{{end}}

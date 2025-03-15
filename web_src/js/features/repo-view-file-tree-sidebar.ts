@@ -1,7 +1,7 @@
 import {createApp, ref} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {pathEscapeSegments, pathUnescapeSegments} from '../utils/url.ts';
-import {GET, PUT} from '../modules/fetch.ts';
+import {GET, POST} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
 
 const {appSubUrl} = window.config;
@@ -19,9 +19,9 @@ async function toggleSidebar(sidebarEl: HTMLElement, shouldShow: boolean) {
   if (!sidebarEl.hasAttribute('data-is-signed')) return;
 
   // save to session
-  await PUT(`${appSubUrl}/repo/preferences`, {
+  await POST(`${appSubUrl}/user/settings/update_preferences`, {
     data: {
-      show_file_view_tree_sidebar: shouldShow,
+      codeViewShowFileTree: shouldShow,
     },
   });
 }
