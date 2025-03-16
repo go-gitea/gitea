@@ -16,11 +16,11 @@ import (
 func TestPullRequestList_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	prs := []*issues_model.PullRequest{
+	prs := issues_model.PullRequestList{
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}),
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}),
 	}
-	assert.NoError(t, issues_model.PullRequestList(prs).LoadAttributes(db.DefaultContext))
+	assert.NoError(t, prs.LoadAttributes(db.DefaultContext))
 	for _, pr := range prs {
 		assert.NotNil(t, pr.Issue)
 		assert.Equal(t, pr.IssueID, pr.Issue.ID)
@@ -32,11 +32,11 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 func TestPullRequestList_LoadReviewCommentsCounts(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	prs := []*issues_model.PullRequest{
+	prs := issues_model.PullRequestList{
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}),
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}),
 	}
-	reviewComments, err := issues_model.PullRequestList(prs).LoadReviewCommentsCounts(db.DefaultContext)
+	reviewComments, err := prs.LoadReviewCommentsCounts(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, reviewComments, 2)
 	for _, pr := range prs {
@@ -47,11 +47,11 @@ func TestPullRequestList_LoadReviewCommentsCounts(t *testing.T) {
 func TestPullRequestList_LoadReviews(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	prs := []*issues_model.PullRequest{
+	prs := issues_model.PullRequestList{
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}),
 		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}),
 	}
-	reviewList, err := issues_model.PullRequestList(prs).LoadReviews(db.DefaultContext)
+	reviewList, err := prs.LoadReviews(db.DefaultContext)
 	assert.NoError(t, err)
 	// 1, 7, 8, 9, 10, 22
 	assert.Len(t, reviewList, 6)

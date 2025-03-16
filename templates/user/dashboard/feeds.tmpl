@@ -110,7 +110,7 @@
 					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 					{{$comment := index .GetIssueInfos 1}}
 					{{if $comment}}
-						<div class="markup tw-text-14">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
+						<div class="render-content markup tw-text-14">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}
 					<div class="flex-item-body text black">{{index .GetIssueInfos 1}}</div>

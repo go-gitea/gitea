@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content ui one column stackable center aligned page grid oauth2-authorize-application-box {{if .IsRepo}}repository{{end}}">
+<div role="main" aria-label="{{.Title}}" class="page-content ui one column stackable tw-text-center page grid oauth2-authorize-application-box {{if .IsRepo}}repository{{end}}">
 	{{if .IsRepo}}{{template "repo/header" .}}{{end}}
 	<div class="column seven wide">
 		<div class="ui middle centered raised segments">

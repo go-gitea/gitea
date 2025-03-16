@@ -5,7 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/url"
 	"sync"
@@ -91,7 +90,7 @@ func TestAgitPullPush(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(context.Background(), dstPath)
+		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -102,10 +101,10 @@ func TestAgitPullPush(t *testing.T) {
 		assert.NoError(t, err)
 
 		// push to create an agit pull request
-		err = git.NewCommand(git.DefaultContext, "push", "origin",
+		err = git.NewCommand("push", "origin",
 			"-o", "title=test-title", "-o", "description=test-description",
 			"HEAD:refs/for/master/test-agit-push",
-		).Run(&git.RunOpts{Dir: dstPath})
+		).Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// check pull request exist
@@ -119,20 +118,20 @@ func TestAgitPullPush(t *testing.T) {
 		assert.NoError(t, err)
 
 		// push 2
-		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").Run(&git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// reset to first commit
-		err = git.NewCommand(git.DefaultContext, "reset", "--hard", "HEAD~1").Run(&git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("reset", "--hard", "HEAD~1").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 
 		// test force push without confirm
-		_, stderr, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(&git.RunOpts{Dir: dstPath})
+		_, stderr, err := git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.Error(t, err)
 		assert.Contains(t, stderr, "[remote rejected] HEAD -> refs/for/master/test-agit-push (request `force-push` push option)")
 
 		// test force push with confirm
-		err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(&git.RunOpts{Dir: dstPath})
+		err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 	})
 }

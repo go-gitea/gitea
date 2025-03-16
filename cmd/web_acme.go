@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/caddyserver/certmagic"
 )
@@ -54,10 +55,6 @@ func runACME(listenAddr string, m http.Handler) error {
 		altTLSALPNPort = p
 	}
 
-	// FIXME: this path is not right, it uses "AppWorkPath" incorrectly, and writes the data into "AppWorkPath/https"
-	// Ideally it should migrate to AppDataPath write to "AppDataPath/https"
-	certmagic.Default.Storage = &certmagic.FileStorage{Path: setting.AcmeLiveDirectory}
-	magic := certmagic.NewDefault()
 	// Try to use private CA root if provided, otherwise defaults to system's trust
 	var certPool *x509.CertPool
 	if setting.AcmeCARoot != "" {
@@ -67,8 +64,20 @@ func runACME(listenAddr string, m http.Handler) error {
 			log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
 		}
 	}
-	myACME := certmagic.NewACMEIssuer(magic, certmagic.ACMEIssuer{
-		CA:                      setting.AcmeURL,
+	// FIXME: this path is not right, it uses "AppWorkPath" incorrectly, and writes the data into "AppWorkPath/https"
+	// Ideally it should migrate to AppDataPath write to "AppDataPath/https"
+	// And one more thing, no idea why we should set the global default variables here
+	// But it seems that the current ACME code needs these global variables to make renew work.
+	// Otherwise, "renew" will use incorrect storage path
+	oldDefaultACME := certmagic.DefaultACME
+	certmagic.Default.Storage = &certmagic.FileStorage{Path: setting.AcmeLiveDirectory}
+	certmagic.DefaultACME = certmagic.ACMEIssuer{
+		// try to use the default values provided by DefaultACME
+		CA:        util.IfZero(setting.AcmeURL, oldDefaultACME.CA),
+		TestCA:    oldDefaultACME.TestCA,
+		Logger:    oldDefaultACME.Logger,
+		HTTPProxy: oldDefaultACME.HTTPProxy,
+
 		TrustedRoots:            certPool,
 		Email:                   setting.AcmeEmail,
 		Agreed:                  setting.AcmeTOS,
@@ -77,8 +86,10 @@ func runACME(listenAddr string, m http.Handler) error {
 		ListenHost:              setting.HTTPAddr,
 		AltTLSALPNPort:          altTLSALPNPort,
 		AltHTTPPort:             altHTTPPort,
-	})
+	}
 
+	magic := certmagic.NewDefault()
+	myACME := certmagic.NewACMEIssuer(magic, certmagic.DefaultACME)
 	magic.Issuers = []certmagic.Issuer{myACME}
 
 	// this obtains certificates or renews them if necessary

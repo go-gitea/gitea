@@ -4,7 +4,6 @@
 package templates
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"html/template"
@@ -16,20 +15,23 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/fileicon"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 )
 
 type RenderUtils struct {
-	ctx context.Context
+	ctx reqctx.RequestContext
 }
 
-func NewRenderUtils(ctx context.Context) *RenderUtils {
+func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 	return &RenderUtils{ctx: ctx}
 }
 
@@ -177,6 +179,13 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
 		textColor, itemColor, itemHTML)
+}
+
+func (ut *RenderUtils) RenderFileIcon(entry *git.TreeEntry) template.HTML {
+	if setting.UI.FileIconTheme == "material" {
+		return fileicon.DefaultMaterialIconProvider().FileIcon(ut.ctx, entry)
+	}
+	return fileicon.BasicThemeIcon(entry)
 }
 
 // RenderEmoji renders html text with emoji post processors

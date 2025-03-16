@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -67,9 +68,9 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func newTestRenderUtils() *RenderUtils {
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, translation.ContextKey, &translation.MockLocale{})
+func newTestRenderUtils(t *testing.T) *RenderUtils {
+	ctx := reqctx.NewRequestContextForTest(t.Context())
+	ctx.SetContextValue(translation.ContextKey, &translation.MockLocale{})
 	return NewRenderUtils(ctx)
 }
 
@@ -105,7 +106,7 @@ func TestRenderCommitBody(t *testing.T) {
 			want: "second line",
 		},
 	}
-	ut := newTestRenderUtils()
+	ut := newTestRenderUtils(t)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, ut.RenderCommitBody(tt.args.msg, nil), "RenderCommitBody(%v, %v)", tt.args.msg, nil)
@@ -131,17 +132,17 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <a href="/mention-user">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
-	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderCommitBody(testInput(), testMetas)))
+	assert.EqualValues(t, expected, string(newTestRenderUtils(t).RenderCommitBody(testInput(), testMetas)))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
 	expected := `space <a href="/mention-user" data-markdown-generated-content="">@mention-user</a>  `
-	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessage(testInput(), testMetas))
+	assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessage(testInput(), testMetas))
 }
 
 func TestRenderCommitMessageLinkSubject(t *testing.T) {
 	expected := `<a href="https://example.com/link" class="muted">space </a><a href="/mention-user" data-markdown-generated-content="">@mention-user</a>`
-	assert.EqualValues(t, expected, newTestRenderUtils().RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
+	assert.EqualValues(t, expected, newTestRenderUtils(t).RenderCommitMessageLinkSubject(testInput(), "https://example.com/link", testMetas))
 }
 
 func TestRenderIssueTitle(t *testing.T) {
@@ -168,7 +169,7 @@ mail@domain.com
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	assert.EqualValues(t, expected, string(newTestRenderUtils().RenderIssueTitle(testInput(), testMetas)))
+	assert.EqualValues(t, expected, string(newTestRenderUtils(t).RenderIssueTitle(testInput(), testMetas)))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
@@ -194,11 +195,11 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 #123
 space</p>
 `
-	assert.Equal(t, expected, string(newTestRenderUtils().MarkdownToHtml(testInput())))
+	assert.Equal(t, expected, string(newTestRenderUtils(t).MarkdownToHtml(testInput())))
 }
 
 func TestRenderLabels(t *testing.T) {
-	ut := newTestRenderUtils()
+	ut := newTestRenderUtils(t)
 	label := &issues.Label{ID: 123, Name: "label-name", Color: "label-color"}
 	issue := &issues.Issue{}
 	expected := `/owner/repo/issues?labels=123`
@@ -212,6 +213,6 @@ func TestRenderLabels(t *testing.T) {
 
 func TestUserMention(t *testing.T) {
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
-	rendered := newTestRenderUtils().MarkdownToHtml("@no-such-user @mention-user @mention-user")
+	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user @mention-user")
 	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }

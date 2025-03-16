@@ -4,6 +4,10 @@
   fill: currentcolor;
 }
 
+.svg.git-entry-icon {
+  fill: transparent; /* some material icons have dark background fill, so need to reset */
+}
+
 .middle .svg {
   vertical-align: middle;
 }

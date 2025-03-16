@@ -104,7 +104,7 @@ module.exports = {
         '@vitest/no-disabled-tests': [0],
         '@vitest/no-done-callback': [0],
         '@vitest/no-duplicate-hooks': [0],
-        '@vitest/no-focused-tests': [0],
+        '@vitest/no-focused-tests': [2],
         '@vitest/no-hooks': [0],
         '@vitest/no-identical-title': [2],
         '@vitest/no-interpolation-in-snapshots': [0],
@@ -155,7 +155,7 @@ module.exports = {
         'eslint-plugin-vue-scoped-css',
       ],
       extends: [
-        'plugin:vue/vue3-recommended',
+        'plugin:vue/recommended',
         'plugin:vue-scoped-css/vue3-recommended',
       ],
       rules: {
@@ -336,7 +336,7 @@ module.exports = {
     '@typescript-eslint/no-unsafe-unary-minus': [2],
     '@typescript-eslint/no-unused-expressions': [0],
     '@typescript-eslint/no-unused-vars': [2, {vars: 'all', args: 'all', caughtErrors: 'all', ignoreRestSiblings: false, argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_'}],
-    '@typescript-eslint/no-use-before-define': [0],
+    '@typescript-eslint/no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true, typedefs: false, enums: false, ignoreTypeReferences: true}],
     '@typescript-eslint/no-useless-constructor': [0],
     '@typescript-eslint/no-useless-empty-export': [0],
     '@typescript-eslint/no-wrapper-object-types': [2],
@@ -693,7 +693,7 @@ module.exports = {
     'no-unused-labels': [2],
     'no-unused-private-class-members': [2],
     'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars
-    'no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true}],
+    'no-use-before-define': [0], // handled by @typescript-eslint/no-use-before-define
     'no-use-extend-native/no-use-extend-native': [2],
     'no-useless-backreference': [2],
     'no-useless-call': [2],

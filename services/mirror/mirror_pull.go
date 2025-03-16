@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -40,13 +41,13 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	remoteName := m.GetRemoteName()
 	repoPath := m.GetRepository(ctx).RepoPath()
 	// Remove old remote
-	_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand("remote", "rm").AddDynamicArguments(remoteName).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
-	cmd := git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(addr)
-	_, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})
+	cmd := git.NewCommand("remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(addr)
+	_, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
@@ -55,13 +56,13 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		wikiPath := m.Repo.WikiPath()
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: wikiPath})
+		_, _, err = git.NewCommand("remote", "rm").AddDynamicArguments(remoteName).RunStdString(ctx, &git.RunOpts{Dir: wikiPath})
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
 
-		cmd = git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(wikiRemotePath)
-		_, _, err = cmd.RunStdString(&git.RunOpts{Dir: wikiPath})
+		cmd = git.NewCommand("remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(wikiRemotePath)
+		_, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: wikiPath})
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
@@ -208,8 +209,8 @@ func pruneBrokenReferences(ctx context.Context,
 
 	stderrBuilder.Reset()
 	stdoutBuilder.Reset()
-	pruneErr := git.NewCommand(ctx, "remote", "prune").AddDynamicArguments(m.GetRemoteName()).
-		Run(&git.RunOpts{
+	pruneErr := git.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).
+		Run(ctx, &git.RunOpts{
 			Timeout: timeout,
 			Dir:     repoPath,
 			Stdout:  stdoutBuilder,
@@ -243,7 +244,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
-	cmd := git.NewCommand(ctx, "fetch")
+	cmd := git.NewCommand("fetch")
 	if m.EnablePrune {
 		cmd.AddArguments("--prune")
 	}
@@ -259,7 +260,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := cmd.Run(&git.RunOpts{
+	if err := cmd.Run(ctx, &git.RunOpts{
 		Timeout: timeout,
 		Dir:     repoPath,
 		Env:     envs,
@@ -284,7 +285,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = cmd.Run(&git.RunOpts{
+				if err = cmd.Run(ctx, &git.RunOpts{
 					Timeout: timeout,
 					Dir:     repoPath,
 					Stdout:  &stdoutBuilder,
@@ -352,8 +353,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
-		if err := git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-			Run(&git.RunOpts{
+		if err := git.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
+			Run(ctx, &git.RunOpts{
 				Timeout: timeout,
 				Dir:     wikiPath,
 				Stdout:  &stdoutBuilder,
@@ -378,8 +379,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 					stderrBuilder.Reset()
 					stdoutBuilder.Reset()
 
-					if err = git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-						Run(&git.RunOpts{
+					if err = git.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
+						Run(ctx, &git.RunOpts{
 							Timeout: timeout,
 							Dir:     wikiPath,
 							Stdout:  &stdoutBuilder,
@@ -425,6 +426,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	return parseRemoteUpdateOutput(output, m.GetRemoteName()), true
 }
 
+func getRepoPullMirrorLockKey(repoID int64) string {
+	return fmt.Sprintf("repo_pull_mirror_%d", repoID)
+}
+
 // SyncPullMirror starts the sync of the pull mirror and schedules the next run.
 func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
@@ -436,6 +441,13 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		// There was a panic whilst syncMirrors...
 		log.Error("PANIC whilst SyncMirrors[repo_id: %d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
+
+	releaser, err := globallock.Lock(ctx, getRepoPullMirrorLockKey(repoID))
+	if err != nil {
+		log.Error("globallock.Lock(): %v", err)
+		return false
+	}
+	defer releaser()
 
 	m, err := repo_model.GetMirrorByRepoID(ctx, repoID)
 	if err != nil {

@@ -232,7 +232,7 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
@@ -291,6 +291,11 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := GetAPIContext(req)
 
+		if ctx.Repo.Repository.IsEmpty {
+			ctx.APIErrorNotFound("repository is empty")
+			return
+		}
+
 		if ctx.Repo.GitRepo == nil {
 			ctx.APIErrorInternal(fmt.Errorf("no open git repo"))
 			return
@@ -299,14 +304,14 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		refName, _, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
 
-		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+		} else if gitrepo.IsTagExist(ctx, ctx.Repo.Repository, refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 			if err != nil {
 				ctx.APIErrorInternal(err)

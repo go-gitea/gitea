@@ -59,6 +59,10 @@ func ListPullRequests(ctx *context.APIContext) {
 	//   description: Name of the repo
 	//   type: string
 	//   required: true
+	// - name: base_branch
+	//   in: query
+	//   description: Filter by target base branch of the pull request
+	//   type: string
 	// - name: state
 	//   in: query
 	//   description: State of pull request
@@ -132,6 +136,7 @@ func ListPullRequests(ctx *context.APIContext) {
 		Labels:      labelIDs,
 		MilestoneID: ctx.FormInt64("milestone"),
 		PosterID:    posterID,
+		BaseBranch:  ctx.FormTrim("base_branch"),
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -737,7 +742,7 @@ func EditPullRequest(ctx *context.APIContext) {
 
 	// change pull target branch
 	if !pr.HasMerged && len(form.Base) != 0 && form.Base != pr.BaseBranch {
-		if !ctx.Repo.GitRepo.IsBranchExist(form.Base) {
+		if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, form.Base) {
 			ctx.APIError(http.StatusNotFound, fmt.Errorf("new base '%s' not exist", form.Base))
 			return
 		}
@@ -1586,7 +1591,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	maxLines := setting.Git.MaxGitDiffLines
 
 	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
-	diff, err := gitdiff.GetDiff(ctx, baseGitRepo,
+	diff, err := gitdiff.GetDiffForAPI(ctx, baseGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
 			AfterCommitID:      endCommitID,
@@ -1601,9 +1606,14 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
+	diffShortStat, err := gitdiff.GetDiffShortStat(baseGitRepo, startCommitID, endCommitID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	listOptions := utils.GetListOptions(ctx)
 
-	totalNumberOfFiles := diff.NumFiles
+	totalNumberOfFiles := diffShortStat.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
 
 	start, limit := listOptions.GetSkipTake()

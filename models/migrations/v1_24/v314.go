@@ -7,14 +7,13 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddDescriptionForSecretsAndVariables(x *xorm.Engine) error {
-	type Secret struct {
-		Description string `xorm:"TEXT"`
+func UpdateOwnerIDOfRepoLevelActionsTables(x *xorm.Engine) error {
+	if _, err := x.Exec("UPDATE `action_runner` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0"); err != nil {
+		return err
 	}
-
-	type ActionVariable struct {
-		Description string `xorm:"TEXT"`
+	if _, err := x.Exec("UPDATE `action_variable` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0"); err != nil {
+		return err
 	}
-
-	return x.Sync(new(Secret), new(ActionVariable))
+	_, err := x.Exec("UPDATE `secret` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0")
+	return err
 }

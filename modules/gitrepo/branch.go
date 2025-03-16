@@ -33,9 +33,9 @@ func GetBranchCommitID(ctx context.Context, repo Repository, branch string) (str
 
 // SetDefaultBranch sets default branch of repository.
 func SetDefaultBranch(ctx context.Context, repo Repository, name string) error {
-	_, _, err := git.NewCommand(ctx, "symbolic-ref", "HEAD").
-		AddDynamicArguments(git.BranchPrefix + name).
-		RunStdString(&git.RunOpts{Dir: repoPath(repo)})
+	_, _, err := git.NewCommand("symbolic-ref", "HEAD").
+		AddDynamicArguments(git.BranchPrefix+name).
+		RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
 	return err
 }
 
@@ -46,4 +46,22 @@ func GetDefaultBranch(ctx context.Context, repo Repository) (string, error) {
 
 func GetWikiDefaultBranch(ctx context.Context, repo Repository) (string, error) {
 	return git.GetDefaultBranch(ctx, wikiPath(repo))
+}
+
+// IsReferenceExist returns true if given reference exists in the repository.
+func IsReferenceExist(ctx context.Context, repo Repository, name string) bool {
+	return git.IsReferenceExist(ctx, repoPath(repo), name)
+}
+
+func IsWikiReferenceExist(ctx context.Context, repo Repository, name string) bool {
+	return git.IsReferenceExist(ctx, wikiPath(repo), name)
+}
+
+// IsBranchExist returns true if given branch exists in the repository.
+func IsBranchExist(ctx context.Context, repo Repository, name string) bool {
+	return IsReferenceExist(ctx, repo, git.BranchPrefix+name)
+}
+
+func IsWikiBranchExist(ctx context.Context, repo Repository, name string) bool {
+	return IsWikiReferenceExist(ctx, repo, git.BranchPrefix+name)
 }

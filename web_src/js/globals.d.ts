@@ -58,21 +58,24 @@ interface Element {
 type Writable<T> = { -readonly [K in keyof T]: T[K] };
 
 interface Window {
+  __webpack_public_path__: string;
   config: import('./web_src/js/types.ts').Config;
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),
   htmx: Omit<typeof import('htmx.org/dist/htmx.esm.js').default, 'config'> & {
     config?: Writable<typeof import('htmx.org').default.config>,
+    process?: (elt: Element | string) => void,
   },
-  ui?: any,
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
-  __webpack_public_path__: string;
+  codeEditors: any[], // export editor for customization
+
+  // various captcha plugins
   grecaptcha: any,
   turnstile: any,
   hcaptcha: any,
-  codeEditors: any[],
-  updateCloneStates: () => void,
+
+  // do not add more properties here unless it is a must
 }

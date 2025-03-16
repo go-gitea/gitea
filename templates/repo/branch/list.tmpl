@@ -30,7 +30,7 @@
 								<p class="info tw-flex tw-items-center tw-my-1">{{svg "octicon-git-commit" 16 "tw-mr-1"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.DBBranch.CommitID}}">{{ShortSha .DefaultBranchBranch.DBBranch.CommitID}}</a> · <span class="commit-message">{{ctx.RenderUtils.RenderCommitMessage .DefaultBranchBranch.DBBranch.CommitMessage (.Repository.ComposeMetas ctx)}}</span> · {{ctx.Locale.Tr "org.repo_updated"}} {{DateUtils.TimeSince .DefaultBranchBranch.DBBranch.CommitTime}}{{if .DefaultBranchBranch.DBBranch.Pusher}} &nbsp;{{template "shared/user/avatarlink" dict "user" .DefaultBranchBranch.DBBranch.Pusher}}{{template "shared/user/namelink" .DefaultBranchBranch.DBBranch.Pusher}}{{end}}</p>
 							</td>
 							{{/* FIXME: here and below, the tw-overflow-visible is not quite right but it is still needed the moment: to show the important buttons when the width is narrow */}}
-							<td class="right aligned middle aligned tw-overflow-visible">
+							<td class="tw-text-right tw-overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
 									<button class="btn interact-bg show-create-branch-modal tw-p-2"
 										data-modal="#create-branch-modal"
@@ -121,7 +121,7 @@
 								</div>
 								{{end}}
 							</td>
-							<td class="two wide right aligned">
+							<td class="two wide tw-text-right">
 								{{if not .LatestPullRequest}}
 									{{if .IsIncluded}}
 										<span class="ui orange large label" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.included_desc"}}">
@@ -150,7 +150,7 @@
 								{{end}}
 							</td>
 							{{/* FIXME: here and above, the tw-overflow-visible is not quite right */}}
-							<td class="three wide right aligned tw-overflow-visible">
+							<td class="three wide tw-text-right tw-overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .DBBranch.IsDeleted)}}
 									<button class="btn interact-bg tw-p-2 show-modal show-create-branch-modal"
 										data-branch-from="{{.DBBranch.Name}}"

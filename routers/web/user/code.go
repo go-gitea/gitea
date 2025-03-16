@@ -68,10 +68,10 @@ func CodeSearch(ctx *context.Context) {
 
 	if len(repoIDs) > 0 {
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
-			RepoIDs:        repoIDs,
-			Keyword:        prepareSearch.Keyword,
-			IsKeywordFuzzy: prepareSearch.IsFuzzy,
-			Language:       prepareSearch.Language,
+			RepoIDs:    repoIDs,
+			Keyword:    prepareSearch.Keyword,
+			SearchMode: prepareSearch.SearchMode,
+			Language:   prepareSearch.Language,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.UI.RepoSearchPagingNum,
