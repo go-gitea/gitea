@@ -7,9 +7,13 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"path"
+	"sort"
+	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -117,4 +121,99 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		}
 	}
 	return tree, nil
+}
+
+func entryModeString(entryMode git.EntryMode) string {
+	switch entryMode {
+	case git.EntryModeBlob:
+		return "blob"
+	case git.EntryModeExec:
+		return "exec"
+	case git.EntryModeSymlink:
+		return "symlink"
+	case git.EntryModeCommit:
+		return "commit" // submodule
+	case git.EntryModeTree:
+		return "tree"
+	}
+	return "unknown"
+}
+
+type TreeViewNode struct {
+	EntryName    string          `json:"entryName"`
+	EntryMode    string          `json:"entryMode"`
+	FullPath     string          `json:"fullPath"`
+	SubmoduleURL string          `json:"submoduleUrl,omitempty"`
+	Children     []*TreeViewNode `json:"children,omitempty"`
+}
+
+func (node *TreeViewNode) sortLevel() int {
+	return util.Iif(node.EntryMode == "tree" || node.EntryMode == "commit", 0, 1)
+}
+
+func newTreeViewNodeFromEntry(ctx context.Context, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
+	node := &TreeViewNode{
+		EntryName: entry.Name(),
+		EntryMode: entryModeString(entry.Mode()),
+		FullPath:  path.Join(parentDir, entry.Name()),
+	}
+
+	if node.EntryMode == "commit" {
+		if subModule, err := commit.GetSubModule(node.FullPath); err != nil {
+			log.Error("GetSubModule: %v", err)
+		} else if subModule != nil {
+			submoduleFile := git.NewCommitSubmoduleFile(subModule.URL, entry.ID.String())
+			webLink := submoduleFile.SubmoduleWebLink(ctx)
+			node.SubmoduleURL = webLink.CommitWebLink
+		}
+	}
+
+	return node
+}
+
+// sortTreeViewNodes list directory first and with alpha sequence
+func sortTreeViewNodes(nodes []*TreeViewNode) {
+	sort.Slice(nodes, func(i, j int) bool {
+		a, b := nodes[i].sortLevel(), nodes[j].sortLevel()
+		if a != b {
+			return a < b
+		}
+		return nodes[i].EntryName < nodes[j].EntryName
+	})
+}
+
+func listTreeNodes(ctx context.Context, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
+	entries, err := tree.ListEntries()
+	if err != nil {
+		return nil, err
+	}
+
+	subPathDirName, subPathRemaining, _ := strings.Cut(subPath, "/")
+	nodes := make([]*TreeViewNode, 0, len(entries))
+	for _, entry := range entries {
+		node := newTreeViewNodeFromEntry(ctx, commit, treePath, entry)
+		nodes = append(nodes, node)
+		if entry.IsDir() && subPathDirName == entry.Name() {
+			subTreePath := treePath + "/" + node.EntryName
+			if subTreePath[0] == '/' {
+				subTreePath = subTreePath[1:]
+			}
+			subNodes, err := listTreeNodes(ctx, commit, entry.Tree(), subTreePath, subPathRemaining)
+			if err != nil {
+				log.Error("listTreeNodes: %v", err)
+			} else {
+				node.Children = subNodes
+			}
+		}
+	}
+	sortTreeViewNodes(nodes)
+	return nodes, nil
+}
+
+func GetTreeViewNodes(ctx context.Context, commit *git.Commit, treePath, subPath string) ([]*TreeViewNode, error) {
+	entry, err := commit.GetTreeEntryByPath(treePath)
+	if err != nil {
+		return nil, err
+	}
+	return listTreeNodes(ctx, commit, entry.Tree(), treePath, subPath)
 }

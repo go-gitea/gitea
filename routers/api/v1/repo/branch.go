@@ -227,7 +227,7 @@ func CreateBranch(ctx *context.APIContext) {
 			return
 		}
 	} else if len(opt.OldBranchName) > 0 { //nolint
-		if ctx.Repo.GitRepo.IsBranchExist(opt.OldBranchName) { //nolint
+		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, opt.OldBranchName) { //nolint
 			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -1019,7 +1019,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	isPlainRule := !git_model.IsRuleNameSpecial(bpName)
 	var isBranchExist bool
 	if isPlainRule {
-		isBranchExist = git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), bpName)
+		isBranchExist = gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, bpName)
 	}
 
 	if isBranchExist {
