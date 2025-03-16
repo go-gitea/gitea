@@ -3,6 +3,11 @@
 
 package gtprof
 
+import (
+	"sync/atomic"
+	"time"
+)
+
 // This is a Gitea-specific profiling package,
 // the name is chosen to distinguish it from the standard pprof tool and "GNU gprof"
 
@@ -23,3 +28,14 @@ const LabelProcessType = "process_type"
 
 // LabelProcessDescription is a label set on goroutines that have a process attached
 const LabelProcessDescription = "process_description"
+
+type TracerOptions struct {
+	ServiceName, AppVer string
+	BuiltinThreshold    time.Duration
+}
+
+var tracerOptions atomic.Pointer[TracerOptions]
+
+func EnableTracer(opts *TracerOptions) {
+	tracerOptions.Store(opts)
+}
