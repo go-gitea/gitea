@@ -135,7 +135,7 @@
 				<input type="hidden" value="" name="removeDependencyID" class="remove-dependency-id">
 				<input type="hidden" value="" name="dependencyType" class="dependency-type">
 				<p>
-					{{ctx.Locale.Tr (Iif .Issue.IsPull "repo.issues.dependency.pr_remove_text" "repo.issues.dependency.issue_remove_text")}}
+					{{ctx.Locale.Tr (Ternary .Issue.IsPull "repo.issues.dependency.pr_remove_text" "repo.issues.dependency.issue_remove_text")}}
 				</p>
 				{{$ModalButtonCancelText := ctx.Locale.Tr "repo.issues.dependency.cancel"}}
 				{{$ModalButtonOkText := ctx.Locale.Tr "repo.issues.dependency.remove"}}

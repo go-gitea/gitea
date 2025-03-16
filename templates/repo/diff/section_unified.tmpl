@@ -1,7 +1,7 @@
 {{$file := .file}}
 {{$repoLink := or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink}}
 {{$afterCommitID := or $.root.AfterCommitID "no-after-commit-id"}}{{/* this tmpl is also used by the PR Conversation page, so the "AfterCommitID" may not exist */}}
-{{$blobExcerptLink := print $repoLink (Iif $.root.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $afterCommitID) "?"}}
+{{$blobExcerptLink := print $repoLink (Ternary $.root.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $afterCommitID) "?"}}
 <colgroup>
 	<col width="50">
 	<col width="50">

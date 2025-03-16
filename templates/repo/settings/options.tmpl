@@ -315,8 +315,8 @@
 						<label>{{ctx.Locale.Tr "repo.settings.default_permission_everyone_access"}}</label>
 						<select name="default_code_everyone_access" class="ui selection dropdown">
 							{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
-							<option value="none" {{Iif (eq $unitCode.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
-							<option value="read" {{Iif (eq $unitCode.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
+							<option value="none" {{Ternary (eq $unitCode.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
+							<option value="read" {{Ternary (eq $unitCode.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
 						</select>
 					</div>
 				</div>
@@ -351,9 +351,9 @@
 							<label>{{ctx.Locale.Tr "repo.settings.default_permission_everyone_access"}}</label>
 							<select name="default_wiki_everyone_access" class="ui selection dropdown">
 								{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
-								<option value="none" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
-								<option value="read" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
-								<option value="write" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 2) "selected"}}>{{ctx.Locale.Tr "settings.permission_write"}}</option>
+								<option value="none" {{Ternary (eq $unitInternalWiki.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
+								<option value="read" {{Ternary (eq $unitInternalWiki.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
+								<option value="write" {{Ternary (eq $unitInternalWiki.EveryoneAccessMode 2) "selected"}}>{{ctx.Locale.Tr "settings.permission_write"}}</option>
 							</select>
 						</div>
 					</div>
@@ -396,8 +396,8 @@
 							<label>{{ctx.Locale.Tr "repo.settings.default_permission_everyone_access"}}</label>
 							<select name="default_issues_everyone_access" class="ui selection dropdown">
 								{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
-								<option value="none" {{Iif (eq $unitIssue.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
-								<option value="read" {{Iif (eq $unitIssue.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
+								<option value="none" {{Ternary (eq $unitIssue.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
+								<option value="read" {{Ternary (eq $unitIssue.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
 							</select>
 						</div>
 						{{if .Repository.CanEnableTimetracker}}

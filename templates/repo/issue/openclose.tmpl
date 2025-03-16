@@ -3,7 +3,7 @@
 {{if .PageIsMilestones}}
 	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "sort" $.SortType "state" "all"}}
 {{else}}
-	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" "all" "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" "all" "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Ternary $.ShowArchivedLabels "true")}}
 {{end}}
 {{$openLink = QueryBuild $allStatesLink "state" "open"}}
 {{$closedLink = QueryBuild $allStatesLink "state" "closed"}}
@@ -12,7 +12,7 @@
 		{{if .PageIsMilestones}}
 			{{svg "octicon-milestone"}}
 		{{else}}
-			{{Iif .PageIsPullList (svg "octicon-git-pull-request") (svg "octicon-issue-opened")}}
+			{{Ternary .PageIsPullList (svg "octicon-git-pull-request") (svg "octicon-issue-opened")}}
 		{{end}}
 		{{ctx.Locale.PrettyNumber .OpenCount}} {{ctx.Locale.Tr "repo.issues.open_title"}}
 	</a>

@@ -47,17 +47,17 @@
 							<td><a href="{{AppSubUrl}}/{{.Name | PathEscape}}">{{.Name}}</a></td>
 							<td class="gt-ellipsis tw-max-w-48">{{.FullName}}</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
-							<td>{{svg (Iif .IsPrimary "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Ternary .IsPrimary "octicon-check" "octicon-x")}}</td>
 							<td>
 								{{if .CanChange}}
 									<a class="show-modal" href data-modal="#change-email-modal" data-modal-uid="{{.UID}}"
 										data-modal-email="{{.Email}}"
 										data-modal-primary="{{if .IsPrimary}}1{{else}}0{{end}}"
 										data-modal-activate="{{if .IsActivated}}0{{else}}1{{end}}">
-										{{svg (Iif .IsActivated "octicon-check" "octicon-x")}}
+										{{svg (Ternary .IsActivated "octicon-check" "octicon-x")}}
 									</a>
 								{{else}}
-									{{svg (Iif .IsActivated "octicon-check" "octicon-x")}}
+									{{svg (Ternary .IsActivated "octicon-check" "octicon-x")}}
 								{{end}}
 							</td>
 							<td>

@@ -55,7 +55,7 @@
 						<input type="hidden" name="state" value="{{$.State}}">
 						{{template "shared/search/combo" (dict
 							"Value" $.Keyword
-							"Placeholder" (ctx.Locale.Tr (Iif .PageIsPulls "search.pull_kind" "search.issue_kind"))
+							"Placeholder" (ctx.Locale.Tr (Ternary .PageIsPulls "search.pull_kind" "search.issue_kind"))
 							"Tooltip" (ctx.Locale.Tr "explore.go_to")
 							"SearchModes" .SearchModes
 							"SelectedSearchMode" .SelectedSearchMode

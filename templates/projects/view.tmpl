@@ -5,7 +5,7 @@
 		<h2 class="tw-mb-0 tw-flex-1 tw-break-anywhere">{{.Project.Title}}</h2>
 			<div class="project-toolbar-right">
 				<div class="ui secondary filter menu labels">
-					{{$queryLink := QueryBuild "?" "labels" .SelectLabels "assignee" $.AssigneeID "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+					{{$queryLink := QueryBuild "?" "labels" .SelectLabels "assignee" $.AssigneeID "archived_labels" (Ternary $.ShowArchivedLabels "true")}}
 
 					{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 

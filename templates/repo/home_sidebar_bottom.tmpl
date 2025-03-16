@@ -47,7 +47,7 @@
 							<div class="item">
 								<i class="color-icon" style="background-color: {{.Color}}"></i>
 								<span class="tw-font-semibold">
-									{{Iif (eq .Language "other") (ctx.Locale.Tr "repo.language_other") .Language}}
+									{{Ternary (eq .Language "other") (ctx.Locale.Tr "repo.language_other") .Language}}
 								</span>
 								{{.Percentage}}%
 							</div>

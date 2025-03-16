@@ -1,4 +1,4 @@
-{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
+{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Ternary $.ShowArchivedLabels "true")}}
 
 {{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 
@@ -83,7 +83,7 @@
 {{template "repo/issue/filter_item_user_fetch" dict
 	"QueryParamKey" "poster"
 	"QueryLink" $queryLink
-	"UserSearchUrl" (Iif .Milestone (print $.RepoLink "/issues/posters") (print $.Link "/posters"))
+	"UserSearchUrl" (Ternary .Milestone (print $.RepoLink "/issues/posters") (print $.Link "/posters"))
 	"SelectedUsername" $.PosterUsername
 	"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_poster")
 }}

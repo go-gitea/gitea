@@ -21,9 +21,9 @@
 				<div class="ui column">
 					<div class="ui compact small menu">
 						{{$queryParams := QueryBuild "from" .RangeFrom "to" .RangeTo}}
-						<a class="{{Iif .WorktimeByRepos "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=repos&{{$queryParams}}">{{svg "octicon-repo"}} {{ctx.Locale.Tr "org.worktime.by_repositories"}}</a>
-						<a class="{{Iif .WorktimeByMilestones "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=milestones&{{$queryParams}}">{{svg "octicon-milestone"}} {{ctx.Locale.Tr "org.worktime.by_milestones"}}</a>
-						<a class="{{Iif .WorktimeByMembers "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=members&{{$queryParams}}">{{svg "octicon-people"}} {{ctx.Locale.Tr "org.worktime.by_members"}}</a>
+						<a class="{{Ternary .WorktimeByRepos "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=repos&{{$queryParams}}">{{svg "octicon-repo"}} {{ctx.Locale.Tr "org.worktime.by_repositories"}}</a>
+						<a class="{{Ternary .WorktimeByMilestones "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=milestones&{{$queryParams}}">{{svg "octicon-milestone"}} {{ctx.Locale.Tr "org.worktime.by_milestones"}}</a>
+						<a class="{{Ternary .WorktimeByMembers "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=members&{{$queryParams}}">{{svg "octicon-people"}} {{ctx.Locale.Tr "org.worktime.by_members"}}</a>
 					</div>
 				</div>
 				{{if .WorktimeByRepos}}

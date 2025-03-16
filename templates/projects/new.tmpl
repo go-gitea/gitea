@@ -22,8 +22,8 @@
 			{{/* the "Repository" is nil when the project is org-level */}}
 			{{template "shared/combomarkdowneditor" (dict
 				"MarkdownPreviewInRepo" $.Repository
-				"MarkdownPreviewContext" (Iif $.Repository "" .HomeLink)
-				"MarkdownPreviewMode" (Iif $.Repository "comment")
+				"MarkdownPreviewContext" (Ternary $.Repository "" .HomeLink)
+				"MarkdownPreviewMode" (Ternary $.Repository "comment")
 				"TextareaName" "content"
 				"TextareaContent" .content
 				"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.description_placeholder")

@@ -15,19 +15,19 @@
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.auth_source"}}:</b>
-				{{Iif (eq .LoginSource.ID 0) (ctx.Locale.Tr "admin.users.local") .LoginSource.Name}}
+				{{Ternary (eq .LoginSource.ID 0) (ctx.Locale.Tr "admin.users.local") .LoginSource.Name}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.activated"}}:</b>
-				{{svg (Iif .User.IsActive "octicon-check" "octicon-x")}}
+				{{svg (Ternary .User.IsActive "octicon-check" "octicon-x")}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.prohibit_login"}}:</b>
-				{{svg (Iif .User.ProhibitLogin "octicon-check" "octicon-x")}}
+				{{svg (Ternary .User.ProhibitLogin "octicon-check" "octicon-x")}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.restricted"}}:</b>
-				{{svg (Iif .User.IsRestricted "octicon-check" "octicon-x")}}
+				{{svg (Ternary .User.IsRestricted "octicon-check" "octicon-x")}}
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "settings.visibility"}}:</b>
@@ -37,7 +37,7 @@
 			</div>
 			<div class="flex-item-body">
 				<b>{{ctx.Locale.Tr "admin.users.2fa"}}:</b>
-				{{svg (Iif .TwoFactorEnabled "octicon-check" "octicon-x")}}
+				{{svg (Ternary .TwoFactorEnabled "octicon-check" "octicon-x")}}
 			</div>
 			{{if .User.Language}}
 				<div class="flex-item-body">

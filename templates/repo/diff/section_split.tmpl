@@ -1,5 +1,5 @@
 {{$file := .file}}
-{{$blobExcerptLink := print (or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink) (Iif $.root.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $.root.AfterCommitID) "?"}}
+{{$blobExcerptLink := print (or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink) (Ternary $.root.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $.root.AfterCommitID) "?"}}
 <colgroup>
 	<col width="50">
 	<col width="10">

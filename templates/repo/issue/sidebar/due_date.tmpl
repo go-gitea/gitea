@@ -23,7 +23,7 @@
 		>
 			{{$.CsrfTokenHtml}}
 			<input required type="date" name="deadline" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if .Issue.DeadlineUnix}}value="{{.Issue.DeadlineUnix.FormatDate}}"{{end}}>
-			<button class="ui icon button">{{Iif .Issue.DeadlineUnix (svg "octicon-pencil") (svg "octicon-plus")}}</button>
+			<button class="ui icon button">{{Ternary .Issue.DeadlineUnix (svg "octicon-pencil") (svg "octicon-plus")}}</button>
 		</form>
 	{{end}}
 </div>

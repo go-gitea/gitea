@@ -67,7 +67,7 @@ func TestSanitizeHTML(t *testing.T) {
 
 func TestTemplateIif(t *testing.T) {
 	tmpl := template.New("test")
-	tmpl.Funcs(template.FuncMap{"Iif": iif})
+	tmpl.Funcs(template.FuncMap{"Iif": ternary})
 	template.Must(tmpl.Parse(`{{if .Value}}true{{else}}false{{end}}:{{Iif .Value "true" "false"}}`))
 
 	cases := []any{nil, false, true, "", "string", 0, 1}

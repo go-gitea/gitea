@@ -56,7 +56,7 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 						{{svg "octicon-git-branch"}}
 					{{end}}
 				{{end}}
-				<strong class="tw-ml-2 tw-inline-block gt-ellipsis">{{Iif .DropdownFixedText .SelectedRefShortName}}</strong>
+				<strong class="tw-ml-2 tw-inline-block gt-ellipsis">{{Ternary .DropdownFixedText .SelectedRefShortName}}</strong>
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>

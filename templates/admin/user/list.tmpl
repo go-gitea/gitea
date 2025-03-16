@@ -93,9 +93,9 @@
 								{{end}}
 							</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
-							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
-							<td>{{svg (Iif .IsRestricted "octicon-check" "octicon-x")}}</td>
-							<td>{{svg (Iif (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Ternary .IsActive "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Ternary .IsRestricted "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Ternary (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}</td>
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
 								<td>{{DateUtils.AbsoluteShort .LastLoginUnix}}</td>

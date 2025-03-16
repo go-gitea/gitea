@@ -35,7 +35,7 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// html/template related functions
 		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
-		"Iif":          iif,
+		"Ternary":      ternary,
 		"Eval":         evalTokens,
 		"SafeHTML":     safeHTML,
 		"HTMLFormat":   htmlFormat,
@@ -233,9 +233,9 @@ func dotEscape(raw string) string {
 	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
-// iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,
-// and it could be simply used as "{{iif expr trueVal}}" (omit the falseVal).
-func iif(condition any, vals ...any) any {
+// ternary is an "inline-if", similar util.Ternary[T] but templates need the non-generic version,
+// and it can be simply used as "{{ternary expr trueVal}}" (omit the falseVal).
+func ternary(condition any, vals ...any) any {
 	if isTemplateTruthy(condition) {
 		return vals[0]
 	} else if len(vals) > 1 {

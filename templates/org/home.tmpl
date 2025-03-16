@@ -28,15 +28,15 @@
 				{{if and .ShowMemberAndTeamTab .ShowOrgProfileReadmeSelector}}
 				<div class="tw-my-4">
 					<div id="org-home-view-as-dropdown" class="ui dropdown jump">
-						{{- $viewAsRole := Iif (.IsViewingOrgAsMember) (ctx.Locale.Tr "org.members.member") (ctx.Locale.Tr "settings.visibility.public") -}}
+						{{- $viewAsRole := Ternary (.IsViewingOrgAsMember) (ctx.Locale.Tr "org.members.member") (ctx.Locale.Tr "settings.visibility.public") -}}
 						<span class="text">{{svg "octicon-eye"}} {{ctx.Locale.Tr "org.view_as_role" $viewAsRole}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<a href="?view_as=public" class="item {{if not .IsViewingOrgAsMember}}selected{{end}}">
-								{{svg "octicon-check" 14 (Iif (not .IsViewingOrgAsMember) "" "tw-invisible")}} {{ctx.Locale.Tr "settings.visibility.public"}}
+								{{svg "octicon-check" 14 (Ternary (not .IsViewingOrgAsMember) "" "tw-invisible")}} {{ctx.Locale.Tr "settings.visibility.public"}}
 							</a>
 							<a href="?view_as=member" class="item {{if .IsViewingOrgAsMember}}selected{{end}}">
-								{{svg "octicon-check" 14 (Iif .IsViewingOrgAsMember "" "tw-invisible")}}  {{ctx.Locale.Tr "org.members.member"}}
+								{{svg "octicon-check" 14 (Ternary .IsViewingOrgAsMember "" "tw-invisible")}}  {{ctx.Locale.Tr "org.members.member"}}
 							</a>
 						</div>
 					</div>

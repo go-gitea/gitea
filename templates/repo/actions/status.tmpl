@@ -2,8 +2,8 @@
 	Please also update the vue file above if this template is modified.
 	action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, unknown
 -->
-{{- $size := Iif .size .size 16 -}}
-{{- $className := Iif .className .className "" -}}
+{{- $size := Ternary .size .size 16 -}}
+{{- $className := Ternary .className .className "" -}}
 <span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" .status)}}">
 {{if eq .status "success"}}
 	{{svg "octicon-check-circle-fill" $size (printf "text green %s" $className)}}

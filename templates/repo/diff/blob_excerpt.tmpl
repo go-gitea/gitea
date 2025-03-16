@@ -1,4 +1,4 @@
-{{$blobExcerptLink := print $.RepoLink (Iif $.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $.AfterCommitID) (QueryBuild "?" "anchor" $.Anchor)}}
+{{$blobExcerptLink := print $.RepoLink (Ternary $.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $.AfterCommitID) (QueryBuild "?" "anchor" $.Anchor)}}
 {{if $.IsSplitStyle}}
 	{{range $k, $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded">
