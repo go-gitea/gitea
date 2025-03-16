@@ -98,7 +98,6 @@ type UIForm struct {
 	PackagesPagingNum        int
 	CodeCommentLines         int
 	ShowUserEmail            bool
-	DefaultShowFullName      bool
 	SearchRepoDescription    bool
 	OnlyShowRelevantRepos    bool
 	ExplorePagingDefaultSort string
