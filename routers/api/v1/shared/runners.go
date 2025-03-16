@@ -14,8 +14,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
-
-	"xorm.io/builder"
 )
 
 // RegistrationToken is response related to registration token
@@ -80,15 +78,6 @@ func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	}
 	if !runner.Editable(ownerID, repoID) {
 		ctx.APIErrorNotFound("No permission to delete this runner")
-		return
-	}
-	exist, err := db.Exist[actions_model.ActionTask](ctx, builder.Eq{"`runner_id`": runner.ID}.And(builder.In("`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked)))
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if exist {
-		ctx.APIError(http.StatusConflict, "Runner is active")
 		return
 	}
 

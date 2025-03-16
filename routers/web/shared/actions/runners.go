@@ -18,8 +18,6 @@ import (
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
-
-	"xorm.io/builder"
 )
 
 const (
@@ -316,22 +314,6 @@ func RunnerDeletePost(ctx *context.Context) {
 
 	successRedirectTo := rCtx.RedirectLink
 	failedRedirectTo := rCtx.RedirectLink + url.PathEscape(ctx.PathParam("runnerid"))
-
-	exist, err := db.Exist[actions_model.ActionTask](ctx, builder.Eq{"`runner_id`": runner.ID}.And(builder.In("`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked)))
-	if err != nil {
-		log.Warn("DeleteRunnerPost.Exist failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed"))
-
-		ctx.JSONRedirect(failedRedirectTo)
-		return
-	}
-	if exist {
-		log.Warn("DeleteRunnerPost.Exist failed: cannot delete active runner")
-		ctx.Flash.Warning(ctx.Tr("actions.runners.delete_runner_failed_runner_active"))
-
-		ctx.JSONRedirect(failedRedirectTo)
-		return
-	}
 
 	if err := actions_model.DeleteRunner(ctx, runner.ID); err != nil {
 		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)

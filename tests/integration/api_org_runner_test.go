@@ -123,22 +123,6 @@ func TestAPIRunnerDeleteAdminRunnerNotFoundOrgApi(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIRunnerDeleteConflictWhileJobIsRunningOrgApi(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	userUsername := "user2"
-	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteOrganization)
-
-	_, err := db.GetEngine(t.Context()).Insert(&actions_model.ActionTask{
-		RunnerID: 34347,
-		Status:   actions_model.StatusRunning,
-	})
-	assert.NoError(t, err)
-
-	// Verify delete the runner by id is blocked by active job
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34347)).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusConflict)
-}
-
 func TestAPIRunnerDeleteNoConflictWhileJobIsDoneOrgApi(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	userUsername := "user2"
