@@ -181,7 +181,7 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
-		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+		if err = gitrepo.SetDefaultBranchForRepo(ctx, repo); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 

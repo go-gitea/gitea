@@ -19,6 +19,8 @@ import (
 type Repository interface {
 	GetName() string
 	GetOwnerName() string
+	GetDefaultBranch() string
+	GetDefaultWikiBranch() string
 }
 
 func absPath(owner, name string) string {

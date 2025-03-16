@@ -223,6 +223,14 @@ func (repo *Repository) GetOwnerName() string {
 	return repo.OwnerName
 }
 
+func (repo *Repository) GetDefaultBranch() string {
+	return repo.DefaultBranch
+}
+
+func (repo *Repository) GetDefaultWikiBranch() string {
+	return repo.DefaultWikiBranch
+}
+
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {

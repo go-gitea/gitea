@@ -185,7 +185,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						repo.DefaultBranch = refName
 						repo.IsEmpty = false
 						if repo.DefaultBranch != setting.Repository.DefaultBranch {
-							if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+							if err := gitrepo.SetDefaultBranchForRepo(ctx, repo); err != nil {
 								return err
 							}
 						}

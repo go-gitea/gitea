@@ -31,11 +31,18 @@ func GetBranchCommitID(ctx context.Context, repo Repository, branch string) (str
 	return gitRepo.GetBranchCommitID(branch)
 }
 
-// SetDefaultBranch sets default branch of repository.
-func SetDefaultBranch(ctx context.Context, repo Repository, name string) error {
+// SetDefaultBranchForRepo sets default branch of repository.
+func SetDefaultBranchForRepo(ctx context.Context, repo Repository) error {
 	_, _, err := git.NewCommand("symbolic-ref", "HEAD").
-		AddDynamicArguments(git.BranchPrefix+name).
+		AddDynamicArguments(git.BranchPrefix+repo.GetDefaultBranch()).
 		RunStdString(ctx, &git.RunOpts{Dir: repoPath(repo)})
+	return err
+}
+
+func SetDefaultBranchForWiki(ctx context.Context, repo Repository) error {
+	_, _, err := git.NewCommand("symbolic-ref", "HEAD").
+		AddDynamicArguments(git.BranchPrefix+repo.GetDefaultWikiBranch()).
+		RunStdString(ctx, &git.RunOpts{Dir: wikiPath(repo)})
 	return err
 }
 
