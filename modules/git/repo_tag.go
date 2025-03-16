@@ -5,6 +5,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
