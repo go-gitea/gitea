@@ -63,12 +63,15 @@ These inconsistent layouts should be refactored to simple ones.
   background: var(--color-secondary-bg);
   border-color: var(--color-secondary);
   padding: 1rem;
-  text-align: right;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .ui.modal .content > .actions {
   padding-top: 1em; /* if the "actions" is in the "content", some paddings are already added by the "content" */
+  text-align: right;
+}
+
+.ui.modal .actions {
   text-align: right;
 }
 
