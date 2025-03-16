@@ -147,7 +147,7 @@ func Users(ctx *context.Context) {
 	)
 	sortOrder := ctx.FormString("sort")
 	if sortOrder == "" {
-		sortOrder = util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
+		sortOrder = util.Ternary(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
 		ctx.SetFormString("sort", sortOrder)
 	}
 

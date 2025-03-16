@@ -323,7 +323,7 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 		} else {
 			// if left is empty or right is empty (a line is fully deleted or added), then we do not need to diff anymore.
 			// the tmpl code already adds background colors for these cases.
-			lineHTML = util.Iif(diffLineType == DiffLineDel, diff1, diff2)
+			lineHTML = util.Ternary(diffLineType == DiffLineDel, diff1, diff2)
 		}
 	}
 	return DiffInlineWithUnicodeEscape(lineHTML, locale)

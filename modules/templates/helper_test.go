@@ -77,7 +77,7 @@ func TestTemplateIif(t *testing.T) {
 		w.Reset()
 		assert.NoError(t, tmpl.Execute(w, struct{ Value any }{v}), "case %d (%T) %#v fails", i, v, v)
 		out := w.String()
-		truthyCount += util.Iif(out == "true:true", 1, 0)
+		truthyCount += util.Ternary(out == "true:true", 1, 0)
 		truthyMatches := out == "true:true" || out == "false:false"
 		assert.True(t, truthyMatches, "case %d (%T) %#v fail: %s", i, v, v, out)
 	}

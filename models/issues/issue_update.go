@@ -47,7 +47,7 @@ func IsErrIssueIsClosed(err error) bool {
 }
 
 func (err ErrIssueIsClosed) Error() string {
-	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already closed", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
+	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already closed", util.Ternary(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
 }
 
 func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
@@ -84,7 +84,7 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 		return nil, ErrIssueAlreadyChanged
 	}
 
-	return updateIssueNumbers(ctx, issue, doer, util.Iif(isMergePull, CommentTypeMergePull, CommentTypeClose))
+	return updateIssueNumbers(ctx, issue, doer, util.Ternary(isMergePull, CommentTypeMergePull, CommentTypeClose))
 }
 
 // ErrIssueIsOpen is used when reopen an opened issue
@@ -102,7 +102,7 @@ func IsErrIssueIsOpen(err error) bool {
 }
 
 func (err ErrIssueIsOpen) Error() string {
-	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already open", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
+	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already open", util.Ternary(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
 }
 
 func setIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {

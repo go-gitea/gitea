@@ -51,11 +51,11 @@ func (r *BlockRenderer) writeLines(w util.BufWriter, source []byte, n gast.Node)
 func (r *BlockRenderer) renderBlock(w util.BufWriter, source []byte, node gast.Node, entering bool) (gast.WalkStatus, error) {
 	n := node.(*Block)
 	if entering {
-		code := giteaUtil.Iif(n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="language-math display">`
+		code := giteaUtil.Ternary(n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="language-math display">`
 		_ = r.renderInternal.FormatWithSafeAttrs(w, template.HTML(code))
 		r.writeLines(w, source, n)
 	} else {
-		_, _ = w.WriteString(`</code>` + giteaUtil.Iif(n.Inline, "", `</pre>`) + "\n")
+		_, _ = w.WriteString(`</code>` + giteaUtil.Ternary(n.Inline, "", `</pre>`) + "\n")
 	}
 	return gast.WalkContinue, nil
 }

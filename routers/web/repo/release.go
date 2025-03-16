@@ -465,7 +465,7 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	attachmentUUIDs := util.Iif(setting.Attachment.Enabled, form.Files, nil)
+	attachmentUUIDs := util.Ternary(setting.Attachment.Enabled, form.Files, nil)
 
 	// no existing release, create a new release
 	if rel == nil {

@@ -26,7 +26,7 @@ func SetCacheControlInHeader(h http.Header, opts *CacheControlOptions) {
 
 	// "max-age=0 + must-revalidate" (aka "no-cache") is preferred instead of "no-store"
 	// because browsers may restore some input fields after navigate-back / reload a page.
-	publicPrivate := util.Iif(opts.IsPublic, "public", "private")
+	publicPrivate := util.Ternary(opts.IsPublic, "public", "private")
 	if setting.IsProd {
 		if opts.MaxAge == 0 {
 			directives = append(directives, "max-age=0", "private", "must-revalidate")

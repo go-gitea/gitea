@@ -58,7 +58,7 @@ func ParseAccessMode(permission string, allowed ...AccessMode) AccessMode {
 	if len(allowed) == 0 {
 		return m
 	}
-	return util.Iif(slices.Contains(allowed, m), m, AccessModeNone)
+	return util.Ternary(slices.Contains(allowed, m), m, AccessModeNone)
 }
 
 // ErrInvalidAccessMode is returned when an invalid access mode is used

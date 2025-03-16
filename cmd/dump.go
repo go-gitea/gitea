@@ -132,7 +132,7 @@ func runDump(ctx *cli.Context) error {
 		defer outFile.Close()
 	}
 
-	setupConsoleLogger(util.Iif(quite, log.WARN, log.INFO), log.CanColorStderr, os.Stderr)
+	setupConsoleLogger(util.Ternary(quite, log.WARN, log.INFO), log.CanColorStderr, os.Stderr)
 
 	setting.DisableLoggerInit()
 	setting.LoadSettings() // cannot access session settings otherwise

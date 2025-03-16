@@ -149,7 +149,7 @@ func NewColumn(ctx context.Context, column *Column) error {
 	if res.ColumnCount >= maxProjectColumns {
 		return fmt.Errorf("NewBoard: maximum number of columns reached")
 	}
-	column.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
+	column.Sorting = int8(util.Ternary(res.ColumnCount > 0, res.MaxSorting+1, 0))
 	_, err := db.GetEngine(ctx).Insert(column)
 	return err
 }

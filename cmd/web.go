@@ -220,7 +220,7 @@ func serveInstalled(ctx *cli.Context) error {
 		}
 	}
 
-	gtprof.EnableBuiltinTracer(util.Iif(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond))
+	gtprof.EnableBuiltinTracer(util.Ternary(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond))
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()

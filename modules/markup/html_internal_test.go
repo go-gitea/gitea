@@ -33,7 +33,7 @@ func numericIssueLink(baseURL, class string, index int, marker string) string {
 
 // link an HTML link
 func link(href, class, contents string) string {
-	extra := util.Iif(class != "", ` class="`+class+`"`, "")
+	extra := util.Ternary(class != "", ` class="`+class+`"`, "")
 	return fmt.Sprintf(`<a href="%s"%s>%s</a>`, href, extra, contents)
 }
 

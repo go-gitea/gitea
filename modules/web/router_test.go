@@ -27,7 +27,7 @@ func chiURLParamsToMap(chiCtx *chi.Context) map[string]string {
 		}
 		m[key] = pathParams.Values[i]
 	}
-	return util.Iif(len(m) == 0, nil, m)
+	return util.Ternary(len(m) == 0, nil, m)
 }
 
 func TestPathProcessor(t *testing.T) {

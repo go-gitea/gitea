@@ -62,7 +62,7 @@ func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Colum
 		return nil
 	}
 
-	nextSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
+	nextSorting := util.Ternary(res.IssueCount > 0, res.MaxSorting+1, 0)
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		for i, issue := range issues {
 			issue.ProjectColumnID = newColumn.ID

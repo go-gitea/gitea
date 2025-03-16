@@ -45,10 +45,10 @@ func getRequestScheme(req *http.Request) string {
 		return s
 	}
 	if s := req.Header.Get("Front-End-Https"); s != "" {
-		return util.Iif(s == "on", "https", "http")
+		return util.Ternary(s == "on", "https", "http")
 	}
 	if s := req.Header.Get("X-Forwarded-Ssl"); s != "" {
-		return util.Iif(s == "on", "https", "http")
+		return util.Ternary(s == "on", "https", "http")
 	}
 	return ""
 }
@@ -119,7 +119,7 @@ func detectURLRoutePath(ctx context.Context, s string) (routePath string, ut url
 	cleanedPath := ""
 	if u.Path != "" {
 		cleanedPath = util.PathJoinRelX(u.Path)
-		cleanedPath = util.Iif(cleanedPath == ".", "", "/"+cleanedPath)
+		cleanedPath = util.Ternary(cleanedPath == ".", "", "/"+cleanedPath)
 	}
 	if urlIsRelative(s, u) {
 		if u.Path == "" {

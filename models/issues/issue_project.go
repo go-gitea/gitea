@@ -155,7 +155,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			Get(&res); err != nil {
 			return err
 		}
-		newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
+		newSorting := util.Ternary(res.IssueCount > 0, res.MaxSorting+1, 0)
 		return db.Insert(ctx, &project_model.ProjectIssue{
 			IssueID:         issue.ID,
 			ProjectID:       newProjectID,

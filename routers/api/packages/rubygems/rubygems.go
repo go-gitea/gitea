@@ -347,7 +347,7 @@ func GetAllPackagesVersions(ctx *context.Context) {
 		// format: RUBYGEM [-]VERSION_PLATFORM[,VERSION_PLATFORM],...] MD5
 		_, _ = fmt.Fprintf(out, "%s ", pkg.Name)
 		for i, v := range versions {
-			sep := util.Iif(i == len(versions)-1, "", ",")
+			sep := util.Ternary(i == len(versions)-1, "", ",")
 			_, _ = fmt.Fprintf(out, "%s%s", v.Version, sep)
 		}
 		_, _ = fmt.Fprintf(out, " %x\n", md5.Sum([]byte(info)))
@@ -362,7 +362,7 @@ func writePackageVersionRequirements(prefix string, reqs []rubygems_module.Versi
 		reqs = []rubygems_module.VersionRequirement{{Restriction: ">=", Version: "0"}}
 	}
 	for i, req := range reqs {
-		sep := util.Iif(i == 0, "", "&")
+		sep := util.Ternary(i == 0, "", "&")
 		_, _ = fmt.Fprintf(out, "%s%s %s", sep, req.Restriction, req.Version)
 	}
 }
@@ -391,7 +391,7 @@ func makePackageVersionDependency(ctx *context.Context, version *packages_model.
 	buf.WriteString(version.Version)
 	buf.WriteByte(' ')
 	for i, dep := range metadata.RuntimeDependencies {
-		sep := util.Iif(i == 0, "", ",")
+		sep := util.Ternary(i == 0, "", ",")
 		writePackageVersionRequirements(fmt.Sprintf("%s%s:", sep, dep.Name), dep.Version, buf)
 	}
 	_, _ = fmt.Fprintf(buf, "|checksum:%s", blob.HashSHA256)

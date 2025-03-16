@@ -144,7 +144,7 @@ func (te *ldapTestEnv) buildAuthSourcePayload(csrf string, opts ...ldapAuthOptio
 		"filter":                   userFilter,
 		"admin_filter":             "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
 		"restricted_filter":        "(uid=leela)",
-		"attribute_username":       util.Iif(opt.attributeUID.Has(), opt.attributeUID.Value(), "uid"),
+		"attribute_username":       util.Ternary(opt.attributeUID.Has(), opt.attributeUID.Value(), "uid"),
 		"attribute_name":           "givenName",
 		"attribute_surname":        "sn",
 		"attribute_mail":           "mail",

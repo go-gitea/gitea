@@ -190,7 +190,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["TreePaths"] = treePaths
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	ctx.Data["commit_choice"] = util.Iif(canCommit, frmCommitChoiceDirect, frmCommitChoiceNewBranch)
+	ctx.Data["commit_choice"] = util.Ternary(canCommit, frmCommitChoiceDirect, frmCommitChoiceNewBranch)
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 

@@ -159,9 +159,9 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
 			// Gitea will redirect on click as appropriate.
-			issueOwner := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["user"], ref.Owner)
-			issueRepo := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["repo"], ref.Name)
-			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
+			issueOwner := util.Ternary(ref.Owner == "", ctx.RenderOptions.Metas["user"], ref.Owner)
+			issueRepo := util.Ternary(ref.Owner == "", ctx.RenderOptions.Metas["repo"], ref.Name)
+			issuePath := util.Ternary(ref.IsPull, "pulls", "issues")
 			linkHref := ctx.RenderHelper.ResolveLink(util.URLJoin(issueOwner, issueRepo, issuePath, ref.Issue), LinkTypeApp)
 
 			// at the moment, only render the issue index in a full line (or simple line) as icon+title

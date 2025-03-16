@@ -213,8 +213,8 @@ func ToPointer[T any](val T) *T {
 	return &val
 }
 
-// Iif is an "inline-if", it returns "trueVal" if "condition" is true, otherwise "falseVal"
-func Iif[T any](condition bool, trueVal, falseVal T) T {
+// Ternary is an "inline-if", it returns "trueVal" if "condition" is true, otherwise "falseVal"
+func Ternary[T any](condition bool, trueVal, falseVal T) T {
 	if condition {
 		return trueVal
 	}

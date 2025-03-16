@@ -148,7 +148,7 @@ type TreeViewNode struct {
 }
 
 func (node *TreeViewNode) sortLevel() int {
-	return util.Iif(node.EntryMode == "tree" || node.EntryMode == "commit", 0, 1)
+	return util.Ternary(node.EntryMode == "tree" || node.EntryMode == "commit", 0, 1)
 }
 
 func newTreeViewNodeFromEntry(ctx context.Context, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {

@@ -169,7 +169,7 @@ func getActionsViewArtifacts(ctx context.Context, repoID, runIndex int64) (artif
 		artifactsViewItems = append(artifactsViewItems, &ArtifactsViewItem{
 			Name:   art.ArtifactName,
 			Size:   art.FileSize,
-			Status: util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
+			Status: util.Ternary(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
 		})
 	}
 	return artifactsViewItems, nil

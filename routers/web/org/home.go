@@ -155,7 +155,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 }
 
 func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.PrepareOrgHeaderResult) bool {
-	viewAs := ctx.FormString("view_as", util.Iif(ctx.Org.IsMember, "member", "public"))
+	viewAs := ctx.FormString("view_as", util.Ternary(ctx.Org.IsMember, "member", "public"))
 	viewAsMember := viewAs == "member"
 
 	var profileRepo *repo_model.Repository

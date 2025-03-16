@@ -77,12 +77,12 @@ func (p *Permission) GetFirstUnitRepoID() int64 {
 func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
 	// if the units map contains the access mode, use it, but admin/owner mode could override it
 	if m, ok := p.unitsMode[unitType]; ok {
-		return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
+		return util.Ternary(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
 	}
 	// if the units map does not contain the access mode, return the default access mode if the unit exists
 	unitDefaultAccessMode := max(p.AccessMode, p.everyoneAccessMode[unitType])
 	hasUnit := slices.ContainsFunc(p.units, func(u *repo_model.RepoUnit) bool { return u.Type == unitType })
-	return util.Iif(hasUnit, unitDefaultAccessMode, perm_model.AccessModeNone)
+	return util.Ternary(hasUnit, unitDefaultAccessMode, perm_model.AccessModeNone)
 }
 
 func (p *Permission) SetUnitsWithDefaultAccessMode(units []*repo_model.RepoUnit, mode perm_model.AccessMode) {
