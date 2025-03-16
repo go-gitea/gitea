@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -425,6 +426,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	return parseRemoteUpdateOutput(output, m.GetRemoteName()), true
 }
 
+func getRepoPullMirrorLockKey(repoID int64) string {
+	return fmt.Sprintf("repo_pull_mirror_%d", repoID)
+}
+
 // SyncPullMirror starts the sync of the pull mirror and schedules the next run.
 func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
@@ -436,6 +441,13 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		// There was a panic whilst syncMirrors...
 		log.Error("PANIC whilst SyncMirrors[repo_id: %d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
+
+	releaser, err := globallock.Lock(ctx, getRepoPullMirrorLockKey(repoID))
+	if err != nil {
+		log.Error("globallock.Lock(): %v", err)
+		return false
+	}
+	defer releaser()
 
 	m, err := repo_model.GetMirrorByRepoID(ctx, repoID)
 	if err != nil {
