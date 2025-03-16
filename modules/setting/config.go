@@ -61,7 +61,6 @@ type UIStruct struct {
 	FeedMaxCommitNum      *config.Value[int]
 	FeedPagingNum         *config.Value[int]
 	PackagesPagingNum     *config.Value[int]
-	GraphMaxCommitNum     *config.Value[int]
 	CodeCommentLines      *config.Value[int]
 	ShowUserEmail         *config.Value[bool]
 	SearchRepoDescription *config.Value[bool]
@@ -79,7 +78,6 @@ func (u *UIStruct) ToStruct(ctx context.Context) UIForm {
 		FeedMaxCommitNum:         u.FeedMaxCommitNum.Value(ctx),
 		FeedPagingNum:            u.FeedPagingNum.Value(ctx),
 		PackagesPagingNum:        u.PackagesPagingNum.Value(ctx),
-		GraphMaxCommitNum:        u.GraphMaxCommitNum.Value(ctx),
 		CodeCommentLines:         u.CodeCommentLines.Value(ctx),
 		ShowUserEmail:            u.ShowUserEmail.Value(ctx),
 		SearchRepoDescription:    u.SearchRepoDescription.Value(ctx),
@@ -98,7 +96,6 @@ type UIForm struct {
 	FeedMaxCommitNum         int
 	FeedPagingNum            int
 	PackagesPagingNum        int
-	GraphMaxCommitNum        int
 	CodeCommentLines         int
 	ShowUserEmail            bool
 	DefaultShowFullName      bool
@@ -138,7 +135,6 @@ func initDefaultConfig() {
 			FeedMaxCommitNum:      config.ValueJSON[int]("ui.feed_max_commit_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "FEED_MAX_COMMIT_NUM"}).WithDefault(20),
 			FeedPagingNum:         config.ValueJSON[int]("ui.feed_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "FEED_PAGE_NUM"}).WithDefault(20),
 			PackagesPagingNum:     config.ValueJSON[int]("ui.packages_paging_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "PACKAGES_PAGING_NUM"}).WithDefault(20),
-			GraphMaxCommitNum:     config.ValueJSON[int]("ui.graph_max_commit_num").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "GRAPH_MAX_COMMIT_NUM"}).WithDefault(100),
 			CodeCommentLines:      config.ValueJSON[int]("ui.code_comment_lines").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "CODE_COMMENT_LINES"}).WithDefault(4),
 			ShowUserEmail:         config.ValueJSON[bool]("ui.show_user_email").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "SHOW_USER_EMAIL"}).WithDefault(true),
 			SearchRepoDescription: config.ValueJSON[bool]("ui.search_repo_description").WithFileConfig(config.CfgSecKey{Sec: "ui", Key: "SEARCH_REPO_DESCRIPTION"}).WithDefault(false),
