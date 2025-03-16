@@ -31,11 +31,11 @@ func SyncRepositoryHooks(ctx context.Context) error {
 			default:
 			}
 
-			if err := gitrepo.CreateDelegateHooks(ctx, repo, false); err != nil {
+			if err := gitrepo.CreateDelegateHooksForRepo(ctx, repo); err != nil {
 				return fmt.Errorf("SyncRepositoryHook: %w", err)
 			}
 			if repo.HasWiki() {
-				if err := gitrepo.CreateDelegateHooks(ctx, repo, true); err != nil {
+				if err := gitrepo.CreateDelegateHooksForWiki(ctx, repo); err != nil {
 					return fmt.Errorf("SyncRepositoryHook: %w", err)
 				}
 			}
