@@ -19,6 +19,7 @@ import (
 type Repository interface {
 	GetName() string
 	GetOwnerName() string
+	GetObjectFormat() git.ObjectFormat
 }
 
 func absPath(owner, name string) string {
@@ -92,4 +93,12 @@ func RenameRepository(ctx context.Context, repo Repository, newName string) erro
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	return nil
+}
+
+func InitRepository(ctx context.Context, repo Repository) error {
+	return git.InitRepository(ctx, repoPath(repo), true, repo.GetObjectFormat().Name())
+}
+
+func InitWikiRepository(ctx context.Context, repo Repository) error {
+	return git.InitRepository(ctx, wikiPath(repo), true, repo.GetObjectFormat().Name())
 }

@@ -223,6 +223,13 @@ func (repo *Repository) GetOwnerName() string {
 	return repo.OwnerName
 }
 
+func (repo *Repository) GetObjectFormat() git.ObjectFormat {
+	if repo.ObjectFormatName == git.Sha256ObjectFormat.Name() {
+		return git.Sha256ObjectFormat
+	}
+	return git.Sha1ObjectFormat
+}
+
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {

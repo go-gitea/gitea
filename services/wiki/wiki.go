@@ -39,7 +39,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return nil
 	}
 
-	if err := git.InitRepository(ctx, repo.WikiPath(), true, repo.ObjectFormatName); err != nil {
+	if err := gitrepo.InitWikiRepository(ctx, repo); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooksForWiki(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)

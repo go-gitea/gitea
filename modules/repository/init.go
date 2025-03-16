@@ -12,7 +12,6 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
@@ -136,7 +135,7 @@ func CheckInitRepository(ctx context.Context, repo *repo_model.Repository) (err 
 	}
 
 	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
+	if err = gitrepo.InitRepository(ctx, repo); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooksForRepo(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
