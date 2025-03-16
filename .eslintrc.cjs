@@ -104,7 +104,7 @@ module.exports = {
         '@vitest/no-disabled-tests': [0],
         '@vitest/no-done-callback': [0],
         '@vitest/no-duplicate-hooks': [0],
-        '@vitest/no-focused-tests': [0],
+        '@vitest/no-focused-tests': [2],
         '@vitest/no-hooks': [0],
         '@vitest/no-identical-title': [2],
         '@vitest/no-interpolation-in-snapshots': [0],
@@ -155,7 +155,7 @@ module.exports = {
         'eslint-plugin-vue-scoped-css',
       ],
       extends: [
-        'plugin:vue/vue3-recommended',
+        'plugin:vue/recommended',
         'plugin:vue-scoped-css/vue3-recommended',
       ],
       rules: {
