@@ -55,7 +55,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	var orderBy db.SearchOrderBy
 	sortOrder := ctx.FormString("sort")
 	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
-		sortOrder = setting.UI.ExploreDefaultSort // TODO: add new default sort order for org home?
+		sortOrder = setting.Config().UI.ExploreDefaultSort.Value(ctx) // TODO: add new default sort order for org home?
 	}
 	ctx.Data["SortType"] = sortOrder
 	orderBy = repo_model.OrderByFlatMap[sortOrder]
@@ -132,7 +132,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 		Private:            ctx.IsSigned,
 		Actor:              ctx.Doer,
 		Language:           language,
-		IncludeDescription: setting.UI.SearchRepoDescription,
+		IncludeDescription: setting.Config().UI.SearchRepoDescription.Value(ctx),
 		Archived:           archived,
 		Fork:               fork,
 		Mirror:             mirror,

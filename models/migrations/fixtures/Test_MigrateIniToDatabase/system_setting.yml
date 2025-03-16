@@ -1,0 +1,24 @@
+#  type Setting struct {
+#    ID           int64              `xorm:"pk autoincr"`
+#    SettingKey   string             `xorm:"varchar(255) unique"` // key should be lowercase
+#    SettingValue string             `xorm:"text"`
+#    Version      int                `xorm:"version"`
+#    Created      timeutil.TimeStamp `xorm:"created"`
+#    Updated      timeutil.TimeStamp `xorm:"updated"`
+#  }
+-
+  id: 1
+  setting_key: revision
+  version: 1
+
+-
+  id: 2
+  setting_key: picture.enable_federated_avatar
+  setting_value: false
+  version: 1
+
+-
+  id: 3
+  setting_key: picture.disable_gravatar
+  setting_value: true
+  version: 1

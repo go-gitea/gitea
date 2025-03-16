@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/contexttest"
@@ -20,7 +21,8 @@ import (
 
 func TestArchivedIssues(t *testing.T) {
 	// Arrange
-	setting.UI.IssuePagingNum = 1
+	issuePagingNumValue := config.Value[int]{}
+	setting.Config().UI.IssuePagingNum = issuePagingNumValue.WithDefault(1)
 	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx, _ := contexttest.MockContext(t, "issues")
@@ -51,7 +53,8 @@ func TestArchivedIssues(t *testing.T) {
 }
 
 func TestIssues(t *testing.T) {
-	setting.UI.IssuePagingNum = 1
+	issuePagingNumValue := config.Value[int]{}
+	setting.Config().UI.IssuePagingNum = issuePagingNumValue.WithDefault(1)
 	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx, _ := contexttest.MockContext(t, "issues")
@@ -65,7 +68,8 @@ func TestIssues(t *testing.T) {
 }
 
 func TestPulls(t *testing.T) {
-	setting.UI.IssuePagingNum = 20
+	issuePagingNumValue := config.Value[int]{}
+	setting.Config().UI.IssuePagingNum = issuePagingNumValue.WithDefault(20)
 	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx, _ := contexttest.MockContext(t, "pulls")
@@ -78,7 +82,8 @@ func TestPulls(t *testing.T) {
 }
 
 func TestMilestones(t *testing.T) {
-	setting.UI.IssuePagingNum = 1
+	issuePagingNumValue := config.Value[int]{}
+	setting.Config().UI.IssuePagingNum = issuePagingNumValue.WithDefault(1)
 	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx, _ := contexttest.MockContext(t, "milestones")
@@ -97,7 +102,8 @@ func TestMilestones(t *testing.T) {
 }
 
 func TestMilestonesForSpecificRepo(t *testing.T) {
-	setting.UI.IssuePagingNum = 1
+	issuePagingNumValue := config.Value[int]{}
+	setting.Config().UI.IssuePagingNum = issuePagingNumValue.WithDefault(1)
 	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx, _ := contexttest.MockContext(t, "milestones")

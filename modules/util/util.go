@@ -8,9 +8,12 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
 
 	"golang.org/x/text/cases"
@@ -256,4 +259,57 @@ func ReserveLineBreakForTextarea(input string) string {
 	// And users are unlikely to really need to keep the \r.
 	// Other than this, we should respect the original content, even leading or trailing spaces.
 	return strings.ReplaceAll(input, "\r\n", "\n")
+}
+
+func ConfigSectionToMap(in any, section string, skipFields ...string) (map[string]string, error) {
+	if section == "" {
+		return nil, fmt.Errorf("section is empty")
+	}
+	out := map[string]string{}
+
+	v := reflect.ValueOf(in)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("in is not a struct")
+	}
+
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		fi := t.Field(i)
+		fieldName := fi.Name
+		if slices.Contains(skipFields, fieldName) {
+			continue
+		}
+		if tagValue := fi.Tag.Get("ini"); tagValue == "-" {
+			continue
+		} else if tagValue != "" {
+			fieldName = tagValue
+		}
+		switch v.FieldByName(fi.Name).Kind() {
+		case reflect.Bool,
+			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			out[fmt.Sprintf("%s.%s", section, ToSnakeCase(fieldName))] = fmt.Sprintf("%v", v.FieldByName(fi.Name).Interface())
+		case reflect.String:
+			marshal, err := json.Marshal(v.FieldByName(fi.Name).Interface())
+			if err != nil {
+				return nil, err
+			}
+			out[fmt.Sprintf("%s.%s", section, ToSnakeCase(fieldName))] = fmt.Sprintf("%v", string(marshal))
+		case reflect.Slice, reflect.Array:
+			if v.FieldByName(fi.Name).Len() == 0 {
+				continue
+			}
+			marshal, err := json.Marshal(v.FieldByName(fi.Name).Interface())
+			if err != nil {
+				return nil, err
+			}
+			out[fmt.Sprintf("%s.%s", section, ToSnakeCase(fieldName))] = fmt.Sprintf("%v", string(marshal))
+		default:
+		}
+	}
+
+	return out, nil
 }

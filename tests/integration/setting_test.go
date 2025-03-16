@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -16,8 +17,10 @@ import (
 func TestSettingShowUserEmailExplore(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	showUserEmail := setting.UI.ShowUserEmail
-	setting.UI.ShowUserEmail = true
+	showUserEmail := setting.Config().UI.ShowUserEmail.Value(t.Context())
+	showUserEmailValue := config.Value[bool]{}
+	setting.Config().UI.ShowUserEmail = showUserEmailValue.WithDefault(true)
+	config.GetDynGetter().InvalidateCache()
 
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/explore/users?sort=alphabetically")
@@ -28,7 +31,9 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 		"user34@example.com",
 	)
 
-	setting.UI.ShowUserEmail = false
+	showUserEmailValue = config.Value[bool]{}
+	setting.Config().UI.ShowUserEmail = showUserEmailValue.WithDefault(false)
+	config.GetDynGetter().InvalidateCache()
 
 	req = NewRequest(t, "GET", "/explore/users?sort=alphabetically")
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -38,17 +43,20 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 		"user34@example.com",
 	)
 
-	setting.UI.ShowUserEmail = showUserEmail
+	showUserEmailValue = config.Value[bool]{}
+	setting.Config().UI.ShowUserEmail = showUserEmailValue.WithDefault(showUserEmail)
+	config.GetDynGetter().InvalidateCache()
 }
 
 func TestSettingShowUserEmailProfile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	showUserEmail := setting.UI.ShowUserEmail
+	showUserEmail := setting.Config().UI.ShowUserEmail.Value(t.Context())
 
 	// user1: keep_email_private = false, user2: keep_email_private = true
-
-	setting.UI.ShowUserEmail = true
+	showUserEmailValue := config.Value[bool]{}
+	setting.Config().UI.ShowUserEmail = showUserEmailValue.WithDefault(true)
+	config.GetDynGetter().InvalidateCache()
 
 	// user1 can see own visible email
 	session := loginUser(t, "user1")
@@ -78,7 +86,9 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user2@example.com")
 
-	setting.UI.ShowUserEmail = false
+	showUserEmailValue = config.Value[bool]{}
+	setting.Config().UI.ShowUserEmail = showUserEmailValue.WithDefault(false)
+	config.GetDynGetter().InvalidateCache()
 
 	// user1 can see own (now hidden) email
 	session = loginUser(t, "user1")
@@ -87,7 +97,9 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	assert.Contains(t, htmlDoc.doc.Find(".user.profile").Text(), "user1@example.com")
 
-	setting.UI.ShowUserEmail = showUserEmail
+	showUserEmailValue = config.Value[bool]{}
+	setting.Config().UI.ShowUserEmail = showUserEmailValue.WithDefault(showUserEmail)
+	config.GetDynGetter().InvalidateCache()
 }
 
 func TestSettingLandingPage(t *testing.T) {

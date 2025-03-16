@@ -129,7 +129,7 @@ func Dashboard(ctx *context.Context) {
 		Date:            ctx.FormString("date"),
 		ListOptions: db.ListOptions{
 			Page:     page,
-			PageSize: setting.UI.FeedPagingNum,
+			PageSize: setting.Config().UI.FeedPagingNum.Value(ctx),
 		},
 	})
 	if err != nil {
@@ -139,7 +139,7 @@ func Dashboard(ctx *context.Context) {
 
 	ctx.Data["Feeds"] = feeds
 
-	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
+	pager := context.NewPagination(int(count), setting.Config().UI.FeedPagingNum.Value(ctx), page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -231,7 +231,7 @@ func Milestones(ctx *context.Context) {
 	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
-			PageSize: setting.UI.IssuePagingNum,
+			PageSize: setting.Config().UI.IssuePagingNum.Value(ctx),
 		},
 		RepoCond: repoCond,
 		IsClosed: optional.Some(isShowClosed),
@@ -330,7 +330,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagination(pagerCount, setting.Config().UI.IssuePagingNum.Value(ctx), page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -527,7 +527,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	opts.Paginator = &db.ListOptions{
 		Page:     page,
-		PageSize: setting.UI.IssuePagingNum,
+		PageSize: setting.Config().UI.IssuePagingNum.Value(ctx),
 	}
 
 	// Get IDs for labels (a filter option for issues/pulls).
@@ -645,7 +645,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.Data["State"] = "open"
 	}
 
-	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagination(shownIssues, setting.Config().UI.IssuePagingNum.Value(ctx), page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

@@ -260,7 +260,7 @@ func SearchIssues(ctx *context.APIContext) {
 	// so the default limit is set to fit UI needs
 	limit := ctx.FormInt("limit")
 	if limit == 0 {
-		limit = setting.UI.IssuePagingNum
+		limit = setting.Config().UI.IssuePagingNum.Value(ctx)
 	} else if limit > setting.API.MaxResponseItems {
 		limit = setting.API.MaxResponseItems
 	}

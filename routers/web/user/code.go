@@ -74,7 +74,7 @@ func CodeSearch(ctx *context.Context) {
 			Language:   prepareSearch.Language,
 			Paginator: &db.ListOptions{
 				Page:     page,
-				PageSize: setting.UI.RepoSearchPagingNum,
+				PageSize: setting.Config().UI.RepoSearchPagingNum.Value(ctx),
 			},
 		})
 		if err != nil {
@@ -112,7 +112,7 @@ func CodeSearch(ctx *context.Context) {
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
-	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
+	pager := context.NewPagination(total, setting.Config().UI.RepoSearchPagingNum.Value(ctx), page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

@@ -537,8 +537,8 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 
 		theCommits := repo_module.GitToPushCommits(commits)
-		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
-			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
+		if len(theCommits.Commits) > setting.Config().UI.FeedMaxCommitNum.Value(ctx) {
+			theCommits.Commits = theCommits.Commits[:setting.Config().UI.FeedMaxCommitNum.Value(ctx)]
 		}
 
 		newCommit, err := gitRepo.GetCommit(newCommitID)

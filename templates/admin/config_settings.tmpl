@@ -1,5 +1,103 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
 <h4 class="ui top attached header">
+	UI
+</h4>
+<div class="ui attached table segment">
+	<form class="ui form" method="post" action="{{AppSubUrl}}/-/admin/config/ui">
+		{{.CsrfTokenHtml}}
+		<dl class="admin-dl-horizontal">
+			<dt>{{ctx.Locale.Tr "admin.config.ui.explore_paging_num"}}</dt>
+			<dd>
+				<div class="inline field">
+					<input name="explore_paging_num" type="number" min="0" value="{{.UI.ExplorePagingNum}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.issue_paging_num"}}</dt>
+			<dd>
+				<div class="inline field">
+					<input name="issue_paging_num" type="number" min="0" value="{{.UI.IssuePagingNum}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.feed_max_commit_numb"}}</dt>
+			<dd>
+				<div class="inline field">
+					<input name="feed_max_commit_num" type="number" min="0" value="{{.UI.FeedMaxCommitNum}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.feed_paging_num"}}</dt>
+			<dd>
+				<div class="inline field">
+					<input name="feed_paging_num" type="number" min="0" value="{{.UI.FeedPagingNum}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.packages_paging_num"}}</dt>
+			<dd>
+				<div class="inline field">
+					<input name="packages_paging_num" type="number" min="0" value="{{.UI.PackagesPagingNum}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.repo_search_paging_num"}}</dt>
+			<dd>
+				<div class="inline field">
+					<input name="repo_search_paging_num" type="number" min="0" value="{{.UI.RepoSearchPagingNum}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.members_paging_num"}}</dt>
+			<dd>
+				<div class="inline field">
+					<input name="members_paging_num" type="number" min="0" value="{{.UI.MembersPagingNum}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.sitemap_paging_num"}}</dt>
+			<dd>
+				<div class="inline field">
+					<input name="sitemap_paging_num" type="number" min="0" value="{{.UI.SitemapPagingNum}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.code_comment_lines"}}</dt>
+			<dd>
+				<div class="inline field">
+					<input name="code_comment_lines" type="number" min="0" value="{{.UI.CodeCommentLines}}">
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.explore_paging_default_sort"}}</dt>
+			<dd>
+				<div class="inline field">
+					<select name="explore_paging_default_sort" class="ui dropdown">
+						{{$explorePagingDefaultSort := .UI.ExplorePagingDefaultSort}}
+						{{range $value := .UI.ExplorePagingSortOption}}
+						<option value="{{$value}}" {{Iif (eq $explorePagingDefaultSort $value) "selected"}}>{{$value}}</option>
+						{{end}}
+					</select>
+				</div>
+			</dd>
+			<div class="divider"></div>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.show_user_email"}}</dt>
+			<dd>
+				<div class="ui toggle checkbox">
+					<input name="show_user_email" type="checkbox" {{if .UI.ShowUserEmail}}checked{{end}}><label></label>
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.search_repo_description"}}</dt>
+			<dd>
+				<div class="ui toggle checkbox">
+					<input name="search_repo_description" type="checkbox" {{if .UI.SearchRepoDescription}}checked{{end}}><label></label>
+				</div>
+			</dd>
+			<dt>{{ctx.Locale.Tr "admin.config.ui.only_show_relevant_repos"}}</dt>
+			<dd>
+				<div class="ui toggle checkbox">
+					<input name="only_show_relevant_repos" type="checkbox" {{if .UI.OnlyShowRelevantRepos}}checked{{end}}><label></label>
+				</div>
+			</dd>
+			<div class="divider"></div>
+			<dt><button class="ui primary button">{{ctx.Locale.Tr "save"}}</button></dt>
+			<dd></dd>
+		</dl>
+	</form>
+</div>
+
+<h4 class="ui top attached header">
 	{{ctx.Locale.Tr "admin.config.picture_config"}}
 </h4>
 <div class="ui attached table segment">

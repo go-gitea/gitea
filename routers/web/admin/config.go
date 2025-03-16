@@ -19,7 +19,9 @@ import (
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/go-chi/session"
@@ -191,6 +193,7 @@ func ConfigSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config_settings")
 	ctx.Data["PageIsAdminConfig"] = true
 	ctx.Data["PageIsAdminConfigSettings"] = true
+	ctx.Data["UI"] = setting.Config().UI.ToStruct(ctx)
 	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
 	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
@@ -252,4 +255,32 @@ func ChangeConfig(ctx *context.Context) {
 
 	config.GetDynGetter().InvalidateCache()
 	ctx.JSONOK()
+}
+
+func ChangeUIConfig(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UIForm)
+	log.Debug("ChangeUIConfig form: %+v", form)
+	formMap, err := util.ConfigSectionToMap(
+		form,
+		"ui",
+		"GraphMaxCommitNum", "ReactionMaxUserNum", "MaxDisplayFileSize", "DefaultShowFullName", "DefaultTheme",
+		"Themes", "FileIconTheme", "Reactions", "CustomEmojis", "PreferredTimestampTense", "AmbiguousUnicodeDetection",
+	)
+	if err != nil {
+		ctx.ServerError("unable convert struct to map[string]string", err)
+		return
+	}
+
+	log.Debug("ChangeUIConfig form: %+v", formMap)
+
+	if err = system_model.SetSettings(ctx, formMap); err != nil {
+		log.Error("set ui configuration failed: %v", err)
+		ctx.ServerError("SetSettings", err)
+		return
+	}
+
+	config.GetDynGetter().InvalidateCache()
+
+	ctx.Flash.Success(ctx.Tr("admin.dashboard.update_settings_success"))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings")
 }

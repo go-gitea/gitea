@@ -38,7 +38,7 @@ func Packages(ctx *context.Context) {
 		Sort:       sort,
 		IsInternal: optional.Some(false),
 		Paginator: &db.ListOptions{
-			PageSize: setting.UI.PackagesPagingNum,
+			PageSize: setting.Config().UI.PackagesPagingNum.Value(ctx),
 			Page:     page,
 		},
 	})
@@ -76,7 +76,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["TotalBlobSize"] = totalBlobSize - totalUnreferencedBlobSize
 	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
-	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
+	pager := context.NewPagination(int(total), setting.Config().UI.PackagesPagingNum.Value(ctx), page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 

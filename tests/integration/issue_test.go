@@ -81,8 +81,8 @@ func TestViewIssuesSortByType(t *testing.T) {
 		unittest.Cond("is_closed=?", false),
 		unittest.Cond("is_pull=?", false),
 	)
-	if expectedNumIssues > setting.UI.IssuePagingNum {
-		expectedNumIssues = setting.UI.IssuePagingNum
+	if expectedNumIssues > setting.Config().UI.IssuePagingNum.Value(t.Context()) {
+		expectedNumIssues = setting.Config().UI.IssuePagingNum.Value(t.Context())
 	}
 	assert.EqualValues(t, expectedNumIssues, issuesSelection.Length())
 
@@ -474,8 +474,8 @@ func TestSearchIssues(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
+	if expectedIssueCount > setting.Config().UI.IssuePagingNum.Value(t.Context()) {
+		expectedIssueCount = setting.Config().UI.IssuePagingNum.Value(t.Context())
 	}
 
 	link, _ := url.Parse("/issues/search")
@@ -568,8 +568,8 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
+	if expectedIssueCount > setting.Config().UI.IssuePagingNum.Value(t.Context()) {
+		expectedIssueCount = setting.Config().UI.IssuePagingNum.Value(t.Context())
 	}
 
 	session := loginUser(t, "user1")
