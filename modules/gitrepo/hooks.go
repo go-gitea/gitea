@@ -1,9 +1,10 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repository
+package gitrepo
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -105,10 +106,18 @@ done
 	return hookNames, hookTpls, giteaHookTpls
 }
 
-// CreateDelegateHooks creates all the hooks scripts for the repo
-func CreateDelegateHooks(repoPath string) (err error) {
+// CreateDelegateHooksForRepo creates all the hooks scripts for the repo
+func CreateDelegateHooksForRepo(_ context.Context, repo Repository) (err error) {
+	return createDelegateHooks(filepath.Join(repoPath(repo), "hooks"))
+}
+
+// CreateDelegateHooksForWiki creates all the hooks scripts for the wiki repo
+func CreateDelegateHooksForWiki(_ context.Context, repo Repository) (err error) {
+	return createDelegateHooks(filepath.Join(wikiPath(repo), "hooks"))
+}
+
+func createDelegateHooks(hookDir string) (err error) {
 	hookNames, hookTpls, giteaHookTpls := getHookTemplates()
-	hookDir := filepath.Join(repoPath, "hooks")
 
 	for i, hookName := range hookNames {
 		oldHookPath := filepath.Join(hookDir, hookName)
@@ -169,11 +178,19 @@ func ensureExecutable(filename string) error {
 	return os.Chmod(filename, mode)
 }
 
-// CheckDelegateHooks checks the hooks scripts for the repo
-func CheckDelegateHooks(repoPath string) ([]string, error) {
+// CheckDelegateHooksForRepo checks the hooks scripts for the repo
+func CheckDelegateHooksForRepo(_ context.Context, repo Repository) ([]string, error) {
+	return checkDelegateHooks(filepath.Join(repoPath(repo), "hooks"))
+}
+
+// CheckDelegateHooksForWiki checks the hooks scripts for the repo
+func CheckDelegateHooksForWiki(_ context.Context, repo Repository) ([]string, error) {
+	return checkDelegateHooks(filepath.Join(wikiPath(repo), "hooks"))
+}
+
+func checkDelegateHooks(hookDir string) ([]string, error) {
 	hookNames, hookTpls, giteaHookTpls := getHookTemplates()
 
-	hookDir := filepath.Join(repoPath, "hooks")
 	results := make([]string, 0, 10)
 
 	for i, hookName := range hookNames {
