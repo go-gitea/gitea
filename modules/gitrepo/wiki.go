@@ -28,7 +28,7 @@ func OpenWikiRepository(ctx context.Context, repo Repository) (*git.Repository, 
 
 // IsWikiRepositoryExist returns true if the repository directory exists in the disk
 func IsWikiRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
-	return util.IsExist(wikiPath(repo))
+	return util.IsDir(wikiPath(repo))
 }
 
 // RenameRepository renames a repository's name on disk
