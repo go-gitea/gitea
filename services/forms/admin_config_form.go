@@ -21,7 +21,6 @@ type UIForm struct {
 	FeedMaxCommitNum         int
 	FeedPagingNum            int
 	PackagesPagingNum        int
-	GraphMaxCommitNum        int
 	CodeCommentLines         int
 	ShowUserEmail            bool
 	SearchRepoDescription    bool
