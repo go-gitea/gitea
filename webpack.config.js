@@ -249,7 +249,6 @@ export default {
       },
       override: {
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
-        'idiomorph@0.3.0': {licenseName: 'BSD-2-Clause'}, // https://github.com/bigskysoftware/idiomorph/pull/37
       },
       emitError: true,
       allow: '(Apache-2.0 OR 0BSD OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
