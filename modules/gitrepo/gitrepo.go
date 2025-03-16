@@ -29,17 +29,9 @@ func repoPath(repo Repository) string {
 	return absPath(repo.GetOwnerName(), repo.GetName())
 }
 
-func wikiPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".wiki.git")
-}
-
 // OpenRepository opens the repository at the given relative path with the provided context.
 func OpenRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
 	return git.OpenRepository(ctx, repoPath(repo))
-}
-
-func OpenWikiRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, wikiPath(repo))
 }
 
 // contextKey is a value for use with context.WithValue.

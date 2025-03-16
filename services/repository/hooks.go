@@ -34,7 +34,11 @@ func SyncRepositoryHooks(ctx context.Context) error {
 			if err := gitrepo.CreateDelegateHooksForRepo(ctx, repo); err != nil {
 				return fmt.Errorf("SyncRepositoryHook: %w", err)
 			}
-			if repo.HasWiki() {
+			exist, err := gitrepo.IsWikiRepositoryExist(ctx, repo)
+			if err != nil {
+				return fmt.Errorf("SyncRepositoryHook: %w", err)
+			}
+			if exist {
 				if err := gitrepo.CreateDelegateHooksForWiki(ctx, repo); err != nil {
 					return fmt.Errorf("SyncRepositoryHook: %w", err)
 				}

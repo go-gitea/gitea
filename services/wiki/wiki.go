@@ -35,7 +35,9 @@ func getWikiWorkingLockKey(repoID int64) string {
 // InitWiki initializes a wiki for repository,
 // it does nothing when repository already has wiki.
 func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
-	if repo.HasWiki() {
+	if exist, err := gitrepo.IsWikiRepositoryExist(ctx, repo); err != nil {
+		return err
+	} else if exist {
 		return nil
 	}
 
@@ -377,7 +379,9 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 
-		if !repo.HasWiki() {
+		if exist, err := gitrepo.IsWikiRepositoryExist(ctx, repo); err != nil {
+			return err
+		} else if !exist {
 			return nil
 		}
 
