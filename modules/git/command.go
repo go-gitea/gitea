@@ -46,6 +46,7 @@ type Command struct {
 	desc             string
 	globalArgsLength int
 	brokenArgs       []string
+	cmd              *exec.Cmd // for debug purpose only
 }
 
 func (c *Command) String() string {
@@ -314,6 +315,7 @@ func (c *Command) Run(opts *RunOpts) error {
 	startTime := time.Now()
 
 	cmd := exec.CommandContext(ctx, c.prog, c.args...)
+	c.cmd = cmd // for debug purpose only
 	if opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {
