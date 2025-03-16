@@ -162,6 +162,7 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 }
 
 func loadServerFrom(rootCfg ConfigProvider) {
+	// legacy server config options have been moved to removed.go
 	sec := rootCfg.Section("server")
 	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 

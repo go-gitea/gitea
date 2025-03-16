@@ -38,6 +38,7 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 	mustMapSetting(rootCfg, "server", &LFS)
 	sec := rootCfg.Section("server")
 
+	// legacy LFS_CONTENT_PATH option has been moved to removed.go
 	lfsSec, _ := rootCfg.GetSection("lfs")
 
 	var err error

@@ -72,6 +72,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	if !sec.Key("ENABLED").MustBool() {
 		return
 	}
+	// legacy mailer config options have been moved to removed.go
 
 	// Set default values & validate
 	sec.Key("NAME").MustString(AppName)

@@ -201,6 +201,7 @@ func mustCurrentRunUserMatch(rootCfg ConfigProvider) {
 // LoadSettings initializes the settings for normal start up
 func LoadSettings() {
 	initAllLoggers()
+	// legacy task config options have been moved to removed.go
 	if err := errors.Join(checkForRemovedSettings(CfgProvider)...); err != nil {
 		log.Fatal("Encountered removed settings while loading configuration: %v", err)
 	}

@@ -25,6 +25,7 @@ var Mirror = struct {
 }
 
 func loadMirrorFrom(rootCfg ConfigProvider) {
+	// legacy mirror config options have been moved to removed.go
 	if err := rootCfg.Section("mirror").MapTo(&Mirror); err != nil {
 		log.Fatal("Failed to map Mirror settings: %v", err)
 	}

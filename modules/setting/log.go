@@ -54,6 +54,7 @@ func loadLogGlobalFrom(rootCfg ConfigProvider) {
 }
 
 func prepareLoggerConfig(rootCfg ConfigProvider) {
+	// legacy log config options have been moved to removed.go
 	sec := rootCfg.Section("log")
 
 	if !sec.HasKey("logger.default.MODE") {

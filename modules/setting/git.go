@@ -91,6 +91,7 @@ func loadGitFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Git settings: %v", err)
 	}
 
+	// legacy reflog config options have been moved to removed.go
 	secGitConfig := rootCfg.Section("git.config")
 	GitConfig.Options = make(map[string]string)
 	GitConfig.SetOption("diff.algorithm", "histogram")
