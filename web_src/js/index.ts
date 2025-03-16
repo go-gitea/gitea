@@ -64,6 +64,7 @@ import {initFootLanguageMenu, initGlobalDropdown, initGlobalInput, initGlobalTab
 import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton} from './features/common-button.ts';
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
+import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 
 initGiteaFomantic();
 initSubmitEventPolyfill();
@@ -139,6 +140,7 @@ onDomReady(() => {
     initRepoRelease,
     initRepoReleaseNew,
     initRepoTopicBar,
+    initRepoViewFileTree,
     initRepoWikiForm,
     initRepository,
     initRepositoryActionView,
