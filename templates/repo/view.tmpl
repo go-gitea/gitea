@@ -1,5 +1,4 @@
 {{template "base/head" .}}
-{{$showSidebar := and (not .TreeNames) (not .HideRepoInfo) (not .IsBlame)}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
 	<div class="ui container {{if or .TreeNames .IsBlame}}fluid padded{{end}}">
@@ -17,15 +16,13 @@
 
 		{{template "repo/code/recently_pushed_new_branches" .}}
 
-		<div class="{{Iif $showSidebar "repo-grid-filelist-sidebar" "repo-grid-filelist-only"}}">
-			<div class="repo-home-filelist">
+		<div class="repo-view-container">
+			<div class="repo-view-file-tree-container not-mobile {{if not .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" {{if .IsSigned}}data-user-is-signed-in{{end}}>
+				{{template "repo/view_file_tree" .}}
+			</div>
+			<div class="repo-view-content">
 				{{template "repo/view_content" .}}
 			</div>
-
-			{{if $showSidebar}}
-				{{template "repo/home_sidebar_top" .}}
-				{{template "repo/home_sidebar_bottom" .}}
-			{{end}}
 		</div>
 	</div>
 </div>
