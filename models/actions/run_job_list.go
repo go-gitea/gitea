@@ -24,7 +24,7 @@ func (jobs ActionJobList) GetRunIDs() []int64 {
 
 func (jobs ActionJobList) LoadRepos(ctx context.Context) error {
 	repoIDs := container.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
-		return j.RepoID, j.RepoID != 0
+		return j.RepoID, j.RepoID != 0 && j.Repo == nil
 	})
 	if len(repoIDs) == 0 {
 		return nil
