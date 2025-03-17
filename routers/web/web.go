@@ -580,6 +580,7 @@ func registerRoutes(m *web.Router) {
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
 		m.Post("", web.Bind(forms.UpdateProfileForm{}), user_setting.ProfilePost)
+		m.Post("/update_preferences", user_setting.UpdatePreferences)
 		m.Get("/change_password", auth.MustChangePassword)
 		m.Post("/change_password", web.Bind(forms.MustChangePasswordForm{}), auth.MustChangePasswordPost)
 		m.Post("/avatar", web.Bind(forms.AvatarForm{}), user_setting.AvatarPost)
@@ -1175,6 +1176,11 @@ func registerRoutes(m *web.Router) {
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeList)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeList)
 		})
+		m.Group("/tree-view", func() {
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.TreeViewNodes)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeViewNodes)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
+		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
@@ -1595,7 +1601,8 @@ func registerRoutes(m *web.Router) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.Home)
 			m.Get("/*", context.RepoRefByType(""), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
-		m.Get("/tree/*", repo.RedirectRepoTreeToSrc) // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
+		m.Get("/tree/*", repo.RedirectRepoTreeToSrc)    // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
+		m.Get("/blob/*", repo.RedirectRepoBlobToCommit) // redirect "/owner/repo/blob/*" requests to "/owner/repo/src/commit/*"
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)

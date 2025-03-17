@@ -77,7 +77,7 @@ func TestAuthorizeShow(t *testing.T) {
 	resp := ctx.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	htmlDoc.AssertElement(t, "#authorize-app", true)
+	AssertHTMLElement(t, htmlDoc, "#authorize-app", true)
 	htmlDoc.GetCSRF()
 }
 

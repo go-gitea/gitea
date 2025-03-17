@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
@@ -131,10 +130,10 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	}
 	defer closer.Close()
 
-	if pr.Flow == issues_model.PullRequestFlowGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
+	if pr.Flow == issues_model.PullRequestFlowGithub && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
-	if pr.Flow == issues_model.PullRequestFlowAGit && !git.IsReferenceExist(ctx, headGitRepo.Path, pr.GetGitRefName()) {
+	if pr.Flow == issues_model.PullRequestFlowAGit && !gitrepo.IsReferenceExist(ctx, pr.HeadRepo, pr.GetGitRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 

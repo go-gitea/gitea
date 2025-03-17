@@ -152,21 +152,6 @@
   }
 }
 
-.ui.table[class*="left aligned"],
-.ui.table [class*="left aligned"] {
-  text-align: left;
-}
-
-.ui.table[class*="center aligned"],
-.ui.table [class*="center aligned"] {
-  text-align: center;
-}
-
-.ui.table[class*="right aligned"],
-.ui.table [class*="right aligned"] {
-  text-align: right;
-}
-
 .ui.table[class*="top aligned"],
 .ui.table [class*="top aligned"] {
   vertical-align: top;

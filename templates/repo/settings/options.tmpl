@@ -117,7 +117,7 @@
 								<td>{{.PullMirror.RemoteAddress}}</td>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 								<td>{{DateUtils.FullTime .PullMirror.UpdatedUnix}}</td>
-								<td class="right aligned">
+								<td class="tw-text-right">
 									<form method="post" class="tw-inline-block">
 										{{.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="mirror-sync">
@@ -214,7 +214,7 @@
 										{{if .LastError}}<span class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</span>{{end}}
 									</span>
 								</td>
-								<td class="right aligned">
+								<td class="tw-text-right">
 									<button
 										class="ui tiny button show-modal"
 										data-modal="#push-mirror-edit-modal"
@@ -936,7 +936,7 @@
 						<input name="repo_name" required maxlength="100">
 					</div>
 
-					<div class="text right actions">
+					<div class="actions">
 						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 						<button class="ui red button">{{ctx.Locale.Tr "repo.settings.convert_confirm"}}</button>
 					</div>
@@ -967,7 +967,7 @@
 						<input name="repo_name" required>
 					</div>
 
-					<div class="text right actions">
+					<div class="actions">
 						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 						<button class="ui red button">{{ctx.Locale.Tr "repo.settings.convert_fork_confirm"}}</button>
 					</div>
@@ -1004,7 +1004,7 @@
 					<input id="new_owner_name" name="new_owner_name" required>
 				</div>
 
-				<div class="text right actions">
+				<div class="actions">
 					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.transfer_perform"}}</button>
 				</div>
@@ -1038,7 +1038,7 @@
 					<input id="repo_name_to_delete" name="repo_name" required>
 				</div>
 
-				<div class="text right actions">
+				<div class="actions">
 					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.confirm_delete"}}</button>
 				</div>
@@ -1098,7 +1098,7 @@
 					<input name="repo_name" required>
 				</div>
 
-				<div class="text right actions">
+				<div class="actions">
 					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.confirm_wiki_delete"}}</button>
 				</div>
