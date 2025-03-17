@@ -68,6 +68,7 @@ func AllEvents() []HookEventType {
 		HookEventRelease,
 		HookEventPackage,
 		HookEventStatus,
+		HookEventWorkflowRun,
 		HookEventWorkflowJob,
 	}
 }

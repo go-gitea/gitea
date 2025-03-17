@@ -81,6 +81,8 @@ func newPayload[T any](rc payloadConvertor[T], data []byte, event webhook_module
 		return convertUnmarshalledJSON(rc.Package, data)
 	case webhook_module.HookEventStatus:
 		return convertUnmarshalledJSON(rc.Status, data)
+	// case webhook_module.HookEventWorkflowRun:
+	// 	return convertUnmarshalledJSON(rc.WorkflowRun, data)
 	case webhook_module.HookEventWorkflowJob:
 		return convertUnmarshalledJSON(rc.WorkflowJob, data)
 	}
