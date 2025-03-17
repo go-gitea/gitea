@@ -768,6 +768,8 @@ func (n *actionsNotifier) MigrateRepository(ctx context.Context, doer, u *user_m
 }
 
 func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	ctx = withMethod(ctx, "WorkflowRunStatusUpdate")
+
 	var org *api.Organization
 	if repo.Owner.IsOrganization() {
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
