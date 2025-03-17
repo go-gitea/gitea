@@ -183,6 +183,15 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		log.Error("FindRunJobs: %v", err)
 	}
 	CreateCommitStatus(ctx, allJobs...)
+	if len(allJobs) > 0 {
+		job := allJobs[0]
+		err := job.LoadRun(ctx)
+		if err != nil {
+			log.Error("LoadRun: %v", err)
+		} else {
+			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+		}
+	}
 	for _, job := range allJobs {
 		notify_service.WorkflowJobStatusUpdate(ctx, repo, doer, job, nil)
 	}

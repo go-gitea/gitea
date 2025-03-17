@@ -364,6 +364,15 @@ func handleWorkflows(
 			continue
 		}
 		CreateCommitStatus(ctx, alljobs...)
+		if len(alljobs) > 0 {
+			job := alljobs[0]
+			err := job.LoadRun(ctx)
+			if err != nil {
+				log.Error("LoadRun: %v", err)
+				continue
+			}
+			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+		}
 		for _, job := range alljobs {
 			notify_service.WorkflowJobStatusUpdate(ctx, input.Repo, input.Doer, job, nil)
 		}
