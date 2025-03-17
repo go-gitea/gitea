@@ -780,7 +780,6 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 		return
 	}
 
-	run.Status.IsBlocked()
 	newNotifyInput(repo, sender, webhook_module.HookEventWorkflowRun).WithPayload(&api.WorkflowRunPayload{
 		Action:       status,
 		Workflow:     nil,
