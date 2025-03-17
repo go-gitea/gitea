@@ -4,7 +4,7 @@
   fill: currentcolor;
 }
 
-.svg.fileicon {
+.svg.git-entry-icon {
   fill: transparent; /* some material icons have dark background fill, so need to reset */
 }
 

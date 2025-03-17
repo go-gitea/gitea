@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -83,4 +84,13 @@ func transformDiffTreeForUI(diffTree *gitdiff.DiffTree, filesViewedState map[str
 	}
 
 	return files
+}
+
+func TreeViewNodes(ctx *context.Context) {
+	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
+	if err != nil {
+		ctx.ServerError("GetTreeViewNodes", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]any{"fileTreeNodes": results})
 }
