@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -774,6 +775,15 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 
 	status, _ := convert.ToActionsStatus(run.Status)
 
+	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
+	if err != nil {
+		log.Error("OpenRepository: %v", err)
+		return
+	}
+	defer gitRepo.Close()
+
+	convertedWorkflow, err := convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
+
 	convertedRun, err := convert.ToActionWorkflowRun(repo, run)
 	if err != nil {
 		log.Error("ToActionWorkflowRun: %v", err)
@@ -782,7 +792,7 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 
 	newNotifyInput(repo, sender, webhook_module.HookEventWorkflowRun).WithPayload(&api.WorkflowRunPayload{
 		Action:       status,
-		Workflow:     nil,
+		Workflow:     convertedWorkflow,
 		WorkflowRun:  convertedRun,
 		Organization: org,
 		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
