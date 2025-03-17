@@ -5,6 +5,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -260,20 +261,24 @@ func ChangeConfig(ctx *context.Context) {
 func ChangeUIConfig(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UIForm)
 	log.Debug("ChangeUIConfig form: %+v", form)
-	formMap, err := util.ConfigSectionToMap(
-		form,
-		"ui",
-		"GraphMaxCommitNum", "ReactionMaxUserNum", "MaxDisplayFileSize", "DefaultShowFullName", "DefaultTheme",
-		"Themes", "FileIconTheme", "Reactions", "CustomEmojis", "PreferredTimestampTense", "AmbiguousUnicodeDetection",
-	)
-	if err != nil {
-		ctx.ServerError("unable convert struct to map[string]string", err)
-		return
-	}
+	formMap := make(map[string]string)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("EXPLORE_PAGING_NUM"))] = strconv.Itoa(form.ExplorePagingNum)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("SITEMAP_PAGING_NUM"))] = strconv.Itoa(form.SitemapPagingNum)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("ISSUE_PAGING_NUM"))] = strconv.Itoa(form.IssuePagingNum)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("REPO_SEARCH_PAGING_NUM"))] = strconv.Itoa(form.RepoSearchPagingNum)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("MEMBERS_PAGING_NUM"))] = strconv.Itoa(form.MembersPagingNum)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("FEED_MAX_COMMIT_NUM"))] = strconv.Itoa(form.FeedMaxCommitNum)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("FEED_PAGING_NUM"))] = strconv.Itoa(form.FeedPagingNum)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("PACKAGES_PAGING_NUM"))] = strconv.Itoa(form.PackagesPagingNum)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("CODE_COMMENT_LINES"))] = strconv.Itoa(form.CodeCommentLines)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("SHOW_USER_EMAIL"))] = strconv.FormatBool(form.ShowUserEmail)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("SEARCH_REPO_DESCRIPTION"))] = strconv.FormatBool(form.SearchRepoDescription)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("ONLY_SHOW_RELEVANT_REPOS"))] = strconv.FormatBool(form.OnlyShowRelevantRepos)
+	formMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("EXPLORE_PAGING_DEFAULT_SORT"))] = fmt.Sprintf("\"%s\"", form.ExplorePagingDefaultSort)
 
 	log.Debug("ChangeUIConfig form: %+v", formMap)
 
-	if err = system_model.SetSettings(ctx, formMap); err != nil {
+	if err := system_model.SetSettings(ctx, formMap); err != nil {
 		log.Error("set ui configuration failed: %v", err)
 		ctx.ServerError("SetSettings", err)
 		return

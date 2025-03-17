@@ -1,6 +1,6 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
 <h4 class="ui top attached header">
-	UI
+	{{ctx.Locale.Tr "admin.config.ui_config"}}
 </h4>
 <div class="ui attached table segment">
 	<form class="ui form" method="post" action="{{AppSubUrl}}/-/admin/config/ui">

@@ -4,12 +4,13 @@
 package v1_24 //nolint
 
 import (
+	"fmt"
 	"math"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
 	"xorm.io/xorm"
 )
 
@@ -30,32 +31,35 @@ func (s *Setting) TableName() string {
 }
 
 func MigrateIniToDatabase(x *xorm.Engine) error {
-	uiMap, err := util.ConfigSectionToMap(
-		setting.UI, "ui",
-		[]string{
-			"GraphMaxCommitNum", "ReactionMaxUserNum", "MaxDisplayFileSize", "DefaultShowFullName", "DefaultTheme", "Themes",
-			"FileIconTheme", "Reactions", "CustomEmojis", "PreferredTimestampTense", "AmbiguousUnicodeDetection",
-		}...,
-	)
-	if err != nil {
-		return err
-	}
+	uiMap := make(map[string]string)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("EXPLORE_PAGING_NUM"))] = strconv.Itoa(setting.ExplorePagingNum)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("SITEMAP_PAGING_NUM"))] = strconv.Itoa(setting.SitemapPagingNum)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("ISSUE_PAGING_NUM"))] = strconv.Itoa(setting.IssuePagingNum)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("REPO_SEARCH_PAGING_NUM"))] = strconv.Itoa(setting.RepoSearchPagingNum)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("MEMBERS_PAGING_NUM"))] = strconv.Itoa(setting.MembersPagingNum)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("FEED_MAX_COMMIT_NUM"))] = strconv.Itoa(setting.FeedMaxCommitNum)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("FEED_PAGING_NUM"))] = strconv.Itoa(setting.FeedPagingNum)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("PACKAGES_PAGING_NUM"))] = strconv.Itoa(setting.PackagesPagingNum)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("CODE_COMMENT_LINES"))] = strconv.Itoa(setting.CodeCommentLines)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("SHOW_USER_EMAIL"))] = strconv.FormatBool(setting.ShowUserEmail)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("SEARCH_REPO_DESCRIPTION"))] = strconv.FormatBool(setting.SearchRepoDescription)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("ONLY_SHOW_RELEVANT_REPOS"))] = strconv.FormatBool(setting.OnlyShowRelevantRepos)
+	uiMap[fmt.Sprintf("ui.%s", util.ToSnakeCase("EXPLORE_PAGING_DEFAULT_SORT"))] = fmt.Sprintf("\"%s\"", setting.ExploreDefaultSort)
 
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = sess.Sync(new(Setting)); err != nil {
+	if err := sess.Sync(new(Setting)); err != nil {
 		return err
 	}
 
 	_ = getRevision(sess) // prepare the "revision" key ahead
 
-	_, err = sess.Exec("UPDATE system_setting SET version=version+1 WHERE setting_key=?", keyRevision)
-	if err != nil {
+	if _, err := sess.Exec("UPDATE system_setting SET version=version+1 WHERE setting_key=?", keyRevision); err != nil {
 		return err
 	}
 	for k, v := range uiMap {
