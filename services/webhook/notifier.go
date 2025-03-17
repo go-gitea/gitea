@@ -956,7 +956,7 @@ func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_
 
 	status, _ := convert.ToActionsStatus(job.Status)
 
-	convertedJob, err := convert.ToActionWorkflowJob(ctx, repo, job)
+	convertedJob, err := convert.ToActionWorkflowJob(ctx, repo, task, job)
 	if err != nil {
 		log.Error("ToActionWorkflowJob: %v", err)
 		return

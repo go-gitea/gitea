@@ -1000,9 +1000,9 @@ func GetWorkflowRun(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	runID := ctx.PathParamInt64("run")
-	job, _, _ := db.GetByID[actions_model.ActionRun](ctx, runID)
+	job, _, err := db.GetByID[actions_model.ActionRun](ctx, runID)
 
-	if job.RepoID != ctx.Repo.Repository.ID {
+	if err != nil || job.RepoID != ctx.Repo.Repository.ID {
 		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
 	}
 
@@ -1070,7 +1070,7 @@ func GetWorkflowJobs(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionWorkflowJob, len(artifacts))
 	for i := range artifacts {
-		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, artifacts[i])
+		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, nil, artifacts[i])
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -1113,13 +1113,13 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	jobID := ctx.PathParamInt64("job_id")
-	job, _, _ := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
+	job, _, err := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
 
-	if job.RepoID != ctx.Repo.Repository.ID {
+	if err != nil || job.RepoID != ctx.Repo.Repository.ID {
 		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
 	}
 
-	convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, job)
+	convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, nil, job)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

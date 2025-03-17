@@ -276,7 +276,9 @@ func ToActionsStatus(status actions_model.Status) (string, string) {
 	return action, conclusion
 }
 
-func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, job *actions_model.ActionRunJob) (*api.ActionWorkflowJob, error) {
+// ToActionWorkflowJob convert a actions_model.ActionRunJob to an api.ActionWorkflowJob
+// task is optional and can be nil
+func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task *actions_model.ActionTask, job *actions_model.ActionRunJob) (*api.ActionWorkflowJob, error) {
 	err := job.LoadAttributes(ctx)
 	if err != nil {
 		return nil, err
@@ -300,7 +302,12 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, job *
 	var steps []*api.ActionWorkflowStep
 
 	if job.TaskID != 0 {
-		task, _, _ := db.GetByID[actions_model.ActionTask](ctx, job.TaskID)
+		if task == nil {
+			task, _, err = db.GetByID[actions_model.ActionTask](ctx, job.TaskID)
+			if err != nil {
+				return nil, err
+			}
+		}
 
 		runnerID = task.RunnerID
 		if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
