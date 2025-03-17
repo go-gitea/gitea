@@ -14,10 +14,6 @@
   }
 }
 
-#repo-files-table .repo-file-cell.name .svg {
-  margin-right: 2px;
-}
-
 #repo-files-table .svg.octicon-file-directory-fill,
 #repo-files-table .svg.octicon-file-submodule {
   color: var(--color-primary);
@@ -70,6 +66,9 @@
 }
 
 #repo-files-table .repo-file-cell.name {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
