@@ -15,8 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// Repository represents a git repository which stored in a disk
 type Repository interface {
-	RelativePath() string
+	RelativePath() string // We don't assume how the directory structure of the repository is, so we only need the relative path
 }
 
 func repoPath(repo Repository) string {
