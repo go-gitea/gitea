@@ -7,6 +7,8 @@ package convert
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +25,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -348,6 +351,95 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		StartedAt:   job.Started.AsTime().UTC(),
 		CompletedAt: job.Stopped.AsTime().UTC(),
 	}, nil
+}
+
+func getActionWorkflowPath(commit *git.Commit) string {
+	paths := []string{".gitea/workflows", ".github/workflows"}
+	for _, treePath := range paths {
+		if _, err := commit.SubTree(treePath); err == nil {
+			return treePath
+		}
+	}
+	return ""
+}
+
+func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
+	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
+	cfg := cfgUnit.ActionsConfig()
+
+	defaultBranch, _ := commit.GetBranchName()
+
+	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), url.PathEscape(entry.Name()))
+	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), url.PathEscape(entry.Name()))
+	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repo.HTMLURL(ctx), url.PathEscape(entry.Name()), url.QueryEscape(repo.DefaultBranch))
+
+	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
+	// State types:
+	// - active
+	// - deleted
+	// - disabled_fork
+	// - disabled_inactivity
+	// - disabled_manually
+	state := "active"
+	if cfg.IsWorkflowDisabled(entry.Name()) {
+		state = "disabled_manually"
+	}
+
+	// The CreatedAt and UpdatedAt fields currently reflect the timestamp of the latest commit, which can later be refined
+	// by retrieving the first and last commits for the file history. The first commit would indicate the creation date,
+	// while the last commit would represent the modification date. The DeletedAt could be determined by identifying
+	// the last commit where the file existed. However, this implementation has not been done here yet, as it would likely
+	// cause a significant performance degradation.
+	createdAt := commit.Author.When
+	updatedAt := commit.Author.When
+
+	return &api.ActionWorkflow{
+		ID:        entry.Name(),
+		Name:      entry.Name(),
+		Path:      path.Join(folder, entry.Name()),
+		State:     state,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+		URL:       workflowURL,
+		HTMLURL:   workflowRepoURL,
+		BadgeURL:  badgeURL,
+	}
+}
+
+func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository) ([]*api.ActionWorkflow, error) {
+	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := actions.ListWorkflows(defaultBranchCommit)
+	if err != nil {
+		return nil, err
+	}
+
+	folder := getActionWorkflowPath(defaultBranchCommit)
+
+	workflows := make([]*api.ActionWorkflow, len(entries))
+	for i, entry := range entries {
+		workflows[i] = getActionWorkflowEntry(ctx, repo, defaultBranchCommit, folder, entry)
+	}
+
+	return workflows, nil
+}
+
+func GetActionWorkflow(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
+	entries, err := ListActionWorkflows(ctx, gitrepo, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.Name == workflowID {
+			return entry, nil
+		}
+	}
+
+	return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
 }
 
 // ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
