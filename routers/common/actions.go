@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobIndex int64) {
+func DownloadActionsRunJobLogsWithIndex(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobIndex int64) {
 	if runID == 0 {
 		ctx.HTTPError(http.StatusBadRequest, "invalid run id")
 		return
@@ -33,16 +33,21 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
-	if runJobs[0].Repo.ID != ctxRepo.ID {
-		ctx.HTTPError(http.StatusNotFound)
-		return
-	}
 
 	var curJob *actions_model.ActionRunJob
 	if jobIndex >= 0 && jobIndex < int64(len(runJobs)) {
 		curJob = runJobs[jobIndex]
 	}
 	if curJob == nil {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
+	DownloadActionsRunJobLogs(ctx, ctxRepo, curJob)
+}
+
+func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository, curJob *actions_model.ActionRunJob) {
+	if curJob.Repo.ID != ctxRepo.ID {
 		ctx.HTTPError(http.StatusNotFound)
 		return
 	}

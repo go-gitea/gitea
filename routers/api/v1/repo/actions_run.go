@@ -20,7 +20,7 @@ func getRunID(ctx *context.APIContext) int64 {
 }
 
 func DownloadActionsRunJobLogs(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/jobs/{job}/logs repository downloadActionsRunJobLogs
+	// swagger:operation GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs repository downloadActionsRunJobLogs
 	// ---
 	// summary: Downloads the logs for a workflow run redirects to blob url
 	// produces:
@@ -36,12 +36,7 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	//   description: name of the repository
 	//   type: string
 	//   required: true
-	// - name: run
-	//   in: path
-	//   description: id of the run, this could be latest
-	//   type: integer
-	//   required: true
-	// - name: job
+	// - name: job_id
 	//   in: path
 	//   description: id of the job
 	//   type: integer
@@ -54,7 +49,20 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	runID := getRunID(ctx)
-	jobIndex := ctx.PathParamInt64("job")
-	common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, runID, jobIndex)
+	jobID := ctx.PathParamInt64("job_id")
+	if jobID == 0 {
+		ctx.APIError(400, "invalid job id")
+		return
+	}
+	curJob, err := actions_model.GetRunJobByID(ctx, jobID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if err := curJob.LoadRepo(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, curJob)
 }

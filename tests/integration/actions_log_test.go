@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -36,7 +37,7 @@ func TestDownloadTaskLogs(t *testing.T) {
 		{
 			treePath: ".gitea/workflows/download-task-logs-zstd.yml",
 			fileContent: `name: download-task-logs-zstd
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/download-task-logs-zstd.yml'
@@ -68,7 +69,7 @@ jobs:
 		{
 			treePath: ".gitea/workflows/download-task-logs-no-zstd.yml",
 			fileContent: `name: download-task-logs-no-zstd
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/download-task-logs-no-zstd.yml'
@@ -151,8 +152,14 @@ jobs:
 				}
 
 				runID, _ := strconv.ParseInt(task.Context.GetFields()["run_id"].GetStringValue(), 10, 64)
+
+				jobs, err := actions_model.GetRunJobsByRunID(t.Context(), runID)
+				assert.NoError(t, err)
+				assert.Len(t, jobs, 1)
+				jobID := jobs[0].ID
+
 				// download task logs from API and check content
-				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/jobs/0/logs", user2.Name, repo.Name, runID)).
+				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d/logs", user2.Name, repo.Name, jobID)).
 					AddTokenAuth(token)
 				resp = MakeRequest(t, req, http.StatusOK)
 				logTextLines = strings.Split(strings.TrimSpace(resp.Body.String()), "\n")

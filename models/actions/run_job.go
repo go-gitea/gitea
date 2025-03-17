@@ -60,6 +60,17 @@ func (job *ActionRunJob) LoadRun(ctx context.Context) error {
 	return nil
 }
 
+func (job *ActionRunJob) LoadRepo(ctx context.Context) error {
+	if job.Repo == nil {
+		repo, err := repo_model.GetRepositoryByID(ctx, job.RepoID)
+		if err != nil {
+			return err
+		}
+		job.Repo = repo
+	}
+	return nil
+}
+
 // LoadAttributes load Run if not loaded
 func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 	if job == nil {

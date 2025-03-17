@@ -477,7 +477,7 @@ func Logs(ctx *context_module.Context) {
 		return
 	}
 
-	common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, run.ID, jobIndex)
+	common.DownloadActionsRunJobLogsWithIndex(ctx.Base, ctx.Repo.Repository, run.ID, jobIndex)
 }
 
 func Cancel(ctx *context_module.Context) {
