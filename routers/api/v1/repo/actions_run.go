@@ -9,16 +9,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-func getRunID(ctx *context.APIContext) int64 {
-	// if run param is "latest", get the latest run index
-	if ctx.PathParam("run") == "latest" {
-		if run, _ := actions_model.GetLatestRun(ctx, ctx.Repo.Repository.ID); run != nil {
-			return run.ID
-		}
-	}
-	return ctx.PathParamInt64("run")
-}
-
 func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs repository downloadActionsRunJobLogs
 	// ---
