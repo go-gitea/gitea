@@ -1,7 +1,7 @@
 <div id="profile-avatar-card" class="ui card">
 	<div id="profile-avatar" class="content tw-flex">
 	{{if eq .SignedUserID .ContextUser.ID}}
-		<a class="image" href="{{AppSubUrl}}/user/settings#avatar" data-tooltip-content="{{ctx.Locale.Tr "user.change_avatar"}}">
+		<a class="image" href="{{AppSubUrl}}/user/settings#update-avatar" data-tooltip-content="{{ctx.Locale.Tr "user.change_avatar"}}">
 			{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
 			{{ctx.AvatarUtils.Avatar .ContextUser 256}}
 		</a>
