@@ -5,10 +5,8 @@ package webhook
 
 import (
 	"context"
-	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -956,72 +954,17 @@ func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
 	}
 
-	err := job.LoadAttributes(ctx)
+	status, _ := toActionStatus(job.Status)
+
+	convertedJob, err := convert.ToActionWorkflowJob(ctx, repo, job)
 	if err != nil {
-		log.Error("Error loading job attributes: %v", err)
+		log.Error("ToActionWorkflowJob: %v", err)
 		return
-	}
-
-	jobIndex := 0
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, job.RunID)
-	if err != nil {
-		log.Error("Error loading getting run jobs: %v", err)
-		return
-	}
-	for i, j := range jobs {
-		if j.ID == job.ID {
-			jobIndex = i
-			break
-		}
-	}
-
-	status, conclusion := toActionStatus(job.Status)
-	var runnerID int64
-	var runnerName string
-	var steps []*api.ActionWorkflowStep
-
-	if task != nil {
-		runnerID = task.RunnerID
-		if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
-			runnerName = runner.Name
-		}
-		for i, step := range task.Steps {
-			stepStatus, stepConclusion := toActionStatus(job.Status)
-			steps = append(steps, &api.ActionWorkflowStep{
-				Name:        step.Name,
-				Number:      int64(i),
-				Status:      stepStatus,
-				Conclusion:  stepConclusion,
-				StartedAt:   step.Started.AsTime().UTC(),
-				CompletedAt: step.Stopped.AsTime().UTC(),
-			})
-		}
 	}
 
 	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventWorkflowJob, &api.WorkflowJobPayload{
-		Action: status,
-		WorkflowJob: &api.ActionWorkflowJob{
-			ID: job.ID,
-			// missing api endpoint for this location
-			URL:     fmt.Sprintf("%s/actions/runs/%d/jobs/%d", repo.APIURL(), job.RunID, job.ID),
-			HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), jobIndex),
-			RunID:   job.RunID,
-			// Missing api endpoint for this location, artifacts are available under a nested url
-			RunURL:      fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), job.RunID),
-			Name:        job.Name,
-			Labels:      job.RunsOn,
-			RunAttempt:  job.Attempt,
-			HeadSha:     job.Run.CommitSHA,
-			HeadBranch:  git.RefName(job.Run.Ref).BranchName(),
-			Status:      status,
-			Conclusion:  conclusion,
-			RunnerID:    runnerID,
-			RunnerName:  runnerName,
-			Steps:       steps,
-			CreatedAt:   job.Created.AsTime().UTC(),
-			StartedAt:   job.Started.AsTime().UTC(),
-			CompletedAt: job.Stopped.AsTime().UTC(),
-		},
+		Action:       status,
+		WorkflowJob:  convertedJob,
 		Organization: org,
 		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
 		Sender:       convert.ToUser(ctx, sender, nil),
@@ -1041,26 +984,18 @@ func (*webhookNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
 	}
 
-	status, conclusion := toActionStatus(run.Status)
+	status, _ := toActionStatus(run.Status)
+
+	convertedRun, err := convert.ToActionWorkflowRun(repo, run)
+	if err != nil {
+		log.Error("ToActionWorkflowRun: %v", err)
+		return
+	}
 
 	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventWorkflowJob, &api.WorkflowRunPayload{
-		Action:   status,
-		Workflow: nil,
-		WorkflowRun: &api.ActionWorkflowRun{
-			ID:        run.ID,
-			RunNumber: run.Index,
-			HTMLURL:   run.HTMLURL(),
-			// Missing api endpoint for this location, artifacts are available under a nested url
-			URL:         fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
-			Event:       run.TriggerEvent,
-			RunAttempt:  0,
-			HeadSha:     run.CommitSHA,
-			HeadBranch:  git.RefName(run.Ref).BranchName(),
-			Status:      status,
-			Conclusion:  conclusion,
-			StartedAt:   run.Started.AsTime().UTC(),
-			CompletedAt: run.Stopped.AsTime().UTC(),
-		},
+		Action:       status,
+		Workflow:     nil,
+		WorkflowRun:  convertedRun,
 		Organization: org,
 		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
 		Sender:       convert.ToUser(ctx, sender, nil),
