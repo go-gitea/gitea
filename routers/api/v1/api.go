@@ -1243,6 +1243,8 @@ func Routes() *web.Router {
 				}, reqToken(), reqAdmin())
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
+					m.Get("/runs", repo.GetWorkflowRuns)
+					m.Get("/runs/{run}/jobs", repo.GetWorkflowJobs)
 					m.Get("/runs/{run}/artifacts", repo.GetArtifactsOfRun)
 					m.Get("/artifacts", repo.GetArtifacts)
 					m.Group("/artifacts/{artifact_id}", func() {

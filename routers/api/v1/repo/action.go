@@ -21,11 +21,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/shared"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	actions_service "code.gitea.io/gitea/services/actions"
@@ -866,6 +868,264 @@ func ActionsEnableWorkflow(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func convertToInternal(s string) actions_model.Status {
+	switch s {
+	case "pending":
+		return actions_model.StatusBlocked
+	case "queued":
+		return actions_model.StatusWaiting
+	case "in_progress":
+		return actions_model.StatusRunning
+	case "failure":
+		return actions_model.StatusFailure
+	case "success":
+		return actions_model.StatusSuccess
+	case "skipped":
+		return actions_model.StatusSkipped
+	default:
+		return actions_model.StatusUnknown
+	}
+}
+
+// GetArtifacts Lists all artifacts for a repository.
+func GetWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs repository getWorkflowRuns
+	// ---
+	// summary: Lists all runs for a repository run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: name of the owner
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: runid of the workflow run
+	//   type: integer
+	//   required: true
+	// - name: name
+	//   in: query
+	//   description: name of the artifact
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ArtifactsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+
+	opts := actions_model.FindRunOptions{
+		RepoID:      repoID,
+		ListOptions: utils.GetListOptions(ctx),
+	}
+
+	if event := ctx.Req.URL.Query().Get("event"); event != "" {
+		opts.TriggerEvent = webhook.HookEventType(event)
+	}
+	if branch := ctx.Req.URL.Query().Get("branch"); branch != "" {
+		opts.Ref = string(git.RefNameFromBranch(branch))
+	}
+	if status := ctx.Req.URL.Query().Get("status"); status != "" {
+		opts.Status = []actions_model.Status{convertToInternal(status)}
+	}
+	// if actor := ctx.Req.URL.Query().Get("actor"); actor != "" {
+	// 	user_model.
+	// 	opts.TriggerUserID =
+	// }
+
+	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	res := new(api.ActionWorkflowRunsResponse)
+	res.TotalCount = total
+
+	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
+	for i := range runs {
+		convertedRun, err := convert.ToActionWorkflowRun(ctx.Repo.Repository, runs[i])
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		res.Entries[i] = convertedRun
+	}
+
+	ctx.JSON(http.StatusOK, &res)
+}
+
+// GetWorkflowRun Gets a specific workflow run.
+func GetWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run} repository GetWorkflowRun
+	// ---
+	// summary: Gets a specific workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: name of the owner
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: id of the run
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Artifact"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	runID := ctx.PathParamInt64("run")
+	job, _, _ := db.GetByID[actions_model.ActionRun](ctx, runID)
+
+	if job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
+	}
+
+	convertedArtifact, err := convert.ToActionWorkflowRun(ctx.Repo.Repository, job)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedArtifact)
+	return
+}
+
+// GetWorkflowJobs Lists all jobs for a workflow run.
+func GetWorkflowJobs(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run}/jobs repository getWorkflowJobs
+	// ---
+	// summary: Lists all jobs for a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: name of the owner
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: runid of the workflow run
+	//   type: integer
+	//   required: true
+	// - name: name
+	//   in: query
+	//   description: name of the artifact
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ArtifactsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repoID := ctx.Repo.Repository.ID
+
+	runID := ctx.PathParamInt64("run")
+
+	artifacts, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
+		RepoID:      repoID,
+		RunID:       runID,
+		ListOptions: utils.GetListOptions(ctx),
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	res := new(api.ActionWorkflowJobsResponse)
+	res.TotalCount = total
+
+	res.Entries = make([]*api.ActionWorkflowJob, len(artifacts))
+	for i := range artifacts {
+		convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, artifacts[i])
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		res.Entries[i] = convertedWorkflowJob
+	}
+
+	ctx.JSON(http.StatusOK, &res)
+}
+
+// GetWorkflowJob Gets a specific workflow job for a workflow run.
+func GetWorkflowJob(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/jobs/{job_id} repository getWorkflowJob
+	// ---
+	// summary: Gets a specific workflow job for a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: name of the owner
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: job_id
+	//   in: path
+	//   description: id of the job
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Artifact"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	jobID := ctx.PathParamInt64("job_id")
+	job, _, _ := db.GetByID[actions_model.ActionRunJob](ctx, jobID)
+
+	if job.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
+	}
+
+	convertedWorkflowJob, err := convert.ToActionWorkflowJob(ctx, ctx.Repo.Repository, job)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedWorkflowJob)
+	return
 }
 
 // GetArtifacts Lists all artifacts for a repository.
