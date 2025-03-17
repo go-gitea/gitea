@@ -232,7 +232,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 }
 
 func ToActionWorkflowRun(repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
-	status, conclusion := toActionStatus(run.Status)
+	status, conclusion := ToActionsStatus(run.Status)
 	return &api.ActionWorkflowRun{
 		ID:           run.ID,
 		URL:          fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(), run.ID),
@@ -250,7 +250,7 @@ func ToActionWorkflowRun(repo *repo_model.Repository, run *actions_model.ActionR
 	}, nil
 }
 
-func toActionStatus(status actions_model.Status) (string, string) {
+func ToActionsStatus(status actions_model.Status) (string, string) {
 	var action string
 	var conclusion string
 	switch status {
@@ -294,7 +294,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, job *
 		}
 	}
 
-	status, conclusion := toActionStatus(job.Status)
+	status, conclusion := ToActionsStatus(job.Status)
 	var runnerID int64
 	var runnerName string
 	var steps []*api.ActionWorkflowStep
@@ -307,7 +307,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, job *
 			runnerName = runner.Name
 		}
 		for i, step := range task.Steps {
-			stepStatus, stepConclusion := toActionStatus(job.Status)
+			stepStatus, stepConclusion := ToActionsStatus(job.Status)
 			steps = append(steps, &api.ActionWorkflowStep{
 				Name:        step.Name,
 				Number:      int64(i),

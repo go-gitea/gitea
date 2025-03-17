@@ -954,7 +954,7 @@ func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
 	}
 
-	status, _ := toActionStatus(job.Status)
+	status, _ := convert.ToActionsStatus(job.Status)
 
 	convertedJob, err := convert.ToActionWorkflowJob(ctx, repo, job)
 	if err != nil {
@@ -984,7 +984,7 @@ func (*webhookNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
 	}
 
-	status, _ := toActionStatus(run.Status)
+	status, _ := convert.ToActionsStatus(run.Status)
 
 	convertedRun, err := convert.ToActionWorkflowRun(repo, run)
 	if err != nil {
@@ -1002,30 +1002,4 @@ func (*webhookNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
-}
-
-func toActionStatus(status actions_model.Status) (string, string) {
-	var action string
-	var conclusion string
-	switch status {
-	// This is a naming conflict of the webhook between Gitea and GitHub Actions
-	case actions_model.StatusWaiting:
-		action = "queued"
-	case actions_model.StatusBlocked:
-		action = "waiting"
-	case actions_model.StatusRunning:
-		action = "in_progress"
-	}
-	if status.IsDone() {
-		action = "completed"
-		switch status {
-		case actions_model.StatusSuccess:
-			conclusion = "success"
-		case actions_model.StatusCancelled:
-			conclusion = "cancelled"
-		case actions_model.StatusFailure:
-			conclusion = "failure"
-		}
-	}
-	return action, conclusion
 }
