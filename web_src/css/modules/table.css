@@ -152,16 +152,6 @@
   }
 }
 
-.ui.table[class*="top aligned"],
-.ui.table [class*="top aligned"] {
-  vertical-align: top;
-}
-
-.ui.table[class*="middle aligned"],
-.ui.table [class*="middle aligned"] {
-  vertical-align: middle;
-}
-
 .ui.table th.collapsing,
 .ui.table td.collapsing {
   width: 1px;
