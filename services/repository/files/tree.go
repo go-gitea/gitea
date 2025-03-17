@@ -6,6 +6,7 @@ package files
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/url"
 	"path"
 	"sort"
@@ -14,8 +15,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -142,6 +145,7 @@ func entryModeString(entryMode git.EntryMode) string {
 type TreeViewNode struct {
 	EntryName    string          `json:"entryName"`
 	EntryMode    string          `json:"entryMode"`
+	FileIcon     template.HTML   `json:"fileIcon"`
 	FullPath     string          `json:"fullPath"`
 	SubmoduleURL string          `json:"submoduleUrl,omitempty"`
 	Children     []*TreeViewNode `json:"children,omitempty"`
@@ -155,6 +159,7 @@ func newTreeViewNodeFromEntry(ctx context.Context, commit *git.Commit, parentDir
 	node := &TreeViewNode{
 		EntryName: entry.Name(),
 		EntryMode: entryModeString(entry.Mode()),
+		FileIcon:  templates.NewRenderUtils(reqctx.FromContext(ctx)).RenderFileIcon(entry),
 		FullPath:  path.Join(parentDir, entry.Name()),
 	}
 
