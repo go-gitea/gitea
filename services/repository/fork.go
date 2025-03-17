@@ -110,15 +110,13 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return
 		}
 
-		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-
-		if exists, _ := util.IsExist(repoPath); !exists {
+		if exists, _ := gitrepo.IsRepositoryExist(ctx, repo); !exists {
 			return
 		}
 
 		// As the transaction will be failed and hence database changes will be destroyed we only need
 		// to delete the related repository on the filesystem
-		if errDelete := util.RemoveAll(repoPath); errDelete != nil {
+		if errDelete := gitrepo.DeleteRepository(ctx, repo); errDelete != nil {
 			log.Error("Failed to remove fork repo")
 		}
 	}
@@ -156,8 +154,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		if opts.SingleBranch != "" {
 			cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
 		}
-		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repoPath).
+		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repo.RepoPath()).
 			RunStdBytes(txCtx, &git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 			return fmt.Errorf("git clone: %w", err)
@@ -168,12 +165,12 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 
 		if stdout, _, err := git.NewCommand("update-server-info").
-			RunStdString(txCtx, &git.RunOpts{Dir: repoPath}); err != nil {
+			RunStdString(txCtx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("git update-server-info: %w", err)
 		}
 
-		if err = repo_module.CreateDelegateHooks(repoPath); err != nil {
+		if err = gitrepo.CreateDelegateHooksForRepo(ctx, repo); err != nil {
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 

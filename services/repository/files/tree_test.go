@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/contexttest"
 
@@ -49,4 +50,52 @@ func TestGetTreeBySHA(t *testing.T) {
 	}
 
 	assert.EqualValues(t, expectedTree, tree)
+}
+
+func TestGetTreeViewNodes(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
+	ctx.Repo.RefFullName = git.RefNameFromBranch("sub-home-md-img-check")
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
+	treeNodes, err := GetTreeViewNodes(ctx, ctx.Repo.Commit, "", "")
+	assert.NoError(t, err)
+	assert.Equal(t, []*TreeViewNode{
+		{
+			EntryName: "docs",
+			EntryMode: "tree",
+			FullPath:  "docs",
+		},
+	}, treeNodes)
+
+	treeNodes, err = GetTreeViewNodes(ctx, ctx.Repo.Commit, "", "docs/README.md")
+	assert.NoError(t, err)
+	assert.Equal(t, []*TreeViewNode{
+		{
+			EntryName: "docs",
+			EntryMode: "tree",
+			FullPath:  "docs",
+			Children: []*TreeViewNode{
+				{
+					EntryName: "README.md",
+					EntryMode: "blob",
+					FullPath:  "docs/README.md",
+				},
+			},
+		},
+	}, treeNodes)
+
+	treeNodes, err = GetTreeViewNodes(ctx, ctx.Repo.Commit, "docs", "README.md")
+	assert.NoError(t, err)
+	assert.Equal(t, []*TreeViewNode{
+		{
+			EntryName: "README.md",
+			EntryMode: "blob",
+			FullPath:  "docs/README.md",
+		},
+	}, treeNodes)
 }

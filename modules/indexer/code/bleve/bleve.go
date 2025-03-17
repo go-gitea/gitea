@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	analyzer_custom "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -272,14 +273,18 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	pathQuery.FieldVal = "Filename"
 	pathQuery.SetBoost(10)
 
-	if opts.SearchMode == indexer.SearchModeExact {
+	searchMode := util.IfZero(opts.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+	if searchMode == indexer.SearchModeExact {
+		// 1.21 used NewPrefixQuery, but it seems not working well, and later releases changed to NewMatchPhraseQuery
 		q := bleve.NewMatchPhraseQuery(opts.Keyword)
+		q.Analyzer = repoIndexerAnalyzer
 		q.FieldVal = "Content"
 		contentQuery = q
 	} else /* words */ {
 		q := bleve.NewMatchQuery(opts.Keyword)
 		q.FieldVal = "Content"
-		if opts.SearchMode == indexer.SearchModeFuzzy {
+		q.Analyzer = repoIndexerAnalyzer
+		if searchMode == indexer.SearchModeFuzzy {
 			// this logic doesn't seem right, it is only used to pass the test-case `Keyword:    "dESCRIPTION"`, which doesn't seem to be a real-life use-case.
 			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
 		} else {

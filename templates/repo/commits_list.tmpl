@@ -5,7 +5,7 @@
 				<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
 				<th class="two wide sha">{{StringUtils.ToUpper $.Repository.ObjectFormatName}}</th>
 				<th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
-				<th class="two wide right aligned">{{ctx.Locale.Tr "repo.commits.date"}}</th>
+				<th class="two wide tw-text-right">{{ctx.Locale.Tr "repo.commits.date"}}</th>
 				<th class="one wide"></th>
 			</tr>
 		</thead>
@@ -61,16 +61,25 @@
 						{{end}}
 					</td>
 					{{if .Committer}}
-						<td class="text right aligned">{{DateUtils.TimeSince .Committer.When}}</td>
+						<td class="tw-text-right">{{DateUtils.TimeSince .Committer.When}}</td>
 					{{else}}
-						<td class="text right aligned">{{DateUtils.TimeSince .Author.When}}</td>
+						<td class="tw-text-right">{{DateUtils.TimeSince .Author.When}}</td>
 					{{end}}
-					<td class="text right aligned tw-py-0">
-						<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
-						{{if not $.PageIsWiki}}{{/* at the moment, wiki doesn't support "view at history point*/}}
+					<td class="tw-text-right tw-py-0">
+						<button class="btn interact-bg tw-p-2 copy-commit-id" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
+						{{/* at the moment, wiki doesn't support these "view" links like "view at history point" */}}
+						{{if not $.PageIsWiki}}
+							{{/* view single file diff */}}
+							{{if $.FileName}}
+							<a class="btn interact-bg tw-p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
+								href="{{$commitRepoLink}}/commit/{{.ID.String}}?files={{$.FileName}}"
+							>{{svg "octicon-file-diff"}}</a>
+							{{end}}
+
+							{{/* view at history point */}}
 							{{$viewCommitLink := printf "%s/src/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
 							{{if $.FileName}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileName)}}{{end}}
-							<a class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
+							<a class="btn interact-bg tw-p-2 view-commit-path" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
 						{{end}}
 					</td>
 				</tr>

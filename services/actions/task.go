@@ -23,6 +23,26 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		actionTask *actions_model.ActionTask
 	)
 
+	if runner.Ephemeral {
+		var task actions_model.ActionTask
+		has, err := db.GetEngine(ctx).Where("runner_id = ?", runner.ID).Get(&task)
+		// Let the runner retry the request, do not allow to proceed
+		if err != nil {
+			return nil, false, err
+		}
+		if has {
+			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
+				return nil, false, nil
+			}
+			// task has been finished, remove it
+			_, err = db.DeleteByID[actions_model.ActionRunner](ctx, runner.ID)
+			if err != nil {
+				return nil, false, err
+			}
+			return nil, false, fmt.Errorf("runner has been removed")
+		}
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
 		if err != nil {
