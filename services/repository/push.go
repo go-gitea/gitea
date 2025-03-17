@@ -23,6 +23,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -133,23 +134,26 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			} else { // is new tag
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
-					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
+					// in case there is dirty data, for example, the "github.com/git/git" repository has tags pointing to non-existing commits
+					if !errors.Is(err, util.ErrNotExist) {
+						log.Error("Unable to get tag commit: gitRepo.GetCommit(%s) in %s/%s[%d]: %v", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
+					}
+				} else {
+					commits := repo_module.NewPushCommits()
+					commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
+					commits.CompareURL = repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), opts.NewCommitID)
+
+					notify_service.PushCommits(
+						ctx, pusher, repo,
+						&repo_module.PushUpdateOptions{
+							RefFullName: opts.RefFullName,
+							OldCommitID: objectFormat.EmptyObjectID().String(),
+							NewCommitID: opts.NewCommitID,
+						}, commits)
+
+					addTags = append(addTags, tagName)
+					notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 				}
-
-				commits := repo_module.NewPushCommits()
-				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
-				commits.CompareURL = repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), opts.NewCommitID)
-
-				notify_service.PushCommits(
-					ctx, pusher, repo,
-					&repo_module.PushUpdateOptions{
-						RefFullName: opts.RefFullName,
-						OldCommitID: objectFormat.EmptyObjectID().String(),
-						NewCommitID: opts.NewCommitID,
-					}, commits)
-
-				addTags = append(addTags, tagName)
-				notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.RefFullName.IsBranch() {
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -166,7 +170,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			branch := opts.RefFullName.BranchName()
 			if !opts.IsDelRef() {
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-				go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 				if err != nil {
@@ -207,6 +210,17 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}
+
+					// only update branch can trigger pull request task because the pull request hasn't been created yet when creaing a branch
+					go pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{
+						RepoID:      repo.ID,
+						Doer:        pusher,
+						Branch:      branch,
+						IsSync:      true,
+						IsForcePush: isForcePush,
+						OldCommitID: opts.OldCommitID,
+						NewCommitID: opts.NewCommitID,
+					})
 
 					if isForcePush {
 						log.Trace("Push %s is a force push", opts.NewCommitID)

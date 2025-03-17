@@ -159,6 +159,14 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		limit: setting.UI.MaxDisplayFileSize * 3,
 	}
 
+	// FIXME: Don't read all to memory, but goldmark doesn't support
+	buf, err := io.ReadAll(input)
+	if err != nil {
+		log.Error("Unable to ReadAll: %v", err)
+		return err
+	}
+	buf = giteautil.NormalizeEOL(buf)
+
 	// FIXME: should we include a timeout to abort the renderer if it takes too long?
 	defer func() {
 		err := recover()
@@ -166,20 +174,12 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			return
 		}
 
-		log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
-		if (!setting.IsProd && !setting.IsInTesting) || log.IsDebug() {
-			log.Error("Panic in markdown: %v\n%s", err, log.Stack(2))
-		}
+		log.Error("Panic in markdown: %v\n%s", err, log.Stack(2))
+		escapedHTML := template.HTMLEscapeString(giteautil.UnsafeBytesToString(buf))
+		_, _ = output.Write(giteautil.UnsafeStringToBytes(escapedHTML))
 	}()
 
-	// FIXME: Don't read all to memory, but goldmark doesn't support
 	pc := newParserContext(ctx)
-	buf, err := io.ReadAll(input)
-	if err != nil {
-		log.Error("Unable to ReadAll: %v", err)
-		return err
-	}
-	buf = giteautil.NormalizeEOL(buf)
 
 	// Preserve original length.
 	bufWithMetadataLength := len(buf)

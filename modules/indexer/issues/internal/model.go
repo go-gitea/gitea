@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -77,7 +78,7 @@ type SearchResult struct {
 type SearchOptions struct {
 	Keyword string // keyword to search
 
-	IsFuzzyKeyword bool // if false the levenshtein distance is 0
+	SearchMode indexer.SearchModeType
 
 	RepoIDs   []int64 // repository IDs which the issues belong to
 	AllPublic bool    // if include all public repositories

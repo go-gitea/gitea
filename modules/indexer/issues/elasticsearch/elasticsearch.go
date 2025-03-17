@@ -10,9 +10,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/olivere/elastic/v7"
 )
@@ -31,6 +33,11 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_elasticsearch.Indexer
 	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	// TODO: es supports fuzzy search, but our code doesn't at the moment, and actually the default fuzziness is already "AUTO"
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new elasticsearch indexer
@@ -146,12 +153,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {
-		searchType := esMultiMatchTypePhrasePrefix
-		if options.IsFuzzyKeyword {
-			searchType = esMultiMatchTypeBestFields
+		searchMode := util.IfZero(options.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+		if searchMode == indexer.SearchModeExact {
+			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypePhrasePrefix))
+		} else /* words */ {
+			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypeBestFields).Operator("and"))
 		}
-
-		query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(searchType))
 	}
 
 	if len(options.RepoIDs) > 0 {
