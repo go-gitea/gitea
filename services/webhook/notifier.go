@@ -992,7 +992,7 @@ func (*webhookNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_
 		return
 	}
 
-	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventWorkflowJob, &api.WorkflowRunPayload{
+	if err := PrepareWebhooks(ctx, source, webhook_module.HookEventWorkflowRun, &api.WorkflowRunPayload{
 		Action:       status,
 		Workflow:     nil,
 		WorkflowRun:  convertedRun,
