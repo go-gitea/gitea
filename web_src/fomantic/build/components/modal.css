@@ -116,12 +116,7 @@
   align-self: start;
   max-width: 100%;
 }
-.ui.modal > [class*="top aligned"] {
-  align-self: start;
-}
-.ui.modal > [class*="middle aligned"] {
-  align-self: center;
-}
+
 .ui.modal > [class*="stretched"] {
   align-self: stretch;
 }
@@ -258,7 +253,7 @@
     padding: 1rem 0 !important;
     box-shadow: none;
   }
-  
+
 /* Let Buttons Stack */
   .ui.modal > .actions {
     padding: 1rem 1rem 0rem !important;
