@@ -12,7 +12,7 @@ import (
 func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs repository downloadActionsRunJobLogs
 	// ---
-	// summary: Downloads the logs for a workflow run redirects to blob url
+	// summary: Downloads the job logs for a workflow run
 	// produces:
 	// - application/json
 	// parameters:
