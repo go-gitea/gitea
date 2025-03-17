@@ -46,6 +46,7 @@ type Command struct {
 	args             []string
 	globalArgsLength int
 	brokenArgs       []string
+	cmd              *exec.Cmd // for debug purpose only
 }
 
 func logArgSanitize(arg string) string {
@@ -314,6 +315,7 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	startTime := time.Now()
 
 	cmd := exec.CommandContext(ctx, c.prog, c.args...)
+	c.cmd = cmd // for debug purpose only
 	if opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {

@@ -10,6 +10,7 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -162,9 +163,10 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	var queries []query.Query
 
 	if options.Keyword != "" {
-		if options.SearchMode == indexer.SearchModeWords || options.SearchMode == indexer.SearchModeFuzzy {
+		searchMode := util.IfZero(options.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+		if searchMode == indexer.SearchModeWords || searchMode == indexer.SearchModeFuzzy {
 			fuzziness := 0
-			if options.SearchMode == indexer.SearchModeFuzzy {
+			if searchMode == indexer.SearchModeFuzzy {
 				fuzziness = inner_bleve.GuessFuzzinessByKeyword(options.Keyword)
 			}
 			queries = append(queries, bleve.NewDisjunctionQuery([]query.Query{

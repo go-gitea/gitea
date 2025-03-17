@@ -67,6 +67,7 @@ These inconsistent layouts should be refactored to simple ones.
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
+.ui.modal .content > form > .actions,
 .ui.modal .content > .actions {
   padding-top: 1em; /* if the "actions" is in the "content", some paddings are already added by the "content" */
   text-align: right;
