@@ -55,7 +55,7 @@
 }
 
 .repo-view-container .repo-view-file-tree-container {
-  flex: 0 1 15%;
+  flex: 0 0 15%;
   min-width: 0;
   max-height: 100vh;
 }

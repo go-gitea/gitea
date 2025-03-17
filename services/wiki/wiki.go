@@ -41,7 +41,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 
 	if err := git.InitRepository(ctx, repo.WikiPath(), true, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
-	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
+	} else if err = gitrepo.CreateDelegateHooksForWiki(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	} else if _, _, err = git.NewCommand("symbolic-ref", "HEAD").AddDynamicArguments(git.BranchPrefix+repo.DefaultWikiBranch).RunStdString(ctx, &git.RunOpts{Dir: repo.WikiPath()}); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to %q: %w", repo.DefaultWikiBranch, err)

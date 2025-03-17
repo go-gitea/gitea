@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
@@ -264,17 +265,16 @@ func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
-	repoPath := repo.RepoPath()
-	if err := repo_module.CreateDelegateHooks(repoPath); err != nil {
+	if err := gitrepo.CreateDelegateHooksForRepo(ctx, repo); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 	if repo.HasWiki() {
-		if err := repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
+		if err := gitrepo.CreateDelegateHooksForWiki(ctx, repo); err != nil {
 			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
 	}
 
-	_, _, err := git.NewCommand("remote", "rm", "origin").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+	_, _, err := git.NewCommand("remote", "rm", "origin").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
