@@ -634,7 +634,7 @@ func ActionsListRepositoryWorkflows(ctx *context.APIContext) {
 	//   "500":
 	//     "$ref": "#/responses/error"
 
-	workflows, err := actions_service.ListActionWorkflows(ctx)
+	workflows, err := convert.ListActionWorkflows(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -680,7 +680,7 @@ func ActionsGetWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	workflowID := ctx.PathParam("workflow_id")
-	workflow, err := actions_service.GetActionWorkflow(ctx, workflowID)
+	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
