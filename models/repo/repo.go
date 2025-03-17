@@ -215,12 +215,22 @@ func init() {
 	db.RegisterModel(new(Repository))
 }
 
-func (repo *Repository) GetName() string {
-	return repo.Name
+func RelativePath(ownerName, repoName string) string {
+	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-func (repo *Repository) GetOwnerName() string {
-	return repo.OwnerName
+func (repo *Repository) RelativePath() string {
+	return RelativePath(repo.OwnerName, repo.Name)
+}
+
+type StorageRepo string
+
+func (sr StorageRepo) RelativePath() string {
+	return string(sr)
+}
+
+func (repo *Repository) WikiStorageRepo() StorageRepo {
+	return StorageRepo(strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git")
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL
