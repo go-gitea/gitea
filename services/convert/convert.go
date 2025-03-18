@@ -251,6 +251,7 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		Status:       status,
 		Conclusion:   conclusion,
 		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
+		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 	}, nil
 }
 

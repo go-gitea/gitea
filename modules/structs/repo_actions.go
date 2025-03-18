@@ -86,19 +86,21 @@ type ActionArtifact struct {
 
 // ActionWorkflowRun represents a WorkflowRun
 type ActionWorkflowRun struct {
-	ID           int64  `json:"id"`
-	URL          string `json:"url"`
-	HTMLURL      string `json:"html_url"`
-	DisplayTitle string `json:"display_title"`
-	Path         string `json:"path"`
-	Event        string `json:"event"`
-	RunAttempt   int64  `json:"run_attempt"`
-	RunNumber    int64  `json:"run_number"`
-	RepositoryID int64  `json:"repository_id,omitempty"`
-	HeadSha      string `json:"head_sha"`
-	HeadBranch   string `json:"head_branch,omitempty"`
-	Status       string `json:"status"`
-	Conclusion   string `json:"conclusion,omitempty"`
+	ID             int64       `json:"id"`
+	URL            string      `json:"url"`
+	HTMLURL        string      `json:"html_url"`
+	DisplayTitle   string      `json:"display_title"`
+	Path           string      `json:"path"`
+	Event          string      `json:"event"`
+	RunAttempt     int64       `json:"run_attempt"`
+	RunNumber      int64       `json:"run_number"`
+	RepositoryID   int64       `json:"repository_id,omitempty"`
+	HeadSha        string      `json:"head_sha"`
+	HeadBranch     string      `json:"head_branch,omitempty"`
+	Status         string      `json:"status"`
+	Repository     *Repository `json:"repository,omitempty"`
+	HeadRepository *Repository `json:"head_repository,omitempty"`
+	Conclusion     string      `json:"conclusion,omitempty"`
 	// swagger:strfmt date-time
 	StartedAt time.Time `json:"started_at,omitempty"`
 	// swagger:strfmt date-time
