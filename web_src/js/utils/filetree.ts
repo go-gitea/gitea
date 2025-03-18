@@ -5,6 +5,7 @@ export type FileStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied'
 export type File = {
   Name: string;
   NameHash: string;
+  FileIcon: string;
   Status: FileStatus;
   IsViewed: boolean;
   IsSubmodule: boolean;
