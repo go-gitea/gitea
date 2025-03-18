@@ -138,11 +138,11 @@ var (
 		},
 		&cli.StringFlag{
 			Name:  "group-member-uid",
-			Usage: "Group attribte containing list of users",
+			Usage: "Group attribute containing list of users",
 		},
 		&cli.StringFlag{
 			Name:  "group-user-attribute",
-			Usage: "User attribte listed in group",
+			Usage: "User attribute listed in group",
 		},
 		&cli.StringFlag{
 			Name:  "group-filter",
