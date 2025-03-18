@@ -72,15 +72,18 @@
   overflow: hidden;
 }
 
-#repo-files-table .repo-file-cell.name >* {
+#repo-files-table .repo-file-cell.name > a,
+#repo-files-table .repo-file-cell.name > svg,
+#repo-files-table .repo-file-cell.name > span {
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-#repo-files-table .repo-file-cell.name .muted {
+#repo-files-table .repo-file-cell.name .name {
   flex-shrink: 1;
+  min-width: 3em;
 }
 
 @media (max-width: 767.98px) {
