@@ -43,6 +43,11 @@ const (
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	_, err := shared_user.PrepareOrgHeader(ctx)
+	if err != nil {
+		ctx.ServerError("PrepareOrgHeader", err)
+		return
+	}
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -426,6 +431,11 @@ func PackageSettings(ctx *context.Context) {
 	err := shared_user.LoadHeaderCount(ctx)
 	if err != nil {
 		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+	_, err = shared_user.PrepareOrgHeader(ctx)
+	if err != nil {
+		ctx.ServerError("PrepareOrgHeader", err)
 		return
 	}
 
