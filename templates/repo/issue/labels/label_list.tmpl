@@ -63,13 +63,11 @@
 
 		{{if and (not .PageIsOrgSettingsLabels) (.OrgLabels)}}
 			<li class="item">
-				<div class="ui grid middle aligned">
-					<div class="ten wide column">
-						{{ctx.Locale.Tr "repo.org_labels_desc"}}
-						{{if .IsOrganizationOwner}}
-							<a href="{{.OrganizationLink}}/settings/labels">({{ctx.Locale.Tr "repo.org_labels_desc_manage"}})</a>:
-						{{end}}
-					</div>
+				<div>{{/* parent is flex, so use block here to keep sentence spaces */}}
+					{{ctx.Locale.Tr "repo.org_labels_desc"}}
+					{{if .IsOrganizationOwner}}
+						<a href="{{.OrganizationLink}}/settings/labels">({{ctx.Locale.Tr "repo.org_labels_desc_manage"}})</a>:
+					{{end}}
 				</div>
 			</li>
 
