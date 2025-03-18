@@ -234,7 +234,8 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
+func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
+	run.LoadRepo(ctx)
 	status, conclusion := ToActionsStatus(run.Status)
 	return &api.ActionWorkflowRun{
 		ID:           run.ID,
@@ -243,13 +244,13 @@ func ToActionWorkflowRun(repo *repo_model.Repository, run *actions_model.ActionR
 		RunNumber:    run.Index,
 		StartedAt:    run.Started.AsLocalTime(),
 		CompletedAt:  run.Stopped.AsLocalTime(),
-		Event:        run.TriggerEvent,
+		Event:        string(run.Event),
 		DisplayTitle: run.Title,
 		HeadBranch:   git.RefName(run.Ref).BranchName(),
 		HeadSha:      run.CommitSHA,
 		Status:       status,
 		Conclusion:   conclusion,
-		Path:         fmt.Sprint("%s@%s", run.WorkflowID, run.Ref),
+		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
 	}, nil
 }
 

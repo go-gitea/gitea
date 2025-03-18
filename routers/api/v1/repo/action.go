@@ -962,7 +962,7 @@ func GetWorkflowRuns(ctx *context.APIContext) {
 
 	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
 	for i := range runs {
-		convertedRun, err := convert.ToActionWorkflowRun(ctx.Repo.Repository, runs[i])
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, runs[i])
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -1011,7 +1011,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		ctx.APIError(http.StatusNotFound, util.ErrNotExist)
 	}
 
-	convertedArtifact, err := convert.ToActionWorkflowRun(ctx.Repo.Repository, job)
+	convertedArtifact, err := convert.ToActionWorkflowRun(ctx, ctx.Repo.Repository, job)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
