@@ -1500,16 +1500,6 @@
 }
 
 /*--------------------
-     Equal Width
----------------------*/
-
-.ui[class*="equal width"].form .fields > .field,
-.ui.form [class*="equal width"].fields > .field {
-  width: 100%;
-  flex: 1 1 auto;
-}
-
-/*--------------------
       Inline Fields
   ---------------------*/
 
