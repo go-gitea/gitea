@@ -151,6 +151,10 @@ var (
 		&cli.StringFlag{
 			Name:  "group-team-map",
 			Usage: "Map LDAP groups to Organization teams",
+		},
+		&cli.BoolFlag{
+			Name:  "group-users-remove",
+			Usage: "Remove users from synchronized teams if user does not belong to corresponding LDAP group",
 		})
 
 	ldapSimpleAuthCLIFlags = append(commonLdapCLIFlags,
@@ -314,6 +318,9 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	}
 	if c.IsSet("group-team-map") {
 		config.GroupTeamMap = c.String("group-team-map")
+	}
+	if c.IsSet("group-users-remove") {
+		config.GroupTeamMapRemoval = c.Bool("group-users-remove")
 	}
 	return nil
 }
