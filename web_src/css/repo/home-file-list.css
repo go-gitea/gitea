@@ -69,9 +69,18 @@
   display: flex;
   align-items: center;
   gap: 0.5em;
+  overflow: hidden;
+}
+
+#repo-files-table .repo-file-cell.name >* {
+  flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+#repo-files-table .repo-file-cell.name .muted {
+  flex-shrink: 1;
 }
 
 @media (max-width: 767.98px) {

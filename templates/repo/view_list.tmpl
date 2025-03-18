@@ -19,9 +19,9 @@
 				{{if $entry.IsSubModule}}
 					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
 					{{if $submoduleLink}}
-						<a class="muted" href="{{$submoduleLink.RepoWebLink}}">{{$entry.Name}}</a> <span class="at">@</span> <a href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
+						<a class="muted" href="{{$submoduleLink.RepoWebLink}}" title="{{$entry.Name}}">{{$entry.Name}}</a> <span class="at">@</span> <a href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
 					{{else}}
-						{{$entry.Name}} <span class="at">@</span> {{ShortSha $submoduleFile.RefID}}
+						<span class="muted" title="{{$entry.Name}}">{{$entry.Name}}</span> <span class="at">@</span> {{ShortSha $submoduleFile.RefID}}
 					{{end}}
 				{{else}}
 					{{if $entry.IsDir}}
