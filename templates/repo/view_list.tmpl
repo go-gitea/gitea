@@ -14,19 +14,21 @@
 			{{$entry := $item.Entry}}
 			{{$commit := $item.Commit}}
 			{{$submoduleFile := $item.SubmoduleFile}}
-			<div class="repo-file-cell name {{if not $commit}}notready{{end}}">
+			<div class="repo-file-cell name muted-links {{if not $commit}}notready{{end}}">
 				{{ctx.RenderUtils.RenderFileIcon $entry}}
 				{{if $entry.IsSubModule}}
 					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
 					{{if $submoduleLink}}
-						<a class="muted" href="{{$submoduleLink.RepoWebLink}}">{{$entry.Name}}</a> <span class="at">@</span> <a href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
+						<a class="entry-name" href="{{$submoduleLink.RepoWebLink}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+						@ <a class="text primary" href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
 					{{else}}
-						{{$entry.Name}} <span class="at">@</span> {{ShortSha $submoduleFile.RefID}}
+						<span class="entry-name" title="{{$entry.Name}}">{{$entry.Name}}</span>
+						@ {{ShortSha $submoduleFile.RefID}}
 					{{end}}
 				{{else}}
 					{{if $entry.IsDir}}
 						{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
-						<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
+						<a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 							{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
 							{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
 							{{if eq $subJumpablePathFieldLast 0}}
@@ -37,7 +39,7 @@
 							{{end}}
 						</a>
 					{{else}}
-						<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+						<a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 					{{end}}
 				{{end}}
 			</div>
