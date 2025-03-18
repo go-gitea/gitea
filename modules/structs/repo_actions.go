@@ -115,7 +115,7 @@ type ActionWorkflowRunsResponse struct {
 
 // ActionArtifactsResponse returns ActionArtifacts
 type ActionWorkflowJobsResponse struct {
-	Entries    []*ActionWorkflowJob `json:"workflow_jobs"`
+	Entries    []*ActionWorkflowJob `json:"jobs"`
 	TotalCount int64                `json:"total_count"`
 }
 
