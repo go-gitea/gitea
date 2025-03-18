@@ -73,7 +73,6 @@
 }
 
 #repo-files-table .repo-file-cell.name > a,
-#repo-files-table .repo-file-cell.name > svg,
 #repo-files-table .repo-file-cell.name > span {
   flex-shrink: 0;
   white-space: nowrap;
@@ -81,7 +80,7 @@
   text-overflow: ellipsis;
 }
 
-#repo-files-table .repo-file-cell.name .name {
+#repo-files-table .repo-file-cell.name .entry-name {
   flex-shrink: 1;
   min-width: 3em;
 }
