@@ -124,11 +124,13 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 		return nil, err
 	}
 
-	batchStdinWriter, batchReader, cancel, err := commit.repo.CatFileBatch(ctx)
+	batch, err := NewBatchCatFile(ctx, commit.repo.Path)
 	if err != nil {
 		return nil, err
 	}
-	defer cancel()
+	defer batch.Close()
+
+	rd := batch.Reader()
 
 	commitsMap := map[string]*Commit{}
 	commitsMap[commit.ID.String()] = commit
@@ -145,25 +147,24 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 			continue
 		}
 
-		_, err := batchStdinWriter.Write([]byte(commitID + "\n"))
-		if err != nil {
+		if err := batch.Input(commitID); err != nil {
 			return nil, err
 		}
-		_, typ, size, err := ReadBatchLine(batchReader)
+		_, typ, size, err := ReadBatchLine(rd)
 		if err != nil {
 			return nil, err
 		}
 		if typ != "commit" {
-			if err := DiscardFull(batchReader, size+1); err != nil {
+			if err := DiscardFull(rd, size+1); err != nil {
 				return nil, err
 			}
 			return nil, fmt.Errorf("unexpected type: %s for commit id: %s", typ, commitID)
 		}
-		c, err = CommitFromReader(commit.repo, MustIDFromString(commitID), io.LimitReader(batchReader, size))
+		c, err = CommitFromReader(commit.repo, MustIDFromString(commitID), io.LimitReader(rd, size))
 		if err != nil {
 			return nil, err
 		}
-		if _, err := batchReader.Discard(1); err != nil {
+		if _, err := rd.Discard(1); err != nil {
 			return nil, err
 		}
 		commitCommits[path] = c
