@@ -20,7 +20,7 @@ test('toAbsoluteLocaleDate', () => {
   // test different timezone
   const oldTZ = process.env.TZ;
   process.env.TZ = 'America/New_York';
-  expect(new Date('2024-03-15').toLocaleString()).toEqual('3/14/2024, 8:00:00 PM');
-  expect(toAbsoluteLocaleDate('2024-03-15')).toEqual('3/15/2024, 12:00:00 AM');
+  expect(new Date('2024-03-15').toLocaleString('en-US')).toEqual('3/14/2024, 8:00:00 PM');
+  expect(toAbsoluteLocaleDate('2024-03-15', 'en-US')).toEqual('3/15/2024, 12:00:00 AM');
   process.env.TZ = oldTZ;
 });
