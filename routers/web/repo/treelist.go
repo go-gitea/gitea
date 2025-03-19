@@ -70,7 +70,7 @@ type FileDiffFile struct {
 
 // transformDiffTreeForUI transforms a DiffTree into a slice of FileDiffFile for UI rendering
 // it also takes a map of file names to their viewed state, which is used to mark files as viewed
-func transformDiffTreeForUI(ctx *context.Context, baseCommit *git.Commit, headCommit *git.Commit, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) []FileDiffFile {
+func transformDiffTreeForUI(ctx *context.Context, baseCommit, headCommit *git.Commit, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) []FileDiffFile {
 	files := make([]FileDiffFile, 0, len(diffTree.Files))
 
 	for _, file := range diffTree.Files {
