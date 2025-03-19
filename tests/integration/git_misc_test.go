@@ -28,7 +28,7 @@ import (
 func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 	// in this test, we will have two parallel readers reading the same blob
 	// So we need to ignore the temporary CatFileBranch checking to make the test pass
-	defer test.MockVariableValue(&setting.DisableTempCatFileBatchCheck, true)
+	defer test.MockVariableValue(&setting.DisableTempCatFileBatchCheck, true)()
 
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
