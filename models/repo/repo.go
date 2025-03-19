@@ -244,6 +244,8 @@ func (sr StorageRepo) GetObjectFormatName() string {
 	return sr.ObjectFormatName
 }
 
+// WikiStorageRepo returns the storage repo for the wiki
+// The wiki repository should have the same object format as the code repository
 func (repo *Repository) WikiStorageRepo() StorageRepo {
 	return StorageRepo{
 		RelativePath:     strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git",
