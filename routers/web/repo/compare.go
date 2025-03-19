@@ -644,6 +644,14 @@ func PrepareCompareDiff(
 		return false
 	}
 
+	baseGitRepo := ctx.Repo.GitRepo
+
+	beforeCommit, err := baseGitRepo.GetCommit(beforeCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return false
+	}
+
 	if !fileOnly {
 		diffTree, err := gitdiff.GetDiffTree(ctx, ci.HeadGitRepo, false, beforeCommitID, headCommitID)
 		if err != nil {
@@ -651,15 +659,7 @@ func PrepareCompareDiff(
 			return false
 		}
 
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(ctx, headCommit, diffTree, nil)
-	}
-
-	baseGitRepo := ctx.Repo.GitRepo
-
-	beforeCommit, err := baseGitRepo.GetCommit(beforeCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return false
+		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(ctx, beforeCommit, headCommit, diffTree, nil)
 	}
 
 	commits, err := processGitCommits(ctx, ci.CompareInfo.Commits)

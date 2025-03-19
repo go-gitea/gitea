@@ -822,6 +822,12 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 		return
 	}
 
+	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
+
 	if !fileOnly {
 		// note: use mergeBase is set to false because we already have the merge base from the pull request info
 		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, startCommitID, endCommitID)
@@ -840,17 +846,11 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 			}
 		}
 
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(ctx, commit, diffTree, filesViewedState)
+		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(ctx, baseCommit, commit, diffTree, filesViewedState)
 	}
 
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
-
-	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return
-	}
 
 	if ctx.IsSigned && ctx.Doer != nil {
 		if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
