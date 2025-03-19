@@ -13,9 +13,8 @@ import (
 func BasicThemeFolderIconName(isOpen bool) string {
 	if isOpen {
 		return "octicon-file-directory-open-fill"
-	} else {
-		return "octicon-file-directory-fill"
 	}
+	return "octicon-file-directory-fill"
 }
 
 func BasicThemeFolderIcon(isOpen bool) template.HTML {

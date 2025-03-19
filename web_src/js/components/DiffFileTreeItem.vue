@@ -33,6 +33,7 @@ function getIconForDiffStatus(pType: FileStatus) {
     :title="item.name" :href="'#diff-' + item.file.NameHash"
   >
     <!-- file -->
+    <!-- eslint-disable-next-line vue/no-v-html -->
     <span class="item-icon" v-html="item.file.FileIcon"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
     <SvgIcon
@@ -45,7 +46,9 @@ function getIconForDiffStatus(pType: FileStatus) {
     <div class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <span v-if="collapsed" class="item-icon" v-html="pageData.folderIcon"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <span v-else class="item-icon" v-html="pageData.openFolderIcon"/>
       <span class="gt-ellipsis">{{ item.name }}</span>
     </div>

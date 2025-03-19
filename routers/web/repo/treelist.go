@@ -62,7 +62,7 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 type FileDiffFile struct {
 	Name        string
 	NameHash    string
-	FileIcon 		template.HTML
+	FileIcon    template.HTML
 	IsSubmodule bool
 	IsViewed    bool
 	Status      string
@@ -82,7 +82,7 @@ func transformDiffTreeForUI(ctx *context.Context, commit *git.Commit, diffTree *
 		files = append(files, FileDiffFile{
 			Name:        file.HeadPath,
 			NameHash:    nameHash,
-			FileIcon:		 templates.NewRenderUtils(reqctx.FromContext(ctx)).RenderFileIcon(entry),
+			FileIcon:    templates.NewRenderUtils(reqctx.FromContext(ctx)).RenderFileIcon(entry),
 			IsSubmodule: isSubmodule,
 			IsViewed:    isViewed,
 			Status:      file.Status,

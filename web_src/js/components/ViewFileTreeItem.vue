@@ -85,8 +85,11 @@ onMounted(async () => {
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
     </div>
     <div class="item-content">
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <span v-if="isDirectory && collapsed" class="item-icon" v-html="pageData.folderIcon"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <span v-else-if="isDirectory && !collapsed" class="item-icon" v-html="pageData.openFolderIcon"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <span v-else class="item-icon" v-html="item.fileIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
