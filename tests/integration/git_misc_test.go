@@ -56,10 +56,10 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 		b := entry.Blob()
 		r1, err := b.DataAsync()
 		assert.NoError(t, err)
-		r1.Close()
+		defer r1.Close()
 		r2, err := b.DataAsync()
 		assert.NoError(t, err)
-		r2.Close()
+		defer r2.Close()
 
 		var data1, data2 []byte
 		wg := sync.WaitGroup{}
