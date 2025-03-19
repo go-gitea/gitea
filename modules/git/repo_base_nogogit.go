@@ -76,7 +76,6 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bu
 	}
 
 	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	panic("lllllll")
 	tempBatch, err := repo.NewBatch(ctx)
 	if err != nil {
 		return nil, nil, nil, err
