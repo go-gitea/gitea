@@ -41,7 +41,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 
 	if err := git.InitRepository(ctx, repo.WikiPath(), true, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
-	} else if err = gitrepo.CreateDelegateHooksForWiki(ctx, repo); err != nil {
+	} else if err = gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	} else if _, _, err = git.NewCommand("symbolic-ref", "HEAD").AddDynamicArguments(git.BranchPrefix+repo.DefaultWikiBranch).RunStdString(ctx, &git.RunOpts{Dir: repo.WikiPath()}); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to %q: %w", repo.DefaultWikiBranch, err)
@@ -100,7 +100,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %w", err)
 	}
 
-	hasDefaultBranch := gitrepo.IsWikiBranchExist(ctx, repo, repo.DefaultWikiBranch)
+	hasDefaultBranch := gitrepo.IsBranchExist(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch)
 
 	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
@@ -381,7 +381,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return nil
 		}
 
-		oldDefBranch, err := gitrepo.GetWikiDefaultBranch(ctx, repo)
+		oldDefBranch, err := gitrepo.GetDefaultBranch(ctx, repo.WikiStorageRepo())
 		if err != nil {
 			return fmt.Errorf("unable to get default branch: %w", err)
 		}
@@ -389,7 +389,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return nil
 		}
 
-		gitRepo, err := gitrepo.OpenWikiRepository(ctx, repo)
+		gitRepo, err := gitrepo.OpenRepository(ctx, repo.WikiStorageRepo())
 		if errors.Is(err, util.ErrNotExist) {
 			return nil // no git repo on storage, no need to do anything else
 		} else if err != nil {
