@@ -74,7 +74,9 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (*BatchCatFile, func()
 		}, nil
 	}
 
-	setting.PanicInDevOrTesting("Opening temporary cat file batch for: %s", repo.Path)
+	if !setting.DisableTempCatFileBatchCheck {
+		setting.PanicInDevOrTesting("Opening temporary cat file batch for: %s", repo.Path)
+	}
 	tempBatch, err := NewBatchCatFile(ctx, repo.Path, false)
 	if err != nil {
 		return nil, nil, err

@@ -18,12 +18,18 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
+	// in this test, we will have two parallel readers reading the same blob
+	// So we need to ignore the temporary CatFileBranch checking to make the test pass
+	defer test.MockVariableValue(&setting.DisableTempCatFileBatchCheck, true)
+
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})

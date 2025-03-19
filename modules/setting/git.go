@@ -11,6 +11,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// DisableTempCatFileBatchCheck disables the temporary cat-file batch check
+var DisableTempCatFileBatchCheck = false
+
 // Git settings
 var Git = struct {
 	Path                 string
