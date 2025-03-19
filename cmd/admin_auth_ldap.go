@@ -133,11 +133,11 @@ var (
 			Usage: "Enable LDAP groups",
 		},
 		&cli.StringFlag{
-			Name:  "group-search-base",
-			Usage: "The LDAP base at which group accounts will be searched for.",
+			Name:  "group-search-base-dn",
+			Usage: "The LDAP base DN at which group accounts will be searched for",
 		},
 		&cli.StringFlag{
-			Name:  "group-member-uid",
+			Name:  "group-member-attribute",
 			Usage: "Group attribute containing list of users",
 		},
 		&cli.StringFlag{
@@ -153,7 +153,7 @@ var (
 			Usage: "Map LDAP groups to Organization teams",
 		},
 		&cli.BoolFlag{
-			Name:  "group-users-remove",
+			Name:  "group-team-map-removal",
 			Usage: "Remove users from synchronized teams if user does not belong to corresponding LDAP group",
 		})
 
@@ -304,8 +304,8 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("enable-groups") {
 		config.GroupsEnabled = c.Bool("enable-groups")
 	}
-	if c.IsSet("group-search-base") {
-		config.GroupDN = c.String("group-search-base")
+	if c.IsSet("group-search-base-dn") {
+		config.GroupDN = c.String("group-search-base-dn")
 	}
 	if c.IsSet("group-member-uid") {
 		config.GroupMemberUID = c.String("group-member-uid")
@@ -319,8 +319,8 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("group-team-map") {
 		config.GroupTeamMap = c.String("group-team-map")
 	}
-	if c.IsSet("group-users-remove") {
-		config.GroupTeamMapRemoval = c.Bool("group-users-remove")
+	if c.IsSet("group-team-map-removal") {
+		config.GroupTeamMapRemoval = c.Bool("group-team-map-removal")
 	}
 	return nil
 }
