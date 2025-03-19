@@ -1,4 +1,8 @@
 {{template "base/head" .}}
+<script type="module">
+window.config.pageData.folderIcon = {{ctx.RenderUtils.RenderFolderIcon false}};
+window.config.pageData.openFolderIcon = {{ctx.RenderUtils.RenderFolderIcon true}};
+</script>
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
 	<div class="ui container {{if or .TreeNames .IsBlame}}fluid padded{{end}}">

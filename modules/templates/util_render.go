@@ -181,6 +181,13 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 		textColor, itemColor, itemHTML)
 }
 
+func (ut *RenderUtils) RenderFolderIcon(isOpen bool) template.HTML {
+	if setting.UI.FileIconTheme == "material" {
+		return fileicon.DefaultMaterialIconProvider().FolderIcon(ut.ctx, isOpen)
+	}
+	return fileicon.BasicThemeFolderIcon(isOpen)
+}
+
 func (ut *RenderUtils) RenderFileIcon(entry *git.TreeEntry) template.HTML {
 	if setting.UI.FileIconTheme == "material" {
 		return fileicon.DefaultMaterialIconProvider().FileIcon(ut.ctx, entry)

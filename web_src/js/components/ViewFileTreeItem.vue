@@ -11,6 +11,8 @@ type Item = {
   children?: Item[];
 };
 
+const {pageData} = window.config;
+
 const props = defineProps<{
   item: Item,
   navigateViewContent:(treePath: string) => void,
@@ -83,7 +85,8 @@ onMounted(async () => {
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
     </div>
     <div class="item-content">
-      <SvgIcon v-if="isDirectory" class="text primary" :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
+      <span v-if="isDirectory && collapsed" class="item-icon" v-html="pageData.folderIcon"/>
+      <span v-else-if="isDirectory && !collapsed" class="item-icon" v-html="pageData.openFolderIcon"/>
       <span v-else class="item-icon" v-html="item.fileIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>

@@ -8,6 +8,7 @@ defineProps<{
   item: Item,
 }>();
 
+const {pageData} = window.config;
 const store = diffTreeStore();
 const collapsed = ref(false);
 
@@ -44,10 +45,8 @@ function getIconForDiffStatus(pType: FileStatus) {
     <div class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
-      <SvgIcon
-        class="text primary"
-        :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"
-      />
+      <span v-if="collapsed" class="item-icon" v-html="pageData.folderIcon"/>
+      <span v-else class="item-icon" v-html="pageData.openFolderIcon"/>
       <span class="gt-ellipsis">{{ item.name }}</span>
     </div>
 
@@ -87,6 +86,10 @@ a:hover {
 
 .item-directory {
   user-select: none;
+}
+
+.item-directory .item-icon {
+  display: contents;
 }
 
 .item-file,
