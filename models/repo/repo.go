@@ -224,7 +224,7 @@ func (repo *Repository) GetRelativePath() string {
 	return RelativePath(repo.OwnerName, repo.Name)
 }
 
-// ObjectFormatName returns the object format name of the repository
+// GetObjectFormatName returns the object format name of the repository
 func (repo *Repository) GetObjectFormatName() string {
 	return repo.ObjectFormatName
 }
@@ -234,11 +234,12 @@ type StorageRepo struct {
 	ObjectFormatName string
 }
 
-// RelativePath should be an unix style path like username/reponame.git
+// GetRelativePath should be an unix style path like username/reponame.git
 func (sr StorageRepo) GetRelativePath() string {
 	return sr.RelativePath
 }
 
+// GetObjectFormatName returns the object format name of the repository
 func (sr StorageRepo) GetObjectFormatName() string {
 	return sr.ObjectFormatName
 }
