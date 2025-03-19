@@ -253,13 +253,6 @@ func (repo *Repository) WikiStorageRepo() StorageRepo {
 	}
 }
 
-func (repo *Repository) GetObjectFormat() git.ObjectFormat {
-	if repo.ObjectFormatName == git.Sha256ObjectFormat.Name() {
-		return git.Sha256ObjectFormat
-	}
-	return git.Sha1ObjectFormat
-}
-
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
