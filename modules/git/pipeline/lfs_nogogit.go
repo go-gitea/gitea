@@ -137,7 +137,6 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					if err := batch.Input(string(trees[len(trees)-1])); err != nil {
 						return nil, err
 					}
-
 					curPath = paths[len(paths)-1]
 					trees = trees[:len(trees)-1]
 					paths = paths[:len(paths)-1]

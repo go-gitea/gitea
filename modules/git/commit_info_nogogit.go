@@ -130,7 +130,7 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 	}
 	defer cancel()
 
-	rd := batch.Reader()
+	batchReader := batch.Reader()
 
 	commitsMap := map[string]*Commit{}
 	commitsMap[commit.ID.String()] = commit
@@ -150,21 +150,21 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 		if err := batch.Input(commitID); err != nil {
 			return nil, err
 		}
-		_, typ, size, err := ReadBatchLine(rd)
+		_, typ, size, err := ReadBatchLine(batchReader)
 		if err != nil {
 			return nil, err
 		}
 		if typ != "commit" {
-			if err := DiscardFull(rd, size+1); err != nil {
+			if err := DiscardFull(batchReader, size+1); err != nil {
 				return nil, err
 			}
 			return nil, fmt.Errorf("unexpected type: %s for commit id: %s", typ, commitID)
 		}
-		c, err = CommitFromReader(commit.repo, MustIDFromString(commitID), io.LimitReader(rd, size))
+		c, err = CommitFromReader(commit.repo, MustIDFromString(commitID), io.LimitReader(batchReader, size))
 		if err != nil {
 			return nil, err
 		}
-		if _, err := rd.Discard(1); err != nil {
+		if _, err := batchReader.Discard(1); err != nil {
 			return nil, err
 		}
 		commitCommits[path] = c
