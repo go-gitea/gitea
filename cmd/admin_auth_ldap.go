@@ -307,8 +307,8 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("group-search-base-dn") {
 		config.GroupDN = c.String("group-search-base-dn")
 	}
-	if c.IsSet("group-member-uid") {
-		config.GroupMemberUID = c.String("group-member-uid")
+	if c.IsSet("group-member-attribute") {
+		config.GroupMemberUID = c.String("group-member-attribute")
 	}
 	if c.IsSet("group-user-attribute") {
 		config.UserUID = c.String("group-user-attribute")
