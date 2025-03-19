@@ -43,11 +43,6 @@ const (
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	_, err := shared_user.PrepareOrgHeader(ctx)
-	if err != nil {
-		ctx.ServerError("PrepareOrgHeader", err)
-		return
-	}
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -129,6 +124,11 @@ func ListPackages(ctx *context.Context) {
 		} else {
 			ctx.Data["IsOrganizationMember"] = false
 			ctx.Data["IsOrganizationOwner"] = false
+		}
+		_, err := shared_user.PrepareOrgHeader(ctx)
+		if err != nil {
+			ctx.ServerError("PrepareOrgHeader", err)
+			return
 		}
 	}
 
@@ -433,12 +433,14 @@ func PackageSettings(ctx *context.Context) {
 		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
-	_, err = shared_user.PrepareOrgHeader(ctx)
-	if err != nil {
-		ctx.ServerError("PrepareOrgHeader", err)
-		return
+	// TODO: context/org -> HandleOrgAssignment() can not be used
+	if ctx.ContextUser.IsOrganization() {
+		_, err = shared_user.PrepareOrgHeader(ctx)
+		if err != nil {
+			ctx.ServerError("PrepareOrgHeader", err)
+			return
+		}
 	}
-
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
 
