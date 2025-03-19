@@ -241,7 +241,7 @@ func TestDefaultWikiBranch(t *testing.T) {
 
 	// repo with no wiki
 	repoWithNoWiki := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	exist, err := gitrepo.IsWikiRepositoryExist(db.DefaultContext, repoWithNoWiki)
+	exist, err := gitrepo.IsRepositoryExist(db.DefaultContext, repoWithNoWiki.WikiStorageRepo())
 	assert.NoError(t, err)
 	assert.False(t, exist)
 	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repoWithNoWiki, "main"))

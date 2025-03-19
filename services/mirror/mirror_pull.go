@@ -52,7 +52,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		return err
 	}
 
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, m.Repo)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
 	if err != nil {
 		return err
 	}
@@ -353,7 +353,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo.FullName(), err)
 	}
 
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, m.Repo)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to check if wiki repository exists: %v", m.Repo.FullName(), err)
 	}

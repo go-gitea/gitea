@@ -557,7 +557,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, ctx.Repo.Repository)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
 		ctx.ServerError("IsWikiRepositoryExist", err)
 		return
@@ -603,7 +603,7 @@ func Wiki(ctx *context.Context) {
 func WikiRevision(ctx *context.Context) {
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, ctx.Repo.Repository)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
 		ctx.ServerError("IsWikiRepositoryExist", err)
 		return
@@ -644,7 +644,7 @@ func WikiRevision(ctx *context.Context) {
 
 // WikiPages render wiki pages list page
 func WikiPages(ctx *context.Context) {
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, ctx.Repo.Repository)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
 		ctx.ServerError("IsWikiRepositoryExist", err)
 		return
@@ -768,7 +768,7 @@ func WikiRaw(ctx *context.Context) {
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, ctx.Repo.Repository)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
 		ctx.ServerError("IsWikiRepositoryExist", err)
 		return
@@ -826,7 +826,7 @@ func NewWikiPost(ctx *context.Context) {
 func EditWiki(ctx *context.Context) {
 	ctx.Data["PageIsWikiEdit"] = true
 
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, ctx.Repo.Repository)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
 		ctx.ServerError("IsWikiRepositoryExist", err)
 		return

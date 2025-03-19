@@ -298,8 +298,8 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		}
 	}
 
-	// Remove wiki files
-	if err := gitrepo.DeleteWikiRepository(ctx, repo); err != nil {
+	// Remove wiki files if it exists.
+	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
 		desc := fmt.Sprintf("Delete wiki repository files [%s]: %v", repo.FullName(), err)
 		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 		if err = system_model.CreateNotice(db.DefaultContext, system_model.NoticeRepository, desc); err != nil {

@@ -47,7 +47,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		return err
 	}
 
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, m.Repo)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error
 		return err
 	}
 
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, m.Repo)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return err
 	}
 
-	hasWiki, err := gitrepo.IsWikiRepositoryExist(ctx, m.Repo)
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, m.Repo.WikiStorageRepo())
 	if err != nil {
 		return err
 	}

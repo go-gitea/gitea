@@ -40,12 +40,12 @@ func TestRepository_WikiPath(t *testing.T) {
 func TestRepository_HasWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	exist, err := gitrepo.IsWikiRepositoryExist(t.Context(), repo1)
+	exist, err := gitrepo.IsRepositoryExist(t.Context(), repo1.WikiStorageRepo())
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	exist, err = gitrepo.IsWikiRepositoryExist(t.Context(), repo2)
+	exist, err = gitrepo.IsRepositoryExist(t.Context(), repo2.WikiStorageRepo())
 	assert.NoError(t, err)
 	assert.False(t, exist)
 }
