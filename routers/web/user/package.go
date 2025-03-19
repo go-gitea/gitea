@@ -433,7 +433,6 @@ func PackageSettings(ctx *context.Context) {
 		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
-	// TODO: context/org -> HandleOrgAssignment() can not be used
 	if ctx.ContextUser.IsOrganization() {
 		_, err = shared_user.PrepareOrgHeader(ctx)
 		if err != nil {
