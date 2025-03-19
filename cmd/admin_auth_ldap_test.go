@@ -57,7 +57,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--group-user-attribute", "uid",
 				"--group-filter", "(|(cn=gitea_users)(cn=admins))",
 				"--group-team-map", `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
-				"--group-users-remove", "true",
+				"--group-users-remove",
 			},
 			source: &auth.Source{
 				Type:          auth.LDAP,
@@ -530,7 +530,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--group-user-attribute", "uid",
 				"--group-filter", "(|(cn=gitea_users)(cn=admins))",
 				"--group-team-map", `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
-				"--group-users-remove", "true",
+				"--group-users-remove",
 			},
 			id: 23,
 			existingAuthSource: &auth.Source{
