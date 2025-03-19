@@ -215,12 +215,39 @@ func init() {
 	db.RegisterModel(new(Repository))
 }
 
-func (repo *Repository) GetName() string {
-	return repo.Name
+func RelativePath(ownerName, repoName string) string {
+	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-func (repo *Repository) GetOwnerName() string {
-	return repo.OwnerName
+// GetRelativePath should be an unix style path like username/reponame.git
+func (repo *Repository) GetRelativePath() string {
+	return RelativePath(repo.OwnerName, repo.Name)
+}
+
+// ObjectFormatName returns the object format name of the repository
+func (repo *Repository) GetObjectFormatName() string {
+	return repo.ObjectFormatName
+}
+
+type StorageRepo struct {
+	RelativePath     string
+	ObjectFormatName string
+}
+
+// RelativePath should be an unix style path like username/reponame.git
+func (sr StorageRepo) GetRelativePath() string {
+	return sr.RelativePath
+}
+
+func (sr StorageRepo) GetObjectFormatName() string {
+	return sr.ObjectFormatName
+}
+
+func (repo *Repository) WikiStorageRepo() StorageRepo {
+	return StorageRepo{
+		RelativePath:     strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git",
+		ObjectFormatName: repo.ObjectFormatName,
+	}
 }
 
 func (repo *Repository) GetObjectFormat() git.ObjectFormat {

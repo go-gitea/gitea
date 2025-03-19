@@ -10,7 +10,7 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 )
 
-func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data string) (*secret_model.Secret, bool, error) {
+func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data, description string) (*secret_model.Secret, bool, error) {
 	if err := ValidateName(name); err != nil {
 		return nil, false, err
 	}
@@ -25,14 +25,14 @@ func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data
 	}
 
 	if len(s) == 0 {
-		s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, name, data)
+		s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, name, data, description)
 		if err != nil {
 			return nil, false, err
 		}
 		return s, true, nil
 	}
 
-	if err := secret_model.UpdateSecret(ctx, s[0].ID, data); err != nil {
+	if err := secret_model.UpdateSecret(ctx, s[0].ID, data, description); err != nil {
 		return nil, false, err
 	}
 
