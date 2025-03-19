@@ -30,9 +30,26 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
+func prepareLatestCommitInfo(ctx *context.Context) {
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.ServerError("GetCommitByPath", err)
+		return
+	}
+
+	if !loadLatestCommitData(ctx, commit) {
+		return
+	}
+}
+
 func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
+
+	prepareLatestCommitInfo(ctx)
+
+	// Don't call any other repository functions until the dataRc closed to
+	// avoid create unnecessary temporary cat file.
 	blob := entry.Blob()
 	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 	if err != nil {
@@ -45,16 +62,6 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-
-	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
-	if err != nil {
-		ctx.ServerError("GetCommitByPath", err)
-		return
-	}
-
-	if !loadLatestCommitData(ctx, commit) {
-		return
-	}
 
 	if ctx.Repo.TreePath == ".editorconfig" {
 		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
