@@ -106,14 +106,9 @@ done
 	return hookNames, hookTpls, giteaHookTpls
 }
 
-// CreateDelegateHooksForRepo creates all the hooks scripts for the repo
-func CreateDelegateHooksForRepo(_ context.Context, repo Repository) (err error) {
+// CreateDelegateHooks creates all the hooks scripts for the repo
+func CreateDelegateHooks(_ context.Context, repo Repository) (err error) {
 	return createDelegateHooks(filepath.Join(repoPath(repo), "hooks"))
-}
-
-// CreateDelegateHooksForWiki creates all the hooks scripts for the wiki repo
-func CreateDelegateHooksForWiki(_ context.Context, repo Repository) (err error) {
-	return createDelegateHooks(filepath.Join(wikiPath(repo), "hooks"))
 }
 
 func createDelegateHooks(hookDir string) (err error) {
@@ -178,14 +173,9 @@ func ensureExecutable(filename string) error {
 	return os.Chmod(filename, mode)
 }
 
-// CheckDelegateHooksForRepo checks the hooks scripts for the repo
-func CheckDelegateHooksForRepo(_ context.Context, repo Repository) ([]string, error) {
+// CheckDelegateHooks checks the hooks scripts for the repo
+func CheckDelegateHooks(_ context.Context, repo Repository) ([]string, error) {
 	return checkDelegateHooks(filepath.Join(repoPath(repo), "hooks"))
-}
-
-// CheckDelegateHooksForWiki checks the hooks scripts for the repo
-func CheckDelegateHooksForWiki(_ context.Context, repo Repository) ([]string, error) {
-	return checkDelegateHooks(filepath.Join(wikiPath(repo), "hooks"))
 }
 
 func checkDelegateHooks(hookDir string) ([]string, error) {

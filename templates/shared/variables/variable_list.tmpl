@@ -7,6 +7,7 @@
 			data-modal-header="{{ctx.Locale.Tr "actions.variables.creation"}}"
 			data-modal-dialog-variable-name=""
 			data-modal-dialog-variable-data=""
+			data-modal-dialog-variable-description=""
 		>
 			{{ctx.Locale.Tr "actions.variables.creation"}}
 		</button>
@@ -25,6 +26,9 @@
 					{{.Name}}
 				</div>
 				<div class="flex-item-body">
+					{{if .Description}}{{.Description}}{{else}}-{{end}}
+				</div>
+				<div class="flex-item-body">
 					{{.Data}}
 				</div>
 			</div>
@@ -39,6 +43,7 @@
 					data-modal-header="{{ctx.Locale.Tr "actions.variables.edit"}}"
 					data-modal-dialog-variable-name="{{.Name}}"
 					data-modal-dialog-variable-data="{{.Data}}"
+					data-modal-dialog-variable-description="{{.Description}}"
 				>
 					{{svg "octicon-pencil"}}
 				</button>
@@ -82,7 +87,18 @@
 				<textarea required
 					name="data"
 					id="dialog-variable-data"
+					maxlength="{{.DataMaxLength}}"
 					placeholder="{{ctx.Locale.Tr "secrets.creation.value_placeholder"}}"
+				></textarea>
+			</div>
+			<div class="field">
+				<label for="dialog-variable-description">{{ctx.Locale.Tr "secrets.creation.description"}}</label>
+				<textarea
+					name="description"
+					id="dialog-variable-description"
+					rows="2"
+					maxlength="{{.DescriptionMaxLength}}"
+					placeholder="{{ctx.Locale.Tr "secrets.creation.description_placeholder"}}"
 				></textarea>
 			</div>
 		</div>
