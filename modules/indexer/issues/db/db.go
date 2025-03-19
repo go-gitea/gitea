@@ -13,6 +13,7 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_db "code.gitea.io/gitea/modules/indexer/internal/db"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -46,7 +47,7 @@ func (i *Indexer) Delete(_ context.Context, _ ...int64) error {
 
 func buildMatchQuery(mode indexer.SearchModeType, colName, keyword string) builder.Cond {
 	if mode == indexer.SearchModeExact {
-		return db.BuildCaseInsensitiveLike("issue.name", keyword)
+		return db.BuildCaseInsensitiveLike(colName, keyword)
 	}
 
 	// match words
@@ -84,16 +85,16 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			repoCond = builder.Eq{"repo_id": options.RepoIDs[0]}
 		}
 		subQuery := builder.Select("id").From("issue").Where(repoCond)
-
+		searchMode := util.IfZero(options.SearchMode, i.SupportedSearchModes()[0].ModeValue)
 		cond = builder.Or(
-			buildMatchQuery(options.SearchMode, "issue.name", options.Keyword),
-			buildMatchQuery(options.SearchMode, "issue.content", options.Keyword),
+			buildMatchQuery(searchMode, "issue.name", options.Keyword),
+			buildMatchQuery(searchMode, "issue.content", options.Keyword),
 			builder.In("issue.id", builder.Select("issue_id").
 				From("comment").
 				Where(builder.And(
 					builder.Eq{"type": issue_model.CommentTypeComment},
 					builder.In("issue_id", subQuery),
-					buildMatchQuery(options.SearchMode, "content", options.Keyword),
+					buildMatchQuery(searchMode, "content", options.Keyword),
 				)),
 			),
 		)

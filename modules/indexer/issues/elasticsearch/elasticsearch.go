@@ -14,6 +14,7 @@ import (
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/olivere/elastic/v7"
 )
@@ -152,7 +153,8 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {
-		if options.SearchMode == indexer.SearchModeExact {
+		searchMode := util.IfZero(options.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+		if searchMode == indexer.SearchModeExact {
 			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypePhrasePrefix))
 		} else /* words */ {
 			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypeBestFields).Operator("and"))

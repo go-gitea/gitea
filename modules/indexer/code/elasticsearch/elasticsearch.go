@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/olivere/elastic/v7"
@@ -365,7 +366,9 @@ func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLan
 // Search searches for codes and language stats by given conditions.
 func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
 	var contentQuery elastic.Query
-	if opts.SearchMode == indexer.SearchModeExact {
+	searchMode := util.IfZero(opts.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+	if searchMode == indexer.SearchModeExact {
+		// 1.21 used NewMultiMatchQuery().Type(esMultiMatchTypePhrasePrefix), but later releases changed to NewMatchPhraseQuery
 		contentQuery = elastic.NewMatchPhraseQuery("content", opts.Keyword)
 	} else /* words */ {
 		contentQuery = elastic.NewMultiMatchQuery("content", opts.Keyword).Type(esMultiMatchTypeBestFields).Operator("and")
