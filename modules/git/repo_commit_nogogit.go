@@ -6,7 +6,6 @@
 package git
 
 import (
-	"bufio"
 	"errors"
 	"io"
 	"strings"
@@ -82,10 +81,11 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 		return nil, err
 	}
 
-	return repo.getCommitFromBatchReader(batch.Reader(), id)
+	return repo.getCommitFromBatchReader(batch, id)
 }
 
-func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) (*Commit, error) {
+func (repo *Repository) getCommitFromBatchReader(batch *BatchCatFile, id ObjectID) (*Commit, error) {
+	rd := batch.Reader()
 	_, typ, size, err := ReadBatchLine(rd)
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
@@ -113,7 +113,11 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 			return nil, err
 		}
 
-		commit, err := tag.Commit(repo)
+		if err = batch.Input(tag.Object.String()); err != nil {
+			return nil, err
+		}
+
+		commit, err := repo.getCommitFromBatchReader(batch, tag.Object)
 		if err != nil {
 			return nil, err
 		}
