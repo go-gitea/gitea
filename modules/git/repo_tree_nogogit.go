@@ -10,13 +10,17 @@ import (
 )
 
 func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
-	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	_, _ = wr.Write([]byte(id.String() + "\n"))
+	if err = batch.Input(id.String()); err != nil {
+		return nil, err
+	}
+
+	rd := batch.Reader()
 
 	// ignore the SHA
 	_, typ, size, err := ReadBatchLine(rd)

@@ -31,18 +31,20 @@ func (repo *Repository) GetTags(skip, limit int) (tags []string, err error) {
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id ObjectID) (string, error) {
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(id.String() + "\n"))
-	if err != nil {
+	if err = batch.Input(id.String()); err != nil {
 		return "", err
 	}
-	_, typ, _, err := ReadBatchLine(rd)
-	if IsErrNotExist(err) {
-		return "", ErrNotExist{ID: id.String()}
+	_, typ, _, err := ReadBatchLine(batch.Reader())
+	if err != nil {
+		if IsErrNotExist(err) {
+			return "", ErrNotExist{ID: id.String()}
+		}
+		return "", err
 	}
 	return typ, nil
 }
@@ -92,15 +94,16 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 
 	// The tag is an annotated tag with a message.
-	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	if _, err := wr.Write([]byte(tagID.String() + "\n")); err != nil {
+	if err := batch.Input(tagID.String()); err != nil {
 		return nil, err
 	}
+	rd := batch.Reader()
 	_, typ, size, err := ReadBatchLine(rd)
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {

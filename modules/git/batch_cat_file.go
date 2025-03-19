@@ -28,18 +28,27 @@ type BatchCatFile struct {
 	finished  process.FinishedFunc
 }
 
-func NewBatchCatFile(ctx context.Context, repoPath string) (*BatchCatFile, error) {
+// NewBatchCatFile opens git cat-file --batch or --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
+// isCheck is true for --batch-check, false for --batch isCheck will only get metadata, --batch will get metadata and content
+func NewBatchCatFile(ctx context.Context, repoPath string, isCheck bool) (*BatchCatFile, error) {
+	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
+		return nil, err
+	}
+
 	callerInfo := util.CallerFuncName(1 /* util */ + 1 /* this */ + 1 /* parent */)
 	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
 		callerInfo = callerInfo[pos+1:]
 	}
+
+	batchArg := util.Iif(isCheck, "--batch-check", "--batch")
 
 	a := make([]string, 0, 4)
 	a = append(a, debugQuote(GitExecutable))
 	if len(globalCommandArgs) > 0 {
 		a = append(a, "...global...")
 	}
-	a = append(a, "cat-file", "--batch")
+	a = append(a, "cat-file", batchArg)
 	cmdLogString := strings.Join(a, " ")
 
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
@@ -52,7 +61,7 @@ func NewBatchCatFile(ctx context.Context, repoPath string) (*BatchCatFile, error
 	for _, arg := range globalCommandArgs {
 		args = append(args, string(arg))
 	}
-	args = append(args, "cat-file", "--batch")
+	args = append(args, "cat-file", batchArg)
 	cmd := exec.CommandContext(ctx, GitExecutable, args...)
 	cmd.Env = append(os.Environ(), CommonGitCmdEnvs()...)
 	cmd.Dir = repoPath

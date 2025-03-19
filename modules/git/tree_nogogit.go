@@ -33,13 +33,16 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		wr, rd, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
+		batch, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
 		if err != nil {
 			return nil, err
 		}
 		defer cancel()
 
-		_, _ = wr.Write([]byte(t.ID.String() + "\n"))
+		if err = batch.Input(t.ID.String()); err != nil {
+			return nil, err
+		}
+		rd := batch.Reader()
 		_, typ, sz, err := ReadBatchLine(rd)
 		if err != nil {
 			return nil, err
@@ -49,7 +52,10 @@ func (t *Tree) ListEntries() (Entries, error) {
 			if err != nil && err != io.EOF {
 				return nil, err
 			}
-			_, _ = wr.Write([]byte(treeID + "\n"))
+			if err = batch.Input(treeID); err != nil {
+				return nil, err
+			}
+
 			_, typ, sz, err = ReadBatchLine(rd)
 			if err != nil {
 				return nil, err

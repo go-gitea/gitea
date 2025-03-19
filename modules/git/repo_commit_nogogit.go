@@ -33,16 +33,15 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(name + "\n"))
-	if err != nil {
+	if err = batch.Input(name); err != nil {
 		return "", err
 	}
-	shaBs, _, _, err := ReadBatchLine(rd)
+	shaBs, _, _, err := ReadBatchLine(batch.Reader())
 	if IsErrNotExist(err) {
 		return "", ErrNotExist{name, ""}
 	}
@@ -73,15 +72,17 @@ func (repo *Repository) IsCommitExist(name string) bool {
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	_, _ = wr.Write([]byte(id.String() + "\n"))
+	if err = batch.Input(id.String()); err != nil {
+		return nil, err
+	}
 
-	return repo.getCommitFromBatchReader(rd, id)
+	return repo.getCommitFromBatchReader(batch.Reader(), id)
 }
 
 func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) (*Commit, error) {
@@ -153,16 +154,15 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(commitID + "\n"))
-	if err != nil {
+	if err = batch.Input(commitID); err != nil {
 		return nil, err
 	}
-	sha, _, _, err := ReadBatchLine(rd)
+	sha, _, _, err := ReadBatchLine(batch.Reader())
 	if err != nil {
 		if IsErrNotExist(err) {
 			return nil, ErrNotExist{commitID, ""}

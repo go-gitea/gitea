@@ -15,7 +15,7 @@ import (
 
 func Test_GitBatchOperatorsNormal(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	batch, err := NewBatchCatFile(context.Background(), bareRepo1Path)
+	batch, err := NewBatchCatFile(t.Context(), bareRepo1Path, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, batch)
 	defer batch.Close()
@@ -99,7 +99,7 @@ func Test_GitBatchOperatorsNormal(t *testing.T) {
 
 func Test_GitBatchOperatorsCancel(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	batch, err := NewBatchCatFile(context.Background(), bareRepo1Path)
+	batch, err := NewBatchCatFile(t.Context(), bareRepo1Path, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, batch)
 	defer batch.Close()
@@ -126,9 +126,10 @@ func Test_GitBatchOperatorsCancel(t *testing.T) {
 func Test_GitBatchOperatorsTimeout(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Second)
+	defer cancel()
 
-	batch, err := NewBatchCatFile(ctx, bareRepo1Path)
+	batch, err := NewBatchCatFile(ctx, bareRepo1Path, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, batch)
 	defer batch.Close()

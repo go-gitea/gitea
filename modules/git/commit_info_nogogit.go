@@ -124,11 +124,11 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 		return nil, err
 	}
 
-	batch, err := NewBatchCatFile(ctx, commit.repo.Path)
+	batch, cancel, err := commit.repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer batch.Close()
+	defer cancel()
 
 	rd := batch.Reader()
 
