@@ -737,7 +737,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, *opts.DefaultBranch)) {
 		repo.DefaultBranch = *opts.DefaultBranch
 		if !repo.IsEmpty {
-			if err := gitrepo.SetDefaultBranchForRepo(ctx, repo); err != nil {
+			if err := gitrepo.SetDefaultBranch(ctx, repo); err != nil {
 				ctx.APIErrorInternal(err)
 				return err
 			}

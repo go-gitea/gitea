@@ -215,20 +215,38 @@ func init() {
 	db.RegisterModel(new(Repository))
 }
 
-func (repo *Repository) GetName() string {
-	return repo.Name
+func RelativePath(ownerName, repoName string) string {
+	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-func (repo *Repository) GetOwnerName() string {
-	return repo.OwnerName
+// RelativePath should be an unix style path like username/reponame.git
+func (repo *Repository) GetRelativePath() string {
+	return RelativePath(repo.OwnerName, repo.Name)
 }
 
 func (repo *Repository) GetDefaultBranch() string {
 	return repo.DefaultBranch
 }
 
-func (repo *Repository) GetDefaultWikiBranch() string {
-	return repo.DefaultWikiBranch
+type StorageRepo struct {
+	RelativePath  string
+	DefaultBranch string
+}
+
+// RelativePath should be an unix style path like username/reponame.git
+func (sr StorageRepo) GetRelativePath() string {
+	return sr.RelativePath
+}
+
+func (sr StorageRepo) GetDefaultBranch() string {
+	return sr.DefaultBranch
+}
+
+func (repo *Repository) WikiStorageRepo() StorageRepo {
+	return StorageRepo{
+		RelativePath:  strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git",
+		DefaultBranch: repo.DefaultWikiBranch,
+	}
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL

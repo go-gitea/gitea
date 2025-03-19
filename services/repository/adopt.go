@@ -115,7 +115,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 		return fmt.Errorf("adoptRepository: path does not already exist: %s", repo.FullName())
 	}
 
-	if err := gitrepo.CreateDelegateHooksForRepo(ctx, repo); err != nil {
+	if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
@@ -124,14 +124,14 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 	if len(defaultBranch) > 0 {
 		repo.DefaultBranch = defaultBranch
 
-		if err = gitrepo.SetDefaultBranchForRepo(ctx, repo); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	} else {
 		repo.DefaultBranch, err = gitrepo.GetDefaultBranch(ctx, repo)
 		if err != nil {
 			repo.DefaultBranch = setting.Repository.DefaultBranch
-			if err = gitrepo.SetDefaultBranchForRepo(ctx, repo); err != nil {
+			if err = gitrepo.SetDefaultBranch(ctx, repo); err != nil {
 				return fmt.Errorf("setDefaultBranch: %w", err)
 			}
 		}
@@ -188,7 +188,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 			repo.DefaultBranch = setting.Repository.DefaultBranch
 		}
 
-		if err = gitrepo.SetDefaultBranchForRepo(ctx, repo); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}

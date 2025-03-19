@@ -393,28 +393,6 @@
   margin-right: 2.5rem;
 }
 
-.ui[class*="middle aligned"].grid > .column:not(.row),
-.ui[class*="middle aligned"].grid > .row > .column,
-.ui.grid > [class*="middle aligned"].row > .column,
-.ui.grid > [class*="middle aligned"].column:not(.row),
-.ui.grid > .row > [class*="middle aligned"].column {
-  flex-direction: column;
-  vertical-align: middle;
-  align-self: center !important;
-}
-
-.ui[class*="equal width"].grid > .column:not(.row),
-.ui[class*="equal width"].grid > .row > .column,
-.ui.grid > [class*="equal width"].row > .column {
-  display: inline-block;
-  flex-grow: 1;
-}
-.ui[class*="equal width"].grid > .wide.column,
-.ui[class*="equal width"].grid > .row > .wide.column,
-.ui.grid > [class*="equal width"].row > .wide.column {
-  flex-grow: 0;
-}
-
 @media only screen and (max-width: 767.98px) {
   .ui[class*="mobile reversed"].grid,
   .ui[class*="mobile reversed"].grid > .row,
