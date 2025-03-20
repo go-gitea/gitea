@@ -6,6 +6,7 @@
 # Folders
 _obj
 _test
+test-dbt-project
 
 # IntelliJ
 .idea
