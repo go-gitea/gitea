@@ -85,7 +85,12 @@ func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name
 }
 
 func (m *MaterialIconProvider) FolderIcon(ctx reqctx.RequestContext, isOpen bool) template.HTML {
-	return svg.RenderHTML("material-folder-generic", 16, BasicThemeFolderIconName(isOpen))
+	// return svg.RenderHTML("material-folder-generic", 16, BasicThemeFolderIconName(isOpen))
+	iconName := "folder"
+	if isOpen {
+		iconName = "folder-open"
+	}
+	return m.renderIconByName(ctx, iconName, BasicThemeFolderIconName(isOpen))
 }
 
 func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, file *FileIcon) template.HTML {
@@ -102,20 +107,21 @@ func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, file *FileIco
 	}
 
 	name := m.findIconNameByGit(file)
-	if name == "folder" {
-		// the material icon pack's "folder" icon doesn't look good, so use our built-in one
-		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
-		return m.FolderIcon(ctx, false)
+
+	extraClass := "octicon-file"
+	switch {
+	case file.EntryMode.IsDir():
+		extraClass = BasicThemeFolderIconName(false)
+	case file.EntryMode.IsSubModule():
+		extraClass = "octicon-file-submodule"
 	}
+
+	return m.renderIconByName(ctx, name, extraClass)
+}
+
+func (m *MaterialIconProvider) renderIconByName(ctx reqctx.RequestContext, name, extraClass string) template.HTML {
 	if iconSVG, ok := m.svgs[name]; ok && iconSVG != "" {
 		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
-		extraClass := "octicon-file"
-		switch {
-		case file.EntryMode.IsDir():
-			extraClass = BasicThemeFolderIconName(false)
-		case file.EntryMode.IsSubModule():
-			extraClass = "octicon-file-submodule"
-		}
 		return m.renderFileIconSVG(ctx, name, iconSVG, extraClass)
 	}
 	return svg.RenderHTML("octicon-file")
