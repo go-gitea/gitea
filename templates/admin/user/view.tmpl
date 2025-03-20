@@ -25,6 +25,14 @@
 			</div>
 		</div>
 	</div>
+	{{if .ShowUserSignupMetadata}}
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "admin.ips.signup_metadata"}}
+	</h4>
+	<div class="ui attached segment">
+		{{template "admin/user/view_ip" .}}
+	</div>
+	{{end}}
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "admin.repositories"}}
 		<div class="ui right">
