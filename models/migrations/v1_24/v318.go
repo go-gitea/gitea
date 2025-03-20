@@ -9,7 +9,8 @@ import (
 
 func AddBranchCommitsCount(x *xorm.Engine) error {
 	type Branch struct {
-		CommitCount int64 // the number of commits in this branch
+		CommitCountID string // the commit id of the commit count
+		CommitCount   int64  // the number of commits in this branch
 	}
 	return x.Sync(new(Branch))
 }
