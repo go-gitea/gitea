@@ -33,6 +33,13 @@ func CodeSearch(ctx *context.Context) {
 		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
+	if ctx.ContextUser.IsOrganization() {
+		_, err := shared_user.PrepareOrgHeader(ctx)
+		if err != nil {
+			ctx.ServerError("PrepareOrgHeader", err)
+			return
+		}
+	}
 
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
