@@ -286,6 +286,11 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_branch", "is_empty"); err != nil {
 			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 		}
+	} else {
+		// calculate the number of commits in the branch
+		if err := UpdateRepoBranchCommitsCount(ctx, repo, opts.RefFullName.BranchName(), newCommit); err != nil {
+			log.Error("UpdateRepoBranchCommitsCount: %v", err)
+		}
 	}
 
 	l, err := newCommit.CommitsBeforeLimit(10)
@@ -296,7 +301,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 	return l, nil
 }
 
-func UpdateRepoBranchCommitsCount(ctx context.Context, repo *repo_model.Repository, branch string, newCommit *git.Commit, isForcePush bool) error {
+func UpdateRepoBranchCommitsCount(ctx context.Context, repo *repo_model.Repository, branch string, newCommit *git.Commit) error {
 	// calculate the number of commits in the branch
 	commitsCount, err := newCommit.CommitsCount()
 	if err != nil {
@@ -313,6 +318,11 @@ func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, pusher *
 
 	branch := opts.RefFullName.BranchName()
 
+	// calculate the number of commits in the branch
+	if err := UpdateRepoBranchCommitsCount(ctx, repo, branch, newCommit); err != nil {
+		log.Error("UpdateRepoBranchCommitsCount: %v", err)
+	}
+
 	isForcePush, err := newCommit.IsForcePush(opts.OldCommitID)
 	if err != nil {
 		log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
@@ -328,11 +338,6 @@ func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, pusher *
 		OldCommitID: opts.OldCommitID,
 		NewCommitID: opts.NewCommitID,
 	})
-
-	// calculate the number of commits in the branch
-	if err := UpdateRepoBranchCommitsCount(ctx, repo, branch, newCommit, isForcePush); err != nil {
-		log.Error("UpdateRepoBranchCommitsCount: %v", err)
-	}
 
 	return l, nil
 }
