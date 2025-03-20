@@ -5,6 +5,7 @@ package setting
 
 import (
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -98,6 +99,13 @@ var Service = struct {
 		DisableOrganizationsPage bool `ini:"DISABLE_ORGANIZATIONS_PAGE"`
 		DisableCodePage          bool `ini:"DISABLE_CODE_PAGE"`
 	} `ini:"service.explore"`
+
+	QoS struct {
+		Enabled             bool
+		MaxInFlightRequests int
+		MaxWaitingRequests  int
+		TargetWaitTime      time.Duration
+	}
 }{
 	AllowedUserVisibilityModesSlice: []bool{true, true, true},
 }
@@ -253,6 +261,11 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.ValidSiteURLSchemes = schemes
 
 	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
+
+	Service.QoS.Enabled = sec.Key("QOS_ENABLED").MustBool(false)
+	Service.QoS.MaxInFlightRequests = sec.Key("QOS_MAX_INFLIGHT").MustInt(4 * runtime.NumCPU())
+	Service.QoS.MaxWaitingRequests = sec.Key("QOS_MAX_WAITING").MustInt(100)
+	Service.QoS.TargetWaitTime = sec.Key("QOS_TARGET_WAIT_TIME").MustDuration(50 * time.Millisecond)
 
 	loadOpenIDSetting(rootCfg)
 }

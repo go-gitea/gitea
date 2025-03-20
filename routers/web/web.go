@@ -272,6 +272,10 @@ func Routes() *web.Router {
 	// Get user from session if logged in.
 	mid = append(mid, webAuth(buildAuthGroup()))
 
+	if setting.Service.QoS.Enabled {
+		mid = append(mid, common.QoS())
+	}
+
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	mid = append(mid, chi_middleware.GetHead)
 
