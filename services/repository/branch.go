@@ -737,6 +737,36 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 	return info, nil
 }
 
+func SyncRepoBranchesCommitsCount(ctx context.Context, repo *repo_model.Repository) error {
+	startID := int64(0)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
+		// search all branches commits count are not synced
+		branches, err := git_model.FindRepoCommitsCountOutdatedBranches(ctx, repo.ID, startID, 100)
+		if err != nil {
+			return err
+		}
+		if len(branches) == 0 {
+			return nil
+		}
+
+		for _, branch := range branches {
+			branch.Repo = repo
+			if branch.ID > startID {
+				startID = branch.ID
+			}
+			if err := syncBranchCommitsCount(ctx, branch); err != nil {
+				log.Error("syncBranchCommitsCount: %v", err)
+			}
+		}
+	}
+}
+
 func SyncBranchCommitsCount(ctx context.Context) error {
 	startID := int64(0)
 	for {

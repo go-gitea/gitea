@@ -410,6 +410,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)
 	}
 
+	repo_service.SyncRepoBranchesCommitsCount(ctx, m.Repo)
+
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	return parseRemoteUpdateOutput(output, m.GetRemoteName()), true
 }
