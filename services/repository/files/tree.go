@@ -155,11 +155,10 @@ func (node *TreeViewNode) sortLevel() int {
 	return util.Iif(node.EntryMode == "tree" || node.EntryMode == "commit", 0, 1)
 }
 
-func newTreeViewNodeFromEntry(ctx context.Context, renderUtils *templates.RenderUtils, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
+func newTreeViewNodeFromEntry(ctx context.Context, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
 	node := &TreeViewNode{
 		EntryName: entry.Name(),
 		EntryMode: entryModeString(entry.Mode()),
-		FileIcon:  renderUtils.RenderFileIcon(entry),
 		FullPath:  path.Join(parentDir, entry.Name()),
 	}
 
@@ -187,23 +186,23 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 	})
 }
 
-func listTreeNodes(ctx context.Context, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
+func listTreeNodes(ctx context.Context, renderUtils *templates.RenderUtils, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
 	entries, err := tree.ListEntries()
 	if err != nil {
 		return nil, err
 	}
-	renderUtils := templates.NewRenderUtils(reqctx.FromContext(ctx))
 	subPathDirName, subPathRemaining, _ := strings.Cut(subPath, "/")
 	nodes := make([]*TreeViewNode, 0, len(entries))
 	for _, entry := range entries {
-		node := newTreeViewNodeFromEntry(ctx, renderUtils, commit, treePath, entry)
+		node := newTreeViewNodeFromEntry(ctx, commit, treePath, entry)
+		node.FileIcon = renderUtils.RenderFileIcon(entry)
 		nodes = append(nodes, node)
 		if entry.IsDir() && subPathDirName == entry.Name() {
 			subTreePath := treePath + "/" + node.EntryName
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]
 			}
-			subNodes, err := listTreeNodes(ctx, commit, entry.Tree(), subTreePath, subPathRemaining)
+			subNodes, err := listTreeNodes(ctx, renderUtils, commit, entry.Tree(), subTreePath, subPathRemaining)
 			if err != nil {
 				log.Error("listTreeNodes: %v", err)
 			} else {
@@ -220,5 +219,6 @@ func GetTreeViewNodes(ctx context.Context, commit *git.Commit, treePath, subPath
 	if err != nil {
 		return nil, err
 	}
-	return listTreeNodes(ctx, commit, entry.Tree(), treePath, subPath)
+	renderUtils := templates.NewRenderUtils(reqctx.FromContext(ctx))
+	return listTreeNodes(ctx, renderUtils, commit, entry.Tree(), treePath, subPath)
 }
