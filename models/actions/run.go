@@ -345,8 +345,8 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		} else {
 			hasWaiting = true
 		}
-		job.Name, _ = util.EllipsisDisplayString(job.Name, 255)
-		runJobs = append(runJobs, &ActionRunJob{
+		job.Name = util.EllipsisDisplayString(job.Name, 255)
+		runJob := &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,
 			OwnerID:           run.OwnerID,
@@ -358,7 +358,8 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 			Needs:             needs,
 			RunsOn:            job.RunsOn(),
 			Status:            status,
-		})
+		}
+		runJobs = append(runJobs, runJob)
 
 		// Parse the job's permissions
 		if err := job.RawPermissions.Decode(&runJob.Permissions); err != nil {

@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
