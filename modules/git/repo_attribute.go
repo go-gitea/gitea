@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -102,7 +104,7 @@ type CheckAttributeReader struct {
 
 	stdinReader io.ReadCloser
 	stdinWriter *os.File
-	stdOut      attributeWriter
+	stdOut      *nulSeparatedAttributeWriter
 	cmd         *Command
 	env         []string
 	ctx         context.Context
@@ -152,7 +154,6 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 	return nil
 }
 
-// Run run cmd
 func (c *CheckAttributeReader) Run() error {
 	defer func() {
 		_ = c.stdinReader.Close()
@@ -176,7 +177,7 @@ func (c *CheckAttributeReader) Run() error {
 func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err error) {
 	defer func() {
 		if err != nil && err != c.ctx.Err() {
-			log.Error("Unexpected error when checking path %s in %s. Error: %v", path, c.Repo.Path, err)
+			log.Error("Unexpected error when checking path %s in %s, error: %v", path, filepath.Base(c.Repo.Path), err)
 		}
 	}()
 
@@ -191,9 +192,31 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 		return nil, err
 	}
 
+	reportTimeout := func() error {
+		stdOutClosed := false
+		select {
+		case <-c.stdOut.closed:
+			stdOutClosed = true
+		default:
+		}
+		debugMsg := fmt.Sprintf("check path %q in repo %q", path, filepath.Base(c.Repo.Path))
+		debugMsg += fmt.Sprintf(", stdOut: tmp=%q, pos=%d, closed=%v", string(c.stdOut.tmp), c.stdOut.pos, stdOutClosed)
+		if c.cmd.cmd != nil {
+			debugMsg += fmt.Sprintf(", process state: %q", c.cmd.cmd.ProcessState.String())
+		}
+		_ = c.Close()
+		return fmt.Errorf("CheckPath timeout: %s", debugMsg)
+	}
+
 	rs = make(map[string]string)
 	for range c.Attributes {
 		select {
+		case <-time.After(5 * time.Second):
+			// There is a strange "hang" problem in gitdiff.GetDiff -> CheckPath
+			// So add a timeout here to mitigate the problem, and output more logs for debug purpose
+			// In real world, if CheckPath runs long than seconds, it blocks the end user's operation,
+			// and at the moment the CheckPath result is not so important, so we can just ignore it.
+			return nil, reportTimeout()
 		case attr, ok := <-c.stdOut.ReadAttribute():
 			if !ok {
 				return nil, c.ctx.Err()
@@ -206,16 +229,10 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 	return rs, nil
 }
 
-// Close close pip after use
 func (c *CheckAttributeReader) Close() error {
 	c.cancel()
 	err := c.stdinWriter.Close()
 	return err
-}
-
-type attributeWriter interface {
-	io.WriteCloser
-	ReadAttribute() <-chan attributeTriple
 }
 
 type attributeTriple struct {
@@ -281,7 +298,7 @@ func (wr *nulSeparatedAttributeWriter) Close() error {
 	return nil
 }
 
-// Create a check attribute reader for the current repository and provided commit ID
+// CheckAttributeReader creates a check attribute reader for the current repository and provided commit ID
 func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
 	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
 	if err != nil {
@@ -303,21 +320,21 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 	}
 	ctx, cancel := context.WithCancel(repo.Ctx)
 	if err := checker.Init(ctx); err != nil {
-		log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+		log.Error("Unable to open attribute checker for commit %s, error: %v", commitID, err)
 	} else {
 		go func() {
 			err := checker.Run()
-			if err != nil && err != ctx.Err() {
-				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+			if err != nil && !IsErrCanceledOrKilled(err) {
+				log.Error("Attribute checker for commit %s exits with error: %v", commitID, err)
 			}
 			cancel()
 		}()
 	}
-	deferable := func() {
+	deferrable := func() {
 		_ = checker.Close()
 		cancel()
 		deleteTemporaryFile()
 	}
 
-	return checker, deferable
+	return checker, deferrable
 }
