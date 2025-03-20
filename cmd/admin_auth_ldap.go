@@ -127,6 +127,34 @@ var (
 		&cli.UintFlag{
 			Name:  "page-size",
 			Usage: "Search page size.",
+		},
+		&cli.BoolFlag{
+			Name:  "enable-groups",
+			Usage: "Enable LDAP groups",
+		},
+		&cli.StringFlag{
+			Name:  "group-search-base-dn",
+			Usage: "The LDAP base DN at which group accounts will be searched for",
+		},
+		&cli.StringFlag{
+			Name:  "group-member-attribute",
+			Usage: "Group attribute containing list of users",
+		},
+		&cli.StringFlag{
+			Name:  "group-user-attribute",
+			Usage: "User attribute listed in group",
+		},
+		&cli.StringFlag{
+			Name:  "group-filter",
+			Usage: "Verify group membership in LDAP",
+		},
+		&cli.StringFlag{
+			Name:  "group-team-map",
+			Usage: "Map LDAP groups to Organization teams",
+		},
+		&cli.BoolFlag{
+			Name:  "group-team-map-removal",
+			Usage: "Remove users from synchronized teams if user does not belong to corresponding LDAP group",
 		})
 
 	ldapSimpleAuthCLIFlags = append(commonLdapCLIFlags,
@@ -272,6 +300,27 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	}
 	if c.IsSet("skip-local-2fa") {
 		config.SkipLocalTwoFA = c.Bool("skip-local-2fa")
+	}
+	if c.IsSet("enable-groups") {
+		config.GroupsEnabled = c.Bool("enable-groups")
+	}
+	if c.IsSet("group-search-base-dn") {
+		config.GroupDN = c.String("group-search-base-dn")
+	}
+	if c.IsSet("group-member-attribute") {
+		config.GroupMemberUID = c.String("group-member-attribute")
+	}
+	if c.IsSet("group-user-attribute") {
+		config.UserUID = c.String("group-user-attribute")
+	}
+	if c.IsSet("group-filter") {
+		config.GroupFilter = c.String("group-filter")
+	}
+	if c.IsSet("group-team-map") {
+		config.GroupTeamMap = c.String("group-team-map")
+	}
+	if c.IsSet("group-team-map-removal") {
+		config.GroupTeamMapRemoval = c.Bool("group-team-map-removal")
 	}
 	return nil
 }

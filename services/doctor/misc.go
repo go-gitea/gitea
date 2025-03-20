@@ -49,14 +49,14 @@ func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error
 
 func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
-		results, err := gitrepo.CheckDelegateHooksForRepo(ctx, repo)
+		results, err := gitrepo.CheckDelegateHooks(ctx, repo)
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
 			return fmt.Errorf("Unable to check delegate hooks for repo %-v. ERROR: %w", repo, err)
 		}
 		if len(results) > 0 && autofix {
 			logger.Warn("Regenerated hooks for %s", repo.FullName())
-			if err := gitrepo.CreateDelegateHooksForRepo(ctx, repo); err != nil {
+			if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 				logger.Critical("Unable to recreate delegate hooks for %-v. ERROR: %v", repo, err)
 				return fmt.Errorf("Unable to recreate delegate hooks for %-v. ERROR: %w", repo, err)
 			}
