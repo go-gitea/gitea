@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	context_service "code.gitea.io/gitea/services/context"
 )
 
 // ContentType repo content type
@@ -165,7 +166,11 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	}
 	selfURLString := selfURL.String()
 
-	err = gitRepo.AddLastCommitCache(repo.GetCommitsCountCacheKey(ref, refType != git.ObjectCommit), repo.FullName(), commitID)
+	refName := git.RefNameFromObjectTypeAndShortName(refType, ref)
+
+	commitsCount, _ := context_service.GetRefCommitsCount(ctx, repo.ID, refName)
+
+	err = gitRepo.AddLastCommitCache(commitsCount, repo.FullName(), commitID)
 	if err != nil {
 		return nil, err
 	}

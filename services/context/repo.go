@@ -32,7 +32,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -164,12 +163,32 @@ func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_
 	return r.Repository.IsDependenciesEnabled(ctx) && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
+func GetRefCommitsCount(ctx context.Context, repoID int64, refFullName git.RefName) (int64, error) {
+	// Get the commit count of the branch or the tag
+	switch {
+	case refFullName.IsBranch():
+		branch, err := git_model.GetBranch(ctx, repoID, refFullName.BranchName())
+		if err != nil {
+			return 0, err
+		}
+		return branch.CommitCount, nil
+	case refFullName.IsTag():
+		tag, err := repo_model.GetRelease(ctx, repoID, refFullName.TagName())
+		if err != nil {
+			return 0, err
+		}
+		return tag.NumCommits, nil
+	default:
+		return 0, nil
+	}
+}
+
 // GetCommitsCount returns cached commit count for current view
 func (r *Repository) GetCommitsCount(ctx context.Context) (int64, error) {
 	if r.Commit == nil {
 		return 0, nil
 	}
-	return repo_service.GetRefCommitsCount(ctx, r.Repository.ID, r.RefFullName)
+	return GetRefCommitsCount(ctx, r.Repository.ID, r.RefFullName)
 }
 
 // GetCommitGraphsCount returns cached commit count for current view

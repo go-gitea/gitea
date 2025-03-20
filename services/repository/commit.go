@@ -24,7 +24,7 @@ type namedLink struct { // TODO: better name?
 }
 
 // LoadBranchesAndTags creates a new repository branch
-func LoadBranchesAndTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, repoLink string, commitSHA string) (*ContainedLinks, error) {
+func LoadBranchesAndTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, repoLink, commitSHA string) (*ContainedLinks, error) {
 	containedTags, err := gitRepo.ListOccurrences(ctx, "tag", commitSHA)
 	if err != nil {
 		return nil, fmt.Errorf("encountered a problem while querying %s: %w", "tags", err)
