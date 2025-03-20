@@ -846,7 +846,7 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 			}
 		}
 
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(ctx, baseCommit, commit, diffTree, filesViewedState)
+		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(ctx, diffTree, filesViewedState)
 	}
 
 	ctx.Data["Diff"] = diff

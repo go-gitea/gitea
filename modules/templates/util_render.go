@@ -196,11 +196,19 @@ func (ut *RenderUtils) RenderFolderIconByExpansionState(isOpen bool) template.HT
 	return fileicon.BasicThemeFolderIcon(isOpen)
 }
 
-func (ut *RenderUtils) RenderFileIcon(entry *git.TreeEntry) template.HTML {
+func (ut *RenderUtils) RenderFileIconByGitTreeEntry(entry *git.TreeEntry) template.HTML {
+	return ut.RenderFileIcon(&fileicon.FileIcon{
+		Name:      entry.Name(),
+		Entry:     *entry,
+		EntryMode: entry.Mode(),
+	})
+}
+
+func (ut *RenderUtils) RenderFileIcon(file *fileicon.FileIcon) template.HTML {
 	if setting.UI.FileIconTheme == "material" {
-		return fileicon.DefaultMaterialIconProvider().FileIcon(ut.ctx, entry)
+		return fileicon.DefaultMaterialIconProvider().FileIcon(ut.ctx, file)
 	}
-	return fileicon.BasicThemeIcon(entry)
+	return fileicon.BasicThemeIcon(file)
 }
 
 // RenderEmoji renders html text with emoji post processors

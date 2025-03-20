@@ -195,7 +195,7 @@ func listTreeNodes(ctx context.Context, renderUtils *templates.RenderUtils, comm
 	nodes := make([]*TreeViewNode, 0, len(entries))
 	for _, entry := range entries {
 		node := newTreeViewNodeFromEntry(ctx, commit, treePath, entry)
-		node.FileIcon = renderUtils.RenderFileIcon(entry)
+		node.FileIcon = renderUtils.RenderFileIconByGitTreeEntry(entry)
 		nodes = append(nodes, node)
 		if entry.IsDir() && subPathDirName == entry.Name() {
 			subTreePath := treePath + "/" + node.EntryName

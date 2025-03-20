@@ -9,6 +9,7 @@ import (
 
 	pull_model "code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/templates"
@@ -70,22 +71,21 @@ type FileDiffFile struct {
 
 // transformDiffTreeForUI transforms a DiffTree into a slice of FileDiffFile for UI rendering
 // it also takes a map of file names to their viewed state, which is used to mark files as viewed
-func transformDiffTreeForUI(ctx *context.Context, baseCommit, headCommit *git.Commit, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) []FileDiffFile {
+func transformDiffTreeForUI(ctx *context.Context, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) []FileDiffFile {
 	files := make([]FileDiffFile, 0, len(diffTree.Files))
 	renderUtils := templates.NewRenderUtils(reqctx.FromContext(ctx))
 	for _, file := range diffTree.Files {
 		nameHash := git.HashFilePathForWebUI(file.HeadPath)
 		isSubmodule := file.HeadMode == git.EntryModeCommit
 		isViewed := filesViewedState[file.HeadPath] == pull_model.Viewed
-		entry, _ := headCommit.GetTreeEntryByPath(file.HeadPath)
-		if entry == nil {
-			entry, _ = baseCommit.GetTreeEntryByPath(file.HeadPath)
-		}
 
 		files = append(files, FileDiffFile{
-			Name:        file.HeadPath,
-			NameHash:    nameHash,
-			FileIcon:    renderUtils.RenderFileIcon(entry),
+			Name:     file.HeadPath,
+			NameHash: nameHash,
+			FileIcon: renderUtils.RenderFileIcon(&fileicon.FileIcon{
+				Name:      file.HeadPath,
+				EntryMode: file.HeadMode,
+			}),
 			IsSubmodule: isSubmodule,
 			IsViewed:    isViewed,
 			Status:      file.Status,

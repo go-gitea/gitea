@@ -15,7 +15,7 @@
 			{{$commit := $item.Commit}}
 			{{$submoduleFile := $item.SubmoduleFile}}
 			<div class="repo-file-cell name muted-links {{if not $commit}}notready{{end}}">
-				{{ctx.RenderUtils.RenderFileIcon $entry}}
+				{{ctx.RenderUtils.RenderFileIconByGitTreeEntry $entry}}
 				{{if $entry.IsSubModule}}
 					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
 					{{if $submoduleLink}}
