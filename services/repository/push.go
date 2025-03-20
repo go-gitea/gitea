@@ -167,8 +167,9 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 			}
 
-			branch := opts.RefFullName.BranchName()
 			if !opts.IsDelRef() {
+				branch := opts.RefFullName.BranchName()
+
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
 				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
@@ -176,60 +177,15 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 				}
 
-				refName := opts.RefName()
-
 				// Push new branch.
 				var l []*git.Commit
 				if opts.IsNewRef() {
-					if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
-						repo.DefaultBranch = refName
-						repo.IsEmpty = false
-						if repo.DefaultBranch != setting.Repository.DefaultBranch {
-							if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
-								return err
-							}
-						}
-						// Update the is empty and default_branch columns
-						if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_branch", "is_empty"); err != nil {
-							return fmt.Errorf("UpdateRepositoryCols: %w", err)
-						}
-					}
-
-					l, err = newCommit.CommitsBeforeLimit(10)
-					if err != nil {
-						return fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
-					}
-					notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
+					l, err = pushNewBranch(ctx, repo, pusher, opts, newCommit)
 				} else {
-					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
-					if err != nil {
-						return fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
-					}
-
-					isForcePush, err := newCommit.IsForcePush(opts.OldCommitID)
-					if err != nil {
-						log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
-					}
-
-					// only update branch can trigger pull request task because the pull request hasn't been created yet when creaing a branch
-					go pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{
-						RepoID:      repo.ID,
-						Doer:        pusher,
-						Branch:      branch,
-						IsSync:      true,
-						IsForcePush: isForcePush,
-						OldCommitID: opts.OldCommitID,
-						NewCommitID: opts.NewCommitID,
-					})
-
-					if isForcePush {
-						log.Trace("Push %s is a force push", opts.NewCommitID)
-
-						cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
-					} else {
-						// TODO: increment update the commit count cache but not remove
-						cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
-					}
+					l, err = pushUpdateBranch(ctx, repo, pusher, opts, newCommit)
+				}
+				if err != nil {
+					return err
 				}
 
 				// delete cache for divergence
@@ -246,36 +202,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				commits := repo_module.GitToPushCommits(l)
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 
-				if err := issue_service.UpdateIssuesCommit(ctx, pusher, repo, commits.Commits, refName); err != nil {
+				if err := issue_service.UpdateIssuesCommit(ctx, pusher, repo, commits.Commits, opts.RefName()); err != nil {
 					log.Error("updateIssuesCommit: %v", err)
 				}
 
-				oldCommitID := opts.OldCommitID
-				if oldCommitID == objectFormat.EmptyObjectID().String() && len(commits.Commits) > 0 {
-					oldCommit, err := gitRepo.GetCommit(commits.Commits[len(commits.Commits)-1].Sha1)
-					if err != nil && !git.IsErrNotExist(err) {
-						log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
-					}
-					if oldCommit != nil {
-						for i := 0; i < oldCommit.ParentCount(); i++ {
-							commitID, _ := oldCommit.ParentID(i)
-							if !commitID.IsZero() {
-								oldCommitID = commitID.String()
-								break
-							}
-						}
-					}
-				}
-
-				if oldCommitID == objectFormat.EmptyObjectID().String() && repo.DefaultBranch != branch {
-					oldCommitID = repo.DefaultBranch
-				}
-
-				if oldCommitID != objectFormat.EmptyObjectID().String() {
-					commits.CompareURL = repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
-				} else {
-					commits.CompareURL = ""
-				}
+				commits.CompareURL = getCompareURL(repo, gitRepo, objectFormat, commits.Commits, opts)
 
 				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
@@ -288,12 +219,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
-				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
-
-				if err := pull_service.AdjustPullsCausedByBranchDeleted(ctx, pusher, repo, branch); err != nil {
-					// close all related pulls
-					log.Error("close related pull request failed: %v", err)
-				}
+				pushDeleteBranch(ctx, repo, pusher, opts)
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
@@ -304,8 +230,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			log.Trace("Non-tag and non-branch commits pushed.")
 		}
 	}
-	if err := PushUpdateAddDeleteTags(ctx, repo, gitRepo, addTags, delTags); err != nil {
-		return fmt.Errorf("PushUpdateAddDeleteTags: %w", err)
+
+	if len(addTags)+len(delTags) > 0 {
+		if err := PushUpdateAddDeleteTags(ctx, repo, gitRepo, addTags, delTags); err != nil {
+			return fmt.Errorf("PushUpdateAddDeleteTags: %w", err)
+		}
 	}
 
 	// Change repository last updated time.
@@ -314,6 +243,102 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 
 	return nil
+}
+
+func getCompareURL(repo *repo_model.Repository, gitRepo *git.Repository, objectFormat git.ObjectFormat, commits []*repo_module.PushCommit, opts *repo_module.PushUpdateOptions) string {
+	oldCommitID := opts.OldCommitID
+	if oldCommitID == objectFormat.EmptyObjectID().String() && len(commits) > 0 {
+		oldCommit, err := gitRepo.GetCommit(commits[len(commits)-1].Sha1)
+		if err != nil && !git.IsErrNotExist(err) {
+			log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
+		}
+		if oldCommit != nil {
+			for i := 0; i < oldCommit.ParentCount(); i++ {
+				commitID, _ := oldCommit.ParentID(i)
+				if !commitID.IsZero() {
+					oldCommitID = commitID.String()
+					break
+				}
+			}
+		}
+	}
+
+	if oldCommitID == objectFormat.EmptyObjectID().String() && repo.DefaultBranch != opts.RefFullName.BranchName() {
+		oldCommitID = repo.DefaultBranch
+	}
+
+	if oldCommitID != objectFormat.EmptyObjectID().String() {
+		return repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
+	}
+	return ""
+}
+
+func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+	if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
+		repo.DefaultBranch = opts.RefName()
+		repo.IsEmpty = false
+		if repo.DefaultBranch != setting.Repository.DefaultBranch {
+			if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+				return nil, err
+			}
+		}
+		// Update the is empty and default_branch columns
+		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_branch", "is_empty"); err != nil {
+			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
+		}
+	}
+
+	l, err := newCommit.CommitsBeforeLimit(10)
+	if err != nil {
+		return nil, fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
+	}
+	notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
+	return l, nil
+}
+
+func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+	l, err := newCommit.CommitsBeforeUntil(opts.OldCommitID)
+	if err != nil {
+		return nil, fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
+	}
+
+	branch := opts.RefFullName.BranchName()
+
+	isForcePush, err := newCommit.IsForcePush(opts.OldCommitID)
+	if err != nil {
+		log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
+	}
+
+	// only update branch can trigger pull request task because the pull request hasn't been created yet when creating a branch
+	go pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{
+		RepoID:      repo.ID,
+		Doer:        pusher,
+		Branch:      branch,
+		IsSync:      true,
+		IsForcePush: isForcePush,
+		OldCommitID: opts.OldCommitID,
+		NewCommitID: opts.NewCommitID,
+	})
+
+	if isForcePush {
+		log.Trace("Push %s is a force push", opts.NewCommitID)
+
+		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
+	} else {
+		// TODO: increment update the commit count cache but not remove
+		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
+	}
+
+	return l, nil
+}
+
+func pushDeleteBranch(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions) {
+	notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
+
+	if err := pull_service.AdjustPullsCausedByBranchDeleted(ctx, pusher, repo, opts.RefFullName.BranchName()); err != nil {
+		// close all related pulls
+		log.Error("close related pull request failed: %v", err)
+	}
 }
 
 // PushUpdateAddDeleteTags updates a number of added and delete tags
