@@ -177,19 +177,19 @@ func searchIssueByID(t *testing.T) {
 	}{
 		{
 			opts: SearchOptions{
-				PosterID: optional.Some(int64(1)),
+				PosterID: "1",
 			},
 			expectedIDs: []int64{11, 6, 3, 2, 1},
 		},
 		{
 			opts: SearchOptions{
-				AssigneeID: optional.Some(int64(1)),
+				AssigneeID: "1",
 			},
 			expectedIDs: []int64{6, 1},
 		},
 		{
-			// NOTE: This tests no assignees filtering and also ToSearchOptions() to ensure it will set AssigneeID to 0 when it is passed as -1.
-			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: optional.Some(db.NoConditionID)}),
+			// NOTE: This tests no assignees filtering and also ToSearchOptions() to ensure it handles the filter correctly
+			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: "(none)"}),
 			expectedIDs: []int64{22, 21, 16, 15, 14, 13, 12, 11, 20, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2},
 		},
 		{
@@ -472,7 +472,7 @@ func searchIssueWithAnyAssignee(t *testing.T) {
 	}{
 		{
 			SearchOptions{
-				AnyAssigneeOnly: true,
+				AssigneeID: "(any)",
 			},
 			[]int64{17, 6, 1},
 			3,

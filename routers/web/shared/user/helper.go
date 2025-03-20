@@ -44,6 +44,7 @@ func GetFilterUserIDByName(ctx context.Context, name string) string {
 		if id, err := strconv.ParseInt(name, 10, 64); err == nil {
 			return strconv.FormatInt(id, 10)
 		}
+		// The "(none)" is for internal usage only: when doer tries to search non-existing user, use "(none)" to return empty result.
 		return "(none)"
 	}
 	return strconv.FormatInt(u.ID, 10)

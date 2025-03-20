@@ -369,6 +369,8 @@ func applyAssigneeCondition(sess *xorm.Session, assigneeID string) {
 }
 
 func applyPosterCondition(sess *xorm.Session, posterID string) {
+	// Actually every issue has a poster.
+	// The "(none)" is for internal usage only: when doer tries to search non-existing user as poster, use "(none)" to return empty result.
 	if posterID == "(none)" {
 		sess.And("issue.poster_id=0")
 	} else if posterIDInt64, _ := strconv.ParseInt(posterID, 10, 64); posterIDInt64 > 0 {

@@ -4,9 +4,8 @@
 * UserSearchList
 * SelectedUserId: 0 or empty means default, -1 means "no user is set"
 * TextFilterTitle
-* TextZeroValue: the text for "all issues"
-* TextNegativeOne: the text for "issues with no assignee"
-* TextAnyCondition: the text for "issues with any assignee"
+* TextFilterMatchNone: the text for "issues with no assignee"
+* TextFilterMatchAny: the text for "issues with any assignee"
 */}}
 {{$queryLink := .QueryLink}}
 <div class="item ui dropdown jump {{if not .UserSearchList}}disabled{{end}}">
