@@ -38,7 +38,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 	sha = MustConvertToSHA1(ctx, ctx.Repo, sha)
 
 	if ctx.Repo.GitRepo != nil {
-		commitsCount, _ := context.GetRefCommitsCount(ctx, ctx.Repo.Repository.ID, git.RefName(ref))
+		commitsCount, _ := context.GetRefCommitsCount(ctx, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, git.RefName(ref))
 		err := ctx.Repo.GitRepo.AddLastCommitCache(commitsCount, ctx.Repo.Repository.FullName(), sha)
 		if err != nil {
 			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)

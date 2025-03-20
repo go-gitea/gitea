@@ -163,7 +163,12 @@ func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_
 	return r.Repository.IsDependenciesEnabled(ctx) && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
-func GetRefCommitsCount(ctx context.Context, repoID int64, refFullName git.RefName) (int64, error) {
+// getCommitsCountCacheKey returns cache key used for commits count caching.
+func getCommitsCountCacheKey(contextName string, repoID int64) string {
+	return fmt.Sprintf("commits-count-%d-commit-%s", repoID, contextName)
+}
+
+func GetRefCommitsCount(ctx context.Context, repoID int64, gitRepo *git.Repository, refFullName git.RefName) (int64, error) {
 	// Get the commit count of the branch or the tag
 	switch {
 	case refFullName.IsBranch():
@@ -178,6 +183,14 @@ func GetRefCommitsCount(ctx context.Context, repoID int64, refFullName git.RefNa
 			return 0, err
 		}
 		return tag.NumCommits, nil
+	case refFullName.RefType() == git.RefTypeCommit:
+		return cache.GetInt64(getCommitsCountCacheKey(string(refFullName), repoID), func() (int64, error) {
+			commit, err := gitRepo.GetCommit(string(refFullName))
+			if err != nil {
+				return 0, err
+			}
+			return commit.CommitsCount()
+		})
 	default:
 		return 0, nil
 	}
@@ -188,7 +201,7 @@ func (r *Repository) GetCommitsCount(ctx context.Context) (int64, error) {
 	if r.Commit == nil {
 		return 0, nil
 	}
-	return GetRefCommitsCount(ctx, r.Repository.ID, r.RefFullName)
+	return GetRefCommitsCount(ctx, r.Repository.ID, r.GitRepo, r.RefFullName)
 }
 
 // GetCommitGraphsCount returns cached commit count for current view

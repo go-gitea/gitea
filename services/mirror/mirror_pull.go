@@ -410,7 +410,9 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)
 	}
 
-	repo_service.SyncRepoBranchesCommitsCount(ctx, m.Repo)
+	if err := repo_service.SyncRepoBranchesCommitsCount(ctx, m.Repo); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to sync branches commits count: %v", m.Repo, err)
+	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	return parseRemoteUpdateOutput(output, m.GetRemoteName()), true
@@ -606,8 +608,6 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, re
 		hasDefault = hasDefault || name == defaultBranchName
 		hasMaster = hasMaster || name == "master"
 		hasMain = hasMain || name == "main"
-
-		// TODO: update branch commits count
 	}
 
 	if len(firstName) > 0 {

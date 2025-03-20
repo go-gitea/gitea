@@ -168,7 +168,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 
 	refName := git.RefNameFromObjectTypeAndShortName(refType, ref)
 
-	commitsCount, _ := context_service.GetRefCommitsCount(ctx, repo.ID, refName)
+	commitsCount, _ := context_service.GetRefCommitsCount(ctx, repo.ID, gitRepo, refName)
 
 	err = gitRepo.AddLastCommitCache(commitsCount, repo.FullName(), commitID)
 	if err != nil {

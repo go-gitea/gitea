@@ -20,7 +20,7 @@ func CacheRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 	}
 
 	if gitRepo.LastCommitCache == nil {
-		commitsCount, err := context_service.GetRefCommitsCount(ctx, repo.ID, fullRefName)
+		commitsCount, err := context_service.GetRefCommitsCount(ctx, repo.ID, gitRepo, fullRefName)
 		if err != nil {
 			return err
 		}

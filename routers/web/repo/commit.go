@@ -263,7 +263,7 @@ func FileHistory(ctx *context.Context) {
 }
 
 func LoadBranchesAndTags(ctx *context.Context) {
-	response, err := repo_service.LoadBranchesAndTags(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.RepoLink, ctx.PathParam("sha"))
+	response, err := repo_service.LoadBranchesAndTags(ctx, ctx.Repo, ctx.PathParam("sha"))
 	if err == nil {
 		ctx.JSON(http.StatusOK, response)
 		return
