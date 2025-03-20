@@ -72,7 +72,7 @@ type FileDiffFile struct {
 // it also takes a map of file names to their viewed state, which is used to mark files as viewed
 func transformDiffTreeForUI(ctx *context.Context, baseCommit, headCommit *git.Commit, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) []FileDiffFile {
 	files := make([]FileDiffFile, 0, len(diffTree.Files))
-
+	renderUtils := templates.NewRenderUtils(reqctx.FromContext(ctx))
 	for _, file := range diffTree.Files {
 		nameHash := git.HashFilePathForWebUI(file.HeadPath)
 		isSubmodule := file.HeadMode == git.EntryModeCommit
@@ -85,7 +85,7 @@ func transformDiffTreeForUI(ctx *context.Context, baseCommit, headCommit *git.Co
 		files = append(files, FileDiffFile{
 			Name:        file.HeadPath,
 			NameHash:    nameHash,
-			FileIcon:    templates.NewRenderUtils(reqctx.FromContext(ctx)).RenderFileIcon(entry),
+			FileIcon:    renderUtils.RenderFileIcon(entry),
 			IsSubmodule: isSubmodule,
 			IsViewed:    isViewed,
 			Status:      file.Status,
