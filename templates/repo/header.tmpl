@@ -138,6 +138,12 @@
 					</a>
 					{{end}}
 
+					{{if .Repository.CanEnableEditor}}
+						<a href="{{.RepoLink}}/catalog" class="{{if .PageIsCatalog}}active {{end}}item">
+							{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.catalog"}}
+						</a>
+					{{end}}
+
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
 						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
 							{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
