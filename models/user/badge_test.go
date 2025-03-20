@@ -21,21 +21,22 @@ func TestAddAndRemoveUserBadges(t *testing.T) {
 	// Add a badge to user and verify that it is returned in the list
 	assert.NoError(t, user_model.AddUserBadge(db.DefaultContext, user1, badge1))
 	badges, count, err := user_model.GetUserBadges(db.DefaultContext, user1)
-	assert.Equal(t, count, int64(1))
-	assert.Equal(t, badges[0].Slug, badge1.Slug)
-	assert.Nil(t, err)
+	assert.Equal(t, int64(1), count)
+	assert.Equal(t, badge1.Slug, badges[0].Slug)
+	assert.NoError(t, err)
 
 	// Confirm that it is impossible to duplicate the same badge
 	assert.Error(t, user_model.AddUserBadge(db.DefaultContext, user1, badge1))
+
 	// Nothing happened to the existing badge
 	badges, count, err = user_model.GetUserBadges(db.DefaultContext, user1)
-	assert.Equal(t, count, int64(1))
-	assert.Equal(t, badges[0].Slug, badge1.Slug)
-	assert.Nil(t, err)
+	assert.Equal(t, int64(1), count)
+	assert.Equal(t, badge1.Slug, badges[0].Slug)
+	assert.NoError(t, err)
 
 	// Remove a badge from user and verify that it is no longer in the list
 	assert.NoError(t, user_model.RemoveUserBadge(db.DefaultContext, user1, badge1))
-	badges, count, err = user_model.GetUserBadges(db.DefaultContext, user1)
-	assert.Equal(t, count, int64(0))
-	assert.Nil(t, err)
+	_, count, err = user_model.GetUserBadges(db.DefaultContext, user1)
+	assert.Equal(t, int64(0), count)
+	assert.NoError(t, err)
 }

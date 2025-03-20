@@ -132,7 +132,7 @@ func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 			userBadgeIDs = append(userBadgeIDs, ub.ID)
 		}
 		if _, err := db.GetEngine(ctx).Table("user_badge").In("id", userBadgeIDs).Delete(); err != nil {
-				return err
+			return err
 		}
 		return nil
 	})
