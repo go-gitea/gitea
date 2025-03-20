@@ -1,0 +1,7 @@
+.ui.tab {
+  display: none;
+}
+
+.ui.tab.active {
+  display: block;
+}

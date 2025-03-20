@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/indexer"
 	path_filter "code.gitea.io/gitea/modules/indexer/code/bleve/token/path"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	analyzer_custom "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
@@ -134,6 +136,10 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_bleve.Indexer
 	indexer_internal.Indexer // do not composite inner_bleve.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new bleve local indexer
@@ -267,19 +273,22 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	pathQuery.FieldVal = "Filename"
 	pathQuery.SetBoost(10)
 
-	keywordAsPhrase, isPhrase := internal.ParseKeywordAsPhrase(opts.Keyword)
-	if isPhrase {
-		q := bleve.NewMatchPhraseQuery(keywordAsPhrase)
+	searchMode := util.IfZero(opts.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+	if searchMode == indexer.SearchModeExact {
+		// 1.21 used NewPrefixQuery, but it seems not working well, and later releases changed to NewMatchPhraseQuery
+		q := bleve.NewMatchPhraseQuery(opts.Keyword)
+		q.Analyzer = repoIndexerAnalyzer
 		q.FieldVal = "Content"
-		if opts.IsKeywordFuzzy {
-			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(keywordAsPhrase)
-		}
 		contentQuery = q
-	} else {
+	} else /* words */ {
 		q := bleve.NewMatchQuery(opts.Keyword)
 		q.FieldVal = "Content"
-		if opts.IsKeywordFuzzy {
+		q.Analyzer = repoIndexerAnalyzer
+		if searchMode == indexer.SearchModeFuzzy {
+			// this logic doesn't seem right, it is only used to pass the test-case `Keyword:    "dESCRIPTION"`, which doesn't seem to be a real-life use-case.
 			q.Fuzziness = inner_bleve.GuessFuzzinessByKeyword(opts.Keyword)
+		} else {
+			q.Operator = query.MatchQueryOperatorAnd
 		}
 		contentQuery = q
 	}

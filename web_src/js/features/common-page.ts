@@ -77,7 +77,7 @@ export function initGlobalDropdown() {
 }
 
 export function initGlobalTabularMenu() {
-  fomanticQuery('.ui.menu.tabular:not(.custom) .item').tab({autoTabActivation: false});
+  fomanticQuery('.ui.menu.tabular:not(.custom) .item').tab();
 }
 
 // for performance considerations, it only uses performant syntax
