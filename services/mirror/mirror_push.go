@@ -143,7 +143,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 			var gitRepo *git.Repository
 			if isWiki {
-				gitRepo, err = gitrepo.OpenWikiRepository(ctx, repo)
+				gitRepo, err = gitrepo.OpenRepository(ctx, repo.WikiStorageRepo())
 			} else {
 				gitRepo, err = gitrepo.OpenRepository(ctx, repo)
 			}
