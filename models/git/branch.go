@@ -109,6 +109,7 @@ type Branch struct {
 	Repo          *repo_model.Repository `xorm:"-"`
 	Name          string                 `xorm:"UNIQUE(s) NOT NULL"` // git's ref-name is case-sensitive internally, however, in some databases (mssql, mysql, by default), it's case-insensitive at the moment
 	CommitID      string
+	CommitCount   int64  // the number of commits in this branch
 	CommitMessage string `xorm:"TEXT"` // it only stores the message summary (the first line)
 	PusherID      int64
 	Pusher        *user_model.User `xorm:"-"`
@@ -249,6 +250,15 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 			CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			IsDeleted:     false,
 		})
+}
+
+func UpdateBranchCommitCount(ctx context.Context, repoID int64, branchName string, commitCount int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
+		Cols("commit_count").
+		Update(&Branch{
+			CommitCount: commitCount,
+		})
+	return err
 }
 
 // AddDeletedBranch adds a deleted branch to the database

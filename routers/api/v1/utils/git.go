@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/context"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ResolveRefOrSha resolve ref to sha if exist
@@ -38,7 +39,8 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 	sha = MustConvertToSHA1(ctx, ctx.Repo, sha)
 
 	if ctx.Repo.GitRepo != nil {
-		err := ctx.Repo.GitRepo.AddLastCommitCache(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, ref != sha), ctx.Repo.Repository.FullName(), sha)
+		commitsCount, _ := repo_service.GetRefCommitsCount(ctx, ctx.Repo.Repository.ID, git.RefName(ref))
+		err := ctx.Repo.GitRepo.AddLastCommitCache(commitsCount, ctx.Repo.Repository.FullName(), sha)
 		if err != nil {
 			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)
 		}

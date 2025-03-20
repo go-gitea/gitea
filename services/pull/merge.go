@@ -21,7 +21,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/httplib"
@@ -250,9 +249,6 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	} else {
 		notify_service.MergePullRequest(ctx, doer, pr)
 	}
-
-	// Reset cached commit count
-	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
 	return handleCloseCrossReferences(ctx, pr, doer)
 }

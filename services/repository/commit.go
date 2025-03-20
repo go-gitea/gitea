@@ -7,8 +7,9 @@ import (
 	"context"
 	"fmt"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
-	gitea_ctx "code.gitea.io/gitea/services/context"
 )
 
 type ContainedLinks struct { // TODO: better name?
@@ -23,18 +24,18 @@ type namedLink struct { // TODO: better name?
 }
 
 // LoadBranchesAndTags creates a new repository branch
-func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, commitSHA string) (*ContainedLinks, error) {
-	containedTags, err := baseRepo.GitRepo.ListOccurrences(ctx, "tag", commitSHA)
+func LoadBranchesAndTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, repoLink string, commitSHA string) (*ContainedLinks, error) {
+	containedTags, err := gitRepo.ListOccurrences(ctx, "tag", commitSHA)
 	if err != nil {
 		return nil, fmt.Errorf("encountered a problem while querying %s: %w", "tags", err)
 	}
-	containedBranches, err := baseRepo.GitRepo.ListOccurrences(ctx, "branch", commitSHA)
+	containedBranches, err := gitRepo.ListOccurrences(ctx, "branch", commitSHA)
 	if err != nil {
 		return nil, fmt.Errorf("encountered a problem while querying %s: %w", "branches", err)
 	}
 
 	result := &ContainedLinks{
-		DefaultBranch: baseRepo.Repository.DefaultBranch,
+		DefaultBranch: repo.DefaultBranch,
 		Branches:      make([]*namedLink, 0, len(containedBranches)),
 		Tags:          make([]*namedLink, 0, len(containedTags)),
 	}
@@ -42,13 +43,13 @@ func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, co
 		// TODO: Use a common method to get the link to a branch/tag instead of hard-coding it here
 		result.Tags = append(result.Tags, &namedLink{
 			Name:    tag,
-			WebLink: fmt.Sprintf("%s/src/tag/%s", baseRepo.RepoLink, util.PathEscapeSegments(tag)),
+			WebLink: fmt.Sprintf("%s/src/tag/%s", repoLink, util.PathEscapeSegments(tag)),
 		})
 	}
 	for _, branch := range containedBranches {
 		result.Branches = append(result.Branches, &namedLink{
 			Name:    branch,
-			WebLink: fmt.Sprintf("%s/src/branch/%s", baseRepo.RepoLink, util.PathEscapeSegments(branch)),
+			WebLink: fmt.Sprintf("%s/src/branch/%s", repoLink, util.PathEscapeSegments(branch)),
 		})
 	}
 	return result, nil

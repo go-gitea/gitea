@@ -376,17 +376,6 @@ func (repo *Repository) APIURL() string {
 	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
-// GetCommitsCountCacheKey returns cache key used for commits count caching.
-func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
-	var prefix string
-	if isRef {
-		prefix = "ref"
-	} else {
-		prefix = "commit"
-	}
-	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
-}
-
 // LoadUnits loads repo units into repo.Units
 func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 	if repo.Units != nil {
