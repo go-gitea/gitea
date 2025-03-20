@@ -358,7 +358,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 			Needs:             needs,
 			RunsOn:            job.RunsOn(),
 			Status:            status,
-		}
+		})
 
 		// Parse the job's permissions
 		if err := job.RawPermissions.Decode(&runJob.Permissions); err != nil {
