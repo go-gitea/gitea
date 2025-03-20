@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -21,11 +22,12 @@ import (
 
 // LFSLock represents a git lfs lock of repository.
 type LFSLock struct {
-	ID      int64     `xorm:"pk autoincr"`
-	RepoID  int64     `xorm:"INDEX NOT NULL"`
-	OwnerID int64     `xorm:"INDEX NOT NULL"`
-	Path    string    `xorm:"TEXT"`
-	Created time.Time `xorm:"created"`
+	ID      int64            `xorm:"pk autoincr"`
+	RepoID  int64            `xorm:"INDEX NOT NULL"`
+	OwnerID int64            `xorm:"INDEX NOT NULL"`
+	Owner   *user_model.User `xorm:"-"`
+	Path    string           `xorm:"TEXT"`
+	Created time.Time        `xorm:"created"`
 }
 
 func init() {
@@ -35,6 +37,35 @@ func init() {
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (l *LFSLock) BeforeInsert() {
 	l.Path = util.PathJoinRel(l.Path)
+}
+
+// LoadAttributes loads attributes of the lock.
+func (l *LFSLock) LoadAttributes(ctx context.Context) error {
+	// Load owner
+	if err := l.LoadOwner(ctx); err != nil {
+		return fmt.Errorf("load owner: %w", err)
+	}
+
+	return nil
+}
+
+// LoadOwner loads owner of the lock.
+func (l *LFSLock) LoadOwner(ctx context.Context) error {
+	if l.Owner != nil {
+		return nil
+	}
+
+	owner, err := user_model.GetUserByID(ctx, l.OwnerID)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			l.Owner = user_model.NewGhostUser()
+			return nil
+		}
+		return err
+	}
+	l.Owner = owner
+
+	return nil
 }
 
 // CreateLFSLock creates a new lock.
@@ -94,7 +125,7 @@ func GetLFSLockByID(ctx context.Context, id int64) (*LFSLock, error) {
 }
 
 // GetLFSLockByRepoID returns a list of locks of repository.
-func GetLFSLockByRepoID(ctx context.Context, repoID int64, page, pageSize int) ([]*LFSLock, error) {
+func GetLFSLockByRepoID(ctx context.Context, repoID int64, page, pageSize int) (LFSLockList, error) {
 	e := db.GetEngine(ctx)
 	if page >= 0 && pageSize > 0 {
 		start := 0
@@ -103,7 +134,7 @@ func GetLFSLockByRepoID(ctx context.Context, repoID int64, page, pageSize int) (
 		}
 		e.Limit(pageSize, start)
 	}
-	lfsLocks := make([]*LFSLock, 0, pageSize)
+	lfsLocks := make(LFSLockList, 0, pageSize)
 	return lfsLocks, e.Find(&lfsLocks, &LFSLock{RepoID: repoID})
 }
 
@@ -148,7 +179,7 @@ func DeleteLFSLockByID(ctx context.Context, id int64, repo *repo_model.Repositor
 	}
 
 	if !force && u.ID != lock.OwnerID {
-		return nil, fmt.Errorf("user doesn't own lock and force flag is not set")
+		return nil, errors.New("user doesn't own lock and force flag is not set")
 	}
 
 	if _, err := db.GetEngine(dbCtx).ID(id).Delete(new(LFSLock)); err != nil {

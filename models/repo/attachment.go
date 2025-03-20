@@ -5,11 +5,14 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"path"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -24,7 +27,7 @@ type Attachment struct {
 	IssueID           int64  `xorm:"INDEX"`           // maybe zero when creating
 	ReleaseID         int64  `xorm:"INDEX"`           // maybe zero when creating
 	UploaderID        int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
-	CommentID         int64
+	CommentID         int64  `xorm:"INDEX"`
 	Name              string
 	DownloadCount     int64              `xorm:"DEFAULT 0"`
 	Size              int64              `xorm:"DEFAULT 0"`
@@ -188,7 +191,10 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bo
 	if remove {
 		for i, a := range attachments {
 			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
-				return i, err
+				if !errors.Is(err, os.ErrNotExist) {
+					return i, err
+				}
+				log.Warn("Attachment file not found when deleting: %s", a.RelativePath())
 			}
 		}
 	}

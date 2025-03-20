@@ -100,5 +100,5 @@ func TestParseTreeEntriesInvalid(t *testing.T) {
 	// there was a panic: "runtime error: slice bounds out of range" when the input was invalid: #20315
 	entries, err := ParseTreeEntries([]byte("100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af"))
 	assert.Error(t, err)
-	assert.Len(t, entries, 0)
+	assert.Empty(t, entries)
 }

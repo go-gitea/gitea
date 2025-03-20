@@ -115,3 +115,29 @@ key = old
 	EnvironmentToConfig(cfg, []string{"GITEA__sec__key__FILE=" + tmpFile})
 	assert.Equal(t, "value-from-file\n", cfg.Section("sec").Key("key").String())
 }
+
+func TestEnvironmentToConfigSubSecKey(t *testing.T) {
+	// the INI package has a quirk: by default, the keys are inherited.
+	// when maintaining the keys, the newly added sub key should not be affected by the parent key.
+	cfg, err := NewConfigProviderFromData(`
+[sec]
+key = some
+`)
+	assert.NoError(t, err)
+
+	changed := EnvironmentToConfig(cfg, []string{"GITEA__sec_0X2E_sub__key=some"})
+	assert.True(t, changed)
+
+	tmpFile := t.TempDir() + "/test-sub-sec-key.ini"
+	defer os.Remove(tmpFile)
+	err = cfg.SaveTo(tmpFile)
+	assert.NoError(t, err)
+	bs, err := os.ReadFile(tmpFile)
+	assert.NoError(t, err)
+	assert.Equal(t, `[sec]
+key = some
+
+[sec.sub]
+key = some
+`, string(bs))
+}

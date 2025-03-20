@@ -12,13 +12,17 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
+
+	"xorm.io/builder"
 )
 
 // ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
@@ -44,13 +48,22 @@ func (err ErrForkAlreadyExist) Unwrap() error {
 
 // ForkRepoOptions contains the fork repository options
 type ForkRepoOptions struct {
-	BaseRepo    *repo_model.Repository
-	Name        string
-	Description string
+	BaseRepo     *repo_model.Repository
+	Name         string
+	Description  string
+	SingleBranch string
 }
 
 // ForkRepository forks a repository
 func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts ForkRepoOptions) (*repo_model.Repository, error) {
+	if err := opts.BaseRepo.LoadOwner(ctx); err != nil {
+		return nil, err
+	}
+
+	if user_model.IsUserBlockedBy(ctx, doer, opts.BaseRepo.Owner.ID) {
+		return nil, user_model.ErrBlockedUser
+	}
+
 	// Fork is prohibited, if user has reached maximum limit of repositories
 	if !owner.CanForkRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
@@ -70,18 +83,23 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}
 
+	defaultBranch := opts.BaseRepo.DefaultBranch
+	if opts.SingleBranch != "" {
+		defaultBranch = opts.SingleBranch
+	}
 	repo := &repo_model.Repository{
-		OwnerID:       owner.ID,
-		Owner:         owner,
-		OwnerName:     owner.Name,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		DefaultBranch: opts.BaseRepo.DefaultBranch,
-		IsPrivate:     opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
-		IsEmpty:       opts.BaseRepo.IsEmpty,
-		IsFork:        true,
-		ForkID:        opts.BaseRepo.ID,
+		OwnerID:          owner.ID,
+		Owner:            owner,
+		OwnerName:        owner.Name,
+		Name:             opts.Name,
+		LowerName:        strings.ToLower(opts.Name),
+		Description:      opts.Description,
+		DefaultBranch:    defaultBranch,
+		IsPrivate:        opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
+		IsEmpty:          opts.BaseRepo.IsEmpty,
+		IsFork:           true,
+		ForkID:           opts.BaseRepo.ID,
+		ObjectFormatName: opts.BaseRepo.ObjectFormatName,
 	}
 
 	oldRepoPath := opts.BaseRepo.RepoPath()
@@ -92,15 +110,13 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return
 		}
 
-		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-
-		if exists, _ := util.IsExist(repoPath); !exists {
+		if exists, _ := gitrepo.IsRepositoryExist(ctx, repo); !exists {
 			return
 		}
 
 		// As the transaction will be failed and hence database changes will be destroyed we only need
 		// to delete the related repository on the filesystem
-		if errDelete := util.RemoveAll(repoPath); errDelete != nil {
+		if errDelete := gitrepo.DeleteRepository(ctx, repo); errDelete != nil {
 			log.Error("Failed to remove fork repo")
 		}
 	}
@@ -119,7 +135,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}()
 
 	err = db.WithTx(ctx, func(txCtx context.Context) error {
-		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false, true); err != nil {
+		if err = CreateRepositoryByExample(txCtx, doer, owner, repo, false, true); err != nil {
 			return err
 		}
 
@@ -134,11 +150,12 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		needsRollback = true
 
-		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-		if stdout, _, err := git.NewCommand(txCtx,
-			"clone", "--bare").AddDynamicArguments(oldRepoPath, repoPath).
-			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
-			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
+		cloneCmd := git.NewCommand("clone", "--bare")
+		if opts.SingleBranch != "" {
+			cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
+		}
+		if stdout, _, err := cloneCmd.AddDynamicArguments(oldRepoPath, repo.RepoPath()).
+			RunStdBytes(txCtx, &git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 			return fmt.Errorf("git clone: %w", err)
 		}
@@ -147,18 +164,17 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("checkDaemonExportOK: %w", err)
 		}
 
-		if stdout, _, err := git.NewCommand(txCtx, "update-server-info").
-			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+		if stdout, _, err := git.NewCommand("update-server-info").
+			RunStdString(txCtx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("git update-server-info: %w", err)
 		}
 
-		if err = repo_module.CreateDelegateHooks(repoPath); err != nil {
+		if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 
-		gitRepo, err := git.OpenRepository(txCtx, repo.RepoPath())
+		gitRepo, err := gitrepo.OpenRepository(txCtx, repo)
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
@@ -177,16 +193,19 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
-	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
+	if err := repo_model.CopyLanguageStat(ctx, opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed: %v", err)
 	}
+	if err := repo_model.CopyLicense(ctx, opts.BaseRepo, repo); err != nil {
+		return nil, err
+	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		log.Error("Open created git repository failed: %v", err)
 	} else {
 		defer gitRepo.Close()
-		if err := repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+		if err := repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 			log.Error("Sync releases from git tags failed: %v", err)
 		}
 	}
@@ -225,4 +244,27 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 	})
 
 	return err
+}
+
+type findForksOptions struct {
+	db.ListOptions
+	RepoID int64
+	Doer   *user_model.User
+}
+
+func (opts findForksOptions) ToConds() builder.Cond {
+	cond := builder.Eq{"fork_id": opts.RepoID}
+	if opts.Doer != nil && opts.Doer.IsAdmin {
+		return cond
+	}
+	return cond.And(repo_model.AccessibleRepositoryCondition(opts.Doer, unit.TypeInvalid))
+}
+
+// FindForks returns all the forks of the repository
+func FindForks(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, listOptions db.ListOptions) ([]*repo_model.Repository, int64, error) {
+	return db.FindAndCount[repo_model.Repository](ctx, findForksOptions{
+		ListOptions: listOptions,
+		RepoID:      repo.ID,
+		Doer:        doer,
+	})
 }

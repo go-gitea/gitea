@@ -4,13 +4,15 @@
 package queue
 
 import (
-	"context"
+	"slices"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,7 +57,7 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 			testRecorder.Record("push:%v", i)
 			assert.NoError(t, q.Push(i))
 		}
-		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
+		assert.NoError(t, q.FlushWithContext(t.Context(), 0))
 		stop()
 
 		ok := true
@@ -163,23 +165,19 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 
 		q, _ := newWorkerPoolQueueForTest("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
-		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
+		assert.NoError(t, q.FlushWithContext(t.Context(), 0))
 		stop()
 	}
 
 	q2() // restart the queue to continue to execute the tasks in it
 
-	assert.NotZero(t, len(tasksQ1))
-	assert.NotZero(t, len(tasksQ2))
+	assert.NotEmpty(t, tasksQ1)
+	assert.NotEmpty(t, tasksQ2)
 	assert.EqualValues(t, testCount, len(tasksQ1)+len(tasksQ2))
 }
 
 func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
-	oldWorkerIdleDuration := workerIdleDuration
-	workerIdleDuration = 300 * time.Millisecond
-	defer func() {
-		workerIdleDuration = oldWorkerIdleDuration
-	}()
+	defer test.MockVariableValue(&workerIdleDuration, 300*time.Millisecond)()
 
 	handler := func(items ...int) (unhandled []int) {
 		time.Sleep(100 * time.Millisecond)
@@ -249,4 +247,38 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 	// no item was ever handled, so we still get all of them again
 	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", qs, handler, false)
 	assert.EqualValues(t, 20, q.GetQueueItemNumber())
+}
+
+func TestWorkerPoolQueueWorkerIdleReset(t *testing.T) {
+	defer test.MockVariableValue(&workerIdleDuration, 10*time.Millisecond)()
+	defer mockBackoffDuration(5 * time.Millisecond)()
+
+	var q *WorkerPoolQueue[int]
+	var handledCount atomic.Int32
+	var hasOnlyOneWorkerRunning atomic.Bool
+	handler := func(items ...int) (unhandled []int) {
+		handledCount.Add(int32(len(items)))
+		// make each work have different duration, and check the active worker number periodically
+		var activeNums []int
+		for i := 0; i < 5-items[0]%2; i++ {
+			time.Sleep(workerIdleDuration * 2)
+			activeNums = append(activeNums, q.GetWorkerActiveNumber())
+		}
+		// When the queue never becomes empty, the existing workers should keep working
+		// It is not 100% true at the moment because the data-race in workergroup.go is not resolved, see that TODO */
+		// If the "active worker numbers" is like [2 2 ... 1 1], it means that an existing worker exited and the no new worker is started.
+		if slices.Equal([]int{1, 1}, activeNums[len(activeNums)-2:]) {
+			hasOnlyOneWorkerRunning.Store(true)
+		}
+		return nil
+	}
+	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 2, Length: 100}, handler, false)
+	stop := runWorkerPoolQueue(q)
+	for i := 0; i < 100; i++ {
+		assert.NoError(t, q.Push(i))
+	}
+	time.Sleep(500 * time.Millisecond)
+	assert.Greater(t, int(handledCount.Load()), 4) // make sure there are enough items handled during the test
+	assert.False(t, hasOnlyOneWorkerRunning.Load(), "a slow handler should not block other workers from starting")
+	stop()
 }

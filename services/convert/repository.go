@@ -7,13 +7,14 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ToRepo converts a Repository to api.Repository
@@ -24,15 +25,18 @@ func ToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo a
 func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInRepo access_model.Permission, isParent bool) *api.Repository {
 	var parent *api.Repository
 
-	if permissionInRepo.Units == nil && permissionInRepo.UnitsMode == nil {
-		// If Units and UnitsMode are both nil, it means that it's a hard coded permission,
-		// like access_model.Permission{AccessMode: perm.AccessModeAdmin}.
-		// So we need to load units for the repo, or UnitAccessMode will always return perm.AccessModeNone.
+	if !permissionInRepo.HasUnits() && permissionInRepo.AccessMode > perm.AccessModeNone {
+		// If units is empty, it means that it's a hard-coded permission, like access_model.Permission{AccessMode: perm.AccessModeAdmin}
+		// So we need to load units for the repo, otherwise UnitAccessMode will just return perm.AccessModeNone.
+		// TODO: this logic is still not right (because unit modes are not correctly prepared)
+		//   the caller should prepare a proper "permission" before calling this function.
 		_ = repo.LoadUnits(ctx) // the error is not important, so ignore it
-		permissionInRepo.Units = repo.Units
+		permissionInRepo.SetUnitsWithDefaultAccessMode(repo.Units, permissionInRepo.AccessMode)
 	}
 
-	cloneLink := repo.CloneLink()
+	// TODO: ideally we should pass "doer" into "ToRepo" to to make CloneLink could generate user-related links
+	// And passing "doer" in will also fix other FIXMEs in this file.
+	cloneLink := repo.CloneLinkGeneral(ctx) // no doer at the moment
 	permission := &api.Permission{
 		Admin: permissionInRepo.AccessMode >= perm.AccessModeAdmin,
 		Push:  permissionInRepo.UnitAccessMode(unit_model.TypeCode) >= perm.AccessModeWrite,
@@ -92,6 +96,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
+	allowFastForwardOnly := false
 	allowRebaseUpdate := false
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
@@ -104,14 +109,18 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		allowRebase = config.AllowRebase
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
+		allowFastForwardOnly = config.AllowFastForwardOnly
 		allowRebaseUpdate = config.AllowRebaseUpdate
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
 		defaultMergeStyle = config.GetDefaultMergeStyle()
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 	}
 	hasProjects := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
+	projectsMode := repo_model.ProjectsModeAll
+	if unit, err := repo.GetUnit(ctx, unit_model.TypeProjects); err == nil {
 		hasProjects = true
+		config := unit.ProjectsConfig()
+		projectsMode = config.ProjectsMode
 	}
 
 	hasReleases := false
@@ -133,7 +142,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		return nil
 	}
 
-	numReleases, _ := repo_model.GetReleaseCountByRepoID(ctx, repo.ID, repo_model.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
+	numReleases, _ := db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		IncludeDrafts: false,
+		IncludeTags:   false,
+		RepoID:        repo.ID,
+	})
 
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
@@ -147,8 +160,8 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 
 	var transfer *api.RepoTransfer
 	if repo.Status == repo_model.RepositoryPendingTransfer {
-		t, err := models.GetPendingRepositoryTransfer(ctx, repo)
-		if err != nil && !models.IsErrNoPendingTransfer(err) {
+		t, err := repo_model.GetPendingRepositoryTransfer(ctx, repo)
+		if err != nil && !repo_model.IsErrNoPendingTransfer(err) {
 			log.Warn("GetPendingRepositoryTransfer: %v", err)
 		} else {
 			if err := t.LoadAttributes(ctx); err != nil {
@@ -162,6 +175,11 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	var language string
 	if repo.PrimaryLanguage != nil {
 		language = repo.PrimaryLanguage.Language
+	}
+
+	repoLicenses, err := repo_model.GetRepoLicenses(ctx, repo)
+	if err != nil {
+		return nil
 	}
 
 	repoAPIURL := repo.APIURL()
@@ -180,7 +198,8 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Fork:                          repo.IsFork,
 		Parent:                        parent,
 		Mirror:                        repo.IsMirror,
-		HTMLURL:                       repo.HTMLURL(),
+		HTMLURL:                       repo.HTMLURL(ctx),
+		URL:                           repoAPIURL,
 		SSHURL:                        cloneLink.SSH,
 		CloneURL:                      cloneLink.HTTPS,
 		OriginalURL:                   repo.SanitizedOriginalURL(),
@@ -203,6 +222,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		InternalTracker:               internalTracker,
 		HasWiki:                       hasWiki,
 		HasProjects:                   hasProjects,
+		ProjectsMode:                  string(projectsMode),
 		HasReleases:                   hasReleases,
 		HasPackages:                   hasPackages,
 		HasActions:                    hasActions,
@@ -213,6 +233,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		AllowRebase:                   allowRebase,
 		AllowRebaseMerge:              allowRebaseMerge,
 		AllowSquash:                   allowSquash,
+		AllowFastForwardOnly:          allowFastForwardOnly,
 		AllowRebaseUpdate:             allowRebaseUpdate,
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
@@ -222,11 +243,14 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
+		Topics:                        util.SliceNilAsEmpty(repo.Topics),
+		ObjectFormatName:              repo.ObjectFormatName,
+		Licenses:                      repoLicenses.StringList(),
 	}
 }
 
 // ToRepoTransfer convert a models.RepoTransfer to a structs.RepeTransfer
-func ToRepoTransfer(ctx context.Context, t *models.RepoTransfer) *api.RepoTransfer {
+func ToRepoTransfer(ctx context.Context, t *repo_model.RepoTransfer) *api.RepoTransfer {
 	teams, _ := ToTeams(ctx, t.Teams, false)
 
 	return &api.RepoTransfer{

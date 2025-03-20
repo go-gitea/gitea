@@ -7,45 +7,80 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
+	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
-	user_service "code.gitea.io/gitea/services/user"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
+// deleteOrganization deletes models associated to an organization.
+func deleteOrganization(ctx context.Context, org *org_model.Organization) error {
+	if org.Type != user_model.UserTypeOrganization {
+		return fmt.Errorf("%s is a user not an organization", org.Name)
+	}
+
+	if err := db.DeleteBeans(ctx,
+		&org_model.Team{OrgID: org.ID},
+		&org_model.OrgUser{OrgID: org.ID},
+		&org_model.TeamUser{OrgID: org.ID},
+		&org_model.TeamUnit{OrgID: org.ID},
+		&org_model.TeamInvite{OrgID: org.ID},
+		&secret_model.Secret{OwnerID: org.ID},
+		&user_model.Blocking{BlockerID: org.ID},
+		&actions_model.ActionRunner{OwnerID: org.ID},
+		&actions_model.ActionRunnerToken{OwnerID: org.ID},
+	); err != nil {
+		return fmt.Errorf("DeleteBeans: %w", err)
+	}
+
+	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
+		return fmt.Errorf("Delete: %w", err)
+	}
+
+	return nil
+}
+
 // DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(org *org_model.Organization) error {
-	ctx, commiter, err := db.TxContext(db.DefaultContext)
+func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
+
+	if purge {
+		err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
+		if err != nil {
+			return err
+		}
+	}
 
 	// Check ownership of repository.
 	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %w", err)
 	} else if count > 0 {
-		return models.ErrUserOwnRepos{UID: org.ID}
+		return repo_model.ErrUserOwnRepos{UID: org.ID}
 	}
 
 	// Check ownership of packages.
 	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, org.ID); err != nil {
 		return fmt.Errorf("HasOwnerPackages: %w", err)
 	} else if ownsPackages {
-		return models.ErrUserOwnPackages{UID: org.ID}
+		return packages_model.ErrUserOwnPackages{UID: org.ID}
 	}
 
-	if err := org_model.DeleteOrganization(ctx, org); err != nil {
+	if err := deleteOrganization(ctx, org); err != nil {
 		return fmt.Errorf("DeleteOrganization: %w", err)
 	}
 
-	if err := commiter.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return err
 	}
 
@@ -66,9 +101,4 @@ func DeleteOrganization(org *org_model.Organization) error {
 	}
 
 	return nil
-}
-
-// RenameOrganization renames an organization.
-func RenameOrganization(ctx context.Context, org *org_model.Organization, newName string) error {
-	return user_service.RenameUser(ctx, org.AsUser(), newName)
 }

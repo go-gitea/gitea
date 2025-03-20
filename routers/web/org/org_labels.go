@@ -8,10 +8,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/label"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -64,7 +64,7 @@ func UpdateLabel(ctx *context.Context) {
 	if err != nil {
 		switch {
 		case issues_model.IsErrOrgLabelNotExist(err):
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
 		}

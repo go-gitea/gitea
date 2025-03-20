@@ -5,7 +5,6 @@ package integration
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -19,10 +18,12 @@ import (
 )
 
 func TestAPIAdminOrgCreate(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user1")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
 
+	t.Run("CreateOrg", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 		org := api.CreateOrgOption{
 			UserName:    "user2_org",
 			FullName:    "User2's organization",
@@ -31,7 +32,8 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 			Location:    "Shanghai",
 			Visibility:  "private",
 		}
-		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs", &org).
+			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var apiOrg api.Organization
@@ -50,13 +52,8 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 			FullName:  org.FullName,
 		})
 	})
-}
-
-func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteAdmin)
-
+	t.Run("CreateBadVisibility", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 		org := api.CreateOrgOption{
 			UserName:    "user2_org",
 			FullName:    "User2's organization",
@@ -65,24 +62,25 @@ func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 			Location:    "Shanghai",
 			Visibility:  "notvalid",
 		}
-		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs", &org).
+			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
-}
-
-func TestAPIAdminOrgCreateNotAdmin(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	nonAdminUsername := "user2"
-	session := loginUser(t, nonAdminUsername)
-	token := getTokenForLoggedInUser(t, session)
-	org := api.CreateOrgOption{
-		UserName:    "user2_org",
-		FullName:    "User2's organization",
-		Description: "This organization created by admin for user2",
-		Website:     "https://try.gitea.io",
-		Location:    "Shanghai",
-		Visibility:  "public",
-	}
-	req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-	MakeRequest(t, req, http.StatusForbidden)
+	t.Run("CreateNotAdmin", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		nonAdminUsername := "user2"
+		session := loginUser(t, nonAdminUsername)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
+		org := api.CreateOrgOption{
+			UserName:    "user2_org",
+			FullName:    "User2's organization",
+			Description: "This organization created by admin for user2",
+			Website:     "https://try.gitea.io",
+			Location:    "Shanghai",
+			Visibility:  "public",
+		}
+		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs", &org).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 }

@@ -37,6 +37,7 @@ type ActionRun struct {
 	TriggerUser       *user_model.User       `xorm:"-"`
 	ScheduleID        int64
 	Ref               string `xorm:"index"` // the commit/tag/… that caused the run
+	IsRefDeleted      bool   `xorm:"-"`
 	CommitSHA         string
 	IsForkPullRequest bool                         // If this is triggered by a PR from a forked repository or an untrusted user, we need to check if it is approved and limit permissions when running the workflow.
 	NeedApproval      bool                         // may need approval if it's a fork pull request
@@ -47,10 +48,13 @@ type ActionRun struct {
 	Status            Status                       `xorm:"index"`
 	Permissions       Permissions                  `xorm:"-"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
-	Started           timeutil.TimeStamp
-	Stopped           timeutil.TimeStamp
-	Created           timeutil.TimeStamp `xorm:"created"`
-	Updated           timeutil.TimeStamp `xorm:"updated"`
+	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
+	Started timeutil.TimeStamp
+	Stopped timeutil.TimeStamp
+	// PreviousDuration is used for recording previous duration
+	PreviousDuration time.Duration
+	Created          timeutil.TimeStamp `xorm:"created"`
+	Updated          timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {
@@ -70,6 +74,13 @@ func (run *ActionRun) Link() string {
 		return ""
 	}
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.Index)
+}
+
+func (run *ActionRun) WorkflowLink() string {
+	if run.Repo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), run.WorkflowID)
 }
 
 func (run *ActionRun) RefShaBaseRefAndHeadRef() (string, string, string, string) {
@@ -110,7 +121,7 @@ func (run *ActionRun) RefLink() string {
 	if refName.IsPull() {
 		return run.Repo.Link() + "/pulls/" + refName.ShortName()
 	}
-	return git.RefURL(run.Repo.Link(), run.Ref)
+	return run.Repo.Link() + "/src/" + refName.RefWebLinkPath()
 }
 
 // PrettyRef return #id for pull ref or ShortName for others
@@ -128,13 +139,10 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	if run.Repo == nil {
-		repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
-		if err != nil {
-			return err
-		}
-		run.Repo = repo
+	if err := run.LoadRepo(ctx); err != nil {
+		return err
 	}
+
 	if err := run.Repo.LoadAttributes(ctx); err != nil {
 		return err
 	}
@@ -150,8 +158,21 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
+func (run *ActionRun) LoadRepo(ctx context.Context) error {
+	if run == nil || run.Repo != nil {
+		return nil
+	}
+
+	repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
+	if err != nil {
+		return err
+	}
+	run.Repo = repo
+	return nil
+}
+
 func (run *ActionRun) Duration() time.Duration {
-	return calculateDuration(run.Started, run.Stopped, run.Status)
+	return calculateDuration(run.Started, run.Stopped, run.Status) + run.PreviousDuration
 }
 
 func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
@@ -166,7 +187,7 @@ func (run *ActionRun) GetPushEventPayload() (*api.PushPayload, error) {
 }
 
 func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, error) {
-	if run.Event == webhook_module.HookEventPullRequest || run.Event == webhook_module.HookEventPullRequestSync {
+	if run.Event.IsPullRequest() {
 		var payload api.PullRequestPayload
 		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 			return nil, err
@@ -174,6 +195,10 @@ func (run *ActionRun) GetPullRequestEventPayload() (*api.PullRequestPayload, err
 		return &payload, nil
 	}
 	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
+}
+
+func (run *ActionRun) IsSchedule() bool {
+	return run.ScheduleID > 0
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
@@ -200,32 +225,36 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 	return err
 }
 
-// CancelRunningJobs cancels all running and waiting jobs associated with a specific workflow.
-func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string) error {
-	// Find all runs in the specified repository, reference, and workflow with statuses 'Running' or 'Waiting'.
-	runs, total, err := FindRuns(ctx, FindRunOptions{
-		RepoID:     repoID,
-		Ref:        ref,
-		WorkflowID: workflowID,
-		Status:     []Status{StatusRunning, StatusWaiting},
+// CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
+// It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
+func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {
+	// Find all runs in the specified repository, reference, and workflow with non-final status
+	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
+		RepoID:       repoID,
+		Ref:          ref,
+		WorkflowID:   workflowID,
+		TriggerEvent: event,
+		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If there are no runs found, there's no need to proceed with cancellation, so return nil.
 	if total == 0 {
-		return nil
+		return nil, nil
 	}
+
+	cancelledJobs := make([]*ActionRunJob, 0, total)
 
 	// Iterate over each found run and cancel its associated jobs.
 	for _, run := range runs {
 		// Find all jobs associated with the current run.
-		jobs, _, err := FindRunJobs(ctx, FindRunJobOptions{
+		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
 			RunID: run.ID,
 		})
 		if err != nil {
-			return err
+			return cancelledJobs, err
 		}
 
 		// Iterate over each job and attempt to cancel it.
@@ -244,42 +273,46 @@ func CancelRunningJobs(ctx context.Context, repoID int64, ref, workflowID string
 				// Update the job's status and stopped time in the database.
 				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
 				if err != nil {
-					return err
+					return cancelledJobs, err
 				}
 
 				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
 				if n == 0 {
-					return fmt.Errorf("job has changed, try again")
+					return cancelledJobs, fmt.Errorf("job has changed, try again")
 				}
 
+				cancelledJobs = append(cancelledJobs, job)
 				// Continue with the next job.
 				continue
 			}
 
 			// If the job has an associated task, try to stop the task, effectively cancelling the job.
 			if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
-				return err
+				return cancelledJobs, err
 			}
+			cancelledJobs = append(cancelledJobs, job)
 		}
 	}
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.
-	return nil
+	return cancelledJobs, nil
 }
 
 // InsertRun inserts a run
+// The title will be cut off at 255 characters if it's longer than 255 characters.
 func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWorkflow) error {
-	ctx, commiter, err := db.TxContext(ctx)
+	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 	if err != nil {
 		return err
 	}
 	run.Index = index
+	run.Title = util.EllipsisDisplayString(run.Title, 255)
 
 	if err := db.Insert(ctx, run); err != nil {
 		return err
@@ -312,8 +345,8 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		} else {
 			hasWaiting = true
 		}
-		job.Name, _ = util.SplitStringAtByteN(job.Name, 255)
-		runJob := &ActionRunJob{
+		job.Name, _ = util.EllipsisDisplayString(job.Name, 255)
+		runJobs = append(runJobs, &ActionRunJob{
 			RunID:             run.ID,
 			RepoID:            run.RepoID,
 			OwnerID:           run.OwnerID,
@@ -349,7 +382,7 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 		}
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
@@ -379,6 +412,36 @@ func GetRunByIndex(ctx context.Context, repoID, index int64) (*ActionRun, error)
 	return run, nil
 }
 
+func GetLatestRun(ctx context.Context, repoID int64) (*ActionRun, error) {
+	run := &ActionRun{
+		RepoID: repoID,
+	}
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Desc("index").Get(run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, fmt.Errorf("latest run with repo_id %d: %w", repoID, util.ErrNotExist)
+	}
+	return run, nil
+}
+
+func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branch, event string) (*ActionRun, error) {
+	var run ActionRun
+	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
+		And("ref = ?", branch).
+		And("workflow_id = ?", workflowFile)
+	if event != "" {
+		q.And("event = ?", event)
+	}
+	has, err := q.Desc("id").Get(&run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("run with repo_id %d, ref %s, workflow_id %s", repoID, branch, workflowFile)
+	}
+	return &run, nil
+}
+
 // UpdateRun updates a run.
 // It requires the inputted run has Version set.
 // It will return error if the version is not matched (it means the run has been changed after loaded).
@@ -387,6 +450,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 	if len(cols) > 0 {
 		sess.Cols(cols...)
 	}
+	run.Title = util.EllipsisDisplayString(run.Title, 255)
 	affected, err := sess.Update(run)
 	if err != nil {
 		return err

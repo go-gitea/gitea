@@ -1,0 +1,570 @@
+{
+  "pkg:bat": {
+    "bat": [
+      ".bat",
+      ".cmd"
+    ]
+  },
+  "pkg:clojure": {
+    "clojure": [
+      ".clj",
+      ".cljs",
+      ".cljc",
+      ".cljx",
+      ".clojure",
+      ".edn"
+    ]
+  },
+  "pkg:coffeescript": {
+    "coffeescript": [
+      ".coffee",
+      ".cson",
+      ".iced"
+    ]
+  },
+  "pkg:configuration-editing": {
+    "jsonc": [
+      ".code-workspace",
+      "language-configuration.json",
+      "icon-theme.json",
+      "color-theme.json"
+    ],
+    "json": [
+      ".code-profile"
+    ]
+  },
+  "pkg:cpp": {
+    "c": [
+      ".c",
+      ".i"
+    ],
+    "cpp": [
+      ".cpp",
+      ".cppm",
+      ".cc",
+      ".ccm",
+      ".cxx",
+      ".cxxm",
+      ".c++",
+      ".c++m",
+      ".hpp",
+      ".hh",
+      ".hxx",
+      ".h++",
+      ".h",
+      ".ii",
+      ".ino",
+      ".inl",
+      ".ipp",
+      ".ixx",
+      ".tpp",
+      ".txx",
+      ".hpp.in",
+      ".h.in"
+    ],
+    "cuda-cpp": [
+      ".cu",
+      ".cuh"
+    ]
+  },
+  "pkg:csharp": {
+    "csharp": [
+      ".cs",
+      ".csx",
+      ".cake"
+    ]
+  },
+  "pkg:css": {
+    "css": [
+      ".css"
+    ]
+  },
+  "pkg:dart": {
+    "dart": [
+      ".dart"
+    ]
+  },
+  "pkg:diff": {
+    "diff": [
+      ".diff",
+      ".patch",
+      ".rej"
+    ]
+  },
+  "pkg:docker": {
+    "dockerfile": [
+      ".dockerfile",
+      ".containerfile"
+    ]
+  },
+  "pkg:fsharp": {
+    "fsharp": [
+      ".fs",
+      ".fsi",
+      ".fsx",
+      ".fsscript"
+    ]
+  },
+  "pkg:git-base": {
+    "ignore": [
+      ".gitignore_global",
+      ".gitignore",
+      ".git-blame-ignore-revs"
+    ]
+  },
+  "pkg:go": {
+    "go": [
+      ".go"
+    ]
+  },
+  "pkg:groovy": {
+    "groovy": [
+      ".groovy",
+      ".gvy",
+      ".gradle",
+      ".jenkinsfile",
+      ".nf"
+    ]
+  },
+  "pkg:handlebars": {
+    "handlebars": [
+      ".handlebars",
+      ".hbs",
+      ".hjs"
+    ]
+  },
+  "pkg:hlsl": {
+    "hlsl": [
+      ".hlsl",
+      ".hlsli",
+      ".fx",
+      ".fxh",
+      ".vsh",
+      ".psh",
+      ".cginc",
+      ".compute"
+    ]
+  },
+  "pkg:html": {
+    "html": [
+      ".html",
+      ".htm",
+      ".shtml",
+      ".xhtml",
+      ".xht",
+      ".mdoc",
+      ".jsp",
+      ".asp",
+      ".aspx",
+      ".jshtm",
+      ".volt",
+      ".ejs",
+      ".rhtml"
+    ]
+  },
+  "pkg:ini": {
+    "ini": [
+      ".ini"
+    ],
+    "properties": [
+      ".conf",
+      ".properties",
+      ".cfg",
+      ".directory",
+      ".gitattributes",
+      ".gitconfig",
+      ".gitmodules",
+      ".editorconfig",
+      ".repo"
+    ]
+  },
+  "pkg:java": {
+    "java": [
+      ".java",
+      ".jav"
+    ]
+  },
+  "pkg:javascript": {
+    "javascriptreact": [
+      ".jsx"
+    ],
+    "javascript": [
+      ".js",
+      ".es6",
+      ".mjs",
+      ".cjs",
+      ".pac"
+    ]
+  },
+  "pkg:json": {
+    "json": [
+      ".json",
+      ".bowerrc",
+      ".jscsrc",
+      ".webmanifest",
+      ".js.map",
+      ".css.map",
+      ".ts.map",
+      ".har",
+      ".jslintrc",
+      ".jsonld",
+      ".geojson",
+      ".ipynb",
+      ".vuerc"
+    ],
+    "jsonc": [
+      ".jsonc",
+      ".eslintrc",
+      ".eslintrc.json",
+      ".jsfmtrc",
+      ".jshintrc",
+      ".swcrc",
+      ".hintrc",
+      ".babelrc"
+    ],
+    "jsonl": [
+      ".jsonl",
+      ".ndjson"
+    ],
+    "snippets": [
+      ".code-snippets"
+    ]
+  },
+  "pkg:julia": {
+    "julia": [
+      ".jl"
+    ],
+    "juliamarkdown": [
+      ".jmd"
+    ]
+  },
+  "pkg:latex": {
+    "tex": [
+      ".sty",
+      ".cls",
+      ".bbx",
+      ".cbx"
+    ],
+    "latex": [
+      ".tex",
+      ".ltx",
+      ".ctx"
+    ],
+    "bibtex": [
+      ".bib"
+    ]
+  },
+  "pkg:less": {
+    "less": [
+      ".less"
+    ]
+  },
+  "pkg:log": {
+    "log": [
+      ".log",
+      "*.log.?"
+    ]
+  },
+  "pkg:lua": {
+    "lua": [
+      ".lua"
+    ]
+  },
+  "pkg:make": {
+    "makefile": [
+      ".mak",
+      ".mk"
+    ]
+  },
+  "pkg:markdown-basics": {
+    "markdown": [
+      ".md",
+      ".mkd",
+      ".mdwn",
+      ".mdown",
+      ".markdown",
+      ".markdn",
+      ".mdtxt",
+      ".mdtext",
+      ".workbook"
+    ]
+  },
+  "pkg:ms-vscode.js-debug": {
+    "wat": [
+      ".wat",
+      ".wasm"
+    ]
+  },
+  "pkg:npm": {
+    "ignore": [
+      ".npmignore"
+    ],
+    "properties": [
+      ".npmrc"
+    ]
+  },
+  "pkg:objective-c": {
+    "objective-c": [
+      ".m"
+    ],
+    "objective-cpp": [
+      ".mm"
+    ]
+  },
+  "pkg:perl": {
+    "perl": [
+      ".pl",
+      ".pm",
+      ".pod",
+      ".t",
+      ".PL",
+      ".psgi"
+    ],
+    "raku": [
+      ".raku",
+      ".rakumod",
+      ".rakutest",
+      ".rakudoc",
+      ".nqp",
+      ".p6",
+      ".pl6",
+      ".pm6"
+    ]
+  },
+  "pkg:php": {
+    "php": [
+      ".php",
+      ".php4",
+      ".php5",
+      ".phtml",
+      ".ctp"
+    ]
+  },
+  "pkg:powershell": {
+    "powershell": [
+      ".ps1",
+      ".psm1",
+      ".psd1",
+      ".pssc",
+      ".psrc"
+    ]
+  },
+  "pkg:pug": {
+    "jade": [
+      ".pug",
+      ".jade"
+    ]
+  },
+  "pkg:python": {
+    "python": [
+      ".py",
+      ".rpy",
+      ".pyw",
+      ".cpy",
+      ".gyp",
+      ".gypi",
+      ".pyi",
+      ".ipy",
+      ".pyt"
+    ]
+  },
+  "pkg:r": {
+    "r": [
+      ".r",
+      ".rhistory",
+      ".rprofile",
+      ".rt"
+    ]
+  },
+  "pkg:razor": {
+    "razor": [
+      ".cshtml",
+      ".razor"
+    ]
+  },
+  "pkg:restructuredtext": {
+    "restructuredtext": [
+      ".rst"
+    ]
+  },
+  "pkg:ruby": {
+    "ruby": [
+      ".rb",
+      ".rbx",
+      ".rjs",
+      ".gemspec",
+      ".rake",
+      ".ru",
+      ".erb",
+      ".podspec",
+      ".rbi"
+    ]
+  },
+  "pkg:rust": {
+    "rust": [
+      ".rs"
+    ]
+  },
+  "pkg:scss": {
+    "scss": [
+      ".scss"
+    ]
+  },
+  "pkg:search-result": {
+    "search-result": [
+      ".code-search"
+    ]
+  },
+  "pkg:shaderlab": {
+    "shaderlab": [
+      ".shader"
+    ]
+  },
+  "pkg:shellscript": {
+    "shellscript": [
+      ".sh",
+      ".bash",
+      ".bashrc",
+      ".bash_aliases",
+      ".bash_profile",
+      ".bash_login",
+      ".ebuild",
+      ".eclass",
+      ".profile",
+      ".bash_logout",
+      ".xprofile",
+      ".xsession",
+      ".xsessionrc",
+      ".Xsession",
+      ".zsh",
+      ".zshrc",
+      ".zprofile",
+      ".zlogin",
+      ".zlogout",
+      ".zshenv",
+      ".zsh-theme",
+      ".fish",
+      ".ksh",
+      ".csh",
+      ".cshrc",
+      ".tcshrc",
+      ".yashrc",
+      ".yash_profile"
+    ]
+  },
+  "pkg:sql": {
+    "sql": [
+      ".sql",
+      ".dsql"
+    ]
+  },
+  "pkg:swift": {
+    "swift": [
+      ".swift"
+    ]
+  },
+  "pkg:typescript-basics": {
+    "typescript": [
+      ".ts",
+      ".cts",
+      ".mts"
+    ],
+    "typescriptreact": [
+      ".tsx"
+    ],
+    "json": [
+      ".tsbuildinfo"
+    ]
+  },
+  "pkg:vb": {
+    "vb": [
+      ".vb",
+      ".brs",
+      ".vbs",
+      ".bas",
+      ".vba"
+    ]
+  },
+  "pkg:xml": {
+    "xml": [
+      ".xml",
+      ".xsd",
+      ".ascx",
+      ".atom",
+      ".axml",
+      ".axaml",
+      ".bpmn",
+      ".cpt",
+      ".csl",
+      ".csproj",
+      ".csproj.user",
+      ".dita",
+      ".ditamap",
+      ".dtd",
+      ".ent",
+      ".mod",
+      ".dtml",
+      ".fsproj",
+      ".fxml",
+      ".iml",
+      ".isml",
+      ".jmx",
+      ".launch",
+      ".menu",
+      ".mxml",
+      ".nuspec",
+      ".opml",
+      ".owl",
+      ".proj",
+      ".props",
+      ".pt",
+      ".publishsettings",
+      ".pubxml",
+      ".pubxml.user",
+      ".rbxlx",
+      ".rbxmx",
+      ".rdf",
+      ".rng",
+      ".rss",
+      ".shproj",
+      ".storyboard",
+      ".svg",
+      ".targets",
+      ".tld",
+      ".tmx",
+      ".vbproj",
+      ".vbproj.user",
+      ".vcxproj",
+      ".vcxproj.filters",
+      ".wsdl",
+      ".wxi",
+      ".wxl",
+      ".wxs",
+      ".xaml",
+      ".xbl",
+      ".xib",
+      ".xlf",
+      ".xliff",
+      ".xpdl",
+      ".xul",
+      ".xoml"
+    ],
+    "xsl": [
+      ".xsl",
+      ".xslt"
+    ]
+  },
+  "pkg:yaml": {
+    "yaml": [
+      ".yaml",
+      ".yml",
+      ".eyaml",
+      ".eyml",
+      ".cff",
+      ".yaml-tmlanguage",
+      ".yaml-tmpreferences",
+      ".yaml-tmtheme",
+      ".winget"
+    ]
+  }
+}

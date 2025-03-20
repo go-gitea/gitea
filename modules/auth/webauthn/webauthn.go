@@ -4,13 +4,14 @@
 package webauthn
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/gob"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -31,47 +32,49 @@ func Init() {
 			RPID:          setting.Domain,
 			RPOrigins:     []string{appURL},
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
-				UserVerification: "discouraged",
+				UserVerification: protocol.VerificationDiscouraged,
 			},
 			AttestationPreference: protocol.PreferDirectAttestation,
 		},
 	}
 }
 
-// User represents an implementation of webauthn.User based on User model
-type User user_model.User
+// user represents an implementation of webauthn.User based on User model
+type user struct {
+	ctx  context.Context
+	User *user_model.User
+
+	defaultAuthFlags protocol.AuthenticatorFlags
+}
+
+var _ webauthn.User = (*user)(nil)
+
+func NewWebAuthnUser(ctx context.Context, u *user_model.User, defaultAuthFlags ...protocol.AuthenticatorFlags) webauthn.User {
+	return &user{ctx: ctx, User: u, defaultAuthFlags: util.OptionalArg(defaultAuthFlags)}
+}
 
 // WebAuthnID implements the webauthn.User interface
-func (u *User) WebAuthnID() []byte {
+func (u *user) WebAuthnID() []byte {
 	id := make([]byte, 8)
-	binary.PutVarint(id, u.ID)
+	binary.PutVarint(id, u.User.ID)
 	return id
 }
 
 // WebAuthnName implements the webauthn.User interface
-func (u *User) WebAuthnName() string {
-	if u.LoginName == "" {
-		return u.Name
-	}
-	return u.LoginName
+func (u *user) WebAuthnName() string {
+	return util.IfZero(u.User.LoginName, u.User.Name)
 }
 
 // WebAuthnDisplayName implements the webauthn.User interface
-func (u *User) WebAuthnDisplayName() string {
-	return (*user_model.User)(u).DisplayName()
+func (u *user) WebAuthnDisplayName() string {
+	return u.User.DisplayName()
 }
 
-// WebAuthnIcon implements the webauthn.User interface
-func (u *User) WebAuthnIcon() string {
-	return (*user_model.User)(u).AvatarLink(db.DefaultContext)
-}
-
-// WebAuthnCredentials implementns the webauthn.User interface
-func (u *User) WebAuthnCredentials() []webauthn.Credential {
-	dbCreds, err := auth.GetWebAuthnCredentialsByUID(db.DefaultContext, u.ID)
+// WebAuthnCredentials implements the webauthn.User interface
+func (u *user) WebAuthnCredentials() []webauthn.Credential {
+	dbCreds, err := auth.GetWebAuthnCredentialsByUID(u.ctx, u.User.ID)
 	if err != nil {
 		return nil
 	}
-
-	return dbCreds.ToCredentials()
+	return dbCreds.ToCredentials(u.defaultAuthFlags)
 }

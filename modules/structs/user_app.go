@@ -31,21 +31,23 @@ type CreateAccessTokenOption struct {
 
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
 type CreateOAuth2ApplicationOptions struct {
-	Name               string   `json:"name" binding:"Required"`
-	ConfidentialClient bool     `json:"confidential_client"`
-	RedirectURIs       []string `json:"redirect_uris" binding:"Required"`
+	Name                       string   `json:"name" binding:"Required"`
+	ConfidentialClient         bool     `json:"confidential_client"`
+	SkipSecondaryAuthorization bool     `json:"skip_secondary_authorization"`
+	RedirectURIs               []string `json:"redirect_uris" binding:"Required"`
 }
 
 // OAuth2Application represents an OAuth2 application.
 // swagger:response OAuth2Application
 type OAuth2Application struct {
-	ID                 int64     `json:"id"`
-	Name               string    `json:"name"`
-	ClientID           string    `json:"client_id"`
-	ClientSecret       string    `json:"client_secret"`
-	ConfidentialClient bool      `json:"confidential_client"`
-	RedirectURIs       []string  `json:"redirect_uris"`
-	Created            time.Time `json:"created"`
+	ID                         int64     `json:"id"`
+	Name                       string    `json:"name"`
+	ClientID                   string    `json:"client_id"`
+	ClientSecret               string    `json:"client_secret"`
+	ConfidentialClient         bool      `json:"confidential_client"`
+	SkipSecondaryAuthorization bool      `json:"skip_secondary_authorization"`
+	RedirectURIs               []string  `json:"redirect_uris"`
+	Created                    time.Time `json:"created"`
 }
 
 // OAuth2ApplicationList represents a list of OAuth2 applications.

@@ -107,7 +107,7 @@ func CreateMigrateTask(ctx context.Context, doer, u *user_model.User, opts base.
 		Description:    opts.Description,
 		OriginalURL:    opts.OriginalURL,
 		GitServiceType: opts.GitServiceType,
-		IsPrivate:      opts.Private,
+		IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 		IsMirror:       opts.Mirror,
 		Status:         repo_model.RepositoryBeingMigrated,
 	})

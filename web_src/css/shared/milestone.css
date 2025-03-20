@@ -12,7 +12,7 @@
   border-top: 1px solid var(--color-secondary);
 }
 
-.milestone-card .content {
+.milestone-card .render-content {
   padding-top: 10px;
 }
 

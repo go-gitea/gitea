@@ -14,10 +14,11 @@ import (
 	"strconv"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -25,6 +26,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	auth_service "code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 	container_service "code.gitea.io/gitea/services/packages/container"
 
@@ -114,17 +117,23 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 	})
 }
 
-// ReqContainerAccess is a middleware which checks the current user valid (real user or ghost for anonymous access)
+func apiUnauthorizedError(ctx *context.Context) {
+	// container registry requires that the "/v2" must be in the root, so the sub-path in AppURL should be removed
+	realmURL := httplib.GuessCurrentHostURL(ctx) + "/v2/token"
+	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+realmURL+`",service="container_registry",scope="*"`)
+	apiErrorDefined(ctx, errUnauthorized)
+}
+
+// ReqContainerAccess is a middleware which checks the current user valid (real user or ghost if anonymous access is enabled)
 func ReqContainerAccess(ctx *context.Context) {
-	if ctx.Doer == nil {
-		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token",service="container_registry",scope="*"`)
-		apiErrorDefined(ctx, errUnauthorized)
+	if ctx.Doer == nil || (setting.Service.RequireSignInView && ctx.Doer.IsGhost()) {
+		apiUnauthorizedError(ctx)
 	}
 }
 
 // VerifyImageName is a middleware which checks if the image name is allowed
 func VerifyImageName(ctx *context.Context) {
-	if !imageNamePattern.MatchString(ctx.Params("image")) {
+	if !imageNamePattern.MatchString(ctx.PathParam("image")) {
 		apiErrorDefined(ctx, errNameInvalid)
 	}
 }
@@ -138,14 +147,32 @@ func DetermineSupport(ctx *context.Context) {
 }
 
 // Authenticate creates a token for the current user
-// If the current user is anonymous, the ghost user is used
+// If the current user is anonymous, the ghost user is used unless RequireSignInView is enabled.
 func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
+	packageScope := auth_service.GetAccessScope(ctx.Data)
 	if u == nil {
+		if setting.Service.RequireSignInView {
+			apiUnauthorizedError(ctx)
+			return
+		}
+
 		u = user_model.NewGhostUser()
+	} else {
+		if has, err := packageScope.HasAnyScope(
+			auth_model.AccessTokenScopeReadPackage,
+			auth_model.AccessTokenScopeWritePackage,
+			auth_model.AccessTokenScopeAll,
+		); !has {
+			if err != nil {
+				log.Error("Error checking access scope: %v", err)
+			}
+			apiUnauthorizedError(ctx)
+			return
+		}
 	}
 
-	token, err := packages_service.CreateAuthorizationToken(u)
+	token, err := packages_service.CreateAuthorizationToken(u, packageScope)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -154,6 +181,17 @@ func Authenticate(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]string{
 		"token": token,
 	})
+}
+
+// https://distribution.github.io/distribution/spec/auth/oauth/
+func AuthenticateNotImplemented(ctx *context.Context) {
+	// This optional endpoint can be used to authenticate a client.
+	// It must implement the specification described in:
+	// https://datatracker.ietf.org/doc/html/rfc6749
+	// https://distribution.github.io/distribution/spec/auth/oauth/
+	// Purpose of this stub is to respond with 404 Not Found instead of 405 Method Not Allowed.
+
+	ctx.Status(http.StatusNotFound)
 }
 
 // https://docs.docker.com/registry/spec/api/#listing-repositories
@@ -193,7 +231,7 @@ func GetRepositoryList(ctx *context.Context) {
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#single-post
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
 func InitiateUploadBlob(ctx *context.Context) {
-	image := ctx.Params("image")
+	image := ctx.PathParam("image")
 
 	mount := ctx.FormTrim("mount")
 	from := ctx.FormTrim("from")
@@ -282,11 +320,11 @@ func InitiateUploadBlob(ctx *context.Context) {
 
 // https://docs.docker.com/registry/spec/api/#get-blob-upload
 func GetUploadBlob(ctx *context.Context) {
-	uuid := ctx.Params("uuid")
+	uuid := ctx.PathParam("uuid")
 
 	upload, err := packages_model.GetBlobUploadByID(ctx, uuid)
 	if err != nil {
-		if err == packages_model.ErrPackageBlobUploadNotExist {
+		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -303,11 +341,11 @@ func GetUploadBlob(ctx *context.Context) {
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
 func UploadBlob(ctx *context.Context) {
-	image := ctx.Params("image")
+	image := ctx.PathParam("image")
 
-	uploader, err := container_service.NewBlobUploader(ctx, ctx.Params("uuid"))
+	uploader, err := container_service.NewBlobUploader(ctx, ctx.PathParam("uuid"))
 	if err != nil {
-		if err == packages_model.ErrPackageBlobUploadNotExist {
+		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -348,7 +386,7 @@ func UploadBlob(ctx *context.Context) {
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
 func EndUploadBlob(ctx *context.Context) {
-	image := ctx.Params("image")
+	image := ctx.PathParam("image")
 
 	digest := ctx.FormTrim("digest")
 	if digest == "" {
@@ -356,18 +394,18 @@ func EndUploadBlob(ctx *context.Context) {
 		return
 	}
 
-	uploader, err := container_service.NewBlobUploader(ctx, ctx.Params("uuid"))
+	uploader, err := container_service.NewBlobUploader(ctx, ctx.PathParam("uuid"))
 	if err != nil {
-		if err == packages_model.ErrPackageBlobUploadNotExist {
+		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
 	}
-	close := true
+	doClose := true
 	defer func() {
-		if close {
+		if doClose {
 			uploader.Close()
 		}
 	}()
@@ -407,7 +445,7 @@ func EndUploadBlob(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	close = false
+	doClose = false
 
 	if err := container_service.RemoveBlobUploadByID(ctx, uploader.ID); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -423,11 +461,11 @@ func EndUploadBlob(ctx *context.Context) {
 
 // https://docs.docker.com/registry/spec/api/#delete-blob-upload
 func CancelUploadBlob(ctx *context.Context) {
-	uuid := ctx.Params("uuid")
+	uuid := ctx.PathParam("uuid")
 
 	_, err := packages_model.GetBlobUploadByID(ctx, uuid)
 	if err != nil {
-		if err == packages_model.ErrPackageBlobUploadNotExist {
+		if errors.Is(err, packages_model.ErrPackageBlobUploadNotExist) {
 			apiErrorDefined(ctx, errBlobUploadUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -446,7 +484,7 @@ func CancelUploadBlob(ctx *context.Context) {
 }
 
 func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescriptor, error) {
-	d := ctx.Params("digest")
+	d := ctx.PathParam("digest")
 
 	if digest.Digest(d).Validate() != nil {
 		return nil, container_model.ErrContainerBlobNotExist
@@ -454,7 +492,7 @@ func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescri
 
 	return workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
-		Image:   ctx.Params("image"),
+		Image:   ctx.PathParam("image"),
 		Digest:  d,
 	})
 }
@@ -463,7 +501,7 @@ func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescri
 func HeadBlob(ctx *context.Context) {
 	blob, err := getBlobFromContext(ctx)
 	if err != nil {
-		if err == container_model.ErrContainerBlobNotExist {
+		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -482,7 +520,7 @@ func HeadBlob(ctx *context.Context) {
 func GetBlob(ctx *context.Context) {
 	blob, err := getBlobFromContext(ctx)
 	if err != nil {
-		if err == container_model.ErrContainerBlobNotExist {
+		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -495,14 +533,14 @@ func GetBlob(ctx *context.Context) {
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-blobs
 func DeleteBlob(ctx *context.Context) {
-	d := ctx.Params("digest")
+	d := ctx.PathParam("digest")
 
 	if digest.Digest(d).Validate() != nil {
 		apiErrorDefined(ctx, errBlobUnknown)
 		return
 	}
 
-	if err := deleteBlob(ctx, ctx.Package.Owner.ID, ctx.Params("image"), d); err != nil {
+	if err := deleteBlob(ctx, ctx.Package.Owner.ID, ctx.PathParam("image"), d); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -514,13 +552,13 @@ func DeleteBlob(ctx *context.Context) {
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-manifests
 func UploadManifest(ctx *context.Context) {
-	reference := ctx.Params("reference")
+	reference := ctx.PathParam("reference")
 
 	mci := &manifestCreationInfo{
 		MediaType: ctx.Req.Header.Get("Content-Type"),
 		Owner:     ctx.Package.Owner,
 		Creator:   ctx.Doer,
-		Image:     ctx.Params("image"),
+		Image:     ctx.PathParam("image"),
 		Reference: reference,
 		IsTagged:  digest.Digest(reference).Validate() != nil,
 	}
@@ -569,11 +607,11 @@ func UploadManifest(ctx *context.Context) {
 }
 
 func getBlobSearchOptionsFromContext(ctx *context.Context) (*container_model.BlobSearchOptions, error) {
-	reference := ctx.Params("reference")
+	reference := ctx.PathParam("reference")
 
 	opts := &container_model.BlobSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
-		Image:      ctx.Params("image"),
+		Image:      ctx.PathParam("image"),
 		IsManifest: true,
 	}
 
@@ -601,7 +639,7 @@ func getManifestFromContext(ctx *context.Context) (*packages_model.PackageFileDe
 func HeadManifest(ctx *context.Context) {
 	manifest, err := getManifestFromContext(ctx)
 	if err != nil {
-		if err == container_model.ErrContainerBlobNotExist {
+		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errManifestUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -621,7 +659,7 @@ func HeadManifest(ctx *context.Context) {
 func GetManifest(ctx *context.Context) {
 	manifest, err := getManifestFromContext(ctx)
 	if err != nil {
-		if err == container_model.ErrContainerBlobNotExist {
+		if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errManifestUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -653,7 +691,7 @@ func DeleteManifest(ctx *context.Context) {
 	}
 
 	for _, pv := range pvs {
-		if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
+		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
@@ -665,7 +703,9 @@ func DeleteManifest(ctx *context.Context) {
 }
 
 func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
-	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pfd.File, pfd.Blob)
+	serveDirectReqParams := make(url.Values)
+	serveDirectReqParams.Set("response-content-type", pfd.Properties.GetByName(container_module.PropertyMediaType))
+	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pfd.File, pfd.Blob, serveDirectReqParams)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -696,10 +736,10 @@ func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) 
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#content-discovery
 func GetTagList(ctx *context.Context) {
-	image := ctx.Params("image")
+	image := ctx.PathParam("image")
 
 	if _, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeContainer, image); err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiErrorDefined(ctx, errNameUnknown)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)

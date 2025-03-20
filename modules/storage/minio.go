@@ -85,11 +85,23 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
+	var lookup minio.BucketLookupType
+	if config.BucketLookUpType == "auto" || config.BucketLookUpType == "" {
+		lookup = minio.BucketLookupAuto
+	} else if config.BucketLookUpType == "dns" {
+		lookup = minio.BucketLookupDNS
+	} else if config.BucketLookUpType == "path" {
+		lookup = minio.BucketLookupPath
+	} else {
+		return nil, fmt.Errorf("invalid minio bucket lookup type: %s", config.BucketLookUpType)
+	}
+
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
-		Secure:    config.UseSSL,
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
-		Region:    config.Location,
+		Creds:        buildMinioCredentials(config),
+		Secure:       config.UseSSL,
+		Transport:    &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
+		Region:       config.Location,
+		BucketLookup: lookup,
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
@@ -150,6 +162,37 @@ func (m *MinioStorage) buildMinioDirPrefix(p string) string {
 		p = "" // object store doesn't use slash for root path
 	}
 	return p
+}
+
+func buildMinioCredentials(config setting.MinioStorageConfig) *credentials.Credentials {
+	// If static credentials are provided, use those
+	if config.AccessKeyID != "" {
+		return credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, "")
+	}
+
+	// Otherwise, fallback to a credentials chain for S3 access
+	chain := []credentials.Provider{
+		// configure based upon MINIO_ prefixed environment variables
+		&credentials.EnvMinio{},
+		// configure based upon AWS_ prefixed environment variables
+		&credentials.EnvAWS{},
+		// read credentials from MINIO_SHARED_CREDENTIALS_FILE
+		// environment variable, or default json config files
+		&credentials.FileMinioClient{},
+		// read credentials from AWS_SHARED_CREDENTIALS_FILE
+		// environment variable, or default credentials file
+		&credentials.FileAWSCredentials{},
+		// read IAM role from EC2 metadata endpoint if available
+		&credentials.IAM{
+			// passing in an empty Endpoint lets the IAM Provider
+			// decide which endpoint to resolve internally
+			Endpoint: config.IamEndpoint,
+			Client: &http.Client{
+				Transport: http.DefaultTransport,
+			},
+		},
+	}
+	return credentials.NewChainCredentials(chain)
 }
 
 // Open opens a file
@@ -235,8 +278,12 @@ func (m *MinioStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
-	reqParams := make(url.Values)
+func (m *MinioStorage) URL(path, name string, serveDirectReqParams url.Values) (*url.URL, error) {
+	// copy serveDirectReqParams
+	reqParams, err := url.ParseQuery(serveDirectReqParams.Encode())
+	if err != nil {
+		return nil, err
+	}
 	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
 	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
 	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)

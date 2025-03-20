@@ -29,11 +29,10 @@ func GetKeyPair(ctx context.Context, user *user_model.User) (pub, priv string, e
 			return pub, priv, err
 		}
 		return pub, priv, err
-	} else {
-		priv = settings[user_model.UserActivityPubPrivPem].SettingValue
-		pub = settings[user_model.UserActivityPubPubPem].SettingValue
-		return pub, priv, err
 	}
+	priv = settings[user_model.UserActivityPubPrivPem].SettingValue
+	pub = settings[user_model.UserActivityPubPubPem].SettingValue
+	return pub, priv, err
 }
 
 // GetPublicKey function returns a user's public key

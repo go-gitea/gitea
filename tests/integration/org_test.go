@@ -169,8 +169,8 @@ func TestOrgRestrictedUser(t *testing.T) {
 		Units:                   []string{"repo.code"},
 	}
 
-	req = NewRequestWithJSON(t, "POST",
-		fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, token), teamToCreate)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", orgName), teamToCreate).
+		AddTokenAuth(token)
 
 	var apiTeam api.Team
 
@@ -183,8 +183,8 @@ func TestOrgRestrictedUser(t *testing.T) {
 	// teamID := apiTeam.ID
 
 	// Now we need to add the restricted user to the team
-	req = NewRequest(t, "PUT",
-		fmt.Sprintf("/api/v1/teams/%d/members/%s?token=%s", apiTeam.ID, restrictedUser, token))
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/teams/%d/members/%s", apiTeam.ID, restrictedUser)).
+		AddTokenAuth(token)
 	_ = adminSession.MakeRequest(t, req, http.StatusNoContent)
 
 	// Now we need to check if the restrictedUser can access the repo
@@ -204,9 +204,7 @@ func TestTeamSearch(t *testing.T) {
 	var results TeamSearchResults
 
 	session := loginUser(t, user.Name)
-	csrf := GetCSRF(t, session, "/"+org.Name)
 	req := NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "_team")
-	req.Header.Add("X-Csrf-Token", csrf)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
 	assert.NotEmpty(t, results.Data)
@@ -217,8 +215,6 @@ func TestTeamSearch(t *testing.T) {
 	// no access if not organization member
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	session = loginUser(t, user5.Name)
-	csrf = GetCSRF(t, session, "/"+org.Name)
 	req = NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "team")
-	req.Header.Add("X-Csrf-Token", csrf)
 	session.MakeRequest(t, req, http.StatusNotFound)
 }

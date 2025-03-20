@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/gorilla/feeds"
 )
@@ -23,7 +23,7 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 	}
 
 	title := fmt.Sprintf("Latest commits for branch %s", ctx.Repo.BranchName)
-	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.BranchNameSubURL()}
+	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.RefTypeNameSubURL()}
 
 	feed := &feeds.Feed{
 		Title:       title,
@@ -43,6 +43,7 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 			},
 			Description: commit.Message(),
 			Content:     commit.Message(),
+			Created:     commit.Committer.When,
 		})
 	}
 

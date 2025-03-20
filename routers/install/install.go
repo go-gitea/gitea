@@ -7,6 +7,7 @@ package install
 import (
 	"fmt"
 	"net/http"
+	"net/mail"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,32 +17,34 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	db_install "code.gitea.io/gitea/models/db/install"
-	"code.gitea.io/gitea/models/migrations"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
+	auth_service "code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/versioned_migration"
 
 	"gitea.com/go-chi/session"
 )
 
 const (
 	// tplInstall template for installation page
-	tplInstall     base.TplName = "install"
-	tplPostInstall base.TplName = "post-install"
+	tplInstall     templates.TplName = "install"
+	tplPostInstall templates.TplName = "post-install"
 )
 
 // getSupportedDbTypeNames returns a slice for supported database types and names. The slice is used to keep the order
@@ -59,15 +62,10 @@ func Contexter() func(next http.Handler) http.Handler {
 	envConfigKeys := setting.CollectEnvConfigKeys()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := context.NewBaseContext(resp, req)
-			defer baseCleanUp()
-
+			base := context.NewBaseContext(resp, req)
 			ctx := context.NewWebContext(base, rnd, session.GetSession(req))
-			ctx.AppendContextValue(context.WebContextKey, ctx)
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data.MergeFrom(middleware.ContextData{
-				"Context":        ctx, // TODO: use "ctx" in template and remove this
-				"locale":         ctx.Locale,
+			ctx.Data.MergeFrom(reqctx.ContextData{
 				"Title":          ctx.Locale.Tr("install.install"),
 				"PageIsInstall":  true,
 				"DbTypeNames":    dbTypeNames,
@@ -361,7 +359,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Init the engine with migration
-	if err = db.InitEngineWithMigration(ctx, migrations.Migrate); err != nil {
+	if err = db.InitEngineWithMigration(ctx, versioned_migration.Migrate); err != nil {
 		db.UnsetDefaultEngine()
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
@@ -407,7 +405,7 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
 		var lfsJwtSecret string
-		if _, lfsJwtSecret, err = generate.NewJwtSecretBase64(); err != nil {
+		if _, lfsJwtSecret, err = generate.NewJwtSecretWithBase64(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
 			return
 		}
@@ -417,6 +415,11 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
+		if _, err := mail.ParseAddress(form.SMTPFrom); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.smtp_from_invalid"), tplInstall, &form)
+			return
+		}
+
 		cfg.Section("mailer").Key("ENABLED").SetValue("true")
 		cfg.Section("mailer").Key("SMTP_ADDR").SetValue(form.SMTPAddr)
 		cfg.Section("mailer").Key("SMTP_PORT").SetValue(form.SMTPPort)
@@ -430,15 +433,14 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(fmt.Sprint(form.MailNotify))
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
-	// if you are reinstalling, this maybe not right because of missing version
-	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
+	if err := system_model.SetSettings(ctx, map[string]string{
+		setting.Config().Picture.DisableGravatar.DynKey():       strconv.FormatBool(form.DisableGravatar),
+		setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(form.EnableFederatedAvatar),
+	}); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
-	if err := system_model.SetSettingNoVersion(ctx, system_model.KeyPictureEnableFederatedAvatar, strconv.FormatBool(form.EnableFederatedAvatar)); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
-		return
-	}
+
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
 	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(fmt.Sprint(form.DisableRegistration))
@@ -472,6 +474,17 @@ func SubmitInstall(ctx *context.Context) {
 			return
 		}
 		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
+	}
+
+	// FIXME: at the moment, no matter oauth2 is enabled or not, it must generate a "oauth2 JWT_SECRET"
+	// see the "loadOAuth2From" in "setting/oauth2.go"
+	if !cfg.Section("oauth2").HasKey("JWT_SECRET") && !cfg.Section("oauth2").HasKey("JWT_SECRET_URI") {
+		_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
+		if err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("oauth2").Key("JWT_SECRET").SetValue(jwtSecretBase64)
 	}
 
 	// if there is already a SECRET_KEY, we should not overwrite it, otherwise the encrypted data will not be able to be decrypted
@@ -532,11 +545,11 @@ func SubmitInstall(ctx *context.Context) {
 			IsAdmin: true,
 		}
 		overwriteDefault := &user_model.CreateUserOverwriteOptions{
-			IsRestricted: util.OptionalBoolFalse,
-			IsActive:     util.OptionalBoolTrue,
+			IsRestricted: optional.Some(false),
+			IsActive:     optional.Some(true),
 		}
 
-		if err = user_model.CreateUser(ctx, u, overwriteDefault); err != nil {
+		if err = user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
@@ -548,11 +561,13 @@ func SubmitInstall(ctx *context.Context) {
 			u, _ = user_model.GetUserByName(ctx, u.Name)
 		}
 
-		days := 86400 * setting.LogInRememberDays
-		ctx.SetSiteCookie(setting.CookieUserName, u.Name, days)
+		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
+		if err != nil {
+			ctx.ServerError("CreateAuthTokenForUserID", err)
+			return
+		}
 
-		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
-			setting.CookieRememberName, u.Name, days)
+		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
 		// Auto-login for admin
 		if err = ctx.Session.Set("uid", u.ID); err != nil {

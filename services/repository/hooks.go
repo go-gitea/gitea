@@ -10,9 +10,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 
 	"xorm.io/builder"
 )
@@ -32,11 +31,11 @@ func SyncRepositoryHooks(ctx context.Context) error {
 			default:
 			}
 
-			if err := repo_module.CreateDelegateHooks(repo.RepoPath()); err != nil {
+			if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 				return fmt.Errorf("SyncRepositoryHook: %w", err)
 			}
 			if repo.HasWiki() {
-				if err := repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
+				if err := gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 					return fmt.Errorf("SyncRepositoryHook: %w", err)
 				}
 			}
@@ -52,13 +51,13 @@ func SyncRepositoryHooks(ctx context.Context) error {
 
 // GenerateGitHooks generates git hooks from a template repository
 func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	generateGitRepo, err := git.OpenRepository(ctx, generateRepo.RepoPath())
+	generateGitRepo, err := gitrepo.OpenRepository(ctx, generateRepo)
 	if err != nil {
 		return err
 	}
 	defer generateGitRepo.Close()
 
-	templateGitRepo, err := git.OpenRepository(ctx, templateRepo.RepoPath())
+	templateGitRepo, err := gitrepo.OpenRepository(ctx, templateRepo)
 	if err != nil {
 		return err
 	}
@@ -85,7 +84,7 @@ func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 
 // GenerateWebhooks generates webhooks from a template repository
 func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	templateWebhooks, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{RepoID: templateRepo.ID})
+	templateWebhooks, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{RepoID: templateRepo.ID})
 	if err != nil {
 		return err
 	}

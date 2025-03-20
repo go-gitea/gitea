@@ -8,6 +8,7 @@ package git
 import (
 	"context"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
@@ -18,7 +19,7 @@ func (c *Commit) CacheCommit(ctx context.Context) error {
 	}
 	commitNodeIndex, _ := c.repo.CommitNodeIndex()
 
-	index, err := commitNodeIndex.Get(c.ID)
+	index, err := commitNodeIndex.Get(plumbing.Hash(c.ID.RawValue()))
 	if err != nil {
 		return err
 	}

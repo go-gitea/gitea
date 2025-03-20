@@ -17,9 +17,9 @@ import (
 type (
 	authService struct {
 		initDB            func(ctx context.Context) error
-		createAuthSource  func(*auth.Source) error
-		updateAuthSource  func(*auth.Source) error
-		getAuthSourceByID func(id int64) (*auth.Source, error)
+		createAuthSource  func(context.Context, *auth.Source) error
+		updateAuthSource  func(context.Context, *auth.Source) error
+		getAuthSourceByID func(ctx context.Context, id int64) (*auth.Source, error)
 	}
 )
 
@@ -127,15 +127,43 @@ var (
 		&cli.UintFlag{
 			Name:  "page-size",
 			Usage: "Search page size.",
+		},
+		&cli.BoolFlag{
+			Name:  "enable-groups",
+			Usage: "Enable LDAP groups",
+		},
+		&cli.StringFlag{
+			Name:  "group-search-base-dn",
+			Usage: "The LDAP base DN at which group accounts will be searched for",
+		},
+		&cli.StringFlag{
+			Name:  "group-member-attribute",
+			Usage: "Group attribute containing list of users",
+		},
+		&cli.StringFlag{
+			Name:  "group-user-attribute",
+			Usage: "User attribute listed in group",
+		},
+		&cli.StringFlag{
+			Name:  "group-filter",
+			Usage: "Verify group membership in LDAP",
+		},
+		&cli.StringFlag{
+			Name:  "group-team-map",
+			Usage: "Map LDAP groups to Organization teams",
+		},
+		&cli.BoolFlag{
+			Name:  "group-team-map-removal",
+			Usage: "Remove users from synchronized teams if user does not belong to corresponding LDAP group",
 		})
 
 	ldapSimpleAuthCLIFlags = append(commonLdapCLIFlags,
 		&cli.StringFlag{
 			Name:  "user-dn",
-			Usage: "The user’s DN.",
+			Usage: "The user's DN.",
 		})
 
-	cmdAuthAddLdapBindDn = &cli.Command{
+	microcmdAuthAddLdapBindDn = &cli.Command{
 		Name:  "add-ldap",
 		Usage: "Add new LDAP (via Bind DN) authentication source",
 		Action: func(c *cli.Context) error {
@@ -144,7 +172,7 @@ var (
 		Flags: ldapBindDnCLIFlags,
 	}
 
-	cmdAuthUpdateLdapBindDn = &cli.Command{
+	microcmdAuthUpdateLdapBindDn = &cli.Command{
 		Name:  "update-ldap",
 		Usage: "Update existing LDAP (via Bind DN) authentication source",
 		Action: func(c *cli.Context) error {
@@ -153,7 +181,7 @@ var (
 		Flags: append([]cli.Flag{idFlag}, ldapBindDnCLIFlags...),
 	}
 
-	cmdAuthAddLdapSimpleAuth = &cli.Command{
+	microcmdAuthAddLdapSimpleAuth = &cli.Command{
 		Name:  "add-ldap-simple",
 		Usage: "Add new LDAP (simple auth) authentication source",
 		Action: func(c *cli.Context) error {
@@ -162,7 +190,7 @@ var (
 		Flags: ldapSimpleAuthCLIFlags,
 	}
 
-	cmdAuthUpdateLdapSimpleAuth = &cli.Command{
+	microcmdAuthUpdateLdapSimpleAuth = &cli.Command{
 		Name:  "update-ldap-simple",
 		Usage: "Update existing LDAP (simple auth) authentication source",
 		Action: func(c *cli.Context) error {
@@ -273,6 +301,27 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("skip-local-2fa") {
 		config.SkipLocalTwoFA = c.Bool("skip-local-2fa")
 	}
+	if c.IsSet("enable-groups") {
+		config.GroupsEnabled = c.Bool("enable-groups")
+	}
+	if c.IsSet("group-search-base-dn") {
+		config.GroupDN = c.String("group-search-base-dn")
+	}
+	if c.IsSet("group-member-attribute") {
+		config.GroupMemberUID = c.String("group-member-attribute")
+	}
+	if c.IsSet("group-user-attribute") {
+		config.UserUID = c.String("group-user-attribute")
+	}
+	if c.IsSet("group-filter") {
+		config.GroupFilter = c.String("group-filter")
+	}
+	if c.IsSet("group-team-map") {
+		config.GroupTeamMap = c.String("group-team-map")
+	}
+	if c.IsSet("group-team-map-removal") {
+		config.GroupTeamMapRemoval = c.Bool("group-team-map-removal")
+	}
 	return nil
 }
 
@@ -289,12 +338,12 @@ func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
 
 // getAuthSource gets the login source by its id defined in the command line flags.
 // It returns an error if the id is not set, does not match any source or if the source is not of expected type.
-func (a *authService) getAuthSource(c *cli.Context, authType auth.Type) (*auth.Source, error) {
+func (a *authService) getAuthSource(ctx context.Context, c *cli.Context, authType auth.Type) (*auth.Source, error) {
 	if err := argsSet(c, "id"); err != nil {
 		return nil, err
 	}
 
-	authSource, err := a.getAuthSourceByID(c.Int64("id"))
+	authSource, err := a.getAuthSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +381,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	return a.createAuthSource(authSource)
+	return a.createAuthSource(ctx, authSource)
 }
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
@@ -344,7 +393,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	authSource, err := a.getAuthSource(c, auth.LDAP)
+	authSource, err := a.getAuthSource(ctx, c, auth.LDAP)
 	if err != nil {
 		return err
 	}
@@ -354,7 +403,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	return a.updateAuthSource(authSource)
+	return a.updateAuthSource(ctx, authSource)
 }
 
 // addLdapSimpleAuth adds a new LDAP (simple auth) authentication source.
@@ -383,10 +432,10 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	return a.createAuthSource(authSource)
+	return a.createAuthSource(ctx, authSource)
 }
 
-// updateLdapBindDn updates a new LDAP (simple auth) authentication source.
+// updateLdapSimpleAuth updates a new LDAP (simple auth) authentication source.
 func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
@@ -395,7 +444,7 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	authSource, err := a.getAuthSource(c, auth.DLDAP)
+	authSource, err := a.getAuthSource(ctx, c, auth.DLDAP)
 	if err != nil {
 		return err
 	}
@@ -405,5 +454,5 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	return a.updateAuthSource(authSource)
+	return a.updateAuthSource(ctx, authSource)
 }

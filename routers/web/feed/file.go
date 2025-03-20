@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/gorilla/feeds"
 )
@@ -24,7 +24,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 	}
 	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
-			Revision: ctx.Repo.RefName,
+			Revision: ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
 			File:     fileName,
 			Page:     1,
 		})
@@ -35,7 +35,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 
 	title := fmt.Sprintf("Latest commits for file %s", ctx.Repo.TreePath)
 
-	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)}
+	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)}
 
 	feed := &feeds.Feed{
 		Title:       title,
@@ -55,6 +55,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 			},
 			Description: commit.Message(),
 			Content:     commit.Message(),
+			Created:     commit.Committer.When,
 		})
 	}
 

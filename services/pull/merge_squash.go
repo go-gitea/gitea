@@ -5,6 +5,7 @@ package pull
 
 import (
 	"fmt"
+	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,12 +25,12 @@ func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
 	// Try to get an signature from the same user in one of the commits, as the
 	// poster email might be private or commits might have a different signature
 	// than the primary email address of the poster.
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, ctx.tmpBasePath)
+	gitRepo, err := git.OpenRepository(ctx, ctx.tmpBasePath)
 	if err != nil {
 		log.Error("%-v Unable to open base repository: %v", ctx.pr, err)
 		return nil, err
 	}
-	defer closer.Close()
+	defer gitRepo.Close()
 
 	commits, err := gitRepo.CommitsBetweenIDs(trackingBranch, "HEAD")
 	if err != nil {
@@ -57,7 +58,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return fmt.Errorf("getAuthorSignatureSquash: %w", err)
 	}
 
-	cmdMerge := git.NewCommand(ctx, "merge", "--squash").AddDynamicArguments(trackingBranch)
+	cmdMerge := git.NewCommand("merge", "--squash").AddDynamicArguments(trackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleSquash, cmdMerge); err != nil {
 		log.Error("%-v Unable to merge --squash tracking into base: %v", ctx.pr, err)
 		return err
@@ -65,9 +66,12 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 
 	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
 		// add trailer
-		message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
+		if !strings.Contains(message, fmt.Sprintf("Co-authored-by: %s", sig.String())) {
+			message += fmt.Sprintf("\nCo-authored-by: %s", sig.String())
+		}
+		message += fmt.Sprintf("\nCo-committed-by: %s\n", sig.String())
 	}
-	cmdCommit := git.NewCommand(ctx, "commit").
+	cmdCommit := git.NewCommand("commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
 		AddOptionFormat("--message=%s", message)
 	if ctx.signKeyID == "" {
@@ -75,7 +79,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 	} else {
 		cmdCommit.AddOptionFormat("-S%s", ctx.signKeyID)
 	}
-	if err := cmdCommit.Run(ctx.RunOpts()); err != nil {
+	if err := cmdCommit.Run(ctx, ctx.RunOpts()); err != nil {
 		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("git commit [%s:%s -> %s:%s]: %w\n%s\n%s", ctx.pr.HeadRepo.FullName(), ctx.pr.HeadBranch, ctx.pr.BaseRepo.FullName(), ctx.pr.BaseBranch, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}

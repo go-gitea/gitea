@@ -34,7 +34,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 		_ = stdoutWriter.Close()
 	}
 
-	cmd := NewCommand(ctx)
+	cmd := NewCommand()
 	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
 
 	var files []string
@@ -64,7 +64,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 
 	go func() {
 		stderr := strings.Builder{}
-		err := cmd.Run(&RunOpts{
+		err := cmd.Run(ctx, &RunOpts{
 			Dir:    repository,
 			Stdout: stdoutWriter,
 			Stderr: &stderr,
@@ -114,7 +114,7 @@ type LogNameStatusCommitData struct {
 // Next returns the next LogStatusCommitData
 func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int, changed []bool, maxpathlen int) (*LogNameStatusCommitData, error) {
 	var err error
-	if g.next == nil || len(g.next) == 0 {
+	if len(g.next) == 0 {
 		g.buffull = false
 		g.next, err = g.rd.ReadSlice('\x00')
 		if err != nil {
@@ -143,17 +143,20 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 	}
 
 	// Our "line" must look like: <commitid> SP (<parent> SP) * NUL
-	ret.CommitID = string(g.next[0:40])
-	parents := string(g.next[41:])
+	commitIDs := string(g.next)
 	if g.buffull {
 		more, err := g.rd.ReadString('\x00')
 		if err != nil {
 			return nil, err
 		}
-		parents += more
+		commitIDs += more
 	}
-	parents = parents[:len(parents)-1]
-	ret.ParentIDs = strings.Split(parents, " ")
+	commitIDs = commitIDs[:len(commitIDs)-1]
+	splitIDs := strings.Split(commitIDs, " ")
+	ret.CommitID = splitIDs[0]
+	if len(splitIDs) > 1 {
+		ret.ParentIDs = splitIDs[1:]
+	}
 
 	// now read the next "line"
 	g.buffull = false

@@ -4,8 +4,6 @@
 package stats
 
 import (
-	"context"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -23,9 +21,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestRepoStatsIndex(t *testing.T) {
@@ -43,12 +39,12 @@ func TestRepoStatsIndex(t *testing.T) {
 	err = UpdateRepoIndexer(repo)
 	assert.NoError(t, err)
 
-	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), 5*time.Second))
+	assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
 
 	status, err := repo_model.GetIndexerStatus(db.DefaultContext, repo, repo_model.RepoIndexerTypeStats)
 	assert.NoError(t, err)
 	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", status.CommitSha)
-	langs, err := repo_model.GetTopLanguageStats(repo, 5)
+	langs, err := repo_model.GetTopLanguageStats(db.DefaultContext, repo, 5)
 	assert.NoError(t, err)
 	assert.Empty(t, langs)
 }

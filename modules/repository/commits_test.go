@@ -4,15 +4,12 @@
 package repository
 
 import (
-	"crypto/md5"
-	"fmt"
 	"strconv"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -53,14 +50,14 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	pushCommits.HeadCommit = &PushCommit{Sha1: "69554a6"}
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
-	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(git.DefaultContext, repo.RepoPath(), "/user2/repo16")
+	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(git.DefaultContext, repo)
 	assert.NoError(t, err)
 	assert.Len(t, payloadCommits, 3)
 	assert.NotNil(t, headCommit)
 
 	assert.Equal(t, "69554a6", payloadCommits[0].ID)
 	assert.Equal(t, "not signed commit", payloadCommits[0].Message)
-	assert.Equal(t, "/user2/repo16/commit/69554a6", payloadCommits[0].URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/69554a6", payloadCommits[0].URL)
 	assert.Equal(t, "User2", payloadCommits[0].Committer.Name)
 	assert.Equal(t, "user2", payloadCommits[0].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[0].Author.Name)
@@ -71,7 +68,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 
 	assert.Equal(t, "27566bd", payloadCommits[1].ID)
 	assert.Equal(t, "good signed commit (with not yet validated email)", payloadCommits[1].Message)
-	assert.Equal(t, "/user2/repo16/commit/27566bd", payloadCommits[1].URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/27566bd", payloadCommits[1].URL)
 	assert.Equal(t, "User2", payloadCommits[1].Committer.Name)
 	assert.Equal(t, "user2", payloadCommits[1].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[1].Author.Name)
@@ -82,7 +79,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 
 	assert.Equal(t, "5099b81", payloadCommits[2].ID)
 	assert.Equal(t, "good signed commit", payloadCommits[2].Message)
-	assert.Equal(t, "/user2/repo16/commit/5099b81", payloadCommits[2].URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/5099b81", payloadCommits[2].URL)
 	assert.Equal(t, "User2", payloadCommits[2].Committer.Name)
 	assert.Equal(t, "user2", payloadCommits[2].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[2].Author.Name)
@@ -93,7 +90,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 
 	assert.Equal(t, "69554a6", headCommit.ID)
 	assert.Equal(t, "not signed commit", headCommit.Message)
-	assert.Equal(t, "/user2/repo16/commit/69554a6", headCommit.URL)
+	assert.Equal(t, "https://try.gitea.io/user2/repo16/commit/69554a6", headCommit.URL)
 	assert.Equal(t, "User2", headCommit.Committer.Name)
 	assert.Equal(t, "user2", headCommit.Committer.UserName)
 	assert.Equal(t, "User2", headCommit.Author.Name)
@@ -101,12 +98,6 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.EqualValues(t, []string{}, headCommit.Added)
 	assert.EqualValues(t, []string{}, headCommit.Removed)
 	assert.EqualValues(t, []string{"readme.md"}, headCommit.Modified)
-}
-
-func initGravatarSource(t *testing.T) {
-	setting.GravatarSource = "https://secure.gravatar.com/avatar"
-	err := system_model.Init(db.DefaultContext)
-	assert.NoError(t, err)
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
@@ -132,14 +123,12 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 		},
 	}
 
-	initGravatarSource(t)
-
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
+		"/avatars/ab53a2911ddf9b4817ac01ddcd3d975f?size="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
 		pushCommits.AvatarLink(db.DefaultContext, "user2@example.com"))
 
 	assert.Equal(t,
-		fmt.Sprintf("https://secure.gravatar.com/avatar/%x?d=identicon&s=%d", md5.Sum([]byte("nonexistent@example.com")), 28*setting.Avatar.RenderedSizeFactor),
+		"/assets/img/avatar_default.png",
 		pushCommits.AvatarLink(db.DefaultContext, "nonexistent@example.com"))
 }
 

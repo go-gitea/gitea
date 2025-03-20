@@ -63,9 +63,9 @@ func (cc *cacheContext) isDiscard() bool {
 }
 
 // cacheContextLifetime is the max lifetime of cacheContext.
-// Since cacheContext is used to cache data in a request level context, 10s is enough.
-// If a cacheContext is used more than 10s, it's probably misuse.
-const cacheContextLifetime = 10 * time.Second
+// Since cacheContext is used to cache data in a request level context, 5 minutes is enough.
+// If a cacheContext is used more than 5 minutes, it's probably misuse.
+const cacheContextLifetime = 5 * time.Minute
 
 var timeNow = time.Now
 
@@ -109,7 +109,8 @@ func WithCacheContext(ctx context.Context) context.Context {
 			return ctx
 		}
 	}
-	return context.WithValue(ctx, cacheContextKey, &cacheContext{
+	// FIXME: review the use of this nolint directive
+	return context.WithValue(ctx, cacheContextKey, &cacheContext{ //nolint:staticcheck
 		data:    make(map[any]map[any]any),
 		created: timeNow(),
 	})
@@ -131,7 +132,7 @@ func GetContextData(ctx context.Context, tp, key any) any {
 		if c.Expired() {
 			// The warning means that the cache context is misused for long-life task,
 			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired, may be misused for long-life tasks: %v", c)
+			log.Warn("cache context is expired, is highly likely to be misused for long-life tasks: %v", c)
 			return nil
 		}
 		return c.Get(tp, key)
@@ -144,7 +145,7 @@ func SetContextData(ctx context.Context, tp, key, value any) {
 		if c.Expired() {
 			// The warning means that the cache context is misused for long-life task,
 			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired, may be misused for long-life tasks: %v", c)
+			log.Warn("cache context is expired, is highly likely to be misused for long-life tasks: %v", c)
 			return
 		}
 		c.Put(tp, key, value)
@@ -157,7 +158,7 @@ func RemoveContextData(ctx context.Context, tp, key any) {
 		if c.Expired() {
 			// The warning means that the cache context is misused for long-life task,
 			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired, may be misused for long-life tasks: %v", c)
+			log.Warn("cache context is expired, is highly likely to be misused for long-life tasks: %v", c)
 			return
 		}
 		c.Delete(tp, key)

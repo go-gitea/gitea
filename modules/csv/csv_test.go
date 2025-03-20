@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -231,10 +230,7 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimiters`,
 	}
 
 	for n, c := range cases {
-		delimiter := determineDelimiter(&markup.RenderContext{
-			Ctx:          git.DefaultContext,
-			RelativePath: c.filename,
-		}, []byte(decodeSlashes(t, c.csv)))
+		delimiter := determineDelimiter(markup.NewRenderContext(t.Context()).WithRelativePath(c.filename), []byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
@@ -561,14 +557,14 @@ func TestFormatError(t *testing.T) {
 			err: &csv.ParseError{
 				Err: csv.ErrFieldCount,
 			},
-			expectedMessage: "repo.error.csv.invalid_field_count",
+			expectedMessage: "repo.error.csv.invalid_field_count:0",
 			expectsError:    false,
 		},
 		{
 			err: &csv.ParseError{
 				Err: csv.ErrBareQuote,
 			},
-			expectedMessage: "repo.error.csv.unexpected",
+			expectedMessage: "repo.error.csv.unexpected:0,0",
 			expectsError:    false,
 		},
 		{

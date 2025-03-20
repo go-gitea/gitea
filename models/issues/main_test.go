@@ -4,7 +4,6 @@
 package issues_test
 
 import (
-	"path/filepath"
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -30,7 +29,5 @@ func TestFixturesAreConsistent(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }

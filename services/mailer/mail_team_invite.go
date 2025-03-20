@@ -11,16 +11,14 @@ import (
 
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	sender_service "code.gitea.io/gitea/services/mailer/sender"
 )
 
-const (
-	tplTeamInviteMail base.TplName = "team_invite"
-)
+const tplTeamInviteMail templates.TplName = "team_invite"
 
 // MailTeamInvite sends team invites
 func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_model.Team, invite *org_model.TeamInvite) error {
@@ -51,18 +49,15 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		inviteURL = fmt.Sprintf("%suser/login?redirect_to=%s", setting.AppURL, inviteRedirect)
 	}
 
-	subject := locale.Tr("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
+	subject := locale.TrString("mail.team_invite.subject", inviter.DisplayName(), org.DisplayName())
 	mailMeta := map[string]any{
+		"locale":       locale,
 		"Inviter":      inviter,
 		"Organization": org,
 		"Team":         team,
 		"Invite":       invite,
 		"Subject":      subject,
 		"InviteURL":    inviteURL,
-		// helper
-		"locale":    locale,
-		"Str2html":  templates.Str2html,
-		"DotEscape": templates.DotEscape,
 	}
 
 	var mailBody bytes.Buffer
@@ -71,7 +66,7 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 		return err
 	}
 
-	msg := NewMessage(invite.Email, subject, mailBody.String())
+	msg := sender_service.NewMessage(invite.Email, subject, mailBody.String())
 	msg.Info = subject
 
 	SendAsync(msg)

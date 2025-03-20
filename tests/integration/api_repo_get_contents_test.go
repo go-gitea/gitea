@@ -14,9 +14,11 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -72,14 +74,15 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	// Make a new branch in repo1
-	newBranch := "test_branch"
-	err := repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, repo1.DefaultBranch, newBranch)
-	assert.NoError(t, err)
 	// Get the commit ID of the default branch
-	gitRepo, err := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
+
+	// Make a new branch in repo1
+	newBranch := "test_branch"
+	err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
+	assert.NoError(t, err)
 
 	commitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)
@@ -150,41 +153,53 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing private ref with user token that does not have access - should fail
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo16.Name, treePath, token4)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath).
+		AddTokenAuth(token4)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test access private ref of owner of token
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/readme.md?token=%s", user2.Name, repo16.Name, token2)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/readme.md", user2.Name, repo16.Name).
+		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test access of org org3 private repo file by owner user2
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", org3.Name, repo3.Name, treePath, token2)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", org3.Name, repo3.Name, treePath).
+		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestAPIGetContentsRefFormats(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		file := "README.md"
-		sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-		content := "# repo1\n\nDescription for repo1"
+	defer tests.PrepareTestEnv(t)()
 
-		noRef := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + file
-		refInPath := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + sha + "/" + file
-		refInQuery := setting.AppURL + "api/v1/repos/user2/repo1/raw/" + file + "?ref=" + sha
+	file := "README.md"
+	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	content := "# repo1\n\nDescription for repo1"
 
-		resp := MakeRequest(t, NewRequest(t, http.MethodGet, noRef), http.StatusOK)
-		raw, err := io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.EqualValues(t, content, string(raw))
+	resp := MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/"+file), http.StatusOK)
+	raw, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.EqualValues(t, content, string(raw))
 
-		resp = MakeRequest(t, NewRequest(t, http.MethodGet, refInPath), http.StatusOK)
-		raw, err = io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.EqualValues(t, content, string(raw))
+	resp = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/"+sha+"/"+file), http.StatusOK)
+	raw, err = io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.EqualValues(t, content, string(raw))
 
-		resp = MakeRequest(t, NewRequest(t, http.MethodGet, refInQuery), http.StatusOK)
-		raw, err = io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.EqualValues(t, content, string(raw))
-	})
+	resp = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/"+file+"?ref="+sha), http.StatusOK)
+	raw, err = io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.EqualValues(t, content, string(raw))
+
+	resp = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/"+file+"?ref=master"), http.StatusOK)
+	raw, err = io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.EqualValues(t, content, string(raw))
+
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/docs/README.md?ref=main"), http.StatusNotFound)
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/README.md?ref=main"), http.StatusOK)
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/docs/README.md?ref=sub-home-md-img-check"), http.StatusOK)
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/README.md?ref=sub-home-md-img-check"), http.StatusNotFound)
+
+	// FIXME: this is an incorrect behavior, non-existing branch falls back to default branch
+	_ = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo1/raw/README.md?ref=no-such"), http.StatusOK)
 }

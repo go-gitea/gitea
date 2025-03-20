@@ -11,10 +11,10 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -57,23 +57,23 @@ func GetIssueDependencies(ctx *context.APIContext) {
 
 	// If this issue's repository does not enable dependencies then there can be no dependencies by default
 	if !ctx.Repo.Repository.IsDependenciesEnabled(ctx) {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound("IsErrIssueNotExist", err)
+			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	// 1. We must be able to read this issue
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -98,27 +98,28 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		PageSize: limit,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "BlockedByDependencies", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
-	var lastRepoID int64
-	var lastPerm access_model.Permission
+	repoPerms := make(map[int64]access_model.Permission)
+	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
 	for _, blocker := range blockersInfo {
 		// Get the permissions for this repository
-		perm := lastPerm
-		if lastRepoID != blocker.Repository.ID {
-			if blocker.Repository.ID == ctx.Repo.Repository.ID {
-				perm = ctx.Repo.Permission
-			} else {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return
-				}
+		// If the repo ID exists in the map, return the exist permissions
+		// else get the permission and add it to the map
+		var perm access_model.Permission
+		existPerm, ok := repoPerms[blocker.RepoID]
+		if ok {
+			perm = existPerm
+		} else {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, &blocker.Repository, ctx.Doer)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
 			}
-			lastRepoID = blocker.Repository.ID
+			repoPerms[blocker.RepoID] = perm
 		}
 
 		// check permission
@@ -152,7 +153,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		blockerIssues = append(blockerIssues, &blocker.Issue)
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, blockerIssues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blockerIssues))
 }
 
 // CreateIssueDependency create a new issue dependencies
@@ -187,6 +188,8 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     description: the issue does not exist
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getParamsIssue(ctx)
@@ -211,7 +214,7 @@ func CreateIssueDependency(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, target))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, target))
 }
 
 // RemoveIssueDependency remove an issue dependency
@@ -246,6 +249,8 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// We want to make <:index> depend on <Form>, i.e. <:index> is the target
 	target := getParamsIssue(ctx)
@@ -270,7 +275,7 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, target))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, target))
 }
 
 // GetIssueBlocks list issues that are blocked by this issue
@@ -319,7 +324,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -333,37 +338,39 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	}
 
 	skip := (page - 1) * limit
-	max := page * limit
+	maxNum := page * limit
 
 	deps, err := issue.BlockingDependencies(ctx)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "BlockingDependencies", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
-	var lastRepoID int64
-	var lastPerm access_model.Permission
-
 	var issues []*issues_model.Issue
+
+	repoPerms := make(map[int64]access_model.Permission)
+	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
+
 	for i, depMeta := range deps {
-		if i < skip || i >= max {
+		if i < skip || i >= maxNum {
 			continue
 		}
 
 		// Get the permissions for this repository
-		perm := lastPerm
-		if lastRepoID != depMeta.Repository.ID {
-			if depMeta.Repository.ID == ctx.Repo.Repository.ID {
-				perm = ctx.Repo.Permission
-			} else {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return
-				}
+		// If the repo ID exists in the map, return the exist permissions
+		// else get the permission and add it to the map
+		var perm access_model.Permission
+		existPerm, ok := repoPerms[depMeta.RepoID]
+		if ok {
+			perm = existPerm
+		} else {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
 			}
-			lastRepoID = depMeta.Repository.ID
+			repoPerms[depMeta.RepoID] = perm
 		}
 
 		if !perm.CanReadIssuesOrPulls(depMeta.Issue.IsPull) {
@@ -374,7 +381,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		issues = append(issues, &depMeta.Issue)
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
 // CreateIssueBlocking block the issue given in the body by the issue in path
@@ -431,7 +438,7 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, dependency))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, dependency))
 }
 
 // RemoveIssueBlocking unblock the issue given in the body by the issue in path
@@ -488,16 +495,16 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, dependency))
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(ctx, ctx.Doer, dependency))
 }
 
 func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
-	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound("IsErrIssueNotExist", err)
+			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
@@ -516,9 +523,9 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 		repo, err = repo_model.GetRepositoryByOwnerAndName(ctx, form.Owner, form.Name)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
-				ctx.NotFound("IsErrRepoNotExist", err)
+				ctx.APIErrorNotFound("IsErrRepoNotExist", err)
 			} else {
-				ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
+				ctx.APIErrorInternal(err)
 			}
 			return nil
 		}
@@ -529,9 +536,9 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 	issue, err := issues_model.GetIssueByIndex(ctx, repo.ID, form.Index)
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.NotFound("IsErrIssueNotExist", err)
+			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
@@ -546,7 +553,7 @@ func getPermissionForRepo(ctx *context.APIContext, repo *repo_model.Repository) 
 
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+		ctx.APIErrorInternal(err)
 		return nil
 	}
 
@@ -556,25 +563,25 @@ func getPermissionForRepo(ctx *context.APIContext, repo *repo_model.Repository) 
 func createIssueDependency(ctx *context.APIContext, target, dependency *issues_model.Issue, targetPerm, dependencyPerm access_model.Permission) {
 	if target.Repo.IsArchived || !target.Repo.IsDependenciesEnabled(ctx) {
 		// The target's repository doesn't have dependencies enabled
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
 	if !targetPerm.CanWriteIssuesOrPulls(target.IsPull) {
 		// We can't write to the target
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
 	if !dependencyPerm.CanReadIssuesOrPulls(dependency.IsPull) {
 		// We can't read the dependency
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
-	err := issues_model.CreateIssueDependency(ctx.Doer, target, dependency)
+	err := issues_model.CreateIssueDependency(ctx, ctx.Doer, target, dependency)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 }
@@ -582,25 +589,25 @@ func createIssueDependency(ctx *context.APIContext, target, dependency *issues_m
 func removeIssueDependency(ctx *context.APIContext, target, dependency *issues_model.Issue, targetPerm, dependencyPerm access_model.Permission) {
 	if target.Repo.IsArchived || !target.Repo.IsDependenciesEnabled(ctx) {
 		// The target's repository doesn't have dependencies enabled
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
 	if !targetPerm.CanWriteIssuesOrPulls(target.IsPull) {
 		// We can't write to the target
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
 	if !dependencyPerm.CanReadIssuesOrPulls(dependency.IsPull) {
 		// We can't read the dependency
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
-	err := issues_model.RemoveIssueDependency(ctx.Doer, target, dependency, issues_model.DependencyTypeBlockedBy)
+	err := issues_model.RemoveIssueDependency(ctx, ctx.Doer, target, dependency, issues_model.DependencyTypeBlockedBy)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 }

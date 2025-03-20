@@ -1,30 +1,32 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user link-account">
-	<div class="ui secondary pointing tabular top attached borderless menu new-menu navbar">
-		<div class="new-menu-inner">
+	<overflow-menu class="ui secondary pointing tabular top attached borderless menu secondary-nav">
+		<div class="overflow-menu-items tw-justify-center">
 			<!-- TODO handle .ShowRegistrationButton once other login bugs are fixed -->
 			{{if not .AllowOnlyInternalRegistration}}
 				<a class="item {{if not .user_exists}}active{{end}}"
 					data-tab="auth-link-signup-tab">
-					{{.locale.Tr "auth.oauth_signup_tab"}}
+					{{ctx.Locale.Tr "auth.oauth_signup_tab"}}
 				</a>
 			{{end}}
 			<a class="item {{if .user_exists}}active{{end}}"
 				data-tab="auth-link-signin-tab">
-				{{.locale.Tr "auth.oauth_signin_tab"}}
+				{{ctx.Locale.Tr "auth.oauth_signin_tab"}}
 			</a>
 		</div>
-	</div>
+	</overflow-menu>
 	<div class="ui middle very relaxed page grid">
-		<div class="column">
-			<div class="ui tab {{if not .user_exists}}active{{end}}"
-				data-tab="auth-link-signup-tab">
+		<div class="column tw-my-5">
+			{{/* these styles are quite tricky but it needs to be the same as the signin page */}}
+			<div class="ui tab {{if not .user_exists}}active{{end}}" data-tab="auth-link-signup-tab">
+				<div class="tw-flex tw-flex-col tw-gap-4 tw-max-w-2xl tw-m-auto">
+				{{if .AutoRegistrationFailedPrompt}}<div class="ui message">{{.AutoRegistrationFailedPrompt}}</div>{{end}}
 				{{template "user/auth/signup_inner" .}}
+				</div>
 			</div>
-			<div class="ui tab {{if .user_exists}}active{{end}}"
-				data-tab="auth-link-signin-tab">
-				<div class="ui user signin container icon">
-					{{template "user/auth/signin_inner" .}}
+			<div class="ui tab {{if .user_exists}}active{{end}}" data-tab="auth-link-signin-tab">
+				<div class="tw-flex tw-flex-col tw-gap-4 tw-max-w-2xl tw-m-auto">
+				{{template "user/auth/signin_inner" .}}
 				</div>
 			</div>
 		</div>

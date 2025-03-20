@@ -9,13 +9,14 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // getRebaseAmendMessage composes the message to amend commits in rebase merge of a pull request.
 func getRebaseAmendMessage(ctx *mergeContext, baseGitRepo *git.Repository) (message string, err error) {
 	// Get existing commit message.
-	commitMessage, _, err := git.NewCommand(ctx, "show", "--format=%B", "-s").RunStdString(&git.RunOpts{Dir: ctx.tmpBasePath})
+	commitMessage, _, err := git.NewCommand("show", "--format=%B", "-s").RunStdString(ctx, &git.RunOpts{Dir: ctx.tmpBasePath})
 	if err != nil {
 		return "", err
 	}
@@ -41,7 +42,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 		return fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
 
-	cmd := git.NewCommand(ctx, "merge", "--ff-only").AddDynamicArguments(stagingBranch)
+	cmd := git.NewCommand("merge", "--ff-only").AddDynamicArguments(stagingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleRebase, cmd); err != nil {
 		log.Error("Unable to merge staging into base: %v", err)
 		return err
@@ -57,7 +58,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 	}
 
 	// Original repo to read template from.
-	baseGitRepo, err := git.OpenRepository(ctx, ctx.pr.BaseRepo.RepoPath())
+	baseGitRepo, err := gitrepo.OpenRepository(ctx, ctx.pr.BaseRepo)
 	if err != nil {
 		log.Error("Unable to get Git repo for rebase: %v", err)
 		return err
@@ -72,7 +73,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 	}
 
 	if newMessage != "" {
-		if err := git.NewCommand(ctx, "commit", "--amend").AddOptionFormat("--message=%s", newMessage).Run(&git.RunOpts{Dir: ctx.tmpBasePath}); err != nil {
+		if err := git.NewCommand("commit", "--amend").AddOptionFormat("--message=%s", newMessage).Run(ctx, &git.RunOpts{Dir: ctx.tmpBasePath}); err != nil {
 			log.Error("Unable to amend commit message: %v", err)
 			return err
 		}
@@ -83,7 +84,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 
 // Perform rebase merge with merge commit.
 func doMergeRebaseMergeCommit(ctx *mergeContext, message string) error {
-	cmd := git.NewCommand(ctx, "merge").AddArguments("--no-ff", "--no-commit").AddDynamicArguments(stagingBranch)
+	cmd := git.NewCommand("merge").AddArguments("--no-ff", "--no-commit").AddDynamicArguments(stagingBranch)
 
 	if err := runMergeCommand(ctx, repo_model.MergeStyleRebaseMerge, cmd); err != nil {
 		log.Error("Unable to merge staging into base: %v", err)
@@ -104,8 +105,8 @@ func doMergeStyleRebase(ctx *mergeContext, mergeStyle repo_model.MergeStyle, mes
 	}
 
 	// Checkout base branch again
-	if err := git.NewCommand(ctx, "checkout").AddDynamicArguments(baseBranch).
-		Run(ctx.RunOpts()); err != nil {
+	if err := git.NewCommand("checkout").AddDynamicArguments(baseBranch).
+		Run(ctx, ctx.RunOpts()); err != nil {
 		log.Error("git checkout base prior to merge post staging rebase %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("git checkout base prior to merge post staging rebase  %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}

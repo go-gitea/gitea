@@ -1,0 +1,130 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<div>
+		<h2>Dropdown</h2>
+		<div>
+			<div class="ui dropdown tw-border tw-border-red tw-border-dashed" data-tooltip-content="border for demo purpose only">
+				<span class="text">search-input &amp; flex-item in menu</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu flex-items-menu">
+					<div class="ui icon search input"><i class="icon">{{svg "octicon-search"}}</i><input type="text" value="search input in menu"></div>
+					<div class="item"><input type="radio">item</div>
+					<div class="item"><input type="radio">item</div>
+				</div>
+			</div>
+			<div class="ui search selection dropdown">
+				<span class="text">search ...</span>
+				<input name="value" class="search">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				{{svg "octicon-x" 14 "remove icon"}}
+				<div class="menu">
+					<div class="item">item</div>
+				</div>
+			</div>
+			<div class="ui multiple selection dropdown">
+				<input class="hidden" value="1">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				{{svg "octicon-x" 14 "remove icon"}}
+				<div class="default text">empty multiple dropdown</div>
+				<div class="menu">
+					<div class="item">item</div>
+					<div class="item">sm1</div>
+					<div class="item">sm2</div>
+					<div class="item">medium1</div>
+					<div class="item">medium2</div>
+					<div class="item">large item1</div>
+					<div class="item">large item2</div>
+					<div class="item">large item3</div>
+					<div class="item">very large item test 1</div>
+					<div class="item">very large item test 2</div>
+					<div class="item">very large item test 3</div>
+				</div>
+			</div>
+			<div class="ui buttons">
+				<button class="ui button">Button with Dropdown</button>
+				<div class="ui dropdown button icon">
+					{{svg "octicon-triangle-down"}}
+					<div class="menu">
+						<div class="item">item</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div>
+			<div class="ui multiple clearable search selection dropdown tw-max-w-[220px]">
+				<input type="hidden" value="1,2,3,4,5,10">
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				{{svg "octicon-x" 14 "remove icon"}}
+				<div class="default text">clearable search dropdown</div>
+				<div class="menu">
+					<div class="item" data-value="1">item</div>
+					<div class="item" data-value="2">sm1</div>
+					<div class="item" data-value="3">sm2</div>
+					<div class="item" data-value="4">medium1</div>
+					<div class="item" data-value="5">medium2</div>
+					<div class="item" data-value="6">large item1</div>
+					<div class="item" data-value="7">large item2</div>
+					<div class="item" data-value="8">large item3</div>
+					<div class="item" data-value="9">very large item test 1</div>
+					<div class="item" data-value="10">very large item test 2</div>
+					<div class="item" data-value="11">very large item test 3</div>
+				</div>
+			</div>
+		</div>
+
+		<h2>Selection</h2>
+		<div>
+			{{/* the "selection" class is optional, it will be added by JS automatically */}}
+			<select class="ui dropdown selection ellipsis-items-nowrap">
+				<option>a</option>
+				<option>abcdefuvwxyz</option>
+				<option>loooooooooooooooooooooooooooooooooooooooooooooooooooooooooong</option>
+			</select>
+			<select class="ui dropdown ellipsis-items-nowrap tw-max-w-[8em]">
+				<option>loooooooooooooooooooooooooooooooooooooooooooooooooooooooooong</option>
+				<option>abcdefuvwxyz</option>
+				<option>a</option>
+			</select>
+		</div>
+		<h2>Dropdown Button (demo only without menu)</h2>
+		<div>
+			<div class="ui dropdown mini button">
+				<span class="text">mini dropdown</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+			<div class="ui dropdown tiny button">
+				<span class="text">tiny dropdown</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+			<div class="ui button dropdown">
+				<span class="text">button dropdown</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+		</div>
+
+		<div>
+			<div class="ui dropdown mini compact button">
+				<span class="text">mini compact</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+			<div class="ui dropdown tiny compact button">
+				<span class="text">tiny compact</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+			<div class="ui button compact dropdown">
+				<span class="text">button compact</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+		</div>
+
+		<div>
+			<hr>
+			<div class="ui tiny button">Other button align with ...</div>
+			<div class="ui dropdown tiny button">
+				<span class="text">... Dropdown Button</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

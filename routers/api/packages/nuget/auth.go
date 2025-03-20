@@ -43,5 +43,8 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		log.Error("UpdateAccessToken:  %v", err)
 	}
 
+	store.GetData()["IsApiToken"] = true
+	store.GetData()["ApiToken"] = token
+
 	return u, nil
 }

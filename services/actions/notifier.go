@@ -6,7 +6,6 @@ package actions
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	perm_model "code.gitea.io/gitea/models/perm"
@@ -50,10 +49,59 @@ func (n *actionsNotifier) NewIssue(ctx context.Context, issue *issues_model.Issu
 	newNotifyInputFromIssue(issue, webhook_module.HookEventIssues).WithPayload(&api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
-		Issue:      convert.ToAPIIssue(ctx, issue),
+		Issue:      convert.ToAPIIssue(ctx, issue.Poster, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, issue.Poster, nil),
 	}).Notify(withMethod(ctx, "NewIssue"))
+}
+
+// IssueChangeContent notifies change content of issue
+func (n *actionsNotifier) IssueChangeContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldContent string) {
+	ctx = withMethod(ctx, "IssueChangeContent")
+	n.notifyIssueChangeWithTitleOrContent(ctx, doer, issue)
+}
+
+func (n *actionsNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
+	ctx = withMethod(ctx, "IssueChangeTitle")
+	n.notifyIssueChangeWithTitleOrContent(ctx, doer, issue)
+}
+
+func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
+	var err error
+	if err = issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+
+	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	if issue.IsPull {
+		if err = issue.LoadPullRequest(ctx); err != nil {
+			log.Error("loadPullRequest: %v", err)
+			return
+		}
+		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequest).
+			WithDoer(doer).
+			WithPayload(&api.PullRequestPayload{
+				Action:      api.HookIssueEdited,
+				Index:       issue.Index,
+				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
+				Sender:      convert.ToUser(ctx, doer, nil),
+			}).
+			WithPullRequest(issue.PullRequest).
+			Notify(ctx)
+		return
+	}
+	newNotifyInputFromIssue(issue, webhook_module.HookEventIssues).
+		WithDoer(doer).
+		WithPayload(&api.IssuePayload{
+			Action:     api.HookIssueEdited,
+			Index:      issue.Index,
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
+			Repository: convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:     convert.ToUser(ctx, doer, nil),
+		}).
+		Notify(ctx)
 }
 
 // IssueChangeStatus notifies close or reopen issue to notifiers
@@ -68,7 +116,7 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(db.DefaultContext, issue.PullRequest, nil),
+			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, doer, nil),
 			CommitID:    commitID,
@@ -87,7 +135,7 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 	}
 	apiIssue := &api.IssuePayload{
 		Index:      issue.Index,
-		Issue:      convert.ToAPIIssue(ctx, issue),
+		Issue:      convert.ToAPIIssue(ctx, doer, issue),
 		Repository: convert.ToRepo(ctx, issue.Repo, permission),
 		Sender:     convert.ToUser(ctx, doer, nil),
 	}
@@ -102,11 +150,58 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 		Notify(ctx)
 }
 
+// IssueChangeAssignee notifies assigned or unassigned to notifiers
+func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
+	ctx = withMethod(ctx, "IssueChangeAssignee")
+
+	var action api.HookIssueAction
+	if removed {
+		action = api.HookIssueUnassigned
+	} else {
+		action = api.HookIssueAssigned
+	}
+
+	hookEvent := webhook_module.HookEventIssueAssign
+	if issue.IsPull {
+		hookEvent = webhook_module.HookEventPullRequestAssign
+	}
+
+	notifyIssueChange(ctx, doer, issue, hookEvent, action)
+}
+
+// IssueChangeMilestone notifies assignee to notifiers
+func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
+	ctx = withMethod(ctx, "IssueChangeMilestone")
+
+	var action api.HookIssueAction
+	if issue.MilestoneID > 0 {
+		action = api.HookIssueMilestoned
+	} else {
+		action = api.HookIssueDemilestoned
+	}
+
+	hookEvent := webhook_module.HookEventIssueMilestone
+	if issue.IsPull {
+		hookEvent = webhook_module.HookEventPullRequestMilestone
+	}
+
+	notifyIssueChange(ctx, doer, issue, hookEvent, action)
+}
+
 func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	_, _ []*issues_model.Label,
 ) {
 	ctx = withMethod(ctx, "IssueChangeLabels")
 
+	hookEvent := webhook_module.HookEventIssueLabel
+	if issue.IsPull {
+		hookEvent = webhook_module.HookEventPullRequestLabel
+	}
+
+	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated)
+}
+
+func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction) {
 	var err error
 	if err = issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
@@ -118,20 +213,15 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
 			log.Error("loadPullRequest: %v", err)
 			return
 		}
-		if err = issue.PullRequest.LoadIssue(ctx); err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestLabel).
+		newNotifyInputFromIssue(issue, event).
 			WithDoer(doer).
 			WithPayload(&api.PullRequestPayload{
-				Action:      api.HookIssueLabelUpdated,
+				Action:      action,
 				Index:       issue.Index,
 				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
 				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
@@ -141,12 +231,13 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 			Notify(ctx)
 		return
 	}
-	newNotifyInputFromIssue(issue, webhook_module.HookEventIssueLabel).
+	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	newNotifyInputFromIssue(issue, event).
 		WithDoer(doer).
 		WithPayload(&api.IssuePayload{
-			Action:     api.HookIssueLabelUpdated,
+			Action:     action,
 			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, issue),
+			Issue:      convert.ToAPIIssue(ctx, doer, issue),
 			Repository: convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:     convert.ToUser(ctx, doer, nil),
 		}).
@@ -159,37 +250,88 @@ func (n *actionsNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 ) {
 	ctx = withMethod(ctx, "CreateIssueComment")
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, repo, doer)
-
 	if issue.IsPull {
-		if err := issue.LoadPullRequest(ctx); err != nil {
+		notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventPullRequestComment, api.HookIssueCommentCreated)
+		return
+	}
+	notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventIssueComment, api.HookIssueCommentCreated)
+}
+
+func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
+	ctx = withMethod(ctx, "UpdateComment")
+
+	if err := c.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+
+	if c.Issue.IsPull {
+		notifyIssueCommentChange(ctx, doer, c, oldContent, webhook_module.HookEventPullRequestComment, api.HookIssueCommentEdited)
+		return
+	}
+	notifyIssueCommentChange(ctx, doer, c, oldContent, webhook_module.HookEventIssueComment, api.HookIssueCommentEdited)
+}
+
+func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
+	ctx = withMethod(ctx, "DeleteComment")
+
+	if err := comment.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+
+	if comment.Issue.IsPull {
+		notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventPullRequestComment, api.HookIssueCommentDeleted)
+		return
+	}
+	notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventIssueComment, api.HookIssueCommentDeleted)
+}
+
+func notifyIssueCommentChange(ctx context.Context, doer *user_model.User, comment *issues_model.Comment, oldContent string, event webhook_module.HookEventType, action api.HookIssueCommentAction) {
+	if err := comment.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+	if err := comment.Issue.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	permission, _ := access_model.GetUserRepoPermission(ctx, comment.Issue.Repo, doer)
+
+	payload := &api.IssueCommentPayload{
+		Action:     action,
+		Issue:      convert.ToAPIIssue(ctx, doer, comment.Issue),
+		Comment:    convert.ToAPIComment(ctx, comment.Issue.Repo, comment),
+		Repository: convert.ToRepo(ctx, comment.Issue.Repo, permission),
+		Sender:     convert.ToUser(ctx, doer, nil),
+		IsPull:     comment.Issue.IsPull,
+	}
+
+	if action == api.HookIssueCommentEdited {
+		payload.Changes = &api.ChangesPayload{
+			Body: &api.ChangesFromPayload{
+				From: oldContent,
+			},
+		}
+	}
+
+	if comment.Issue.IsPull {
+		if err := comment.Issue.LoadPullRequest(ctx); err != nil {
 			log.Error("LoadPullRequest: %v", err)
 			return
 		}
-		newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestComment).
+		newNotifyInputFromIssue(comment.Issue, event).
 			WithDoer(doer).
-			WithPayload(&api.IssueCommentPayload{
-				Action:     api.HookIssueCommentCreated,
-				Issue:      convert.ToAPIIssue(ctx, issue),
-				Comment:    convert.ToAPIComment(ctx, repo, comment),
-				Repository: convert.ToRepo(ctx, repo, permission),
-				Sender:     convert.ToUser(ctx, doer, nil),
-				IsPull:     true,
-			}).
-			WithPullRequest(issue.PullRequest).
+			WithPayload(payload).
+			WithPullRequest(comment.Issue.PullRequest).
 			Notify(ctx)
 		return
 	}
-	newNotifyInputFromIssue(issue, webhook_module.HookEventIssueComment).
+
+	newNotifyInputFromIssue(comment.Issue, event).
 		WithDoer(doer).
-		WithPayload(&api.IssueCommentPayload{
-			Action:     api.HookIssueCommentCreated,
-			Issue:      convert.ToAPIIssue(ctx, issue),
-			Comment:    convert.ToAPIComment(ctx, repo, comment),
-			Repository: convert.ToRepo(ctx, repo, permission),
-			Sender:     convert.ToUser(ctx, doer, nil),
-			IsPull:     false,
-		}).
+		WithPayload(payload).
 		Notify(ctx)
 }
 
@@ -252,7 +394,7 @@ func (n *actionsNotifier) ForkRepository(ctx context.Context, doer *user_model.U
 	// Add to hook queue for created repo after session commit.
 	if u.IsOrganization() {
 		newNotifyInput(repo, doer, webhook_module.HookEventRepository).
-			WithRef(oldRepo.DefaultBranch).
+			WithRef(git.RefNameFromBranch(oldRepo.DefaultBranch).String()).
 			WithPayload(&api.RepositoryPayload{
 				Action:       api.HookRepoCreated,
 				Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
@@ -296,7 +438,7 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueReviewed,
 			Index:       review.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(db.DefaultContext, pr, nil),
+			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, review.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, review.Reviewer, nil),
 			Review: &api.ReviewPayload{
@@ -304,6 +446,39 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 				Content: review.Content,
 			},
 		}).Notify(ctx)
+}
+
+func (n *actionsNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+	if !issue.IsPull {
+		log.Warn("PullRequestReviewRequest: issue is not a pull request: %v", issue.ID)
+		return
+	}
+
+	ctx = withMethod(ctx, "PullRequestReviewRequest")
+
+	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		log.Error("LoadPullRequest failed: %v", err)
+		return
+	}
+	var action api.HookIssueAction
+	if isRequest {
+		action = api.HookIssueReviewRequested
+	} else {
+		action = api.HookIssueReviewRequestRemoved
+	}
+	newNotifyInputFromIssue(issue, webhook_module.HookEventPullRequestReviewRequest).
+		WithDoer(doer).
+		WithPayload(&api.PullRequestPayload{
+			Action:            action,
+			Index:             issue.Index,
+			PullRequest:       convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			RequestedReviewer: convert.ToUser(ctx, reviewer, nil),
+			Repository:        convert.ToRepo(ctx, issue.Repo, permission),
+			Sender:            convert.ToUser(ctx, doer, nil),
+		}).
+		WithPullRequest(issue.PullRequest).
+		Notify(ctx)
 }
 
 func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
@@ -320,7 +495,7 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 		return
 	}
 
-	if err := pr.Issue.LoadRepo(db.DefaultContext); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		log.Error("pr.Issue.LoadRepo: %v", err)
 		return
 	}
@@ -334,7 +509,7 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 	// Merge pull request calls issue.changeStatus so we need to handle separately.
 	apiPullRequest := &api.PullRequestPayload{
 		Index:       pr.Issue.Index,
-		PullRequest: convert.ToAPIPullRequest(db.DefaultContext, pr, nil),
+		PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
 		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
 		Sender:      convert.ToUser(ctx, doer, nil),
 		Action:      api.HookIssueClosed,
@@ -348,10 +523,16 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 }
 
 func (n *actionsNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	commitID, _ := git.NewIDFromString(opts.NewCommitID)
+	if commitID.IsZero() {
+		log.Trace("new commitID is empty")
+		return
+	}
+
 	ctx = withMethod(ctx, "PushCommits")
 
 	apiPusher := convert.ToUser(ctx, pusher, nil)
-	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo.RepoPath(), repo.HTMLURL())
+	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo)
 	if err != nil {
 		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
 		return
@@ -380,11 +561,11 @@ func (n *actionsNotifier) CreateRef(ctx context.Context, pusher *user_model.User
 	apiRepo := convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeNone})
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventCreate).
-		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
+		WithRef(refFullName.String()).
 		WithPayload(&api.CreatePayload{
-			Ref:     refFullName.ShortName(),
+			Ref:     refFullName.String(), // HINT: here is inconsistent with the Webhook's payload: webhook uses ShortName
 			Sha:     refID,
-			RefType: refFullName.RefType(),
+			RefType: string(refFullName.RefType()),
 			Repo:    apiRepo,
 			Sender:  apiPusher,
 		}).
@@ -398,10 +579,9 @@ func (n *actionsNotifier) DeleteRef(ctx context.Context, pusher *user_model.User
 	apiRepo := convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeNone})
 
 	newNotifyInput(repo, pusher, webhook_module.HookEventDelete).
-		WithRef(refFullName.ShortName()). // FIXME: should we use a full ref name
 		WithPayload(&api.DeletePayload{
-			Ref:        refFullName.ShortName(),
-			RefType:    refFullName.RefType(),
+			Ref:        refFullName.String(), // HINT: here is inconsistent with the Webhook's payload: webhook uses ShortName
+			RefType:    string(refFullName.RefType()),
 			PusherType: api.PusherTypeUser,
 			Repo:       apiRepo,
 			Sender:     apiPusher,
@@ -413,7 +593,7 @@ func (n *actionsNotifier) SyncPushCommits(ctx context.Context, pusher *user_mode
 	ctx = withMethod(ctx, "SyncPushCommits")
 
 	apiPusher := convert.ToUser(ctx, pusher, nil)
-	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(db.DefaultContext, repo.RepoPath(), repo.HTMLURL())
+	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(ctx, repo)
 	if err != nil {
 		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
 		return
@@ -457,6 +637,10 @@ func (n *actionsNotifier) UpdateRelease(ctx context.Context, doer *user_model.Us
 }
 
 func (n *actionsNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+	if rel.IsTag {
+		// has sent same action in `PushCommits`, so skip it.
+		return
+	}
 	ctx = withMethod(ctx, "DeleteRelease")
 	notifyRelease(ctx, doer, rel, api.HookReleaseDeleted)
 }
@@ -484,7 +668,7 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 		return
 	}
 
-	if err := pr.Issue.LoadRepo(db.DefaultContext); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		log.Error("pr.Issue.LoadRepo: %v", err)
 		return
 	}
@@ -509,7 +693,7 @@ func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 		return
 	}
 
-	if err := pr.Issue.LoadRepo(db.DefaultContext); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		log.Error("pr.Issue.LoadRepo: %v", err)
 		return
 	}
@@ -564,5 +748,17 @@ func (n *actionsNotifier) DeleteWikiPage(ctx context.Context, doer *user_model.U
 		Repository: convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
 		Sender:     convert.ToUser(ctx, doer, nil),
 		Page:       page,
+	}).Notify(ctx)
+}
+
+// MigrateRepository is used to detect workflows after a repository has been migrated
+func (n *actionsNotifier) MigrateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository) {
+	ctx = withMethod(ctx, "MigrateRepository")
+
+	newNotifyInput(repo, doer, webhook_module.HookEventRepository).WithPayload(&api.RepositoryPayload{
+		Action:       api.HookRepoCreated,
+		Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
+		Organization: convert.ToUser(ctx, u, nil),
+		Sender:       convert.ToUser(ctx, doer, nil),
 	}).Notify(ctx)
 }

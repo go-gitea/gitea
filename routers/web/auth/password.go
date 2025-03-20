@@ -11,23 +11,24 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 var (
 	// tplMustChangePassword template for updating a user's password
-	tplMustChangePassword base.TplName = "user/auth/change_passwd"
-	tplForgotPassword     base.TplName = "user/auth/forgot_passwd"
-	tplResetPassword      base.TplName = "user/auth/reset_passwd"
+	tplMustChangePassword templates.TplName = "user/auth/change_passwd"
+	tplForgotPassword     templates.TplName = "user/auth/forgot_passwd"
+	tplResetPassword      templates.TplName = "user/auth/reset_passwd"
 )
 
 // ForgotPasswd render the forget password page
@@ -35,7 +36,7 @@ func ForgotPasswd(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
-		log.Warn(ctx.Tr("auth.disable_forgot_password_mail_admin"))
+		log.Warn("no mail service configured")
 		ctx.Data["IsResetDisable"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
@@ -52,7 +53,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
-		ctx.NotFound("ForgotPasswdPost", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["IsResetRequest"] = true
@@ -79,7 +80,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+u.LowerName) {
+	if ctx.Cache.IsExist("MailResendLimit_" + u.LowerName) {
 		ctx.Data["ResendLimited"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
@@ -87,10 +88,8 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	mailer.SendResetPasswordMail(u)
 
-	if setting.CacheService.Enabled {
-		if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
-		}
+	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+		log.Error("Set cache(MailResendLimit) fail: %v", err)
 	}
 
 	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
@@ -114,7 +113,7 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	}
 
 	// Fail early, don't frustrate the user
-	u := user_model.VerifyUserActiveCode(ctx, code)
+	u := user_model.VerifyUserTimeLimitCode(ctx, &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, code)
 	if u == nil {
 		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", fmt.Sprintf("%s/user/forgot_password", setting.AppSubURL)), true)
 		return nil, nil
@@ -123,7 +122,7 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	twofa, err := auth.GetTwoFactorByUID(ctx, u.ID)
 	if err != nil {
 		if !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.Error(http.StatusInternalServerError, "CommonResetPassword", err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, "CommonResetPassword", err.Error())
 			return nil, nil
 		}
 	} else {
@@ -167,30 +166,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	// Validate password length.
-	passwd := ctx.FormString("password")
-	if len(passwd) < setting.MinPasswordLength {
-		ctx.Data["IsResetForm"] = true
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
-		return
-	} else if !password.IsComplexEnough(passwd) {
-		ctx.Data["IsResetForm"] = true
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
-		return
-	} else if pwned, err := password.IsPwned(ctx, passwd); pwned || err != nil {
-		errMsg := ctx.Tr("auth.password_pwned")
-		if err != nil {
-			log.Error(err.Error())
-			errMsg = ctx.Tr("auth.password_pwned_err")
-		}
-		ctx.Data["IsResetForm"] = true
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(errMsg, tplResetPassword, nil)
-		return
-	}
-
 	// Handle two-factor
 	regenerateScratchToken := false
 	if twofa != nil {
@@ -206,7 +181,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			passcode := ctx.FormString("passcode")
 			ok, err := twofa.ValidateTOTP(passcode)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
+				ctx.HTTPError(http.StatusInternalServerError, "ValidateTOTP", err.Error())
 				return
 			}
 			if !ok || twofa.LastUsedPasscode == passcode {
@@ -223,18 +198,26 @@ func ResetPasswdPost(ctx *context.Context) {
 			}
 		}
 	}
-	var err error
-	if u.Rands, err = user_model.GetUserSalt(); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
+
+	opts := &user_service.UpdateAuthOptions{
+		Password:           optional.Some(ctx.FormString("password")),
+		MustChangePassword: optional.Some(false),
 	}
-	if err = u.SetPassword(passwd); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
-	u.MustChangePassword = false
-	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
-		ctx.ServerError("UpdateUser", err)
+	if err := user_service.UpdateAuth(ctx, u, opts); err != nil {
+		ctx.Data["IsResetForm"] = true
+		ctx.Data["Err_Password"] = true
+		switch {
+		case errors.Is(err, password.ErrMinLength):
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
+		case errors.Is(err, password.ErrComplexity):
+			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
+		case errors.Is(err, password.ErrIsPwned):
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplResetPassword, nil)
+		case password.IsErrIsPwnedRequest(err):
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
+		default:
+			ctx.ServerError("UpdateAuth", err)
+		}
 		return
 	}
 
@@ -244,7 +227,7 @@ func ResetPasswdPost(ctx *context.Context) {
 
 	if regenerateScratchToken {
 		// Invalidate the scratch token.
-		_, err = twofa.GenerateScratchToken()
+		_, err := twofa.GenerateScratchToken()
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -284,11 +267,11 @@ func MustChangePasswordPost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplMustChangePassword)
 		return
 	}
-	u := ctx.Doer
+
 	// Make sure only requests for users who are eligible to change their password via
 	// this method passes through
-	if !u.MustChangePassword {
-		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password.. Please visit the settings page"))
+	if !ctx.Doer.MustChangePassword {
+		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password. Please visit the settings page"))
 		return
 	}
 
@@ -298,48 +281,37 @@ func MustChangePasswordPost(ctx *context.Context) {
 		return
 	}
 
-	if len(form.Password) < setting.MinPasswordLength {
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
-		return
+	opts := &user_service.UpdateAuthOptions{
+		Password:           optional.Some(form.Password),
+		MustChangePassword: optional.Some(false),
 	}
-
-	if !password.IsComplexEnough(form.Password) {
-		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
-		return
-	}
-	pwned, err := password.IsPwned(ctx, form.Password)
-	if pwned {
-		ctx.Data["Err_Password"] = true
-		errMsg := ctx.Tr("auth.password_pwned")
-		if err != nil {
-			log.Error(err.Error())
-			errMsg = ctx.Tr("auth.password_pwned_err")
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
+		switch {
+		case errors.Is(err, password.ErrMinLength):
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
+		case errors.Is(err, password.ErrComplexity):
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
+		case errors.Is(err, password.ErrIsPwned):
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplMustChangePassword, &form)
+		case password.IsErrIsPwnedRequest(err):
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
+		default:
+			ctx.ServerError("UpdateAuth", err)
 		}
-		ctx.RenderWithErr(errMsg, tplMustChangePassword, &form)
-		return
-	}
-
-	if err = u.SetPassword(form.Password); err != nil {
-		ctx.ServerError("UpdateUser", err)
-		return
-	}
-
-	u.MustChangePassword = false
-
-	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
-		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 
-	log.Trace("User updated password: %s", u.Name)
+	log.Trace("User updated password: %s", ctx.Doer.Name)
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" {
 		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToFirst(redirectTo)
+		ctx.RedirectToCurrentSite(redirectTo)
 		return
 	}
 

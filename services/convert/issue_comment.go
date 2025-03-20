@@ -19,9 +19,9 @@ func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_mo
 	return &api.Comment{
 		ID:          c.ID,
 		Poster:      ToUser(ctx, c.Poster, nil),
-		HTMLURL:     c.HTMLURL(),
-		IssueURL:    c.IssueURL(),
-		PRURL:       c.PRURL(),
+		HTMLURL:     c.HTMLURL(ctx),
+		IssueURL:    c.IssueURL(ctx),
+		PRURL:       c.PRURL(ctx),
 		Body:        c.Content,
 		Attachments: ToAPIAttachments(repo, c.Attachments),
 		Created:     c.CreatedUnix.AsTime(),
@@ -37,31 +37,31 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 		return nil
 	}
 
-	err = c.LoadAssigneeUserAndTeam()
+	err = c.LoadAssigneeUserAndTeam(ctx)
 	if err != nil {
 		log.Error("LoadAssigneeUserAndTeam: %v", err)
 		return nil
 	}
 
-	err = c.LoadResolveDoer()
+	err = c.LoadResolveDoer(ctx)
 	if err != nil {
 		log.Error("LoadResolveDoer: %v", err)
 		return nil
 	}
 
-	err = c.LoadDepIssueDetails()
+	err = c.LoadDepIssueDetails(ctx)
 	if err != nil {
 		log.Error("LoadDepIssueDetails: %v", err)
 		return nil
 	}
 
-	err = c.LoadTime()
+	err = c.LoadTime(ctx)
 	if err != nil {
 		log.Error("LoadTime: %v", err)
 		return nil
 	}
 
-	err = c.LoadLabel()
+	err = c.LoadLabel(ctx)
 	if err != nil {
 		log.Error("LoadLabel: %v", err)
 		return nil
@@ -72,9 +72,14 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 			c.Type == issues_model.CommentTypeStopTracking ||
 			c.Type == issues_model.CommentTypeDeleteTimeManual) &&
 			c.Content[0] == '|' {
-			// TimeTracking Comments from v1.21 on store the seconds instead of an formated string
-			// so we check for the "|" delimeter and convert new to legacy format on demand
-			c.Content = util.SecToTime(c.Content[1:])
+			// TimeTracking Comments from v1.21 on store the seconds instead of an formatted string
+			// so we check for the "|" delimiter and convert new to legacy format on demand
+			c.Content = util.SecToHours(c.Content[1:])
+		}
+
+		if c.Type == issues_model.CommentTypeChangeTimeEstimate {
+			timeSec, _ := util.ToInt64(c.Content)
+			c.Content = util.TimeEstimateString(timeSec)
 		}
 	}
 
@@ -82,9 +87,9 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 		ID:       c.ID,
 		Type:     c.Type.String(),
 		Poster:   ToUser(ctx, c.Poster, nil),
-		HTMLURL:  c.HTMLURL(),
-		IssueURL: c.IssueURL(),
-		PRURL:    c.PRURL(),
+		HTMLURL:  c.HTMLURL(ctx),
+		IssueURL: c.IssueURL(ctx),
+		PRURL:    c.PRURL(ctx),
 		Body:     c.Content,
 		Created:  c.CreatedUnix.AsTime(),
 		Updated:  c.UpdatedUnix.AsTime(),
@@ -120,7 +125,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 			return nil
 		}
 
-		comment.TrackedTime = ToTrackedTime(ctx, c.Time)
+		comment.TrackedTime = ToTrackedTime(ctx, doer, c.Time)
 	}
 
 	if c.RefIssueID != 0 {
@@ -129,7 +134,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 			log.Error("GetIssueByID(%d): %v", c.RefIssueID, err)
 			return nil
 		}
-		comment.RefIssue = ToAPIIssue(ctx, issue)
+		comment.RefIssue = ToAPIIssue(ctx, doer, issue)
 	}
 
 	if c.RefCommentID != 0 {
@@ -180,7 +185,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	}
 
 	if c.DependentIssue != nil {
-		comment.DependentIssue = ToAPIIssue(ctx, c.DependentIssue)
+		comment.DependentIssue = ToAPIIssue(ctx, doer, c.DependentIssue)
 	}
 
 	return comment

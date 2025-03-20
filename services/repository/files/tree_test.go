@@ -7,8 +7,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/contexttest"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,10 +26,10 @@ func TestGetTreeBySHA(t *testing.T) {
 	sha := ctx.Repo.Repository.DefaultBranch
 	page := 1
 	perPage := 10
-	ctx.SetParams(":id", "1")
-	ctx.SetParams(":sha", sha)
+	ctx.SetPathParam("id", "1")
+	ctx.SetPathParam("sha", sha)
 
-	tree, err := GetTreeBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Params(":sha"), page, perPage, true)
+	tree, err := GetTreeBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("sha"), page, perPage, true)
 	assert.NoError(t, err)
 	expectedTree := &api.GitTreeResponse{
 		SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
@@ -49,4 +50,52 @@ func TestGetTreeBySHA(t *testing.T) {
 	}
 
 	assert.EqualValues(t, expectedTree, tree)
+}
+
+func TestGetTreeViewNodes(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1")
+	ctx.Repo.RefFullName = git.RefNameFromBranch("sub-home-md-img-check")
+	contexttest.LoadRepo(t, ctx, 1)
+	contexttest.LoadRepoCommit(t, ctx)
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
+	treeNodes, err := GetTreeViewNodes(ctx, ctx.Repo.Commit, "", "")
+	assert.NoError(t, err)
+	assert.Equal(t, []*TreeViewNode{
+		{
+			EntryName: "docs",
+			EntryMode: "tree",
+			FullPath:  "docs",
+		},
+	}, treeNodes)
+
+	treeNodes, err = GetTreeViewNodes(ctx, ctx.Repo.Commit, "", "docs/README.md")
+	assert.NoError(t, err)
+	assert.Equal(t, []*TreeViewNode{
+		{
+			EntryName: "docs",
+			EntryMode: "tree",
+			FullPath:  "docs",
+			Children: []*TreeViewNode{
+				{
+					EntryName: "README.md",
+					EntryMode: "blob",
+					FullPath:  "docs/README.md",
+				},
+			},
+		},
+	}, treeNodes)
+
+	treeNodes, err = GetTreeViewNodes(ctx, ctx.Repo.Commit, "docs", "README.md")
+	assert.NoError(t, err)
+	assert.Equal(t, []*TreeViewNode{
+		{
+			EntryName: "README.md",
+			EntryMode: "blob",
+			FullPath:  "docs/README.md",
+		},
+	}, treeNodes)
 }

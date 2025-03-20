@@ -4,22 +4,19 @@
 package setting
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
-	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -28,14 +25,14 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.collaboration")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
+	users, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
 	}
 	ctx.Data["Collaborators"] = users
 
-	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetRepoTeams", err)
 		return
@@ -52,7 +49,7 @@ func Collaboration(ctx *context.Context) {
 
 // CollaborationPost response for actions for a collaboration of a repository
 func CollaborationPost(ctx *context.Context) {
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("collaborator")))
+	name := strings.ToLower(ctx.FormString("collaborator"))
 	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		return
@@ -101,8 +98,13 @@ func CollaborationPost(ctx *context.Context) {
 		}
 	}
 
-	if err = repo_module.AddCollaborator(ctx, ctx.Repo.Repository, u); err != nil {
-		ctx.ServerError("AddCollaborator", err)
+	if err = repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, u, perm.AccessModeWrite); err != nil {
+		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator.blocked_user"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		} else {
+			ctx.ServerError("AddOrUpdateCollaborator", err)
+		}
 		return
 	}
 
@@ -127,10 +129,19 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 
 // DeleteCollaboration delete a collaboration for a repository
 func DeleteCollaboration(ctx *context.Context) {
-	if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
+	if collaborator, err := user_model.GetUserByID(ctx, ctx.FormInt64("id")); err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
+		} else {
+			ctx.ServerError("GetUserByName", err)
+			return
+		}
 	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
+		if err := repo_service.DeleteCollaboration(ctx, ctx.Repo.Repository, collaborator); err != nil {
+			ctx.Flash.Error("DeleteCollaboration: " + err.Error())
+		} else {
+			ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
+		}
 	}
 
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")
@@ -144,7 +155,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("team")))
+	name := strings.ToLower(ctx.FormString("team"))
 	if len(name) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
@@ -173,7 +184,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = org_service.TeamAddRepository(ctx, team, ctx.Repo.Repository); err != nil {
+	if err = repo_service.TeamAddRepository(ctx, team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("TeamAddRepository", err)
 		return
 	}

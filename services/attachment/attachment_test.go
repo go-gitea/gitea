@@ -19,9 +19,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }
 
 func TestUploadAttachment(t *testing.T) {
@@ -34,7 +32,7 @@ func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, err)
 	defer f.Close()
 
-	attach, err := NewAttachment(&repo_model.Attachment{
+	attach, err := NewAttachment(db.DefaultContext, &repo_model.Attachment{
 		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),

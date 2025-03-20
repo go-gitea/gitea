@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/alpine"
+	"code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/modules/packages/cargo"
 	"code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/packages/composer"
@@ -70,14 +71,24 @@ type PackageFileDescriptor struct {
 	Properties PackagePropertyList
 }
 
-// PackageWebLink returns the package web link
+// PackageWebLink returns the relative package web link
 func (pd *PackageDescriptor) PackageWebLink() string {
 	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HomeLink(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
 }
 
-// FullWebLink returns the package version web link
-func (pd *PackageDescriptor) FullWebLink() string {
+// VersionWebLink returns the relative package version web link
+func (pd *PackageDescriptor) VersionWebLink() string {
 	return fmt.Sprintf("%s/%s", pd.PackageWebLink(), url.PathEscape(pd.Version.LowerVersion))
+}
+
+// PackageHTMLURL returns the absolute package HTML URL
+func (pd *PackageDescriptor) PackageHTMLURL() string {
+	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+}
+
+// VersionHTMLURL returns the absolute package version HTML URL
+func (pd *PackageDescriptor) VersionHTMLURL() string {
+	return fmt.Sprintf("%s/%s", pd.PackageHTMLURL(), url.PathEscape(pd.Version.LowerVersion))
 }
 
 // CalculateBlobSize returns the total blobs size in bytes
@@ -99,9 +110,12 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	if err != nil {
 		return nil, err
 	}
-	repository, err := repo_model.GetRepositoryByID(ctx, p.RepoID)
-	if err != nil && !repo_model.IsErrRepoNotExist(err) {
-		return nil, err
+	var repository *repo_model.Repository
+	if p.RepoID > 0 {
+		repository, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
+		if err != nil && !repo_model.IsErrRepoNotExist(err) {
+			return nil, err
+		}
 	}
 	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
 	if err != nil {
@@ -140,6 +154,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	switch p.Type {
 	case TypeAlpine:
 		metadata = &alpine.VersionMetadata{}
+	case TypeArch:
+		metadata = &arch.VersionMetadata{}
 	case TypeCargo:
 		metadata = &cargo.Metadata{}
 	case TypeChef:

@@ -5,7 +5,6 @@ package install
 
 import (
 	"net/http/httptest"
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -35,7 +34,5 @@ func TestRoutes(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", ".."),
-	})
+	unittest.MainTest(m)
 }

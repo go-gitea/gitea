@@ -29,20 +29,6 @@ func (err ErrIssueStopwatchNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrIssueStopwatchAlreadyExist represents an error that stopwatch is already exist
-type ErrIssueStopwatchAlreadyExist struct {
-	UserID  int64
-	IssueID int64
-}
-
-func (err ErrIssueStopwatchAlreadyExist) Error() string {
-	return fmt.Sprintf("issue stopwatch already exists[uid: %d, issue_id: %d", err.UserID, err.IssueID)
-}
-
-func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
 // Stopwatch represents a stopwatch for time tracking.
 type Stopwatch struct {
 	ID          int64              `xorm:"pk autoincr"`
@@ -58,11 +44,6 @@ func init() {
 // Seconds returns the amount of time passed since creation, based on local server time
 func (s Stopwatch) Seconds() int64 {
 	return int64(timeutil.TimeStampNow() - s.CreatedUnix)
-}
-
-// Duration returns a human-readable duration string based on local server time
-func (s Stopwatch) Duration() string {
-	return util.SecToTime(s.Seconds())
 }
 
 func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
@@ -110,7 +91,7 @@ func GetUIDsAndStopwatch(ctx context.Context) ([]*UserStopwatch, error) {
 func GetUserStopwatches(ctx context.Context, userID int64, listOptions db.ListOptions) ([]*Stopwatch, error) {
 	sws := make([]*Stopwatch, 0, 8)
 	sess := db.GetEngine(ctx).Where("stopwatch.user_id = ?", userID)
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
@@ -215,7 +196,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
-		Content: util.SecToTime(timediff),
+		Content: util.SecToHours(timediff),
 		Type:    CommentTypeStopTracking,
 		TimeID:  tt.ID,
 	}); err != nil {

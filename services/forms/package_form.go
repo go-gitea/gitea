@@ -6,8 +6,8 @@ package forms
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/context"
 
 	"gitea.com/go-chi/binding"
 )
@@ -15,7 +15,7 @@ import (
 type PackageCleanupRuleForm struct {
 	ID            int64
 	Enabled       bool
-	Type          string `binding:"Required;In(alpine,cargo,chef,composer,conan,conda,container,cran,debian,generic,go,helm,maven,npm,nuget,pub,pypi,rpm,rubygems,swift,vagrant)"`
+	Type          string `binding:"Required;In(alpine,arch,cargo,chef,composer,conan,conda,container,cran,debian,generic,go,helm,maven,npm,nuget,pub,pypi,rpm,rubygems,swift,vagrant)"`
 	KeepCount     int    `binding:"In(0,1,5,10,25,50,100)"`
 	KeepPattern   string `binding:"RegexPattern"`
 	RemoveDays    int    `binding:"In(0,7,14,30,60,90,180)"`

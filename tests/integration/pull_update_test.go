@@ -40,7 +40,8 @@ func TestAPIPullUpdate(t *testing.T) {
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
@@ -68,7 +69,8 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase&token="+token, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
@@ -113,12 +115,12 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		OldBranch: "master",
 		NewBranch: "master",
 		Author: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Committer: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    time.Now(),
@@ -140,12 +142,12 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		OldBranch: "master",
 		NewBranch: "newBranch",
 		Author: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Committer: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    time.Now(),
@@ -171,12 +173,12 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		BaseRepo:   baseRepo,
 		Type:       issues_model.PullRequestGitea,
 	}
-	err = pull_service.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
+	prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+	err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"})
-	pr, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
-	assert.NoError(t, err)
+	assert.NoError(t, issue.LoadPullRequest(db.DefaultContext))
 
-	return pr
+	return issue.PullRequest
 }

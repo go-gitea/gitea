@@ -50,7 +50,8 @@ func TestAPIReposGitTrees(t *testing.T) {
 	}
 
 	// Test using access token for a private repo that the user of the token owns
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s?token=%s", user2.Name, repo16.Name, repo16TreeSHA, token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo16.Name, repo16TreeSHA).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test using bad sha
@@ -58,7 +59,8 @@ func TestAPIReposGitTrees(t *testing.T) {
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test using org repo "org3/repo3" where user2 is a collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s?token=%s", org3.Name, repo3.Name, repo3TreeSHA, token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", org3.Name, repo3.Name, repo3TreeSHA).
+		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "org3/repo3" with no user token
@@ -67,7 +69,7 @@ func TestAPIReposGitTrees(t *testing.T) {
 
 	// Login as User4.
 	session = loginUser(t, user4.Name)
-	token4 := getTokenForLoggedInUser(t, session)
+	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
 	// Test using org repo "org3/repo3" where user4 is a NOT collaborator
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", org3.Name, repo3.Name, token4)
