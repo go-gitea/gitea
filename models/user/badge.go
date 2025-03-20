@@ -97,7 +97,6 @@ func AddUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 			} else if !has {
 				return fmt.Errorf("badge with slug %s doesn't exist", badge.Slug)
 			}
-			// FIXME check uniqueness
 			if err := db.Insert(ctx, &UserBadge{
 				BadgeID: badge.ID,
 				UserID:  u.ID,
