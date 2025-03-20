@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package runner
+package v1_24 //nolint
 
 import (
 	"xorm.io/xorm"
