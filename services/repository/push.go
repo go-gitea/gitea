@@ -309,7 +309,7 @@ func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *us
 		log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 	}
 
-	// only update branch can trigger pull request task because the pull request hasn't been created yet when creaing a branch
+	// only update branch can trigger pull request task because the pull request hasn't been created yet when creating a branch
 	go pull_service.AddTestPullRequestTask(pull_service.TestPullRequestOptions{
 		RepoID:      repo.ID,
 		Doer:        pusher,
