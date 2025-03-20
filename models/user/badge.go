@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+
+	"xorm.io/xorm/schemas"
 )
 
 // Badge represents a user badge
@@ -22,7 +24,16 @@ type Badge struct {
 type UserBadge struct { //nolint:revive
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64
-	UserID  int64 `xorm:"INDEX"`
+	UserID  int64
+}
+
+// TableIndices implements xorm's TableIndices interface
+func (n *UserBadge) TableIndices() []*schemas.Index {
+	indices := make([]*schemas.Index, 0, 1)
+	ubUnique := schemas.NewIndex("unique_user_badge", schemas.UniqueType)
+	ubUnique.AddColumn("user_id", "badge_id")
+	indices = append(indices, ubUnique)
+	return indices
 }
 
 func init() {
