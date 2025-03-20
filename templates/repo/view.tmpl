@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <script type="module">
-window.config.pageData.folderIcon = {{ctx.RenderUtils.RenderFolderIconByOpenState false}};
-window.config.pageData.openFolderIcon = {{ctx.RenderUtils.RenderFolderIconByOpenState true}};
+window.config.pageData.expandedFolderIcon = {{ctx.RenderUtils.RenderExpandedFolderIcon}};
+window.config.pageData.collapsedFolderIcon = {{ctx.RenderUtils.RenderCollapsedFolderIcon}};
 </script>
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}

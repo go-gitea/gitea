@@ -47,9 +47,7 @@ function getIconForDiffStatus(pType: FileStatus) {
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span v-if="collapsed" class="item-icon" v-html="pageData.folderIcon"/>
-      <!-- eslint-disable-next-line vue/no-v-html -->
-      <span v-else class="item-icon" v-html="pageData.openFolderIcon"/>
+      <span class="item-icon" v-html="collapsed ? pageData.collapsedFolderIcon : pageData.expandedFolderIcon"/>
       <span class="gt-ellipsis">{{ item.name }}</span>
     </div>
 

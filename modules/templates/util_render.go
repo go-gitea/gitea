@@ -181,7 +181,15 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 		textColor, itemColor, itemHTML)
 }
 
-func (ut *RenderUtils) RenderFolderIconByOpenState(isOpen bool) template.HTML {
+func (ut *RenderUtils) RenderExpandedFolderIcon() template.HTML {
+	return ut.RenderFolderIconByExpansionState(true)
+}
+
+func (ut *RenderUtils) RenderCollapsedFolderIcon() template.HTML {
+	return ut.RenderFolderIconByExpansionState(false)
+}
+
+func (ut *RenderUtils) RenderFolderIconByExpansionState(isOpen bool) template.HTML {
 	if setting.UI.FileIconTheme == "material" {
 		return fileicon.DefaultMaterialIconProvider().FolderIcon(ut.ctx, isOpen)
 	}
