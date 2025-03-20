@@ -738,6 +738,7 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 }
 
 func SyncBranchCommitsCount(ctx context.Context) error {
+	startID := int64(0)
 	for {
 		select {
 		case <-ctx.Done():
@@ -746,8 +747,22 @@ func SyncBranchCommitsCount(ctx context.Context) error {
 		}
 
 		// search all branches commits count are not synced
+		branches, err := git_model.FindCommitsCountOutdatedBranches(ctx, startID, 100)
+		if err != nil {
+			return err
+		}
+		if len(branches) == 0 {
+			return nil
+		}
+
+		if err := branches.LoadRepo(ctx); err != nil {
+			return err
+		}
 
 		for _, branch := range branches {
+			if branch.ID > startID {
+				startID = branch.ID
+			}
 			if err := syncBranchCommitsCount(ctx, branch); err != nil {
 				log.Error("syncBranchCommitsCount: %v", err)
 			}
@@ -756,27 +771,14 @@ func SyncBranchCommitsCount(ctx context.Context) error {
 }
 
 func syncBranchCommitsCount(ctx context.Context, branch *git_model.Branch) error {
-	if err := branch.LoadRepo(ctx); err != nil {
-		return err
+	if branch.CommitID == "" {
+		return nil
 	}
-	commitID, err := gitrepo.GetBranchCommitID(ctx, branch.Repo, branch.Name)
+
+	commitsCount, err := gitrepo.CommitsCount(ctx, branch.Repo, branch.CommitID)
 	if err != nil {
 		return err
 	}
 
-	var cols []string
-	if commitID != branch.CommitID {
-		branch.CommitID = commitID
-		cols = append(cols, "commit_id")
-	}
-
-	commit, err := gitrepo.GetCommit(ctx, branch.Repo, commitID)
-
-	commitsCount, err := commit.CommitsCount()
-	if err != nil {
-		return err
-	}
-
-	git_model.UpdateBranchCommitCount(ctx, branch.RepoID, branch.Name, commit.ID, commitsCount)
-	return nil
+	return git_model.UpdateBranchCommitCount(ctx, branch.RepoID, branch.Name, branch.CommitID, commitsCount)
 }

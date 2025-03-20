@@ -255,7 +255,7 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 
 func UpdateBranchCommitCount(ctx context.Context, repoID int64, branchName, commitID string, commitCount int64) error {
 	_, err := db.GetEngine(ctx).Where("repo_id=? AND name=?", repoID, branchName).
-		Cols("commit_count").
+		Cols("commit_count", "commit_count_id").
 		Update(&Branch{
 			CommitCount:   commitCount,
 			CommitCountID: commitID,

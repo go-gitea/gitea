@@ -302,7 +302,7 @@ func UpdateRepoBranchCommitsCount(ctx context.Context, repo *repo_model.Reposito
 	if err != nil {
 		return fmt.Errorf("newCommit.CommitsCount: %w", err)
 	}
-	return git_model.UpdateBranchCommitCount(ctx, repo.ID, branch, commitsCount)
+	return git_model.UpdateBranchCommitCount(ctx, repo.ID, branch, newCommit.ID.String(), commitsCount)
 }
 
 func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
