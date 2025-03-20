@@ -315,12 +315,12 @@ func ViewProject(ctx *context.Context) {
 
 	labelIDs := issue.PrepareFilterIssueLabels(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner)
 
-	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
+	assigneeID := ctx.FormString("assignee")
 
 	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &issues_model.IssuesOptions{
 		RepoIDs:    []int64{ctx.Repo.Repository.ID},
 		LabelIDs:   labelIDs,
-		AssigneeID: optional.Some(assigneeID),
+		AssigneeID: assigneeID,
 	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfColumns", err)

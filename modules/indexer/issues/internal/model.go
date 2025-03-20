@@ -97,10 +97,8 @@ type SearchOptions struct {
 	ProjectID       optional.Option[int64] // project the issues belong to
 	ProjectColumnID optional.Option[int64] // project column the issues belong to
 
-	PosterID optional.Option[int64] // poster of the issues
-
-	AssigneeID      optional.Option[int64] // assignee of the issues, zero means no assignee
-	AnyAssigneeOnly bool                   // if the issues have any assignee (non-zero), if true, AssigneeID will be ignored
+	PosterID   string // poster of the issues, "(none)" or "(any)" or a user ID
+	AssigneeID string // assignee of the issues, "(none)" or "(any)" or a user ID
 
 	MentionID optional.Option[int64] // mentioned user of the issues
 
