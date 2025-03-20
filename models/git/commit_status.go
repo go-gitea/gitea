@@ -453,9 +453,8 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[nil, %s]: no repository specified", opts.SHA)
 	}
 
-	repoPath := opts.Repo.RepoPath()
 	if opts.Creator == nil {
-		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
+		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", opts.Repo.FullName(), opts.SHA)
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -477,13 +476,13 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 	opts.CommitStatus.CreatorID = opts.Creator.ID
 	opts.CommitStatus.RepoID = opts.Repo.ID
 	opts.CommitStatus.Index = idx
-	log.Debug("NewCommitStatus[%s, %s]: %d", repoPath, opts.SHA, opts.CommitStatus.Index)
+	log.Debug("NewCommitStatus[%s, %s]: %d", opts.Repo.FullName(), opts.SHA, opts.CommitStatus.Index)
 
 	opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
 
 	// Insert new CommitStatus
 	if _, err = db.GetEngine(ctx).Insert(opts.CommitStatus); err != nil {
-		return fmt.Errorf("insert CommitStatus[%s, %s]: %w", repoPath, opts.SHA, err)
+		return fmt.Errorf("insert CommitStatus[%s, %s]: %w", opts.Repo.FullName(), opts.SHA, err)
 	}
 
 	return committer.Commit()

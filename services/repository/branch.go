@@ -410,11 +410,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "target_exist", nil
 	}
 
-	if gitRepo.IsBranchExist(to) {
+	if gitrepo.IsBranchExist(ctx, repo, to) {
 		return "target_exist", nil
 	}
 
-	if !gitRepo.IsBranchExist(from) {
+	if !gitrepo.IsBranchExist(ctx, repo, from) {
 		return "from_not_exist", nil
 	}
 
@@ -618,12 +618,12 @@ func AddAllRepoBranchesToSyncQueue(ctx context.Context) error {
 	return nil
 }
 
-func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, newBranchName string) error {
+func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newBranchName string) error {
 	if repo.DefaultBranch == newBranchName {
 		return nil
 	}
 
-	if !gitRepo.IsBranchExist(newBranchName) {
+	if !gitrepo.IsBranchExist(ctx, repo, newBranchName) {
 		return git_model.ErrBranchNotExist{
 			BranchName: newBranchName,
 		}

@@ -82,9 +82,11 @@ func searchIssueWithKeyword(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
-		require.NoError(t, err)
-		assert.Equal(t, test.expectedIDs, issueIDs)
+		t.Run(test.opts.Keyword, func(t *testing.T) {
+			issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
+			require.NoError(t, err)
+			assert.Equal(t, test.expectedIDs, issueIDs)
+		})
 	}
 }
 
