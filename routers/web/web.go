@@ -1515,7 +1515,7 @@ func registerRoutes(m *web.Router) {
 		//   m.Post("/tags", web.Bind(forms.TagForm{}), repo.AddDatasetTags) // Add tags
 		// }, reqSignIn, reqDataCatalogWriter)
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqUnitCodeReader)
-	
+
 	// end "/{username}/{reponame}/catalog"
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/{type:pulls}", repo.Issues)

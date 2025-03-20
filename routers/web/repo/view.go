@@ -55,7 +55,7 @@ const (
 	tplWatchers        templates.TplName = "repo/watchers"
 	tplForks           templates.TplName = "repo/forks"
 	tplMigrating       templates.TplName = "repo/migrate/migrating"
-	tplCatalog        templates.TplName = "repo/catalog"
+	tplCatalog         templates.TplName = "repo/catalog"
 )
 
 type fileInfo struct {
