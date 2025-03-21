@@ -86,7 +86,7 @@ func newInternalRequestAPIForHooks(ctx context.Context, hookName, ownerName, rep
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/%s/%s/%s", hookName, url.PathEscape(ownerName), url.PathEscape(repoName))
 	req := newInternalRequestAPI(ctx, reqURL, "POST", opts)
 	// This "timeout" applies to http.Client's timeout: A Timeout of zero means no timeout.
-	// This "timeout" was ever set to `time.Duration(60+len(opts.OldCommitIDs))` seconds, but it caused unnecessary timeout failures.
+	// This "timeout" was previously set to `time.Duration(60+len(opts.OldCommitIDs))` seconds, but it caused unnecessary timeout failures.
 	// It should be good enough to remove the client side timeout, only respect the "ctx" and server side timeout.
 	req.SetReadWriteTimeout(0)
 	return req
