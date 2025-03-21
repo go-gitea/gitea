@@ -738,6 +738,14 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 			if !workflowpattern.Skip(patterns, []string{payload.WorkflowRun.HeadBranch}, &workflowpattern.EmptyTraceWriter{}) {
 				matchTimes++
 			}
+		case "branches-ignore":
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Filter(patterns, []string{payload.WorkflowRun.HeadBranch}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
+			}
 		default:
 			log.Warn("package event unsupported condition %q", cond)
 		}
