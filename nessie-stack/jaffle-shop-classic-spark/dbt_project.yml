@@ -3,7 +3,7 @@ name: 'jaffle_shop'
 config-version: 2
 version: '0.1'
 
-profile: 'jaffle_shop'
+profile: 'spark_profile'
 
 model-paths: ["models"]
 seed-paths: ["seeds"]
@@ -21,6 +21,7 @@ require-dbt-version: [">=1.0.0", "<2.0.0"]
 
 models:
   jaffle_shop:
+      +table_format: iceberg
       materialized: table
       staging:
         materialized: view
