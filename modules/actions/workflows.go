@@ -243,7 +243,7 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 		webhook_module.HookEventPackage:
 		return matchPackageEvent(payload.(*api.PackagePayload), evt)
 
-	case // registry_package
+	case // workflow_run
 		webhook_module.HookEventWorkflowRun:
 		return matchWorkflowRunEvent(payload.(*api.WorkflowRunPayload), evt)
 
