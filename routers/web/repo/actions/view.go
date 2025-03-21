@@ -621,7 +621,7 @@ func Approve(ctx *context_module.Context) {
 		job := updatedjobs[0]
 		// Sync run status with db
 		job.Run = nil
-		job.LoadAttributes(ctx)
+		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
 
