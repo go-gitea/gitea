@@ -178,7 +178,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
 
-	if skipWorkflows(input, commit) {
+	if skipWorkflows(ctx, input, commit) {
 		return nil
 	}
 
@@ -243,7 +243,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref.String())
 }
 
-func skipWorkflows(input *notifyInput, commit *git.Commit) bool {
+func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) bool {
 	// skip workflow runs with a configured skip-ci string in commit message or pr title if the event is push or pull_request(_sync)
 	// https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
 	skipWorkflowEvents := []webhook_module.HookEventType{
@@ -265,12 +265,21 @@ func skipWorkflows(input *notifyInput, commit *git.Commit) bool {
 	}
 	if input.Event == webhook_module.HookEventWorkflowRun {
 		wrun, ok := input.Payload.(*api.WorkflowRunPayload)
-		if ok && wrun.WorkflowRun != nil && wrun.WorkflowRun.Event == "workflow_run" {
-			// skip workflow runs triggered by another workflow run
-			// TODO GitHub allows chaining up to 5 of them
-			log.Debug("repo %s: skipped workflow_run because of recursive event", input.Repo.RepoPath())
-			return true
+		for i := 0; i < 5 && ok && wrun.WorkflowRun != nil; i++ {
+			if wrun.WorkflowRun.Event != "workflow_run" {
+				return false
+			}
+			r, _ := actions_model.GetRunByID(ctx, wrun.WorkflowRun.ID)
+			var err error
+			wrun, err = r.GetWorkflowRunEventPayload()
+			if err != nil {
+				log.Error("GetWorkflowRunEventPayload: %v", err)
+				return true
+			}
 		}
+		// skip workflow runs events exceeding the maxiumum of 5 recursive events
+		log.Debug("repo %s: skipped workflow_run because of recursive event of 5", input.Repo.RepoPath())
+		return true
 	}
 	return false
 }
