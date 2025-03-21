@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"time"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
@@ -86,7 +85,6 @@ type HookProcReceiveRefResult struct {
 func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) ResponseExtra {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
 	req := newInternalRequestAPI(ctx, reqURL, "POST", opts)
-	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
 	_, extra := requestJSONResp(req, &ResponseText{})
 	return extra
 }
@@ -95,7 +93,6 @@ func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOp
 func HookPostReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookPostReceiveResult, ResponseExtra) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/post-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
 	req := newInternalRequestAPI(ctx, reqURL, "POST", opts)
-	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
 	return requestJSONResp(req, &HookPostReceiveResult{})
 }
 
@@ -104,7 +101,6 @@ func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookO
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/proc-receive/%s/%s", url.PathEscape(ownerName), url.PathEscape(repoName))
 
 	req := newInternalRequestAPI(ctx, reqURL, "POST", opts)
-	req.SetReadWriteTimeout(time.Duration(60+len(opts.OldCommitIDs)) * time.Second)
 	return requestJSONResp(req, &HookProcReceiveResult{})
 }
 
