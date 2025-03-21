@@ -115,7 +115,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			case "temporarily_unavailable":
 				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.temporarily_unavailable"))
 			default:
-				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error"))
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.general", callbackErr.Description))
 			}
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
@@ -431,8 +431,10 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 	gothUser, err := oauth2Source.Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
-			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
+			log.Error("oauth2Source.Callback failed: %v", err)
+		} else {
+			err = errCallback{Code: "internal", Description: err.Error()}
 		}
 		return nil, goth.User{}, err
 	}
