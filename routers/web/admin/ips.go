@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
+	"xorm.io/xorm"
 )
 
 const (
@@ -40,6 +41,19 @@ func trimPortFromIP(ip string) string {
 	}
 
 	return ip
+}
+
+func buildIPQuery(ctx *context.Context, keyword string) *xorm.Session {
+	query := db.GetEngine(ctx).
+		Table("user_setting").
+		Join("INNER", "user", "user.id = user_setting.user_id").
+		Where("user_setting.setting_key = ?", user_model.SignupIP)
+
+	if len(keyword) > 0 {
+		query = query.And("(user.lower_name LIKE ? OR user.full_name LIKE ? OR user_setting.setting_value LIKE ?)",
+			"%"+strings.ToLower(keyword)+"%", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	return query
 }
 
 // IPs show all user signup IPs
@@ -94,59 +108,24 @@ func IPs(ctx *context.Context) {
 	}
 
 	// Get the count and user IPs for pagination
-	if len(keyword) == 0 {
-		// Simple count without keyword
-		count, err = db.GetEngine(ctx).
-			Join("INNER", "user", "user.id = user_setting.user_id").
-			Where("user_setting.setting_key = ?", user_model.SignupIP).
-			Count(new(user_model.Setting))
-		if err != nil {
-			ctx.ServerError("Count", err)
-			return
-		}
+	query := buildIPQuery(ctx, keyword)
 
-		// Get the user IPs
-		err = db.GetEngine(ctx).
-			Table("user_setting").
-			Join("INNER", "user", "user.id = user_setting.user_id").
-			Where("user_setting.setting_key = ?", user_model.SignupIP).
-			Select("user.id as uid, user.name, user.full_name, user_setting.setting_value as ip, '' as user_agent").
-			OrderBy(orderBy).
-			Limit(setting.UI.Admin.UserPagingNum, (page-1)*setting.UI.Admin.UserPagingNum).
-			Find(&userIPs)
-		if err != nil {
-			ctx.ServerError("Find", err)
-			return
-		}
-	} else {
-		// Count with keyword filter
-		count, err = db.GetEngine(ctx).
-			Join("INNER", "user", "user.id = user_setting.user_id").
-			Where("user_setting.setting_key = ?", user_model.SignupIP).
-			And("(user.lower_name LIKE ? OR user.full_name LIKE ? OR user_setting.setting_value LIKE ?)",
-				"%"+strings.ToLower(keyword)+"%", "%"+keyword+"%", "%"+keyword+"%").
-			Count(new(user_model.Setting))
-		if err != nil {
-			ctx.ServerError("Count", err)
-			return
-		}
-
-		// Get the user IPs with keyword filter
-		err = db.GetEngine(ctx).
-			Table("user_setting").
-			Join("INNER", "user", "user.id = user_setting.user_id").
-			Where("user_setting.setting_key = ?", user_model.SignupIP).
-			And("(user.lower_name LIKE ? OR user.full_name LIKE ? OR user_setting.setting_value LIKE ?)",
-				"%"+strings.ToLower(keyword)+"%", "%"+keyword+"%", "%"+keyword+"%").
-			Select("user.id as uid, user.name, user.full_name, user_setting.setting_value as ip, '' as user_agent").
-			OrderBy(orderBy).
-			Limit(setting.UI.Admin.UserPagingNum, (page-1)*setting.UI.Admin.UserPagingNum).
-			Find(&userIPs)
-		if err != nil {
-			ctx.ServerError("Find", err)
-			return
-		}
+	count, err = query.Count(new(user_model.Setting))
+	if err != nil {
+		ctx.ServerError("Count", err)
+		return
 	}
+
+	err = buildIPQuery(ctx, keyword).
+		Select("user.id as uid, user.name, user.full_name, user_setting.setting_value as ip").
+		OrderBy(orderBy).
+		Limit(setting.UI.Admin.UserPagingNum, (page-1)*setting.UI.Admin.UserPagingNum).
+		Find(&userIPs)
+	if err != nil {
+		ctx.ServerError("Find", err)
+		return
+	}
+
 	for i := range userIPs {
 		// Trim the port from the IP
 		// FIXME: Maybe have a different helper for this?
