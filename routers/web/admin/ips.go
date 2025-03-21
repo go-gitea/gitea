@@ -103,7 +103,6 @@ func IPs(ctx *context.Context) {
 		orderBy = "user.lower_name DESC, user.id DESC"
 	default:
 		ctx.Data["SortType"] = "ip"
-		sortType = "ip"
 		orderBy = "user_setting.setting_value ASC, user.id ASC"
 	}
 
