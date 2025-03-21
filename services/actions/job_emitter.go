@@ -80,7 +80,6 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 	}
 	if len(jobs) > 0 {
 		runUpdated := true
-		run := jobs[0].Run
 		for _, job := range jobs {
 			if !job.Status.IsDone() {
 				runUpdated = false
@@ -88,6 +87,10 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 			}
 		}
 		if runUpdated {
+			// Sync run status with db
+			jobs[0].Run = nil
+			jobs[0].LoadAttributes(ctx)
+			run := jobs[0].Run
 			notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 		}
 	}
