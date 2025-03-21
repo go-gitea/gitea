@@ -912,14 +912,19 @@ func GetWorkflowRuns(ctx *context.APIContext) {
 	//   description: name of the repository
 	//   type: string
 	//   required: true
-	// - name: run
-	//   in: path
-	//   description: runid of the workflow run
-	//   type: integer
-	//   required: true
-	// - name: name
+	// - name: event
 	//   in: query
-	//   description: name of the artifact
+	//   description: workflow event name
+	//   type: string
+	//   required: false
+	// - name: branch
+	//   in: query
+	//   description: workflow branch
+	//   type: string
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// responses:
@@ -1042,11 +1047,6 @@ func GetWorkflowJobs(ctx *context.APIContext) {
 	//   description: runid of the workflow run
 	//   type: integer
 	//   required: true
-	// - name: name
-	//   in: query
-	//   description: name of the artifact
-	//   type: string
-	//   required: false
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ArtifactsList"

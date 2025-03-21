@@ -4292,16 +4292,21 @@
             "required": true
           },
           {
-            "type": "integer",
-            "description": "runid of the workflow run",
-            "name": "run",
-            "in": "path",
-            "required": true
+            "type": "string",
+            "description": "workflow event name",
+            "name": "event",
+            "in": "query"
           },
           {
             "type": "string",
-            "description": "name of the artifact",
-            "name": "name",
+            "description": "workflow branch",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
             "in": "query"
           }
         ],
@@ -4447,12 +4452,6 @@
             "name": "run",
             "in": "path",
             "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the artifact",
-            "name": "name",
-            "in": "query"
           }
         ],
         "responses": {
