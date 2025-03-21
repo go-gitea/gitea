@@ -243,6 +243,10 @@ func detectMatched(gitRepo *git.Repository, commit *git.Commit, triggedEvent web
 		webhook_module.HookEventPackage:
 		return matchPackageEvent(payload.(*api.PackagePayload), evt)
 
+	case // registry_package
+		webhook_module.HookEventWorkflowRun:
+		return matchWorkflowRunEvent(payload.(*api.WorkflowRunPayload), evt)
+
 	default:
 		log.Warn("unsupported event %q", triggedEvent)
 		return false
@@ -691,6 +695,48 @@ func matchPackageEvent(payload *api.PackagePayload, evt *jobparser.Event) bool {
 					matchTimes++
 					break
 				}
+			}
+		default:
+			log.Warn("package event unsupported condition %q", cond)
+		}
+	}
+	return matchTimes == len(evt.Acts())
+}
+
+func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event) bool {
+	// with no special filter parameters
+	if len(evt.Acts()) == 0 {
+		return true
+	}
+
+	matchTimes := 0
+	// all acts conditions should be satisfied
+	for cond, vals := range evt.Acts() {
+		switch cond {
+		case "types":
+			action := payload.Action
+			for _, val := range vals {
+				if glob.MustCompile(val, '/').Match(string(action)) {
+					matchTimes++
+					break
+				}
+			}
+		case "workflows":
+			workflow := payload.Workflow
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Skip(patterns, []string{workflow.Name}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
+			}
+		case "branches":
+			patterns, err := workflowpattern.CompilePatterns(vals...)
+			if err != nil {
+				break
+			}
+			if !workflowpattern.Skip(patterns, []string{payload.WorkflowRun.HeadBranch}, &workflowpattern.EmptyTraceWriter{}) {
+				matchTimes++
 			}
 		default:
 			log.Warn("package event unsupported condition %q", cond)
