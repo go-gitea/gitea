@@ -265,7 +265,7 @@ func skipWorkflows(input *notifyInput, commit *git.Commit) bool {
 	}
 	if input.Event == webhook_module.HookEventWorkflowRun {
 		wrun, ok := input.Payload.(*api.WorkflowRunPayload)
-		if ok && wrun.WorkflowRun != nil && wrun.WorkflowRun.Event != "workflow_run" {
+		if ok && wrun.WorkflowRun != nil && wrun.WorkflowRun.Event == "workflow_run" {
 			// skip workflow runs triggered by another workflow run
 			// TODO GitHub allows chaining up to 5 of them
 			log.Debug("repo %s: skipped workflow_run because of recursive event", input.Repo.RepoPath())
