@@ -461,7 +461,9 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	actions_service.CreateCommitStatus(ctx, job)
 	// Sync run status with db
 	job.Run = nil
-	_ = job.LoadAttributes(ctx)
+	if err := job.LoadAttributes(ctx); err != nil {
+		return err
+	}
 	notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 
@@ -568,7 +570,10 @@ func Cancel(ctx *context_module.Context) {
 		job := updatedjobs[0]
 		// Sync run status with db
 		job.Run = nil
-		job.LoadAttributes(ctx)
+		if err := job.LoadAttributes(ctx); err != nil {
+			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			return
+		}
 		notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 	}
 	ctx.JSON(http.StatusOK, struct{}{})
