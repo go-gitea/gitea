@@ -258,6 +258,20 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 	}, nil
 }
 
+func ToWorkflowRunAction(status actions_model.Status) string {
+	var action string
+	switch status {
+	case actions_model.StatusWaiting, actions_model.StatusBlocked:
+		action = "requested"
+	case actions_model.StatusRunning:
+		action = "in_progress"
+	}
+	if status.IsDone() {
+		action = "completed"
+	}
+	return action
+}
+
 func ToActionsStatus(status actions_model.Status) (string, string) {
 	var action string
 	var conclusion string

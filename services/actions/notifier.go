@@ -774,7 +774,7 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
 	}
 
-	status, _ := convert.ToActionsStatus(run.Status)
+	status := convert.ToWorkflowRunAction(run.Status)
 
 	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
 	if err != nil {

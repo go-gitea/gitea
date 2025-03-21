@@ -985,7 +985,7 @@ func (*webhookNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
 	}
 
-	status, _ := convert.ToActionsStatus(run.Status)
+	status := convert.ToWorkflowRunAction(run.Status)
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
