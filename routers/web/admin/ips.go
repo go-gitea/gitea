@@ -79,7 +79,6 @@ func IPs(ctx *context.Context) {
 		Name      string
 		FullName  string
 		IP        string
-		UserAgent string
 	}
 
 	var (
