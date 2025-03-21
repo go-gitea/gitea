@@ -191,7 +191,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 		return err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
-		return nil
+		fileContents = make([]byte, 0)
 	}
 
 	if _, err = batchReader.Discard(1); err != nil {
