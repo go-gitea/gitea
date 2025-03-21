@@ -204,7 +204,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := gitrepo.OpenWikiRepository(ctx, repo)
+			gitRepo, err := gitrepo.OpenRepository(ctx, repo.WikiStorageRepo())
 			if err != nil {
 				return false, "", nil, err
 			}

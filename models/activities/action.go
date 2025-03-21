@@ -172,7 +172,10 @@ func (a *Action) TableIndices() []*schemas.Index {
 	cuIndex := schemas.NewIndex("c_u", schemas.IndexType)
 	cuIndex.AddColumn("user_id", "is_deleted")
 
-	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex, cuIndex}
+	actUserUserIndex := schemas.NewIndex("au_c_u", schemas.IndexType)
+	actUserUserIndex.AddColumn("act_user_id", "created_unix", "user_id")
+
+	indices := []*schemas.Index{actUserIndex, repoIndex, cudIndex, cuIndex, actUserUserIndex}
 
 	return indices
 }
@@ -442,6 +445,7 @@ type GetFeedsOptions struct {
 	OnlyPerformedBy bool                   // only actions performed by requested user
 	IncludeDeleted  bool                   // include deleted actions
 	Date            string                 // the day we want activity for: YYYY-MM-DD
+	DontCount       bool                   // do counting in GetFeeds
 }
 
 // ActivityReadable return whether doer can read activities of user
