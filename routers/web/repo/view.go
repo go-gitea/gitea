@@ -55,6 +55,7 @@ const (
 	tplWatchers        templates.TplName = "repo/watchers"
 	tplForks           templates.TplName = "repo/forks"
 	tplMigrating       templates.TplName = "repo/migrate/migrating"
+	tplCatalog         templates.TplName = "repo/catalog"
 )
 
 type fileInfo struct {
@@ -386,4 +387,10 @@ func Forks(ctx *context.Context) {
 	ctx.Data["Forks"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)
+}
+
+// CatalogHome renders the repository catalog home/overview page
+func CatalogHome(ctx *context.Context) {
+	ctx.Data["PageIsCatalog"] = true
+	ctx.HTML(http.StatusOK, tplCatalog)
 }

@@ -1497,7 +1497,26 @@ func registerRoutes(m *web.Router) {
 		context.RequireUnitReader(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases),
 	)
 	// end "/{username}/{reponame}/activity"
+	// "/{username}/{reponame}/catalog": repo data catalog
+	m.Group("/{username}/{reponame}/catalog", func() {
+		// Example routes for a data catalog:
+		m.Get("", repo.CatalogHome) // Landing page showing catalog overview
+		// m.Get("/datasets", repo.ListDatasets) // List all datasets
+		// m.Get("/datasets/{name}", repo.ViewDataset) // View single dataset details
+		// m.Get("/datasets/{name}/schema", repo.ViewDatasetSchema) // View dataset schema
+		// m.Get("/datasets/{name}/lineage", repo.ViewDatasetLineage) // View dataset lineage
+		// m.Get("/datasets/{name}/quality", repo.ViewDatasetQuality) // View dataset quality metrics
+		// m.Get("/tags", repo.ListTags) // List all dataset tags
+		// m.Get("/search", repo.SearchCatalog) // Search datasets and metadata
+		// m.Group("/datasets/{name}", func() {
+		//   m.Post("", web.Bind(forms.DatasetForm{}), repo.CreateDataset) // Create new dataset
+		//   m.Put("", web.Bind(forms.DatasetForm{}), repo.UpdateDataset) // Update dataset
+		//   m.Delete("", repo.DeleteDataset) // Delete dataset
+		//   m.Post("/tags", web.Bind(forms.TagForm{}), repo.AddDatasetTags) // Add tags
+		// }, reqSignIn, reqDataCatalogWriter)
+	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqUnitCodeReader)
 
+	// end "/{username}/{reponame}/catalog"
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/{type:pulls}", repo.Issues)
 		m.Group("/{type:pulls}/{index}", func() {

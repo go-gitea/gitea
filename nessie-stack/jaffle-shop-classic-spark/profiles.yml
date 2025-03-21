@@ -1,0 +1,39 @@
+spark_profile:
+  target: dev
+  outputs:
+    dev:
+      type: spark
+      method: thrift
+      host: localhost
+      port: 10000 # Default Spark Thrift port, adjust if needed
+      user: # leave blank if not using auth
+      password: # leave blank if not using auth
+      schema: nessie.default  # or your specific schema
+      threads: 1
+      connect_timeout: 60
+      connect_retries: 5
+      connect_retry_wait: 5
+      # Iceberg specific configurations
+      catalog: iceberg  # The name of your Iceberg catalog
+
+      # Additional Spark configurations for Iceberg
+      connect_args:
+        spark.jars.packages: org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.8.1,org.projectnessie.nessie-integrations:nessie-spark-extensions-3.5_2.12:0.102.5,org.apache.hadoop:hadoop-aws:3.3.4
+        spark.sql.extensions: org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,org.projectnessie.spark.extensions.NessieSparkSessionExtensions
+        spark.sql.catalog.nessie: org.apache.iceberg.spark.SparkCatalog
+        spark.sql.catalog.nessie.type: nessie
+        spark.sql.catalog.nessie.warehouse: s3a://warehouse
+        spark.sql.catalog.nessie.uri: http://nessie:19120/api/v1
+        spark.sql.catalog.nessie.ref: main
+        spark.sql.catalog.nessie.io-impl: org.apache.iceberg.aws.s3.S3FileIO
+        spark.sql.catalog.nessie.s3.endpoint: http://minio:9000
+        spark.sql.catalog.nessie.s3.path-style-access: true
+        spark.sql.catalog.nessie.s3.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
+        spark.sql.catalog.nessie.s3.access.key: minioadmin
+        spark.sql.catalog.nessie.s3.secret.key: minioadmin
+        # Add these new configurations
+        spark.hadoop.fs.s3a.access.key: minioadmin
+        spark.hadoop.fs.s3a.secret.key: minioadmin
+        spark.hadoop.fs.s3a.endpoint: http://minio:9000
+        spark.hadoop.fs.s3a.path.style.access: true
+        spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
