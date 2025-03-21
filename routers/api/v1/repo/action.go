@@ -894,7 +894,7 @@ func convertToInternal(s string) actions_model.Status {
 	}
 }
 
-// GetArtifacts Lists all artifacts for a repository.
+// GetWorkflowRuns Lists all runs for a repository run.
 func GetWorkflowRuns(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runs repository getWorkflowRuns
 	// ---
