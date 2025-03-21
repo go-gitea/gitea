@@ -10,7 +10,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/perm"
 	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -785,7 +784,10 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 	defer gitRepo.Close()
 
 	convertedWorkflow, err := convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
-
+	if err != nil {
+		log.Error("GetActionWorkflow: %v", err)
+		return
+	}
 	convertedRun, err := convert.ToActionWorkflowRun(ctx, repo, run)
 	if err != nil {
 		log.Error("ToActionWorkflowRun: %v", err)
@@ -797,7 +799,7 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 		Workflow:     convertedWorkflow,
 		WorkflowRun:  convertedRun,
 		Organization: org,
-		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
+		Repo:         convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm_model.AccessModeOwner}),
 		Sender:       convert.ToUser(ctx, sender, nil),
 	}).Notify(ctx)
 }

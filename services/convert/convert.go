@@ -235,7 +235,10 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 }
 
 func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
-	run.LoadRepo(ctx)
+	err := run.LoadRepo(ctx)
+	if err != nil {
+		return nil, err
+	}
 	status, conclusion := ToActionsStatus(run.Status)
 	return &api.ActionWorkflowRun{
 		ID:           run.ID,

@@ -716,7 +716,7 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 		case "types":
 			action := payload.Action
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
+				if glob.MustCompile(val, '/').Match(action) {
 					matchTimes++
 					break
 				}

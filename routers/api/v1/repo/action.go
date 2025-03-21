@@ -1017,7 +1017,6 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, convertedArtifact)
-	return
 }
 
 // GetWorkflowJobs Lists all jobs for a workflow run.
@@ -1130,7 +1129,6 @@ func GetWorkflowJob(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, convertedWorkflowJob)
-	return
 }
 
 // GetArtifacts Lists all artifacts for a repository.
