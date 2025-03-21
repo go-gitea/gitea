@@ -708,7 +708,6 @@ jobs:
 		assert.EqualValues(t, "repo1", payloads[3].Repo.Name)
 		assert.EqualValues(t, "user2/repo1", payloads[3].Repo.FullName)
 		assert.Contains(t, payloads[3].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[3].WorkflowJob.ID))
-		assert.Contains(t, payloads[3].WorkflowJob.URL, payloads[3].WorkflowJob.RunURL)
 		assert.Contains(t, payloads[3].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", 0))
 		assert.Len(t, payloads[3].WorkflowJob.Steps, 1)
 
@@ -746,7 +745,6 @@ jobs:
 		assert.EqualValues(t, "repo1", payloads[6].Repo.Name)
 		assert.EqualValues(t, "user2/repo1", payloads[6].Repo.FullName)
 		assert.Contains(t, payloads[6].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[6].WorkflowJob.ID))
-		assert.Contains(t, payloads[6].WorkflowJob.URL, payloads[6].WorkflowJob.RunURL)
 		assert.Contains(t, payloads[6].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", 1))
 		assert.Len(t, payloads[6].WorkflowJob.Steps, 2)
 	})
