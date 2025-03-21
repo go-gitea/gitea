@@ -48,15 +48,17 @@ ENV PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.9.7-src.zip:$
 
 WORKDIR ${SPARK_HOME}
 
-ENV SPARK_VERSION=3.5.5
+ENV SPARK_VERSION=3.5.2
 ENV SPARK_MAJOR_VERSION=3.5
 ENV ICEBERG_VERSION=1.8.1
-
+ENV NESSIE_VERSION=0.103.2
 # Download spark
 RUN mkdir -p ${SPARK_HOME} \
- && curl https://dlcdn.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz -o spark-${SPARK_VERSION}-bin-hadoop3.tgz \
+ && curl https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz -o spark-${SPARK_VERSION}-bin-hadoop3.tgz \
  && tar xvzf spark-${SPARK_VERSION}-bin-hadoop3.tgz --directory /opt/spark --strip-components 1 \
  && rm -rf spark-${SPARK_VERSION}-bin-hadoop3.tgz
+
+RUN curl https://repo1.maven.org/maven2/org/projectnessie/nessie-integrations/nessie-spark-extensions-${SPARK_MAJOR_VERSION}_2.12/${NESSIE_VERSION}/nessie-spark-extensions-${SPARK_MAJOR_VERSION}_2.12-${NESSIE_VERSION}.jar -Lo /opt/spark/jars/nessie-spark-extensions-${SPARK_MAJOR_VERSION}_2.12-${NESSIE_VERSION}.jar
 
 # Download iceberg spark runtime
 RUN curl https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-${SPARK_MAJOR_VERSION}_2.12/${ICEBERG_VERSION}/iceberg-spark-runtime-${SPARK_MAJOR_VERSION}_2.12-${ICEBERG_VERSION}.jar -Lo /opt/spark/jars/iceberg-spark-runtime-${SPARK_MAJOR_VERSION}_2.12-${ICEBERG_VERSION}.jar
