@@ -747,7 +747,7 @@ func matchWorkflowRunEvent(payload *api.WorkflowRunPayload, evt *jobparser.Event
 				matchTimes++
 			}
 		default:
-			log.Warn("package event unsupported condition %q", cond)
+			log.Warn("workflow run event unsupported condition %q", cond)
 		}
 	}
 	return matchTimes == len(evt.Acts())
