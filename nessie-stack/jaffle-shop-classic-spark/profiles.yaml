@@ -1,0 +1,17 @@
+spark_profile:
+  target: dev
+  outputs:
+    dev:
+      type: spark
+      method: thrift
+      schema: default
+      host: localhost
+      
+      # optional
+      port: 10000  
+      user: kog
+      auth: none
+      
+      use_ssl: false 
+      server_side_parameters:
+        "spark.driver.memory": "2g" 
