@@ -114,6 +114,10 @@ func (pc packagistConvertor) Status(_ *api.CommitStatusPayload) (PackagistPayloa
 	return PackagistPayload{}, nil
 }
 
+func (pc packagistConvertor) WorkflowRun(_ *api.WorkflowRunPayload) (PackagistPayload, error) {
+	return PackagistPayload{}, nil
+}
+
 func (pc packagistConvertor) WorkflowJob(_ *api.WorkflowJobPayload) (PackagistPayload, error) {
 	return PackagistPayload{}, nil
 }

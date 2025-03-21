@@ -252,6 +252,12 @@ func (m matrixConvertor) Status(p *api.CommitStatusPayload) (MatrixPayload, erro
 	return m.newPayload(text)
 }
 
+func (m matrixConvertor) WorkflowRun(p *api.WorkflowRunPayload) (MatrixPayload, error) {
+	text, _ := getWorkflowRunPayloadInfo(p, htmlLinkFormatter, true)
+
+	return m.newPayload(text)
+}
+
 func (m matrixConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MatrixPayload, error) {
 	text, _ := getWorkflowJobPayloadInfo(p, htmlLinkFormatter, true)
 
