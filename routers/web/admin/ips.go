@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
+
 	"xorm.io/xorm"
 )
 
@@ -75,10 +76,10 @@ func IPs(ctx *context.Context) {
 
 	// Define the user IP result struct
 	type UserIPResult struct {
-		UID       int64
-		Name      string
-		FullName  string
-		IP        string
+		UID      int64
+		Name     string
+		FullName string
+		IP       string
 	}
 
 	var (
