@@ -569,19 +569,13 @@ func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *common.CompareInfo,
 	whitespaceBehavior git.TrustedCmdArgs,
-) bool {
-	var (
-		repo  = ctx.Repo.Repository
-		err   error
-		title string
-	)
-
-	// Get diff information.
-	ctx.Data["CommitRepoLink"] = ci.HeadRepo.Link()
-
+) (nothingToCompare bool) {
+	repo := ctx.Repo.Repository
 	headCommitID := ci.CompareInfo.HeadCommitID
 
+	ctx.Data["CommitRepoLink"] = ci.HeadRepo.Link()
 	ctx.Data["AfterCommitID"] = headCommitID
+	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand")
 
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
@@ -670,6 +664,7 @@ func PrepareCompareDiff(
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
+	title := ci.HeadBranch
 	if len(commits) == 1 {
 		c := commits[0]
 		title = strings.TrimSpace(c.UserCommit.Summary())
@@ -678,9 +673,8 @@ func PrepareCompareDiff(
 		if len(body) > 1 {
 			ctx.Data["content"] = strings.Join(body[1:], "\n")
 		}
-	} else {
-		title = ci.HeadBranch
 	}
+
 	if len(title) > 255 {
 		var trailer string
 		title, trailer = util.EllipsisDisplayStringX(title, 255)
@@ -745,8 +739,7 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Data["OtherCompareSeparator"] = "..."
 	}
 
-	nothingToCompare := PrepareCompareDiff(ctx, ci,
-		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+	nothingToCompare := PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if ctx.Written() {
 		return
 	}

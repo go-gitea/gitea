@@ -205,10 +205,10 @@
 					{{end}}
 				</div>
 			{{else if $allowCreatePR}}
-				<div class="ui info message pullrequest-form-toggle {{if .Flash}}tw-hidden{{end}}">
+				<div class="ui info message pullrequest-form-toggle {{if .ExpandNewPrForm}}tw-hidden{{end}}">
 					<button class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
 				</div>
-				<div class="pullrequest-form {{if not .Flash}}tw-hidden{{end}}">
+				<div class="pullrequest-form {{if not .ExpandNewPrForm}}tw-hidden{{end}}">
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}
