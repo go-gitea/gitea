@@ -4,7 +4,6 @@
 package user
 
 import (
-	goctx "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -34,32 +33,6 @@ const (
 	tplNotificationDiv           templates.TplName = "user/notification/notification_div"
 	tplNotificationSubscriptions templates.TplName = "user/notification/notification_subscriptions"
 )
-
-// GetNotificationCount is the middleware that sets the notification count in the context
-func GetNotificationCount(ctx *context.Context) {
-	if strings.HasPrefix(ctx.Req.URL.Path, "/api") {
-		return
-	}
-
-	if !ctx.IsSigned {
-		return
-	}
-
-	ctx.Data["NotificationUnreadCount"] = func() int64 {
-		count, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
-			UserID: ctx.Doer.ID,
-			Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
-		})
-		if err != nil {
-			if err != goctx.Canceled {
-				log.Error("Unable to GetNotificationCount for user:%-v: %v", ctx.Doer, err)
-			}
-			return -1
-		}
-
-		return count
-	}
-}
 
 // Notifications is the notifications page
 func Notifications(ctx *context.Context) {

@@ -280,10 +280,8 @@ func Routes() *web.Router {
 		routes.Get("/api/swagger", append(mid, misc.Swagger)...) // Render V1 by default
 	}
 
-	// TODO: These really seem like things that could be folded into Contexter or as helper functions
-	mid = append(mid, user.GetNotificationCount)
-	mid = append(mid, repo.GetActiveStopwatch)
 	mid = append(mid, goGet)
+	mid = append(mid, common.PageTmplFunctions)
 
 	others := web.NewRouter()
 	others.Use(mid...)
