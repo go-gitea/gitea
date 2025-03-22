@@ -48,27 +48,30 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
-		Status:                          opts.Status,
+		Status:                          repo_model.RepositoryBeingMigrated,
 		IsEmpty:                         !opts.AutoInit,
 	}
 
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
+		return nil, err
+	}
+	if !isExist {
+		return nil, repo_model.ErrRepoNotExist{
+			OwnerName: u.Name,
+			Name:      repo.Name,
+		}
+	}
+
+	// create the repository database operations first
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
-		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
-			return err
-		}
-		if !isExist {
-			return repo_model.ErrRepoNotExist{
-				OwnerName: u.Name,
-				Name:      repo.Name,
-			}
-		}
+		return CreateRepositoryByExample(ctx, doer, u, repo, true, false)
+	}); err != nil {
+		return nil, err
+	}
 
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, true, false); err != nil {
-			return err
-		}
-
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Re-fetch the repository from database before updating it (else it would
 		// override changes that were done earlier with sql)
 		if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
@@ -93,6 +96,13 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
+
+		// update repository status
+		repo.Status = repo_model.RepositoryReady
+		if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+			return fmt.Errorf("UpdateRepositoryCols: %w", err)
+		}
+
 		return nil
 	}(); err != nil {
 		if errDel := DeleteRepository(ctx, doer, repo, false /* no notify */); errDel != nil {
