@@ -120,11 +120,16 @@ func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType 
 
 // GetVersionsByPackageType gets all versions of a specific type
 func GetVersionsByPackageType(ctx context.Context, ownerID int64, packageType Type) ([]*PackageVersion, error) {
-	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
-		OwnerID:    ownerID,
+	opts := &PackageSearchOptions{
 		Type:       packageType,
 		IsInternal: optional.Some(false),
-	})
+	}
+
+	if ownerID != 0 {
+		opts.OwnerID = ownerID
+	}
+
+	pvs, _, err := SearchVersions(ctx, opts)
 	return pvs, err
 }
 
