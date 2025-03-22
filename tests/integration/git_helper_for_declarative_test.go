@@ -32,7 +32,7 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	assert.NoError(t, err)
 
 	keyFile := filepath.Join(tmpDir, keyname)
-	err = ssh.GenKeyPair(keyFile)
+	err = ssh.GenKeyPair(keyFile, ssh.RSA)
 	assert.NoError(t, err)
 
 	err = os.WriteFile(path.Join(tmpDir, "ssh"), []byte("#!/bin/bash\n"+
