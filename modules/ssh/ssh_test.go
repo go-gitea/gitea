@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/modules/ssh"
@@ -21,26 +22,26 @@ import (
 
 func TestGenKeyPair(t *testing.T) {
 	testCases := []struct {
-		keyType      ssh.KeyType
+		keyPath      string
 		expectedType any
 	}{
 		{
-			keyType:      ssh.RSA,
+			keyPath:      "/gitea.rsa",
 			expectedType: &rsa.PrivateKey{},
 		},
 		{
-			keyType:      ssh.ED25519,
+			keyPath:      "/gitea.ed25519",
 			expectedType: ed25519.PrivateKey{},
 		},
 		{
-			keyType:      ssh.ECDSA,
+			keyPath:      "/gitea.ecdsa",
 			expectedType: &ecdsa.PrivateKey{},
 		},
 	}
 	for _, tC := range testCases {
-		t.Run("Generate"+string(tC.keyType), func(t *testing.T) {
-			path := t.TempDir() + "/gitea." + string(tC.keyType)
-			require.NoError(t, ssh.GenKeyPair(path, tC.keyType))
+		t.Run("Generate "+filepath.Ext(tC.keyPath), func(t *testing.T) {
+			path := t.TempDir() + tC.keyPath
+			require.NoError(t, ssh.GenKeyPair(path))
 
 			file, err := os.Open(path)
 			require.NoError(t, err)

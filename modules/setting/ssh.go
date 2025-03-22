@@ -61,7 +61,7 @@ var SSH = struct {
 	KeygenPath:                    "",
 	MinimumKeySizeCheck:           true,
 	MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 3071},
-	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
+	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gitea.ed25519", "ssh/gitea.ecdsa", "ssh/gogs.rsa"},
 	AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
 	PerWriteTimeout:               PerWriteTimeout,
 	PerWritePerKbTimeout:          PerWritePerKbTimeout,

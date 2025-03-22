@@ -378,18 +378,19 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	}
 
 	if len(keys) == 0 {
-		filePath := filepath.Dir(setting.SSH.ServerHostKeys[0])
-
-		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-			log.Error("Failed to create dir %s: %v", filePath, err)
+		for i := range 3 {
+			filename := setting.SSH.ServerHostKeys[i]
+			filePath := filepath.Dir(filename)
+			if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
+				log.Error("Failed to create dir %s: %v", filePath, err)
+			}
+			err := GenKeyPair(filename)
+			if err != nil {
+				log.Fatal("Failed to generate private key: %v", err)
+			}
+			log.Trace("New private key is generated: %s", filename)
+			keys = append(keys, filename)
 		}
-
-		err := GenKeyPair(setting.SSH.ServerHostKeys[0], RSA)
-		if err != nil {
-			log.Fatal("Failed to generate private key: %v", err)
-		}
-		log.Trace("New private key is generated: %s", setting.SSH.ServerHostKeys[0])
-		keys = append(keys, setting.SSH.ServerHostKeys[0])
 	}
 
 	for _, key := range keys {
@@ -409,8 +410,8 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 // GenKeyPair make a pair of public and private keys for SSH access.
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
-func GenKeyPair(keyPath string, keyType KeyType) error {
-	privateKey, publicKey, err := keyGen(keyType)
+func GenKeyPair(keyPath string) error {
+	privateKey, publicKey, err := keyGen(filepath.Ext(keyPath))
 	if err != nil {
 		return err
 	}
@@ -455,18 +456,18 @@ func GenKeyPair(keyPath string, keyType KeyType) error {
 	return err
 }
 
-func keyGen(keytype KeyType) (any, any, error) {
+func keyGen(keytype string) (any, any, error) {
 	switch keytype {
-	case RSA:
+	case ".rsa":
 		privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
 			return nil, nil, err
 		}
 		return privateKey, &privateKey.PublicKey, nil
-	case ED25519:
+	case ".ed25519":
 		pub, priv, err := ed25519.GenerateKey(rand.Reader)
 		return priv, pub, err
-	case ECDSA:
+	case ".ecdsa":
 		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			return nil, nil, err
