@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+
+	"xorm.io/xorm/schemas"
 )
 
 // Badge represents a user badge
@@ -22,7 +24,16 @@ type Badge struct {
 type UserBadge struct { //nolint:revive
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64
-	UserID  int64 `xorm:"INDEX"`
+	UserID  int64
+}
+
+// TableIndices implements xorm's TableIndices interface
+func (n *UserBadge) TableIndices() []*schemas.Index {
+	indices := make([]*schemas.Index, 0, 1)
+	ubUnique := schemas.NewIndex("unique_user_badge", schemas.UniqueType)
+	ubUnique.AddColumn("user_id", "badge_id")
+	indices = append(indices, ubUnique)
+	return indices
 }
 
 func init() {
@@ -105,13 +116,23 @@ func RemoveUserBadge(ctx context.Context, u *User, badge *Badge) error {
 // RemoveUserBadges removes badges from a user.
 func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		badgeSlugs := make([]string, 0, len(badges))
 		for _, badge := range badges {
-			if _, err := db.GetEngine(ctx).
-				Join("INNER", "badge", "badge.id = `user_badge`.badge_id").
-				Where("`user_badge`.user_id=? AND `badge`.slug=?", u.ID, badge.Slug).
-				Delete(&UserBadge{}); err != nil {
-				return err
-			}
+			badgeSlugs = append(badgeSlugs, badge.Slug)
+		}
+		var userBadges []UserBadge
+		if err := db.GetEngine(ctx).Table("user_badge").
+			Join("INNER", "badge", "badge.id = `user_badge`.badge_id").
+			Where("`user_badge`.user_id = ?", u.ID).In("`badge`.slug", badgeSlugs).
+			Find(&userBadges); err != nil {
+			return err
+		}
+		userBadgeIDs := make([]int64, 0, len(userBadges))
+		for _, ub := range userBadges {
+			userBadgeIDs = append(userBadgeIDs, ub.ID)
+		}
+		if _, err := db.GetEngine(ctx).Table("user_badge").In("id", userBadgeIDs).Delete(); err != nil {
+			return err
 		}
 		return nil
 	})
