@@ -83,3 +83,7 @@ export function mergeChildIfOnlyOneDir(nodes: Item[]): void {
     }
   }
 }
+
+export function fileIsViewed(item: Item): boolean {
+  return item.isFile ? item.file.IsViewed : (item as DirItem).children.every(fileIsViewed);
+}

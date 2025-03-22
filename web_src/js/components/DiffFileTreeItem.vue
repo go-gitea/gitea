@@ -1,15 +1,19 @@
 <script lang="ts" setup>
 import {SvgIcon, type SvgName} from '../svg.ts';
 import {diffTreeStore} from '../modules/stores.ts';
-import {ref} from 'vue';
+import {computed, ref} from 'vue';
+import {fileIsViewed} from '../utils/filetree.ts';
 import type {Item, File, FileStatus} from '../utils/filetree.ts';
 
-defineProps<{
+const props = defineProps<{
   item: Item,
 }>();
 
 const store = diffTreeStore();
-const collapsed = ref(false);
+const isViewed = computed(() => {
+  return fileIsViewed(props.item);
+});
+const collapsed = ref(isViewed.value);
 
 function getIconForDiffStatus(pType: FileStatus) {
   const diffTypes: Record<FileStatus, { name: SvgName, classes: Array<string> }> = {
@@ -35,7 +39,7 @@ function fileIcon(file: File) {
   <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
   <a
     v-if="item.isFile" class="item-file"
-    :class="{ 'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': item.file.IsViewed }"
+    :class="{ 'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': isViewed }"
     :title="item.name" :href="'#diff-' + item.file.NameHash"
   >
     <!-- file -->
@@ -48,7 +52,7 @@ function fileIcon(file: File) {
   </a>
 
   <template v-else-if="item.isFile === false">
-    <div class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
+    <div class="item-directory" :class="{ 'viewed': isViewed }" :title="item.name" @click.stop="collapsed = !collapsed">
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
       <SvgIcon
@@ -88,7 +92,8 @@ a:hover {
   border-radius: 4px;
 }
 
-.item-file.viewed {
+.item-file.viewed,
+.item-directory.viewed {
   color: var(--color-text-light-3);
 }
 
