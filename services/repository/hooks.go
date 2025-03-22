@@ -32,11 +32,15 @@ func SyncRepositoryHooks(ctx context.Context) error {
 			}
 
 			if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
-				return fmt.Errorf("SyncRepositoryHook: %w", err)
+				return fmt.Errorf("CreateDelegateHooks: %w", err)
 			}
-			if repo.HasWiki() {
+			exist, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo())
+			if err != nil {
+				return fmt.Errorf("IsRepositoryExist: %w", err)
+			}
+			if exist {
 				if err := gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
-					return fmt.Errorf("SyncRepositoryHook: %w", err)
+					return fmt.Errorf("CreateDelegateHooks: %w", err)
 				}
 			}
 			return nil
