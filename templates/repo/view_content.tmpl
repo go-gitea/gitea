@@ -30,7 +30,7 @@
 		{{end}}
 		{{$cmpBranch = print $cmpBranch (.BranchName|PathEscapeSegments)}}
 		{{$compareLink := printf "%s/compare/%s...%s" .BaseRepo.Link (.BaseRepo.DefaultBranch|PathEscapeSegments) $cmpBranch}}
-		<a id="new-pull-request" role="button" class="ui compact basic button" href="{{$compareLink}}"
+		<a id="new-pull-request" role="button" class="ui compact basic button" href="{{QueryBuild $compareLink "expand" 1}}"
 			data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}">
 			{{svg "octicon-git-pull-request"}}
 		</a>
