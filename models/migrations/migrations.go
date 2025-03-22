@@ -1,5 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package migrations
@@ -378,6 +378,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(315, "Add Ephemeral to ActionRunner", v1_24.AddEphemeralToActionRunner),
 		newMigration(316, "Add description for secrets and variables", v1_24.AddDescriptionForSecretsAndVariables),
 		newMigration(317, "Add new index for action for heatmap", v1_24.AddNewIndexForUserDashboard),
+		newMigration(318, "Add Permissions to Actions Task", v1_24.AddPermissions),
 	}
 	return preparedMigrations
 }

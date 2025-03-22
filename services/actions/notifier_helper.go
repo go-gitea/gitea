@@ -1,4 +1,4 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package actions
@@ -352,6 +352,13 @@ func handleWorkflows(
 				log.Error("CancelPreviousJobs: %v", err)
 			}
 		}
+
+		wp, err := actions_model.WorkflowPermissions(dwf.Content)
+		if err != nil {
+			log.Error("WorkflowPermissions: %v", err)
+			continue
+		}
+		run.Permissions = wp
 
 		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
 			log.Error("InsertRun: %v", err)
