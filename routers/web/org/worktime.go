@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/templates"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -69,6 +70,13 @@ func Worktime(ctx *context.Context) {
 		ctx.ServerError("GetWorktime", err)
 		return
 	}
+
+	_, err = shared_user.PrepareOrgHeader(ctx)
+	if err != nil {
+		ctx.ServerError("PrepareOrgHeader", err)
+		return
+	}
+
 	ctx.Data["WorktimeSumResult"] = worktimeSumResult
 	ctx.HTML(http.StatusOK, tplByRepos)
 }

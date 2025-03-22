@@ -125,6 +125,11 @@ func ListPackages(ctx *context.Context) {
 			ctx.Data["IsOrganizationMember"] = false
 			ctx.Data["IsOrganizationOwner"] = false
 		}
+		_, err := shared_user.PrepareOrgHeader(ctx)
+		if err != nil {
+			ctx.ServerError("PrepareOrgHeader", err)
+			return
+		}
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
@@ -428,7 +433,13 @@ func PackageSettings(ctx *context.Context) {
 		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
-
+	if ctx.ContextUser.IsOrganization() {
+		_, err = shared_user.PrepareOrgHeader(ctx)
+		if err != nil {
+			ctx.ServerError("PrepareOrgHeader", err)
+			return
+		}
+	}
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
 
