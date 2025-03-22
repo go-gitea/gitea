@@ -9,6 +9,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	context_service "code.gitea.io/gitea/services/context"
 )
 
 // CacheRef cachhe last commit information of the branch or the tag
@@ -19,7 +20,7 @@ func CacheRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 	}
 
 	if gitRepo.LastCommitCache == nil {
-		commitsCount, err := cache.GetInt64(repo.GetCommitsCountCacheKey(fullRefName.ShortName(), true), commit.CommitsCount)
+		commitsCount, err := context_service.GetRefCommitsCount(ctx, repo.ID, gitRepo, fullRefName)
 		if err != nil {
 			return err
 		}

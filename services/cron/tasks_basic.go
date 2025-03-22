@@ -166,6 +166,16 @@ func registerSyncRepoLicenses() {
 	})
 }
 
+func registerSyncBranchCommitsCount() {
+	RegisterTaskFatal("sync_branch_commits_count", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: true,
+		Schedule:   "@midnight",
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+		return repo_service.SyncBranchCommitsCount(ctx)
+	})
+}
+
 func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
@@ -183,4 +193,5 @@ func initBasicTasks() {
 		registerCleanupPackages()
 	}
 	registerSyncRepoLicenses()
+	registerSyncBranchCommitsCount()
 }

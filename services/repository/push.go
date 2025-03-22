@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
@@ -286,6 +286,11 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_branch", "is_empty"); err != nil {
 			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 		}
+	} else {
+		// calculate the number of commits in the branch
+		if err := UpdateRepoBranchCommitsCount(ctx, repo, opts.RefFullName.BranchName(), newCommit); err != nil {
+			log.Error("UpdateRepoBranchCommitsCount: %v", err)
+		}
 	}
 
 	l, err := newCommit.CommitsBeforeLimit(10)
@@ -296,13 +301,27 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 	return l, nil
 }
 
-func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+func UpdateRepoBranchCommitsCount(ctx context.Context, repo *repo_model.Repository, branch string, newCommit *git.Commit) error {
+	// calculate the number of commits in the branch
+	commitsCount, err := newCommit.CommitsCount()
+	if err != nil {
+		return fmt.Errorf("newCommit.CommitsCount: %w", err)
+	}
+	return git_model.UpdateBranchCommitCount(ctx, repo.ID, branch, newCommit.ID.String(), commitsCount)
+}
+
+func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
 	l, err := newCommit.CommitsBeforeUntil(opts.OldCommitID)
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
 	}
 
 	branch := opts.RefFullName.BranchName()
+
+	// calculate the number of commits in the branch
+	if err := UpdateRepoBranchCommitsCount(ctx, repo, branch, newCommit); err != nil {
+		log.Error("UpdateRepoBranchCommitsCount: %v", err)
+	}
 
 	isForcePush, err := newCommit.IsForcePush(opts.OldCommitID)
 	if err != nil {
@@ -319,15 +338,6 @@ func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *us
 		OldCommitID: opts.OldCommitID,
 		NewCommitID: opts.NewCommitID,
 	})
-
-	if isForcePush {
-		log.Trace("Push %s is a force push", opts.NewCommitID)
-
-		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
-	} else {
-		// TODO: increment update the commit count cache but not remove
-		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
-	}
 
 	return l, nil
 }
