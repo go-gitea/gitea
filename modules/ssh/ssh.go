@@ -55,6 +55,12 @@ import (
 
 const giteaPermissionExtensionKeyID = "gitea-perm-ext-key-id"
 
+type KeyType string
+
+const (
+	RSA KeyType = "rsa"
+)
+
 func getExitStatusFromError(err error) int {
 	if err == nil {
 		return 0
@@ -373,7 +379,7 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 			log.Error("Failed to create dir %s: %v", filePath, err)
 		}
 
-		err := GenKeyPair(setting.SSH.ServerHostKeys[0])
+		err := GenKeyPair(setting.SSH.ServerHostKeys[0], RSA)
 		if err != nil {
 			log.Fatal("Failed to generate private key: %v", err)
 		}
@@ -388,7 +394,6 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 			log.Error("Failed to set Host Key. %s", err)
 		}
 	}
-
 	go func() {
 		_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Service: Built-in SSH server", process.SystemProcessType, true)
 		defer finished()
@@ -399,13 +404,18 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 // GenKeyPair make a pair of public and private keys for SSH access.
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
-func GenKeyPair(keyPath string) error {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+func GenKeyPair(keyPath string, keyType KeyType) error {
+	privateKey, publicKey, err := keyGen(keyType)
 	if err != nil {
 		return err
 	}
 
-	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
+	privateKeyPKCS8, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return err
+	}
+
+	privateKeyPEM := &pem.Block{Type: "PRIVATE KEY", Bytes: privateKeyPKCS8}
 	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
@@ -421,7 +431,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	// generate public key
-	pub, err := gossh.NewPublicKey(&privateKey.PublicKey)
+	pub, err := gossh.NewPublicKey(publicKey)
 	if err != nil {
 		return err
 	}
@@ -438,4 +448,17 @@ func GenKeyPair(keyPath string) error {
 	}()
 	_, err = p.Write(public)
 	return err
+}
+
+func keyGen(keytype KeyType) (any, any, error) {
+	switch keytype {
+	case RSA:
+		privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+		if err != nil {
+			return nil, nil, err
+		}
+		return privateKey, &privateKey.PublicKey, nil
+	default:
+		return nil, nil, errors.New("unknown keyType")
+	}
 }

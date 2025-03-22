@@ -1,6 +1,7 @@
 package ssh_test
 
 import (
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"io"
@@ -14,7 +15,7 @@ import (
 
 func TestGenKeyPair(t *testing.T) {
 	path := t.TempDir() + "/gitea.rsa"
-	ssh.GenKeyPair(path)
+	require.NoError(t, ssh.GenKeyPair(path, ssh.RSA))
 
 	file, err := os.Open(path)
 	require.NoError(t, err)
@@ -24,9 +25,9 @@ func TestGenKeyPair(t *testing.T) {
 
 	block, _ := pem.Decode(bytes)
 	require.NotNil(t, block)
-	assert.Equal(t, "RSA PRIVATE KEY", block.Type)
+	assert.Equal(t, "PRIVATE KEY", block.Type)
 
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	require.NoError(t, err)
-	assert.NotNil(t, privateKey)
+	assert.IsType(t, &rsa.PrivateKey{}, privateKey)
 }
