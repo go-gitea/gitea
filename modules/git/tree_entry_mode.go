@@ -34,6 +34,26 @@ func (e EntryMode) String() string {
 	return strconv.FormatInt(int64(e), 8)
 }
 
+func (e EntryMode) IsSubModule() bool {
+	return e == EntryModeCommit
+}
+
+func (e EntryMode) IsDir() bool {
+	return e == EntryModeTree
+}
+
+func (e EntryMode) IsLink() bool {
+	return e == EntryModeSymlink
+}
+
+func (e EntryMode) IsRegular() bool {
+	return e == EntryModeBlob
+}
+
+func (e EntryMode) IsExecutable() bool {
+	return e == EntryModeExec
+}
+
 // ToEntryMode converts a string to an EntryMode
 func ToEntryMode(value string) EntryMode {
 	v, _ := strconv.ParseInt(value, 8, 32)
