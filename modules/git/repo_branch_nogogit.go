@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // IsObjectExist returns true if the given object exists in the repository.
@@ -119,7 +120,7 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs,
 				_ = stdoutWriter.Close()
 				return
 			}
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
+			_ = stdoutWriter.CloseWithError(util.ConcatenateError(err, stderrBuilder.String()))
 		} else {
 			_ = stdoutWriter.Close()
 		}

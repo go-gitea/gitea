@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // GetBranchCommitID returns last commit ID string of given branch.
@@ -239,7 +240,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 			Stderr: &stderr,
 		})
 		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = stdoutWriter.CloseWithError(util.ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = stdoutWriter.Close()
 		}

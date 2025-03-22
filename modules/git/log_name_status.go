@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/djherbis/buffer"
 	"github.com/djherbis/nio/v3"
@@ -70,7 +71,7 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 			Stderr: &stderr,
 		})
 		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = stdoutWriter.CloseWithError(util.ConcatenateError(err, (&stderr).String()))
 			return
 		}
 

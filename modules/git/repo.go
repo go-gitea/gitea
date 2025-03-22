@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -176,7 +177,7 @@ func CloneWithArgs(ctx context.Context, args TrustedCmdArgs, from, to string, op
 		Stdout:  io.Discard,
 		Stderr:  stderr,
 	}); err != nil {
-		return ConcatenateError(err, stderr.String())
+		return util.ConcatenateError(err, stderr.String())
 	}
 	return nil
 }

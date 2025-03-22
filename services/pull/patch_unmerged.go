@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // lsFileLine is a Quadruplet struct (+error) representing a partially parsed line from ls-files
@@ -116,7 +117,7 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 			},
 		})
 	if err != nil {
-		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %w", git.ConcatenateError(err, stderr.String()))}
+		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %w", util.ConcatenateError(err, stderr.String()))}
 	}
 }
 

@@ -121,7 +121,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 			AddOptionFormat("--format=%s", forEachRefFmt.Flag()).
 			AddArguments("--sort", "-*creatordate", "refs/tags").Run(repo.Ctx, rc)
 		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
+			_ = stdoutWriter.CloseWithError(util.ConcatenateError(err, stderr.String()))
 		} else {
 			_ = stdoutWriter.Close()
 		}

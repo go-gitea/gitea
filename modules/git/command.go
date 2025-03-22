@@ -380,7 +380,7 @@ type runStdError struct {
 func (r *runStdError) Error() string {
 	// the stderr must be in the returned error text, some code only checks `strings.Contains(err.Error(), "git error")`
 	if r.errMsg == "" {
-		r.errMsg = ConcatenateError(r.err, r.stderr).Error()
+		r.errMsg = util.ConcatenateError(r.err, r.stderr).Error()
 	}
 	return r.errMsg
 }
