@@ -533,6 +533,14 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return accessMode <= perm_model.AccessModeWrite
 	}
 
+	user, err := parseToken(ctx, authorization, repository, accessMode)
+	if err != nil {
+		// Most of these are Warn level - the true internal server errors are logged in parseToken already
+		log.Warn("Authentication failure for provided token with Error: %v", err)
+		return false
+	}
+	ctx.Doer = user
+
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
 	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
@@ -545,13 +553,6 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		return true
 	}
 
-	user, err := parseToken(ctx, authorization, repository, accessMode)
-	if err != nil {
-		// Most of these are Warn level - the true internal server errors are logged in parseToken already
-		log.Warn("Authentication failure for provided token with Error: %v", err)
-		return false
-	}
-	ctx.Doer = user
 	return true
 }
 
