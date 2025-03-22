@@ -6,7 +6,6 @@ package repository
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/log"
@@ -19,7 +18,7 @@ func LocalCopyPath() string {
 	if filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
 		return setting.Repository.Local.LocalCopyPath
 	}
-	return path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath)
+	return filepath.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath)
 }
 
 // CreateTemporaryPath creates a temporary path
