@@ -6,6 +6,9 @@ package ssh
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -58,7 +61,9 @@ const giteaPermissionExtensionKeyID = "gitea-perm-ext-key-id"
 type KeyType string
 
 const (
-	RSA KeyType = "rsa"
+	RSA     KeyType = "rsa"
+	ECDSA   KeyType = "ecdsa"
+	ED25519 KeyType = "ed25519"
 )
 
 func getExitStatusFromError(err error) int {
@@ -458,6 +463,15 @@ func keyGen(keytype KeyType) (any, any, error) {
 			return nil, nil, err
 		}
 		return privateKey, &privateKey.PublicKey, nil
+	case ED25519:
+		pub, priv, err := ed25519.GenerateKey(rand.Reader)
+		return priv, pub, err
+	case ECDSA:
+		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return nil, nil, err
+		}
+		return priv, &priv.PublicKey, nil
 	default:
 		return nil, nil, errors.New("unknown keyType")
 	}

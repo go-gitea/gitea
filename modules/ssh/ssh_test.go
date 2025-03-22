@@ -1,6 +1,8 @@
 package ssh_test
 
 import (
+	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -21,6 +23,14 @@ func TestGenKeyPair(t *testing.T) {
 		{
 			keyType:      ssh.RSA,
 			expectedType: &rsa.PrivateKey{},
+		},
+		{
+			keyType:      ssh.ED25519,
+			expectedType: ed25519.PrivateKey{},
+		},
+		{
+			keyType:      ssh.ECDSA,
+			expectedType: &ecdsa.PrivateKey{},
 		},
 	}
 	for _, tC := range testCases {
