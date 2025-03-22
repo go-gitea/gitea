@@ -467,13 +467,12 @@ func keyGen(keytype string) (any, any, error) {
 	case ".ed25519":
 		pub, priv, err := ed25519.GenerateKey(rand.Reader)
 		return priv, pub, err
-	case ".ecdsa":
+	default:
+		// case ".ecdsa":
 		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			return nil, nil, err
 		}
 		return priv, &priv.PublicKey, nil
-	default:
-		return nil, nil, errors.New("unknown keyType")
 	}
 }
