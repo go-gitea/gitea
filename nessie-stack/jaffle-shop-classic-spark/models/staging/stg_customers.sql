@@ -1,3 +1,10 @@
+{{
+  config(
+    materialized='table',
+    file_format='iceberg'
+  )
+}}
+
 with source as (
 
     {#-

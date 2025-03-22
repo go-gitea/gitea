@@ -1,5 +1,6 @@
 name: 'jaffle_shop'
 
+
 config-version: 2
 version: '0.1'
 
@@ -21,7 +22,18 @@ require-dbt-version: [">=1.0.0", "<2.0.0"]
 
 models:
   jaffle_shop:
+      +on_table_exists: replace
       +table_format: iceberg
       materialized: table
       staging:
-        materialized: view
+        +schema: stg
+        materialized: table
+
+seeds:
+  jaffle_shop:
+    +quote_columns: false
+    +pre_hook: "DROP TABLE IF EXISTS {{ this }}"
+    +schema: raw
+    +file_format: iceberg
+    +materialized: seed
+    

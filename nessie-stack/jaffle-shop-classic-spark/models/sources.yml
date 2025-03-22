@@ -1,9 +1,0 @@
-version: 2
-
-sources:
-  - name: test
-    database: nessie
-    schema: nessie
-    tables:
-      - name: default.employees
-        description: "Test table"
