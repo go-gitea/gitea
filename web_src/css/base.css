@@ -474,7 +474,7 @@ img.ui.avatar,
 
 .full.height {
   flex-grow: 1;
-  padding-bottom: 80px;
+  padding-bottom: var(--page-spacing);
 }
 
 .status-page-error {
@@ -493,7 +493,7 @@ img.ui.avatar,
 
 /* add margin below .secondary nav when it is the first child */
 .page-content > :first-child.secondary-nav {
-  margin-bottom: 14px;
+  margin-bottom: var(--page-spacing);
 }
 
 /* add margin to all pages when there is no .secondary.nav */
