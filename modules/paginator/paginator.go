@@ -36,9 +36,11 @@ Output:
 type Paginator struct {
 	total      int // total rows count, -1 means unknown
 	totalPages int // total pages count, -1 means unknown
-	pagingNum  int // how many rows in one page
 	current    int // current page number
-	numPages   int // how many pages to show on the UI
+	curRows    int // current page rows count
+
+	pagingNum int // how many rows in one page
+	numPages  int // how many pages to show on the UI
 }
 
 // New initialize a new pagination calculation and returns a Paginator as result.
@@ -49,7 +51,26 @@ func New(total, pagingNum, current, numPages int) *Paginator {
 		current = min(current, totalPages)
 	}
 	current = max(current, 1)
-	return &Paginator{total, totalPages, pagingNum, current, numPages}
+	return &Paginator{
+		total:      total,
+		totalPages: totalPages,
+		current:    current,
+		pagingNum:  pagingNum,
+		numPages:   numPages,
+	}
+}
+
+func (p *Paginator) SetCurRows(rows int) {
+	// For "unlimited paging", we need to know the rows of current page to determine if there is a next page.
+	// There is still an edge case: when curRows==pagingNum, then the "next page" will be an empty page.
+	// Ideally we should query one more row to determine if there is really a next page, but it's impossible in current framework.
+	p.curRows = rows
+	if p.total == -1 && p.current == 1 && !p.HasNext() {
+		// if there is only one page for the "unlimited paging", set total rows/pages count
+		// then the tmpl could decide to hide the nav bar.
+		p.total = rows
+		p.totalPages = util.Iif(p.total == 0, 0, 1)
+	}
 }
 
 // IsFirst returns true if current page is the first page.
@@ -71,7 +92,10 @@ func (p *Paginator) Previous() int {
 
 // HasNext returns true if there is a next page relative to current page.
 func (p *Paginator) HasNext() bool {
-	return p.total == -1 || p.current*p.pagingNum < p.total
+	if p.total == -1 {
+		return p.curRows >= p.pagingNum
+	}
+	return p.current*p.pagingNum < p.total
 }
 
 func (p *Paginator) Next() int {

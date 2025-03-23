@@ -28,6 +28,11 @@ func NewPagination(total, pagingNum, current, numPages int) *Pagination {
 	return p
 }
 
+func (p *Pagination) WithCurRows(n int) *Pagination {
+	p.Paginater.SetCurRows(n)
+	return p
+}
+
 func (p *Pagination) AddParamFromRequest(req *http.Request) {
 	for key, values := range req.URL.Query() {
 		if key == "page" || len(values) == 0 || (len(values) == 1 && values[0] == "") {
