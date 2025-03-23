@@ -18,9 +18,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/util"
-	"golang.org/x/crypto/ssh"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/ssh"
 )
 
 // NewInternalToken generate a new value intended to be used by INTERNAL_TOKEN.
@@ -98,7 +98,7 @@ func NewSSHKey(keytype string, bits int) (ssh.PublicKey, *pem.Block, error) {
 }
 
 // commonKeyGen is an abstraction over rsa, ecdsa and ed25519 generating functions
-func commonKeyGen(keytype string, bits int) (publicKey crypto.PublicKey, privateKey crypto.PublicKey, err error) {
+func commonKeyGen(keytype string, bits int) (publicKey, privateKey crypto.PublicKey, err error) {
 	switch keytype {
 	case "rsa":
 		privateKey, err := rsa.GenerateKey(rand.Reader, bits)

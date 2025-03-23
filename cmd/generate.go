@@ -10,10 +10,10 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/generate"
-	"golang.org/x/crypto/ssh"
 
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -117,7 +117,7 @@ func runGenerateKeyPair(c *cli.Context) error {
 	keytype := c.String("type")
 	file := c.String("file")
 	bits := c.Int("bits")
-	// provide defaults for bits, ed25519 ignores bit length so it's ommited
+	// provide defaults for bits, ed25519 ignores bit length so it's omitted
 	if bits == 0 {
 		if keytype == "rsa" {
 			bits = 3072
