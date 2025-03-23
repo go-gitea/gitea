@@ -120,7 +120,7 @@ func runGenerateKeyPair(c *cli.Context) error {
 	// provide defaults for bits, ed25519 ignores bit length so it's ommited
 	if bits == 0 {
 		if keytype == "rsa" {
-			bits = 3096
+			bits = 3072
 		} else {
 			bits = 256
 		}
@@ -140,6 +140,4 @@ func runGenerateKeyPair(c *cli.Context) error {
 		return err
 	}
 	return os.WriteFile(file+".pub", ssh.MarshalAuthorizedKey(pub), 0o644)
-
-	return nil
 }

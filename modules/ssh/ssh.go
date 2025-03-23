@@ -406,7 +406,18 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
 func GenKeyPair(keyPath string) error {
-	publicKey, privateKeyPEM, err := generate.NewSSHKey("rsa", 4096)
+	bits := 4096
+	keytype := filepath.Ext(keyPath)
+	if keytype == ".ed25519" {
+		keytype = "ed25519"
+	} else if keytype == ".ecdsa" {
+		bits = 256
+		keytype = "ecdsa"
+
+	} else {
+		keytype = "rsa"
+	}
+	publicKey, privateKeyPEM, err := generate.NewSSHKey(keytype, bits)
 	if err != nil {
 		return err
 	}
@@ -425,13 +436,7 @@ func GenKeyPair(keyPath string) error {
 		return err
 	}
 
-	// generate public key
-	pub, err := gossh.NewPublicKey(publicKey)
-	if err != nil {
-		return err
-	}
-
-	public := gossh.MarshalAuthorizedKey(pub)
+	public := gossh.MarshalAuthorizedKey(publicKey)
 	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err

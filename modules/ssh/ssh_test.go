@@ -7,8 +7,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,6 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gossh "golang.org/x/crypto/ssh"
 )
 
 func TestGenKeyPair(t *testing.T) {
@@ -31,7 +30,7 @@ func TestGenKeyPair(t *testing.T) {
 		},
 		{
 			keyPath:      "/gitea.ed25519",
-			expectedType: ed25519.PrivateKey{},
+			expectedType: &ed25519.PrivateKey{},
 		},
 		{
 			keyPath:      "/gitea.ecdsa",
@@ -49,11 +48,7 @@ func TestGenKeyPair(t *testing.T) {
 			bytes, err := io.ReadAll(file)
 			require.NoError(t, err)
 
-			block, _ := pem.Decode(bytes)
-			require.NotNil(t, block)
-			assert.Equal(t, "PRIVATE KEY", block.Type)
-
-			privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+			privateKey, err := gossh.ParseRawPrivateKey(bytes)
 			require.NoError(t, err)
 			assert.IsType(t, tC.expectedType, privateKey)
 		})
