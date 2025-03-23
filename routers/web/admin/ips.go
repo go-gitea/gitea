@@ -59,7 +59,7 @@ func buildIPQuery(ctx *context.Context, keyword string) *xorm.Session {
 
 // IPs show all user signup IPs
 func IPs(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.ips")
+	ctx.Data["Title"] = ctx.Tr("admin.ips.ip")
 	ctx.Data["PageIsAdminIPs"] = true
 	ctx.Data["RecordUserSignupMetadata"] = setting.RecordUserSignupMetadata
 
