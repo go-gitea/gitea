@@ -6,12 +6,6 @@ package ssh
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -27,6 +21,7 @@ import (
 	"syscall"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -411,17 +406,11 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
 func GenKeyPair(keyPath string) error {
-	privateKey, publicKey, err := keyGen(filepath.Ext(keyPath))
+	publicKey, privateKeyPEM, err := generate.NewSSHKey("rsa", 4096)
 	if err != nil {
 		return err
 	}
 
-	privateKeyPKCS8, err := x509.MarshalPKCS8PrivateKey(privateKey)
-	if err != nil {
-		return err
-	}
-
-	privateKeyPEM := &pem.Block{Type: "PRIVATE KEY", Bytes: privateKeyPKCS8}
 	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
@@ -454,25 +443,4 @@ func GenKeyPair(keyPath string) error {
 	}()
 	_, err = p.Write(public)
 	return err
-}
-
-func keyGen(keytype string) (any, any, error) {
-	switch keytype {
-	case ".rsa":
-		privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
-		if err != nil {
-			return nil, nil, err
-		}
-		return privateKey, &privateKey.PublicKey, nil
-	case ".ed25519":
-		pub, priv, err := ed25519.GenerateKey(rand.Reader)
-		return priv, pub, err
-	default:
-		// case ".ecdsa":
-		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		if err != nil {
-			return nil, nil, err
-		}
-		return priv, &priv.PublicKey, nil
-	}
 }
