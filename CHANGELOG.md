@@ -9,7 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * SECURITY
   * Fix LFS URL (#33840) (#33843)
   * Update jwt and redis packages (#33984) (#33987)
-  * Upgrade golang crypto and net (#33989)
+  * Update golang crypto and net (#33989)
 * BUGFIXES
   * Drop timeout for requests made to the internal hook api (#33947) (#33970)
   * Fix maven panic when no package exists (#33888) (#33889)
