@@ -2,8 +2,8 @@
 {{$paginationLink := $.Link}}
 {{if eq $paginationLink AppSubUrl}}{{$paginationLink = print $paginationLink "/"}}{{end}}
 {{with .Page.Paginater}}
-	{{if .TotalPages}}
-		{{$showFirstLast := gt .TotalPages 0}}
+	{{if or (eq .TotalPages -1) (gt .TotalPages 1)}}
+		{{$showFirstLast := gt .TotalPages 1}}
 		<div class="center page buttons">
 			<div class="ui borderless pagination menu">
 				{{if $showFirstLast}}
@@ -17,11 +17,14 @@
 					{{svg "octicon-chevron-left" 16 "tw-mr-1"}}
 					<span class="navigation_label">{{ctx.Locale.Tr "repo.issues.previous"}}</span>
 				</a>
-				{{range .Pages}}
+				{{$pages := .Pages}}
+				{{$pagesLen := len $pages}}
+				{{range $pages}}
 					{{if eq .Num -1}}
 						<a class="disabled item">...</a>
 					{{else}}
-						<a class="{{if .IsCurrent}}active {{end}}item" {{if not .IsCurrent}}href="{{$paginationLink}}?page={{.Num}}{{if $paginationParams}}&{{$paginationParams}}{{end}}"{{end}}>{{.Num}}</a>
+						{{/* do not highlight the current page if there is only one page */}}
+						<a class="{{if and .IsCurrent (gt $pagesLen 1)}}active {{end}}item" {{if not .IsCurrent}}href="{{$paginationLink}}?page={{.Num}}{{if $paginationParams}}&{{$paginationParams}}{{end}}"{{end}}>{{.Num}}</a>
 					{{end}}
 				{{end}}
 				<a class="{{if not .HasNext}}disabled{{end}} item navigation" {{if .HasNext}}href="{{$paginationLink}}?page={{.Next}}{{if $paginationParams}}&{{$paginationParams}}{{end}}"{{end}}>
