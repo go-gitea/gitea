@@ -6,6 +6,7 @@ package feed
 import (
 	"context"
 	"fmt"
+	"math"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -27,6 +28,10 @@ func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOpt
 	if err != nil {
 		return nil, 0, err
 	}
+	if !setting.UI.User.DashboardActivitiesPagination {
+		return results, math.MaxInt32, nil
+	}
+
 	if opts.DontCount {
 		cnt, err = cache.GetInt64(userFeedCacheKey(opts.Actor.ID), func() (int64, error) {
 			return activities_model.CountUserFeeds(ctx, opts.Actor.ID)

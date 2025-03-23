@@ -142,6 +142,7 @@ func Dashboard(ctx *context.Context) {
 	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
+	ctx.Data["ShowPagination"] = setting.UI.User.DashboardActivitiesPagination
 
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
