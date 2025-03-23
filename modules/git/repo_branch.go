@@ -29,8 +29,6 @@ func IsBranchExist(ctx context.Context, repoPath, name string) bool {
 type Branch struct {
 	Name string
 	Path string
-
-	gitRepo *Repository
 }
 
 // GetHEADBranch returns corresponding branch of HEAD.
@@ -49,9 +47,8 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	}
 
 	return &Branch{
-		Name:    stdout[len(BranchPrefix):],
-		Path:    stdout,
-		gitRepo: repo,
+		Name: stdout[len(BranchPrefix):],
+		Path: stdout,
 	}, nil
 }
 
@@ -73,9 +70,8 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 		return nil, ErrBranchNotExist{branch}
 	}
 	return &Branch{
-		Path:    repo.Path,
-		Name:    branch,
-		gitRepo: repo,
+		Path: repo.Path,
+		Name: branch,
 	}, nil
 }
 
@@ -89,9 +85,8 @@ func (repo *Repository) GetBranches(skip, limit int) ([]*Branch, int, error) {
 	branches := make([]*Branch, len(brs))
 	for i := range brs {
 		branches[i] = &Branch{
-			Path:    repo.Path,
-			Name:    brs[i],
-			gitRepo: repo,
+			Path: repo.Path,
+			Name: brs[i],
 		}
 	}
 
@@ -145,11 +140,6 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 func (repo *Repository) RemoveRemote(name string) error {
 	_, _, err := NewCommand("remote", "rm").AddDynamicArguments(name).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	return err
-}
-
-// GetCommit returns the head commit of a branch
-func (branch *Branch) GetCommit() (*Commit, error) {
-	return branch.gitRepo.GetBranchCommit(branch.Name)
 }
 
 // RenameBranch rename a branch

@@ -157,7 +157,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if err == nil {
-		baseCommit, err = baseBranch.GetCommit()
+		baseCommit, err = gitRepo.GetBranchCommit(pr.BaseBranch)
 		if err != nil && !git.IsErrNotExist(err) {
 			log.Error("GetCommit[%s]: %v", baseBranch.Name, err)
 			return nil
@@ -169,13 +169,6 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if pr.Flow == issues_model.PullRequestFlowAGit {
-		gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
-		if err != nil {
-			log.Error("OpenRepository[%s]: %v", pr.GetGitRefName(), err)
-			return nil
-		}
-		defer gitRepo.Close()
-
 		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			log.Error("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
@@ -226,7 +219,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 				endCommitID = headCommitID
 			}
 		} else {
-			commit, err := headBranch.GetCommit()
+			commit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
 			if err != nil && !git.IsErrNotExist(err) {
 				log.Error("GetCommit[%s]: %v", headBranch.Name, err)
 				return nil
@@ -478,7 +471,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 					apiPullRequest.Head.Sha = headCommitID
 				}
 			} else {
-				commit, err := headBranch.GetCommit()
+				commit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
 				if err != nil && !git.IsErrNotExist(err) {
 					log.Error("GetCommit[%s]: %v", headBranch.Name, err)
 					return nil, err
