@@ -212,12 +212,22 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectColumnID.Value()))
 	}
 
-	if options.PosterID.Has() {
-		query.Must(elastic.NewTermQuery("poster_id", options.PosterID.Value()))
+	if options.PosterID != "" {
+		// "(none)" becomes 0, it means no poster
+		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
+		query.Must(elastic.NewTermQuery("poster_id", posterIDInt64))
 	}
 
-	if options.AssigneeID.Has() {
-		query.Must(elastic.NewTermQuery("assignee_id", options.AssigneeID.Value()))
+	if options.AssigneeID != "" {
+		if options.AssigneeID == "(any)" {
+			q := elastic.NewRangeQuery("assignee_id")
+			q.Gte(1)
+			query.Must(q)
+		} else {
+			// "(none)" becomes 0, it means no assignee
+			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+			query.Must(elastic.NewTermQuery("assignee_id", assigneeIDInt64))
+		}
 	}
 
 	if options.MentionID.Has() {

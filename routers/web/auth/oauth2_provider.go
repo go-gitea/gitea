@@ -249,7 +249,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 			}, form.RedirectURI)
 			return
 		}
-		if err := ctx.Session.Set("CodeChallengeMethod", form.CodeChallenge); err != nil {
+		if err := ctx.Session.Set("CodeChallenge", form.CodeChallenge); err != nil {
 			handleAuthorizeError(ctx, AuthorizeError{
 				ErrorCode:        ErrorCodeServerError,
 				ErrorDescription: "cannot set code challenge",

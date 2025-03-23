@@ -54,7 +54,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		RepoIDs:            options.RepoIDs,
 		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
-		AssigneeID:         optional.Some(convertID(options.AssigneeID)),
+		AssigneeID:         options.AssigneeID,
 		PosterID:           options.PosterID,
 		MentionedID:        convertID(options.MentionID),
 		ReviewRequestedID:  convertID(options.ReviewRequestedID),
