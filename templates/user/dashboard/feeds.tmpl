@@ -126,12 +126,5 @@
 			</div>
 		</div>
 	{{end}}
-	{{$paginater := .Page.Paginater}}
-	{{if $paginater}}
-		{{if .ShowPagination}}
-			{{template "base/paginate" .}}
-		{{else}}
-			{{template "base/pre_next" .}}
-		{{end}}
-	{{end}}
+	{{template "base/paginate" .}}
 </div>

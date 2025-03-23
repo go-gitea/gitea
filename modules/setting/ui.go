@@ -63,9 +63,8 @@ var UI = struct {
 		OrgPagingNum    int
 	} `ini:"ui.admin"`
 	User struct {
-		RepoPagingNum                 int
-		OrgPagingNum                  int
-		DashboardActivitiesPagination bool // display pagination for dashboard activities
+		RepoPagingNum int
+		OrgPagingNum  int
 	} `ini:"ui.user"`
 	Meta struct {
 		Author      string
@@ -130,13 +129,11 @@ var UI = struct {
 		OrgPagingNum:    50,
 	},
 	User: struct {
-		RepoPagingNum                 int
-		OrgPagingNum                  int
-		DashboardActivitiesPagination bool
+		RepoPagingNum int
+		OrgPagingNum  int
 	}{
-		RepoPagingNum:                 15,
-		OrgPagingNum:                  15,
-		DashboardActivitiesPagination: false,
+		RepoPagingNum: 15,
+		OrgPagingNum:  15,
 	},
 	Meta: struct {
 		Author      string
