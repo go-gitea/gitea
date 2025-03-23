@@ -1,9 +1,30 @@
 {{template "base/head" .}}
-<div class="page-content repository catalog">
+{{$showSidebar := not .HideRepoInfo}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository file list">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2>Repository Catalog</h2>
-		<!-- Your catalog content here -->
+		{{template "base/alert" .}}
+
+		{{if .Repository.IsArchived}}
+			<div class="ui warning message tw-text-center">
+				{{if .Repository.ArchivedUnix.IsZero}}
+					{{ctx.Locale.Tr "repo.archive.title"}}
+				{{else}}
+					{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
+				{{end}}
+			</div>
+		{{end}}
+
+		<div class="{{Iif $showSidebar "repo-grid-filelist-sidebar" "repo-grid-filelist-only"}}">
+			<div class="repo-home-filelist">
+				{{template "repo/catalog/view_content" .}}
+			</div>
+
+			{{if $showSidebar}}
+				{{template "repo/catalog/sidebar_top" .}}
+				{{template "repo/catalog/sidebar_bottom" .}}
+			{{end}}
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}} 

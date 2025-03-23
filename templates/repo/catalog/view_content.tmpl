@@ -1,0 +1,41 @@
+{{template "repo/sub_menu" .}}
+<div class="repo-button-row">
+	<div class="repo-button-row-left">
+		{{template "repo/branch_dropdown" dict
+			"Repository" .Repository
+			"ShowTabBranches" true
+			"ShowTabTags" true
+			"CurrentRefType" .RefFullName.RefType
+			"CurrentRefShortName" .RefFullName.ShortName
+			"CurrentTreePath" .TreePath
+			"RefLinkTemplate" "{RepoLink}/catalog/{RefType}/{RefShortName}/{TreePath}"
+			"AllowCreateNewRef" .CanCreateBranch
+			"ShowViewAllRefsEntry" true
+		}}
+
+		<a href="{{.Repository.Link}}/catalog/find" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_dataset"}}</a>
+
+		{{if .CanWriteCode}}
+			<button class="ui dropdown basic compact jump button">
+				{{ctx.Locale.Tr "repo.catalog.add_dataset"}}
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<a class="item" href="{{.RepoLink}}/catalog/_new">
+						{{ctx.Locale.Tr "repo.catalog.new_dataset"}}
+					</a>
+					{{if .RepositoryUploadEnabled}}
+					<a class="item" href="{{.RepoLink}}/catalog/_upload">
+						{{ctx.Locale.Tr "repo.catalog.upload_dataset"}}
+					</a>
+					{{end}}
+				</div>
+			</button>
+		{{end}}
+	</div>
+</div>
+
+<div class="ui segments">
+	<div class="ui segment">
+		<h2>{{svg "octicon-table"}} TABLE PLACEHOLDER</h2>
+	</div>
+</div> 
