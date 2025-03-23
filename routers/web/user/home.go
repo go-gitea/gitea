@@ -139,7 +139,7 @@ func Dashboard(ctx *context.Context) {
 
 	ctx.Data["Feeds"] = feeds
 
-	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
+	pager := context.NewPagination(count, setting.UI.FeedPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
