@@ -5,10 +5,12 @@
 package cmd
 
 import (
+	"encoding/pem"
 	"fmt"
 	"os"
 
 	"code.gitea.io/gitea/modules/generate"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
@@ -21,6 +23,7 @@ var (
 		Usage: "Generate Gitea's secrets/keys/tokens",
 		Subcommands: []*cli.Command{
 			subcmdSecret,
+			subcmdKeygen,
 		},
 	}
 
@@ -32,6 +35,17 @@ var (
 			microcmdGenerateLfsJwtSecret,
 			microcmdGenerateSecretKey,
 		},
+	}
+	keygenFlags = []cli.Flag{
+		&cli.StringFlag{Name: "bits", Aliases: []string{"b"}, Usage: "Number of bits in the key, ignored when key is ed25519"},
+		&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Keytype to generate"},
+		&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the filename of the key file", Required: true},
+	}
+	subcmdKeygen = &cli.Command{
+		Name:   "ssh-keygen",
+		Usage:  "Generate a ssh keypair",
+		Flags:  keygenFlags,
+		Action: runGenerateKeyPair,
 	}
 
 	microcmdGenerateInternalToken = &cli.Command{
@@ -95,6 +109,37 @@ func runGenerateSecretKey(c *cli.Context) error {
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		fmt.Printf("\n")
 	}
+
+	return nil
+}
+
+func runGenerateKeyPair(c *cli.Context) error {
+	keytype := c.String("type")
+	file := c.String("file")
+	bits := c.Int("bits")
+	// provide defaults for bits, ed25519 ignores bit length so it's ommited
+	if bits == 0 {
+		if keytype == "rsa" {
+			bits = 3096
+		} else {
+			bits = 256
+		}
+	}
+
+	pub, priv, err := generate.NewSSHKey(keytype, bits)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	err = pem.Encode(f, priv)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(file+".pub", ssh.MarshalAuthorizedKey(pub), 0o644)
 
 	return nil
 }
