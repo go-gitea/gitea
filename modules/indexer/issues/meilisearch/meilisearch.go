@@ -187,12 +187,20 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterEq("project_board_id", options.ProjectColumnID.Value()))
 	}
 
-	if options.PosterID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("poster_id", options.PosterID.Value()))
+	if options.PosterID != "" {
+		// "(none)" becomes 0, it means no poster
+		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
+		query.And(inner_meilisearch.NewFilterEq("poster_id", posterIDInt64))
 	}
 
-	if options.AssigneeID.Has() {
-		query.And(inner_meilisearch.NewFilterEq("assignee_id", options.AssigneeID.Value()))
+	if options.AssigneeID != "" {
+		if options.AssigneeID == "(any)" {
+			query.And(inner_meilisearch.NewFilterGte("assignee_id", 1))
+		} else {
+			// "(none)" becomes 0, it means no assignee
+			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+			query.And(inner_meilisearch.NewFilterEq("assignee_id", assigneeIDInt64))
+		}
 	}
 
 	if options.MentionID.Has() {

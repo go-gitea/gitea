@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	oauth2_provider "code.gitea.io/gitea/services/oauth2_provider"
+	"code.gitea.io/gitea/services/oauth2_provider"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"

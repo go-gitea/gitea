@@ -1130,7 +1130,11 @@ $.fn.dropdown = function(parameters) {
           icon: {
             click: function(event) {
               iconClicked=true;
-              if(module.has.search()) {
+              // GITEA-PATCH: official dropdown doesn't support the search input in menu
+              // so we need to make the menu could be shown when the search input is in menu and user clicks the icon
+              const searchInputInMenu = Boolean($menu.find('.search > input').length);
+              if(module.has.search() && !searchInputInMenu) {
+                // the search input is in the dropdown element (but not in the popup menu), try to focus it
                 if(!module.is.active()) {
                     if(settings.showOnFocus){
                       module.focusSearch();
