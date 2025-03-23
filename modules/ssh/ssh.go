@@ -413,7 +413,6 @@ func GenKeyPair(keyPath string) error {
 	} else if keytype == ".ecdsa" {
 		bits = 256
 		keytype = "ecdsa"
-
 	} else {
 		keytype = "rsa"
 	}
