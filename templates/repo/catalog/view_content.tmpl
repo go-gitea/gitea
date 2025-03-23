@@ -1,16 +1,11 @@
 {{template "repo/sub_menu" .}}
 <div class="repo-button-row">
 	<div class="repo-button-row-left">
-		{{template "repo/branch_dropdown" dict
-			"Repository" .Repository
-			"ShowTabBranches" true
-			"ShowTabTags" true
-			"CurrentRefType" .RefFullName.RefType
-			"CurrentRefShortName" .RefFullName.ShortName
-			"CurrentTreePath" .TreePath
-			"RefLinkTemplate" "{RepoLink}/catalog/{RefType}/{RefShortName}/{TreePath}"
-			"AllowCreateNewRef" .CanCreateBranch
-			"ShowViewAllRefsEntry" true
+		{{template "repo/catalog/branch_dropdown" dict 
+			"ctx" .ctx
+			"RepoLink" .RepoLink
+			"CurrentBranch" .CurrentBranch
+			"NessieRefs" .NessieRefs
 		}}
 
 		<a href="{{.Repository.Link}}/catalog/find" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_dataset"}}</a>

@@ -1,0 +1,35 @@
+<div class="ui dropdown custom">
+	<button class="ui basic button nessie-branch-button">
+		{{svg "octicon-git-branch"}} <span class="text">{{.CurrentBranch}}</span>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	</button>
+	<div class="menu">
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-search" 16}}</i>
+			<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
+		</div>
+		<div class="header">
+			<div class="ui grid">
+				<div class="eight wide column">
+					{{ctx.Locale.Tr "repo.branches"}}
+				</div>
+				<div class="eight wide column">
+					{{ctx.Locale.Tr "repo.tags"}}
+				</div>
+			</div>
+		</div>
+		<div class="scrolling menu">
+			{{range .NessieRefs}}
+				<a class="{{if eq $.CurrentBranch .Name}}active selected{{end}} item" href="{{$.RepoLink}}/catalog/{{.Type}}/{{.Name}}">
+					{{if eq .Type "branch"}}
+						{{svg "octicon-git-branch"}}
+					{{else}}
+						{{svg "octicon-tag"}}
+					{{end}}
+					<span class="text">{{.Name}}</span>
+					<span class="text small">{{.Hash}}</span>
+				</a>
+			{{end}}
+		</div>
+	</div>
+</div> 
