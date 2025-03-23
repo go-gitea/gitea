@@ -145,8 +145,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			if err != nil {
 				return repo, fmt.Errorf("GetHEADBranch: %w", err)
 			}
-			if headBranch != nil {
-				repo.DefaultBranch = headBranch.Name
+			if headBranch != "" {
+				repo.DefaultBranch = headBranch
 			}
 		}
 

@@ -186,7 +186,7 @@ func GetAllCommits(ctx *context.APIContext) {
 				return
 			}
 
-			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head.Name)
+			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return

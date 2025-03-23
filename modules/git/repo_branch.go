@@ -25,31 +25,22 @@ func IsBranchExist(ctx context.Context, repoPath, name string) bool {
 	return IsReferenceExist(ctx, repoPath, BranchPrefix+name)
 }
 
-// Branch represents a Git branch.
-type Branch struct {
-	Name string
-	Path string
-}
-
 // GetHEADBranch returns corresponding branch of HEAD.
-func (repo *Repository) GetHEADBranch() (*Branch, error) {
+func (repo *Repository) GetHEADBranch() (string, error) {
 	if repo == nil {
-		return nil, fmt.Errorf("nil repo")
+		return "", fmt.Errorf("nil repo")
 	}
 	stdout, _, err := NewCommand("symbolic-ref", "HEAD").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	stdout = strings.TrimSpace(stdout)
 
 	if !strings.HasPrefix(stdout, BranchPrefix) {
-		return nil, fmt.Errorf("invalid HEAD branch: %v", stdout)
+		return "", fmt.Errorf("invalid HEAD branch: %v", stdout)
 	}
 
-	return &Branch{
-		Name: stdout[len(BranchPrefix):],
-		Path: stdout,
-	}, nil
+	return stdout[len(BranchPrefix):], nil
 }
 
 func GetDefaultBranch(ctx context.Context, repoPath string) (string, error) {
@@ -65,32 +56,11 @@ func GetDefaultBranch(ctx context.Context, repoPath string) (string, error) {
 }
 
 // GetBranch returns a branch by it's name
-func (repo *Repository) GetBranch(branch string) (*Branch, error) {
+func (repo *Repository) GetBranch(branch string) (string, error) {
 	if !repo.IsBranchExist(branch) {
-		return nil, ErrBranchNotExist{branch}
+		return "", ErrBranchNotExist{branch}
 	}
-	return &Branch{
-		Path: repo.Path,
-		Name: branch,
-	}, nil
-}
-
-// GetBranches returns a slice of *git.Branch
-func (repo *Repository) GetBranches(skip, limit int) ([]*Branch, int, error) {
-	brs, countAll, err := repo.GetBranchNames(skip, limit)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	branches := make([]*Branch, len(brs))
-	for i := range brs {
-		branches[i] = &Branch{
-			Path: repo.Path,
-			Name: brs[i],
-		}
-	}
-
-	return branches, countAll, nil
+	return branch, nil
 }
 
 // DeleteBranchOptions Option(s) for delete branch
