@@ -551,7 +551,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		if err == util.ErrNotEmpty {
 			return true, nil
 		}
-		err = util.ConcatenateError(err, stderr.String())
+		err = git.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, base,

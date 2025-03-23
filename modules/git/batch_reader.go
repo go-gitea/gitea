@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/djherbis/buffer"
 	"github.com/djherbis/nio/v3"
@@ -36,7 +35,7 @@ func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 			Stderr: &stderr,
 		})
 	if err != nil {
-		return util.ConcatenateError(err, (&stderr).String())
+		return ConcatenateError(err, (&stderr).String())
 	}
 	return nil
 }
@@ -72,8 +71,8 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 				UseContextTimeout: true,
 			})
 		if err != nil {
-			_ = batchStdoutWriter.CloseWithError(util.ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(util.ConcatenateError(err, (&stderr).String()))
+			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = batchStdoutWriter.Close()
 			_ = batchStdinReader.Close()
@@ -120,8 +119,8 @@ func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 				UseContextTimeout: true,
 			})
 		if err != nil {
-			_ = batchStdoutWriter.CloseWithError(util.ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(util.ConcatenateError(err, (&stderr).String()))
+			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = batchStdoutWriter.Close()
 			_ = batchStdinReader.Close()

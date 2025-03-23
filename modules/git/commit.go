@@ -448,7 +448,7 @@ func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*Commi
 	})
 	w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
-		return nil, util.ConcatenateError(err, stderr.String())
+		return nil, ConcatenateError(err, stderr.String())
 	}
 
 	<-done

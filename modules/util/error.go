@@ -95,11 +95,3 @@ func ErrorAsLocale(err error) *LocaleWrapper {
 	}
 	return nil
 }
-
-// ConcatenateError concatenats an error with stderr string
-func ConcatenateError(err error, stderr string) error {
-	if len(stderr) == 0 {
-		return err
-	}
-	return fmt.Errorf("%w - %s", err, stderr)
-}

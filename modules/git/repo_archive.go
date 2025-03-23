@@ -10,8 +10,6 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 // ArchiveType archive types
@@ -69,7 +67,7 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 		Stderr: &stderr,
 	})
 	if err != nil {
-		return util.ConcatenateError(err, stderr.String())
+		return ConcatenateError(err, stderr.String())
 	}
 	return nil
 }

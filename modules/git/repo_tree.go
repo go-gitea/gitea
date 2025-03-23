@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 // CommitTreeOpts represents the possible options to CommitTree
@@ -63,7 +61,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		Stderr: stderr,
 	})
 	if err != nil {
-		return nil, util.ConcatenateError(err, stderr.String())
+		return nil, ConcatenateError(err, stderr.String())
 	}
 	return NewIDFromString(strings.TrimSpace(stdout.String()))
 }

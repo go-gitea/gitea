@@ -9,8 +9,6 @@ import (
 	"bufio"
 	"io"
 	"strings"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 // GetRefsFiltered returns all references of the repository that matches patterm exactly or starting with.
@@ -29,7 +27,7 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 			Stderr: stderrBuilder,
 		})
 		if err != nil {
-			_ = stdoutWriter.CloseWithError(util.ConcatenateError(err, stderrBuilder.String()))
+			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
 		} else {
 			_ = stdoutWriter.Close()
 		}
