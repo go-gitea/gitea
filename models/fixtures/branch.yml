@@ -93,3 +93,51 @@
   is_deleted: false
   deleted_by_id: 0
   deleted_unix: 0
+
+-
+  id: 16
+  repo_id: 16
+  name: 'master'
+  commit_id: '69554a64c1e6030f051e5c3f94bfbd773cd6a324'
+  commit_message: 'not signed commit'
+  commit_time: 1502042309
+  pusher_id: 2
+  is_deleted: false
+  deleted_by_id: 0
+  deleted_unix: 0
+
+-
+  id: 17
+  repo_id: 16
+  name: 'not-signed'
+  commit_id: '69554a64c1e6030f051e5c3f94bfbd773cd6a324'
+  commit_message: 'not signed commit'
+  commit_time: 1502042309
+  pusher_id: 2
+  is_deleted: false
+  deleted_by_id: 0
+  deleted_unix: 0
+
+-
+  id: 18
+  repo_id: 16
+  name: 'good-sign-not-yet-validated'
+  commit_id: '27566bd5738fc8b4e3fef3c5e72cce608537bd95'
+  commit_message: 'good signed commit (with not yet validated email)'
+  commit_time: 1502042234
+  pusher_id: 2
+  is_deleted: false
+  deleted_by_id: 0
+  deleted_unix: 0
+
+-
+  id: 19
+  repo_id: 16
+  name: 'good-sign'
+  commit_id: 'f27c2b2b03dcab38beaf89b0ab4ff61f6de63441'
+  commit_message: 'good signed commit'
+  commit_time: 1502042101
+  pusher_id: 2
+  is_deleted: false
+  deleted_by_id: 0
+  deleted_unix: 0
