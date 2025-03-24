@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.23.6](https://github.com/go-gitea/gitea/releases/tag/v1.23.6) - 2025-03-22
+## [1.23.6](https://github.com/go-gitea/gitea/releases/tag/v1.23.6) - 2025-03-24
 
 * SECURITY
   * Fix LFS URL (#33840) (#33843)
