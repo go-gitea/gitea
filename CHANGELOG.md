@@ -24,6 +24,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Support disable passkey auth (#33348) (#33819)
   * Do not call "git diff" when listing PRs (#33817)
   * Try to fix ACME (3rd) (#33807) (#33808)
+  * Fix incorrect code search indexer options (#33992) #33999
 
 ## [1.23.5](https://github.com/go-gitea/gitea/releases/tag/v1.23.5) - 2025-03-04
 
