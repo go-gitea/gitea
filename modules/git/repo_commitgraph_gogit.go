@@ -8,7 +8,7 @@ package git
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 
 	gitealog "code.gitea.io/gitea/modules/log"
 
@@ -18,7 +18,7 @@ import (
 
 // CommitNodeIndex returns the index for walking commit graph
 func (r *Repository) CommitNodeIndex() (cgobject.CommitNodeIndex, *os.File) {
-	indexPath := path.Join(r.Path, "objects", "info", "commit-graph")
+	indexPath := filepath.Join(r.Path, "objects", "info", "commit-graph")
 
 	file, err := os.Open(indexPath)
 	if err == nil {
