@@ -1276,11 +1276,10 @@ func PullsNewRedirect(ctx *context.Context) {
 	if repo.IsFork {
 		if err := repo.GetBaseRepo(ctx); err != nil {
 			ctx.ServerError("GetBaseRepo", err)
+			return
 		}
-		if repo.BaseRepo != nil {
-			redirectRepo = repo.BaseRepo
-			branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
-		}
+		redirectRepo = repo.BaseRepo
+		branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
 	}
 	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", redirectRepo.Link(), util.PathEscapeSegments(redirectRepo.DefaultBranch), util.PathEscapeSegments(branch)))
 }
