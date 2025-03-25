@@ -109,7 +109,7 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 // SpecializedMarkdown sets up the Gitea specific markdown extensions
 func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
-	// at the moment it is fast enough (see the benchmarks
+	// at the moment it is fast enough (see the benchmarks)
 	r := &GlodmarkRender{ctx: ctx}
 	r.goldmarkMarkdown = goldmark.New(
 		goldmark.WithExtensions(
