@@ -29,10 +29,7 @@ const (
 	contributorStatsCacheTimeout int64 = 60 * 10
 )
 
-var (
-	ErrAwaitGeneration  = errors.New("generation took longer than ")
-	awaitGenerationTime = time.Second * 60
-)
+var ErrAwaitGeneration = errors.New("generation took longer than ")
 
 type WeekData struct {
 	Week      int64 `json:"week"`      // Starting day of the week as Unix timestamp
@@ -95,19 +92,18 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 	}
 	defer releaser()
 
-	// set a timeout for the generation
-	ctx, cancel := context.WithTimeout(ctx, awaitGenerationTime)
-	defer cancel()
+	// check if generation is already completed by other request
+	if cache.IsExist(cacheKey) {
+		var res map[string]*ContributorData
+		if _, cacheErr := cache.GetJSON(cacheKey, &res); cacheErr != nil {
+			return nil, fmt.Errorf("cached error: %w", cacheErr.ToError())
+		}
+		return res, nil
+	}
 
 	// run generation async
 	res, err := generateContributorStats(ctx, cache, cacheKey, repo, revision)
 	if err != nil {
-		switch {
-		case errors.Is(err, context.DeadlineExceeded):
-			_ = cache.PutJSON(cacheKey, fmt.Errorf("generateContributorStats: %w", ErrAwaitGeneration), contributorStatsCacheTimeout)
-		default:
-			_ = cache.PutJSON(cacheKey, fmt.Errorf("generateContributorStats: %w", err), contributorStatsCacheTimeout)
-		}
 		return nil, err
 	}
 
