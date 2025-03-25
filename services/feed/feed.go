@@ -15,24 +15,17 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func userFeedCacheKey(userID int64) string {
 	return fmt.Sprintf("user_feed_%d", userID)
 }
 
-func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int64, error) {
+func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int, error) {
 	opts.DontCount = opts.RequestedTeam == nil && opts.Date == ""
 	results, cnt, err := activities_model.GetFeeds(ctx, opts)
-	if err != nil {
-		return nil, 0, err
-	}
-	if opts.DontCount {
-		cnt, err = cache.GetInt64(userFeedCacheKey(opts.Actor.ID), func() (int64, error) {
-			return activities_model.CountUserFeeds(ctx, opts.Actor.ID)
-		})
-	}
-	return results, cnt, err
+	return results, util.Iif(opts.DontCount, -1, int(cnt)), err
 }
 
 // GetFeeds returns actions according to the provided options

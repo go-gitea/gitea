@@ -16,6 +16,7 @@ import (
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -535,11 +536,15 @@ func (g *GitlabDownloader) GetComments(ctx context.Context, commentable base.Com
 		}
 
 		for _, stateEvent := range stateEvents {
+			posterUserID, posterUsername := user.GhostUserID, user.GhostUserName
+			if stateEvent.User != nil {
+				posterUserID, posterUsername = int64(stateEvent.User.ID), stateEvent.User.Username
+			}
 			comment := &base.Comment{
 				IssueIndex: commentable.GetLocalIndex(),
 				Index:      int64(stateEvent.ID),
-				PosterID:   int64(stateEvent.User.ID),
-				PosterName: stateEvent.User.Username,
+				PosterID:   posterUserID,
+				PosterName: posterUsername,
 				Content:    "",
 				Created:    *stateEvent.CreatedAt,
 			}
