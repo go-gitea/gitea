@@ -102,7 +102,7 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 	}
 
 	// run generation async
-	res, err := generateContributorStats(ctx, cache, cacheKey, repo, revision)
+	res, err := generateContributorStats(ctx, repo, revision)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 }
 
 // getExtendedCommitStats return the list of *ExtendedCommitStats for the given revision
-func getExtendedCommitStats(ctx context.Context, repoPath string, baseCommit *git.Commit, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
+func getExtendedCommitStats(ctx context.Context, repoPath string, baseCommit *git.Commit) ([]*ExtendedCommitStats, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -202,7 +202,7 @@ func getExtendedCommitStats(ctx context.Context, repoPath string, baseCommit *gi
 	return extendedCommitStats, nil
 }
 
-func generateContributorStats(ctx context.Context, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) (map[string]*ContributorData, error) {
+func generateContributorStats(ctx context.Context, repo *repo_model.Repository, revision string) (map[string]*ContributorData, error) {
 	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
@@ -216,7 +216,7 @@ func generateContributorStats(ctx context.Context, cache cache.StringCache, cach
 	if err != nil {
 		return nil, err
 	}
-	extendedCommitStats, err := getExtendedCommitStats(ctx, repo.RepoPath(), baseCommit, revision)
+	extendedCommitStats, err := getExtendedCommitStats(ctx, repo.RepoPath(), baseCommit)
 	if err != nil {
 		return nil, err
 	}
