@@ -6,7 +6,6 @@ package repository
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -28,8 +27,6 @@ const (
 	contributorStatsCacheKey           = "GetContributorStats/%s/%s"
 	contributorStatsCacheTimeout int64 = 60 * 10
 )
-
-var ErrAwaitGeneration = errors.New("generation took longer than ")
 
 type WeekData struct {
 	Week      int64 `json:"week"`      // Starting day of the week as Unix timestamp
@@ -85,14 +82,14 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 		return res, nil
 	}
 
-	// dont start multiple async generations
+	// dont start multiple generations for the same repository and same revision
 	releaser, err := globallock.Lock(ctx, cacheKey)
 	if err != nil {
 		return nil, err
 	}
 	defer releaser()
 
-	// check if generation is already completed by other request
+	// check if generation is already completed by other request when we were waiting for lock
 	if cache.IsExist(cacheKey) {
 		var res map[string]*ContributorData
 		if _, cacheErr := cache.GetJSON(cacheKey, &res); cacheErr != nil {
@@ -101,7 +98,6 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 		return res, nil
 	}
 
-	// run generation async
 	res, err := generateContributorStats(ctx, repo, revision)
 	if err != nil {
 		return nil, err
@@ -196,7 +192,7 @@ func getExtendedCommitStats(ctx context.Context, repoPath string, baseCommit *gi
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
+		return nil, fmt.Errorf("failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}
 
 	return extendedCommitStats, nil
