@@ -11,7 +11,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models/avatars"
@@ -20,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -32,8 +31,7 @@ const (
 
 var (
 	ErrAwaitGeneration  = errors.New("generation took longer than ")
-	awaitGenerationTime = time.Second * 5
-	generateLock        = sync.Map{}
+	awaitGenerationTime = time.Second * 60
 )
 
 type WeekData struct {
@@ -81,41 +79,44 @@ func findLastSundayBeforeDate(dateStr string) (string, error) {
 func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *repo_model.Repository, revision string) (map[string]*ContributorData, error) {
 	// as GetContributorStats is resource intensive we cache the result
 	cacheKey := fmt.Sprintf(contributorStatsCacheKey, repo.FullName(), revision)
-	if !cache.IsExist(cacheKey) {
-		genReady := make(chan struct{})
-
-		// dont start multiple async generations
-		_, run := generateLock.Load(cacheKey)
-		if run {
-			return nil, ErrAwaitGeneration
+	if cache.IsExist(cacheKey) {
+		// TODO: renew timeout of cache cache.UpdateTimeout(cacheKey, contributorStatsCacheTimeout)
+		var res map[string]*ContributorData
+		if _, cacheErr := cache.GetJSON(cacheKey, &res); cacheErr != nil {
+			return nil, fmt.Errorf("cached error: %w", cacheErr.ToError())
 		}
+		return res, nil
+	}
 
-		generateLock.Store(cacheKey, struct{}{})
-		// run generation async
-		go generateContributorStats(genReady, cache, cacheKey, repo, revision)
+	// dont start multiple async generations
+	releaser, err := globallock.Lock(ctx, cacheKey)
+	if err != nil {
+		return nil, err
+	}
+	defer releaser()
 
-		select {
-		case <-time.After(awaitGenerationTime):
-			return nil, ErrAwaitGeneration
-		case <-genReady:
-			// we got generation ready before timeout
-			break
+	// set a timeout for the generation
+	ctx, cancel := context.WithTimeout(ctx, awaitGenerationTime)
+	defer cancel()
+
+	// run generation async
+	res, err := generateContributorStats(ctx, cache, cacheKey, repo, revision)
+	if err != nil {
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			_ = cache.PutJSON(cacheKey, fmt.Errorf("generateContributorStats: %w", ErrAwaitGeneration), contributorStatsCacheTimeout)
+		default:
+			_ = cache.PutJSON(cacheKey, fmt.Errorf("generateContributorStats: %w", err), contributorStatsCacheTimeout)
 		}
+		return nil, err
 	}
-	// TODO: renew timeout of cache cache.UpdateTimeout(cacheKey, contributorStatsCacheTimeout)
-	var res map[string]*ContributorData
-	if _, cacheErr := cache.GetJSON(cacheKey, &res); cacheErr != nil {
-		return nil, fmt.Errorf("cached error: %w", cacheErr.ToError())
-	}
+
+	_ = cache.PutJSON(cacheKey, res, contributorStatsCacheTimeout)
 	return res, nil
 }
 
 // getExtendedCommitStats return the list of *ExtendedCommitStats for the given revision
-func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
-	baseCommit, err := repo.GetCommit(revision)
-	if err != nil {
-		return nil, err
-	}
+func getExtendedCommitStats(ctx context.Context, repoPath string, baseCommit *git.Commit, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -131,8 +132,8 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 
 	var extendedCommitStats []*ExtendedCommitStats
 	stderr := new(strings.Builder)
-	err = gitCmd.Run(repo.Ctx, &git.RunOpts{
-		Dir:    repo.Path,
+	err = gitCmd.Run(ctx, &git.RunOpts{
+		Dir:    repoPath,
 		Stdout: stdoutWriter,
 		Stderr: stderr,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
@@ -140,6 +141,12 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 			scanner := bufio.NewScanner(stdoutReader)
 
 			for scanner.Scan() {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				default:
+				}
+
 				line := strings.TrimSpace(scanner.Text())
 				if line != "---" {
 					continue
@@ -199,27 +206,26 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 	return extendedCommitStats, nil
 }
 
-func generateContributorStats(genDone chan struct{}, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) {
-	ctx := graceful.GetManager().HammerContext()
-
+func generateContributorStats(ctx context.Context, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) (map[string]*ContributorData, error) {
 	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
-		_ = cache.PutJSON(cacheKey, fmt.Errorf("OpenRepository: %w", err), contributorStatsCacheTimeout)
-		return
+		return nil, err
 	}
 	defer closer.Close()
 
 	if len(revision) == 0 {
 		revision = repo.DefaultBranch
 	}
-	extendedCommitStats, err := getExtendedCommitStats(gitRepo, revision)
+	baseCommit, err := gitRepo.GetCommit(revision)
 	if err != nil {
-		_ = cache.PutJSON(cacheKey, fmt.Errorf("ExtendedCommitStats: %w", err), contributorStatsCacheTimeout)
-		return
+		return nil, err
+	}
+	extendedCommitStats, err := getExtendedCommitStats(ctx, repo.RepoPath(), baseCommit, revision)
+	if err != nil {
+		return nil, err
 	}
 	if len(extendedCommitStats) == 0 {
-		_ = cache.PutJSON(cacheKey, fmt.Errorf("no commit stats returned for revision '%s'", revision), contributorStatsCacheTimeout)
-		return
+		return nil, fmt.Errorf("no commit stats returned for revision '%s'", revision)
 	}
 
 	layout := time.DateOnly
@@ -300,9 +306,5 @@ func generateContributorStats(genDone chan struct{}, cache cache.StringCache, ca
 		total.TotalCommits++
 	}
 
-	_ = cache.PutJSON(cacheKey, contributorsCommitStats, contributorStatsCacheTimeout)
-	generateLock.Delete(cacheKey)
-	if genDone != nil {
-		genDone <- struct{}{}
-	}
+	return contributorsCommitStats, nil
 }
