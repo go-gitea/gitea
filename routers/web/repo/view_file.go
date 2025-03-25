@@ -30,23 +30,23 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
-func prepareLatestCommitInfo(ctx *context.Context) {
+func prepareLatestCommitInfo(ctx *context.Context) bool {
 	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
-		return
+		return false
 	}
 
-	if !loadLatestCommitData(ctx, commit) {
-		return
-	}
+	return loadLatestCommitData(ctx, commit)
 }
 
 func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
 
-	prepareLatestCommitInfo(ctx)
+	if !prepareLatestCommitInfo(ctx) {
+		return
+	}
 
 	// Don't call any other repository functions until the dataRc closed to
 	// avoid create unnecessary temporary cat file.
