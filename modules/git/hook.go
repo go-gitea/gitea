@@ -7,11 +7,9 @@ package git
 import (
 	"errors"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -133,29 +131,4 @@ func ListHooks(repoPath string) (_ []*Hook, err error) {
 		}
 	}
 	return hooks, nil
-}
-
-const (
-	// HookPathUpdate hook update path
-	HookPathUpdate = "hooks/update"
-)
-
-// SetUpdateHook writes given content to update hook of the repository.
-func SetUpdateHook(repoPath, content string) (err error) {
-	log.Debug("Setting update hook: %s", repoPath)
-	hookPath := path.Join(repoPath, HookPathUpdate)
-	isExist, err := util.IsExist(hookPath)
-	if err != nil {
-		log.Debug("Unable to check if %s exists. Error: %v", hookPath, err)
-		return err
-	}
-	if isExist {
-		err = util.Remove(hookPath)
-	} else {
-		err = os.MkdirAll(path.Dir(hookPath), os.ModePerm)
-	}
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(hookPath, []byte(content), 0o777)
 }
