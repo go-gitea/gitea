@@ -7,7 +7,6 @@ package git
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -23,24 +22,6 @@ func IsReferenceExist(ctx context.Context, repoPath, name string) bool {
 // IsBranchExist returns true if given branch exists in the repository.
 func IsBranchExist(ctx context.Context, repoPath, name string) bool {
 	return IsReferenceExist(ctx, repoPath, BranchPrefix+name)
-}
-
-// GetHEADBranchName returns corresponding branch of HEAD.
-func (repo *Repository) GetHEADBranchName() (string, error) {
-	if repo == nil {
-		return "", fmt.Errorf("nil repo")
-	}
-	stdout, _, err := NewCommand("symbolic-ref", "HEAD").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
-	if err != nil {
-		return "", err
-	}
-	stdout = strings.TrimSpace(stdout)
-
-	if !strings.HasPrefix(stdout, BranchPrefix) {
-		return "", fmt.Errorf("invalid HEAD branch: %v", stdout)
-	}
-
-	return stdout[len(BranchPrefix):], nil
 }
 
 func GetDefaultBranch(ctx context.Context, repoPath string) (string, error) {
