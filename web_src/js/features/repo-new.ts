@@ -1,6 +1,7 @@
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {htmlEscape} from 'escape-goat';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {sanitizeRepoName} from './repo-common.ts';
 
 const {appSubUrl} = window.config;
 
@@ -74,6 +75,10 @@ export function initRepoNew() {
     }
   };
   inputRepoName.addEventListener('input', updateUiRepoName);
+  inputRepoName.addEventListener('change', () => {
+    inputRepoName.value = sanitizeRepoName(inputRepoName.value);
+    updateUiRepoName();
+  });
   updateUiRepoName();
 
   initRepoNewTemplateSearch(form);
