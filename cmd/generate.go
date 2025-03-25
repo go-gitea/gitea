@@ -5,9 +5,11 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/pem"
 	"fmt"
 	"os"
+	"strings"
 
 	"code.gitea.io/gitea/modules/generate"
 
@@ -114,8 +116,19 @@ func runGenerateSecretKey(c *cli.Context) error {
 }
 
 func runGenerateKeyPair(c *cli.Context) error {
-	keytype := c.String("type")
 	file := c.String("file")
+
+	// Check if file exists to prevent overwrites
+	if _, err := os.Stat(file); err == nil {
+		scanner := bufio.NewScanner(os.Stdin)
+		fmt.Printf("%s already exists.\nOverwrite (y/n)? ", file)
+		scanner.Scan()
+		if strings.ToLower(strings.TrimSpace(scanner.Text())) != "y" {
+			fmt.Println("Aborting")
+			return nil
+		}
+	}
+	keytype := c.String("type")
 	bits := c.Int("bits")
 	// provide defaults for bits, ed25519 ignores bit length so it's omitted
 	if bits == 0 {
@@ -139,5 +152,11 @@ func runGenerateKeyPair(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(file+".pub", ssh.MarshalAuthorizedKey(pub), 0o644)
+	fmt.Printf("Your identification has been saved in %s\n", file)
+	err = os.WriteFile(file+".pub", ssh.MarshalAuthorizedKey(pub), 0o644)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Your public key has been saved in %s", file+".pub")
+	return nil
 }
