@@ -220,10 +220,10 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		if err != nil {
 			return err
 		}
+		defer gitBatch.Close()
 
 		for _, update := range changes.Updates {
 			if err := b.addUpdate(ctx, gitBatch.Writer, gitBatch.Reader, sha, update, repo, batch); err != nil {
-				gitBatch.Close()
 				return err
 			}
 		}

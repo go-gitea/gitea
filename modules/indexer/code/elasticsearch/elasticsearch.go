@@ -212,11 +212,11 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		if err != nil {
 			return err
 		}
+		defer batch.Close()
 
 		for _, update := range changes.Updates {
 			updateReqs, err := b.addUpdate(ctx, batch.Writer, batch.Reader, sha, update, repo)
 			if err != nil {
-				batch.Close()
 				return err
 			}
 			if len(updateReqs) > 0 {
