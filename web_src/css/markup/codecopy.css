@@ -17,7 +17,7 @@
   top: 8px;
   right: 6px;
   padding: 9px;
-  /*visibility: hidden;*/
+  visibility: hidden;
   animation: fadeout 0.2s both;
 }
 
