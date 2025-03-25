@@ -410,12 +410,12 @@ watch-backend: go-check ## watch backend files and continuously rebuild
 test: test-frontend test-backend ## test everything
 
 .PHONY: test-backend
-test-backend: ## test frontend files
+test-backend: ## test backend files
 	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend: node_modules ## test backend files
+test-frontend: node_modules ## test frontend files
 	npx vitest
 
 .PHONY: test-check
