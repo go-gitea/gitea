@@ -15,20 +15,26 @@ export function initAriaDropdownPatch() {
 }
 
 // the patched `$.fn.dropdown` function, it passes the arguments to Fomantic's `$.fn.dropdown` function, and:
-// * it does the one-time attaching on the first call
-// * it delegates the `onLabelCreate` to the patched `onLabelCreate` to add necessary aria attributes
+// * it does the one-time element event attaching on the first call
+// * it delegates the module internal functions like `onLabelCreate` to the patched functions to add more features.
 function ariaDropdownFn(this: any, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticDropdownFn.apply(this, args);
 
-  // if the `$().dropdown()` call is without arguments, or it has non-string (object) argument,
-  // it means that this call will reset the dropdown internal settings, then we need to re-delegate the callbacks.
-  const needDelegate = (!args.length || typeof args[0] !== 'string');
   for (const el of this) {
     if (!el[ariaPatchKey]) {
-      attachInit(el);
+      // the elements don't belong to the dropdown "module" and won't be reset
+      // so we only need to initialize them once.
+      attachInitElements(el);
     }
-    if (needDelegate) {
-      delegateOne($(el));
+
+    // if the `$().dropdown()` call is without arguments, or it has non-string (object) argument,
+    // it means that such call will reset the dropdown "module" including internal settings,
+    // then we need to re-delegate the callbacks.
+    const $dropdown = $(el);
+    const dropdownModule = $dropdown.data('module-dropdown');
+    if (!dropdownModule.giteaDelegated) {
+      dropdownModule.giteaDelegated = true;
+      delegateDropdownModule($dropdown);
     }
   }
   return ret;
@@ -68,7 +74,7 @@ function processMenuItems($dropdown: any, dropdownCall: any) {
 }
 
 // delegate the dropdown's template functions and callback functions to add aria attributes.
-function delegateOne($dropdown: any) {
+function delegateDropdownModule($dropdown: any) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
 
   // If there is a "search input" in the "menu", Fomantic will only "focus the input" but not "toggle the menu" when the "dropdown icon" is clicked.
@@ -163,7 +169,7 @@ function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, men
   }
 }
 
-function attachInit(dropdown: HTMLElement) {
+function attachInitElements(dropdown: HTMLElement) {
   (dropdown as any)[ariaPatchKey] = {};
   if (dropdown.classList.contains('custom')) return;
 
