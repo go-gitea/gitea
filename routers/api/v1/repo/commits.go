@@ -180,13 +180,13 @@ func GetAllCommits(ctx *context.APIContext) {
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
-			head, err := ctx.Repo.GitRepo.GetHEADBranch()
+			headBranchName, err := ctx.Repo.GitRepo.GetHEADBranchName()
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
 
-			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head)
+			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(headBranchName)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return

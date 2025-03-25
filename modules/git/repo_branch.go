@@ -25,8 +25,8 @@ func IsBranchExist(ctx context.Context, repoPath, name string) bool {
 	return IsReferenceExist(ctx, repoPath, BranchPrefix+name)
 }
 
-// GetHEADBranch returns corresponding branch of HEAD.
-func (repo *Repository) GetHEADBranch() (string, error) {
+// GetHEADBranchName returns corresponding branch of HEAD.
+func (repo *Repository) GetHEADBranchName() (string, error) {
 	if repo == nil {
 		return "", fmt.Errorf("nil repo")
 	}
@@ -53,14 +53,6 @@ func GetDefaultBranch(ctx context.Context, repoPath string) (string, error) {
 		return "", errors.New("the HEAD is not a branch: " + stdout)
 	}
 	return strings.TrimPrefix(stdout, BranchPrefix), nil
-}
-
-// GetBranch returns a branch by it's name
-func (repo *Repository) GetBranch(branch string) (string, error) {
-	if !repo.IsBranchExist(branch) {
-		return "", ErrBranchNotExist{branch}
-	}
-	return branch, nil
 }
 
 // DeleteBranchOptions Option(s) for delete branch
