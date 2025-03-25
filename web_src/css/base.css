@@ -580,14 +580,6 @@ img.ui.avatar,
   box-shadow: 0 6px 18px var(--color-shadow) !important;
 }
 
-.ui .text.left {
-  text-align: left !important;
-}
-
-.ui .text.right {
-  text-align: right !important;
-}
-
 .ui .text.truncate {
   overflow-x: hidden;
   text-overflow: ellipsis;

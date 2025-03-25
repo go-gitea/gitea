@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	GhostUserID   = -1
-	GhostUserName = "Ghost"
+	GhostUserID   int64 = -1
+	GhostUserName       = "Ghost"
 )
 
 // NewGhostUser creates and returns a fake user for someone has deleted their account.
@@ -36,9 +36,9 @@ func (u *User) IsGhost() bool {
 }
 
 const (
-	ActionsUserID    = -2
-	ActionsUserName  = "gitea-actions"
-	ActionsUserEmail = "teabot@gitea.io"
+	ActionsUserID    int64 = -2
+	ActionsUserName        = "gitea-actions"
+	ActionsUserEmail       = "teabot@gitea.io"
 )
 
 func IsGiteaActionsUserName(name string) bool {

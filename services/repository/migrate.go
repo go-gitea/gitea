@@ -13,8 +13,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
@@ -245,6 +247,19 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
+	var enableRepoUnits []repo_model.RepoUnit
+	if opts.Releases && !unit_model.TypeReleases.UnitGlobalDisabled() {
+		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeReleases})
+	}
+	if opts.Wiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
+		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeWiki})
+	}
+	if len(enableRepoUnits) > 0 {
+		err = UpdateRepositoryUnits(ctx, repo, enableRepoUnits, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return repo, committer.Commit()
 }
 
@@ -264,17 +279,16 @@ func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
-	repoPath := repo.RepoPath()
-	if err := repo_module.CreateDelegateHooks(repoPath); err != nil {
+	if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 	if repo.HasWiki() {
-		if err := repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
+		if err := gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
 	}
 
-	_, _, err := git.NewCommand("remote", "rm", "origin").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+	_, _, err := git.NewCommand("remote", "rm", "origin").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}

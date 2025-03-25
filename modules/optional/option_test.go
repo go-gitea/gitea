@@ -57,3 +57,16 @@ func TestOption(t *testing.T) {
 	assert.True(t, opt3.Has())
 	assert.Equal(t, int(1), opt3.Value())
 }
+
+func Test_ParseBool(t *testing.T) {
+	assert.Equal(t, optional.None[bool](), optional.ParseBool(""))
+	assert.Equal(t, optional.None[bool](), optional.ParseBool("x"))
+
+	assert.Equal(t, optional.Some(false), optional.ParseBool("0"))
+	assert.Equal(t, optional.Some(false), optional.ParseBool("f"))
+	assert.Equal(t, optional.Some(false), optional.ParseBool("False"))
+
+	assert.Equal(t, optional.Some(true), optional.ParseBool("1"))
+	assert.Equal(t, optional.Some(true), optional.ParseBool("t"))
+	assert.Equal(t, optional.Some(true), optional.ParseBool("True"))
+}

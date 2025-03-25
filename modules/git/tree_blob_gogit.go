@@ -21,6 +21,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 		return &TreeEntry{
 			ID: t.ID,
 			// Type: ObjectTree,
+			ptree: t,
 			gogitTreeEntry: &object.TreeEntry{
 				Name: "",
 				Mode: filemode.Dir,

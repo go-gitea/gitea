@@ -10,9 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-const (
-	filenameMatchNumberOfLines = 7 // Copied from github search
-)
+const filenameMatchNumberOfLines = 7 // Copied from GitHub search
 
 func FilenameIndexerID(repoID int64, filename string) string {
 	return internal.Base36(repoID) + "_" + filename
@@ -47,12 +45,4 @@ func FilenameMatchIndexPos(content string) (int, int) {
 		}
 	}
 	return 0, len(content)
-}
-
-func ParseKeywordAsPhrase(keyword string) (string, bool) {
-	if strings.HasPrefix(keyword, `"`) && strings.HasSuffix(keyword, `"`) && len(keyword) > 1 {
-		// only remove the prefix and suffix quotes, no need to decode the content at the moment
-		return keyword[1 : len(keyword)-1], true
-	}
-	return "", false
 }

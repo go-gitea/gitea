@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{if .IsOrganizationOwner}}
-			<div class="text right">
+			<div class="tw-text-right">
 				<a class="ui primary button" href="{{.OrgLink}}/teams/new">{{svg "octicon-plus"}} {{ctx.Locale.Tr "org.create_new_team"}}</a>
 			</div>
 			<div class="divider"></div>
