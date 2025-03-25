@@ -4,8 +4,6 @@
 package repo
 
 import (
-	std_ctx "context"
-	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/templates"
@@ -28,10 +26,6 @@ func Contributors(ctx *context.Context) {
 // ContributorsData renders JSON of contributors along with their weekly commit statistics
 func ContributorsData(ctx *context.Context) {
 	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch); err != nil {
-		if errors.Is(err, contributors_service.ErrAwaitGeneration) || errors.Is(err, std_ctx.DeadlineExceeded) {
-			ctx.Status(http.StatusAccepted)
-			return
-		}
 		ctx.ServerError("GetContributorStats", err)
 	} else {
 		ctx.JSON(http.StatusOK, contributorStats)
