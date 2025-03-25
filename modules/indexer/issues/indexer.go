@@ -302,7 +302,6 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 	}
 
 	result, err := ix.Search(ctx, opts)
-
 	if err != nil {
 		return nil, 0, err
 	}
