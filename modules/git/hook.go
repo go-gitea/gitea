@@ -51,15 +51,26 @@ func GetHook(repoPath, name string) (*Hook, error) {
 		name: name,
 		path: filepath.Join(repoPath, "hooks", name+".d", name),
 	}
-	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
-	if isFile(h.path) {
+	isFile, err := util.IsFile(h.path)
+	if err != nil {
+		return nil, err
+	}
+	if isFile {
 		data, err := os.ReadFile(h.path)
 		if err != nil {
 			return nil, err
 		}
 		h.IsActive = true
 		h.Content = string(data)
-	} else if isFile(samplePath) {
+		return h, nil
+	}
+
+	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
+	isFile, err = util.IsFile(samplePath)
+	if err != nil {
+		return nil, err
+	}
+	if isFile {
 		data, err := os.ReadFile(samplePath)
 		if err != nil {
 			return nil, err
@@ -77,7 +88,11 @@ func (h *Hook) Name() string {
 // Update updates hook settings.
 func (h *Hook) Update() error {
 	if len(strings.TrimSpace(h.Content)) == 0 {
-		if isExist(h.path) {
+		exist, err := util.IsExist(h.path)
+		if err != nil {
+			return err
+		}
+		if exist {
 			err := util.Remove(h.path)
 			if err != nil {
 				return err
@@ -101,7 +116,10 @@ func (h *Hook) Update() error {
 
 // ListHooks returns a list of Git hooks of given repository.
 func ListHooks(repoPath string) (_ []*Hook, err error) {
-	if !isDir(filepath.Join(repoPath, "hooks")) {
+	exist, err := util.IsDir(filepath.Join(repoPath, "hooks"))
+	if err != nil {
+		return nil, err
+	} else if !exist {
 		return nil, errors.New("hooks path does not exist")
 	}
 
