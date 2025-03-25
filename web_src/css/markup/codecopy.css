@@ -1,6 +1,15 @@
-.markup .code-block,
+.markup .code-wrapper,
 .markup .mermaid-block {
   position: relative;
+}
+
+.code-wrapper {
+  background-color: var(--color-markup-code-block);
+  border-radius: var(--border-radius);
+}
+
+.code-block {
+  margin-right: 56px;
 }
 
 .markup .code-copy {
@@ -8,7 +17,7 @@
   top: 8px;
   right: 6px;
   padding: 9px;
-  visibility: hidden;
+  /*visibility: hidden;*/
   animation: fadeout 0.2s both;
 }
 
@@ -28,7 +37,7 @@
   background: var(--color-secondary-dark-1) !important;
 }
 
-.markup .code-block:hover .code-copy,
+.markup .code-wrapper:hover .code-copy,
 .markup .mermaid-block:hover .code-copy {
   visibility: visible;
   animation: fadein 0.2s both;

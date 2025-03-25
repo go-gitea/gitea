@@ -131,7 +131,7 @@ func CodeFromLexer(lexer chroma.Lexer, code string) template.HTML {
 
 	_ = htmlw.Flush()
 	// Chroma will add newlines for certain lexers in order to highlight them properly
-	// Once highlighted, strip them here, so they don't cause copy/paste trouble in HTML output
+	//	// Once highlighted, strip them here, so they don't cause copy/paste trouble in HTML output
 	return template.HTML(strings.TrimSuffix(htmlbuf.String(), "\n"))
 }
 

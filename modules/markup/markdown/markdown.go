@@ -86,7 +86,7 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 			preClasses += " is-loading"
 		}
 
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<pre class="%s">`, preClasses)
+		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-wrapper"><pre class="%s">`, preClasses)
 		if err != nil {
 			return
 		}
@@ -99,7 +99,7 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 			return
 		}
 	} else {
-		_, err := w.WriteString("</code></pre>")
+		_, err := w.WriteString("</code></pre></div>")
 		if err != nil {
 			return
 		}
@@ -109,7 +109,7 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 // SpecializedMarkdown sets up the Gitea specific markdown extensions
 func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
-	// at the moment it is fast enough (see the benchmarks)
+	// at the moment it is fast enough (see the benchmarks
 	r := &GlodmarkRender{ctx: ctx}
 	r.goldmarkMarkdown = goldmark.New(
 		goldmark.WithExtensions(
