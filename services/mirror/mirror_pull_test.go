@@ -78,6 +78,8 @@ func Test_checkRecoverableSyncError(t *testing.T) {
 		{true, "error: cannot lock ref 'refs/remotes/origin/foo': unable to resolve reference 'refs/remotes/origin/foo': reference broken"},
 		// A race condition in http git-fetch where named refs were force-pushed during the update, would exit status 128
 		{true, "error: cannot lock ref 'refs/pull/123456/merge': is at 988881adc9fc3655077dc2d4d757d480b5ea0e11 but expected 7f894307ffc9553edbd0b671cab829786866f7b2"},
+		// A race condition with other local git operations, such as git-maintenance, would exit status 128 (well, "Unable" the "U" is uppercase)
+		{true, "fatal: Unable to create '/data/gitea-repositories/foo-org/bar-repo.git/./objects/info/commit-graphs/commit-graph-chain.lock': File exists."},
 		// Missing or unauthorized credentials, would exit status 128
 		{false, "fatal: Authentication failed for 'https://example.com/foo-does-not-exist/bar.git/'"},
 		// A non-existent remote repository, would exit status 128
