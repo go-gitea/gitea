@@ -122,8 +122,8 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	// last - clean up if something goes wrong
 	defer func() {
 		if err != nil {
-			if errDelete := gitrepo.DeleteRepository(ctx, repo); errDelete != nil {
-				log.Error("Failed to remove fork repo")
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, repo.ID); errDelete != nil {
+				log.Error("Failed to remove fork repo: %v", errDelete)
 			}
 		}
 	}()
