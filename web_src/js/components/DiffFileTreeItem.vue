@@ -13,6 +13,11 @@ const store = diffTreeStore();
 const isViewed = computed(() => {
   return fileIsViewed(props.item);
 });
+/**
+ * Behavior:
+ * - Viewed folders collapse on initial load (based on `isViewed` state)
+ * - Manual expand/collapse via clicks remains enabled
+ */
 const collapsed = ref(isViewed.value);
 
 function getIconForDiffStatus(pType: FileStatus) {
