@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/optional"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -173,19 +171,6 @@ func Test_RandomBytes(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.NotEqual(t, bytes3, bytes4)
-}
-
-func TestOptionalBoolParse(t *testing.T) {
-	assert.Equal(t, optional.None[bool](), OptionalBoolParse(""))
-	assert.Equal(t, optional.None[bool](), OptionalBoolParse("x"))
-
-	assert.Equal(t, optional.Some(false), OptionalBoolParse("0"))
-	assert.Equal(t, optional.Some(false), OptionalBoolParse("f"))
-	assert.Equal(t, optional.Some(false), OptionalBoolParse("False"))
-
-	assert.Equal(t, optional.Some(true), OptionalBoolParse("1"))
-	assert.Equal(t, optional.Some(true), OptionalBoolParse("t"))
-	assert.Equal(t, optional.Some(true), OptionalBoolParse("True"))
 }
 
 // Test case for any function which accepts and returns a single string.

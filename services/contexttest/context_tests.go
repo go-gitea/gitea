@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
+	git_module "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/session"
@@ -30,6 +31,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func mockRequest(t *testing.T, reqPath string) *http.Request {
@@ -85,7 +87,7 @@ func MockAPIContext(t *testing.T, reqPath string) (*context.APIContext, *httptes
 	base := context.NewBaseContext(resp, req)
 	base.Data = middleware.GetContextData(req.Context())
 	base.Locale = &translation.MockLocale{}
-	ctx := &context.APIContext{Base: base}
+	ctx := &context.APIContext{Base: base, Repo: &context.Repository{}}
 	chiCtx := chi.NewRouteContext()
 	ctx.SetContextValue(chi.RouteCtxKey, chiCtx)
 	return ctx, resp
@@ -106,13 +108,13 @@ func MockPrivateContext(t *testing.T, reqPath string) (*context.PrivateContext, 
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 	var doer *user_model.User
-	repo := &context.Repository{}
+	var repo *context.Repository
 	switch ctx := ctx.(type) {
 	case *context.Context:
-		ctx.Repo = repo
+		repo = ctx.Repo
 		doer = ctx.Doer
 	case *context.APIContext:
-		ctx.Repo = repo
+		repo = ctx.Repo
 		doer = ctx.Doer
 	default:
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
@@ -140,15 +142,17 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	}
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer gitRepo.Close()
-	branch, err := gitRepo.GetHEADBranch()
-	assert.NoError(t, err)
-	assert.NotNil(t, branch)
-	if branch != nil {
-		repo.Commit, err = gitRepo.GetBranchCommit(branch.Name)
-		assert.NoError(t, err)
+
+	if repo.RefFullName == "" {
+		repo.RefFullName = git_module.RefNameFromBranch(repo.Repository.DefaultBranch)
 	}
+	if repo.RefFullName.IsPull() {
+		repo.BranchName = repo.RefFullName.ShortName()
+	}
+	repo.Commit, err = gitRepo.GetCommit(repo.RefFullName.String())
+	require.NoError(t, err)
 }
 
 // LoadUser load a user into a test context

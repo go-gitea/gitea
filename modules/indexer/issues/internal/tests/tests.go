@@ -379,7 +379,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			PosterID: optional.Some(int64(1)),
+			PosterID: "1",
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
@@ -397,7 +397,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			AssigneeID: optional.Some(int64(1)),
+			AssigneeID: "1",
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
@@ -415,7 +415,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			AssigneeID: optional.Some(int64(0)),
+			AssigneeID: "(none)",
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
@@ -645,6 +645,21 @@ var cases = []*testIndexerCase{
 					assert.LessOrEqual(t, data[v.ID].DeadlineUnix, data[result.Hits[i+1].ID].DeadlineUnix)
 				}
 			}
+		},
+	},
+	{
+		Name: "SearchAnyAssignee",
+		SearchOptions: &internal.SearchOptions{
+			AssigneeID: "(any)",
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Len(t, result.Hits, 180)
+			for _, v := range result.Hits {
+				assert.GreaterOrEqual(t, data[v.ID].AssigneeID, int64(1))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.AssigneeID >= 1
+			}), result.Total)
 		},
 	},
 }

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/reqctx"
@@ -16,30 +15,20 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// Repository represents a git repository which stored in a disk
 type Repository interface {
-	GetName() string
-	GetOwnerName() string
+	RelativePath() string // We don't assume how the directory structure of the repository is, so we only need the relative path
 }
 
-func absPath(owner, name string) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(owner), strings.ToLower(name)+".git")
-}
-
+// RelativePath should be an unix style path like username/reponame.git
+// This method should change it according to the current OS.
 func repoPath(repo Repository) string {
-	return absPath(repo.GetOwnerName(), repo.GetName())
-}
-
-func wikiPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".wiki.git")
+	return filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo.RelativePath()))
 }
 
 // OpenRepository opens the repository at the given relative path with the provided context.
 func OpenRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
 	return git.OpenRepository(ctx, repoPath(repo))
-}
-
-func OpenWikiRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, wikiPath(repo))
 }
 
 // contextKey is a value for use with context.WithValue.
@@ -86,9 +75,8 @@ func DeleteRepository(ctx context.Context, repo Repository) error {
 }
 
 // RenameRepository renames a repository's name on disk
-func RenameRepository(ctx context.Context, repo Repository, newName string) error {
-	newRepoPath := absPath(repo.GetOwnerName(), newName)
-	if err := util.Rename(repoPath(repo), newRepoPath); err != nil {
+func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
+	if err := util.Rename(repoPath(repo), repoPath(newRepo)); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	return nil

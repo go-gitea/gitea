@@ -11,13 +11,10 @@ export async function initUserAuthWebAuthn() {
     return;
   }
 
-  if (window.location.protocol === 'http:') {
-    // webauthn is only supported on secure contexts
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    if (!isLocalhost) {
-      hideElem(elSignInPasskeyBtn);
-      return;
-    }
+  // webauthn is only supported on secure contexts
+  if (!window.isSecureContext) {
+    hideElem(elSignInPasskeyBtn);
+    return;
   }
 
   if (!detectWebAuthnSupport()) {
