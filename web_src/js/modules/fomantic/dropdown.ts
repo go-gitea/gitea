@@ -21,14 +21,17 @@ export function initAriaDropdownPatch() {
 function ariaDropdownFn(this: any, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticDropdownFn.apply(this, args);
 
-  for (const el of this) {
+  for (let el of this) {
+    // dropdown will replace '<select class="ui dropdown"/>' to '<div class="ui dropdown"><select (hidden)></select><div class="menu">...</div></div>'
+    // so we need to correctly find the closest '.ui.dropdown' element, it is the real fomantic dropdown module.
+    el = el.closest('.ui.dropdown');
     if (!el[ariaPatchKey]) {
       // the elements don't belong to the dropdown "module" and won't be reset
       // so we only need to initialize them once.
       attachInitElements(el);
     }
 
-    // if the `$().dropdown()` call is without arguments, or it has non-string (object) argument,
+    // if the `$().dropdown()` is called without arguments, or it has non-string (object) argument,
     // it means that such call will reset the dropdown "module" including internal settings,
     // then we need to re-delegate the callbacks.
     const $dropdown = $(el);
