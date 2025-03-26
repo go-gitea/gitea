@@ -70,6 +70,7 @@ func Transfer(ctx *context.APIContext) {
 
 	if !newOwner.CanCreateRepo() {
 		ctx.APIError(http.StatusForbidden, "The new owner cannot have more repositories")
+		return
 	}
 
 	if newOwner.Type == user_model.UserTypeOrganization {
