@@ -77,15 +77,6 @@ function processMenuItems($dropdown: any, dropdownCall: any) {
 function delegateDropdownModule($dropdown: any) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
 
-  // If there is a "search input" in the "menu", Fomantic will only "focus the input" but not "toggle the menu" when the "dropdown icon" is clicked.
-  // Actually, Fomantic UI doesn't support such layout/usage. It needs to patch the "focusSearch" / "blurSearch" functions to make sure it toggles the menu.
-  const oldFocusSearch = dropdownCall('internal', 'focusSearch');
-  const oldBlurSearch = dropdownCall('internal', 'blurSearch');
-  // * If the "dropdown icon" is clicked, Fomantic calls "focusSearch", so show the menu
-  dropdownCall('internal', 'focusSearch', function (this: any) { dropdownCall('show'); oldFocusSearch.call(this) });
-  // * If the "dropdown icon" is clicked again when the menu is visible, Fomantic calls "blurSearch", so hide the menu
-  dropdownCall('internal', 'blurSearch', function (this: any) { oldBlurSearch.call(this); dropdownCall('hide') });
-
   const oldFilterItems = dropdownCall('internal', 'filterItems');
   dropdownCall('internal', 'filterItems', function (this: any, ...args: any[]) {
     oldFilterItems.call(this, ...args);
@@ -171,7 +162,6 @@ function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, men
 
 function attachInitElements(dropdown: HTMLElement) {
   (dropdown as any)[ariaPatchKey] = {};
-  if (dropdown.classList.contains('custom')) return;
 
   // Dropdown has 2 different focusing behaviors
   // * with search input: the input is focused, and it works with aria-activedescendant pointing another sibling element.
