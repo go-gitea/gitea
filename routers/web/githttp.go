@@ -14,7 +14,7 @@ import (
 
 func addOwnerRepoGitHTTPRouters(m *web.Router) {
 	reqGitSignIn := func(ctx *context.Context) {
-		if !setting.Service.RequireSignInView {
+		if !setting.Service.RequireSignInViewStrict {
 			return
 		}
 		// rely on the results of Contexter
