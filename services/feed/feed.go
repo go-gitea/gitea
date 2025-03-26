@@ -13,8 +13,20 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
+
+func userFeedCacheKey(userID int64) string {
+	return fmt.Sprintf("user_feed_%d", userID)
+}
+
+func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int, error) {
+	opts.DontCount = opts.RequestedTeam == nil && opts.Date == ""
+	results, cnt, err := activities_model.GetFeeds(ctx, opts)
+	return results, util.Iif(opts.DontCount, -1, int(cnt)), err
+}
 
 // GetFeeds returns actions according to the provided options
 func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int64, error) {
@@ -68,6 +80,13 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 		if err := db.Insert(ctx, act); err != nil {
 			return fmt.Errorf("insert new action: %w", err)
 		}
+
+		total, err := activities_model.CountUserFeeds(ctx, act.UserID)
+		if err != nil {
+			return fmt.Errorf("count user feeds: %w", err)
+		}
+
+		_ = cache.GetCache().Put(userFeedCacheKey(act.UserID), fmt.Sprintf("%d", total), setting.CacheService.TTLSeconds())
 	}
 
 	return nil
