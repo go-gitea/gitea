@@ -864,6 +864,12 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 		return
 	}
 
+	if !newOwner.CanCreateRepo() {
+		limit := util.Iif(newOwner.MaxRepoCreation != -1, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
+		ctx.RenderWithErr(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit), tplSettingsOptions, nil)
+		return
+	}
+
 	if newOwner.Type == user_model.UserTypeOrganization {
 		if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization

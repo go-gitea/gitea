@@ -68,6 +68,10 @@ func Transfer(ctx *context.APIContext) {
 		return
 	}
 
+	if !newOwner.CanCreateRepo() {
+		ctx.APIError(http.StatusForbidden, "The new owner cannot have more repositories")
+	}
+
 	if newOwner.Type == user_model.UserTypeOrganization {
 		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization
