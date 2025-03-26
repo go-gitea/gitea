@@ -15,11 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -328,72 +325,6 @@ type GenerateRepoOptions struct {
 func (gro GenerateRepoOptions) IsValid() bool {
 	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar ||
 		gro.IssueLabels || gro.ProtectedBranch // or other items as they are added
-}
-
-// generateRepository generates a repository from a template
-func generateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts GenerateRepoOptions) (_ *repo_model.Repository, err error) {
-	generateRepo := &repo_model.Repository{
-		OwnerID:          owner.ID,
-		Owner:            owner,
-		OwnerName:        owner.Name,
-		Name:             opts.Name,
-		LowerName:        strings.ToLower(opts.Name),
-		Description:      opts.Description,
-		DefaultBranch:    opts.DefaultBranch,
-		IsPrivate:        opts.Private,
-		IsEmpty:          !opts.GitContent || templateRepo.IsEmpty,
-		IsFsckEnabled:    templateRepo.IsFsckEnabled,
-		TemplateID:       templateRepo.ID,
-		TrustModel:       templateRepo.TrustModel,
-		ObjectFormatName: templateRepo.ObjectFormatName,
-		Status:           repo_model.RepositoryBeingMigrated,
-	}
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		return CreateRepositoryByExample(ctx, doer, owner, generateRepo, false, false)
-	}); err != nil {
-		return nil, err
-	}
-
-	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
-	defer func() {
-		if err != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, generateRepo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-				// add system notice
-				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when generate repository: %v", errDelete); err != nil {
-					log.Error("CreateRepositoryNotice: %v", err)
-				}
-			}
-		}
-	}()
-
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", generateRepo.FullName(), err)
-		return nil, err
-	}
-	if isExist {
-		return nil, repo_model.ErrRepoFilesAlreadyExist{
-			Uname: generateRepo.OwnerName,
-			Name:  generateRepo.Name,
-		}
-	}
-
-	if err = repo_module.CheckInitRepository(ctx, generateRepo); err != nil {
-		return generateRepo, err
-	}
-
-	if err = repo_module.CheckDaemonExportOK(ctx, generateRepo); err != nil {
-		return generateRepo, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	if stdout, _, err := git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: generateRepo.RepoPath()}); err != nil {
-		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
-		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %w", err)
-	}
-
-	return generateRepo, nil
 }
 
 var fileNameSanitizeRegexp = regexp.MustCompile(`(?i)\.\.|[<>:\"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)

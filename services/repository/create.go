@@ -248,7 +248,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	needsUpdateStatus := opts.Status != repo_model.RepositoryReady
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		return CreateRepositoryByExample(ctx, doer, u, repo, false, false)
+		return CreateRepositoryInDB(ctx, doer, u, repo, false, false)
 	}); err != nil {
 		return nil, err
 	}
@@ -344,8 +344,8 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	return repo, nil
 }
 
-// CreateRepositoryByExample creates a repository for the user/organization.
-func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
+// CreateRepositoryInDB creates a repository for the user/organization.
+func CreateRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -365,7 +365,17 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return err
 	}
-	if !overwriteOrAdopt && isExist {
+	if overwriteOrAdopt != isExist {
+		if overwriteOrAdopt {
+			// repo should exist but doesn't - We have two or three options.
+			log.Error("Files do not exist in %s and we are not going to adopt or delete.", repo.FullName())
+			return repo_model.ErrRepoNotExist{
+				OwnerName: u.Name,
+				Name:      repo.Name,
+			}
+		}
+
+		// repo already exists - We have two or three options.
 		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
 		return repo_model.ErrRepoFilesAlreadyExist{
 			Uname: u.Name,

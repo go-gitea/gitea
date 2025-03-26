@@ -28,6 +28,18 @@ import (
 	"github.com/gobwas/glob"
 )
 
+func deleteFailedAdoptRepository(ctx context.Context, repoID int64) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := deleteDBRepository(ctx, repoID); err != nil {
+			return fmt.Errorf("deleteDBRepository: %w", err)
+		}
+		if err := git_model.DeleteRepoBranches(ctx, repoID); err != nil {
+			return fmt.Errorf("deleteRepoBranches: %w", err)
+		}
+		return repo_model.DeleteRepoReleases(ctx, repoID)
+	})
+}
+
 // AdoptRepository adopts pre-existing repository files for the user/organization.
 func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
@@ -52,64 +64,50 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	// 1 - create the repository database operations first
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		return CreateRepositoryInDB(ctx, doer, u, repo, true, false)
+	})
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
-		return nil, err
-	}
-	if !isExist {
-		return nil, repo_model.ErrRepoNotExist{
-			OwnerName: u.Name,
-			Name:      repo.Name,
-		}
-	}
-
-	// create the repository database operations first
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		return CreateRepositoryByExample(ctx, doer, u, repo, true, false)
-	}); err != nil {
 		return nil, err
 	}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		// Re-fetch the repository from database before updating it (else it would
-		// override changes that were done earlier with sql)
-		if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
-			return fmt.Errorf("getRepositoryByID: %w", err)
+	// last - clean up if something goes wrong
+	defer func() {
+		if err != nil {
+			if errDel := deleteFailedAdoptRepository(ctx, repo.ID); errDel != nil {
+				log.Error("Failed to delete repository %s that could not be adopted: %v", repo.FullName(), errDel)
+			}
 		}
-		return nil
-	}); err != nil {
-		return nil, err
+	}()
+
+	// Re-fetch the repository from database before updating it (else it would
+	// override changes that were done earlier with sql)
+	if repo, err = repo_model.GetRepositoryByID(ctx, repo.ID); err != nil {
+		return nil, fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
-	if err := func() error {
-		if err := adoptRepository(ctx, repo, opts.DefaultBranch); err != nil {
-			return fmt.Errorf("adoptRepository: %w", err)
-		}
-
-		if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-			return fmt.Errorf("checkDaemonExportOK: %w", err)
-		}
-
-		if stdout, _, err := git.NewCommand("update-server-info").
-			RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
-			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
-		}
-
-		// update repository status
-		repo.Status = repo_model.RepositoryReady
-		if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
-			return fmt.Errorf("UpdateRepositoryCols: %w", err)
-		}
-
-		return nil
-	}(); err != nil {
-		if errDel := DeleteRepository(ctx, doer, repo, false /* no notify */); errDel != nil {
-			log.Error("Failed to delete repository %s that could not be adopted: %v", repo.FullName(), errDel)
-		}
-		return nil, err
+	// 3 - adopt the repository from disk
+	if err := adoptRepository(ctx, repo, opts.DefaultBranch); err != nil {
+		return nil, fmt.Errorf("adoptRepository: %w", err)
 	}
+
+	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
+		return nil, fmt.Errorf("checkDaemonExportOK: %w", err)
+	}
+
+	if stdout, _, err := git.NewCommand("update-server-info").
+		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
+		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+		return nil, fmt.Errorf("CreateRepository(git update-server-info): %w", err)
+	}
+
+	// 4 - update repository status
+	repo.Status = repo_model.RepositoryReady
+	if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
+	}
+
 	notify_service.AdoptRepository(ctx, doer, u, repo)
 
 	return repo, nil

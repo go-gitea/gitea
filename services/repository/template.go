@@ -6,6 +6,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -13,7 +14,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -72,69 +76,46 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	generateRepo, err := generateRepository(ctx, doer, owner, templateRepo, opts)
+	generateRepo := &repo_model.Repository{
+		OwnerID:          owner.ID,
+		Owner:            owner,
+		OwnerName:        owner.Name,
+		Name:             opts.Name,
+		LowerName:        strings.ToLower(opts.Name),
+		Description:      opts.Description,
+		DefaultBranch:    opts.DefaultBranch,
+		IsPrivate:        opts.Private,
+		IsEmpty:          !opts.GitContent || templateRepo.IsEmpty,
+		IsFsckEnabled:    templateRepo.IsFsckEnabled,
+		TemplateID:       templateRepo.ID,
+		TrustModel:       templateRepo.TrustModel,
+		ObjectFormatName: templateRepo.ObjectFormatName,
+		Status:           repo_model.RepositoryBeingMigrated,
+	}
+
+	// 1 - check whether the repository with the same storage exists
+	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
 	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", generateRepo.FullName(), err)
+		return nil, err
+	}
+	if isExist {
+		return nil, repo_model.ErrRepoFilesAlreadyExist{
+			Uname: generateRepo.OwnerName,
+			Name:  generateRepo.Name,
+		}
+	}
+
+	// 2 - Create the repository in the database
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		return CreateRepositoryInDB(ctx, doer, owner, generateRepo, false, false)
+	}); err != nil {
 		return nil, err
 	}
 
-	if err = db.WithTx(ctx, func(ctx context.Context) error {
-		// Git Content
-		if opts.GitContent && !templateRepo.IsEmpty {
-			if err = GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
-				return err
-			}
-		}
-
-		// Topics
-		if opts.Topics {
-			if err = repo_model.GenerateTopics(ctx, templateRepo, generateRepo); err != nil {
-				return err
-			}
-		}
-
-		// Git Hooks
-		if opts.GitHooks {
-			if err = GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
-				return err
-			}
-		}
-
-		// Webhooks
-		if opts.Webhooks {
-			if err = GenerateWebhooks(ctx, templateRepo, generateRepo); err != nil {
-				return err
-			}
-		}
-
-		// Avatar
-		if opts.Avatar && len(templateRepo.Avatar) > 0 {
-			if err = generateAvatar(ctx, templateRepo, generateRepo); err != nil {
-				return err
-			}
-		}
-
-		// Issue Labels
-		if opts.IssueLabels {
-			if err = GenerateIssueLabels(ctx, templateRepo, generateRepo); err != nil {
-				return err
-			}
-		}
-
-		if opts.ProtectedBranch {
-			if err = GenerateProtectedBranch(ctx, templateRepo, generateRepo); err != nil {
-				return err
-			}
-		}
-
-		// update repository status to be ready
-		generateRepo.Status = repo_model.RepositoryReady
-		if err = repo_model.UpdateRepositoryCols(ctx, generateRepo, "status"); err != nil {
-			return fmt.Errorf("UpdateRepositoryCols: %w", err)
-		}
-
-		return nil
-	}); err != nil {
-		if generateRepo != nil {
+	// last - clean up the repository if something goes wrong
+	defer func() {
+		if err != nil {
 			if errDelete := DeleteRepositoryDirectly(ctx, doer, generateRepo.ID); errDelete != nil {
 				log.Error("Rollback deleteRepository: %v", errDelete)
 				// add system notice
@@ -143,7 +124,75 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 				}
 			}
 		}
+	}()
+
+	// 3 - Generate the git repository in storage
+	if err = repo_module.CheckInitRepository(ctx, generateRepo); err != nil {
 		return nil, err
+	}
+
+	if err = repo_module.CheckDaemonExportOK(ctx, generateRepo); err != nil {
+		return nil, fmt.Errorf("checkDaemonExportOK: %w", err)
+	}
+
+	if stdout, _, err := git.NewCommand("update-server-info").
+		RunStdString(ctx, &git.RunOpts{Dir: generateRepo.RepoPath()}); err != nil {
+		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
+		return nil, fmt.Errorf("error in GenerateRepository(git update-server-info): %w", err)
+	}
+
+	// Git Content
+	if opts.GitContent && !templateRepo.IsEmpty {
+		if err = GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
+			return nil, err
+		}
+	}
+
+	// Topics
+	if opts.Topics {
+		if err = repo_model.GenerateTopics(ctx, templateRepo, generateRepo); err != nil {
+			return nil, err
+		}
+	}
+
+	// Git Hooks
+	if opts.GitHooks {
+		if err = GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
+			return nil, err
+		}
+	}
+
+	// Webhooks
+	if opts.Webhooks {
+		if err = GenerateWebhooks(ctx, templateRepo, generateRepo); err != nil {
+			return nil, err
+		}
+	}
+
+	// Avatar
+	if opts.Avatar && len(templateRepo.Avatar) > 0 {
+		if err = generateAvatar(ctx, templateRepo, generateRepo); err != nil {
+			return nil, err
+		}
+	}
+
+	// Issue Labels
+	if opts.IssueLabels {
+		if err = GenerateIssueLabels(ctx, templateRepo, generateRepo); err != nil {
+			return nil, err
+		}
+	}
+
+	if opts.ProtectedBranch {
+		if err = GenerateProtectedBranch(ctx, templateRepo, generateRepo); err != nil {
+			return nil, err
+		}
+	}
+
+	// 4 - update repository status to be ready
+	generateRepo.Status = repo_model.RepositoryReady
+	if err = repo_model.UpdateRepositoryCols(ctx, generateRepo, "status"); err != nil {
+		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 	}
 
 	notify_service.CreateRepository(ctx, doer, owner, generateRepo)
