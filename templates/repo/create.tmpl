@@ -7,12 +7,6 @@
 		<div class="ui attached segment">
 			{{template "base/alert" .}}
 			{{template "repo/create_helper" .}}
-
-			{{if not .CanCreateRepo}}
-			<div class="ui negative message">
-				<p>{{ctx.Locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimit}}</p>
-			</div>
-			{{end}}
 			<form class="ui form left-right-form new-repo-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="inline required field {{if .Err_Owner}}error{{end}}">
@@ -212,7 +206,7 @@
 				<br>
 				<div class="inline field">
 					<label></label>
-					<button class="ui primary button{{if not .CanCreateRepo}} disabled{{end}}">
+					<button class="ui primary button">
 						{{ctx.Locale.Tr "repo.create_repo"}}
 					</button>
 				</div>
