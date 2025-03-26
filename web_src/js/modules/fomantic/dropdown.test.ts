@@ -15,9 +15,9 @@ test('hideScopedEmptyDividers-simple', () => {
   expect(container.innerHTML).toEqual(`
 <div class="divider hidden transition"></div>
 <div class="item">a</div>
+<div class="divider hidden transition"></div>
+<div class="divider hidden transition"></div>
 <div class="divider"></div>
-<div class="divider hidden transition"></div>
-<div class="divider hidden transition"></div>
 <div class="item">b</div>
 <div class="divider hidden transition"></div>
 `);
@@ -35,10 +35,10 @@ test('hideScopedEmptyDividers-items-all-filtered', () => {
   hideScopedEmptyDividers(container);
   expect(container.innerHTML).toEqual(`
 <div class="any"></div>
-<div class="divider"></div>
+<div class="divider hidden transition"></div>
 <div class="item filtered">a</div>
 <div class="item filtered">b</div>
-<div class="divider hidden transition"></div>
+<div class="divider"></div>
 <div class="any"></div>
 `);
 });

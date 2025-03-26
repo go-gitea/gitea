@@ -341,7 +341,7 @@ export function hideScopedEmptyDividers(container: Element) {
   // no need to update "visibleItems" array since this is the last loop
   for (let i = 0; i < visibleItems.length - 1; i++) {
     if (!visibleItems[i].matches('.divider')) continue;
-    if (visibleItems[i + 1].matches('.divider')) hideDivider(visibleItems[i + 1]);
+    if (visibleItems[i + 1].matches('.divider')) hideDivider(visibleItems[i]);
   }
 }
 
