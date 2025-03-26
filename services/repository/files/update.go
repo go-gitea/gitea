@@ -111,6 +111,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return nil, err
 	} else if !exist && !repo.IsEmpty {
 		return nil, git_model.ErrBranchNotExist{
+			RepoID:     repo.ID,
 			BranchName: opts.OldBranch,
 		}
 	}
