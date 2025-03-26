@@ -4,6 +4,8 @@
 package badge
 
 import (
+	"unicode"
+
 	actions_model "code.gitea.io/gitea/models/actions"
 )
 
@@ -90,7 +92,12 @@ func calculateTextWidth(text string) int {
 	for _, char := range text {
 		charWidth, ok := DejaVuFontWidthData[char]
 		if !ok {
-			charWidth = 0
+			// use the width of 'm' in case of missing font width data for a printable character
+			if unicode.IsPrint(char) {
+				charWidth = DejaVuFontWidthData['m']
+			} else {
+				charWidth = 0
+			}
 		}
 		width += int(charWidth)
 	}
