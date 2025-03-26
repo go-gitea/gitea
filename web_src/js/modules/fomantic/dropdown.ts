@@ -9,6 +9,7 @@ const fomanticDropdownFn = $.fn.dropdown;
 // use our own `$().dropdown` function to patch Fomantic's dropdown module
 export function initAriaDropdownPatch() {
   if ($.fn.dropdown === ariaDropdownFn) throw new Error('initAriaDropdownPatch could only be called once');
+  $.fn.dropdown.settings.onAfterFiltered = onAfterFiltered;
   $.fn.dropdown = ariaDropdownFn;
   $.fn.fomanticExt.onResponseKeepSelectedItem = onResponseKeepSelectedItem;
   (ariaDropdownFn as FomanticInitFunction).settings = fomanticDropdownFn.settings;
@@ -67,8 +68,9 @@ function updateSelectionLabel(label: HTMLElement) {
   }
 }
 
-function processMenuItems($dropdown: any, dropdownCall: any) {
-  const hideEmptyDividers = dropdownCall('setting', 'hideDividers') === 'empty';
+function onAfterFiltered(this: any) {
+  const $dropdown = $(this);
+  const hideEmptyDividers = $dropdown.dropdown('setting', 'hideDividers') === 'empty';
   const itemsMenu = $dropdown[0].querySelector('.scrolling.menu') || $dropdown[0].querySelector('.menu');
   if (hideEmptyDividers) hideScopedEmptyDividers(itemsMenu);
 }
@@ -76,18 +78,6 @@ function processMenuItems($dropdown: any, dropdownCall: any) {
 // delegate the dropdown's template functions and callback functions to add aria attributes.
 function delegateDropdownModule($dropdown: any) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
-
-  const oldFilterItems = dropdownCall('internal', 'filterItems');
-  dropdownCall('internal', 'filterItems', function (this: any, ...args: any[]) {
-    oldFilterItems.call(this, ...args);
-    processMenuItems($dropdown, dropdownCall);
-  });
-
-  const oldShow = dropdownCall('internal', 'show');
-  dropdownCall('internal', 'show', function (this: any, ...args: any[]) {
-    oldShow.call(this, ...args);
-    processMenuItems($dropdown, dropdownCall);
-  });
 
   // the "template" functions are used for dynamic creation (eg: AJAX)
   const dropdownTemplates = {...dropdownCall('setting', 'templates'), t: performance.now()};
@@ -301,9 +291,11 @@ export function hideScopedEmptyDividers(container: Element) {
   const visibleItems: Element[] = [];
   const curScopeVisibleItems: Element[] = [];
   let curScope: string = '', lastVisibleScope: string = '';
-  const isScopedDivider = (item: Element) => item.matches('.divider') && item.hasAttribute('data-scope');
+  const isDivider = (item: Element) => item.classList.contains('divider');
+  const isScopedDivider = (item: Element) => isDivider(item) && item.hasAttribute('data-scope');
   const hideDivider = (item: Element) => item.classList.add('hidden', 'transition'); // dropdown has its own classes to hide items
-
+  const showDivider = (item: Element) => item.classList.remove('hidden', 'transition');
+  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered') || item.classList.contains('tw-hidden');
   const handleScopeSwitch = (itemScope: string) => {
     if (curScopeVisibleItems.length === 1 && isScopedDivider(curScopeVisibleItems[0])) {
       hideDivider(curScopeVisibleItems[0]);
@@ -319,13 +311,16 @@ export function hideScopedEmptyDividers(container: Element) {
     curScopeVisibleItems.length = 0;
   };
 
+  // reset hidden dividers
+  queryElems(container, '.divider', showDivider);
+
   // hide the scope dividers if the scope items are empty
   for (const item of container.children) {
     const itemScope = item.getAttribute('data-scope') || '';
     if (itemScope !== curScope) {
       handleScopeSwitch(itemScope);
     }
-    if (!item.classList.contains('filtered') && !item.classList.contains('tw-hidden')) {
+    if (!isHidden(item)) {
       curScopeVisibleItems.push(item as HTMLElement);
     }
   }
@@ -333,20 +328,20 @@ export function hideScopedEmptyDividers(container: Element) {
 
   // hide all leading and trailing dividers
   while (visibleItems.length) {
-    if (!visibleItems[0].matches('.divider')) break;
+    if (!isDivider(visibleItems[0])) break;
     hideDivider(visibleItems[0]);
     visibleItems.shift();
   }
   while (visibleItems.length) {
-    if (!visibleItems[visibleItems.length - 1].matches('.divider')) break;
+    if (!isDivider(visibleItems[visibleItems.length - 1])) break;
     hideDivider(visibleItems[visibleItems.length - 1]);
     visibleItems.pop();
   }
   // hide all duplicate dividers, hide current divider if next sibling is still divider
   // no need to update "visibleItems" array since this is the last loop
-  for (const item of visibleItems) {
-    if (!item.matches('.divider')) continue;
-    if (item.nextElementSibling?.matches('.divider')) hideDivider(item);
+  for (let i = 0; i < visibleItems.length - 1; i++) {
+    if (!visibleItems[i].matches('.divider')) continue;
+    if (visibleItems[i + 1].matches('.divider')) hideDivider(visibleItems[i + 1]);
   }
 }
 

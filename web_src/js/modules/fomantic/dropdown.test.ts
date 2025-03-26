@@ -15,15 +15,35 @@ test('hideScopedEmptyDividers-simple', () => {
   expect(container.innerHTML).toEqual(`
 <div class="divider hidden transition"></div>
 <div class="item">a</div>
-<div class="divider hidden transition"></div>
-<div class="divider hidden transition"></div>
 <div class="divider"></div>
+<div class="divider hidden transition"></div>
+<div class="divider hidden transition"></div>
 <div class="item">b</div>
 <div class="divider hidden transition"></div>
 `);
 });
 
-test('hideScopedEmptyDividers-hidden1', () => {
+test('hideScopedEmptyDividers-items-all-filtered', () => {
+  const container = createElementFromHTML(`<div>
+<div class="any"></div>
+<div class="divider"></div>
+<div class="item filtered">a</div>
+<div class="item filtered">b</div>
+<div class="divider"></div>
+<div class="any"></div>
+</div>`);
+  hideScopedEmptyDividers(container);
+  expect(container.innerHTML).toEqual(`
+<div class="any"></div>
+<div class="divider"></div>
+<div class="item filtered">a</div>
+<div class="item filtered">b</div>
+<div class="divider hidden transition"></div>
+<div class="any"></div>
+`);
+});
+
+test('hideScopedEmptyDividers-hide-last', () => {
   const container = createElementFromHTML(`<div>
 <div class="item">a</div>
 <div class="divider" data-scope="b"></div>
@@ -37,7 +57,7 @@ test('hideScopedEmptyDividers-hidden1', () => {
 `);
 });
 
-test('hideScopedEmptyDividers-hidden2', () => {
+test('hideScopedEmptyDividers-scoped-items', () => {
   const container = createElementFromHTML(`<div>
 <div class="item" data-scope="">a</div>
 <div class="divider" data-scope="b"></div>
