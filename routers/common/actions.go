@@ -5,77 +5,54 @@ package common
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
-func DownloadActionsRunJobLogsWithIndex(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobIndex int64) {
-	if runID == 0 {
-		ctx.HTTPError(http.StatusBadRequest, "invalid run id")
-		return
-	}
-
+func DownloadActionsRunJobLogsWithIndex(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobIndex int64) error {
 	runJobs, err := actions_model.GetRunJobsByRunID(ctx, runID)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		return
+		return fmt.Errorf("GetRunJobsByRunID: %w", err)
 	}
-	if len(runJobs) == 0 {
-		ctx.HTTPError(http.StatusNotFound)
-		return
+	if err = runJobs.LoadRepos(ctx); err != nil {
+		return fmt.Errorf("LoadRepos: %w", err)
 	}
-	if err := runJobs.LoadRepos(ctx); err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		return
+	if 0 < jobIndex || jobIndex >= int64(len(runJobs)) {
+		return util.NewNotExistErrorf("job index is out of range: %d", jobIndex)
 	}
-
-	var curJob *actions_model.ActionRunJob
-	if jobIndex >= 0 && jobIndex < int64(len(runJobs)) {
-		curJob = runJobs[jobIndex]
-	}
-	if curJob == nil {
-		ctx.HTTPError(http.StatusNotFound)
-		return
-	}
-
-	DownloadActionsRunJobLogs(ctx, ctxRepo, curJob)
+	return DownloadActionsRunJobLogs(ctx, ctxRepo, runJobs[jobIndex])
 }
 
-func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository, curJob *actions_model.ActionRunJob) {
+func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository, curJob *actions_model.ActionRunJob) error {
 	if curJob.Repo.ID != ctxRepo.ID {
-		ctx.HTTPError(http.StatusNotFound)
-		return
+		return util.NewNotExistErrorf("job not found")
 	}
 
 	if curJob.TaskID == 0 {
-		ctx.HTTPError(http.StatusNotFound, "job is not started")
-		return
+		return util.NewNotExistErrorf("job not started")
 	}
 
 	if err := curJob.LoadRun(ctx); err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		return
+		return fmt.Errorf("LoadRun: %w", err)
 	}
 
 	task, err := actions_model.GetTaskByID(ctx, curJob.TaskID)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		return
+		return fmt.Errorf("GetTaskByID: %w", err)
 	}
+
 	if task.LogExpired {
-		ctx.HTTPError(http.StatusNotFound, "logs have been cleaned up")
-		return
+		return util.NewNotExistErrorf("logs have been cleaned up")
 	}
 
 	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		return
+		return fmt.Errorf("OpenLogs: %w", err)
 	}
 	defer reader.Close()
 
@@ -90,4 +67,5 @@ func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository
 		ContentTypeCharset: "utf-8",
 		Disposition:        "attachment",
 	})
+	return nil
 }

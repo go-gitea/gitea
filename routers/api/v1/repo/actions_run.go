@@ -4,7 +4,10 @@
 package repo
 
 import (
+	"errors"
+
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 )
@@ -40,19 +43,22 @@ func DownloadActionsRunJobLogs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	jobID := ctx.PathParamInt64("job_id")
-	if jobID == 0 {
-		ctx.APIError(400, "invalid job id")
-		return
-	}
 	curJob, err := actions_model.GetRunJobByID(ctx, jobID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if err := curJob.LoadRepo(ctx); err != nil {
+	if err = curJob.LoadRepo(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, curJob)
+	err = common.DownloadActionsRunJobLogs(ctx.Base, ctx.Repo.Repository, curJob)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.APIErrorNotFound(err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+	}
 }
