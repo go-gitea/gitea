@@ -26,6 +26,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/indexer"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -118,7 +119,7 @@ func Dashboard(ctx *context.Context) {
 		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
 	}
 
-	feeds, count, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
+	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.Doer,
@@ -136,11 +137,10 @@ func Dashboard(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Feeds"] = feeds
-
-	pager := context.NewPagination(int(count), setting.UI.FeedPagingNum, page, 5)
+	pager := context.NewPagination(count, setting.UI.FeedPagingNum, page, 5).WithCurRows(len(feeds))
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
+	ctx.Data["Feeds"] = feeds
 
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
@@ -447,7 +447,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["FilterAssigneeUsername"] = assigneeUsername
 	opts.AssigneeID = user.GetFilterUserIDByName(ctx, assigneeUsername)
 
-	isFuzzy := ctx.FormBool("fuzzy")
+	searchMode := ctx.FormString("search_mode")
 
 	// Search all repositories which
 	//
@@ -500,9 +500,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	case issues_model.FilterModeAll:
 	case issues_model.FilterModeYourRepositories:
 	case issues_model.FilterModeAssign:
-		opts.AssigneeID = optional.Some(ctx.Doer.ID)
+		opts.AssigneeID = strconv.FormatInt(ctx.Doer.ID, 10)
 	case issues_model.FilterModeCreate:
-		opts.PosterID = optional.Some(ctx.Doer.ID)
+		opts.PosterID = strconv.FormatInt(ctx.Doer.ID, 10)
 	case issues_model.FilterModeMention:
 		opts.MentionedID = ctx.Doer.ID
 	case issues_model.FilterModeReviewRequested:
@@ -549,7 +549,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var issues issues_model.IssueList
 	{
 		issueIDs, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts).Copy(
-			func(o *issue_indexer.SearchOptions) { o.IsFuzzyKeyword = isFuzzy },
+			func(o *issue_indexer.SearchOptions) {
+				o.SearchMode = indexer.SearchModeType(searchMode)
+			},
 		))
 		if err != nil {
 			ctx.ServerError("issueIDsFromSearch", err)
@@ -578,7 +580,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	issueStats, err := getUserIssueStats(ctx, ctxUser, filterMode, issue_indexer.ToSearchOptions(keyword, opts).Copy(
 		func(o *issue_indexer.SearchOptions) {
-			o.IsFuzzyKeyword = isFuzzy
+			o.SearchMode = indexer.SearchModeType(searchMode)
 		},
 	))
 	if err != nil {
@@ -633,7 +635,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
-	ctx.Data["IsFuzzy"] = isFuzzy
+	ctx.Data["SearchModes"] = issue_indexer.SupportedSearchModes()
+	ctx.Data["SelectedSearchMode"] = ctx.FormTrim("search_mode")
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -788,9 +791,9 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 		case issues_model.FilterModeYourRepositories:
 			openClosedOpts.AllPublic = false
 		case issues_model.FilterModeAssign:
-			openClosedOpts.AssigneeID = optional.Some(doerID)
+			openClosedOpts.AssigneeID = strconv.FormatInt(doerID, 10)
 		case issues_model.FilterModeCreate:
-			openClosedOpts.PosterID = optional.Some(doerID)
+			openClosedOpts.PosterID = strconv.FormatInt(doerID, 10)
 		case issues_model.FilterModeMention:
 			openClosedOpts.MentionID = optional.Some(doerID)
 		case issues_model.FilterModeReviewRequested:
@@ -812,8 +815,8 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 
 	// Below stats are for the left sidebar
 	opts = opts.Copy(func(o *issue_indexer.SearchOptions) {
-		o.AssigneeID = nil
-		o.PosterID = nil
+		o.AssigneeID = ""
+		o.PosterID = ""
 		o.MentionID = nil
 		o.ReviewRequestedID = nil
 		o.ReviewedID = nil
@@ -823,11 +826,11 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 	if err != nil {
 		return nil, err
 	}
-	ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AssigneeID = optional.Some(doerID) }))
+	ret.AssignCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AssigneeID = strconv.FormatInt(doerID, 10) }))
 	if err != nil {
 		return nil, err
 	}
-	ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.PosterID = optional.Some(doerID) }))
+	ret.CreateCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.PosterID = strconv.FormatInt(doerID, 10) }))
 	if err != nil {
 		return nil, err
 	}

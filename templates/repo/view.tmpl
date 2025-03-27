@@ -1,0 +1,29 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
+	{{template "repo/header" .}}
+	<div class="ui container {{if or .TreeNames .IsBlame}}fluid padded{{end}}">
+		{{template "base/alert" .}}
+
+		{{if .Repository.IsArchived}}
+			<div class="ui warning message tw-text-center">
+				{{if .Repository.ArchivedUnix.IsZero}}
+					{{ctx.Locale.Tr "repo.archive.title"}}
+				{{else}}
+					{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
+				{{end}}
+			</div>
+		{{end}}
+
+		{{template "repo/code/recently_pushed_new_branches" .}}
+
+		<div class="repo-view-container">
+			<div class="repo-view-file-tree-container not-mobile {{if not .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" {{if .IsSigned}}data-user-is-signed-in{{end}}>
+				{{template "repo/view_file_tree" .}}
+			</div>
+			<div class="repo-view-content">
+				{{template "repo/view_content" .}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

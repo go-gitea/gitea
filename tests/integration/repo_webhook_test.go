@@ -639,7 +639,7 @@ func Test_WebhookWorkflowJob(t *testing.T) {
 		assert.NoError(t, err)
 
 		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, "user2", "repo1", "mock-runner", []string{"ubuntu-latest"})
+		runner.registerAsRepoRunner(t, "user2", "repo1", "mock-runner", []string{"ubuntu-latest"}, false)
 
 		// 2. trigger the webhooks
 

@@ -21,8 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	actions_service "code.gitea.io/gitea/services/actions"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -132,7 +134,7 @@ jobs:
 
 		apiRepo := createActionsTestRepo(t, token, "actions-jobs-with-needs", false)
 		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"})
+		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		for _, tc := range testCases {
 			t.Run(fmt.Sprintf("test %s", tc.treePath), func(t *testing.T) {
@@ -164,9 +166,6 @@ jobs:
 				}
 			})
 		}
-
-		httpContext := NewAPITestContext(t, user2.Name, apiRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-		doAPIDeleteRepository(httpContext)(t)
 	})
 }
 
@@ -318,7 +317,7 @@ jobs:
 
 		apiRepo := createActionsTestRepo(t, token, "actions-jobs-outputs-with-matrix", false)
 		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"})
+		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		for _, tc := range testCases {
 			t.Run(fmt.Sprintf("test %s", tc.treePath), func(t *testing.T) {
@@ -346,9 +345,6 @@ jobs:
 				}
 			})
 		}
-
-		httpContext := NewAPITestContext(t, user2.Name, apiRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-		doAPIDeleteRepository(httpContext)(t)
 	})
 }
 
@@ -363,7 +359,7 @@ func TestActionsGiteaContext(t *testing.T) {
 		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 
 		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"})
+		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		// init the workflow
 		wfTreePath := ".gitea/workflows/pull.yml"
@@ -432,8 +428,155 @@ jobs:
 		assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["gitea_default_actions_url"].GetStringValue())
 		token := gtCtx["token"].GetStringValue()
 		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
+	})
+}
 
-		doAPIDeleteRepository(user2APICtx)(t)
+// Ephemeral
+func TestActionsGiteaContextEphemeral(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user2Session := loginUser(t, user2.Name)
+		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-gitea-context", false)
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
+		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, true)
+
+		// verify CleanupEphemeralRunners does not remove this runner
+		err := actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
+
+		// init the workflow
+		wfTreePath := ".gitea/workflows/pull.yml"
+		wfFileContent := `name: Pull Request
+on: pull_request
+jobs:
+  wf1-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'test the pull'
+  wf2-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'test the pull'
+`
+		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, fmt.Sprintf("create %s", wfTreePath), wfFileContent)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
+		// user2 creates a pull request
+		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				NewBranchName: "user2/patch-1",
+				Message:       "create user2-patch.txt",
+				Author: api.Identity{
+					Name:  user2.Name,
+					Email: user2.Email,
+				},
+				Committer: api.Identity{
+					Name:  user2.Name,
+					Email: user2.Email,
+				},
+				Dates: api.CommitDateOptions{
+					Author:    time.Now(),
+					Committer: time.Now(),
+				},
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user2-fix")),
+		})(t)
+		apiPull, err := doAPICreatePullRequest(user2APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, "user2/patch-1")(t)
+		assert.NoError(t, err)
+		task := runner.fetchTask(t)
+		gtCtx := task.Context.GetFields()
+		actionTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.Id})
+		actionRunJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: actionTask.JobID})
+		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: actionRunJob.RunID})
+		assert.NoError(t, actionRun.LoadAttributes(t.Context()))
+
+		assert.Equal(t, user2.Name, gtCtx["actor"].GetStringValue())
+		assert.Equal(t, setting.AppURL+"api/v1", gtCtx["api_url"].GetStringValue())
+		assert.Equal(t, apiPull.Base.Ref, gtCtx["base_ref"].GetStringValue())
+		runEvent := map[string]any{}
+		assert.NoError(t, json.Unmarshal([]byte(actionRun.EventPayload), &runEvent))
+		assert.True(t, reflect.DeepEqual(gtCtx["event"].GetStructValue().AsMap(), runEvent))
+		assert.Equal(t, actionRun.TriggerEvent, gtCtx["event_name"].GetStringValue())
+		assert.Equal(t, apiPull.Head.Ref, gtCtx["head_ref"].GetStringValue())
+		assert.Equal(t, actionRunJob.JobID, gtCtx["job"].GetStringValue())
+		assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
+		assert.Equal(t, (git.RefName(actionRun.Ref)).ShortName(), gtCtx["ref_name"].GetStringValue())
+		assert.False(t, gtCtx["ref_protected"].GetBoolValue())
+		assert.Equal(t, string((git.RefName(actionRun.Ref)).RefType()), gtCtx["ref_type"].GetStringValue())
+		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
+		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
+		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
+		assert.Equal(t, fmt.Sprint(actionRunJob.RunID), gtCtx["run_id"].GetStringValue())
+		assert.Equal(t, fmt.Sprint(actionRun.Index), gtCtx["run_number"].GetStringValue())
+		assert.Equal(t, fmt.Sprint(actionRunJob.Attempt), gtCtx["run_attempt"].GetStringValue())
+		assert.Equal(t, "Actions", gtCtx["secret_source"].GetStringValue())
+		assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
+		assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())
+		assert.Equal(t, actionRun.WorkflowID, gtCtx["workflow"].GetStringValue())
+		assert.Equal(t, setting.Actions.DefaultActionsURL.URL(), gtCtx["gitea_default_actions_url"].GetStringValue())
+		token := gtCtx["token"].GetStringValue()
+		assert.Equal(t, actionTask.TokenLastEight, token[len(token)-8:])
+
+		// verify CleanupEphemeralRunners does not remove this runner
+		err = actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
+
+		resp, err := runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+			TasksVersion: 0,
+		}))
+		assert.NoError(t, err)
+		assert.Nil(t, resp.Msg.Task)
+
+		// verify CleanupEphemeralRunners does not remove this runner
+		err = actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
+
+		_, err = runner.client.runnerServiceClient.UpdateTask(t.Context(), connect.NewRequest(&runnerv1.UpdateTaskRequest{
+			State: &runnerv1.TaskState{
+				Id:     actionTask.ID,
+				Result: runnerv1.Result_RESULT_SUCCESS,
+			},
+		}))
+		assert.NoError(t, err)
+
+		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+			TasksVersion: 0,
+		}))
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+
+		resp, err = runner.client.runnerServiceClient.FetchTask(t.Context(), connect.NewRequest(&runnerv1.FetchTaskRequest{
+			TasksVersion: 0,
+		}))
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+
+		// create a runner that picks a job and get force cancelled
+		runnerToBeRemoved := newMockRunner()
+		runnerToBeRemoved.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner-to-be-removed", []string{"ubuntu-latest"}, true)
+
+		taskToStopAPIObj := runnerToBeRemoved.fetchTask(t)
+
+		taskToStop := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: taskToStopAPIObj.Id})
+
+		// verify CleanupEphemeralRunners does not remove the custom crafted runner
+		err = actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
+
+		runnerToRemove := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: taskToStop.RunnerID})
+
+		err = actions_model.StopTask(t.Context(), taskToStop.ID, actions_model.StatusFailure)
+		assert.NoError(t, err)
+
+		// verify CleanupEphemeralRunners does remove the custom crafted runner
+		err = actions_service.CleanupEphemeralRunners(t.Context())
+		assert.NoError(t, err)
+
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunner{ID: runnerToRemove.ID})
 	})
 }
 
