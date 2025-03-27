@@ -4,15 +4,28 @@ import {diffTreeStore} from '../modules/stores.ts';
 import {computed, nextTick, ref, watch} from 'vue';
 import type {Item, DirItem, File, FileStatus} from '../utils/filetree.ts';
 
+// ------------------------------------------------------------
+// Component Props
+// ------------------------------------------------------------
 const props = defineProps<{
   item: Item,
   setViewed?:(val: boolean) => void,
 }>();
 
+// ------------------------------------------------------------
+// Reactive State & Refs
+// ------------------------------------------------------------
+const store = diffTreeStore();
 const count = ref(0);
 let pendingUpdate = 0;
 let pendingTimer: Promise<void> | undefined;
-
+// ------------------------------------------------------------
+// Batch Update Mechanism
+// ------------------------------------------------------------
+/**
+ * Handles batched updates to count value
+ * Prevents multiple updates within the same tick
+ */
 const setCount = (isViewed: boolean) => {
   pendingUpdate += (isViewed ? 1 : -1);
 
@@ -25,10 +38,24 @@ const setCount = (isViewed: boolean) => {
   }
 };
 
+// ------------------------------------------------------------
+// Computed Properties
+// ------------------------------------------------------------
+/**
+ * Determines viewed state based on item type:
+ * - Files: Directly use IsViewed property
+ * - Directories: Compare children count with viewed count
+ */
 const isViewed = computed(() => {
   return props.item.isFile ? props.item.file.IsViewed : (props.item as DirItem).children.length === count.value;
 });
-
+// ------------------------------------------------------------
+// Watchers & Side Effects
+// ------------------------------------------------------------
+/**
+ * Propagate viewed state changes to parent component
+ * Using post flush to ensure DOM updates are complete
+ */
 watch(
   () => isViewed.value,
   (newVal) => {
@@ -39,12 +66,14 @@ watch(
   {immediate: true, flush: 'post'},
 );
 
-const store = diffTreeStore();
-
+// ------------------------------------------------------------
+// Collapse Behavior Documentation
+// ------------------------------------------------------------
 /**
- * Behavior:
- * - Viewed folders collapse on initial load (based on `isViewed` state)
- * - Manual expand/collapse via clicks remains enabled
+ * Collapse behavior rules:
+ * - Viewed folders start collapsed initially
+ * - Manual expand/collapse takes precedence over automatic behavior
+ * - State persists after manual interaction
  */
 const collapsed = ref(isViewed.value);
 
@@ -92,11 +121,11 @@ function fileIcon(file: File) {
         class="text primary"
         :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"
       />
-      <span class="gt-ellipsis">{{ item.name }} {{ count }}</span>
+      <span class="gt-ellipsis">{{ item.name }}</span>
     </div>
 
     <div v-show="!collapsed" class="sub-items">
-      <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" :setViewed="setCount"/>
+      <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" :set-viewed="setCount"/>
     </div>
   </template>
 </template>
