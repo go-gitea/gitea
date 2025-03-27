@@ -47,7 +47,12 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
-	} else if !isDir(repoPath) {
+	}
+	exist, err := util.IsDir(repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 
