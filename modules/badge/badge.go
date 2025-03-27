@@ -90,11 +90,11 @@ func calculateTextWidth(text string) int {
 	width := 0
 
 	for _, char := range text {
-		charWidth, ok := DejaVuFontWidthData[char]
+		charWidth, ok := DejaVuGlyphWidthData[char]
 		if !ok {
-			// use the width of 'm' in case of missing font width data for a printable character
+			// use the width of 'm' in case of missing glyph width data for a printable character
 			if unicode.IsPrint(char) {
-				charWidth = DejaVuFontWidthData['m']
+				charWidth = DejaVuGlyphWidthData['m']
 			} else {
 				charWidth = 0
 			}
