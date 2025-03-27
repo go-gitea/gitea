@@ -89,7 +89,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	isDisplayingSource := ctx.FormString("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
 
-	// Don't call any other repository functions with git.Repository until the dataRc closed to
+	// Don't call any other repository functions depends on git.Repository until the dataRc closed to
 	// avoid create unnecessary temporary cat file.
 	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 	if err != nil {
