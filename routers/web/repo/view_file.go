@@ -48,15 +48,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		return
 	}
 
-	// Don't call any other repository functions until the dataRc closed to
-	// avoid create unnecessary temporary cat file.
 	blob := entry.Blob()
-	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
-	if err != nil {
-		ctx.ServerError("getFileReader", err)
-		return
-	}
-	defer dataRc.Close()
 
 	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefFullName.ShortName())
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
@@ -96,6 +88,15 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 
 	isDisplayingSource := ctx.FormString("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
+
+	// Don't call any other repository functions with git.Repository until the dataRc closed to
+	// avoid create unnecessary temporary cat file.
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
+	if err != nil {
+		ctx.ServerError("getFileReader", err)
+		return
+	}
+	defer dataRc.Close()
 
 	if fInfo.isLFSFile {
 		ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
