@@ -290,10 +290,10 @@ func SearchIssues(ctx *context.APIContext) {
 	if ctx.IsSigned {
 		ctxUserID := ctx.Doer.ID
 		if ctx.FormBool("created") {
-			searchOpt.PosterID = optional.Some(ctxUserID)
+			searchOpt.PosterID = strconv.FormatInt(ctxUserID, 10)
 		}
 		if ctx.FormBool("assigned") {
-			searchOpt.AssigneeID = optional.Some(ctxUserID)
+			searchOpt.AssigneeID = strconv.FormatInt(ctxUserID, 10)
 		}
 		if ctx.FormBool("mentioned") {
 			searchOpt.MentionID = optional.Some(ctxUserID)
@@ -538,10 +538,10 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	if createdByID > 0 {
-		searchOpt.PosterID = optional.Some(createdByID)
+		searchOpt.PosterID = strconv.FormatInt(createdByID, 10)
 	}
 	if assignedByID > 0 {
-		searchOpt.AssigneeID = optional.Some(assignedByID)
+		searchOpt.AssigneeID = strconv.FormatInt(assignedByID, 10)
 	}
 	if mentionedByID > 0 {
 		searchOpt.MentionID = optional.Some(mentionedByID)

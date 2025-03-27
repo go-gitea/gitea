@@ -208,10 +208,10 @@ func SearchIssues(ctx *context.Context) {
 	if ctx.IsSigned {
 		ctxUserID := ctx.Doer.ID
 		if ctx.FormBool("created") {
-			searchOpt.PosterID = optional.Some(ctxUserID)
+			searchOpt.PosterID = strconv.FormatInt(ctxUserID, 10)
 		}
 		if ctx.FormBool("assigned") {
-			searchOpt.AssigneeID = optional.Some(ctxUserID)
+			searchOpt.AssigneeID = strconv.FormatInt(ctxUserID, 10)
 		}
 		if ctx.FormBool("mentioned") {
 			searchOpt.MentionID = optional.Some(ctxUserID)
@@ -373,10 +373,10 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 	}
 
 	if createdByID > 0 {
-		searchOpt.PosterID = optional.Some(createdByID)
+		searchOpt.PosterID = strconv.FormatInt(createdByID, 10)
 	}
 	if assignedByID > 0 {
-		searchOpt.AssigneeID = optional.Some(assignedByID)
+		searchOpt.AssigneeID = strconv.FormatInt(assignedByID, 10)
 	}
 	if mentionedByID > 0 {
 		searchOpt.MentionID = optional.Some(mentionedByID)
@@ -490,7 +490,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		viewType = "all"
 	}
 
-	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
+	assigneeID := ctx.FormString("assignee")
 	posterUsername := ctx.FormString("poster")
 	posterUserID := shared_user.GetFilterUserIDByName(ctx, posterUsername)
 	var mentionedID, reviewRequestedID, reviewedID int64
@@ -498,11 +498,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	if ctx.IsSigned {
 		switch viewType {
 		case "created_by":
-			posterUserID = optional.Some(ctx.Doer.ID)
+			posterUserID = strconv.FormatInt(ctx.Doer.ID, 10)
 		case "mentioned":
 			mentionedID = ctx.Doer.ID
 		case "assigned":
-			assigneeID = ctx.Doer.ID
+			assigneeID = fmt.Sprint(ctx.Doer.ID)
 		case "review_requested":
 			reviewRequestedID = ctx.Doer.ID
 		case "reviewed_by":
@@ -532,7 +532,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		LabelIDs:          labelIDs,
 		MilestoneIDs:      mileIDs,
 		ProjectID:         projectID,
-		AssigneeID:        optional.Some(assigneeID),
+		AssigneeID:        assigneeID,
 		MentionedID:       mentionedID,
 		PosterID:          posterUserID,
 		ReviewRequestedID: reviewRequestedID,
@@ -613,7 +613,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 				PageSize: setting.UI.IssuePagingNum,
 			},
 			RepoIDs:           []int64{repo.ID},
-			AssigneeID:        optional.Some(assigneeID),
+			AssigneeID:        assigneeID,
 			PosterID:          posterUserID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,

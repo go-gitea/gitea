@@ -5,11 +5,13 @@ package bleve
 
 import (
 	"context"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
@@ -246,12 +248,20 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectColumnID.Value(), "project_board_id"))
 	}
 
-	if options.PosterID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.PosterID.Value(), "poster_id"))
+	if options.PosterID != "" {
+		// "(none)" becomes 0, it means no poster
+		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
+		queries = append(queries, inner_bleve.NumericEqualityQuery(posterIDInt64, "poster_id"))
 	}
 
-	if options.AssigneeID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.AssigneeID.Value(), "assignee_id"))
+	if options.AssigneeID != "" {
+		if options.AssigneeID == "(any)" {
+			queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(optional.Some[int64](1), optional.None[int64](), "assignee_id"))
+		} else {
+			// "(none)" becomes 0, it means no assignee
+			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+			queries = append(queries, inner_bleve.NumericEqualityQuery(assigneeIDInt64, "assignee_id"))
+		}
 	}
 
 	if options.MentionID.Has() {
