@@ -43,13 +43,10 @@ func init() {
 // GetSchedulesMapByIDs returns the schedules by given id slice.
 func GetSchedulesMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionSchedule, error) {
 	schedules := make(map[int64]*ActionSchedule, len(ids))
+	if len(ids) == 0 {
+		return schedules, nil
+	}
 	return schedules, db.GetEngine(ctx).In("id", ids).Find(&schedules)
-}
-
-// GetReposMapByIDs returns the repos by given id slice.
-func GetReposMapByIDs(ctx context.Context, ids []int64) (map[int64]*repo_model.Repository, error) {
-	repos := make(map[int64]*repo_model.Repository, len(ids))
-	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 
 // CreateScheduleTask creates new schedule task.
@@ -120,21 +117,22 @@ func DeleteScheduleTaskByRepo(ctx context.Context, id int64) error {
 	return committer.Commit()
 }
 
-func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) error {
+func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) ([]*ActionRunJob, error) {
 	// If actions disabled when there is schedule task, this will remove the outdated schedule tasks
 	// There is no other place we can do this because the app.ini will be changed manually
 	if err := DeleteScheduleTaskByRepo(ctx, repo.ID); err != nil {
-		return fmt.Errorf("DeleteCronTaskByRepo: %v", err)
+		return nil, fmt.Errorf("DeleteCronTaskByRepo: %v", err)
 	}
 	// cancel running cron jobs of this repository and delete old schedules
-	if err := CancelPreviousJobs(
+	jobs, err := CancelPreviousJobs(
 		ctx,
 		repo.ID,
 		repo.DefaultBranch,
 		"",
 		webhook_module.HookEventSchedule,
-	); err != nil {
-		return fmt.Errorf("CancelPreviousJobs: %v", err)
+	)
+	if err != nil {
+		return jobs, fmt.Errorf("CancelPreviousJobs: %v", err)
 	}
-	return nil
+	return jobs, nil
 }

@@ -63,18 +63,18 @@
 
 		<div class="wiki-content-parts">
 			{{if .sidebarTocContent}}
-			<div class="markup wiki-content-sidebar wiki-content-toc">
+			<div class="render-content markup wiki-content-sidebar wiki-content-toc">
 				{{.sidebarTocContent | SafeHTML}}
 			</div>
 			{{end}}
 
-			<div class="markup wiki-content-main {{if or .sidebarTocContent .sidebarPresent}}with-sidebar{{end}}">
+			<div class="render-content markup wiki-content-main {{if or .sidebarTocContent .sidebarPresent}}with-sidebar{{end}}">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				{{.content | SafeHTML}}
 			</div>
 
 			{{if .sidebarPresent}}
-			<div class="markup wiki-content-sidebar">
+			<div class="render-content markup wiki-content-sidebar">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
@@ -86,7 +86,7 @@
 			<div class="tw-clear-both"></div>
 
 			{{if .footerPresent}}
-			<div class="markup wiki-content-footer">
+			<div class="render-content markup wiki-content-footer">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 					<a class="tw-float-right muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}

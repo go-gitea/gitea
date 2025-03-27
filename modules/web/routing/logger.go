@@ -35,6 +35,19 @@ var (
 )
 
 func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
+	const callerName = "HTTPRequest"
+	logTrace := func(fmt string, args ...any) {
+		logger.Log(2, &log.Event{Level: log.TRACE, Caller: callerName}, fmt, args...)
+	}
+	logInfo := func(fmt string, args ...any) {
+		logger.Log(2, &log.Event{Level: log.INFO, Caller: callerName}, fmt, args...)
+	}
+	logWarn := func(fmt string, args ...any) {
+		logger.Log(2, &log.Event{Level: log.WARN, Caller: callerName}, fmt, args...)
+	}
+	logError := func(fmt string, args ...any) {
+		logger.Log(2, &log.Event{Level: log.ERROR, Caller: callerName}, fmt, args...)
+	}
 	return func(trigger Event, record *requestRecord) {
 		if trigger == StartEvent {
 			if !logger.LevelEnabled(log.TRACE) {
@@ -44,7 +57,7 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 			}
 			// when a request starts, we have no information about the handler function information, we only have the request path
 			req := record.request
-			logger.Trace("router: %s %v %s for %s", startMessage, log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
+			logTrace("router: %s %v %s for %s", startMessage, log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
 			return
 		}
 
@@ -60,9 +73,9 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 
 		if trigger == StillExecutingEvent {
 			message := slowMessage
-			logf := logger.Warn
+			logf := logWarn
 			if isLongPolling {
-				logf = logger.Info
+				logf = logInfo
 				message = pollingMessage
 			}
 			logf("router: %s %v %s for %s, elapsed %v @ %s",
@@ -75,7 +88,7 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 		}
 
 		if panicErr != nil {
-			logger.Warn("router: %s %v %s for %s, panic in %v @ %s, err=%v",
+			logWarn("router: %s %v %s for %s, panic in %v @ %s, err=%v",
 				failedMessage,
 				log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 				log.ColoredTime(time.Since(record.startTime)),
@@ -89,13 +102,13 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 		if v, ok := record.responseWriter.(types.ResponseStatusProvider); ok {
 			status = v.WrittenStatus()
 		}
-		logf := logger.Info
+		logf := logInfo
 		if strings.HasPrefix(req.RequestURI, "/assets/") {
-			logf = logger.Trace
+			logf = logTrace
 		}
 		message := completedMessage
 		if isUnknownHandler {
-			logf = logger.Error
+			logf = logError
 			message = unknownHandlerMessage
 		}
 

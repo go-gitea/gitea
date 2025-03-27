@@ -5,7 +5,6 @@ package setting
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -111,7 +110,7 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	}
 	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
-	SSH.RootPath = path.Join(homeDir, ".ssh")
+	SSH.RootPath = filepath.Join(homeDir, ".ssh")
 	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
 	if len(serverCiphers) > 0 {
 		SSH.ServerCiphers = serverCiphers

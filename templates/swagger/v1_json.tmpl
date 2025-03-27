@@ -4187,6 +4187,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/jobs/{job_id}/logs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Downloads the job logs for a workflow run",
+        "operationId": "downloadActionsRunJobLogs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the job",
+            "name": "job_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "output blob content"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runners/registration-token": {
       "get": {
         "produces": [
@@ -12048,6 +12094,12 @@
             "required": true
           },
           {
+            "type": "string",
+            "description": "Filter by target base branch of the pull request",
+            "name": "base_branch",
+            "in": "query"
+          },
+          {
             "enum": [
               "open",
               "closed",
@@ -19319,6 +19371,11 @@
           "type": "string",
           "x-go-name": "Data"
         },
+        "description": {
+          "description": "the description of the variable",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "name": {
           "description": "the name of the variable",
           "type": "string",
@@ -20982,6 +21039,11 @@
           "description": "Data of the secret to update",
           "type": "string",
           "x-go-name": "Data"
+        },
+        "description": {
+          "description": "Description of the secret to update",
+          "type": "string",
+          "x-go-name": "Description"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -21492,6 +21554,11 @@
         "value"
       ],
       "properties": {
+        "description": {
+          "description": "Description of the variable to create",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "value": {
           "description": "Value of the variable to create",
           "type": "string",
@@ -25453,6 +25520,11 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "description": {
+          "description": "the secret's description",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "name": {
           "description": "the secret's name",
           "type": "string",
@@ -26028,6 +26100,11 @@
         "value"
       ],
       "properties": {
+        "description": {
+          "description": "Description of the variable to update",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "name": {
           "description": "New name for the variable. If the field is empty, the variable name won't be updated.",
           "type": "string",

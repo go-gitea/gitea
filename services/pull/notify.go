@@ -27,7 +27,7 @@ func (r *pullNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.Us
 	var reviewNotifiers []*ReviewRequestNotifier
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(issue.Title) {
 		var err error
-		reviewNotifiers, err = RequestCodeOwnersReview(ctx, issue, issue.PullRequest)
+		reviewNotifiers, err = RequestCodeOwnersReview(ctx, issue.PullRequest)
 		if err != nil {
 			log.Error("RequestCodeOwnersReview: %v", err)
 		}

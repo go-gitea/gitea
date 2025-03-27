@@ -580,14 +580,6 @@ img.ui.avatar,
   box-shadow: 0 6px 18px var(--color-shadow) !important;
 }
 
-.ui .text.left {
-  text-align: left !important;
-}
-
-.ui .text.right {
-  text-align: right !important;
-}
-
 .ui .text.truncate {
   overflow-x: hidden;
   text-overflow: ellipsis;
@@ -1187,4 +1179,14 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+}
+
+.ui.dropdown.text-flex-grow {
+  display: flex;
+}
+
+.ui.dropdown.text-flex-grow > .text {
+  display: flex;
+  flex-grow: 1;
+  justify-content: space-between;
 }

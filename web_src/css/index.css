@@ -18,8 +18,8 @@
 @import "./modules/checkbox.css";
 @import "./modules/dimmer.css";
 @import "./modules/modal.css";
+@import "./modules/tab.css";
 
-@import "./modules/select.css";
 @import "./modules/tippy.css";
 @import "./modules/breadcrumb.css";
 @import "./modules/comment.css";

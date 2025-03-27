@@ -6,6 +6,7 @@ package pull
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -45,20 +46,31 @@ type ReviewRequestNotifier struct {
 	ReviewTeam *org_model.Team
 }
 
-func RequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
-	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
+var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
 
+func IsCodeOwnerFile(f string) bool {
+	return slices.Contains(codeOwnerFiles, f)
+}
+
+func RequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
+	return RequestCodeOwnersReviewSpecialCommits(ctx, pr, "", "") // no commit is provided, then it uses PR's base&head branch
+}
+
+func RequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_model.PullRequest, startCommitID, endCommitID string) ([]*ReviewRequestNotifier, error) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+	issue := pr.Issue
 	if pr.IsWorkInProgress(ctx) {
 		return nil, nil
 	}
-
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return nil, err
 	}
-
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, err
 	}
+	pr.Issue.Repo = pr.BaseRepo
 
 	if pr.BaseRepo.IsFork {
 		return nil, nil
@@ -76,7 +88,7 @@ func RequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue, pr 
 	}
 
 	var data string
-	for _, file := range files {
+	for _, file := range codeOwnerFiles {
 		if blob, err := commit.GetBlobByPath(file); err == nil {
 			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err == nil {
@@ -86,16 +98,23 @@ func RequestCodeOwnersReview(ctx context.Context, issue *issues_model.Issue, pr 
 	}
 
 	rules, _ := issues_model.GetCodeOwnersFromContent(ctx, data)
+	if len(rules) == 0 {
+		return nil, nil
+	}
 
-	// get the mergebase
-	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
-	if err != nil {
-		return nil, err
+	if startCommitID == "" && endCommitID == "" {
+		// get the mergebase
+		mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+		if err != nil {
+			return nil, err
+		}
+		startCommitID = mergeBase
+		endCommitID = pr.GetGitRefName()
 	}
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitRefName())
+	changedFiles, err := repo.GetFilesChangedBetween(startCommitID, endCommitID)
 	if err != nil {
 		return nil, err
 	}

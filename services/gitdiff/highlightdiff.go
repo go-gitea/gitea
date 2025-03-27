@@ -4,9 +4,9 @@
 package gitdiff
 
 import (
+	"bytes"
+	"html/template"
 	"strings"
-
-	"code.gitea.io/gitea/modules/highlight"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -77,7 +77,7 @@ func (hcd *highlightCodeDiff) isInPlaceholderRange(r rune) bool {
 	return hcd.placeholderBegin <= r && r < hcd.placeholderBegin+rune(hcd.placeholderMaxCount)
 }
 
-func (hcd *highlightCodeDiff) collectUsedRunes(code string) {
+func (hcd *highlightCodeDiff) collectUsedRunes(code template.HTML) {
 	for _, r := range code {
 		if hcd.isInPlaceholderRange(r) {
 			// put the existing rune (used by code) in map, then this rune won't be used a placeholder anymore.
@@ -86,27 +86,76 @@ func (hcd *highlightCodeDiff) collectUsedRunes(code string) {
 	}
 }
 
-func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB string) []diffmatchpatch.Diff {
+func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA, codeB template.HTML) template.HTML {
+	return hcd.diffLineWithHighlightWrapper(nil, lineType, codeA, codeB)
+}
+
+func (hcd *highlightCodeDiff) diffLineWithHighlightWrapper(lineWrapperTags []string, lineType DiffLineType, codeA, codeB template.HTML) template.HTML {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
-	highlightCodeA, _ := highlight.Code(filename, language, codeA)
-	highlightCodeB, _ := highlight.Code(filename, language, codeB)
+	convertedCodeA := hcd.convertToPlaceholders(codeA)
+	convertedCodeB := hcd.convertToPlaceholders(codeB)
 
-	convertedCodeA := hcd.convertToPlaceholders(string(highlightCodeA))
-	convertedCodeB := hcd.convertToPlaceholders(string(highlightCodeB))
+	dmp := defaultDiffMatchPatch()
+	diffs := dmp.DiffMain(convertedCodeA, convertedCodeB, true)
+	diffs = dmp.DiffCleanupSemantic(diffs)
 
-	diffs := diffMatchPatch.DiffMain(convertedCodeA, convertedCodeB, true)
-	diffs = diffMatchPatch.DiffCleanupEfficiency(diffs)
+	buf := bytes.NewBuffer(nil)
 
-	for i := range diffs {
-		hcd.recoverOneDiff(&diffs[i])
+	// restore the line wrapper tags <span class="line"> and <span class="cl">, if necessary
+	for _, tag := range lineWrapperTags {
+		buf.WriteString(tag)
 	}
-	return diffs
+
+	addedCodePrefix := hcd.registerTokenAsPlaceholder(`<span class="added-code">`)
+	removedCodePrefix := hcd.registerTokenAsPlaceholder(`<span class="removed-code">`)
+	codeTagSuffix := hcd.registerTokenAsPlaceholder(`</span>`)
+
+	if codeTagSuffix != 0 {
+		for _, diff := range diffs {
+			switch {
+			case diff.Type == diffmatchpatch.DiffEqual:
+				buf.WriteString(diff.Text)
+			case diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
+				buf.WriteRune(addedCodePrefix)
+				buf.WriteString(diff.Text)
+				buf.WriteRune(codeTagSuffix)
+			case diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
+				buf.WriteRune(removedCodePrefix)
+				buf.WriteString(diff.Text)
+				buf.WriteRune(codeTagSuffix)
+			}
+		}
+	} else {
+		// placeholder map space is exhausted
+		for _, diff := range diffs {
+			take := diff.Type == diffmatchpatch.DiffEqual || (diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd) || (diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel)
+			if take {
+				buf.WriteString(diff.Text)
+			}
+		}
+	}
+	for range lineWrapperTags {
+		buf.WriteString("</span>")
+	}
+	return hcd.recoverOneDiff(buf.String())
+}
+
+func (hcd *highlightCodeDiff) registerTokenAsPlaceholder(token string) rune {
+	placeholder, ok := hcd.tokenPlaceholderMap[token]
+	if !ok {
+		placeholder = hcd.nextPlaceholder()
+		if placeholder != 0 {
+			hcd.tokenPlaceholderMap[token] = placeholder
+			hcd.placeholderTokenMap[placeholder] = token
+		}
+	}
+	return placeholder
 }
 
 // convertToPlaceholders totally depends on Chroma's valid HTML output and its structure, do not use these functions for other purposes.
-func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
+func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) string {
 	var tagStack []string
 	res := strings.Builder{}
 
@@ -115,6 +164,7 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 	var beforeToken, token string
 	var valid bool
 
+	htmlCode := string(htmlContent)
 	// the standard chroma highlight HTML is "<span class="line [hl]"><span class="cl"> ... </span></span>"
 	for {
 		beforeToken, token, htmlCode, valid = extractHTMLToken(htmlCode)
@@ -151,14 +201,7 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 		} // else: impossible
 
 		// remember the placeholder and token in the map
-		placeholder, ok := hcd.tokenPlaceholderMap[tokenInMap]
-		if !ok {
-			placeholder = hcd.nextPlaceholder()
-			if placeholder != 0 {
-				hcd.tokenPlaceholderMap[tokenInMap] = placeholder
-				hcd.placeholderTokenMap[placeholder] = tokenInMap
-			}
-		}
+		placeholder := hcd.registerTokenAsPlaceholder(tokenInMap)
 
 		if placeholder != 0 {
 			res.WriteRune(placeholder) // use the placeholder to replace the token
@@ -179,11 +222,11 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 	return res.String()
 }
 
-func (hcd *highlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
+func (hcd *highlightCodeDiff) recoverOneDiff(str string) template.HTML {
 	sb := strings.Builder{}
 	var tagStack []string
 
-	for _, r := range diff.Text {
+	for _, r := range str {
 		token, ok := hcd.placeholderTokenMap[r]
 		if !ok || token == "" {
 			sb.WriteRune(r) // if the rune is not a placeholder, write it as it is
@@ -217,6 +260,5 @@ func (hcd *highlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 			} // else: impossible. every tag was pushed into the stack by the code above and is valid HTML opening tag
 		}
 	}
-
-	diff.Text = sb.String()
+	return template.HTML(sb.String())
 }

@@ -7,8 +7,6 @@
 // This documentation describes the Gitea API.
 //
 //	Schemes: https, http
-//	BasePath: /api/v1
-//	Version: {{AppVer | JSEscape}}
 //	License: MIT http://opensource.org/licenses/MIT
 //
 //	Consumes:
@@ -1169,6 +1167,10 @@ func Routes() *web.Router {
 					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
 					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
 				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
+
+				m.Group("/actions/jobs", func() {
+					m.Get("/{job_id}/logs", repo.DownloadActionsRunJobLogs)
+				}, reqToken(), reqRepoReader(unit.TypeActions))
 
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
