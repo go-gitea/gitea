@@ -115,10 +115,11 @@ func MainTest(m *testing.M) {
 		setting.CustomConf = giteaConf
 	}
 
-	tmpDataPath, _, err := temp.MkdirTemp("data")
+	tmpDataPath, cleanup, err := temp.MkdirTemp("data")
 	if err != nil {
 		testlogger.Fatalf("Unable to create temporary data path %v\n", err)
 	}
+	defer cleanup()
 
 	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
 	setting.AppDataPath = tmpDataPath
@@ -133,9 +134,6 @@ func MainTest(m *testing.M) {
 	exitStatus := m.Run()
 
 	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
-		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
-	}
-	if err := removeAllWithRetry(tmpDataPath); err != nil {
 		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)

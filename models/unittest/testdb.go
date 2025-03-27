@@ -93,15 +93,19 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.Type = "sqlite3"
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
-	repoRootPath, _, err := temp.MkdirTemp("repos")
+	repoRootPath, cleanup1, err := temp.MkdirTemp("repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
+	defer cleanup1()
+
 	setting.RepoRootPath = repoRootPath
-	appDataPath, _, err := temp.MkdirTemp("appdata")
+	appDataPath, cleanup2, err := temp.MkdirTemp("appdata")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
+	defer cleanup2()
+
 	setting.AppDataPath = appDataPath
 	setting.AppWorkPath = giteaRoot
 	setting.StaticRootPath = giteaRoot
@@ -153,13 +157,6 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 		if err := testOpts.TearDown(); err != nil {
 			fatalTestError("tear down failed: %v\n", err)
 		}
-	}
-
-	if err = util.RemoveAll(repoRootPath); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
-	}
-	if err = util.RemoveAll(appDataPath); err != nil {
-		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
 }
