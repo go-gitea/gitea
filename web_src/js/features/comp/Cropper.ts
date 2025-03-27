@@ -1,47 +1,67 @@
-import {showElem, type DOMEvent} from '../../utils/dom.ts';
+import {createElementFromHTML, hideElem, showElem, type DOMEvent} from '../../utils/dom.ts';
+import {debounce} from 'perfect-debounce';
+import type {CropperCanvas, CropperSelection} from 'cropperjs';
 
 type CropperOpts = {
   container: HTMLElement,
-  imageSource: HTMLImageElement,
+  wrapper: HTMLDivElement,
   fileInput: HTMLInputElement,
 }
 
-async function initCompCropper({container, fileInput, imageSource}: CropperOpts) {
-  const {default: Cropper} = await import(/* webpackChunkName: "cropperjs" */'cropperjs');
-  let currentFileName = '';
-  let currentFileLastModified = 0;
-  const cropper = new Cropper(imageSource, {
-    aspectRatio: 1,
-    viewMode: 2,
-    autoCrop: false,
-    crop() {
-      const canvas = cropper.getCroppedCanvas();
-      canvas.toBlob((blob) => {
-        const croppedFileName = currentFileName.replace(/\.[^.]{3,4}$/, '.png');
-        const croppedFile = new File([blob], croppedFileName, {type: 'image/png', lastModified: currentFileLastModified});
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(croppedFile);
-        fileInput.files = dataTransfer.files;
-      });
-    },
-  });
+async function initCompCropper({container, fileInput, wrapper}: CropperOpts) {
+  await import(/* webpackChunkName: "cropperjs" */'cropperjs');
 
   fileInput.addEventListener('input', (e: DOMEvent<Event, HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files?.length > 0) {
-      currentFileName = files[0].name;
-      currentFileLastModified = files[0].lastModified;
-      const fileURL = URL.createObjectURL(files[0]);
-      imageSource.src = fileURL;
-      cropper.replace(fileURL);
-      showElem(container);
+    if (!e.target.files?.length) {
+      wrapper.replaceChildren();
+      hideElem(container);
+      return;
     }
+
+    const [file] = e.target.files;
+    const objectUrl = URL.createObjectURL(file);
+    const cropperCanvas = createElementFromHTML<CropperCanvas>(`
+      <cropper-canvas theme-color="var(--color-primary)">
+        <cropper-image src="${objectUrl}" scalable skewable translatable></cropper-image>
+        <cropper-shade hidden></cropper-shade>
+        <cropper-handle action="select" plain></cropper-handle>
+        <cropper-selection aspect-ratio="1" movable resizable>
+          <cropper-handle action="move" theme-color="transparent"></cropper-handle>
+          <cropper-handle action="n-resize"></cropper-handle>
+          <cropper-handle action="e-resize"></cropper-handle>
+          <cropper-handle action="s-resize"></cropper-handle>
+          <cropper-handle action="w-resize"></cropper-handle>
+          <cropper-handle action="ne-resize"></cropper-handle>
+          <cropper-handle action="nw-resize"></cropper-handle>
+          <cropper-handle action="se-resize"></cropper-handle>
+          <cropper-handle action="sw-resize"></cropper-handle>
+        </cropper-selection>
+      </cropper-canvas>
+    `);
+    cropperCanvas.querySelector<CropperSelection>('cropper-selection').addEventListener('change', debounce(async (e) => {
+      const selection = e.target as CropperSelection;
+      if (!selection.width || !selection.height) return;
+      const canvas = await selection.$toCanvas();
+
+      canvas.toBlob((blob) => {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(new File(
+          [blob],
+          file.name.replace(/\.[^.]{3,4}$/, '.png'),
+          {type: 'image/png', lastModified: file.lastModified},
+        ));
+        fileInput.files = dataTransfer.files;
+      });
+    }, 200));
+
+    wrapper.replaceChildren(cropperCanvas);
+    showElem(container);
   });
 }
 
 export async function initAvatarUploaderWithCropper(fileInput: HTMLInputElement) {
   const panel = fileInput.nextElementSibling as HTMLElement;
   if (!panel?.matches('.cropper-panel')) throw new Error('Missing cropper panel for avatar uploader');
-  const imageSource = panel.querySelector<HTMLImageElement>('.cropper-source');
-  await initCompCropper({container: panel, fileInput, imageSource});
+  const wrapper = panel.querySelector<HTMLImageElement>('.cropper-wrapper');
+  await initCompCropper({container: panel, fileInput, wrapper});
 }
