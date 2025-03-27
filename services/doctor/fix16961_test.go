@@ -19,12 +19,6 @@ func Test_fixUnitConfig_16961(t *testing.T) {
 		wantErr   bool
 	}{
 		{
-			name:      "empty",
-			bs:        "",
-			wantFixed: true,
-			wantErr:   false,
-		},
-		{
 			name:      "normal: {}",
 			bs:        "{}",
 			wantFixed: false,

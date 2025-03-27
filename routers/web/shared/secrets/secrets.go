@@ -22,12 +22,14 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 	}
 
 	ctx.Data["Secrets"] = secrets
+	ctx.Data["DataMaxLength"] = secret_model.SecretDataMaxLength
+	ctx.Data["DescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
 }
 
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, form.Name, util.ReserveLineBreakForTextarea(form.Data))
+	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, form.Name, util.ReserveLineBreakForTextarea(form.Data), form.Description)
 	if err != nil {
 		log.Error("CreateOrUpdateSecret failed: %v", err)
 		ctx.JSONError(ctx.Tr("secrets.creation.failed"))

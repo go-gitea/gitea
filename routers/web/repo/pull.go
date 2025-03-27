@@ -1269,6 +1269,21 @@ func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *is
 	return nil
 }
 
+func PullsNewRedirect(ctx *context.Context) {
+	branch := ctx.PathParam("*")
+	redirectRepo := ctx.Repo.Repository
+	repo := ctx.Repo.Repository
+	if repo.IsFork {
+		if err := repo.GetBaseRepo(ctx); err != nil {
+			ctx.ServerError("GetBaseRepo", err)
+			return
+		}
+		redirectRepo = repo.BaseRepo
+		branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
+	}
+	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", redirectRepo.Link(), util.PathEscapeSegments(redirectRepo.DefaultBranch), util.PathEscapeSegments(branch)))
+}
+
 // CompareAndPullRequestPost response for creating pull request
 func CompareAndPullRequestPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)

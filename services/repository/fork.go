@@ -170,7 +170,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("git update-server-info: %w", err)
 		}
 
-		if err = gitrepo.CreateDelegateHooksForRepo(ctx, repo); err != nil {
+		if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 			return fmt.Errorf("createDelegateHooks: %w", err)
 		}
 

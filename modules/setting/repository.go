@@ -5,7 +5,6 @@ package setting
 
 import (
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -284,7 +283,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
-	RepoRootPath = sec.Key("ROOT").MustString(path.Join(AppDataPath, "gitea-repositories"))
+	RepoRootPath = sec.Key("ROOT").MustString(filepath.Join(AppDataPath, "gitea-repositories"))
 	if !filepath.IsAbs(RepoRootPath) {
 		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
 	} else {
@@ -363,7 +362,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
-		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
+		Repository.Upload.TempPath = filepath.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
 	if err := loadRepoArchiveFrom(rootCfg); err != nil {
