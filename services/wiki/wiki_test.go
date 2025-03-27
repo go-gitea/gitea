@@ -166,7 +166,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			webPath := UserTitleToWebPath("", userTitle)
 			assert.NoError(t, AddWikiPage(git.DefaultContext, doer, repo, webPath, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
-			gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
+			gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo.WikiStorageRepo())
 			require.NoError(t, err)
 
 			defer gitRepo.Close()
@@ -213,7 +213,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, EditWikiPage(git.DefaultContext, doer, repo, "Home", webPath, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
-		gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo.WikiStorageRepo())
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
 		assert.NoError(t, err)
@@ -237,7 +237,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	assert.NoError(t, DeleteWikiPage(git.DefaultContext, doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
-	gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo.WikiStorageRepo())
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
@@ -251,7 +251,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
+	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo.WikiStorageRepo())
 	require.NoError(t, err)
 
 	defer gitRepo.Close()

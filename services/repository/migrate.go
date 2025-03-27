@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -246,6 +247,19 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
+	var enableRepoUnits []repo_model.RepoUnit
+	if opts.Releases && !unit_model.TypeReleases.UnitGlobalDisabled() {
+		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeReleases})
+	}
+	if opts.Wiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
+		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeWiki})
+	}
+	if len(enableRepoUnits) > 0 {
+		err = UpdateRepositoryUnits(ctx, repo, enableRepoUnits, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return repo, committer.Commit()
 }
 
@@ -265,11 +279,11 @@ func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
-	if err := gitrepo.CreateDelegateHooksForRepo(ctx, repo); err != nil {
+	if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 	if repo.HasWiki() {
-		if err := gitrepo.CreateDelegateHooksForWiki(ctx, repo); err != nil {
+		if err := gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
 	}

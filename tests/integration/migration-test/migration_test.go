@@ -38,7 +38,7 @@ var currentEngine *xorm.Engine
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
 	giteaRoot := test.SetupGiteaRoot()
-	setting.AppPath = path.Join(giteaRoot, "gitea")
+	setting.AppPath = filepath.Join(giteaRoot, "gitea")
 	if _, err := os.Stat(setting.AppPath); err != nil {
 		testlogger.Fatalf(fmt.Sprintf("Could not find gitea binary at %s\n", setting.AppPath))
 	}
@@ -47,7 +47,7 @@ func initMigrationTest(t *testing.T) func() {
 	if giteaConf == "" {
 		testlogger.Fatalf("Environment variable $GITEA_CONF not set\n")
 	} else if !path.IsAbs(giteaConf) {
-		setting.CustomConf = path.Join(giteaRoot, giteaConf)
+		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
 	}
@@ -55,7 +55,7 @@ func initMigrationTest(t *testing.T) func() {
 	unittest.InitSettings()
 
 	assert.NotEmpty(t, setting.RepoRootPath)
-	assert.NoError(t, unittest.SyncDirs(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	assert.NoError(t, git.InitFull(t.Context()))
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()

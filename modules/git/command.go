@@ -46,6 +46,7 @@ type Command struct {
 	args             []string
 	globalArgsLength int
 	brokenArgs       []string
+	cmd              *exec.Cmd // for debug purpose only
 }
 
 func logArgSanitize(arg string) string {
@@ -314,6 +315,7 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	startTime := time.Now()
 
 	cmd := exec.CommandContext(ctx, c.prog, c.args...)
+	c.cmd = cmd // for debug purpose only
 	if opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {
@@ -348,9 +350,10 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	// We need to check if the context is canceled by the program on Windows.
 	// This is because Windows does not have signal checking when terminating the process.
 	// It always returns exit code 1, unlike Linux, which has many exit codes for signals.
+	// `err.Error()` returns "exit status 1" when using the `git check-attr` command after the context is canceled.
 	if runtime.GOOS == "windows" &&
 		err != nil &&
-		err.Error() == "" &&
+		(err.Error() == "" || err.Error() == "exit status 1") &&
 		cmd.ProcessState.ExitCode() == 1 &&
 		ctx.Err() == context.Canceled {
 		return ctx.Err()
