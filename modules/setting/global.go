@@ -37,7 +37,3 @@ func TempDir() string {
 	})
 	return tempDir
 }
-
-func CleanUpTempDirs() {
-	//_ = os.RemoveAll(TempDir())
-}

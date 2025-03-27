@@ -530,7 +530,6 @@ func SubmitInstall(ctx *context.Context) {
 	// Reload settings (and re-initialize database connection)
 	setting.InitCfgProvider(setting.CustomConf)
 	setting.LoadCommonSettings()
-	setting.CleanUpTempDirs()
 	setting.MustInstalled()
 	setting.LoadDBSetting()
 	if err := common.InitDBEngine(ctx); err != nil {

@@ -21,7 +21,7 @@ func localCopyPath() string {
 	} else if !filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
 		return filepath.Join(setting.TempDir(), setting.Repository.Local.LocalCopyPath)
 	}
-	return filepath.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath)
+	return setting.Repository.Local.LocalCopyPath
 }
 
 // CreateTemporaryPath creates a temporary path
