@@ -1,4 +1,4 @@
-import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/dom.ts';
 import {htmlEscape} from 'escape-goat';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {sanitizeRepoName} from './repo-common.ts';
@@ -6,6 +6,7 @@ import {sanitizeRepoName} from './repo-common.ts';
 const {appSubUrl} = window.config;
 
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
+  const elSubmitButton = querySingleVisibleElem<HTMLInputElement>(form, '.ui.primary.button');
   const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message');
   const elRepoOwnerDropdown = form.querySelector('#repo_owner_dropdown');
   const elRepoTemplateDropdown = form.querySelector<HTMLInputElement>('#repo_template_search');
@@ -26,10 +27,13 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
     const ownerId = $repoOwnerDropdown.dropdown('get value');
     const $ownerItem = $repoOwnerDropdown.dropdown('get item', ownerId);
     hideElem(elCreateRepoErrorMessage);
+    elSubmitButton.disabled = false;
     if ($ownerItem?.length) {
       const elOwnerItem = $ownerItem[0];
       elCreateRepoErrorMessage.textContent = elOwnerItem.getAttribute('data-create-repo-disallowed-prompt') ?? '';
-      toggleElem(elCreateRepoErrorMessage, Boolean(elCreateRepoErrorMessage.textContent));
+      const hasError = Boolean(elCreateRepoErrorMessage.textContent);
+      toggleElem(elCreateRepoErrorMessage, hasError);
+      elSubmitButton.disabled = hasError;
     }
     $repoTemplateDropdown.dropdown('setting', {
       apiSettings: {
