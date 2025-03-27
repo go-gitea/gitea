@@ -378,6 +378,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(315, "Add Ephemeral to ActionRunner", v1_24.AddEphemeralToActionRunner),
 		newMigration(316, "Add description for secrets and variables", v1_24.AddDescriptionForSecretsAndVariables),
 		newMigration(317, "Add new index for action for heatmap", v1_24.AddNewIndexForUserDashboard),
+		newMigration(318, "Add unique index for user_badge table", v1_24.AddUniqueIndexForUserBadge),
 	}
 	return preparedMigrations
 }
