@@ -21,7 +21,7 @@ import (
 func TestCreateRepositoryDirectly(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	// a successful generate from template
+	// a successful creating repository
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	createdRepo, err := CreateRepositoryDirectly(git.DefaultContext, user2, user2, CreateRepoOptions{
@@ -39,7 +39,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 	err = DeleteRepositoryDirectly(db.DefaultContext, user2, createdRepo.ID)
 	assert.NoError(t, err)
 
-	// a failed generate because a timeout
+	// a failed creating because a timeout
 	ctx, cancel := context.WithTimeout(db.DefaultContext, 1*time.Millisecond)
 	defer cancel()
 	createdRepo2, err := CreateRepositoryDirectly(ctx, user2, user2, CreateRepoOptions{
