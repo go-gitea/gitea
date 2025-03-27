@@ -10,7 +10,7 @@ export type File = {
   IsSubmodule: boolean;
 }
 
-type DirItem = {
+export type DirItem = {
     isFile: false;
     name: string;
     path: string;
@@ -82,8 +82,4 @@ export function mergeChildIfOnlyOneDir(nodes: Item[]): void {
       dir.children = child.children;
     }
   }
-}
-
-export function fileIsViewed(item: Item): boolean {
-  return item.isFile ? item.file.IsViewed : (item as DirItem).children.every(fileIsViewed);
 }

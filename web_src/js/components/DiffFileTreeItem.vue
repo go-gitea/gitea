@@ -1,18 +1,46 @@
 <script lang="ts" setup>
 import {SvgIcon, type SvgName} from '../svg.ts';
 import {diffTreeStore} from '../modules/stores.ts';
-import {computed, ref} from 'vue';
-import {fileIsViewed} from '../utils/filetree.ts';
-import type {Item, File, FileStatus} from '../utils/filetree.ts';
+import {computed, nextTick, ref, watch} from 'vue';
+import type {Item, DirItem, File, FileStatus} from '../utils/filetree.ts';
 
 const props = defineProps<{
   item: Item,
+  setViewed?:(val: boolean) => void,
 }>();
 
-const store = diffTreeStore();
+const count = ref(0);
+let pendingUpdate = 0;
+let pendingTimer: Promise<void> | undefined;
+
+const setCount = (isViewed: boolean) => {
+  pendingUpdate += (isViewed ? 1 : -1);
+
+  if (pendingTimer === undefined) {
+    pendingTimer = nextTick(() => {
+      count.value = Math.max(0, count.value + pendingUpdate);
+      pendingUpdate = 0;
+      pendingTimer = undefined;
+    });
+  }
+};
+
 const isViewed = computed(() => {
-  return fileIsViewed(props.item);
+  return props.item.isFile ? props.item.file.IsViewed : (props.item as DirItem).children.length === count.value;
 });
+
+watch(
+  () => isViewed.value,
+  (newVal) => {
+    if (props.setViewed) {
+      props.setViewed(newVal);
+    }
+  },
+  {immediate: true, flush: 'post'},
+);
+
+const store = diffTreeStore();
+
 /**
  * Behavior:
  * - Viewed folders collapse on initial load (based on `isViewed` state)
@@ -64,11 +92,11 @@ function fileIcon(file: File) {
         class="text primary"
         :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"
       />
-      <span class="gt-ellipsis">{{ item.name }}</span>
+      <span class="gt-ellipsis">{{ item.name }} {{ count }}</span>
     </div>
 
     <div v-show="!collapsed" class="sub-items">
-      <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem"/>
+      <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" :setViewed="setCount"/>
     </div>
   </template>
 </template>
