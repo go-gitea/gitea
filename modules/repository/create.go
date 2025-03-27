@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -72,7 +71,7 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 	}
 
 	// Create/Remove git-daemon-export-ok for git-daemon...
-	daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+	daemonExportFile := filepath.Join(repo.RepoPath(), `git-daemon-export-ok`)
 
 	isExist, err := util.IsExist(daemonExportFile)
 	if err != nil {

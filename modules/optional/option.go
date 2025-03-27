@@ -3,6 +3,8 @@
 
 package optional
 
+import "strconv"
+
 type Option[T any] []T
 
 func None[T any]() Option[T] {
@@ -42,4 +44,13 @@ func (o Option[T]) ValueOrDefault(v T) T {
 		return o[0]
 	}
 	return v
+}
+
+// ParseBool get the corresponding optional.Option[bool] of a string using strconv.ParseBool
+func ParseBool(s string) Option[bool] {
+	v, e := strconv.ParseBool(s)
+	if e != nil {
+		return None[bool]()
+	}
+	return Some(v)
 }
