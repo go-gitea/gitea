@@ -7,6 +7,7 @@ package setting
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -110,6 +111,7 @@ func LoadCommonSettings() {
 func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
+	loadTempDir(cfg)
 	loadLogGlobalFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
@@ -179,6 +181,16 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 			log.Fatal("Gitea is not supposed to be run as root. Sorry. If you need to use privileged TCP ports please instead use setcap and the `cap_net_bind_service` permission")
 		}
 		log.Critical("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
+	}
+}
+
+func loadTempDir(rootCfg ConfigProvider) {
+	rootSec := rootCfg.Section("")
+	tempDir := rootSec.Key("TEMP_DIR").MustString(filepath.Join(os.TempDir(), "gitea"))
+	if tempDir != "" {
+		if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+			log.Fatal("Failed to create temp directory %s: %v", tempDir, err)
+		}
 	}
 }
 

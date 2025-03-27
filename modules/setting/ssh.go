@@ -122,7 +122,7 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	if len(serverMACs) > 0 {
 		SSH.ServerMACs = serverMACs
 	}
-	SSH.KeyTestPath = TempDir()
+	SSH.KeyTestPath = TempPath
 	if err = sec.MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
 	}

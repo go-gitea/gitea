@@ -10,9 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/temp"
 )
 
 // ReadTreeToIndex reads a treeish to the index
@@ -60,26 +58,18 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilena
 		}
 	}()
 
-	removeDirFn := func(dir string) func() { // it can't use the return value "tmpDir" directly because it is empty when error occurs
-		return func() {
-			if err := util.RemoveAll(dir); err != nil {
-				log.Error("failed to remove tmp index dir: %v", err)
-			}
-		}
-	}
-
-	tmpDir, err = os.MkdirTemp(setting.TempDir(), "index")
+	tmpDir, cancel, err = temp.MkdirTemp("index")
 	if err != nil {
 		return "", "", nil, err
 	}
 
 	tmpIndexFilename = filepath.Join(tmpDir, ".tmp-index")
-	cancel = removeDirFn(tmpDir)
+
 	err = repo.ReadTreeToIndex(treeish, tmpIndexFilename)
 	if err != nil {
 		return "", "", cancel, err
 	}
-	return tmpIndexFilename, tmpDir, cancel, err
+	return tmpIndexFilename, tmpDir, cancel, nil
 }
 
 // EmptyIndex empties the index

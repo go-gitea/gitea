@@ -17,9 +17,9 @@ import (
 // localCopyPath returns the local repository temporary copy path.
 func localCopyPath() string {
 	if setting.Repository.Local.LocalCopyPath == "" {
-		return filepath.Join(setting.TempDir(), "local-repo")
+		return filepath.Join(setting.TempPath, "local-repo")
 	} else if !filepath.IsAbs(setting.Repository.Local.LocalCopyPath) {
-		return filepath.Join(setting.TempDir(), setting.Repository.Local.LocalCopyPath)
+		return filepath.Join(setting.TempPath, setting.Repository.Local.LocalCopyPath)
 	}
 	return setting.Repository.Local.LocalCopyPath
 }

@@ -27,8 +27,8 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/temp"
 	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // CreateRepoOptions contains the create repository options
@@ -138,10 +138,6 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	return nil
 }
 
-func createRepoTempDir(repoName string) (string, error) {
-	return os.MkdirTemp(setting.TempDir(), "repos-"+repoName)
-}
-
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	if err = repo_module.CheckInitRepository(ctx, repo); err != nil {
@@ -150,15 +146,11 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-		tmpDir, err := createRepoTempDir(repo.Name)
+		tmpDir, cleanup, err := temp.MkdirTemp("repos-" + repo.Name)
 		if err != nil {
 			return fmt.Errorf("failed to create temp dir for repository %s: %w", repo.FullName(), err)
 		}
-		defer func() {
-			if err := util.RemoveAll(tmpDir); err != nil {
-				log.Warn("Unable to remove temporary directory: %s: Error: %v", tmpDir, err)
-			}
-		}()
+		defer cleanup()
 
 		if err = prepareRepoCommit(ctx, repo, tmpDir, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %w", err)

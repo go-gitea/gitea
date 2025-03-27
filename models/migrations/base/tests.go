@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/temp"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/testlogger"
 
@@ -114,7 +115,7 @@ func MainTest(m *testing.M) {
 		setting.CustomConf = giteaConf
 	}
 
-	tmpDataPath, err := os.MkdirTemp(setting.TempDir(), "data")
+	tmpDataPath, _, err := temp.MkdirTemp("data")
 	if err != nil {
 		testlogger.Fatalf("Unable to create temporary data path %v\n", err)
 	}

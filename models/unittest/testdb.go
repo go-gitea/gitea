@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/temp"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
@@ -92,12 +93,12 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.Type = "sqlite3"
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
-	repoRootPath, err := os.MkdirTemp(setting.TempDir(), "repos")
+	repoRootPath, _, err := temp.MkdirTemp("repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
 	setting.RepoRootPath = repoRootPath
-	appDataPath, err := os.MkdirTemp(setting.TempDir(), "appdata")
+	appDataPath, _, err := temp.MkdirTemp("appdata")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
