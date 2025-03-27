@@ -280,7 +280,7 @@ func (wr *nulSeparatedAttributeWriter) Write(p []byte) (n int, err error) {
 		}
 	}
 	wr.tmp = append(wr.tmp, p...)
-	return len(p), nil
+	return l, nil
 }
 
 func (wr *nulSeparatedAttributeWriter) ReadAttribute() <-chan attributeTriple {
