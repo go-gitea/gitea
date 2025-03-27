@@ -57,9 +57,6 @@ func CorsHandler() func(next http.Handler) http.Handler {
 
 // httpBase implementation git smart HTTP protocol
 func httpBase(ctx *context.Context) *serviceHandler {
-	username := ctx.PathParam("username")
-	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
-
 	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
 		return nil
@@ -90,6 +87,8 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 	isWiki := false
 	unitType := unit.TypeCode
+	username := ctx.PathParam("username")
+	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
@@ -108,11 +107,6 @@ func httpBase(ctx *context.Context) *serviceHandler {
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
 			ctx.ServerError("GetRepositoryByName", err)
-			return nil
-		}
-
-		if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, reponame); err == nil {
-			context.RedirectToRepo(ctx.Base, redirectRepoID)
 			return nil
 		}
 		repoExist = false
@@ -243,6 +237,13 @@ func httpBase(ctx *context.Context) *serviceHandler {
 	}
 
 	if !repoExist {
+		// if repository does not exist, maybe it is renamed to another repository
+		if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, reponame); err == nil {
+			// FIXME: should the user be allowed to know the new name?
+			context.RedirectToRepo(ctx.Base, redirectRepoID)
+			return nil
+		}
+
 		if !receivePack {
 			ctx.PlainText(http.StatusNotFound, "Repository not found")
 			return nil
