@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -81,47 +82,54 @@ func TestAPIChangeFiles(t *testing.T) {
 			"master", // Branch
 			"",       // Empty branch
 		} {
-			fileID++
-			createTreePath := fmt.Sprintf("new/file%d.txt", fileID)
-			updateTreePath := fmt.Sprintf("update/file%d.txt", fileID)
-			deleteTreePath := fmt.Sprintf("delete/file%d.txt", fileID)
-			createFile(user2, repo1, updateTreePath)
-			createFile(user2, repo1, deleteTreePath)
-			changeFilesOptions := getChangeFilesOptions()
-			changeFilesOptions.BranchName = branch
-			changeFilesOptions.Files[0].Path = createTreePath
-			changeFilesOptions.Files[1].Path = updateTreePath
-			changeFilesOptions.Files[2].Path = deleteTreePath
-			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name), &changeFilesOptions).
-				AddTokenAuth(token2)
-			resp := MakeRequest(t, req, http.StatusCreated)
-			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
-			commitID, _ := gitRepo.GetBranchCommitID(changeFilesOptions.NewBranchName)
-			createLasCommit, _ := gitRepo.GetCommitByPath(createTreePath)
-			updateLastCommit, _ := gitRepo.GetCommitByPath(updateTreePath)
-			expectedCreateFileResponse := getExpectedFileResponseForCreate(fmt.Sprintf("%v/%v", user2.Name, repo1.Name), commitID, createTreePath, createLasCommit.ID.String())
-			expectedUpdateFileResponse := getExpectedFileResponseForUpdate(commitID, updateTreePath, updateLastCommit.ID.String())
-			var filesResponse api.FilesResponse
-			DecodeJSON(t, resp, &filesResponse)
+			t.Run(fmt.Sprintf("Branch %s", branch), func(t *testing.T) {
+				fileID++
+				createTreePath := fmt.Sprintf("new/file%d.txt", fileID)
+				updateTreePath := fmt.Sprintf("update/file%d.txt", fileID)
+				deleteTreePath := fmt.Sprintf("delete/file%d.txt", fileID)
+				createFile(user2, repo1, updateTreePath)
+				createFile(user2, repo1, deleteTreePath)
+				changeFilesOptions := getChangeFilesOptions()
+				changeFilesOptions.BranchName = branch
+				changeFilesOptions.Files[0].Path = createTreePath
+				changeFilesOptions.Files[1].Path = updateTreePath
+				changeFilesOptions.Files[2].Path = deleteTreePath
+				req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name), &changeFilesOptions).
+					AddTokenAuth(token2)
+				resp := MakeRequest(t, req, http.StatusCreated)
+				gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+				commitID, _ := gitRepo.GetBranchCommitID(changeFilesOptions.NewBranchName)
+				createLasCommit, _ := gitRepo.GetCommitByPath(createTreePath)
+				updateLastCommit, _ := gitRepo.GetCommitByPath(updateTreePath)
+				expectedCreateFileResponse := getExpectedFileResponseForCreate(fmt.Sprintf("%v/%v", user2.Name, repo1.Name), commitID, createTreePath, createLasCommit.ID.String(), createLasCommit.Committer.When)
+				expectedUpdateFileResponse := getExpectedFileResponseForUpdate(commitID, updateTreePath, updateLastCommit.ID.String(), updateLastCommit.Committer.When)
+				var filesResponse api.FilesResponse
+				DecodeJSON(t, resp, &filesResponse)
 
-			// check create file
-			assert.EqualValues(t, expectedCreateFileResponse.Content, filesResponse.Files[0])
+				// FIXME: This is a workaround to compare time.Time values. This maybe a bug of Golang,
+				// assume your local timezone is UTC, but a location with zero offset is not equal to UTC but they should be.
+				expectedCreateFileResponse.Content.LastCommitWhen, _ = time.Parse(time.RFC3339, expectedCreateFileResponse.Content.LastCommitWhen.Format(time.RFC3339))
+				expectedUpdateFileResponse.Content.LastCommitWhen, _ = time.Parse(time.RFC3339, expectedUpdateFileResponse.Content.LastCommitWhen.Format(time.RFC3339))
 
-			// check update file
-			assert.EqualValues(t, expectedUpdateFileResponse.Content, filesResponse.Files[1])
+				// check create file
+				assert.EqualValues(t, expectedCreateFileResponse.Content, filesResponse.Files[0])
 
-			// test commit info
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.SHA, filesResponse.Commit.SHA)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Name, filesResponse.Commit.Author.Name)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Email, filesResponse.Commit.Committer.Email)
-			assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Name, filesResponse.Commit.Committer.Name)
+				// check update file
+				assert.EqualValues(t, expectedUpdateFileResponse.Content, filesResponse.Files[1])
 
-			// test delete file
-			assert.Nil(t, filesResponse.Files[2])
+				// test commit info
+				assert.EqualValues(t, expectedCreateFileResponse.Commit.SHA, filesResponse.Commit.SHA)
+				assert.EqualValues(t, expectedCreateFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
+				assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
+				assert.EqualValues(t, expectedCreateFileResponse.Commit.Author.Name, filesResponse.Commit.Author.Name)
+				assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Email, filesResponse.Commit.Committer.Email)
+				assert.EqualValues(t, expectedCreateFileResponse.Commit.Committer.Name, filesResponse.Commit.Committer.Name)
 
-			gitRepo.Close()
+				// test delete file
+				assert.Nil(t, filesResponse.Files[2])
+
+				gitRepo.Close()
+			})
 		}
 
 		// Test changing files in a new branch

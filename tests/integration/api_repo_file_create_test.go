@@ -49,7 +49,7 @@ func getCreateFileOptions() api.CreateFileOptions {
 	}
 }
 
-func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCommitSHA string) *api.FileResponse {
+func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCommitSHA string, latestCommitWhen time.Time) *api.FileResponse {
 	sha := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 	encoding := "base64"
 	content := "VGhpcyBpcyBuZXcgdGV4dA=="
@@ -59,18 +59,19 @@ func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCo
 	downloadURL := setting.AppURL + repoFullName + "/raw/branch/master/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:          filepath.Base(treePath),
-			Path:          treePath,
-			SHA:           sha,
-			LastCommitSHA: latestCommitSHA,
-			Size:          16,
-			Type:          "file",
-			Encoding:      &encoding,
-			Content:       &content,
-			URL:           &selfURL,
-			HTMLURL:       &htmlURL,
-			GitURL:        &gitURL,
-			DownloadURL:   &downloadURL,
+			Name:           filepath.Base(treePath),
+			Path:           treePath,
+			SHA:            sha,
+			LastCommitSHA:  latestCommitSHA,
+			LastCommitWhen: latestCommitWhen,
+			Size:           16,
+			Type:           "file",
+			Encoding:       &encoding,
+			Content:        &content,
+			URL:            &selfURL,
+			HTMLURL:        &htmlURL,
+			GitURL:         &gitURL,
+			DownloadURL:    &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -169,9 +170,14 @@ func TestAPICreateFile(t *testing.T) {
 			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
 			commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 			latestCommit, _ := gitRepo.GetCommitByPath(treePath)
-			expectedFileResponse := getExpectedFileResponseForCreate("user2/repo1", commitID, treePath, latestCommit.ID.String())
+			expectedFileResponse := getExpectedFileResponseForCreate("user2/repo1", commitID, treePath, latestCommit.ID.String(), latestCommit.Committer.When)
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
+
+			// FIXME: This is a workaround to compare time.Time values. This maybe a bug of Golang,
+			// assume your local timezone is UTC, but a location with zero offset is not equal to UTC but they should be.
+			expectedFileResponse.Content.LastCommitWhen, _ = time.Parse(time.RFC3339, expectedFileResponse.Content.LastCommitWhen.Format(time.RFC3339))
+
 			assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
 			assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
 			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
@@ -287,8 +293,13 @@ func TestAPICreateFile(t *testing.T) {
 		gitRepo, _ := gitrepo.OpenRepository(t.Context(), emptyRepo)
 		commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 		latestCommit, _ := gitRepo.GetCommitByPath(treePath)
-		expectedFileResponse := getExpectedFileResponseForCreate("user2/empty-repo", commitID, treePath, latestCommit.ID.String())
+		expectedFileResponse := getExpectedFileResponseForCreate("user2/empty-repo", commitID, treePath, latestCommit.ID.String(), latestCommit.Committer.When)
 		DecodeJSON(t, resp, &fileResponse)
+
+		// FIXME: This is a workaround to compare time.Time values. This maybe a bug of Golang,
+		// assume your local timezone is UTC, but a location with zero offset is not equal to UTC but they should be.
+		expectedFileResponse.Content.LastCommitWhen, _ = time.Parse(time.RFC3339, expectedFileResponse.Content.LastCommitWhen.Format(time.RFC3339))
+
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
 		assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
 		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
