@@ -280,10 +280,8 @@ func Routes() *web.Router {
 		routes.Get("/api/swagger", append(mid, misc.Swagger)...) // Render V1 by default
 	}
 
-	// TODO: These really seem like things that could be folded into Contexter or as helper functions
-	mid = append(mid, user.GetNotificationCount)
-	mid = append(mid, repo.GetActiveStopwatch)
 	mid = append(mid, goGet)
+	mid = append(mid, common.PageTmplFunctions)
 
 	others := web.NewRouter()
 	others.Use(mid...)
@@ -1185,6 +1183,7 @@ func registerRoutes(m *web.Router) {
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo code: find, compare, list
 

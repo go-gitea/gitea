@@ -145,6 +145,12 @@ func Valid(data []byte) bool {
 // UnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
 // possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
 func UnmarshalHandleDoubleEncode(bs []byte, v any) error {
+	if len(bs) == 0 {
+		// json.Unmarshal will report errors if input is empty (nil or zero-length)
+		// It seems that XORM ignores the nil but still passes zero-length string into this function
+		// To be consistent, we should treat all empty inputs as success
+		return nil
+	}
 	err := json.Unmarshal(bs, v)
 	if err != nil {
 		ok := true
