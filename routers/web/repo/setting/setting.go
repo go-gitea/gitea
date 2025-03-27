@@ -865,7 +865,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 	}
 
 	if !newOwner.CanCreateRepo() {
-		limit := util.Iif(newOwner.MaxRepoCreation != -1, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
+		limit := util.Iif(newOwner.MaxRepoCreation >= 0, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
 		ctx.RenderWithErr(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit), tplSettingsOptions, nil)
 		return
 	}
