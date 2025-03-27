@@ -31,8 +31,8 @@ func main() {
 
 	ttfFont := extractFont()
 
-	str := "map[rune]int32{\n"
-	for r := rune(0); r <= unicode.MaxRune; r++ {
+	str := "map[rune]uint8{\n"
+	for r := rune(0); r <= unicode.MaxLatin1; r++ {
 		if !unicode.IsPrint(r) {
 			continue
 		}
