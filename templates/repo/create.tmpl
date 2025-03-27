@@ -17,9 +17,9 @@
 						<span class="text truncated-item-name"></span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.Name}}"
+							<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}"
 								{{if not .CanCreateRepoInDoer}}
-									 data-create-repo-disallowed-prompt="{{ctx.Locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimitOfDoer}}"
+									data-create-repo-disallowed-prompt="{{ctx.Locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimitOfDoer}}"
 								{{end}}
 							>
 								{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
