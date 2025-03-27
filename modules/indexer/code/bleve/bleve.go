@@ -4,7 +4,6 @@
 package bleve
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -149,7 +148,7 @@ func NewIndexer(indexDir string) *Indexer {
 	}
 }
 
-func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
+func (b *Indexer) addUpdate(ctx context.Context, batchCatFile *git.BatchCatFile, commitSha string,
 	update internal.FileUpdate, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch,
 ) error {
 	// Ignore vendored files in code search
@@ -175,9 +174,11 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
+	if err := batchCatFile.Input(update.BlobSha); err != nil {
 		return err
 	}
+
+	batchReader := batchCatFile.Reader()
 
 	_, _, size, err = git.ReadBatchLine(batchReader)
 	if err != nil {
@@ -216,14 +217,14 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		gitBatch, err := git.NewBatch(ctx, repo.RepoPath())
+		gitBatch, err := git.NewBatchCatFile(ctx, repo.RepoPath(), false)
 		if err != nil {
 			return err
 		}
 		defer gitBatch.Close()
 
 		for _, update := range changes.Updates {
-			if err := b.addUpdate(ctx, gitBatch.Writer, gitBatch.Reader, sha, update, repo, batch); err != nil {
+			if err := b.addUpdate(ctx, gitBatch, sha, update, repo, batch); err != nil {
 				return err
 			}
 		}

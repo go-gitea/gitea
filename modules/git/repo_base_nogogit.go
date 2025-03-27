@@ -7,11 +7,10 @@
 package git
 
 import (
-	"bufio"
 	"context"
 	"path/filepath"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -26,10 +25,10 @@ type Repository struct {
 	gpgSettings *GPGSettings
 
 	batchInUse bool
-	batch      *Batch
+	batch      *BatchCatFile
 
 	checkInUse bool
-	check      *Batch
+	batchCheck *BatchCatFile
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
@@ -64,53 +63,59 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 }
 
 // CatFileBatch obtains a CatFileBatch for this repository
-func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
+func (repo *Repository) CatFileBatch(ctx context.Context) (*BatchCatFile, func(), error) {
 	if repo.batch == nil {
 		var err error
-		repo.batch, err = NewBatch(ctx, repo.Path)
+		repo.batch, err = NewBatchCatFile(ctx, repo.Path, false)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 
 	if !repo.batchInUse {
 		repo.batchInUse = true
-		return repo.batch.Writer, repo.batch.Reader, func() {
+		return repo.batch, func() {
 			repo.batchInUse = false
 		}, nil
 	}
 
-	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	tempBatch, err := NewBatch(ctx, repo.Path)
-	if err != nil {
-		return nil, nil, nil, err
+	if !setting.DisableTempCatFileBatchCheck {
+		setting.PanicInDevOrTesting("Opening temporary cat file batch for: %s", repo.Path)
 	}
-	return tempBatch.Writer, tempBatch.Reader, tempBatch.Close, nil
+	tempBatch, err := NewBatchCatFile(ctx, repo.Path, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	return tempBatch, func() {
+		_ = tempBatch.Close()
+	}, nil
 }
 
 // CatFileBatchCheck obtains a CatFileBatchCheck for this repository
-func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError, *bufio.Reader, func(), error) {
-	if repo.check == nil {
+func (repo *Repository) CatFileBatchCheck(ctx context.Context) (*BatchCatFile, func(), error) {
+	if repo.batchCheck == nil {
 		var err error
-		repo.check, err = NewBatchCheck(ctx, repo.Path)
+		repo.batchCheck, err = NewBatchCatFile(ctx, repo.Path, true)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 
 	if !repo.checkInUse {
 		repo.checkInUse = true
-		return repo.check.Writer, repo.check.Reader, func() {
+		return repo.batchCheck, func() {
 			repo.checkInUse = false
 		}, nil
 	}
 
-	log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
-	tempBatchCheck, err := NewBatchCheck(ctx, repo.Path)
+	setting.PanicInDevOrTesting("Opening temporary cat file batch with check for: %s", repo.Path)
+	tempBatch, err := NewBatchCatFile(ctx, repo.Path, true)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	return tempBatchCheck.Writer, tempBatchCheck.Reader, tempBatchCheck.Close, nil
+	return tempBatch, func() {
+		_ = tempBatch.Close()
+	}, nil
 }
 
 func (repo *Repository) Close() error {
@@ -122,9 +127,9 @@ func (repo *Repository) Close() error {
 		repo.batch = nil
 		repo.batchInUse = false
 	}
-	if repo.check != nil {
-		repo.check.Close()
-		repo.check = nil
+	if repo.batchCheck != nil {
+		repo.batchCheck.Close()
+		repo.batchCheck = nil
 		repo.checkInUse = false
 	}
 	repo.LastCommitCache = nil

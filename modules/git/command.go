@@ -60,15 +60,16 @@ func logArgSanitize(arg string) string {
 	return arg
 }
 
+var debugQuote = func(s string) string {
+	if strings.ContainsAny(s, " `'\"\t\r\n") {
+		return fmt.Sprintf("%q", s)
+	}
+	return s
+}
+
 func (c *Command) LogString() string {
 	// WARNING: this function is for debugging purposes only. It's much better than old code (which only joins args with space),
 	// It's impossible to make a simple and 100% correct implementation of argument quoting for different platforms here.
-	debugQuote := func(s string) string {
-		if strings.ContainsAny(s, " `'\"\t\r\n") {
-			return fmt.Sprintf("%q", s)
-		}
-		return s
-	}
 	a := make([]string, 0, len(c.args)+1)
 	a = append(a, debugQuote(c.prog))
 	if c.globalArgsLength > 0 {
