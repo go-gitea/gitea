@@ -24,23 +24,38 @@ import (
 func TestPullCompare(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2/repo1/pulls")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find(".new-pr-button").Attr("href")
-	assert.True(t, exists, "The template has changed")
+	t.Run("PullsNewRedirect", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo1/pulls/new/foo")
+		resp := MakeRequest(t, req, http.StatusSeeOther)
+		redirect := test.RedirectURL(resp)
+		assert.Equal(t, "/user2/repo1/compare/master...foo?expand=1", redirect)
 
-	req = NewRequest(t, "GET", link)
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, http.StatusOK, resp.Code)
+		req = NewRequest(t, "GET", "/user13/repo11/pulls/new/foo")
+		resp = MakeRequest(t, req, http.StatusSeeOther)
+		redirect = test.RedirectURL(resp)
+		assert.Equal(t, "/user12/repo10/compare/master...user13:foo?expand=1", redirect)
+	})
 
-	// test the edit button in the PR diff view
-	req = NewRequest(t, "GET", "/user2/repo1/pulls/3/files")
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	doc := NewHTMLParser(t, resp.Body)
-	editButtonCount := doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
-	assert.Positive(t, editButtonCount, "Expected to find a button to edit a file in the PR diff view but there were none")
+	t.Run("ButtonsExist", func(t *testing.T) {
+		session := loginUser(t, "user2")
+
+		// test the "New PR" button
+		req := NewRequest(t, "GET", "/user2/repo1/pulls")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		link, exists := htmlDoc.doc.Find(".new-pr-button").Attr("href")
+		assert.True(t, exists, "The template has changed")
+		req = NewRequest(t, "GET", link)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.EqualValues(t, http.StatusOK, resp.Code)
+
+		// test the edit button in the PR diff view
+		req = NewRequest(t, "GET", "/user2/repo1/pulls/3/files")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		editButtonCount := doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
+		assert.Positive(t, editButtonCount, "Expected to find a button to edit a file in the PR diff view but there were none")
+	})
 
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		defer tests.PrepareTestEnv(t)()
@@ -54,8 +69,8 @@ func TestPullCompare(t *testing.T) {
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		issueIndex := unittest.AssertExistsAndLoadBean(t, &issues_model.IssueIndex{GroupID: repo1.ID}, unittest.OrderBy("group_id ASC"))
 		prFilesURL := fmt.Sprintf("/user2/repo1/pulls/%d/files", issueIndex.MaxIndex)
-		req = NewRequest(t, "GET", prFilesURL)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		req := NewRequest(t, "GET", prFilesURL)
+		resp := session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 		editButtonCount := doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
 		assert.Positive(t, editButtonCount, "Expected to find a button to edit a file in the PR diff view but there were none")

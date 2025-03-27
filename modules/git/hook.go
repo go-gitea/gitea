@@ -7,11 +7,9 @@ package git
 import (
 	"errors"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -51,17 +49,28 @@ func GetHook(repoPath, name string) (*Hook, error) {
 	}
 	h := &Hook{
 		name: name,
-		path: path.Join(repoPath, "hooks", name+".d", name),
+		path: filepath.Join(repoPath, "hooks", name+".d", name),
 	}
-	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
-	if isFile(h.path) {
+	isFile, err := util.IsFile(h.path)
+	if err != nil {
+		return nil, err
+	}
+	if isFile {
 		data, err := os.ReadFile(h.path)
 		if err != nil {
 			return nil, err
 		}
 		h.IsActive = true
 		h.Content = string(data)
-	} else if isFile(samplePath) {
+		return h, nil
+	}
+
+	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
+	isFile, err = util.IsFile(samplePath)
+	if err != nil {
+		return nil, err
+	}
+	if isFile {
 		data, err := os.ReadFile(samplePath)
 		if err != nil {
 			return nil, err
@@ -79,7 +88,11 @@ func (h *Hook) Name() string {
 // Update updates hook settings.
 func (h *Hook) Update() error {
 	if len(strings.TrimSpace(h.Content)) == 0 {
-		if isExist(h.path) {
+		exist, err := util.IsExist(h.path)
+		if err != nil {
+			return err
+		}
+		if exist {
 			err := util.Remove(h.path)
 			if err != nil {
 				return err
@@ -103,7 +116,10 @@ func (h *Hook) Update() error {
 
 // ListHooks returns a list of Git hooks of given repository.
 func ListHooks(repoPath string) (_ []*Hook, err error) {
-	if !isDir(path.Join(repoPath, "hooks")) {
+	exist, err := util.IsDir(filepath.Join(repoPath, "hooks"))
+	if err != nil {
+		return nil, err
+	} else if !exist {
 		return nil, errors.New("hooks path does not exist")
 	}
 
@@ -115,29 +131,4 @@ func ListHooks(repoPath string) (_ []*Hook, err error) {
 		}
 	}
 	return hooks, nil
-}
-
-const (
-	// HookPathUpdate hook update path
-	HookPathUpdate = "hooks/update"
-)
-
-// SetUpdateHook writes given content to update hook of the repository.
-func SetUpdateHook(repoPath, content string) (err error) {
-	log.Debug("Setting update hook: %s", repoPath)
-	hookPath := path.Join(repoPath, HookPathUpdate)
-	isExist, err := util.IsExist(hookPath)
-	if err != nil {
-		log.Debug("Unable to check if %s exists. Error: %v", hookPath, err)
-		return err
-	}
-	if isExist {
-		err = util.Remove(hookPath)
-	} else {
-		err = os.MkdirAll(path.Dir(hookPath), os.ModePerm)
-	}
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(hookPath, []byte(content), 0o777)
 }

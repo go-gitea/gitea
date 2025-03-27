@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
 	path_filter "code.gitea.io/gitea/modules/indexer/code/bleve/token/path"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
@@ -30,7 +29,6 @@ import (
 	"github.com/blevesearch/bleve/v2"
 	analyzer_custom "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
 	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
-	"github.com/blevesearch/bleve/v2/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/letter"
@@ -72,7 +70,7 @@ const (
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
 	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 8
+	repoIndexerLatestVersion = 9
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -109,7 +107,7 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     letter.Name,
-		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name},
+		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}
@@ -218,12 +216,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		r, err := gitrepo.OpenRepository(ctx, repo)
-		if err != nil {
-			return err
-		}
-		defer r.Close()
-		gitBatch, err := r.NewBatch(ctx)
+		gitBatch, err := git.NewBatch(ctx, repo.RepoPath())
 		if err != nil {
 			return err
 		}
