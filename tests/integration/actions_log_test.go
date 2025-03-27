@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -140,6 +142,27 @@ jobs:
 					AddTokenAuth(token)
 				resp := MakeRequest(t, req, http.StatusOK)
 				logTextLines := strings.Split(strings.TrimSpace(resp.Body.String()), "\n")
+				assert.Len(t, logTextLines, len(tc.outcome.logRows))
+				for idx, lr := range tc.outcome.logRows {
+					assert.Equal(
+						t,
+						fmt.Sprintf("%s %s", lr.Time.AsTime().Format("2006-01-02T15:04:05.0000000Z07:00"), lr.Content),
+						logTextLines[idx],
+					)
+				}
+
+				runID, _ := strconv.ParseInt(task.Context.GetFields()["run_id"].GetStringValue(), 10, 64)
+
+				jobs, err := actions_model.GetRunJobsByRunID(t.Context(), runID)
+				assert.NoError(t, err)
+				assert.Len(t, jobs, 1)
+				jobID := jobs[0].ID
+
+				// download task logs from API and check content
+				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d/logs", user2.Name, repo.Name, jobID)).
+					AddTokenAuth(token)
+				resp = MakeRequest(t, req, http.StatusOK)
+				logTextLines = strings.Split(strings.TrimSpace(resp.Body.String()), "\n")
 				assert.Len(t, logTextLines, len(tc.outcome.logRows))
 				for idx, lr := range tc.outcome.logRows {
 					assert.Equal(

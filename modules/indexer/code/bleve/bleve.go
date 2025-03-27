@@ -28,7 +28,6 @@ import (
 	"github.com/blevesearch/bleve/v2"
 	analyzer_custom "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
 	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
-	"github.com/blevesearch/bleve/v2/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/letter"
@@ -70,7 +69,7 @@ const (
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
 	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 8
+	repoIndexerLatestVersion = 9
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -107,7 +106,7 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     letter.Name,
-		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name},
+		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}
@@ -191,7 +190,8 @@ func (b *Indexer) addUpdate(ctx context.Context, batchCatFile *git.BatchCatFile,
 		return err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
-		return nil
+		// Even if the file is not recognized as a "text file", we could still put its name into the indexers to make the filename become searchable, while leave the content to empty.
+		fileContents = nil
 	}
 
 	if _, err = batchReader.Discard(1); err != nil {
@@ -221,10 +221,10 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 		if err != nil {
 			return err
 		}
+		defer gitBatch.Close()
 
 		for _, update := range changes.Updates {
 			if err := b.addUpdate(ctx, gitBatch, sha, update, repo, batch); err != nil {
-				gitBatch.Close()
 				return err
 			}
 		}

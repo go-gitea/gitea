@@ -45,11 +45,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.ProjectID = optional.Some[int64](0) // Those issues with no project(projectid==0)
 	}
 
-	if opts.AssigneeID.Value() == db.NoConditionID {
-		searchOpt.AssigneeID = optional.Some[int64](0) // FIXME: this is inconsistent from other places, 0 means "no assignee"
-	} else if opts.AssigneeID.Value() != 0 {
-		searchOpt.AssigneeID = opts.AssigneeID
-	}
+	searchOpt.AssigneeID = opts.AssigneeID
 
 	// See the comment of issues_model.SearchOptions for the reason why we need to convert
 	convertID := func(id int64) optional.Option[int64] {
