@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"path"
@@ -11,8 +12,15 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -441,4 +449,45 @@ func TestViewCommit(t *testing.T) {
 	req.Header.Add("Accept", "text/html")
 	resp := MakeRequest(t, req, http.StatusNotFound)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "non-existing commit should render 404 page")
+}
+
+func TestGenerateRepository(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// a successful generate from template
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo44 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
+
+	generatedRepo, err := repo_service.GenerateRepository(git.DefaultContext, user2, user2, repo44, repo_service.GenerateRepoOptions{
+		Name:       "generated-from-template-44",
+		GitContent: true,
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, generatedRepo)
+
+	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
+	assert.NoError(t, err)
+	assert.True(t, exist)
+
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
+
+	err = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user2, generatedRepo.ID)
+	assert.NoError(t, err)
+
+	// a failed generate because a timeout
+	ctx, cancel := context.WithTimeout(db.DefaultContext, 1*time.Millisecond)
+	defer cancel()
+	generatedRepo2, err := repo_service.GenerateRepository(ctx, user2, user2, repo44, repo_service.GenerateRepoOptions{
+		Name:       "generated-from-template-44",
+		GitContent: true,
+	})
+	assert.Nil(t, generatedRepo2)
+	assert.Error(t, err)
+
+	// assert the cleanup is successful
+	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
+
+	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
+	assert.NoError(t, err)
+	assert.False(t, exist)
 }

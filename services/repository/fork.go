@@ -120,6 +120,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// last - clean up if something goes wrong
+	// WARNING: Don't override all later err with local variables
 	defer func() {
 		if err != nil {
 			if errDelete := DeleteRepositoryDirectly(ctx, doer, repo.ID); errDelete != nil {
@@ -133,20 +134,22 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	if opts.SingleBranch != "" {
 		cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
 	}
-	if stdout, _, err := cloneCmd.AddDynamicArguments(opts.BaseRepo.RepoPath(), repo.RepoPath()).
+	var stdout []byte
+	if stdout, _, err = cloneCmd.AddDynamicArguments(opts.BaseRepo.RepoPath(), repo.RepoPath()).
 		RunStdBytes(ctx, &git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 		return nil, fmt.Errorf("git clone: %w", err)
 	}
 
 	// 3 - Update the repository
-	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
+	if err = repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
 		return nil, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := git.NewCommand("update-server-info").
+	var output string
+	if output, _, err = git.NewCommand("update-server-info").
 		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
-		log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
+		log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, output, err)
 		return nil, fmt.Errorf("git update-server-info: %w", err)
 	}
 
@@ -156,7 +159,8 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// 5 - Sync the repository branches and tags
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	var gitRepo *git.Repository
+	gitRepo, err = gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -165,19 +169,21 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, doer.ID); err != nil {
 		return nil, fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
 	}
-	if err := repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 		return nil, fmt.Errorf("Sync releases from git tags failed: %v", err)
 	}
 
 	// 6 - Update the repository
 	// even if below operations failed, it could be ignored. And they will be retried
-	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
+		err = nil
 	}
-	if err := repo_model.CopyLanguageStat(ctx, opts.BaseRepo, repo); err != nil {
+	if err = repo_model.CopyLanguageStat(ctx, opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed: %v", err)
+		err = nil
 	}
-	if err := repo_model.CopyLicense(ctx, opts.BaseRepo, repo); err != nil {
+	if err = repo_model.CopyLicense(ctx, opts.BaseRepo, repo); err != nil {
 		return nil, err
 	}
 

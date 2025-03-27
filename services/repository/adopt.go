@@ -73,6 +73,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 	}
 
 	// last - clean up if something goes wrong
+	// WARNING: Don't override all later err with local variables
 	defer func() {
 		if err != nil {
 			if errDel := deleteFailedAdoptRepository(ctx, repo.ID); errDel != nil {
@@ -88,15 +89,16 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 	}
 
 	// 3 - adopt the repository from disk
-	if err := adoptRepository(ctx, repo, opts.DefaultBranch); err != nil {
+	if err = adoptRepository(ctx, repo, opts.DefaultBranch); err != nil {
 		return nil, fmt.Errorf("adoptRepository: %w", err)
 	}
 
-	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
+	if err = repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
 		return nil, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := git.NewCommand("update-server-info").
+	var stdout string
+	if stdout, _, err = git.NewCommand("update-server-info").
 		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return nil, fmt.Errorf("CreateRepository(git update-server-info): %w", err)
