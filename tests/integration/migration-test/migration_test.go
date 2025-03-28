@@ -38,7 +38,7 @@ var currentEngine *xorm.Engine
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
 	giteaRoot := test.SetupGiteaRoot()
-	setting.AppPath = path.Join(giteaRoot, "gitea")
+	setting.AppPath = filepath.Join(giteaRoot, "gitea")
 	if _, err := os.Stat(setting.AppPath); err != nil {
 		testlogger.Fatalf(fmt.Sprintf("Could not find gitea binary at %s\n", setting.AppPath))
 	}
@@ -47,7 +47,7 @@ func initMigrationTest(t *testing.T) func() {
 	if giteaConf == "" {
 		testlogger.Fatalf("Environment variable $GITEA_CONF not set\n")
 	} else if !path.IsAbs(giteaConf) {
-		setting.CustomConf = path.Join(giteaRoot, giteaConf)
+		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
 	}
@@ -55,8 +55,8 @@ func initMigrationTest(t *testing.T) func() {
 	unittest.InitSettings()
 
 	assert.NotEmpty(t, setting.RepoRootPath)
-	assert.NoError(t, unittest.SyncDirs(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, git.InitFull(context.Background()))
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, git.InitFull(t.Context()))
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
 
@@ -248,7 +248,7 @@ func restoreOldDB(t *testing.T, version string) {
 	}
 }
 
-func wrappedMigrate(x *xorm.Engine) error {
+func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {
 	currentEngine = x
 	return migrations.Migrate(x)
 }
@@ -259,13 +259,13 @@ func doMigrationTest(t *testing.T, version string) {
 
 	setting.InitSQLLoggersForCli(log.INFO)
 
-	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
+	err := db.InitEngineWithMigration(t.Context(), wrappedMigrate)
 	assert.NoError(t, err)
 	currentEngine.Close()
 
 	beans, _ := db.NamesToBean()
 
-	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x *xorm.Engine) error {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})
@@ -273,7 +273,7 @@ func doMigrationTest(t *testing.T, version string) {
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
-	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(t.Context(), func(ctx context.Context, x *xorm.Engine) error {
 		currentEngine = x
 		return migrate_base.RecreateTables(beans...)(x)
 	})

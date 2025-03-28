@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/indexer"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -23,11 +24,16 @@ func indexSettingToGitGrepPathspecList() (list []string) {
 	return list
 }
 
-func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Repository, ref git.RefName, keyword string, isFuzzy bool) (searchResults []*code_indexer.Result, total int, err error) {
-	// TODO: it should also respect ParseKeywordAsPhrase and clarify the "fuzzy" behavior
+func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Repository, ref git.RefName, keyword string, searchMode indexer.SearchModeType) (searchResults []*code_indexer.Result, total int, err error) {
+	grepMode := git.GrepModeWords
+	if searchMode == indexer.SearchModeExact {
+		grepMode = git.GrepModeExact
+	} else if searchMode == indexer.SearchModeRegexp {
+		grepMode = git.GrepModeRegexp
+	}
 	res, err := git.GrepSearch(ctx, gitRepo, keyword, git.GrepOptions{
 		ContextLineNumber: 1,
-		IsFuzzy:           isFuzzy,
+		GrepMode:          grepMode,
 		RefName:           ref.String(),
 		PathspecList:      indexSettingToGitGrepPathspecList(),
 	})

@@ -1,22 +1,19 @@
-// Copyright 2024 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package v1_24 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func CreateTableIssueDevLink(x *xorm.Engine) error {
-	type IssueDevLink struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IssueID      int64 `xorm:"INDEX"`
-		LinkType     int
-		LinkedRepoID int64              `xorm:"INDEX"` // it can link to self repo or other repo
-		LinkIndex    string             // branch name, pull request number or commit sha
-		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+func UpdateOwnerIDOfRepoLevelActionsTables(x *xorm.Engine) error {
+	if _, err := x.Exec("UPDATE `action_runner` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0"); err != nil {
+		return err
 	}
-	return x.Sync(new(IssueDevLink))
+	if _, err := x.Exec("UPDATE `action_variable` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0"); err != nil {
+		return err
+	}
+	_, err := x.Exec("UPDATE `secret` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0")
+	return err
 }

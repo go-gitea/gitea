@@ -130,8 +130,13 @@ func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
 	link, exists := htmlDoc.doc.Find(".repo-clone-https").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
+
 	_, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.False(t, exists)
+
+	link, exists = htmlDoc.doc.Find(".repo-clone-tea").Attr("data-link")
+	assert.True(t, exists, "The template has changed")
+	assert.Equal(t, "tea clone user2/repo1", link)
 }
 
 func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
@@ -146,15 +151,20 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	link, exists := htmlDoc.doc.Find(".repo-clone-https").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
+
 	link, exists = htmlDoc.doc.Find(".repo-clone-ssh").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
 	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.SSH.User, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
+
+	link, exists = htmlDoc.doc.Find(".repo-clone-tea").Attr("data-link")
+	assert.True(t, exists, "The template has changed")
+	assert.Equal(t, "tea clone user2/repo1", link)
 }
 
 func TestViewRepoWithSymlinks(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
+	defer test.MockVariableValue(&setting.UI.FileIconTheme, "basic")()
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "GET", "/user2/repo20.git")

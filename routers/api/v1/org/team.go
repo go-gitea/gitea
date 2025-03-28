@@ -59,13 +59,13 @@ func ListTeams(ctx *context.APIContext) {
 		OrgID:       ctx.Org.Organization.ID,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	apiTeams, err := convert.ToTeams(ctx, teams, false)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -98,13 +98,13 @@ func ListUserTeams(ctx *context.APIContext) {
 		UserID:      ctx.Doer.ID,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	apiTeams, err := convert.ToTeams(ctx, teams, true)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -233,7 +233,7 @@ func CreateTeam(ctx *context.APIContext) {
 		} else if len(form.Units) > 0 {
 			attachTeamUnits(team, form.Units)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, errors.New("units permission should not be empty"))
+			ctx.APIErrorInternal(errors.New("units permission should not be empty"))
 			return
 		}
 	} else {
@@ -244,7 +244,7 @@ func CreateTeam(ctx *context.APIContext) {
 		if organization.IsErrTeamAlreadyExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -332,7 +332,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if err := org_service.UpdateTeam(ctx, team, isAuthChanged, isIncludeAllChanged); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -363,7 +363,7 @@ func DeleteTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if err := org_service.DeleteTeam(ctx, ctx.Org.Team); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -399,7 +399,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 
 	isMember, err := organization.IsOrganizationMember(ctx, ctx.Org.Team.OrgID, ctx.Doer.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	} else if !isMember && !ctx.Doer.IsAdmin {
 		ctx.APIErrorNotFound()
@@ -411,7 +411,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 		TeamID:      ctx.Org.Team.ID,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -456,7 +456,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	teamID := ctx.PathParamInt64("teamid")
 	isTeamMember, err := organization.IsUserInTeams(ctx, u.ID, []int64{teamID})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	} else if !isTeamMember {
 		ctx.APIErrorNotFound()
@@ -500,7 +500,7 @@ func AddTeamMember(ctx *context.APIContext) {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.APIError(http.StatusForbidden, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -538,7 +538,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	}
 
 	if err := org_service.RemoveTeamMember(ctx, ctx.Org.Team, u); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -578,14 +578,14 @@ func GetTeamRepos(ctx *context.APIContext) {
 		TeamID:      team.ID,
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	repos := make([]*api.Repository, len(teamRepos))
 	for i, repo := range teamRepos {
 		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		repos[i] = convert.ToRepo(ctx, repo, permission)
@@ -636,7 +636,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 
 	permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -650,7 +650,7 @@ func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.APIErrorNotFound()
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
@@ -694,14 +694,14 @@ func AddTeamRepository(ctx *context.APIContext) {
 		return
 	}
 	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	} else if access < perm.AccessModeAdmin {
 		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
 		return
 	}
 	if err := repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -746,14 +746,14 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		return
 	}
 	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	} else if access < perm.AccessModeAdmin {
 		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
 		return
 	}
 	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -885,7 +885,7 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.SetTotalCountHeader(count)

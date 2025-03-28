@@ -44,16 +44,17 @@ func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer
 	}
 
 	repo, err := repo_model.GetRepositoryByID(ctx, pkg.RepoID)
-	if err != nil {
+	if err != nil && !repo_model.IsErrRepoNotExist(err) {
 		return fmt.Errorf("error getting repository %d: %w", pkg.RepoID, err)
 	}
-
-	perms, err := access_model.GetUserRepoPermission(ctx, repo, doer)
-	if err != nil {
-		return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
-	}
-	if !perms.CanWrite(unit.TypePackages) {
-		return util.ErrPermissionDenied
+	if err == nil {
+		perms, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+		if err != nil {
+			return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
+		}
+		if !perms.CanWrite(unit.TypePackages) {
+			return util.ErrPermissionDenied
+		}
 	}
 
 	user, err := user_model.GetUserByID(ctx, pkg.OwnerID)

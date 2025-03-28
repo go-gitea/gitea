@@ -191,7 +191,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["SystemConfig"] = setting.Config()
@@ -213,13 +213,16 @@ func Contexter() func(next http.Handler) http.Handler {
 // Attention: this function changes ctx.Data and ctx.Flash
 // If HasError is called, then before Redirect, the error message should be stored by ctx.Flash.Error(ctx.GetErrMsg()) again.
 func (ctx *Context) HasError() bool {
-	hasErr, ok := ctx.Data["HasError"]
-	if !ok {
+	hasErr, _ := ctx.Data["HasError"].(bool)
+	hasErr = hasErr || ctx.Flash.ErrorMsg != ""
+	if !hasErr {
 		return false
 	}
-	ctx.Flash.ErrorMsg = ctx.GetErrMsg()
+	if ctx.Flash.ErrorMsg == "" {
+		ctx.Flash.ErrorMsg = ctx.GetErrMsg()
+	}
 	ctx.Data["Flash"] = ctx.Flash
-	return hasErr.(bool)
+	return hasErr
 }
 
 // GetErrMsg returns error message in form validation.

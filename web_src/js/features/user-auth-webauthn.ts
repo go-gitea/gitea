@@ -1,5 +1,5 @@
 import {encodeURLEncodedBase64, decodeURLEncodedBase64} from '../utils.ts';
-import {showElem} from '../utils/dom.ts';
+import {hideElem, showElem} from '../utils/dom.ts';
 import {GET, POST} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
@@ -8,6 +8,12 @@ export async function initUserAuthWebAuthn() {
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
   if (!elPrompt && !elSignInPasskeyBtn) {
+    return;
+  }
+
+  // webauthn is only supported on secure contexts
+  if (!window.isSecureContext) {
+    hideElem(elSignInPasskeyBtn);
     return;
   }
 

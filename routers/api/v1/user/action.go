@@ -49,14 +49,14 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"), opt.Data)
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -98,7 +98,7 @@ func DeleteSecret(ctx *context.APIContext) {
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -145,7 +145,7 @@ func CreateVariable(ctx *context.APIContext) {
 		Name:    variableName,
 	})
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if v != nil && v.ID > 0 {
@@ -153,11 +153,11 @@ func CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value); err != nil {
+	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value, opt.Description); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -204,7 +204,7 @@ func UpdateVariable(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -215,12 +215,13 @@ func UpdateVariable(ctx *context.APIContext) {
 
 	v.Name = opt.Name
 	v.Data = opt.Value
+	v.Description = opt.Description
 
 	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -257,7 +258,7 @@ func DeleteVariable(ctx *context.APIContext) {
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -294,16 +295,17 @@ func GetVariable(ctx *context.APIContext) {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.APIError(http.StatusInternalServerError, err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	variable := &api.ActionVariable{
-		OwnerID: v.OwnerID,
-		RepoID:  v.RepoID,
-		Name:    v.Name,
-		Data:    v.Data,
+		OwnerID:     v.OwnerID,
+		RepoID:      v.RepoID,
+		Name:        v.Name,
+		Data:        v.Data,
+		Description: v.Description,
 	}
 
 	ctx.JSON(http.StatusOK, variable)
@@ -338,17 +340,18 @@ func ListVariables(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	variables := make([]*api.ActionVariable, len(vars))
 	for i, v := range vars {
 		variables[i] = &api.ActionVariable{
-			OwnerID: v.OwnerID,
-			RepoID:  v.RepoID,
-			Name:    v.Name,
-			Data:    v.Data,
+			OwnerID:     v.OwnerID,
+			RepoID:      v.RepoID,
+			Name:        v.Name,
+			Data:        v.Data,
+			Description: v.Description,
 		}
 	}
 

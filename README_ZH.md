@@ -93,10 +93,64 @@ Gitea 提供官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，以及名为 [t
 <details>
 <summary>截图</summary>
 
-|![Dashboard](https://dl.gitea.com/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.com/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.com/screenshots/global_issues.png)|
-|:---:|:---:|:---:|
-|![Branches](https://dl.gitea.com/screenshots/branches.png)|![Web Editor](https://dl.gitea.com/screenshots/web_editor.png)|![Activity](https://dl.gitea.com/screenshots/activity.png)|
-|![New Migration](https://dl.gitea.com/screenshots/migration.png)|![Migrating](https://dl.gitea.com/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)|
-|![Pull Request Dark](https://dl.gitea.com/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.com/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.com/screenshots/diff_dark.png)|
+### 登录界面
+
+![登录](https://dl.gitea.com/screenshots/login.png)
+![注册](https://dl.gitea.com/screenshots/register.png)
+
+### 用户首页
+
+![首页](https://dl.gitea.com/screenshots/home.png)
+![工单列表](https://dl.gitea.com/screenshots/issues.png)
+![合并请求列表](https://dl.gitea.com/screenshots/pull_requests.png)
+![里程碑列表](https://dl.gitea.com/screenshots/milestones.png)
+
+### 用户资料
+
+![用户资料](https://dl.gitea.com/screenshots/user_profile.png)
+
+### 探索
+
+![仓库列表](https://dl.gitea.com/screenshots/explore_repos.png)
+![用户列表](https://dl.gitea.com/screenshots/explore_users.png)
+![组织列表](https://dl.gitea.com/screenshots/explore_orgs.png)
+
+### 仓库
+
+![首页](https://dl.gitea.com/screenshots/repo_home.png)
+![提交列表](https://dl.gitea.com/screenshots/repo_commits.png)
+![分支列表](https://dl.gitea.com/screenshots/repo_branches.png)
+![标签列表](https://dl.gitea.com/screenshots/repo_labels.png)
+![里程碑列表](https://dl.gitea.com/screenshots/repo_milestones.png)
+![版本发布](https://dl.gitea.com/screenshots/repo_releases.png)
+![标签列表](https://dl.gitea.com/screenshots/repo_tags.png)
+
+#### 仓库工单
+
+![列表](https://dl.gitea.com/screenshots/repo_issues.png)
+![工单](https://dl.gitea.com/screenshots/repo_issue.png)
+
+#### 仓库合并请求
+
+![列表](https://dl.gitea.com/screenshots/repo_pull_requests.png)
+![合并请求](https://dl.gitea.com/screenshots/repo_pull_request.png)
+![文件](https://dl.gitea.com/screenshots/repo_pull_request_file.png)
+![提交列表](https://dl.gitea.com/screenshots/repo_pull_request_commits.png)
+
+#### 仓库 Actions
+
+![列表](https://dl.gitea.com/screenshots/repo_actions.png)
+![Run](https://dl.gitea.com/screenshots/repo_actions_run.png)
+
+#### 仓库动态
+
+![动态](https://dl.gitea.com/screenshots/repo_activity.png)
+![贡献者](https://dl.gitea.com/screenshots/repo_contributors.png)
+![代码频率](https://dl.gitea.com/screenshots/repo_code_frequency.png)
+![最近的提交](https://dl.gitea.com/screenshots/repo_recent_commits.png)
+
+### 组织
+
+![首页](https://dl.gitea.com/screenshots/org_home.png)
 
 </details>

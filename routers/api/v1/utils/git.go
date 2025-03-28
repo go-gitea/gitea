@@ -26,7 +26,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 	for _, refType := range []string{"heads", "tags"} {
 		refSHA, lastMethodName, err := searchRefCommitByType(ctx, refType, ref)
 		if err != nil {
-			ctx.APIError(http.StatusInternalServerError, fmt.Errorf("%s: %w", lastMethodName, err))
+			ctx.APIErrorInternal(fmt.Errorf("%s: %w", lastMethodName, err))
 			return ""
 		}
 		if refSHA != "" {

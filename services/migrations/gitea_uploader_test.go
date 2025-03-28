@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,7 +39,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	var (
-		ctx        = context.Background()
+		ctx        = t.Context()
 		downloader = NewGithubDownloaderV3(ctx, "https://github.com", "", "", "", "go-xorm", "builder")
 		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
@@ -132,7 +131,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	repoName := "migrated"
 	uploader := NewGiteaLocalUploader(ctx, doer, doer.Name, repoName)
 	// call remapLocalUser
@@ -181,7 +180,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	ctx := context.Background()
+	ctx := t.Context()
 	repoName := "migrated"
 	uploader := NewGiteaLocalUploader(ctx, doer, doer.Name, repoName)
 	uploader.gitServiceType = structs.GiteaService
@@ -238,7 +237,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	fromRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	baseRef := "master"
 	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
-	err := git.NewCommand(git.DefaultContext, "symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(&git.RunOpts{Dir: fromRepo.RepoPath()})
+	err := git.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(git.DefaultContext, &git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", fromRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -262,7 +261,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	// fromRepo branch1
 	//
 	headRef := "branch1"
-	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b").AddDynamicArguments(headRef).RunStdString(&git.RunOpts{Dir: fromRepo.RepoPath()})
+	_, _, err = git.NewCommand("checkout", "-b").AddDynamicArguments(headRef).RunStdString(git.DefaultContext, &git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("SOMETHING"), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -286,7 +285,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	assert.NoError(t, git.CloneWithArgs(git.DefaultContext, nil, fromRepo.RepoPath(), forkRepo.RepoPath(), git.CloneRepoOptions{
 		Branch: headRef,
 	}))
-	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b").AddDynamicArguments(forkHeadRef).RunStdString(&git.RunOpts{Dir: forkRepo.RepoPath()})
+	_, _, err = git.NewCommand("checkout", "-b").AddDynamicArguments(forkHeadRef).RunStdString(git.DefaultContext, &git.RunOpts{Dir: forkRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# branch2 %s", forkRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(forkRepo.RepoPath(), true))
@@ -302,11 +301,11 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	toRepoName := "migrated"
-	ctx := context.Background()
+	ctx := t.Context()
 	uploader := NewGiteaLocalUploader(ctx, fromRepoOwner, fromRepoOwner.Name, toRepoName)
 	uploader.gitServiceType = structs.GiteaService
 
-	assert.NoError(t, repo_service.Init(context.Background()))
+	assert.NoError(t, repo_service.Init(t.Context()))
 	assert.NoError(t, uploader.CreateRepo(ctx, &base.Repository{
 		Description: "description",
 		OriginalURL: fromRepo.RepoPath(),

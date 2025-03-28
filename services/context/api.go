@@ -5,6 +5,7 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	web_types "code.gitea.io/gitea/modules/web/types"
 )
@@ -108,7 +110,11 @@ type APIRepoArchivedError struct {
 
 // APIErrorInternal responds with error message, status is 500
 func (ctx *APIContext) APIErrorInternal(err error) {
-	log.ErrorWithSkip(1, "InternalServerError: %v", err)
+	ctx.apiErrorInternal(1, err)
+}
+
+func (ctx *APIContext) apiErrorInternal(skip int, err error) {
+	log.ErrorWithSkip(skip+1, "InternalServerError: %v", err)
 
 	var message string
 	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
@@ -226,7 +232,7 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
@@ -273,7 +279,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) {
 			var err error
 			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 			if err != nil {
-				ctx.APIError(http.StatusInternalServerError, err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 		}
@@ -285,6 +291,11 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := GetAPIContext(req)
 
+		if ctx.Repo.Repository.IsEmpty {
+			ctx.APIErrorNotFound("repository is empty")
+			return
+		}
+
 		if ctx.Repo.GitRepo == nil {
 			ctx.APIErrorInternal(fmt.Errorf("no open git repo"))
 			return
@@ -293,14 +304,14 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		refName, _, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
 
-		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+		} else if gitrepo.IsTagExist(ctx, ctx.Repo.Repository, refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -344,12 +355,12 @@ func (ctx *APIContext) GetErrMsg() string {
 // NotFoundOrServerError use error check function to determine if the error
 // is about not found. It responds with 404 status code for not found error,
 // or error context description for logging purpose of 500 server error.
-func (ctx *APIContext) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
-	if errCheck(logErr) {
+func (ctx *APIContext) NotFoundOrServerError(err error) {
+	if errors.Is(err, util.ErrNotExist) {
 		ctx.JSON(http.StatusNotFound, nil)
 		return
 	}
-	ctx.APIError(http.StatusInternalServerError, logMsg)
+	ctx.APIErrorInternal(err)
 }
 
 // IsUserSiteAdmin returns true if current user is a site admin

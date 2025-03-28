@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/internal"
 )
 
@@ -18,6 +19,7 @@ type Indexer interface {
 	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *RepoChanges) error
 	Delete(ctx context.Context, repoID int64) error
 	Search(ctx context.Context, opts *SearchOptions) (int64, []*SearchResult, []*SearchResultLanguages, error)
+	SupportedSearchModes() []indexer.SearchMode
 }
 
 type SearchOptions struct {
@@ -25,7 +27,7 @@ type SearchOptions struct {
 	Keyword  string
 	Language string
 
-	IsKeywordFuzzy bool
+	SearchMode indexer.SearchModeType
 
 	db.Paginator
 }
@@ -39,6 +41,10 @@ func NewDummyIndexer() Indexer {
 
 type dummyIndexer struct {
 	internal.Indexer
+}
+
+func (d *dummyIndexer) SupportedSearchModes() []indexer.SearchMode {
+	return nil
 }
 
 func (d *dummyIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *RepoChanges) error {

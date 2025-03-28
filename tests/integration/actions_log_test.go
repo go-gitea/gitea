@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -35,7 +37,7 @@ func TestDownloadTaskLogs(t *testing.T) {
 		{
 			treePath: ".gitea/workflows/download-task-logs-zstd.yml",
 			fileContent: `name: download-task-logs-zstd
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/download-task-logs-zstd.yml'
@@ -67,7 +69,7 @@ jobs:
 		{
 			treePath: ".gitea/workflows/download-task-logs-no-zstd.yml",
 			fileContent: `name: download-task-logs-no-zstd
-on: 
+on:
   push:
     paths:
       - '.gitea/workflows/download-task-logs-no-zstd.yml'
@@ -105,7 +107,7 @@ jobs:
 		apiRepo := createActionsTestRepo(t, token, "actions-download-task-logs", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"})
+		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		for _, tc := range testCases {
 			t.Run(fmt.Sprintf("test %s", tc.treePath), func(t *testing.T) {
@@ -149,11 +151,29 @@ jobs:
 					)
 				}
 
+				runID, _ := strconv.ParseInt(task.Context.GetFields()["run_id"].GetStringValue(), 10, 64)
+
+				jobs, err := actions_model.GetRunJobsByRunID(t.Context(), runID)
+				assert.NoError(t, err)
+				assert.Len(t, jobs, 1)
+				jobID := jobs[0].ID
+
+				// download task logs from API and check content
+				req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d/logs", user2.Name, repo.Name, jobID)).
+					AddTokenAuth(token)
+				resp = MakeRequest(t, req, http.StatusOK)
+				logTextLines = strings.Split(strings.TrimSpace(resp.Body.String()), "\n")
+				assert.Len(t, logTextLines, len(tc.outcome.logRows))
+				for idx, lr := range tc.outcome.logRows {
+					assert.Equal(
+						t,
+						fmt.Sprintf("%s %s", lr.Time.AsTime().Format("2006-01-02T15:04:05.0000000Z07:00"), lr.Content),
+						logTextLines[idx],
+					)
+				}
+
 				resetFunc()
 			})
 		}
-
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		doAPIDeleteRepository(httpContext)(t)
 	})
 }
