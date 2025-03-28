@@ -3,6 +3,11 @@
 
 package setting
 
+import (
+	"os"
+	"path/filepath"
+)
+
 // Global settings
 var (
 	// RunUser is the OS user that Gitea is running as. ini:"RUN_USER"
@@ -19,3 +24,7 @@ var (
 	// TempPath is the directory used for temporary files. ini: "TEMP_PATH"
 	TempPath string
 )
+
+func init() {
+	TempPath = filepath.Join(os.TempDir(), "gitea")
+}

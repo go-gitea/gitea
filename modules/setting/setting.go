@@ -7,7 +7,6 @@ package setting
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -186,7 +185,10 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 
 func loadTempDir(rootCfg ConfigProvider) {
 	rootSec := rootCfg.Section("")
-	TempPath = rootSec.Key("TEMP_PATH").MustString(filepath.Join(os.TempDir(), "gitea"))
+	tempPath := rootSec.Key("TEMP_PATH").String()
+	if tempPath != "" {
+		TempPath = tempPath
+	}
 	if TempPath != "" {
 		if err := os.MkdirAll(TempPath, os.ModePerm); err != nil {
 			log.Fatal("Failed to create temp directory %s: %v", TempPath, err)
