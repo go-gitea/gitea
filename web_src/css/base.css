@@ -989,6 +989,7 @@ table th[data-sortt-desc] .svg {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 
+/* for "image" emojis like ":git:"  ":gitea:" and ":github:" (see CUSTOM_EMOJIS config option) */
 .emoji img {
   border-width: 0 !important;
   margin: 0 !important;
