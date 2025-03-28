@@ -93,13 +93,13 @@ func GenerateBadge(label, message, color string) Badge {
 
 func calculateTextWidth(text string) int {
 	width := 0
-
+	widthData := DejaVuGlyphWidthData()
 	for _, char := range strings.TrimSpace(text) {
-		charWidth, ok := DejaVuGlyphWidthData[char]
+		charWidth, ok := widthData[char]
 		if !ok {
 			// use the width of 'm' in case of missing glyph width data for a printable character
 			if unicode.IsPrint(char) {
-				charWidth = DejaVuGlyphWidthData['m']
+				charWidth = widthData['m']
 			} else {
 				charWidth = 0
 			}
