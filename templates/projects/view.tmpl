@@ -1,7 +1,7 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
 <div class="ui container tw-max-w-full">
-	<div class="tw-flex tw-justify-between tw-items-center tw-mb-4 tw-gap-3">
+	<div class="tw-flex tw-flex-wrap tw-justify-end tw-items-center tw-mb-4 tw-gap-3">
 		<h2 class="tw-mb-0 tw-flex-1 tw-break-anywhere">{{.Project.Title}}</h2>
 			<div class="project-toolbar-right">
 				<div class="ui secondary filter menu labels">
