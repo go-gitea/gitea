@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"net/http"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/context"
 
 	"github.com/golang-jwt/jwt/v5"
 )
