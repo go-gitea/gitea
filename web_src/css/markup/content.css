@@ -336,10 +336,6 @@
   padding-right: 28px;
 }
 
-.markup .emoji {
-  max-width: none;
-}
-
 .markup span.frame {
   display: block;
   overflow: hidden;
