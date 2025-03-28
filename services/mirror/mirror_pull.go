@@ -11,7 +11,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -429,15 +428,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)
 	}
 
-	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
-	branches, _, err := gitrepo.GetBranchesByPath(ctx, m.Repo, 0, 0)
-	if err != nil {
-		log.Error("SyncMirrors [repo: %-v]: failed to GetBranches: %v", m.Repo, err)
-		return nil, false
-	}
-
-	for _, branch := range branches {
-		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch.Name, true))
+	if err := repo_service.SyncRepoBranchesCommitsCount(ctx, m.Repo); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: failed to sync branches commits count: %v", m.Repo, err)
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
