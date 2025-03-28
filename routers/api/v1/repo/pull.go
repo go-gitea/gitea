@@ -15,6 +15,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -541,8 +542,16 @@ func CreatePullRequest(ctx *context.APIContext) {
 		PullRequest: pr,
 		AssigneeIDs: assigneeIDs,
 	}
-	prOpts.Reviewers, prOpts.TeamReviewers = parseReviewersByNames(ctx, form.Reviewers, form.TeamReviewers)
-	if ctx.Written() {
+	prOpts.Reviewers, prOpts.TeamReviewers, err = parseReviewersByNames(ctx, form.Reviewers, form.TeamReviewers)
+	switch {
+	case user_model.IsErrUserNotExist(err):
+		ctx.APIErrorNotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", err.(user_model.ErrUserNotExist).Name))
+		return
+	case organization.IsErrTeamNotExist(err):
+		ctx.APIErrorNotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", err.(organization.ErrTeamNotExist).Name))
+		return
+	case err != nil:
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
 
