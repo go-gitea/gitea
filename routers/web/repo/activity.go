@@ -51,6 +51,7 @@ func Activity(ctx *context.Context) {
 	ctx.Data["DateFrom"] = timeFrom
 	ctx.Data["DateUntil"] = timeUntil
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
+	ctx.Data["CanReadCode"] = ctx.Repo.CanRead(unit.TypeCode)
 
 	var err error
 	if ctx.Data["Activity"], err = activities_model.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom,

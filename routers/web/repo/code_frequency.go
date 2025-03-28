@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	contributors_service "code.gitea.io/gitea/services/repository"
@@ -23,6 +24,7 @@ func CodeFrequency(ctx *context.Context) {
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsCodeFrequency"] = true
 	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
+	ctx.Data["CanReadCode"] = ctx.Repo.CanRead(unit.TypeCode)
 
 	ctx.HTML(http.StatusOK, tplCodeFrequency)
 }

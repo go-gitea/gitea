@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	contributors_service "code.gitea.io/gitea/services/repository"
@@ -21,6 +22,8 @@ func Contributors(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.activity.navbar.contributors")
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsContributors"] = true
+	ctx.Data["CanReadCode"] = ctx.Repo.CanRead(unit.TypeCode)
+
 	ctx.HTML(http.StatusOK, tplContributors)
 }
 
