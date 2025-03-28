@@ -1155,6 +1155,11 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
+.flex-text-block > .ui.button,
+.flex-text-inline > .ui.button {
+  margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */
+}
+
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
 the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden */
 .ui.dropdown .menu.flex-items-menu > .item:not(.hidden, .filtered, .tw-hidden) {
