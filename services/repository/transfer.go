@@ -54,16 +54,16 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 		return err
 	}
 
-	if !doer.IsAdmin && !repoTransfer.Recipient.CanCreateRepo() {
-		limit := util.Iif(repoTransfer.Recipient.MaxRepoCreation >= 0, repoTransfer.Recipient.MaxRepoCreation, setting.Repository.MaxCreationLimit)
-		return RepositoryLimitReachedError{Limit: limit}
-	}
-
 	oldOwnerName := repo.OwnerName
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			return err
+		}
+
+		if !doer.IsAdmin && !repoTransfer.Recipient.CanCreateRepo() {
+			limit := util.Iif(repoTransfer.Recipient.MaxRepoCreation >= 0, repoTransfer.Recipient.MaxRepoCreation, setting.Repository.MaxCreationLimit)
+			return RepositoryLimitReachedError{Limit: limit}
 		}
 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
