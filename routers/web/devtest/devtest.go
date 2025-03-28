@@ -4,16 +4,21 @@
 package devtest
 
 import (
+	"html/template"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/badge"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -45,84 +50,121 @@ func FetchActionTest(ctx *context.Context) {
 	ctx.JSONRedirect("")
 }
 
-func prepareMockData(ctx *context.Context) {
-	if ctx.Req.URL.Path == "/devtest/gitea-ui" {
-		now := time.Now()
-		ctx.Data["TimeNow"] = now
-		ctx.Data["TimePast5s"] = now.Add(-5 * time.Second)
-		ctx.Data["TimeFuture5s"] = now.Add(5 * time.Second)
-		ctx.Data["TimePast2m"] = now.Add(-2 * time.Minute)
-		ctx.Data["TimeFuture2m"] = now.Add(2 * time.Minute)
-		ctx.Data["TimePast1y"] = now.Add(-1 * 366 * 86400 * time.Second)
-		ctx.Data["TimeFuture1y"] = now.Add(1 * 366 * 86400 * time.Second)
+func prepareMockDataGiteaUI(ctx *context.Context) {
+	now := time.Now()
+	ctx.Data["TimeNow"] = now
+	ctx.Data["TimePast5s"] = now.Add(-5 * time.Second)
+	ctx.Data["TimeFuture5s"] = now.Add(5 * time.Second)
+	ctx.Data["TimePast2m"] = now.Add(-2 * time.Minute)
+	ctx.Data["TimeFuture2m"] = now.Add(2 * time.Minute)
+	ctx.Data["TimePast1y"] = now.Add(-1 * 366 * 86400 * time.Second)
+	ctx.Data["TimeFuture1y"] = now.Add(1 * 366 * 86400 * time.Second)
+}
+
+func prepareMockDataBadgeCommitSign(ctx *context.Context) {
+	var commits []*asymkey.SignCommit
+	mockUsers, _ := db.Find[user_model.User](ctx, user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 1}})
+	mockUser := mockUsers[0]
+	commits = append(commits, &asymkey.SignCommit{
+		Verification: &asymkey.CommitVerification{},
+		UserCommit: &user_model.UserCommit{
+			Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
+		},
+	})
+	commits = append(commits, &asymkey.SignCommit{
+		Verification: &asymkey.CommitVerification{
+			Verified:    true,
+			Reason:      "name / key-id",
+			SigningUser: mockUser,
+			SigningKey:  &asymkey.GPGKey{KeyID: "12345678"},
+			TrustStatus: "trusted",
+		},
+		UserCommit: &user_model.UserCommit{
+			User:   mockUser,
+			Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
+		},
+	})
+	commits = append(commits, &asymkey.SignCommit{
+		Verification: &asymkey.CommitVerification{
+			Verified:      true,
+			Reason:        "name / key-id",
+			SigningUser:   mockUser,
+			SigningSSHKey: &asymkey.PublicKey{Fingerprint: "aa:bb:cc:dd:ee"},
+			TrustStatus:   "untrusted",
+		},
+		UserCommit: &user_model.UserCommit{
+			User:   mockUser,
+			Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
+		},
+	})
+	commits = append(commits, &asymkey.SignCommit{
+		Verification: &asymkey.CommitVerification{
+			Verified:      true,
+			Reason:        "name / key-id",
+			SigningUser:   mockUser,
+			SigningSSHKey: &asymkey.PublicKey{Fingerprint: "aa:bb:cc:dd:ee"},
+			TrustStatus:   "other(unmatch)",
+		},
+		UserCommit: &user_model.UserCommit{
+			User:   mockUser,
+			Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
+		},
+	})
+	commits = append(commits, &asymkey.SignCommit{
+		Verification: &asymkey.CommitVerification{
+			Warning:      true,
+			Reason:       "gpg.error",
+			SigningEmail: "test@example.com",
+		},
+		UserCommit: &user_model.UserCommit{
+			User:   mockUser,
+			Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
+		},
+	})
+
+	ctx.Data["MockCommits"] = commits
+}
+
+func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
+	fontFamilyNames := strings.Split(badge.DefaultFontFamily, ",")
+	selectedFontFamilyName := ctx.FormString("font", fontFamilyNames[0])
+	var badges []badge.Badge
+	badges = append(badges, badge.GenerateBadge("啊啊啊啊啊啊啊啊啊啊啊啊", "🌞🌞🌞🌞🌞", "green"))
+	for r := rune(0); r < 256; r++ {
+		if unicode.IsPrint(r) {
+			s := strings.Repeat(string(r), 15)
+			badges = append(badges, badge.GenerateBadge(s, util.TruncateRunes(s, 7), "green"))
+		}
 	}
 
-	if ctx.Req.URL.Path == "/devtest/commit-sign-badge" {
-		var commits []*asymkey.SignCommit
-		mockUsers, _ := db.Find[user_model.User](ctx, user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 1}})
-		mockUser := mockUsers[0]
-		commits = append(commits, &asymkey.SignCommit{
-			Verification: &asymkey.CommitVerification{},
-			UserCommit: &user_model.UserCommit{
-				Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
-			},
-		})
-		commits = append(commits, &asymkey.SignCommit{
-			Verification: &asymkey.CommitVerification{
-				Verified:    true,
-				Reason:      "name / key-id",
-				SigningUser: mockUser,
-				SigningKey:  &asymkey.GPGKey{KeyID: "12345678"},
-				TrustStatus: "trusted",
-			},
-			UserCommit: &user_model.UserCommit{
-				User:   mockUser,
-				Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
-			},
-		})
-		commits = append(commits, &asymkey.SignCommit{
-			Verification: &asymkey.CommitVerification{
-				Verified:      true,
-				Reason:        "name / key-id",
-				SigningUser:   mockUser,
-				SigningSSHKey: &asymkey.PublicKey{Fingerprint: "aa:bb:cc:dd:ee"},
-				TrustStatus:   "untrusted",
-			},
-			UserCommit: &user_model.UserCommit{
-				User:   mockUser,
-				Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
-			},
-		})
-		commits = append(commits, &asymkey.SignCommit{
-			Verification: &asymkey.CommitVerification{
-				Verified:      true,
-				Reason:        "name / key-id",
-				SigningUser:   mockUser,
-				SigningSSHKey: &asymkey.PublicKey{Fingerprint: "aa:bb:cc:dd:ee"},
-				TrustStatus:   "other(unmatch)",
-			},
-			UserCommit: &user_model.UserCommit{
-				User:   mockUser,
-				Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
-			},
-		})
-		commits = append(commits, &asymkey.SignCommit{
-			Verification: &asymkey.CommitVerification{
-				Warning:      true,
-				Reason:       "gpg.error",
-				SigningEmail: "test@example.com",
-			},
-			UserCommit: &user_model.UserCommit{
-				User:   mockUser,
-				Commit: &git.Commit{ID: git.Sha1ObjectFormat.EmptyObjectID()},
-			},
-		})
+	var badgeSVGs []template.HTML
+	for i, b := range badges {
+		b.IDPrefix = "devtest-" + strconv.FormatInt(int64(i), 10) + "-"
+		b.FontFamily = selectedFontFamilyName
+		h, err := ctx.RenderToHTML("shared/actions/runner_badge", map[string]any{"Badge": b})
+		if err != nil {
+			ctx.ServerError("RenderToHTML", err)
+			return
+		}
+		badgeSVGs = append(badgeSVGs, h)
+	}
+	ctx.Data["BadgeSVGs"] = badgeSVGs
+	ctx.Data["BadgeFontFamilyNames"] = fontFamilyNames
+	ctx.Data["SelectedFontFamilyName"] = selectedFontFamilyName
+}
 
-		ctx.Data["MockCommits"] = commits
+func prepareMockData(ctx *context.Context) {
+	switch ctx.Req.URL.Path {
+	case "/devtest/gitea-ui":
+		prepareMockDataGiteaUI(ctx)
+	case "/devtest/badge-commit-sign":
+		prepareMockDataBadgeCommitSign(ctx)
+	case "/devtest/badge-actions-svg":
+		prepareMockDataBadgeActionsSvg(ctx)
 	}
 }
 
-func Tmpl(ctx *context.Context) {
+func TmplCommon(ctx *context.Context) {
 	prepareMockData(ctx)
 	if ctx.Req.Method == "POST" {
 		_ = ctx.Req.ParseForm()
