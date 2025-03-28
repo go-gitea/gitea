@@ -4,6 +4,7 @@
 package badge
 
 import (
+	"strings"
 	"unicode"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -93,7 +94,7 @@ func GenerateBadge(label, message, color string) Badge {
 func calculateTextWidth(text string) int {
 	width := 0
 
-	for _, char := range text {
+	for _, char := range strings.TrimSpace(text) {
 		charWidth, ok := DejaVuGlyphWidthData[char]
 		if !ok {
 			// use the width of 'm' in case of missing glyph width data for a printable character
