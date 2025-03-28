@@ -79,7 +79,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		log.Error("CreateTemporaryPath[%-v]: %v", pr, err)
 		return nil, nil, err
 	}
-	defer cleanup()
+	cancel = cleanup
 
 	prCtx = &prContext{
 		Context:     ctx,

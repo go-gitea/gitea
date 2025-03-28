@@ -36,16 +36,8 @@ func CreateTemporaryPath(prefix string) (string, context.CancelFunc, error) {
 		return "", func() {}, fmt.Errorf("failed to create dir %s-*.git: %w", prefix, err)
 	}
 	return basePath, func() {
-		if err := removeTemporaryPath(basePath); err != nil {
+		if err := util.RemoveAll(basePath); err != nil {
 			log.Error("Unable to remove temporary directory: %s (%v)", basePath, err)
 		}
 	}, nil
-}
-
-// removeTemporaryPath removes the temporary path
-func removeTemporaryPath(basePath string) error {
-	if _, err := os.Stat(basePath); !os.IsNotExist(err) {
-		return util.RemoveAll(basePath)
-	}
-	return nil
 }
