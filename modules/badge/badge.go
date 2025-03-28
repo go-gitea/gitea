@@ -36,6 +36,7 @@ func (t Text) TextLength() int {
 }
 
 type Badge struct {
+	IDPrefix string
 	Color    string
 	FontSize int
 	Label    Text

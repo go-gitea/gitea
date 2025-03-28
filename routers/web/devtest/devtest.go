@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -132,7 +133,8 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 		}
 	}
 	var mockSVGs []template.HTML
-	for _, b := range badges {
+	for i, b := range badges {
+		b.IDPrefix = "devtest-" + strconv.FormatInt(int64(i), 10) + "-"
 		h, err := ctx.RenderToHTML("shared/actions/runner_badge", map[string]any{"Badge": b})
 		if err != nil {
 			ctx.ServerError("RenderToHTML", err)

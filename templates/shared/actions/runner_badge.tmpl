@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{{.Badge.Width}}" height="20"
 	role="img" aria-label="{{.Badge.Label.Text}}: {{.Badge.Message.Text}}">
 	<title>{{.Badge.Label.Text}}: {{.Badge.Message.Text}}</title>
-	<linearGradient id="s" x2="0" y2="100%">
+	<linearGradient id="{{.Badge.IDPrefix}}s" x2="0" y2="100%">
 		<stop offset="0" stop-color="#bbb" stop-opacity=".1" />
 		<stop offset="1" stop-opacity=".1" />
 	</linearGradient>
-	<clipPath id="r">
+	<clipPath id="{{.Badge.IDPrefix}}r">
 		<rect width="{{.Badge.Width}}" height="20" rx="3" fill="#fff" />
 	</clipPath>
-	<g clip-path="url(#r)">
+	<g clip-path="url(#{{.Badge.IDPrefix}}r)">
 		<rect width="{{.Badge.Label.Width}}" height="20" fill="#555" />
 		<rect x="{{.Badge.Label.Width}}" width="{{.Badge.Message.Width}}" height="20" fill="{{.Badge.Color}}" />
-		<rect width="{{.Badge.Width}}" height="20" fill="url(#s)" />
+		<rect width="{{.Badge.Width}}" height="20" fill="url(#{{.Badge.IDPrefix}}s)" />
 	</g>
 	<g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif"
 		text-rendering="geometricPrecision" font-size="{{.Badge.FontSize}}">
