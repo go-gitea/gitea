@@ -25,6 +25,9 @@
 							<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.internal"}}">{{svg "octicon-shield-lock" 18}}</div>
 						{{end}}
 					{{end}}
+					{{if $.Permission.HasAnyUnitPublicAccess}}
+						<span class="ui basic orange label">{{ctx.Locale.Tr "repo.desc.public_access"}}</span>
+					{{end}}
 					{{if .IsTemplate}}
 						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>

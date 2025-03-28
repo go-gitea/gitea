@@ -4,6 +4,9 @@
 		<a class="{{if .PageIsSettingsOptions}}active {{end}}item" href="{{.RepoLink}}/settings">
 			{{ctx.Locale.Tr "repo.settings.options"}}
 		</a>
+		<a class="{{if .PageIsSettingsPublicAccess}}active {{end}}item" href="{{.RepoLink}}/settings/public_access">
+			{{ctx.Locale.Tr "repo.settings.public_access"}}
+		</a>
 		<a class="{{if .PageIsSettingsCollaboration}}active {{end}}item" href="{{.RepoLink}}/settings/collaboration">
 			{{ctx.Locale.Tr "repo.settings.collaboration"}}
 		</a>
