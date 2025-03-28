@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -30,23 +31,23 @@ type IDTokenErrorResponse struct {
 type IDToken struct {
 	jwt.RegisteredClaims
 
-	Ref                  string `json:"ref,omitempty"`
-	SHA                  string `json:"sha,omitempty"`
-	Repository           string `json:"repository,omitempty"`
-	RepositoryOwner      string `json:"repository_owner,omitempty"`
-	RepositoryOwnerID    int    `json:"repository_owner_id,omitempty"`
-	RunID                int    `json:"run_id,omitempty"`
-	RunNumber            int    `json:"run_number,omitempty"`
-	RunAttempt           int    `json:"run_attempt,omitempty"`
-	RepositoryVisibility string `json:"repository_visibility,omitempty"`
-	RepositoryID         int    `json:"repository_id,omitempty"`
-	ActorID              int    `json:"actor_id,omitempty"`
-	Actor                string `json:"actor,omitempty"`
-	Workflow             string `json:"workflow,omitempty"`
-	EventName            string `json:"event_name,omitempty"`
-	RefType              string `json:"ref_type,omitempty"`
-	HeadRef              string `json:"head_ref,omitempty"`
-	BaseRef              string `json:"base_ref,omitempty"`
+	Ref                  string      `json:"ref,omitempty"`
+	SHA                  string      `json:"sha,omitempty"`
+	Repository           string      `json:"repository,omitempty"`
+	RepositoryOwner      string      `json:"repository_owner,omitempty"`
+	RepositoryOwnerID    int         `json:"repository_owner_id,omitempty"`
+	RunID                int         `json:"run_id,omitempty"`
+	RunNumber            int         `json:"run_number,omitempty"`
+	RunAttempt           int         `json:"run_attempt,omitempty"`
+	RepositoryVisibility string      `json:"repository_visibility,omitempty"`
+	RepositoryID         int         `json:"repository_id,omitempty"`
+	ActorID              int         `json:"actor_id,omitempty"`
+	Actor                string      `json:"actor,omitempty"`
+	Workflow             string      `json:"workflow,omitempty"`
+	EventName            string      `json:"event_name,omitempty"`
+	RefType              git.RefType `json:"ref_type,omitempty"`
+	HeadRef              string      `json:"head_ref,omitempty"`
+	BaseRef              string      `json:"base_ref,omitempty"`
 
 	// Github's OIDC tokens have all of these, but I wasn't sure how
 	// to populate them. Leaving them here to make future work easier.
