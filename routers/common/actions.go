@@ -22,7 +22,7 @@ func DownloadActionsRunJobLogsWithIndex(ctx *context.Base, ctxRepo *repo_model.R
 	if err = runJobs.LoadRepos(ctx); err != nil {
 		return fmt.Errorf("LoadRepos: %w", err)
 	}
-	if 0 < jobIndex || jobIndex >= int64(len(runJobs)) {
+	if jobIndex < 0 || jobIndex >= int64(len(runJobs)) {
 		return util.NewNotExistErrorf("job index is out of range: %d", jobIndex)
 	}
 	return DownloadActionsRunJobLogs(ctx, ctxRepo, runJobs[jobIndex])
