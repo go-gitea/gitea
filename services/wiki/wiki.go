@@ -102,11 +102,11 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	hasDefaultBranch := gitrepo.IsBranchExist(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch)
 
-	basePath, cancel, err := repo_module.CreateTemporaryPath("update-wiki")
+	basePath, cleanup, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
 		return err
 	}
-	defer cancel()
+	defer cleanup()
 
 	cloneOpts := git.CloneRepoOptions{
 		Bare:   true,
@@ -260,11 +260,11 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %w", err)
 	}
 
-	basePath, cancel, err := repo_module.CreateTemporaryPath("update-wiki")
+	basePath, cleanup, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
 		return err
 	}
-	defer cancel()
+	defer cleanup()
 
 	if err := git.Clone(ctx, repo.WikiPath(), basePath, git.CloneRepoOptions{
 		Bare:   true,

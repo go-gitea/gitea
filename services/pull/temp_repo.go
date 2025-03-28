@@ -74,12 +74,12 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	}
 
 	// Clone base repo.
-	tmpBasePath, cancel, err := repo_module.CreateTemporaryPath("pull")
+	tmpBasePath, cleanup, err := repo_module.CreateTemporaryPath("pull")
 	if err != nil {
 		log.Error("CreateTemporaryPath[%-v]: %v", pr, err)
 		return nil, nil, err
 	}
-	defer cancel()
+	defer cleanup()
 
 	prCtx = &prContext{
 		Context:     ctx,

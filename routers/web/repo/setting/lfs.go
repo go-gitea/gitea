@@ -109,13 +109,13 @@ func LFSLocks(ctx *context.Context) {
 	}
 
 	// Clone base repo.
-	tmpBasePath, cancel, err := repo_module.CreateTemporaryPath("locks")
+	tmpBasePath, cleanup, err := repo_module.CreateTemporaryPath("locks")
 	if err != nil {
 		log.Error("Failed to create temporary path: %v", err)
 		ctx.ServerError("LFSLocks", err)
 		return
 	}
-	defer cancel()
+	defer cleanup()
 
 	if err := git.Clone(ctx, ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
 		Bare:   true,
