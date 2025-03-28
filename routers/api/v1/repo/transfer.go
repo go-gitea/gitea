@@ -68,11 +68,6 @@ func Transfer(ctx *context.APIContext) {
 		return
 	}
 
-	if !newOwner.CanCreateRepo() {
-		ctx.APIError(http.StatusForbidden, "The new owner cannot have more repositories")
-		return
-	}
-
 	if newOwner.Type == user_model.UserTypeOrganization {
 		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization
@@ -120,6 +115,11 @@ func Transfer(ctx *context.APIContext) {
 
 		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
+			return
+		}
+
+		if repo_service.IsRepositoryLimitReached(err) {
+			ctx.APIError(http.StatusForbidden, err)
 			return
 		}
 
@@ -173,6 +173,8 @@ func AcceptTransfer(ctx *context.APIContext) {
 		case repo_model.IsErrNoPendingTransfer(err):
 			ctx.APIError(http.StatusNotFound, err)
 		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.APIError(http.StatusForbidden, err)
+		case repo_service.IsRepositoryLimitReached(err):
 			ctx.APIError(http.StatusForbidden, err)
 		default:
 			ctx.APIErrorInternal(err)

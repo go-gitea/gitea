@@ -20,9 +20,21 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
+
+type RepositoryLimitReachedError struct{ Limit int }
+
+func (RepositoryLimitReachedError) Error() string {
+	return "Repository limit has been reached"
+}
+
+func IsRepositoryLimitReached(err error) bool {
+	_, ok := err.(RepositoryLimitReachedError)
+	return ok
+}
 
 func getRepoWorkingLockKey(repoID int64) string {
 	return fmt.Sprintf("repo_working_%d", repoID)
@@ -40,6 +52,11 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, repo)
 	if err != nil {
 		return err
+	}
+
+	if !doer.IsAdmin && !repoTransfer.Recipient.CanCreateRepo() {
+		limit := util.Iif(repoTransfer.Recipient.MaxRepoCreation >= 0, repoTransfer.Recipient.MaxRepoCreation, setting.Repository.MaxCreationLimit)
+		return RepositoryLimitReachedError{Limit: limit}
 	}
 
 	oldOwnerName := repo.OwnerName
@@ -397,6 +414,11 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 	if err := repo_model.TestRepositoryReadyForTransfer(repo.Status); err != nil {
 		return err
+	}
+
+	if !doer.IsAdmin && !newOwner.CanCreateRepo() {
+		limit := util.Iif(newOwner.MaxRepoCreation >= 0, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
+		return RepositoryLimitReachedError{Limit: limit}
 	}
 
 	var isDirectTransfer bool
