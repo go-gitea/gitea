@@ -10,9 +10,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/olivere/elastic/v7"
 )
@@ -31,6 +33,11 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_elasticsearch.Indexer
 	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	// TODO: es supports fuzzy search, but our code doesn't at the moment, and actually the default fuzziness is already "AUTO"
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new elasticsearch indexer
@@ -146,12 +153,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {
-		searchType := esMultiMatchTypePhrasePrefix
-		if options.IsFuzzyKeyword {
-			searchType = esMultiMatchTypeBestFields
+		searchMode := util.IfZero(options.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+		if searchMode == indexer.SearchModeExact {
+			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypePhrasePrefix))
+		} else /* words */ {
+			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypeBestFields).Operator("and"))
 		}
-
-		query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(searchType))
 	}
 
 	if len(options.RepoIDs) > 0 {
@@ -205,12 +212,22 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectColumnID.Value()))
 	}
 
-	if options.PosterID.Has() {
-		query.Must(elastic.NewTermQuery("poster_id", options.PosterID.Value()))
+	if options.PosterID != "" {
+		// "(none)" becomes 0, it means no poster
+		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
+		query.Must(elastic.NewTermQuery("poster_id", posterIDInt64))
 	}
 
-	if options.AssigneeID.Has() {
-		query.Must(elastic.NewTermQuery("assignee_id", options.AssigneeID.Value()))
+	if options.AssigneeID != "" {
+		if options.AssigneeID == "(any)" {
+			q := elastic.NewRangeQuery("assignee_id")
+			q.Gte(1)
+			query.Must(q)
+		} else {
+			// "(none)" becomes 0, it means no assignee
+			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+			query.Must(elastic.NewTermQuery("assignee_id", assigneeIDInt64))
+		}
 	}
 
 	if options.MentionID.Has() {

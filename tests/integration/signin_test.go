@@ -112,7 +112,8 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
-		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/login']", false)
+		doc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, "form[action='/user/login']", false)
 
 		req = NewRequest(t, "POST", "/user/login")
 		MakeRequest(t, req, http.StatusForbidden)
@@ -121,7 +122,8 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 		defer web.RouteMockReset()
 		web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
 		resp = MakeRequest(t, req, http.StatusOK)
-		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/link_account_signin']", false)
+		doc = NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, "form[action='/user/link_account_signin']", false)
 	})
 
 	t.Run("EnablePasswordSignInForm=true", func(t *testing.T) {
@@ -130,7 +132,8 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
-		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/login']", true)
+		doc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, "form[action='/user/login']", true)
 
 		req = NewRequest(t, "POST", "/user/login")
 		MakeRequest(t, req, http.StatusOK)
@@ -139,7 +142,8 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 		defer web.RouteMockReset()
 		web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
 		resp = MakeRequest(t, req, http.StatusOK)
-		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/link_account_signin']", true)
+		doc = NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, "form[action='/user/link_account_signin']", true)
 	})
 
 	t.Run("EnablePasskeyAuth=false", func(t *testing.T) {
@@ -148,7 +152,8 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
-		NewHTMLParser(t, resp.Body).AssertElement(t, ".signin-passkey", false)
+		doc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, ".signin-passkey", false)
 	})
 
 	t.Run("EnablePasskeyAuth=true", func(t *testing.T) {
@@ -157,6 +162,7 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
-		NewHTMLParser(t, resp.Body).AssertElement(t, ".signin-passkey", true)
+		doc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, ".signin-passkey", true)
 	})
 }

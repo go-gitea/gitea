@@ -347,7 +347,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		defer baseGitRepo.Close()
 	}
 
-	if !baseGitRepo.IsBranchExist(pull.BaseBranch) {
+	if !gitrepo.IsBranchExist(ctx, pull.BaseRepo, pull.BaseBranch) {
 		ctx.Data["BaseBranchNotExist"] = true
 		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["BaseTarget"] = pull.BaseBranch
@@ -404,9 +404,9 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 		defer closer.Close()
 
 		if pull.Flow == issues_model.PullRequestFlowGithub {
-			headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
+			headBranchExist = gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.HeadBranch)
 		} else {
-			headBranchExist = git.IsReferenceExist(ctx, baseGitRepo.Path, pull.GetGitRefName())
+			headBranchExist = gitrepo.IsReferenceExist(ctx, pull.BaseRepo, pull.GetGitRefName())
 		}
 
 		if headBranchExist {
@@ -1267,6 +1267,21 @@ func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *is
 	}
 
 	return nil
+}
+
+func PullsNewRedirect(ctx *context.Context) {
+	branch := ctx.PathParam("*")
+	redirectRepo := ctx.Repo.Repository
+	repo := ctx.Repo.Repository
+	if repo.IsFork {
+		if err := repo.GetBaseRepo(ctx); err != nil {
+			ctx.ServerError("GetBaseRepo", err)
+			return
+		}
+		redirectRepo = repo.BaseRepo
+		branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
+	}
+	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", redirectRepo.Link(), util.PathEscapeSegments(redirectRepo.DefaultBranch), util.PathEscapeSegments(branch)))
 }
 
 // CompareAndPullRequestPost response for creating pull request

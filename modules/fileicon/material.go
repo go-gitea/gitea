@@ -18,9 +18,6 @@ import (
 )
 
 type materialIconRulesData struct {
-	IconDefinitions map[string]*struct {
-		IconPath string `json:"iconPath"`
-	} `json:"iconDefinitions"`
 	FileNames      map[string]string `json:"fileNames"`
 	FolderNames    map[string]string `json:"folderNames"`
 	FileExtensions map[string]string `json:"fileExtensions"`
@@ -36,6 +33,7 @@ type MaterialIconProvider struct {
 var materialIconProvider MaterialIconProvider
 
 func DefaultMaterialIconProvider() *MaterialIconProvider {
+	materialIconProvider.once.Do(materialIconProvider.loadData)
 	return &materialIconProvider
 }
 
@@ -64,7 +62,7 @@ func (m *MaterialIconProvider) loadData() {
 	log.Debug("Loaded material icon rules and SVG images")
 }
 
-func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name, svg string) template.HTML {
+func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name, svg, extraClass string) template.HTML {
 	data := ctx.GetData()
 	renderedSVGs, _ := data["_RenderedSVGs"].(map[string]bool)
 	if renderedSVGs == nil {
@@ -77,7 +75,7 @@ func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name
 		panic("Invalid SVG icon")
 	}
 	svgID := "svg-mfi-" + name
-	svgCommonAttrs := `class="svg fileicon" width="16" height="16" aria-hidden="true"`
+	svgCommonAttrs := `class="svg git-entry-icon ` + extraClass + `" width="16" height="16" aria-hidden="true"`
 	posOuterBefore := strings.IndexByte(svg, '>')
 	if renderedSVGs[svgID] && posOuterBefore != -1 {
 		return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
@@ -88,63 +86,82 @@ func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name
 }
 
 func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.TreeEntry) template.HTML {
-	m.once.Do(m.loadData)
-
 	if m.rules == nil {
 		return BasicThemeIcon(entry)
 	}
 
 	if entry.IsLink() {
 		if te, err := entry.FollowLink(); err == nil && te.IsDir() {
-			return svg.RenderHTML("material-folder-symlink")
+			// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
+			return svg.RenderHTML("material-folder-symlink", 16, "octicon-file-directory-symlink")
 		}
 		return svg.RenderHTML("octicon-file-symlink-file") // TODO: find some better icons for them
 	}
 
-	name := m.findIconName(entry)
+	name := m.findIconNameByGit(entry)
 	if name == "folder" {
 		// the material icon pack's "folder" icon doesn't look good, so use our built-in one
-		return svg.RenderHTML("material-folder-generic")
+		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
+		return svg.RenderHTML("material-folder-generic", 16, "octicon-file-directory-fill")
 	}
 	if iconSVG, ok := m.svgs[name]; ok && iconSVG != "" {
-		return m.renderFileIconSVG(ctx, name, iconSVG)
+		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
+		extraClass := "octicon-file"
+		switch {
+		case entry.IsDir():
+			extraClass = "octicon-file-directory-fill"
+		case entry.IsSubModule():
+			extraClass = "octicon-file-submodule"
+		}
+		return m.renderFileIconSVG(ctx, name, iconSVG, extraClass)
 	}
 	return svg.RenderHTML("octicon-file")
 }
 
-func (m *MaterialIconProvider) findIconName(entry *git.TreeEntry) string {
-	if entry.IsSubModule() {
-		return "folder-git"
+func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
+	if _, ok := m.svgs[s]; ok {
+		return s
 	}
-
-	iconsData := m.rules
-	fileName := path.Base(entry.Name())
-
-	if entry.IsDir() {
-		if s, ok := iconsData.FolderNames[fileName]; ok {
+	if s, ok := m.rules.LanguageIDs[s]; ok {
+		if _, ok = m.svgs[s]; ok {
 			return s
 		}
-		if s, ok := iconsData.FolderNames[strings.ToLower(fileName)]; ok {
+	}
+	return ""
+}
+
+func (m *MaterialIconProvider) FindIconName(name string, isDir bool) string {
+	fileNameLower := strings.ToLower(path.Base(name))
+	if isDir {
+		if s, ok := m.rules.FolderNames[fileNameLower]; ok {
 			return s
 		}
 		return "folder"
 	}
 
-	if s, ok := iconsData.FileNames[fileName]; ok {
-		return s
-	}
-	if s, ok := iconsData.FileNames[strings.ToLower(fileName)]; ok {
-		return s
+	if s, ok := m.rules.FileNames[fileNameLower]; ok {
+		if s = m.findIconNameWithLangID(s); s != "" {
+			return s
+		}
 	}
 
-	for i := len(fileName) - 1; i >= 0; i-- {
-		if fileName[i] == '.' {
-			ext := fileName[i+1:]
-			if s, ok := iconsData.FileExtensions[ext]; ok {
-				return s
+	for i := len(fileNameLower) - 1; i >= 0; i-- {
+		if fileNameLower[i] == '.' {
+			ext := fileNameLower[i+1:]
+			if s, ok := m.rules.FileExtensions[ext]; ok {
+				if s = m.findIconNameWithLangID(s); s != "" {
+					return s
+				}
 			}
 		}
 	}
 
 	return "file"
+}
+
+func (m *MaterialIconProvider) findIconNameByGit(entry *git.TreeEntry) string {
+	if entry.IsSubModule() {
+		return "folder-git"
+	}
+	return m.FindIconName(entry.Name(), entry.IsDir())
 }

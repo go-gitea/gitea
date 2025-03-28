@@ -273,5 +273,5 @@ func TestUserLocationMapLink(t *testing.T) {
 	req = NewRequest(t, "GET", "/user2/")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	htmlDoc.AssertElement(t, `a[href="https://example/foo/A%2Fb"]`, true)
+	AssertHTMLElement(t, htmlDoc, `a[href="https://example/foo/A%2Fb"]`, true)
 }

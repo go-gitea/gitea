@@ -21,7 +21,7 @@
 							<a class="wiki-git-entry" href="{{$.RepoLink}}/wiki/{{.GitEntryName | PathEscape}}" data-tooltip-content="{{ctx.Locale.Tr "repo.wiki.original_git_entry_tooltip"}}">{{svg "octicon-chevron-right"}}</a>
 						</td>
 						{{$timeSince := DateUtils.TimeSince .UpdatedUnix}}
-						<td class="text right">{{ctx.Locale.Tr "repo.wiki.last_updated" $timeSince}}</td>
+						<td class="tw-text-right">{{ctx.Locale.Tr "repo.wiki.last_updated" $timeSince}}</td>
 					</tr>
 				{{end}}
 			</tbody>

@@ -4,10 +4,12 @@
 package integration
 
 import (
+	"slices"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -19,11 +21,13 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMirrorPull(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
@@ -35,10 +39,10 @@ func TestMirrorPull(t *testing.T) {
 		Mirror:      true,
 		CloneAddr:   repoPath,
 		Wiki:        true,
-		Releases:    false,
+		Releases:    true,
 	}
 
-	mirrorRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
@@ -48,10 +52,14 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, mirrorRepo.IsMirror, "expected pull-mirror repo to be marked as a mirror immediately after its creation")
 
-	ctx := t.Context()
-
-	mirror, err := repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
+	mirrorRepo, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
 	assert.NoError(t, err)
+
+	// these units should have been enabled
+	mirrorRepo.Units = nil
+	require.NoError(t, mirrorRepo.LoadUnits(ctx))
+	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeReleases }))
+	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeWiki }))
 
 	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
 	assert.NoError(t, err)
@@ -60,10 +68,11 @@ func TestMirrorPull(t *testing.T) {
 	findOptions := repo_model.FindReleasesOptions{
 		IncludeDrafts: true,
 		IncludeTags:   true,
-		RepoID:        mirror.ID,
+		RepoID:        mirrorRepo.ID,
 	}
 	initCount, err := db.Count[repo_model.Release](db.DefaultContext, findOptions)
 	assert.NoError(t, err)
+	assert.Zero(t, initCount) // no sync yet, so even though there is a tag in source repo, the mirror's release table is still empty
 
 	assert.NoError(t, release_service.CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
@@ -79,11 +88,14 @@ func TestMirrorPull(t *testing.T) {
 		IsTag:        true,
 	}, nil, ""))
 
-	_, err = repo_model.GetMirrorByRepoID(ctx, mirror.ID)
+	_, err = repo_model.GetMirrorByRepoID(ctx, mirrorRepo.ID)
 	assert.NoError(t, err)
 
-	ok := mirror_service.SyncPullMirror(ctx, mirror.ID)
+	ok := mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.True(t, ok)
+
+	// actually there is a tag in the source repo, so after "sync", that tag will also come into the mirror
+	initCount++
 
 	count, err := db.Count[repo_model.Release](db.DefaultContext, findOptions)
 	assert.NoError(t, err)
@@ -93,7 +105,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, release_service.DeleteReleaseByID(ctx, repo, release, user, true))
 
-	ok = mirror_service.SyncPullMirror(ctx, mirror.ID)
+	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.True(t, ok)
 
 	count, err = db.Count[repo_model.Release](db.DefaultContext, findOptions)

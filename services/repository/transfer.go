@@ -17,6 +17,7 @@ import (
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -330,13 +331,13 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
-			Uname: repo.Owner.Name,
+			Uname: repo.OwnerName,
 			Name:  newRepoName,
 		}
 	}
 
-	newRepoPath := repo_model.RepoPath(repo.Owner.Name, newRepoName)
-	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
+	if err = gitrepo.RenameRepository(ctx, repo,
+		repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, newRepoName))); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 

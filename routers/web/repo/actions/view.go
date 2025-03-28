@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -31,8 +30,10 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/common"
 	actions_service "code.gitea.io/gitea/services/actions"
 	context_module "code.gitea.io/gitea/services/context"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
 	"xorm.io/builder"
@@ -458,6 +459,9 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	}
 
 	actions_service.CreateCommitStatus(ctx, job)
+	_ = job.LoadAttributes(ctx)
+	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+
 	return nil
 }
 
@@ -465,49 +469,19 @@ func Logs(ctx *context_module.Context) {
 	runIndex := getRunIndex(ctx)
 	jobIndex := ctx.PathParamInt64("job")
 
-	job, _ := getRunJobs(ctx, runIndex, jobIndex)
-	if ctx.Written() {
-		return
-	}
-	if job.TaskID == 0 {
-		ctx.HTTPError(http.StatusNotFound, "job is not started")
-		return
-	}
-
-	err := job.LoadRun(ctx)
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.NotFoundOrServerError("GetRunByIndex", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
 		return
 	}
 
-	task, err := actions_model.GetTaskByID(ctx, job.TaskID)
-	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		return
+	if err = common.DownloadActionsRunJobLogsWithIndex(ctx.Base, ctx.Repo.Repository, run.ID, jobIndex); err != nil {
+		ctx.NotFoundOrServerError("DownloadActionsRunJobLogsWithIndex", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
 	}
-	if task.LogExpired {
-		ctx.HTTPError(http.StatusNotFound, "logs have been cleaned up")
-		return
-	}
-
-	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
-	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer reader.Close()
-
-	workflowName := job.Run.WorkflowID
-	if p := strings.Index(workflowName, "."); p > 0 {
-		workflowName = workflowName[0:p]
-	}
-	ctx.ServeContent(reader, &context_module.ServeHeaderOptions{
-		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, job.Name, task.ID),
-		ContentLength:      &task.LogSize,
-		ContentType:        "text/plain",
-		ContentTypeCharset: "utf-8",
-		Disposition:        "attachment",
-	})
 }
 
 func Cancel(ctx *context_module.Context) {
@@ -517,6 +491,8 @@ func Cancel(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
+
+	var updatedjobs []*actions_model.ActionRunJob
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		for _, job := range jobs {
@@ -534,6 +510,9 @@ func Cancel(ctx *context_module.Context) {
 				if n == 0 {
 					return fmt.Errorf("job has changed, try again")
 				}
+				if n > 0 {
+					updatedjobs = append(updatedjobs, job)
+				}
 				continue
 			}
 			if err := actions_model.StopTask(ctx, job.TaskID, actions_model.StatusCancelled); err != nil {
@@ -548,6 +527,11 @@ func Cancel(ctx *context_module.Context) {
 
 	actions_service.CreateCommitStatus(ctx, jobs...)
 
+	for _, job := range updatedjobs {
+		_ = job.LoadAttributes(ctx)
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+	}
+
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
@@ -561,6 +545,8 @@ func Approve(ctx *context_module.Context) {
 	run := current.Run
 	doer := ctx.Doer
 
+	var updatedjobs []*actions_model.ActionRunJob
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		run.NeedApproval = false
 		run.ApprovedBy = doer.ID
@@ -570,9 +556,12 @@ func Approve(ctx *context_module.Context) {
 		for _, job := range jobs {
 			if len(job.Needs) == 0 && job.Status.IsBlocked() {
 				job.Status = actions_model.StatusWaiting
-				_, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
 				if err != nil {
 					return err
+				}
+				if n > 0 {
+					updatedjobs = append(updatedjobs, job)
 				}
 			}
 		}
@@ -583,6 +572,11 @@ func Approve(ctx *context_module.Context) {
 	}
 
 	actions_service.CreateCommitStatus(ctx, jobs...)
+
+	for _, job := range updatedjobs {
+		_ = job.LoadAttributes(ctx)
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+	}
 
 	ctx.JSON(http.StatusOK, struct{}{})
 }

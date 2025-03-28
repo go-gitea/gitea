@@ -168,7 +168,7 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 	}
 
 	if setting.Migrations.MaxAttempts > 1 {
-		downloader = base.NewRetryDownloader(ctx, downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
+		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
 	return downloader, nil
 }

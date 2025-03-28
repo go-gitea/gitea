@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -40,60 +41,45 @@ type blameRow struct {
 
 // RefBlame render blame page
 func RefBlame(ctx *context.Context) {
-	fileName := ctx.Repo.TreePath
-	if len(fileName) == 0 {
+	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["IsBlame"] = true
+
+	// Get current entry user currently looking at.
+	if ctx.Repo.TreePath == "" {
 		ctx.NotFound(nil)
 		return
 	}
-
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
-	treeLink := branchLink
-	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL()
-
-	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	}
-
-	var treeNames []string
-	paths := make([]string, 0, 5)
-	if len(ctx.Repo.TreePath) > 0 {
-		treeNames = strings.Split(ctx.Repo.TreePath, "/")
-		for i := range treeNames {
-			paths = append(paths, strings.Join(treeNames[:i+1], "/"))
-		}
-
-		ctx.Data["HasParentPath"] = true
-		if len(paths)-2 >= 0 {
-			ctx.Data["ParentPath"] = "/" + paths[len(paths)-1]
-		}
-	}
-
-	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return
 	}
 
-	blob := entry.Blob()
+	treeNames := strings.Split(ctx.Repo.TreePath, "/")
+	var paths []string
+	for i := range treeNames {
+		paths = append(paths, strings.Join(treeNames[:i+1], "/"))
+	}
 
 	ctx.Data["Paths"] = paths
-	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
-	ctx.Data["BranchLink"] = branchLink
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
+	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
-	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	ctx.Data["PageIsViewCode"] = true
-
-	ctx.Data["IsBlame"] = true
-
+	blob := entry.Blob()
 	fileSize := blob.Size()
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 
+	tplName := tplRepoViewContent
+	if !ctx.FormBool("only_content") {
+		prepareHomeTreeSideBarSwitch(ctx)
+		tplName = tplRepoView
+	}
+
 	if fileSize >= setting.UI.MaxDisplayFileSize {
 		ctx.Data["IsFileTooLarge"] = true
-		ctx.HTML(http.StatusOK, tplRepoHome)
+		ctx.HTML(http.StatusOK, tplName)
 		return
 	}
 
@@ -104,8 +90,7 @@ func RefBlame(ctx *context.Context) {
 	}
 
 	bypassBlameIgnore, _ := strconv.ParseBool(ctx.FormString("bypass-blame-ignore"))
-
-	result, err := performBlame(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Commit, fileName, bypassBlameIgnore)
+	result, err := performBlame(ctx, ctx.Repo.Repository, ctx.Repo.Commit, ctx.Repo.TreePath, bypassBlameIgnore)
 	if err != nil {
 		ctx.NotFound(err)
 		return
@@ -121,7 +106,7 @@ func RefBlame(ctx *context.Context) {
 
 	renderBlame(ctx, result.Parts, commitNames)
 
-	ctx.HTML(http.StatusOK, tplRepoHome)
+	ctx.HTML(http.StatusOK, tplName)
 }
 
 type blameResult struct {
@@ -130,10 +115,10 @@ type blameResult struct {
 	FaultyIgnoreRevsFile bool
 }
 
-func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
+func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
 	objectFormat := ctx.Repo.GetObjectFormat()
 
-	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, bypassBlameIgnore)
+	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +134,7 @@ func performBlame(ctx *context.Context, repoPath string, commit *git.Commit, fil
 		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
 			// try again without ignored revs
 
-			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repoPath, commit, file, true)
+			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, true)
 			if err != nil {
 				return nil, err
 			}

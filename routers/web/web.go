@@ -233,8 +233,8 @@ func Routes() *web.Router {
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
-	routes.Methods("GET, HEAD", "/avatars/*", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	routes.Methods("GET, HEAD", "/repo-avatars/*", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/apple-touch-icon-precomposed.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
@@ -280,10 +280,8 @@ func Routes() *web.Router {
 		routes.Get("/api/swagger", append(mid, misc.Swagger)...) // Render V1 by default
 	}
 
-	// TODO: These really seem like things that could be folded into Contexter or as helper functions
-	mid = append(mid, user.GetNotificationCount)
-	mid = append(mid, repo.GetActiveStopwatch)
 	mid = append(mid, goGet)
+	mid = append(mid, common.PageTmplFunctions)
 
 	others := web.NewRouter()
 	others.Use(mid...)
@@ -580,6 +578,7 @@ func registerRoutes(m *web.Router) {
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
 		m.Post("", web.Bind(forms.UpdateProfileForm{}), user_setting.ProfilePost)
+		m.Post("/update_preferences", user_setting.UpdatePreferences)
 		m.Get("/change_password", auth.MustChangePassword)
 		m.Post("/change_password", web.Bind(forms.MustChangePasswordForm{}), auth.MustChangePasswordPost)
 		m.Post("/avatar", web.Bind(forms.AvatarForm{}), user_setting.AvatarPost)
@@ -1175,10 +1174,16 @@ func registerRoutes(m *web.Router) {
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeList)
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeList)
 		})
+		m.Group("/tree-view", func() {
+			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.TreeViewNodes)
+			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeViewNodes)
+			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
+		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo code: find, compare, list
 
@@ -1595,7 +1600,8 @@ func registerRoutes(m *web.Router) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.Home)
 			m.Get("/*", context.RepoRefByType(""), repo.Home) // "/*" route is deprecated, and kept for backward compatibility
 		}, repo.SetEditorconfigIfExists)
-		m.Get("/tree/*", repo.RedirectRepoTreeToSrc) // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
+		m.Get("/tree/*", repo.RedirectRepoTreeToSrc)    // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
+		m.Get("/blob/*", repo.RedirectRepoBlobToCommit) // redirect "/owner/repo/blob/*" requests to "/owner/repo/src/commit/*"
 
 		m.Get("/forks", context.RepoRef(), repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
