@@ -186,10 +186,10 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 
 func loadTempDir(rootCfg ConfigProvider) {
 	rootSec := rootCfg.Section("")
-	tempDir := rootSec.Key("TEMP_DIR").MustString(filepath.Join(os.TempDir(), "gitea"))
-	if tempDir != "" {
-		if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
-			log.Fatal("Failed to create temp directory %s: %v", tempDir, err)
+	TempPath = rootSec.Key("TEMP_PATH").MustString(filepath.Join(os.TempDir(), "gitea"))
+	if TempPath != "" {
+		if err := os.MkdirAll(TempPath, os.ModePerm); err != nil {
+			log.Fatal("Failed to create temp directory %s: %v", TempPath, err)
 		}
 	}
 }
