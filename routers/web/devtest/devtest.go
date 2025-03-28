@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/badge"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -125,24 +126,31 @@ func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 }
 
 func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
+	fontFamilyNames := strings.Split(badge.DefaultFontFamily, ",")
+	selectedFontFamilyName := ctx.FormString("font", fontFamilyNames[0])
 	var badges []badge.Badge
+	badges = append(badges, badge.GenerateBadge("啊啊啊啊啊啊啊啊啊啊啊啊", "🌞🌞🌞🌞🌞", "green"))
 	for r := rune(0); r < 256; r++ {
 		if unicode.IsPrint(r) {
 			s := strings.Repeat(string(r), 15)
-			badges = append(badges, badge.GenerateBadge(s, s, "green"))
+			badges = append(badges, badge.GenerateBadge(s, util.TruncateRunes(s, 7), "green"))
 		}
 	}
-	var mockSVGs []template.HTML
+
+	var badgeSVGs []template.HTML
 	for i, b := range badges {
 		b.IDPrefix = "devtest-" + strconv.FormatInt(int64(i), 10) + "-"
+		b.FontFamily = selectedFontFamilyName
 		h, err := ctx.RenderToHTML("shared/actions/runner_badge", map[string]any{"Badge": b})
 		if err != nil {
 			ctx.ServerError("RenderToHTML", err)
 			return
 		}
-		mockSVGs = append(mockSVGs, h)
+		badgeSVGs = append(badgeSVGs, h)
 	}
-	ctx.Data["MockSVGs"] = mockSVGs
+	ctx.Data["BadgeSVGs"] = badgeSVGs
+	ctx.Data["BadgeFontFamilyNames"] = fontFamilyNames
+	ctx.Data["SelectedFontFamilyName"] = selectedFontFamilyName
 }
 
 func prepareMockData(ctx *context.Context) {

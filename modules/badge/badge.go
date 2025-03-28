@@ -36,11 +36,12 @@ func (t Text) TextLength() int {
 }
 
 type Badge struct {
-	IDPrefix string
-	Color    string
-	FontSize int
-	Label    Text
-	Message  Text
+	IDPrefix   string
+	FontFamily string
+	Color      string
+	FontSize   int
+	Label      Text
+	Message    Text
 }
 
 func (b Badge) Width() int {
@@ -48,9 +49,10 @@ func (b Badge) Width() int {
 }
 
 const (
-	defaultOffset   = 10
-	defaultFontSize = 11
-	DefaultColor    = "#9f9f9f" // Grey
+	defaultOffset     = 10
+	defaultFontSize   = 11
+	DefaultColor      = "#9f9f9f" // Grey
+	DefaultFontFamily = "DejaVu Sans,Verdana,Geneva,sans-serif"
 )
 
 var StatusColorMap = map[actions_model.Status]string{
@@ -72,6 +74,7 @@ func GenerateBadge(label, message, color string) Badge {
 	lx := lw * 5
 	mx := lw*10 + mw*5 - 10
 	return Badge{
+		FontFamily: DefaultFontFamily,
 		Label: Text{
 			text:  label,
 			width: lw,
