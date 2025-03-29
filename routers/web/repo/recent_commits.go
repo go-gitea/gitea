@@ -6,7 +6,6 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
@@ -22,7 +21,6 @@ func RecentCommits(ctx *context.Context) {
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsRecentCommits"] = true
 	ctx.PageData["repoLink"] = ctx.Repo.RepoLink
-	ctx.Data["CanReadCode"] = ctx.Repo.CanRead(unit.TypeCode)
 
 	ctx.HTML(http.StatusOK, tplRecentCommits)
 }
