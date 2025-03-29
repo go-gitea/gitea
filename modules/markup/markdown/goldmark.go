@@ -80,9 +80,10 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				// many places render non-comment contents with no mode=document, then these contents also use comment's hard line break setting
 				// especially in many tests.
 				markdownLineBreakStyle := ctx.RenderOptions.Metas["markdownLineBreakStyle"]
-				if markdownLineBreakStyle == "comment" {
+				switch markdownLineBreakStyle {
+				case "comment":
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInComments)
-				} else if markdownLineBreakStyle == "document" {
+				case "document":
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)
 				}
 			}
