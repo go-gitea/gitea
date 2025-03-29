@@ -137,7 +137,7 @@ func TestRepositoryTransferRejection(t *testing.T) {
 
 	// Admin case
 	doerAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
 
 	transfer, err := repo_model.GetPendingRepositoryTransfer(db.DefaultContext, repo)
 	require.NoError(t, err)
