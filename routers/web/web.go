@@ -1488,7 +1488,7 @@ func registerRoutes(m *web.Router) {
 			})
 			m.Group("/recent-commits", func() {
 				m.Get("", repo.RecentCommits)
-				m.Get("/data", repo.RecentCommitsData)
+				m.Get("/data", repo.CodeFrequencyData) // "recent-commits" also uses the same data as "code-frequency"
 			})
 		}, reqUnitCodeReader)
 	},
