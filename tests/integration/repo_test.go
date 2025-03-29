@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
@@ -19,8 +21,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestViewRepo(t *testing.T) {
+func TestRepoView(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("ViewRepoPublic", testViewRepoPublic)
+	t.Run("ViewRepoWithCache", testViewRepoWithCache)
+	t.Run("ViewRepoPrivate", testViewRepoPrivate)
+	t.Run("ViewRepo1CloneLinkAnonymous", testViewRepo1CloneLinkAnonymous)
+	t.Run("ViewRepo1CloneLinkAuthorized", testViewRepo1CloneLinkAuthorized)
+	t.Run("ViewRepoWithSymlinks", testViewRepoWithSymlinks)
+	t.Run("ViewFileInRepo", testViewFileInRepo)
+	t.Run("BlameFileInRepo", testBlameFileInRepo)
+	t.Run("ViewRepoDirectory", testViewRepoDirectory)
+	t.Run("ViewRepoDirectoryReadme", testViewRepoDirectoryReadme)
+	t.Run("MarkDownReadmeImage", testMarkDownReadmeImage)
+	t.Run("MarkDownReadmeImageSubfolder", testMarkDownReadmeImageSubfolder)
+	t.Run("GeneratedSourceLink", testGeneratedSourceLink)
+	t.Run("ViewCommit", testViewCommit)
+}
+
+func testViewRepoPublic(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	session := loginUser(t, "user2")
 
@@ -41,87 +61,118 @@ func TestViewRepo(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
-func testViewRepo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testViewRepoWithCache(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
+	testView := func(t *testing.T) {
+		req := NewRequest(t, "GET", "/org3/repo3")
+		session := loginUser(t, "user2")
+		resp := session.MakeRequest(t, req, http.StatusOK)
 
-	req := NewRequest(t, "GET", "/org3/repo3")
-	session := loginUser(t, "user2")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		files := htmlDoc.doc.Find("#repo-files-table .repo-file-item")
 
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	files := htmlDoc.doc.Find("#repo-files-table .repo-file-item")
+		type file struct {
+			fileName   string
+			commitID   string
+			commitMsg  string
+			commitTime string
+		}
 
-	type file struct {
-		fileName   string
-		commitID   string
-		commitMsg  string
-		commitTime string
-	}
+		var items []file
 
-	var items []file
+		files.Each(func(i int, s *goquery.Selection) {
+			tds := s.Find(".repo-file-cell")
+			var f file
+			tds.Each(func(i int, s *goquery.Selection) {
+				if i == 0 {
+					f.fileName = strings.TrimSpace(s.Text())
+				} else if i == 1 {
+					a := s.Find("a")
+					f.commitMsg = strings.TrimSpace(a.Text())
+					l, _ := a.Attr("href")
+					f.commitID = path.Base(l)
+				}
+			})
 
-	files.Each(func(i int, s *goquery.Selection) {
-		tds := s.Find(".repo-file-cell")
-		var f file
-		tds.Each(func(i int, s *goquery.Selection) {
-			if i == 0 {
-				f.fileName = strings.TrimSpace(s.Text())
-			} else if i == 1 {
-				a := s.Find("a")
-				f.commitMsg = strings.TrimSpace(a.Text())
-				l, _ := a.Attr("href")
-				f.commitID = path.Base(l)
-			}
+			// convert "2017-06-14 21:54:21 +0800" to "Wed, 14 Jun 2017 13:54:21 UTC"
+			htmlTimeString, _ := s.Find("relative-time").Attr("datetime")
+			htmlTime, _ := time.Parse(time.RFC3339, htmlTimeString)
+			f.commitTime = htmlTime.In(time.Local).Format(time.RFC1123)
+			items = append(items, f)
 		})
 
-		// convert "2017-06-14 21:54:21 +0800" to "Wed, 14 Jun 2017 13:54:21 UTC"
-		htmlTimeString, _ := s.Find("relative-time").Attr("datetime")
-		htmlTime, _ := time.Parse(time.RFC3339, htmlTimeString)
-		f.commitTime = htmlTime.In(time.Local).Format(time.RFC1123)
-		items = append(items, f)
-	})
+		commitT := time.Date(2017, time.June, 14, 13, 54, 21, 0, time.UTC).In(time.Local).Format(time.RFC1123)
+		assert.EqualValues(t, []file{
+			{
+				fileName:   "doc",
+				commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
+				commitMsg:  "init project",
+				commitTime: commitT,
+			},
+			{
+				fileName:   "README.md",
+				commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
+				commitMsg:  "init project",
+				commitTime: commitT,
+			},
+		}, items)
+	}
 
-	commitT := time.Date(2017, time.June, 14, 13, 54, 21, 0, time.UTC).In(time.Local).Format(time.RFC1123)
-	assert.EqualValues(t, []file{
-		{
-			fileName:   "doc",
-			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
-			commitMsg:  "init project",
-			commitTime: commitT,
-		},
-		{
-			fileName:   "README.md",
-			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
-			commitMsg:  "init project",
-			commitTime: commitT,
-		},
-	}, items)
-}
-
-func TestViewRepo2(t *testing.T) {
+	// FIXME: these test don't seem quite right, no enough assert
 	// no last commit cache
-	testViewRepo(t)
-
+	testView(t)
 	// enable last commit cache for all repositories
 	oldCommitsCount := setting.CacheService.LastCommit.CommitsCount
 	setting.CacheService.LastCommit.CommitsCount = 0
 	// first view will not hit the cache
-	testViewRepo(t)
+	testView(t)
 	// second view will hit the cache
-	testViewRepo(t)
+	testView(t)
 	setting.CacheService.LastCommit.CommitsCount = oldCommitsCount
 }
 
-func TestViewRepo3(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testViewRepoPrivate(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	req := NewRequest(t, "GET", "/org3/repo3")
-	session := loginUser(t, "user4")
-	session.MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	t.Run("OrgMemberAccess", func(t *testing.T) {
+		req = NewRequest(t, "GET", "/org3/repo3")
+		session := loginUser(t, "user4")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), `<div id="repo-files-table"`)
+	})
+
+	t.Run("PublicAccess-AnonymousAccess", func(t *testing.T) {
+		session := loginUser(t, "user1")
+
+		// set unit code to "anonymous read"
+		req = NewRequestWithValues(t, "POST", "/org3/repo3/settings/public_access", map[string]string{
+			"_csrf": GetUserCSRFToken(t, session),
+			"repo-unit-access-" + strconv.Itoa(int(unit.TypeCode)): "anonymous-read",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		// try to "anonymous read" (ok)
+		req = NewRequest(t, "GET", "/org3/repo3")
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), `<span class="ui basic orange label">Public Access</span>`)
+
+		// remove "anonymous read"
+		req = NewRequestWithValues(t, "POST", "/org3/repo3/settings/public_access", map[string]string{
+			"_csrf": GetUserCSRFToken(t, session),
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		// try to "anonymous read" (not found)
+		req = NewRequest(t, "GET", "/org3/repo3")
+		MakeRequest(t, req, http.StatusNotFound)
+	})
 }
 
-func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testViewRepo1CloneLinkAnonymous(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -139,8 +190,8 @@ func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
 	assert.Equal(t, "tea clone user2/repo1", link)
 }
 
-func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testViewRepo1CloneLinkAuthorized(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	session := loginUser(t, "user2")
 
@@ -162,8 +213,8 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	assert.Equal(t, "tea clone user2/repo1", link)
 }
 
-func TestViewRepoWithSymlinks(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testViewRepoWithSymlinks(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 	defer test.MockVariableValue(&setting.UI.FileIconTheme, "basic")()
 	session := loginUser(t, "user2")
 
@@ -186,8 +237,8 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 }
 
 // TestViewFileInRepo repo description, topics and summary should not be displayed when viewing a file
-func TestViewFileInRepo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testViewFileInRepo(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	session := loginUser(t, "user2")
 
@@ -205,8 +256,8 @@ func TestViewFileInRepo(t *testing.T) {
 }
 
 // TestBlameFileInRepo repo description, topics and summary should not be displayed when running blame on a file
-func TestBlameFileInRepo(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testBlameFileInRepo(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	session := loginUser(t, "user2")
 
@@ -224,8 +275,8 @@ func TestBlameFileInRepo(t *testing.T) {
 }
 
 // TestViewRepoDirectory repo description, topics and summary should not be displayed when within a directory
-func TestViewRepoDirectory(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testViewRepoDirectory(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	session := loginUser(t, "user2")
 
@@ -246,8 +297,8 @@ func TestViewRepoDirectory(t *testing.T) {
 }
 
 // ensure that the all the different ways to find and render a README work
-func TestViewRepoDirectoryReadme(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testViewRepoDirectoryReadme(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	// there are many combinations:
 	// - READMEs can be .md, .txt, or have no extension
@@ -353,8 +404,8 @@ func TestViewRepoDirectoryReadme(t *testing.T) {
 	missing("symlink-loop", "/user2/readme-test/src/branch/symlink-loop/")
 }
 
-func TestMarkDownReadmeImage(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testMarkDownReadmeImage(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	session := loginUser(t, "user2")
 
@@ -375,8 +426,8 @@ func TestMarkDownReadmeImage(t *testing.T) {
 	assert.Equal(t, "/user2/repo1/media/branch/home-md-img-check/test-fake-img.jpg", src)
 }
 
-func TestMarkDownReadmeImageSubfolder(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testMarkDownReadmeImageSubfolder(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	session := loginUser(t, "user2")
 
@@ -398,8 +449,8 @@ func TestMarkDownReadmeImageSubfolder(t *testing.T) {
 	assert.Equal(t, "/user2/repo1/media/branch/sub-home-md-img-check/docs/test-fake-img.jpg", src)
 }
 
-func TestGeneratedSourceLink(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testGeneratedSourceLink(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	t.Run("Rendered file", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -434,8 +485,8 @@ func TestGeneratedSourceLink(t *testing.T) {
 	})
 }
 
-func TestViewCommit(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testViewCommit(t *testing.T) {
+	defer tests.PrintCurrentTest(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/commit/0123456789012345678901234567890123456789")
 	req.Header.Add("Accept", "text/html")
