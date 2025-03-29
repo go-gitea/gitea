@@ -21,7 +21,7 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 	branch := ctx.PathParam("branch")
 
 	ctx.Repo.Repository.DefaultBranch = branch
-	if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo.Repository, branch); err != nil {
+	if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 		})
