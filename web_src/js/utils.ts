@@ -1,5 +1,11 @@
 import {decode, encode} from 'uint8-to-base64';
-import type {IssuePageInfo, IssuePathInfo} from './types.ts';
+import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
+
+// transform /path/to/file.ext to /path/to
+export function dirname(path: string): string {
+  const lastSlashIndex = path.lastIndexOf('/');
+  return lastSlashIndex < 0 ? '' : path.substring(0, lastSlashIndex);
+}
 
 // transform /path/to/file.ext to file.ext
 export function basename(path: string): string {
@@ -32,16 +38,17 @@ export function stripTags(text: string): string {
 }
 
 export function parseIssueHref(href: string): IssuePathInfo {
+  // FIXME: it should use pathname and trim the appSubUrl ahead
   const path = (href || '').replace(/[#?].*$/, '');
   const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
   return {ownerName, repoName, pathType, indexString};
 }
 
-export function parseIssueNewHref(href: string): IssuePathInfo {
-  const path = (href || '').replace(/[#?].*$/, '');
-  const [_, ownerName, repoName, pathTypeField] = /([^/]+)\/([^/]+)\/(issues\/new|compare\/.+\.\.\.)/.exec(path) || [];
-  const pathType = pathTypeField ? (pathTypeField.startsWith('issues/new') ? 'issues' : 'pulls') : undefined;
-  return {ownerName, repoName, pathType};
+export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo {
+  const appSubUrl = window.config.appSubUrl;
+  if (appSubUrl && pathname.startsWith(appSubUrl)) pathname = pathname.substring(appSubUrl.length);
+  const [_, ownerName, repoName] = /([^/]+)\/([^/]+)/.exec(pathname) || [];
+  return {ownerName, repoName};
 }
 
 export function parseIssuePageInfo(): IssuePageInfo {
@@ -165,10 +172,10 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function isImageFile({name, type}: {name: string, type?: string}): boolean {
+export function isImageFile({name, type}: {name?: string, type?: string}): boolean {
   return /\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
 }
 
-export function isVideoFile({name, type}: {name: string, type?: string}): boolean {
+export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
   return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
 }

@@ -73,10 +73,13 @@
 					{{else if .GetOpType.InActions "publish_release"}}
 						{{$linkText := .Content | ctx.RenderUtils.RenderEmoji}}
 						{{ctx.Locale.Tr "action.publish_release" (.GetRepoLink ctx) (printf "%s/releases/tag/%s" (.GetRepoLink ctx) .GetTag) (.ShortRepoPath ctx) $linkText}}
-					{{else if .GetOpType.InActions "review_dismissed"}}
+					{{else if .GetOpType.InActions "pull_review_dismissed"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{$reviewer := index .GetIssueInfos 1}}
 						{{ctx.Locale.Tr "action.review_dismissed" (printf "%s/pulls/%s" (.GetRepoLink ctx) $index) $index (.ShortRepoPath ctx) $reviewer}}
+					{{else if .GetOpType.InActions "auto_merge_pull_request"}}
+						{{$index := index .GetIssueInfos 0}}
+						{{ctx.Locale.Tr "action.auto_merge_pull_request" (printf "%s/pulls/%s" (.GetRepoLink ctx) $index) $index (.ShortRepoPath ctx)}}
 					{{end}}
 					{{DateUtils.TimeSince .GetCreate}}
 				</div>
@@ -107,7 +110,7 @@
 					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 					{{$comment := index .GetIssueInfos 1}}
 					{{if $comment}}
-						<div class="markup tw-text-14">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
+						<div class="render-content markup tw-text-14">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}
 					<div class="flex-item-body text black">{{index .GetIssueInfos 1}}</div>

@@ -14,6 +14,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -22,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -158,6 +160,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		&actions_model.ActionSchedule{RepoID: repoID},
 		&actions_model.ActionArtifact{RepoID: repoID},
 		&actions_model.ActionRunnerToken{RepoID: repoID},
+		&issues_model.IssuePin{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -266,6 +269,11 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		return err
 	}
 
+	// unlink packages linked to this repository
+	if err = packages_model.UnlinkRepositoryFromAllPackages(ctx, repoID); err != nil {
+		return err
+	}
+
 	if err = committer.Commit(); err != nil {
 		return err
 	}
@@ -282,8 +290,13 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	// we delete the file but the database rollback, the repository will be broken.
 
 	// Remove repository files.
-	repoPath := repo.RepoPath()
-	system_model.RemoveAllWithNotice(ctx, "Delete repository files", repoPath)
+	if err := gitrepo.DeleteRepository(ctx, repo); err != nil {
+		desc := fmt.Sprintf("Delete repository files [%s]: %v", repo.FullName(), err)
+		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
+		if err = system_model.CreateNotice(db.DefaultContext, system_model.NoticeRepository, desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+	}
 
 	// Remove wiki files
 	if repo.HasWiki() {

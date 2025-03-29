@@ -50,7 +50,7 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 
 // renderCommentMarkdown renders the comment markdown to html
 func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
-	act.LoadRepo(ctx)
+	_ = act.LoadRepo(ctx)
 	if act.Repo == nil {
 		return ""
 	}
@@ -258,18 +258,18 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 }
 
 // GetFeedType return if it is a feed request and altered name and feed type.
-func GetFeedType(name string, req *http.Request) (bool, string, string) {
+func GetFeedType(name string, req *http.Request) (showFeed bool, feedType string) {
 	if strings.HasSuffix(name, ".rss") ||
 		strings.Contains(req.Header.Get("Accept"), "application/rss+xml") {
-		return true, strings.TrimSuffix(name, ".rss"), "rss"
+		return true, "rss"
 	}
 
 	if strings.HasSuffix(name, ".atom") ||
 		strings.Contains(req.Header.Get("Accept"), "application/atom+xml") {
-		return true, strings.TrimSuffix(name, ".atom"), "atom"
+		return true, "atom"
 	}
 
-	return false, name, ""
+	return false, ""
 }
 
 // feedActionsToFeedItems convert gitea's Repo's Releases to feeds Item

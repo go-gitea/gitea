@@ -285,7 +285,6 @@
 .markup table {
   display: block;
   width: 100%;
-  width: max-content;
   max-width: 100%;
   overflow: auto;
 }
@@ -335,11 +334,6 @@
 .markup img[align="left"],
 .markup video[align="left"] {
   padding-right: 28px;
-}
-
-.markup .emoji {
-  max-width: none;
-  vertical-align: text-top;
 }
 
 .markup span.frame {
@@ -535,7 +529,7 @@
   user-select: none;
 }
 
-.markup-render {
+.markup-content-iframe {
   display: block;
   border: none;
   width: 100%;

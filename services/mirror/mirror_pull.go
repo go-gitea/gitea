@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -40,13 +41,13 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	remoteName := m.GetRemoteName()
 	repoPath := m.GetRepository(ctx).RepoPath()
 	// Remove old remote
-	_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = git.NewCommand("remote", "rm").AddDynamicArguments(remoteName).RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
-	cmd := git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(addr)
-	_, _, err = cmd.RunStdString(&git.RunOpts{Dir: repoPath})
+	cmd := git.NewCommand("remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(addr)
+	_, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
@@ -55,13 +56,13 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		wikiPath := m.Repo.WikiPath()
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		_, _, err = git.NewCommand(ctx, "remote", "rm").AddDynamicArguments(remoteName).RunStdString(&git.RunOpts{Dir: wikiPath})
+		_, _, err = git.NewCommand("remote", "rm").AddDynamicArguments(remoteName).RunStdString(ctx, &git.RunOpts{Dir: wikiPath})
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
 
-		cmd = git.NewCommand(ctx, "remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(wikiRemotePath)
-		_, _, err = cmd.RunStdString(&git.RunOpts{Dir: wikiPath})
+		cmd = git.NewCommand("remote", "add").AddDynamicArguments(remoteName).AddArguments("--mirror=fetch").AddDynamicArguments(wikiRemotePath)
+		_, _, err = cmd.RunStdString(ctx, &git.RunOpts{Dir: wikiPath})
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
@@ -87,6 +88,7 @@ type mirrorSyncResult struct {
 /*
 // * [new tag]         v0.1.8     -> v0.1.8
 // * [new branch]      master     -> origin/master
+// * [new ref]         refs/pull/2/head  -> refs/pull/2/head"
 // - [deleted]         (none)     -> origin/test // delete a branch
 // - [deleted]         (none)     -> 1 // delete a tag
 //   957a993..a87ba5f  test       -> origin/test
@@ -117,10 +119,17 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				refName:     git.RefNameFromBranch(refName),
 				oldCommitID: gitShortEmptySha,
 			})
+		case strings.HasPrefix(lines[i], " * [new ref]"): // new reference
+			results = append(results, &mirrorSyncResult{
+				refName:     git.RefName(refName),
+				oldCommitID: gitShortEmptySha,
+			})
 		case strings.HasPrefix(lines[i], " - "): // Delete reference
 			isTag := !strings.HasPrefix(refName, remoteName+"/")
 			var refFullName git.RefName
-			if isTag {
+			if strings.HasPrefix(refName, "refs/") {
+				refFullName = git.RefName(refName)
+			} else if isTag {
 				refFullName = git.RefNameFromTag(refName)
 			} else {
 				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
@@ -143,8 +152,15 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				log.Error("Expect two SHAs but not what found: %q", lines[i])
 				continue
 			}
+			var refFullName git.RefName
+			if strings.HasPrefix(refName, "refs/") {
+				refFullName = git.RefName(refName)
+			} else {
+				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
+			}
+
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/")),
+				refName:     refFullName,
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
@@ -159,8 +175,15 @@ func parseRemoteUpdateOutput(output, remoteName string) []*mirrorSyncResult {
 				log.Error("Expect two SHAs but not what found: %q", lines[i])
 				continue
 			}
+			var refFullName git.RefName
+			if strings.HasPrefix(refName, "refs/") {
+				refFullName = git.RefName(refName)
+			} else {
+				refFullName = git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/"))
+			}
+
 			results = append(results, &mirrorSyncResult{
-				refName:     git.RefNameFromBranch(strings.TrimPrefix(refName, remoteName+"/")),
+				refName:     refFullName,
 				oldCommitID: shas[0],
 				newCommitID: shas[1],
 			})
@@ -186,8 +209,8 @@ func pruneBrokenReferences(ctx context.Context,
 
 	stderrBuilder.Reset()
 	stdoutBuilder.Reset()
-	pruneErr := git.NewCommand(ctx, "remote", "prune").AddDynamicArguments(m.GetRemoteName()).
-		Run(&git.RunOpts{
+	pruneErr := git.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).
+		Run(ctx, &git.RunOpts{
 			Timeout: timeout,
 			Dir:     repoPath,
 			Stdout:  stdoutBuilder,
@@ -212,6 +235,24 @@ func pruneBrokenReferences(ctx context.Context,
 	return pruneErr
 }
 
+// checkRecoverableSyncError takes an error message from a git fetch command and returns false if it should be a fatal/blocking error
+func checkRecoverableSyncError(stderrMessage string) bool {
+	switch {
+	case strings.Contains(stderrMessage, "unable to resolve reference") && strings.Contains(stderrMessage, "reference broken"):
+		return true
+	case strings.Contains(stderrMessage, "remote error") && strings.Contains(stderrMessage, "not our ref"):
+		return true
+	case strings.Contains(stderrMessage, "cannot lock ref") && strings.Contains(stderrMessage, "but expected"):
+		return true
+	case strings.Contains(stderrMessage, "cannot lock ref") && strings.Contains(stderrMessage, "unable to resolve reference"):
+		return true
+	case strings.Contains(stderrMessage, "Unable to create") && strings.Contains(stderrMessage, ".lock"):
+		return true
+	default:
+		return false
+	}
+}
+
 // runSync returns true if sync finished without error.
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
@@ -221,7 +262,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
-	cmd := git.NewCommand(ctx, "fetch")
+	cmd := git.NewCommand("fetch")
 	if m.EnablePrune {
 		cmd.AddArguments("--prune")
 	}
@@ -237,7 +278,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := cmd.Run(&git.RunOpts{
+	if err := cmd.Run(ctx, &git.RunOpts{
 		Timeout: timeout,
 		Dir:     repoPath,
 		Env:     envs,
@@ -252,7 +293,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		stdoutMessage := util.SanitizeCredentialURLs(stdout)
 
 		// Now check if the error is a resolve reference due to broken reference
-		if strings.Contains(stderr, "unable to resolve reference") && strings.Contains(stderr, "reference broken") {
+		if checkRecoverableSyncError(stderr) {
 			log.Warn("SyncMirrors [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 			err = nil
 
@@ -262,7 +303,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = cmd.Run(&git.RunOpts{
+				if err = cmd.Run(ctx, &git.RunOpts{
 					Timeout: timeout,
 					Dir:     repoPath,
 					Stdout:  &stdoutBuilder,
@@ -301,6 +342,15 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		return nil, false
 	}
 
+	if m.LFS && setting.LFS.StartServer {
+		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
+		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
+		lfsClient := lfs.NewClient(endpoint, nil)
+		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo, err)
+		}
+	}
+
 	log.Trace("SyncMirrors [repo: %-v]: syncing branches...", m.Repo)
 	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, m.Repo, gitRepo, 0); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize branches: %v", m.Repo, err)
@@ -309,15 +359,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	if err = repo_module.SyncReleasesWithTags(ctx, m.Repo, gitRepo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize tags to releases: %v", m.Repo, err)
-	}
-
-	if m.LFS && setting.LFS.StartServer {
-		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
-		lfsClient := lfs.NewClient(endpoint, nil)
-		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo, err)
-		}
 	}
 	gitRepo.Close()
 
@@ -330,8 +371,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
-		if err := git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-			Run(&git.RunOpts{
+		if err := git.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
+			Run(ctx, &git.RunOpts{
 				Timeout: timeout,
 				Dir:     wikiPath,
 				Stdout:  &stdoutBuilder,
@@ -345,7 +386,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 			stdoutMessage := util.SanitizeCredentialURLs(stdout)
 
 			// Now check if the error is a resolve reference due to broken reference
-			if strings.Contains(stderrMessage, "unable to resolve reference") && strings.Contains(stderrMessage, "reference broken") {
+			if checkRecoverableSyncError(stderrMessage) {
 				log.Warn("SyncMirrors [repo: %-v Wiki]: failed to update mirror wiki repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 				err = nil
 
@@ -356,8 +397,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 					stderrBuilder.Reset()
 					stdoutBuilder.Reset()
 
-					if err = git.NewCommand(ctx, "remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
-						Run(&git.RunOpts{
+					if err = git.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).
+						Run(ctx, &git.RunOpts{
 							Timeout: timeout,
 							Dir:     wikiPath,
 							Stdout:  &stdoutBuilder,
@@ -403,6 +444,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	return parseRemoteUpdateOutput(output, m.GetRemoteName()), true
 }
 
+func getRepoPullMirrorLockKey(repoID int64) string {
+	return fmt.Sprintf("repo_pull_mirror_%d", repoID)
+}
+
 // SyncPullMirror starts the sync of the pull mirror and schedules the next run.
 func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
@@ -414,6 +459,13 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		// There was a panic whilst syncMirrors...
 		log.Error("PANIC whilst SyncMirrors[repo_id: %d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
+
+	releaser, err := globallock.Lock(ctx, getRepoPullMirrorLockKey(repoID))
+	if err != nil {
+		log.Error("globallock.Lock(): %v", err)
+		return false
+	}
+	defer releaser()
 
 	m, err := repo_model.GetMirrorByRepoID(ctx, repoID)
 	if err != nil {

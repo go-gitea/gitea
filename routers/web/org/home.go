@@ -29,12 +29,12 @@ func Home(ctx *context.Context) {
 	uname := ctx.PathParam("username")
 
 	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
-		ctx.NotFound("", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
 	ctx.SetPathParam("org", uname)
-	context.HandleOrgAssignment(ctx)
+	context.OrgAssignment(context.OrgAssignmentOptions{})(ctx)
 	if ctx.Written() {
 		return
 	}

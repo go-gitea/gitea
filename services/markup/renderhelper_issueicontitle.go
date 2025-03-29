@@ -18,8 +18,8 @@ import (
 )
 
 func renderRepoIssueIconTitle(ctx context.Context, opts markup.RenderIssueIconTitleOptions) (_ template.HTML, err error) {
-	webCtx, ok := ctx.Value(gitea_context.WebContextKey).(*gitea_context.Context)
-	if !ok {
+	webCtx := gitea_context.GetWebContext(ctx)
+	if webCtx == nil {
 		return "", fmt.Errorf("context is not a web context")
 	}
 

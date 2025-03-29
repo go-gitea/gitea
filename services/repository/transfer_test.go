@@ -34,23 +34,26 @@ func TestTransferOwnership(t *testing.T) {
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	assert.NoError(t, TransferOwnership(db.DefaultContext, doer, doer, repo, nil))
+	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
+	repoTransfer := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoTransfer{ID: 1})
+	assert.NoError(t, repoTransfer.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, AcceptTransferOwnership(db.DefaultContext, repo, doer))
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	assert.EqualValues(t, 2, transferredRepo.OwnerID)
+	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
+	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
 
 	exist, err := util.IsExist(repo_model.RepoPath("org3", "repo3"))
 	assert.NoError(t, err)
 	assert.False(t, exist)
-	exist, err = util.IsExist(repo_model.RepoPath("user2", "repo3"))
+	exist, err = util.IsExist(repo_model.RepoPath("user1", "repo3"))
 	assert.NoError(t, err)
 	assert.True(t, exist)
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
 		OpType:    activities_model.ActionTransferRepo,
-		ActUserID: 2,
+		ActUserID: 1,
 		RepoID:    3,
 		Content:   "org3/repo3",
 	})
@@ -61,10 +64,10 @@ func TestTransferOwnership(t *testing.T) {
 func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	recipient := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
 
 	hasAccess, err := access_model.HasAnyUnitAccess(db.DefaultContext, recipient.ID, repo)
 	assert.NoError(t, err)
@@ -82,7 +85,7 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 func TestRepositoryTransfer(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
 	transfer, err := repo_model.GetPendingRepositoryTransfer(db.DefaultContext, repo)
@@ -90,7 +93,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.NotNil(t, transfer)
 
 	// Cancel transfer
-	assert.NoError(t, CancelRepositoryTransfer(db.DefaultContext, repo))
+	assert.NoError(t, CancelRepositoryTransfer(db.DefaultContext, transfer, doer))
 
 	transfer, err = repo_model.GetPendingRepositoryTransfer(db.DefaultContext, repo)
 	assert.Error(t, err)
@@ -113,10 +116,12 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, repo_model.IsErrRepoTransferInProgress(err))
 
-	// Unknown user
-	err = repo_model.CreatePendingRepositoryTransfer(db.DefaultContext, doer, &user_model.User{ID: 1000, LowerName: "user1000"}, repo.ID, nil)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	// Unknown user, transfer non-existent transfer repo id = 2
+	err = repo_model.CreatePendingRepositoryTransfer(db.DefaultContext, doer, &user_model.User{ID: 1000, LowerName: "user1000"}, repo2.ID, nil)
 	assert.Error(t, err)
 
-	// Cancel transfer
-	assert.NoError(t, CancelRepositoryTransfer(db.DefaultContext, repo))
+	// Reject transfer
+	err = RejectRepositoryTransfer(db.DefaultContext, repo2, doer)
+	assert.True(t, repo_model.IsErrNoPendingTransfer(err))
 }

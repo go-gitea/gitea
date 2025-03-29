@@ -72,7 +72,7 @@ func InitEngine(ctx context.Context) error {
 	xe.SetDefaultContext(ctx)
 
 	if setting.Database.SlowQueryThreshold > 0 {
-		xe.AddHook(&SlowQueryHook{
+		xe.AddHook(&EngineHook{
 			Threshold: setting.Database.SlowQueryThreshold,
 			Logger:    log.GetLogger("xorm"),
 		})
@@ -105,7 +105,7 @@ func UnsetDefaultEngine() {
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level
 // is different from the expected value.
-func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Context, *xorm.Engine) error) (err error) {
 	if err = InitEngine(ctx); err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	// Installation should only be being re-run if users want to recover an old database.
 	// However, we should think carefully about should we support re-install on an installed instance,
 	// as there may be other problems due to secret reinitialization.
-	if err = migrateFunc(xormEngine); err != nil {
+	if err = migrateFunc(ctx, xormEngine); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
 

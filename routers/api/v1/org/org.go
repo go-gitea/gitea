@@ -35,7 +35,7 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	}
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "db.FindAndCount[organization.Organization]", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -138,14 +138,14 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	op := api.OrganizationPermissions{}
 
 	if !organization.HasOrgOrUserVisible(ctx, o, ctx.ContextUser) {
-		ctx.NotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 
 	org := organization.OrgFromUser(o)
 	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetOrgUserAuthorizeLevel", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -164,7 +164,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -209,7 +209,7 @@ func GetAll(ctx *context.APIContext) {
 		Visible:     vMode,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	orgs := make([]*api.Organization, len(publicOrgs))
@@ -245,7 +245,7 @@ func Create(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateOrgOption)
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.Error(http.StatusForbidden, "Create organization not allowed", nil)
+		ctx.APIError(http.StatusForbidden, nil)
 		return
 	}
 
@@ -271,9 +271,9 @@ func Create(ctx *context.APIContext) {
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "CreateOrganization", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -301,7 +301,7 @@ func Get(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
-		ctx.NotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 
@@ -313,6 +313,44 @@ func Get(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, org)
+}
+
+func Rename(ctx *context.APIContext) {
+	// swagger:operation POST /orgs/{org}/rename organization renameOrg
+	// ---
+	// summary: Rename an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: existing org name
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/RenameOrgOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm(ctx).(*api.RenameOrgOption)
+	orgUser := ctx.Org.Organization.AsUser()
+	if err := user_service.RenameUser(ctx, orgUser, form.NewName); err != nil {
+		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }
 
 // Edit change an organization's information
@@ -345,7 +383,7 @@ func Edit(ctx *context.APIContext) {
 
 	if form.Email != "" {
 		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.Org.Organization.AsUser(), form.Email); err != nil {
-			ctx.Error(http.StatusInternalServerError, "ReplacePrimaryEmailAddress", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -359,7 +397,7 @@ func Edit(ctx *context.APIContext) {
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -386,7 +424,7 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if err := org.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -431,7 +469,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 			org := organization.OrgFromUser(ctx.ContextUser)
 			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
+				ctx.APIErrorInternal(err)
 				return
 			}
 			includePrivate = isMember
@@ -450,7 +488,7 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 
 	feeds, count, err := feed_service.GetFeeds(ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFeeds", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.SetTotalCountHeader(count)

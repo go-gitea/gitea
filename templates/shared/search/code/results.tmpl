@@ -1,7 +1,7 @@
 <div class="flex-text-block tw-flex-wrap">
 	{{range $term := .SearchResultLanguages}}
 	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label tw-m-0"
-		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&fuzzy={{$.IsFuzzy}}">
+		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&search_mode={{$.SelectedSearchMode}}">
 		<i class="color-icon tw-mr-2" style="background-color: {{$term.Color}}"></i>
 		{{$term.Language}}
 		<div class="detail">{{$term.Count}}</div>
@@ -11,7 +11,7 @@
 <div class="repository search">
 	{{range $result := .SearchResults}}
 		{{$repo := or $.Repo (index $.RepoMaps .RepoID)}}
-		<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
+		<div class="diff-file-box file-content non-diff-file-content repo-search-result">
 			<h4 class="ui top attached header tw-font-normal tw-flex tw-flex-wrap">
 				{{if not $.Repo}}
 					<span class="file tw-flex-1">

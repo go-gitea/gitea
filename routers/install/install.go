@@ -17,7 +17,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	db_install "code.gitea.io/gitea/models/db/install"
-	"code.gitea.io/gitea/models/migrations"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
@@ -37,6 +36,7 @@ import (
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/versioned_migration"
 
 	"gitea.com/go-chi/session"
 )
@@ -64,7 +64,6 @@ func Contexter() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base := context.NewBaseContext(resp, req)
 			ctx := context.NewWebContext(base, rnd, session.GetSession(req))
-			ctx.SetContextValue(context.WebContextKey, ctx)
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data.MergeFrom(reqctx.ContextData{
 				"Title":          ctx.Locale.Tr("install.install"),
@@ -360,7 +359,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Init the engine with migration
-	if err = db.InitEngineWithMigration(ctx, migrations.Migrate); err != nil {
+	if err = db.InitEngineWithMigration(ctx, versioned_migration.Migrate); err != nil {
 		db.UnsetDefaultEngine()
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)

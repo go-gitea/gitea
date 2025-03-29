@@ -19,12 +19,12 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 )
 
-func storageHandler(storageSetting *setting.Storage, prefix string, objStore storage.ObjectStorage) http.HandlerFunc {
+func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objStore storage.ObjectStorage) http.HandlerFunc {
 	prefix = strings.Trim(prefix, "/")
-	funcInfo := routing.GetFuncInfo(storageHandler, prefix)
+	funcInfo := routing.GetFuncInfo(avatarStorageHandler, prefix)
 
 	if storageSetting.ServeDirect() {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		return func(w http.ResponseWriter, req *http.Request) {
 			if req.Method != "GET" && req.Method != "HEAD" {
 				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 				return
@@ -34,7 +34,7 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 				http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 				return
 			}
-			routing.UpdateFuncInfo(req.Context(), funcInfo)
+			defer routing.RecordFuncInfo(req.Context(), funcInfo)()
 
 			rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
 			rPath = util.PathJoinRelX(rPath)
@@ -52,10 +52,10 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 			}
 
 			http.Redirect(w, req, u.String(), http.StatusTemporaryRedirect)
-		})
+		}
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "GET" && req.Method != "HEAD" {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
@@ -65,7 +65,7 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
-		routing.UpdateFuncInfo(req.Context(), funcInfo)
+		defer routing.RecordFuncInfo(req.Context(), funcInfo)()
 
 		rPath := strings.TrimPrefix(req.URL.Path, "/"+prefix+"/")
 		rPath = util.PathJoinRelX(rPath)
@@ -93,6 +93,8 @@ func storageHandler(storageSetting *setting.Storage, prefix string, objStore sto
 			return
 		}
 		defer fr.Close()
-		httpcache.ServeContentWithCacheControl(w, req, path.Base(rPath), fi.ModTime(), fr)
-	})
+
+		httpcache.SetCacheControlInHeader(w.Header(), httpcache.CacheControlForPublicStatic())
+		http.ServeContent(w, req, path.Base(rPath), fi.ModTime(), fr)
+	}
 }

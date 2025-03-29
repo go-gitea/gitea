@@ -1,3 +1,4 @@
+{{/* the logic should be kept the same as getIssueIcon/getIssueColor in JS code */}}
 {{- if .IsPull -}}
 	{{- if not .PullRequest -}}
 		No PullRequest
@@ -6,7 +7,7 @@
 			{{- if .PullRequest.HasMerged -}}
 				{{- svg "octicon-git-merge" 16 "text purple" -}}
 			{{- else -}}
-				{{- svg "octicon-git-pull-request" 16 "text red" -}}
+				{{- svg "octicon-git-pull-request-closed" 16 "text red" -}}
 			{{- end -}}
 		{{- else -}}
 			{{- if .PullRequest.IsWorkInProgress ctx -}}

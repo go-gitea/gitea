@@ -27,8 +27,8 @@ import (
 
 // IdentityOptions for a person's identity like an author or committer
 type IdentityOptions struct {
-	Name  string
-	Email string
+	GitUserName  string // to match "git config user.name"
+	GitUserEmail string // to match "git config user.email"
 }
 
 // CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
@@ -160,15 +160,13 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
-
-	t, err := NewTemporaryUploadRepository(ctx, repo)
+	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
 		log.Error("NewTemporaryUploadRepository failed: %v", err)
 	}
 	defer t.Close()
 	hasOldBranch := true
-	if err := t.Clone(opts.OldBranch, true); err != nil {
+	if err := t.Clone(ctx, opts.OldBranch, true); err != nil {
 		for _, file := range opts.Files {
 			if file.Operation == "delete" {
 				return nil, err
@@ -177,14 +175,14 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
 			return nil, err
 		}
-		if err := t.Init(repo.ObjectFormatName); err != nil {
+		if err := t.Init(ctx, repo.ObjectFormatName); err != nil {
 			return nil, err
 		}
 		hasOldBranch = false
 		opts.LastCommitID = ""
 	}
 	if hasOldBranch {
-		if err := t.SetDefaultIndex(); err != nil {
+		if err := t.SetDefaultIndex(ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -192,7 +190,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	for _, file := range opts.Files {
 		if file.Operation == "delete" {
 			// Get the files in the index
-			filesInIndex, err := t.LsFiles(file.TreePath)
+			filesInIndex, err := t.LsFiles(ctx, file.TreePath)
 			if err != nil {
 				return nil, fmt.Errorf("DeleteRepoFile: %w", err)
 			}
@@ -247,7 +245,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 			}
 		case "delete":
 			// Remove the file from the index
-			if err := t.RemoveFilesFromIndex(file.TreePath); err != nil {
+			if err := t.RemoveFilesFromIndex(ctx, file.TreePath); err != nil {
 				return nil, err
 			}
 		default:
@@ -256,24 +254,33 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// Now write the tree
-	treeHash, err := t.WriteTree()
+	treeHash, err := t.WriteTree(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Now commit the tree
-	var commitHash string
-	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate(opts.LastCommitID, author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
-	} else {
-		commitHash, err = t.CommitTree(opts.LastCommitID, author, committer, treeHash, message, opts.Signoff)
+	commitOpts := &CommitTreeUserOptions{
+		ParentCommitID:    opts.LastCommitID,
+		TreeHash:          treeHash,
+		CommitMessage:     message,
+		SignOff:           opts.Signoff,
+		DoerUser:          doer,
+		AuthorIdentity:    opts.Author,
+		AuthorTime:        nil,
+		CommitterIdentity: opts.Committer,
+		CommitterTime:     nil,
 	}
+	if opts.Dates != nil {
+		commitOpts.AuthorTime, commitOpts.CommitterTime = &opts.Dates.Author, &opts.Dates.Committer
+	}
+	commitHash, err := t.CommitTree(ctx, commitOpts)
 	if err != nil {
 		return nil, err
 	}
 
 	// Then push this tree to NewBranch
-	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
+	if err := t.Push(ctx, doer, commitHash, opts.NewBranch); err != nil {
 		log.Error("%T %v", err, err)
 		return nil, err
 	}
@@ -446,7 +453,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 // CreateOrUpdateFile handles creating or updating a file for ChangeRepoFiles
 func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile, contentStore *lfs.ContentStore, repoID int64, hasOldBranch bool) error {
 	// Get the two paths (might be the same if not moving) from the index if they exist
-	filesInIndex, err := t.LsFiles(file.TreePath, file.FromTreePath)
+	filesInIndex, err := t.LsFiles(ctx, file.TreePath, file.FromTreePath)
 	if err != nil {
 		return fmt.Errorf("UpdateRepoFile: %w", err)
 	}
@@ -465,7 +472,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	if file.Options.fromTreePath != file.Options.treePath && len(filesInIndex) > 0 {
 		for _, indexFile := range filesInIndex {
 			if indexFile == file.Options.fromTreePath {
-				if err := t.RemoveFilesFromIndex(file.FromTreePath); err != nil {
+				if err := t.RemoveFilesFromIndex(ctx, file.FromTreePath); err != nil {
 					return err
 				}
 			}
@@ -497,18 +504,18 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	}
 
 	// Add the object to the database
-	objectHash, err := t.HashObject(treeObjectContentReader)
+	objectHash, err := t.HashObject(ctx, treeObjectContentReader)
 	if err != nil {
 		return err
 	}
 
 	// Add the object to the index
 	if file.Options.executable {
-		if err := t.AddObjectToIndex("100755", objectHash, file.Options.treePath); err != nil {
+		if err := t.AddObjectToIndex(ctx, "100755", objectHash, file.Options.treePath); err != nil {
 			return err
 		}
 	} else {
-		if err := t.AddObjectToIndex("100644", objectHash, file.Options.treePath); err != nil {
+		if err := t.AddObjectToIndex(ctx, "100644", objectHash, file.Options.treePath); err != nil {
 			return err
 		}
 	}

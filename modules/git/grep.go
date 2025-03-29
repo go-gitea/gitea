@@ -23,11 +23,19 @@ type GrepResult struct {
 	LineCodes   []string
 }
 
+type GrepModeType string
+
+const (
+	GrepModeExact  GrepModeType = "exact"
+	GrepModeWords  GrepModeType = "words"
+	GrepModeRegexp GrepModeType = "regexp"
+)
+
 type GrepOptions struct {
 	RefName           string
 	MaxResultLimit    int
 	ContextLineNumber int
-	IsFuzzy           bool
+	GrepMode          GrepModeType
 	MaxLineLength     int // the maximum length of a line to parse, exceeding chars will be truncated
 	PathspecList      []string
 }
@@ -52,21 +60,29 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	 2^@repo: go-gitea/gitea
 	*/
 	var results []*GrepResult
-	cmd := NewCommand(ctx, "grep", "--null", "--break", "--heading", "--fixed-strings", "--line-number", "--ignore-case", "--full-name")
+	cmd := NewCommand("grep", "--null", "--break", "--heading", "--line-number", "--full-name")
 	cmd.AddOptionValues("--context", fmt.Sprint(opts.ContextLineNumber))
-	if opts.IsFuzzy {
-		words := strings.Fields(search)
-		for _, word := range words {
-			cmd.AddOptionValues("-e", strings.TrimLeft(word, "-"))
-		}
-	} else {
+	if opts.GrepMode == GrepModeExact {
+		cmd.AddArguments("--fixed-strings")
 		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
+	} else if opts.GrepMode == GrepModeRegexp {
+		cmd.AddArguments("--perl-regexp")
+		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
+	} else /* words */ {
+		words := strings.Fields(search)
+		cmd.AddArguments("--fixed-strings", "--ignore-case")
+		for i, word := range words {
+			cmd.AddOptionValues("-e", strings.TrimLeft(word, "-"))
+			if i < len(words)-1 {
+				cmd.AddOptionValues("--and")
+			}
+		}
 	}
 	cmd.AddDynamicArguments(util.IfZero(opts.RefName, "HEAD"))
 	cmd.AddDashesAndList(opts.PathspecList...)
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 	stderr := bytes.Buffer{}
-	err = cmd.Run(&RunOpts{
+	err = cmd.Run(ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
 		Stderr: &stderr,

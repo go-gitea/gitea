@@ -1,7 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import {createCodeEditor} from './codeeditor.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
-import {initMarkupContent} from '../markup/content.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
@@ -38,9 +37,6 @@ export function initRepoEditor() {
   const dropzoneUpload = document.querySelector<HTMLElement>('.page-content.repository.editor.upload .dropzone');
   if (dropzoneUpload) initDropzone(dropzoneUpload);
 
-  const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
-  if (!editArea) return;
-
   for (const el of queryElems<HTMLInputElement>(document, '.js-quick-pull-choice-option')) {
     el.addEventListener('input', () => {
       if (el.value === 'commit-to-new-branch') {
@@ -55,6 +51,7 @@ export function initRepoEditor() {
   }
 
   const filenameInput = document.querySelector<HTMLInputElement>('#file-name');
+  if (!filenameInput) return;
   function joinTreePath() {
     const parts = [];
     for (const el of document.querySelectorAll('.breadcrumb span.section')) {
@@ -144,6 +141,10 @@ export function initRepoEditor() {
     }
   });
 
+  // on the upload page, there is no editor(textarea)
+  const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
+  if (!editArea) return;
+
   const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form');
   initEditPreviewTab(elForm);
 
@@ -166,7 +167,7 @@ export function initRepoEditor() {
       silent: true,
       dirtyClass: dirtyFileClass,
       fieldSelector: ':input:not(.commit-form-wrapper :input)',
-      change($form) {
+      change($form: any) {
         const dirty = $form[0]?.classList.contains(dirtyFileClass);
         commitButton.disabled = !dirty;
       },
@@ -197,7 +198,6 @@ export function initRepoEditor() {
 }
 
 export function renderPreviewPanelContent(previewPanel: Element, content: string) {
-  previewPanel.innerHTML = content;
-  initMarkupContent();
+  previewPanel.innerHTML = `<div class="render-content markup">${content}</div>`;
   attachRefIssueContextPopup(previewPanel.querySelectorAll('p .ref-issue'));
 }

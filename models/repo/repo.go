@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
@@ -61,20 +62,30 @@ func (err ErrRepoIsArchived) Error() string {
 	return fmt.Sprintf("%s is archived", err.Repo.LogString())
 }
 
-var (
-	validRepoNamePattern   = regexp.MustCompile(`[-.\w]+`)
-	invalidRepoNamePattern = regexp.MustCompile(`[.]{2,}`)
-	reservedRepoNames      = []string{".", "..", "-"}
-	reservedRepoPatterns   = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
-)
+type globalVarsStruct struct {
+	validRepoNamePattern   *regexp.Regexp
+	invalidRepoNamePattern *regexp.Regexp
+	reservedRepoNames      []string
+	reservedRepoPatterns   []string
+}
+
+var globalVars = sync.OnceValue(func() *globalVarsStruct {
+	return &globalVarsStruct{
+		validRepoNamePattern:   regexp.MustCompile(`[-.\w]+`),
+		invalidRepoNamePattern: regexp.MustCompile(`[.]{2,}`),
+		reservedRepoNames:      []string{".", "..", "-"},
+		reservedRepoPatterns:   []string{"*.git", "*.wiki", "*.rss", "*.atom"},
+	}
+})
 
 // IsUsableRepoName returns true when name is usable
 func IsUsableRepoName(name string) error {
-	if !validRepoNamePattern.MatchString(name) || invalidRepoNamePattern.MatchString(name) {
+	vars := globalVars()
+	if !vars.validRepoNamePattern.MatchString(name) || vars.invalidRepoNamePattern.MatchString(name) {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
-	return db.IsUsableName(reservedRepoNames, reservedRepoPatterns, name)
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoPatterns, name)
 }
 
 // TrustModelType defines the types of trust model for this repository
@@ -204,12 +215,24 @@ func init() {
 	db.RegisterModel(new(Repository))
 }
 
-func (repo *Repository) GetName() string {
-	return repo.Name
+func RelativePath(ownerName, repoName string) string {
+	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-func (repo *Repository) GetOwnerName() string {
-	return repo.OwnerName
+// RelativePath should be an unix style path like username/reponame.git
+func (repo *Repository) RelativePath() string {
+	return RelativePath(repo.OwnerName, repo.Name)
+}
+
+type StorageRepo string
+
+// RelativePath should be an unix style path like username/reponame.git
+func (sr StorageRepo) RelativePath() string {
+	return string(sr)
+}
+
+func (repo *Repository) WikiStorageRepo() StorageRepo {
+	return StorageRepo(strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git")
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL
@@ -635,13 +658,15 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 type CloneLink struct {
 	SSH   string
 	HTTPS string
+	Tea   string
 }
 
-// ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
+// ComposeHTTPSCloneURL returns HTTPS clone URL based on the given owner and repository name.
 func ComposeHTTPSCloneURL(ctx context.Context, owner, repo string) string {
 	return fmt.Sprintf("%s%s/%s.git", httplib.GuessCurrentAppURL(ctx), url.PathEscape(owner), url.PathEscape(repo))
 }
 
+// ComposeSSHCloneURL returns SSH clone URL based on the given owner and repository name.
 func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) string {
 	sshUser := setting.SSH.User
 	sshDomain := setting.SSH.Domain
@@ -675,11 +700,17 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) strin
 	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
 }
 
+// ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
+func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
+	return fmt.Sprintf("tea clone %s/%s", url.PathEscape(owner), url.PathEscape(repo))
+}
+
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
-	cl := new(CloneLink)
-	cl.SSH = ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName)
-	cl.HTTPS = ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName)
-	return cl
+	return &CloneLink{
+		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
+		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
+		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
+	}
 }
 
 // CloneLink returns clone URLs of repository.
@@ -820,6 +851,9 @@ func GetRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
 func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repository, error) {
 	repos := make(map[int64]*Repository, len(ids))
+	if len(ids) == 0 {
+		return repos, nil
+	}
 	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 

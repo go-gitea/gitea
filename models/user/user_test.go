@@ -4,7 +4,6 @@
 package user_test
 
 import (
-	"context"
 	"crypto/rand"
 	"fmt"
 	"strings"
@@ -24,6 +23,21 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestIsUsableUsername(t *testing.T) {
+	assert.NoError(t, user_model.IsUsableUsername("a"))
+	assert.NoError(t, user_model.IsUsableUsername("foo.wiki"))
+	assert.NoError(t, user_model.IsUsableUsername("foo.git"))
+
+	assert.Error(t, user_model.IsUsableUsername("a--b"))
+	assert.Error(t, user_model.IsUsableUsername("-1_."))
+	assert.Error(t, user_model.IsUsableUsername(".profile"))
+	assert.Error(t, user_model.IsUsableUsername("-"))
+	assert.Error(t, user_model.IsUsableUsername("🌞"))
+	assert.Error(t, user_model.IsUsableUsername("the..repo"))
+	assert.Error(t, user_model.IsUsableUsername("foo.RSS"))
+	assert.Error(t, user_model.IsUsableUsername("foo.PnG"))
+}
 
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -186,7 +200,7 @@ func BenchmarkHashPassword(b *testing.B) {
 	pass := "password1337"
 	u := &user_model.User{Passwd: pass}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		u.SetPassword(pass)
 	}
 }
@@ -264,7 +278,7 @@ func TestCreateUserCustomTimestamps(t *testing.T) {
 	err := user_model.CreateUser(db.DefaultContext, user, &user_model.Meta{})
 	assert.NoError(t, err)
 
-	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
+	fetched, err := user_model.GetUserByID(t.Context(), user.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, creationTimestamp, fetched.CreatedUnix)
 	assert.Equal(t, creationTimestamp, fetched.UpdatedUnix)
@@ -291,7 +305,7 @@ func TestCreateUserWithoutCustomTimestamps(t *testing.T) {
 
 	timestampEnd := time.Now().Unix()
 
-	fetched, err := user_model.GetUserByID(context.Background(), user.ID)
+	fetched, err := user_model.GetUserByID(t.Context(), user.ID)
 	assert.NoError(t, err)
 
 	assert.LessOrEqual(t, timestampStart, fetched.CreatedUnix)
@@ -318,14 +332,14 @@ func TestGetUserIDsByNames(t *testing.T) {
 func TestGetMaileableUsersByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	results, err := user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
+	results, err := user_model.GetMailableUsersByIDs(db.DefaultContext, []int64{1, 4}, false)
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 	if len(results) > 1 {
 		assert.Equal(t, 1, results[0].ID)
 	}
 
-	results, err = user_model.GetMaileableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
+	results, err = user_model.GetMailableUsersByIDs(db.DefaultContext, []int64{1, 4}, true)
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
 	if len(results) > 2 {

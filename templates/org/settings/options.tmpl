@@ -89,10 +89,8 @@
 					<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 						{{.CsrfTokenHtml}}
 						<div class="inline field">
-							<label for="avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
-							<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+							{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
 						</div>
-
 						<div class="field">
 							<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
 							<button class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>

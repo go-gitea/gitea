@@ -6,7 +6,7 @@
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/projects?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input class="combo-value" name="project_id" type="hidden" value="{{$data.SelectedProjectID}}">
-	<div class="ui dropdown {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
+	<div class="ui dropdown text-flex-grow {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
 		<a class="text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
 		</a>
@@ -17,8 +17,9 @@
 				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_projects"}}">
 			</div>
 			{{end}}
-			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
 			<div class="scrolling menu">
+				<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}</div>
+				<div class="divider"></div>
 				{{if $data.OpenProjects}}
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
 					{{range $data.OpenProjects}}
@@ -39,10 +40,10 @@
 			</div>
 		</div>
 	</div>
-	<div class="ui list">
+	<div class="ui list muted-links flex-items-block">
 		<span class="item empty-list {{if $issueProject}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 		{{if $issueProject}}
-			<a class="item muted" href="{{$issueProject.Link ctx}}">
+			<a class="item" href="{{$issueProject.Link ctx}}">
 				{{svg $issueProject.IconName 18}} {{$issueProject.Title}}
 			</a>
 		{{end}}

@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUser_IsOwnedBy(t *testing.T) {
@@ -180,9 +181,8 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 		ID:           29,
 		IsRestricted: true,
 	})
-	if !assert.True(t, restrictedUser.IsRestricted) {
-		return // ensure fixtures return restricted user
-	}
+	// ensure fixtures return restricted user
+	require.True(t, restrictedUser.IsRestricted)
 
 	testCases := []struct {
 		name         string
@@ -320,7 +320,7 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 	testSuccess := func(userID, expectedCount int64) {
 		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
-		count, err := env.CountRepos()
+		count, err := env.CountRepos(db.DefaultContext)
 		assert.NoError(t, err)
 		assert.EqualValues(t, expectedCount, count)
 	}
@@ -334,7 +334,7 @@ func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
 		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
-		repoIDs, err := env.RepoIDs(1, 100)
+		repoIDs, err := env.RepoIDs(db.DefaultContext, 1, 100)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedRepoIDs, repoIDs)
 	}
@@ -348,7 +348,7 @@ func TestAccessibleReposEnv_Repos(t *testing.T) {
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
 		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
-		repos, err := env.Repos(1, 100)
+		repos, err := env.Repos(db.DefaultContext, 1, 100)
 		assert.NoError(t, err)
 		expectedRepos := make(repo_model.RepositoryList, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {
@@ -367,7 +367,7 @@ func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
 		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
-		repos, err := env.MirrorRepos()
+		repos, err := env.MirrorRepos(db.DefaultContext)
 		assert.NoError(t, err)
 		expectedRepos := make(repo_model.RepositoryList, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {

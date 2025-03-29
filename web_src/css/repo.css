@@ -784,7 +784,7 @@ td .commit-summary {
   box-shadow: none;
 }
 
-.repository.view.issue .ui.depending .item.is-closed .title {
+.repository.view.issue .ui.depending .item.is-closed .issue-dependency-title {
   text-decoration: line-through;
 }
 
@@ -1083,10 +1083,6 @@ td .commit-summary {
 .repository .diff-detail-box .ui.button {
   padding: 0 12px;
   height: 30px;
-}
-
-.repository .diff-box .resolved-placeholder .button {
-  padding: 8px 12px;
 }
 
 .repository .diff-file-box .header {
@@ -1480,16 +1476,12 @@ td .commit-summary {
 }
 
 .comment-header {
-  border: none !important;
   background: var(--color-box-header);
-  border-bottom: 1px solid var(--color-secondary) !important;
-  font-weight: var(--font-weight-normal) !important;
-  padding: 0.5rem 1rem;
-  margin: 0 !important;
+  border-bottom: 1px solid var(--color-secondary);
+  padding: 0 1rem;
   position: relative;
   color: var(--color-text);
   min-height: 41px;
-  background-color: var(--color-box-header);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1634,7 +1626,7 @@ td .commit-summary {
 }
 
 .repo-button-row-left {
-  flex: 1;
+  flex-grow: 1;
 }
 
 .repo-button-row .button {

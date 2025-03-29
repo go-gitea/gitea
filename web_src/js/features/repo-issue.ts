@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
 import {
@@ -21,35 +20,37 @@ import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
 const {appSubUrl} = window.config;
 
-export function initRepoIssueSidebarList() {
+export function initRepoIssueSidebarDependency() {
+  const elDropdown = document.querySelector('#new-dependency-drop-list');
+  if (!elDropdown) return;
+
   const issuePageInfo = parseIssuePageInfo();
-  const crossRepoSearch = $('#crossRepoSearch').val();
+  const crossRepoSearch = elDropdown.getAttribute('data-issue-cross-repo-search');
   let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
   if (crossRepoSearch === 'true') {
     issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
   }
-  fomanticQuery('#new-dependency-drop-list').dropdown({
+  fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
     apiSettings: {
+      cache: false,
+      rawResponse: true,
       url: issueSearchUrl,
-      onResponse(response) {
-        const filteredResponse = {success: true, results: []};
-        const currIssueId = $('#new-dependency-drop-list').data('issue-id');
+      onResponse(response: any) {
+        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
+        const currIssueId = elDropdown.getAttribute('data-issue-id');
         // Parse the response from the api to work with our dropdown
-        $.each(response, (_i, issue) => {
+        for (const issue of response) {
           // Don't list current issue in the dependency list.
-          if (issue.id === currIssueId) {
-            return;
-          }
+          if (String(issue.id) === currIssueId) continue;
           filteredResponse.results.push({
+            value: issue.id,
             name: `<div class="gt-ellipsis">#${issue.number} ${htmlEscape(issue.title)}</div>
 <div class="text small tw-break-anywhere">${htmlEscape(issue.repository.full_name)}</div>`,
-            value: issue.id,
           });
-        });
+        }
         return filteredResponse;
       },
-      cache: false,
     },
   });
 }
@@ -181,24 +182,6 @@ export function initRepoIssueCommentDelete() {
   });
 }
 
-export function initRepoIssueDependencyDelete() {
-  // Delete Issue dependency
-  $(document).on('click', '.delete-dependency-button', (e) => {
-    const id = e.currentTarget.getAttribute('data-id');
-    const type = e.currentTarget.getAttribute('data-type');
-
-    $('.remove-dependency').modal({
-      closable: false,
-      duration: 200,
-      onApprove: () => {
-        $('#removeDependencyID').val(id);
-        $('#dependencyType').val(type);
-        $('#removeDependencyForm').trigger('submit');
-      },
-    }).modal('show');
-  });
-}
-
 export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
   document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
@@ -215,11 +198,12 @@ export function initRepoIssueCodeCommentCancel() {
 }
 
 export function initRepoPullRequestUpdate() {
-  // Pull Request update button
-  const pullUpdateButton = document.querySelector('.update-button > button');
-  if (!pullUpdateButton) return;
+  const prUpdateButtonContainer = document.querySelector('#update-pr-branch-with-base');
+  if (!prUpdateButtonContainer) return;
 
-  pullUpdateButton.addEventListener('click', async function (e) {
+  const prUpdateButton = prUpdateButtonContainer.querySelector<HTMLButtonElement>(':scope > button');
+  const prUpdateDropdown = prUpdateButtonContainer.querySelector(':scope > .ui.dropdown');
+  prUpdateButton.addEventListener('click', async function (e) {
     e.preventDefault();
     const redirect = this.getAttribute('data-redirect');
     this.classList.add('is-loading');
@@ -246,24 +230,18 @@ export function initRepoPullRequestUpdate() {
     }
   });
 
-  $('.update-button > .dropdown').dropdown({
-    onChange(_text, _value, $choice) {
+  fomanticQuery(prUpdateDropdown).dropdown({
+    onChange(_text: string, _value: string, $choice: any) {
       const choiceEl = $choice[0];
       const url = choiceEl.getAttribute('data-do');
       if (url) {
-        const buttonText = pullUpdateButton.querySelector('.button-text');
+        const buttonText = prUpdateButton.querySelector('.button-text');
         if (buttonText) {
           buttonText.textContent = choiceEl.textContent;
         }
-        pullUpdateButton.setAttribute('data-do', url);
+        prUpdateButton.setAttribute('data-do', url);
       }
     },
-  });
-}
-
-export function initRepoPullRequestMergeInstruction() {
-  $('.show-instruction').on('click', () => {
-    toggleElem($('.instruct-content'));
   });
 }
 
@@ -293,54 +271,8 @@ export function initRepoPullRequestAllowMaintainerEdit() {
   });
 }
 
-export function initRepoIssueReferenceRepositorySearch() {
-  $('.issue_reference_repository_search')
-    .dropdown({
-      apiSettings: {
-        url: `${appSubUrl}/repo/search?q={query}&limit=20`,
-        onResponse(response) {
-          const filteredResponse = {success: true, results: []};
-          $.each(response.data, (_r, repo) => {
-            filteredResponse.results.push({
-              name: htmlEscape(repo.repository.full_name),
-              value: repo.repository.full_name,
-            });
-          });
-          return filteredResponse;
-        },
-        cache: false,
-      },
-      onChange(_value, _text, $choice) {
-        const $form = $choice.closest('form');
-        if (!$form.length) return;
-
-        $form[0].setAttribute('action', `${appSubUrl}/${_text}/issues/new`);
-      },
-      fullTextSearch: true,
-    });
-}
-
-export function initRepoIssueWipTitle() {
-  $('.title_wip_desc > a').on('click', (e) => {
-    e.preventDefault();
-
-    const $issueTitle = $('#issue_title');
-    $issueTitle.trigger('focus');
-    const value = ($issueTitle.val() as string).trim().toUpperCase();
-
-    const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
-    for (const prefix of wipPrefixes) {
-      if (value.startsWith(prefix.toUpperCase())) {
-        return;
-      }
-    }
-
-    $issueTitle.val(`${wipPrefixes[0]} ${$issueTitle.val()}`);
-  });
-}
-
 export function initRepoIssueComments() {
-  if (!$('.repository.view.issue .timeline').length) return;
+  if (!document.querySelector('.repository.view.issue .timeline')) return;
 
   document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
     const urlTarget = document.querySelector(':target');
@@ -352,15 +284,15 @@ export function initRepoIssueComments() {
     if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
 
     if (!e.target.closest(`#${urlTargetId}`)) {
-      const scrollPosition = $(window).scrollTop();
-      window.location.hash = '';
-      $(window).scrollTop(scrollPosition);
+      // if the user clicks outside the comment, remove the hash from the url
+      // use empty hash and state to avoid scrolling
+      window.location.hash = ' ';
       window.history.pushState(null, null, ' ');
     }
   });
 }
 
-export async function handleReply(el) {
+export async function handleReply(el: HTMLElement) {
   const form = el.closest('.comment-code-cloud').querySelector('.comment-form');
   const textarea = form.querySelector('textarea');
 
@@ -379,7 +311,7 @@ export function initRepoPullRequestReview() {
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
       if (groupID && groupID.startsWith('code-comments-')) {
         const id = groupID.slice(14);
-        const ancestorDiffBox = commentDiv.closest('.diff-file-box');
+        const ancestorDiffBox = commentDiv.closest<HTMLElement>('.diff-file-box');
 
         hideElem(`#show-outdated-${id}`);
         showElem(`#code-comments-${id}, #code-preview-${id}, #hide-outdated-${id}`);
@@ -395,39 +327,37 @@ export function initRepoPullRequestReview() {
     }
   }
 
-  $(document).on('click', '.show-outdated', function (e) {
+  addDelegatedEventListener(document, 'click', '.show-outdated', (el, e) => {
     e.preventDefault();
-    const id = this.getAttribute('data-comment');
-    hideElem(this);
+    const id = el.getAttribute('data-comment');
+    hideElem(el);
     showElem(`#code-comments-${id}`);
     showElem(`#code-preview-${id}`);
     showElem(`#hide-outdated-${id}`);
   });
 
-  $(document).on('click', '.hide-outdated', function (e) {
+  addDelegatedEventListener(document, 'click', '.hide-outdated', (el, e) => {
     e.preventDefault();
-    const id = this.getAttribute('data-comment');
-    hideElem(this);
+    const id = el.getAttribute('data-comment');
+    hideElem(el);
     hideElem(`#code-comments-${id}`);
     hideElem(`#code-preview-${id}`);
     showElem(`#show-outdated-${id}`);
   });
 
-  $(document).on('click', 'button.comment-form-reply', async function (e) {
+  addDelegatedEventListener(document, 'click', 'button.comment-form-reply', (el, e) => {
     e.preventDefault();
-    await handleReply(this);
+    handleReply(el);
   });
 
   // The following part is only for diff views
-  if (!$('.repository.pull.diff').length) return;
+  if (!document.querySelector('.repository.pull.diff')) return;
 
-  const $reviewBtn = $('.js-btn-review');
-  const $panel = $reviewBtn.parent().find('.review-box-panel');
-  const $closeBtn = $panel.find('.close');
-
-  if ($reviewBtn.length && $panel.length) {
-    const tippy = createTippy($reviewBtn[0], {
-      content: $panel[0],
+  const elReviewBtn = document.querySelector('.js-btn-review');
+  const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
+  if (elReviewBtn && elReviewPanel) {
+    const tippy = createTippy(elReviewBtn, {
+      content: elReviewPanel,
       theme: 'default',
       placement: 'bottom',
       trigger: 'click',
@@ -435,11 +365,7 @@ export function initRepoPullRequestReview() {
       interactive: true,
       hideOnClick: true,
     });
-
-    $closeBtn.on('click', (e) => {
-      e.preventDefault();
-      tippy.hide();
-    });
+    elReviewPanel.querySelector('.close').addEventListener('click', () => tippy.hide());
   }
 
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
@@ -480,26 +406,67 @@ export function initRepoPullRequestReview() {
 }
 
 export function initRepoIssueReferenceIssue() {
+  const elDropdown = document.querySelector('.issue_reference_repository_search');
+  if (!elDropdown) return;
+  const form = elDropdown.closest('form');
+  fomanticQuery(elDropdown).dropdown({
+    fullTextSearch: true,
+    apiSettings: {
+      cache: false,
+      rawResponse: true,
+      url: `${appSubUrl}/repo/search?q={query}&limit=20`,
+      onResponse(response: any) {
+        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
+        for (const repo of response.data) {
+          filteredResponse.results.push({
+            name: htmlEscape(repo.repository.full_name),
+            value: repo.repository.full_name,
+          });
+        }
+        return filteredResponse;
+      },
+    },
+    onChange(_value: string, _text: string, _$choice: any) {
+      form.setAttribute('action', `${appSubUrl}/${_text}/issues/new`);
+    },
+  });
+
   // Reference issue
-  $(document).on('click', '.reference-issue', function (e) {
-    const target = this.getAttribute('data-target');
-    const content = document.querySelector(`#${target}`)?.textContent ?? '';
-    const poster = this.getAttribute('data-poster-username');
-    const reference = toAbsoluteUrl(this.getAttribute('data-reference'));
-    const modalSelector = this.getAttribute('data-modal');
-    const modal = document.querySelector(modalSelector);
-    const textarea = modal.querySelector('textarea[name="content"]');
-    textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
-    $(modal).modal('show');
+  addDelegatedEventListener(document, 'click', '.reference-issue', (el, e) => {
     e.preventDefault();
+    const target = el.getAttribute('data-target');
+    const content = document.querySelector(`#${target}`)?.textContent ?? '';
+    const poster = el.getAttribute('data-poster-username');
+    const reference = toAbsoluteUrl(el.getAttribute('data-reference'));
+    const modalSelector = el.getAttribute('data-modal');
+    const modal = document.querySelector(modalSelector);
+    const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]');
+    textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
+    fomanticQuery(modal).modal('show');
   });
 }
 
-export function initRepoIssueWipToggle() {
-  // Toggle WIP
-  $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
+export function initRepoIssueWipNewTitle() {
+  // Toggle WIP for new PR
+  queryElems(document, '.title_wip_desc > a', (el) => el.addEventListener('click', (e) => {
     e.preventDefault();
-    const toggleWip = e.currentTarget.closest('.toggle-wip');
+    const wipPrefixes = JSON.parse(el.closest('.title_wip_desc').getAttribute('data-wip-prefixes'));
+    const titleInput = document.querySelector<HTMLInputElement>('#issue_title');
+    const titleValue = titleInput.value;
+    for (const prefix of wipPrefixes) {
+      if (titleValue.startsWith(prefix.toUpperCase())) {
+        return;
+      }
+    }
+    titleInput.value = `${wipPrefixes[0]} ${titleValue}`;
+  }));
+}
+
+export function initRepoIssueWipToggle() {
+  // Toggle WIP for existing PR
+  queryElems(document, '.toggle-wip', (el) => el.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const toggleWip = el;
     const title = toggleWip.getAttribute('data-title');
     const wipPrefix = toggleWip.getAttribute('data-wip-prefix');
     const updateUrl = toggleWip.getAttribute('data-update-url');
@@ -516,7 +483,7 @@ export function initRepoIssueWipToggle() {
     } catch (error) {
       console.error(error);
     }
-  });
+  }));
 }
 
 export function initRepoIssueTitleEdit() {
@@ -589,11 +556,11 @@ export function initRepoIssueBranchSelect() {
   });
 }
 
-async function initSingleCommentEditor($commentForm) {
+async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   // pages:
   // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
   // * issue/pr view page: with comment form, has status-button and comment-button
-  const editor = await initComboMarkdownEditor($commentForm[0].querySelector('.combo-markdown-editor'));
+  const editor = await initComboMarkdownEditor(commentForm.querySelector('.combo-markdown-editor'));
   const statusButton = document.querySelector<HTMLButtonElement>('#status-button');
   const commentButton = document.querySelector<HTMLButtonElement>('#comment-button');
   const syncUiState = () => {
@@ -611,27 +578,27 @@ async function initSingleCommentEditor($commentForm) {
   syncUiState();
 }
 
-function initIssueTemplateCommentEditors($commentForm) {
+function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
   // pages:
   // * new issue with issue template
-  const $comboFields = $commentForm.find('.combo-editor-dropzone');
+  const comboFields = commentForm.querySelectorAll<HTMLElement>('.combo-editor-dropzone');
 
   const initCombo = async (elCombo: HTMLElement) => {
-    const $formField = $(elCombo.querySelector('.form-field-real'));
+    const fieldTextarea = elCombo.querySelector<HTMLTextAreaElement>('.form-field-real');
     const dropzoneContainer = elCombo.querySelector<HTMLElement>('.form-field-dropzone');
     const markdownEditor = elCombo.querySelector<HTMLElement>('.combo-markdown-editor');
 
     const editor = await initComboMarkdownEditor(markdownEditor);
-    editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, () => $formField.val(editor.value()));
+    editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, () => fieldTextarea.value = editor.value());
 
-    $formField.on('focus', async () => {
+    fieldTextarea.addEventListener('focus', async () => {
       // deactivate all markdown editors
-      showElem($commentForm.find('.combo-editor-dropzone .form-field-real'));
-      hideElem($commentForm.find('.combo-editor-dropzone .combo-markdown-editor'));
-      hideElem($commentForm.find('.combo-editor-dropzone .form-field-dropzone'));
+      showElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-real'));
+      hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .combo-markdown-editor'));
+      hideElem(commentForm.querySelectorAll('.combo-editor-dropzone .form-field-dropzone'));
 
       // activate this markdown editor
-      hideElem($formField);
+      hideElem(fieldTextarea);
       showElem(markdownEditor);
       showElem(dropzoneContainer);
 
@@ -640,21 +607,21 @@ function initIssueTemplateCommentEditors($commentForm) {
     });
   };
 
-  for (const el of $comboFields) {
+  for (const el of comboFields) {
     initCombo(el);
   }
 }
 
 export function initRepoCommentFormAndSidebar() {
-  const $commentForm = $('.comment.form');
-  if (!$commentForm.length) return;
+  const commentForm = document.querySelector<HTMLFormElement>('.comment.form');
+  if (!commentForm) return;
 
-  if ($commentForm.find('.field.combo-editor-dropzone').length) {
+  if (commentForm.querySelector('.field.combo-editor-dropzone')) {
     // at the moment, if a form has multiple combo-markdown-editors, it must be an issue template form
-    initIssueTemplateCommentEditors($commentForm);
-  } else if ($commentForm.find('.combo-markdown-editor').length) {
+    initIssueTemplateCommentEditors(commentForm);
+  } else if (commentForm.querySelector('.combo-markdown-editor')) {
     // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
-    initSingleCommentEditor($commentForm);
+    initSingleCommentEditor(commentForm);
   }
 
   initRepoIssueSidebar();

@@ -31,21 +31,49 @@ const (
 	HookEventRepository                HookEventType = "repository"
 	HookEventRelease                   HookEventType = "release"
 	HookEventPackage                   HookEventType = "package"
-	HookEventSchedule                  HookEventType = "schedule"
 	HookEventStatus                    HookEventType = "status"
+	// once a new event added here, please also added to AllEvents() function
+
+	// FIXME: This event should be a group of pull_request_review_xxx events
+	HookEventPullRequestReview HookEventType = "pull_request_review"
+	// Actions event only
+	HookEventSchedule    HookEventType = "schedule"
+	HookEventWorkflowJob HookEventType = "workflow_job"
 )
+
+func AllEvents() []HookEventType {
+	return []HookEventType{
+		HookEventCreate,
+		HookEventDelete,
+		HookEventFork,
+		HookEventPush,
+		HookEventIssues,
+		HookEventIssueAssign,
+		HookEventIssueLabel,
+		HookEventIssueMilestone,
+		HookEventIssueComment,
+		HookEventPullRequest,
+		HookEventPullRequestAssign,
+		HookEventPullRequestLabel,
+		HookEventPullRequestMilestone,
+		HookEventPullRequestComment,
+		HookEventPullRequestReviewApproved,
+		HookEventPullRequestReviewRejected,
+		HookEventPullRequestReviewComment,
+		HookEventPullRequestSync,
+		HookEventPullRequestReviewRequest,
+		HookEventWiki,
+		HookEventRepository,
+		HookEventRelease,
+		HookEventPackage,
+		HookEventStatus,
+		HookEventWorkflowJob,
+	}
+}
 
 // Event returns the HookEventType as an event string
 func (h HookEventType) Event() string {
 	switch h {
-	case HookEventCreate:
-		return "create"
-	case HookEventDelete:
-		return "delete"
-	case HookEventFork:
-		return "fork"
-	case HookEventPush:
-		return "push"
 	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone:
 		return "issues"
 	case HookEventPullRequest, HookEventPullRequestAssign, HookEventPullRequestLabel, HookEventPullRequestMilestone,
@@ -59,14 +87,9 @@ func (h HookEventType) Event() string {
 		return "pull_request_rejected"
 	case HookEventPullRequestReviewComment:
 		return "pull_request_comment"
-	case HookEventWiki:
-		return "wiki"
-	case HookEventRepository:
-		return "repository"
-	case HookEventRelease:
-		return "release"
+	default:
+		return string(h)
 	}
-	return ""
 }
 
 func (h HookEventType) IsPullRequest() bool {

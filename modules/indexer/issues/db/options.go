@@ -54,7 +54,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		RepoIDs:            options.RepoIDs,
 		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
-		AssigneeID:         optional.Some(convertID(options.AssigneeID)),
+		AssigneeID:         options.AssigneeID,
 		PosterID:           options.PosterID,
 		MentionedID:        convertID(options.MentionID),
 		ReviewRequestedID:  convertID(options.ReviewRequestedID),
@@ -73,9 +73,9 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		UpdatedBeforeUnix:  options.UpdatedBeforeUnix.Value(),
 		PriorityRepoID:     0,
 		IsArchived:         options.IsArchived,
-		Org:                nil,
+		Owner:              nil,
 		Team:               nil,
-		User:               nil,
+		Doer:               nil,
 	}
 
 	if len(options.MilestoneIDs) == 1 && options.MilestoneIDs[0] == 0 {

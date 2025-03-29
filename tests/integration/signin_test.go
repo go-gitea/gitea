@@ -15,8 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/markbates/goth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -76,7 +79,7 @@ func TestSigninWithRememberMe(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	c := session.GetCookie(setting.CookieRememberName)
+	c := session.GetRawCookie(setting.CookieRememberName)
 	assert.NotNil(t, c)
 
 	session = emptyTestSession(t)
@@ -95,8 +98,13 @@ func TestSigninWithRememberMe(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
-func TestEnablePasswordSignInForm(t *testing.T) {
+func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	mockLinkAccount := func(ctx *context.Context) {
+		gothUser := goth.User{Email: "invalid-email", Name: "."}
+		_ = ctx.Session.Set("linkAccountGothUser", gothUser)
+	}
 
 	t.Run("EnablePasswordSignInForm=false", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -104,10 +112,18 @@ func TestEnablePasswordSignInForm(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
-		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/login']", false)
+		doc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, "form[action='/user/login']", false)
 
 		req = NewRequest(t, "POST", "/user/login")
 		MakeRequest(t, req, http.StatusForbidden)
+
+		req = NewRequest(t, "GET", "/user/link_account")
+		defer web.RouteMockReset()
+		web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
+		resp = MakeRequest(t, req, http.StatusOK)
+		doc = NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, "form[action='/user/link_account_signin']", false)
 	})
 
 	t.Run("EnablePasswordSignInForm=true", func(t *testing.T) {
@@ -116,9 +132,37 @@ func TestEnablePasswordSignInForm(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
-		NewHTMLParser(t, resp.Body).AssertElement(t, "form[action='/user/login']", true)
+		doc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, "form[action='/user/login']", true)
 
 		req = NewRequest(t, "POST", "/user/login")
 		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", "/user/link_account")
+		defer web.RouteMockReset()
+		web.RouteMock(web.MockAfterMiddlewares, mockLinkAccount)
+		resp = MakeRequest(t, req, http.StatusOK)
+		doc = NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, "form[action='/user/link_account_signin']", true)
+	})
+
+	t.Run("EnablePasskeyAuth=false", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, false)()
+
+		req := NewRequest(t, "GET", "/user/login")
+		resp := MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, ".signin-passkey", false)
+	})
+
+	t.Run("EnablePasskeyAuth=true", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		defer test.MockVariableValue(&setting.Service.EnablePasskeyAuth, true)()
+
+		req := NewRequest(t, "GET", "/user/login")
+		resp := MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		AssertHTMLElement(t, doc, ".signin-passkey", true)
 	})
 }

@@ -59,7 +59,6 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
-		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": migrationIcon,
 		"ActionIcon":    actionIcon,
 		"SortArrow":     sortArrow,
@@ -69,7 +68,7 @@ func NewFuncMap() template.FuncMap {
 		// time / number / format
 		"FileSize": base.FileSize,
 		"CountFmt": countFmt,
-		"Sec2Time": util.SecToTime,
+		"Sec2Hour": util.SecToHours,
 
 		"TimeEstimateString": timeEstimateString,
 

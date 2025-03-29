@@ -72,7 +72,7 @@ func GetRawFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -83,8 +83,8 @@ func GetRawFile(ctx *context.APIContext) {
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
-	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
+	if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified); err != nil {
+		ctx.APIErrorInternal(err)
 	}
 }
 
@@ -125,7 +125,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -144,8 +144,8 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// OK not cached - serve!
-		if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
-			ctx.ServerError("ServeBlob", err)
+		if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified); err != nil {
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -153,7 +153,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	// OK, now the blob is known to have at most 1024 bytes we can simply read this in one go (This saves reading it twice)
 	dataRc, err := blob.DataAsync()
 	if err != nil {
-		ctx.ServerError("DataAsync", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -161,7 +161,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	buf, err := io.ReadAll(dataRc)
 	if err != nil {
 		_ = dataRc.Close()
-		ctx.ServerError("DataAsync", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -197,7 +197,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
 		return
 	} else if err != nil {
-		ctx.ServerError("GetLFSMetaObjectByOid", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -217,7 +217,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
 	if err != nil {
-		ctx.ServerError("ReadMetaObject", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	defer lfsDataRc.Close()
@@ -229,21 +229,21 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetTreeEntryByPath", err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil, nil, nil
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
-		ctx.NotFound("getBlobForEntry", nil)
+		ctx.APIErrorNotFound("getBlobForEntry", nil)
 		return nil, nil, nil
 	}
 
 	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTreePathLatestCommit", err)
+		ctx.APIErrorInternal(err)
 		return nil, nil, nil
 	}
 	when := &latestCommit.Committer.When
@@ -284,7 +284,7 @@ func GetArchive(ctx *context.APIContext) {
 		var err error
 		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 	}
@@ -293,28 +293,21 @@ func GetArchive(ctx *context.APIContext) {
 }
 
 func archiveDownload(ctx *context.APIContext) {
-	uri := ctx.PathParam("*")
-	ext, tp, err := archiver_service.ParseFileName(uri)
-	if err != nil {
-		ctx.Error(http.StatusBadRequest, "ParseFileName", err)
-		return
-	}
-
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, strings.TrimSuffix(uri, ext), tp)
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
-			ctx.Error(http.StatusBadRequest, "unknown archive format", err)
+			ctx.APIError(http.StatusBadRequest, err)
 		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
-			ctx.Error(http.StatusNotFound, "unrecognized reference", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.ServerError("archiver_service.NewRequest", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	archiver, err := aReq.Await(ctx)
 	if err != nil {
-		ctx.ServerError("archiver.Await", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -346,7 +339,7 @@ func download(ctx *context.APIContext, archiveName string, archiver *repo_model.
 	// If we have matched and access to release or issue
 	fr, err := storage.RepoArchives.Open(rPath)
 	if err != nil {
-		ctx.ServerError("Open", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	defer fr.Close()
@@ -394,9 +387,9 @@ func GetEditorconfig(ctx *context.APIContext) {
 	ec, _, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
+			ctx.APIErrorNotFound(err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetEditorconfig", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -404,7 +397,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	fileName := ctx.PathParam("filename")
 	def, err := ec.GetDefinitionForFilename(fileName)
 	if def == nil {
-		ctx.NotFound(err)
+		ctx.APIErrorNotFound(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, def)
@@ -477,7 +470,7 @@ func ChangeFiles(ctx *context.APIContext) {
 	for _, file := range apiOpts.Files {
 		contentReader, err := base64Reader(file.ContentBase64)
 		if err != nil {
-			ctx.Error(http.StatusUnprocessableEntity, "Invalid base64 content", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
 		changeRepoFile := &files_service.ChangeRepoFile{
@@ -496,12 +489,12 @@ func ChangeFiles(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files_service.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
@@ -577,7 +570,7 @@ func CreateFile(ctx *context.APIContext) {
 
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
 	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, "Invalid base64 content", err)
+		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	}
 
@@ -593,12 +586,12 @@ func CreateFile(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files_service.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
@@ -668,7 +661,7 @@ func UpdateFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("repo is empty"))
 		return
 	}
 
@@ -678,7 +671,7 @@ func UpdateFile(ctx *context.APIContext) {
 
 	contentReader, err := base64Reader(apiOpts.ContentBase64)
 	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, "Invalid base64 content", err)
+		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	}
 
@@ -696,12 +689,12 @@ func UpdateFile(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files_service.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
@@ -730,20 +723,20 @@ func UpdateFile(ctx *context.APIContext) {
 
 func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 	if files_service.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
-		ctx.Error(http.StatusForbidden, "Access", err)
+		ctx.APIError(http.StatusForbidden, err)
 		return
 	}
 	if git_model.IsErrBranchAlreadyExists(err) || files_service.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
 		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) {
-		ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
+		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	}
 	if git_model.IsErrBranchNotExist(err) || git.IsErrBranchNotExist(err) {
-		ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
+		ctx.APIError(http.StatusNotFound, err)
 		return
 	}
 
-	ctx.Error(http.StatusInternalServerError, "UpdateFile", err)
+	ctx.APIErrorInternal(err)
 }
 
 // Called from both CreateFile or UpdateFile to handle both
@@ -832,7 +825,7 @@ func DeleteFile(ctx *context.APIContext) {
 
 	apiOpts := web.GetForm(ctx).(*api.DeleteFileOptions)
 	if !canWriteFiles(ctx, apiOpts.BranchName) {
-		ctx.Error(http.StatusForbidden, "DeleteFile", repo_model.ErrUserDoesNotHaveAccessToRepo{
+		ctx.APIError(http.StatusForbidden, repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -855,12 +848,12 @@ func DeleteFile(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files_service.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files_service.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
@@ -881,20 +874,20 @@ func DeleteFile(ctx *context.APIContext) {
 
 	if filesResponse, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
 		if git.IsErrBranchNotExist(err) || files_service.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
-			ctx.Error(http.StatusNotFound, "DeleteFile", err)
+			ctx.APIError(http.StatusNotFound, err)
 			return
 		} else if git_model.IsErrBranchAlreadyExists(err) ||
 			files_service.IsErrFilenameInvalid(err) ||
 			pull_service.IsErrSHADoesNotMatch(err) ||
 			files_service.IsErrCommitIDDoesNotMatch(err) ||
 			files_service.IsErrSHAOrCommitIDNotProvided(err) {
-			ctx.Error(http.StatusBadRequest, "DeleteFile", err)
+			ctx.APIError(http.StatusBadRequest, err)
 			return
 		} else if files_service.IsErrUserCannotCommit(err) {
-			ctx.Error(http.StatusForbidden, "DeleteFile", err)
+			ctx.APIError(http.StatusForbidden, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "DeleteFile", err)
+		ctx.APIErrorInternal(err)
 	} else {
 		fileResponse := files_service.GetFileResponseFromFilesResponse(filesResponse, 0)
 		ctx.JSON(http.StatusOK, fileResponse) // FIXME on APIv2: return http.StatusNoContent
@@ -936,7 +929,7 @@ func GetContents(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if !canReadFiles(ctx.Repo) {
-		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", repo_model.ErrUserDoesNotHaveAccessToRepo{
+		ctx.APIErrorInternal(repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -948,10 +941,10 @@ func GetContents(ctx *context.APIContext) {
 
 	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref); err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetContentsOrList", err)
+			ctx.APIErrorNotFound("GetContentsOrList", err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", err)
+		ctx.APIErrorInternal(err)
 	} else {
 		ctx.JSON(http.StatusOK, fileList)
 	}

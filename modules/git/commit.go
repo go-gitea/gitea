@@ -91,12 +91,12 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 
 // AddChangesWithArgs marks local changes to be ready for commit.
 func AddChangesWithArgs(repoPath string, globalArgs TrustedCmdArgs, all bool, files ...string) error {
-	cmd := NewCommandContextNoGlobals(DefaultContext, globalArgs...).AddArguments("add")
+	cmd := NewCommandNoGlobals(globalArgs...).AddArguments("add")
 	if all {
 		cmd.AddArguments("--all")
 	}
 	cmd.AddDashesAndList(files...)
-	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
+	_, _, err := cmd.RunStdString(DefaultContext, &RunOpts{Dir: repoPath})
 	return err
 }
 
@@ -118,7 +118,7 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 // CommitChangesWithArgs commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChangesWithArgs(repoPath string, args TrustedCmdArgs, opts CommitChangesOptions) error {
-	cmd := NewCommandContextNoGlobals(DefaultContext, args...)
+	cmd := NewCommandNoGlobals(args...)
 	if opts.Committer != nil {
 		cmd.AddOptionValues("-c", "user.name="+opts.Committer.Name)
 		cmd.AddOptionValues("-c", "user.email="+opts.Committer.Email)
@@ -133,7 +133,7 @@ func CommitChangesWithArgs(repoPath string, args TrustedCmdArgs, opts CommitChan
 	}
 	cmd.AddOptionFormat("--message=%s", opts.Message)
 
-	_, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
+	_, _, err := cmd.RunStdString(DefaultContext, &RunOpts{Dir: repoPath})
 	// No stderr but exit status 1 means nothing to commit.
 	if err != nil && err.Error() == "exit status 1" {
 		return nil
@@ -143,7 +143,7 @@ func CommitChangesWithArgs(repoPath string, args TrustedCmdArgs, opts CommitChan
 
 // AllCommitsCount returns count of all commits in repository
 func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, files ...string) (int64, error) {
-	cmd := NewCommand(ctx, "rev-list")
+	cmd := NewCommand("rev-list")
 	if hidePRRefs {
 		cmd.AddArguments("--exclude=" + PullPrefix + "*")
 	}
@@ -152,7 +152,7 @@ func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, file
 		cmd.AddDashesAndList(files...)
 	}
 
-	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
+	stdout, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repoPath})
 	if err != nil {
 		return 0, err
 	}
@@ -170,7 +170,7 @@ type CommitsCountOptions struct {
 
 // CommitsCount returns number of total commits of until given revision.
 func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) {
-	cmd := NewCommand(ctx, "rev-list", "--count")
+	cmd := NewCommand("rev-list", "--count")
 
 	cmd.AddDynamicArguments(opts.Revision...)
 
@@ -182,7 +182,7 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 		cmd.AddDashesAndList(opts.RelPath...)
 	}
 
-	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: opts.RepoPath})
+	stdout, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: opts.RepoPath})
 	if err != nil {
 		return 0, err
 	}
@@ -217,7 +217,7 @@ func (c *Commit) HasPreviousCommit(objectID ObjectID) (bool, error) {
 		return false, nil
 	}
 
-	_, _, err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor").AddDynamicArguments(that, this).RunStdString(&RunOpts{Dir: c.repo.Path})
+	_, _, err := NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(that, this).RunStdString(c.repo.Ctx, &RunOpts{Dir: c.repo.Path})
 	if err == nil {
 		return true, nil
 	}
@@ -358,12 +358,12 @@ func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
 
 // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
-	cmd := NewCommand(c.repo.Ctx, "name-rev")
+	cmd := NewCommand("name-rev")
 	if DefaultFeatures().CheckVersionAtLeast("2.13.0") {
 		cmd.AddArguments("--exclude", "refs/tags/*")
 	}
 	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(c.ID.String())
-	data, _, err := cmd.RunStdString(&RunOpts{Dir: c.repo.Path})
+	data, _, err := cmd.RunStdString(c.repo.Ctx, &RunOpts{Dir: c.repo.Path})
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -441,7 +441,7 @@ func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*Commi
 	}()
 
 	stderr := new(bytes.Buffer)
-	err := NewCommand(ctx, "log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(&RunOpts{
+	err := NewCommand("log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(ctx, &RunOpts{
 		Dir:    repoPath,
 		Stdout: w,
 		Stderr: stderr,
@@ -457,7 +457,7 @@ func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*Commi
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
 func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, error) {
-	commitID, _, err := NewCommand(ctx, "rev-parse").AddDynamicArguments(shortID).RunStdString(&RunOpts{Dir: repoPath})
+	commitID, _, err := NewCommand("rev-parse").AddDynamicArguments(shortID).RunStdString(ctx, &RunOpts{Dir: repoPath})
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 128") {
 			return "", ErrNotExist{shortID, ""}
@@ -476,8 +476,12 @@ func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSetting
 }
 
 func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {
-	minLen := util.OptionalArg(minLength, objFmt.FullLength())
-	if len(s) < minLen || len(s) > objFmt.FullLength() {
+	maxLen := 64 // sha256
+	if objFmt != nil {
+		maxLen = objFmt.FullLength()
+	}
+	minLen := util.OptionalArg(minLength, maxLen)
+	if len(s) < minLen || len(s) > maxLen {
 		return false
 	}
 	for _, c := range s {

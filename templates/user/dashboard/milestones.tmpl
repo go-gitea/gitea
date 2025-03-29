@@ -33,7 +33,7 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="flex-container-main content">
+			<div class="flex-container-main">
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
 						<a class="item{{if not .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
@@ -100,7 +100,7 @@
 									{{if .TotalTrackedTime}}
 										<div class="flex-text-block">
 											{{svg "octicon-clock"}}
-											{{.TotalTrackedTime|Sec2Time}}
+											{{.TotalTrackedTime|Sec2Hour}}
 										</div>
 									{{end}}
 									{{if .UpdatedUnix}}
@@ -140,9 +140,7 @@
 								{{end}}
 							</div>
 							{{if .Content}}
-								<div class="markup content">
-									{{.RenderedContent}}
-								</div>
+								<div class="render-content markup">{{.RenderedContent}}</div>
 							{{end}}
 						</li>
 					{{end}}

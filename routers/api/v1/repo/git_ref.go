@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -77,12 +78,12 @@ func GetGitRefs(ctx *context.APIContext) {
 func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	refs, lastMethodName, err := utils.GetGitRefs(ctx, filter)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, lastMethodName, err)
+		ctx.APIErrorInternal(fmt.Errorf("%s: %w", lastMethodName, err))
 		return
 	}
 
 	if len(refs) == 0 {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 

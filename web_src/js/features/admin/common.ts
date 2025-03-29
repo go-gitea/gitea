@@ -1,7 +1,8 @@
-import $ from 'jquery';
 import {checkAppUrl} from '../common-page.ts';
-import {hideElem, showElem, toggleElem} from '../../utils/dom.ts';
+import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
+import {initAvatarUploaderWithCropper} from '../comp/Cropper.ts';
+import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
 
@@ -19,32 +20,49 @@ export function initAdminCommon(): void {
   // check whether appUrl(ROOT_URL) is correct, if not, show an error message
   checkAppUrl();
 
-  // New user
-  if ($('.admin.new.user').length > 0 || $('.admin.edit.user').length > 0) {
-    document.querySelector<HTMLInputElement>('#login_type')?.addEventListener('change', function () {
-      if (this.value?.startsWith('0')) {
-        document.querySelector<HTMLInputElement>('#user_name')?.removeAttribute('disabled');
-        document.querySelector<HTMLInputElement>('#login_name')?.removeAttribute('required');
-        hideElem('.non-local');
-        showElem('.local');
-        document.querySelector<HTMLInputElement>('#user_name')?.focus();
+  initAdminUser();
+  initAdminAuthentication();
+  initAdminNotice();
 
-        if (this.getAttribute('data-password') === 'required') {
-          document.querySelector('#password')?.setAttribute('required', 'required');
-        }
-      } else {
-        if (document.querySelector<HTMLDivElement>('.admin.edit.user')) {
-          document.querySelector<HTMLInputElement>('#user_name')?.setAttribute('disabled', 'disabled');
-        }
-        document.querySelector<HTMLInputElement>('#login_name')?.setAttribute('required', 'required');
-        showElem('.non-local');
-        hideElem('.local');
-        document.querySelector<HTMLInputElement>('#login_name')?.focus();
+  queryElems(document, '.avatar-file-with-cropper', initAvatarUploaderWithCropper);
+}
 
-        document.querySelector<HTMLInputElement>('#password')?.removeAttribute('required');
+function initAdminUser() {
+  const pageContent = document.querySelector('.page-content.admin.edit.user, .page-content.admin.new.user');
+  if (!pageContent) return;
+
+  document.querySelector<HTMLInputElement>('#login_type')?.addEventListener('change', function () {
+    if (this.value?.startsWith('0')) {
+      document.querySelector<HTMLInputElement>('#user_name')?.removeAttribute('disabled');
+      document.querySelector<HTMLInputElement>('#login_name')?.removeAttribute('required');
+      hideElem('.non-local');
+      showElem('.local');
+      document.querySelector<HTMLInputElement>('#user_name')?.focus();
+
+      if (this.getAttribute('data-password') === 'required') {
+        document.querySelector('#password')?.setAttribute('required', 'required');
       }
-    });
-  }
+    } else {
+      if (document.querySelector<HTMLDivElement>('.admin.edit.user')) {
+        document.querySelector<HTMLInputElement>('#user_name')?.setAttribute('disabled', 'disabled');
+      }
+      document.querySelector<HTMLInputElement>('#login_name')?.setAttribute('required', 'required');
+      showElem('.non-local');
+      hideElem('.local');
+      document.querySelector<HTMLInputElement>('#login_name')?.focus();
+
+      document.querySelector<HTMLInputElement>('#password')?.removeAttribute('required');
+    }
+  });
+}
+
+function initAdminAuthentication() {
+  const pageContent = document.querySelector('.page-content.admin.authentication');
+  if (!pageContent) return;
+
+  const isNewPage = pageContent.classList.contains('new');
+  const isEditPage = pageContent.classList.contains('edit');
+  if (!isNewPage && !isEditPage) return;
 
   function onUsePagedSearchChange() {
     const searchPageSizeElements = document.querySelectorAll<HTMLDivElement>('.search-page-size');
@@ -90,7 +108,7 @@ export function initAdminCommon(): void {
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
 
-  function onOAuth2UseCustomURLChange(applyDefaultValues) {
+  function onOAuth2UseCustomURLChange(applyDefaultValues: boolean) {
     const provider = document.querySelector<HTMLInputElement>('#oauth2_provider').value;
     hideElem('.oauth2_use_custom_url_field');
     for (const input of document.querySelectorAll<HTMLInputElement>('.oauth2_use_custom_url_field input[required]')) {
@@ -119,9 +137,11 @@ export function initAdminCommon(): void {
     toggleElem(document.querySelector('#ldap-group-options'), checked);
   }
 
+  const elAuthType = document.querySelector<HTMLInputElement>('#auth_type');
+
   // New authentication
-  if (document.querySelector<HTMLDivElement>('.admin.new.authentication')) {
-    document.querySelector<HTMLInputElement>('#auth_type')?.addEventListener('change', function () {
+  if (isNewPage) {
+    const onAuthTypeChange = function () {
       hideElem('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi');
 
       for (const input of document.querySelectorAll<HTMLInputElement>('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]')) {
@@ -130,7 +150,7 @@ export function initAdminCommon(): void {
 
       document.querySelector<HTMLDivElement>('.binddnrequired')?.classList.remove('required');
 
-      const authType = this.value;
+      const authType = elAuthType.value;
       switch (authType) {
         case '2': // LDAP
           showElem('.ldap');
@@ -179,20 +199,23 @@ export function initAdminCommon(): void {
       if (authType === '2') {
         onUsePagedSearchChange();
       }
-    });
-    $('#auth_type').trigger('change');
+    };
+    elAuthType.addEventListener('change', onAuthTypeChange);
+    onAuthTypeChange();
+
     document.querySelector<HTMLInputElement>('#security_protocol')?.addEventListener('change', onSecurityProtocolChange);
     document.querySelector<HTMLInputElement>('#use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
     document.querySelector<HTMLInputElement>('#oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
     document.querySelector<HTMLInputElement>('#oauth2_use_custom_url')?.addEventListener('change', () => onOAuth2UseCustomURLChange(true));
-    $('.js-ldap-group-toggle').on('change', onEnableLdapGroupsChange);
+
+    document.querySelector('.js-ldap-group-toggle').addEventListener('change', onEnableLdapGroupsChange);
   }
   // Edit authentication
-  if (document.querySelector<HTMLDivElement>('.admin.edit.authentication')) {
-    const authType = document.querySelector<HTMLInputElement>('#auth_type')?.value;
+  if (isEditPage) {
+    const authType = elAuthType.value;
     if (authType === '2' || authType === '5') {
       document.querySelector<HTMLInputElement>('#security_protocol')?.addEventListener('change', onSecurityProtocolChange);
-      $('.js-ldap-group-toggle').on('change', onEnableLdapGroupsChange);
+      document.querySelector('.js-ldap-group-toggle').addEventListener('change', onEnableLdapGroupsChange);
       onEnableLdapGroupsChange();
       if (authType === '2') {
         document.querySelector<HTMLInputElement>('#use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
@@ -204,58 +227,63 @@ export function initAdminCommon(): void {
     }
   }
 
-  if (document.querySelector<HTMLDivElement>('.admin.authentication')) {
-    $('#auth_name').on('input', function () {
-      // appSubUrl is either empty or is a path that starts with `/` and doesn't have a trailing slash.
-      document.querySelector('#oauth2-callback-url').textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent((this as HTMLInputElement).value)}/callback`;
-    }).trigger('input');
-  }
+  const elAuthName = document.querySelector<HTMLInputElement>('#auth_name');
+  const onAuthNameChange = function () {
+    // appSubUrl is either empty or is a path that starts with `/` and doesn't have a trailing slash.
+    document.querySelector('#oauth2-callback-url').textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent(elAuthName.value)}/callback`;
+  };
+  elAuthName.addEventListener('input', onAuthNameChange);
+  onAuthNameChange();
+}
 
-  // Notice
-  if (document.querySelector<HTMLDivElement>('.admin.notice')) {
-    const detailModal = document.querySelector<HTMLDivElement>('#detail-modal');
+function initAdminNotice() {
+  const pageContent = document.querySelector('.page-content.admin.notice');
+  if (!pageContent) return;
 
-    // Attach view detail modals
-    $('.view-detail').on('click', function () {
-      const description = this.closest('tr').querySelector('.notice-description').textContent;
-      detailModal.querySelector('.content pre').textContent = description;
-      $(detailModal).modal('show');
-      return false;
-    });
+  const detailModal = document.querySelector<HTMLDivElement>('#detail-modal');
 
-    // Select actions
-    const checkboxes = document.querySelectorAll<HTMLInputElement>('.select.table .ui.checkbox input');
+  // Attach view detail modals
+  queryElems(pageContent, '.view-detail', (el) => el.addEventListener('click', (e) => {
+    e.preventDefault();
+    const elNoticeDesc = el.closest('tr').querySelector('.notice-description');
+    const elModalDesc = detailModal.querySelector('.content pre');
+    elModalDesc.textContent = elNoticeDesc.textContent;
+    fomanticQuery(detailModal).modal('show');
+  }));
 
-    $('.select.action').on('click', function () {
-      switch ($(this).data('action')) {
-        case 'select-all':
-          for (const checkbox of checkboxes) {
-            checkbox.checked = true;
-          }
-          break;
-        case 'deselect-all':
-          for (const checkbox of checkboxes) {
-            checkbox.checked = false;
-          }
-          break;
-        case 'inverse':
-          for (const checkbox of checkboxes) {
-            checkbox.checked = !checkbox.checked;
-          }
-          break;
-      }
-    });
-    document.querySelector<HTMLButtonElement>('#delete-selection')?.addEventListener('click', async function (e) {
-      e.preventDefault();
-      this.classList.add('is-loading', 'disabled');
-      const data = new FormData();
-      for (const checkbox of checkboxes) {
-        if (checkbox.checked) {
-          data.append('ids[]', checkbox.closest('.ui.checkbox').getAttribute('data-id'));
+  // Select actions
+  const checkboxes = document.querySelectorAll<HTMLInputElement>('.select.table .ui.checkbox input');
+
+  queryElems(pageContent, '.select.action', (el) => el.addEventListener('click', () => {
+    switch (el.getAttribute('data-action')) {
+      case 'select-all':
+        for (const checkbox of checkboxes) {
+          checkbox.checked = true;
         }
+        break;
+      case 'deselect-all':
+        for (const checkbox of checkboxes) {
+          checkbox.checked = false;
+        }
+        break;
+      case 'inverse':
+        for (const checkbox of checkboxes) {
+          checkbox.checked = !checkbox.checked;
+        }
+        break;
+    }
+  }));
+
+  document.querySelector<HTMLButtonElement>('#delete-selection')?.addEventListener('click', async function (e) {
+    e.preventDefault();
+    this.classList.add('is-loading', 'disabled');
+    const data = new FormData();
+    for (const checkbox of checkboxes) {
+      if (checkbox.checked) {
+        data.append('ids[]', checkbox.closest('.ui.checkbox').getAttribute('data-id'));
       }
-      await POST(this.getAttribute('data-link'), {data});
-      window.location.href = this.getAttribute('data-redirect');
-    });
-  }
+    }
+    await POST(this.getAttribute('data-link'), {data});
+    window.location.href = this.getAttribute('data-redirect');
+  });
 }

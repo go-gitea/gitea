@@ -54,13 +54,11 @@
 											<p id="cherry-pick-content" class="branch-dropdown"></p>
 
 											<form method="get">
-												{{/*FIXME: CurrentRefShortName seems not making sense here (old code),
-												because the "commit page" has no "$.BranchName" info, so only using DefaultBranch should be enough */}}
 												{{template "repo/branch_dropdown" dict
 													"Repository" .Repository
 													"ShowTabBranches" true
 													"CurrentRefType" "branch"
-													"CurrentRefShortName" (or $.BranchName $.Repository.DefaultBranch)
+													"CurrentRefShortName" $.Repository.DefaultBranch
 													"RefFormActionTemplate" (print "{RepoLink}/_cherrypick/" .CommitID "/{RefShortName}")
 												}}
 												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br>
@@ -85,7 +83,7 @@
 													<input id="new_branch_name" name="new_branch_name" required>
 												</div>
 
-												<div class="text right actions">
+												<div class="actions">
 													<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 													<button class="ui primary button">{{ctx.Locale.Tr "repo.branch.confirm_create_branch"}}</button>
 												</div>
@@ -110,7 +108,7 @@
 													<input id="new_branch_name" name="new_branch_name" required>
 												</div>
 
-												<div class="text right actions">
+												<div class="actions">
 													<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 													<button class="ui primary button">{{ctx.Locale.Tr "repo.tag.confirm_create_tag"}}</button>
 												</div>

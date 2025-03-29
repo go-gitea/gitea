@@ -1,22 +1,8 @@
 <script lang="ts" setup>
-import {SvgIcon} from '../svg.ts';
+import {SvgIcon, type SvgName} from '../svg.ts';
 import {diffTreeStore} from '../modules/stores.ts';
 import {ref} from 'vue';
-
-type File = {
-  Name: string;
-  NameHash: string;
-  Type: number;
-  IsViewed: boolean;
-  IsSubmodule: boolean;
-}
-
-type Item = {
-  name: string;
-  isFile: boolean;
-  file?: File;
-  children?: Item[];
-};
+import type {Item, File, FileStatus} from '../utils/filetree.ts';
 
 defineProps<{
   item: Item,
@@ -25,18 +11,19 @@ defineProps<{
 const store = diffTreeStore();
 const collapsed = ref(false);
 
-function getIconForDiffType(pType) {
-  const diffTypes = {
-    1: {name: 'octicon-diff-added', classes: ['text', 'green']},
-    2: {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
-    3: {name: 'octicon-diff-removed', classes: ['text', 'red']},
-    4: {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
-    5: {name: 'octicon-diff-renamed', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
+function getIconForDiffStatus(pType: FileStatus) {
+  const diffTypes: Record<FileStatus, { name: SvgName, classes: Array<string> }> = {
+    'added': {name: 'octicon-diff-added', classes: ['text', 'green']},
+    'modified': {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
+    'deleted': {name: 'octicon-diff-removed', classes: ['text', 'red']},
+    'renamed': {name: 'octicon-diff-renamed', classes: ['text', 'teal']},
+    'copied': {name: 'octicon-diff-renamed', classes: ['text', 'green']},
+    'typechange': {name: 'octicon-diff-modified', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
   };
   return diffTypes[pType];
 }
 
-function fileIcon(file) {
+function fileIcon(file: File) {
   if (file.IsSubmodule) {
     return 'octicon-file-submodule';
   }
@@ -48,27 +35,37 @@ function fileIcon(file) {
   <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
   <a
     v-if="item.isFile" class="item-file"
-    :class="{'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': item.file.IsViewed}"
+    :class="{ 'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': item.file.IsViewed }"
     :title="item.name" :href="'#diff-' + item.file.NameHash"
   >
     <!-- file -->
     <SvgIcon :name="fileIcon(item.file)"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
-    <SvgIcon :name="getIconForDiffType(item.file.Type).name" :class="getIconForDiffType(item.file.Type).classes"/>
+    <SvgIcon
+      :name="getIconForDiffStatus(item.file.Status).name"
+      :class="getIconForDiffStatus(item.file.Status).classes"
+    />
   </a>
-  <div v-else class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
-    <!-- directory -->
-    <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
-    <SvgIcon class="text primary" :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
-    <span class="gt-ellipsis">{{ item.name }}</span>
-  </div>
 
-  <div v-if="item.children?.length" v-show="!collapsed" class="sub-items">
-    <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem"/>
-  </div>
+  <template v-else-if="item.isFile === false">
+    <div class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
+      <!-- directory -->
+      <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
+      <SvgIcon
+        class="text primary"
+        :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"
+      />
+      <span class="gt-ellipsis">{{ item.name }}</span>
+    </div>
+
+    <div v-show="!collapsed" class="sub-items">
+      <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem"/>
+    </div>
+  </template>
 </template>
 <style scoped>
-a, a:hover {
+a,
+a:hover {
   text-decoration: none;
   color: var(--color-text);
 }

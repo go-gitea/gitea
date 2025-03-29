@@ -21,10 +21,11 @@
 								{{$compareTarget = $release.Sha1}}
 							{{end}}
 							{{template "repo/branch_dropdown" dict
+								"ContainerClasses" "release-branch-tag-selector"
 								"Repository" $.Repository
 								"ShowTabTags" true
 								"DropdownFixedText" (ctx.Locale.Tr "repo.release.compare")
-								"RefLinkTemplate" (print "{RepoLink}/compare/{RefShortName}..." (PathEscapeSegments $compareTarget))
+								"RefLinkTemplate" (print "{RepoLink}/compare/{RefShortName}" "..." (PathEscapeSegments $compareTarget))
 							}}
 						{{end}}
 					</div>
@@ -64,7 +65,7 @@
 								| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{$release.TagName | PathEscapeSegments}}...{{$release.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" $release.NumCommitsBehind}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" $release.TargetBehind}}</span>
 							{{end}}
 						</p>
-						<div class="markup desc">
+						<div class="render-content markup">
 							{{$release.RenderedNote}}
 						</div>
 						<div class="divider"></div>

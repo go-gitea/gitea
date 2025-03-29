@@ -52,9 +52,12 @@ func TestRedirectsNoLogin(t *testing.T) {
 	redirects := []struct{ from, to string }{
 		{"/user2/repo1/commits/master", "/user2/repo1/commits/branch/master"},
 		{"/user2/repo1/src/master", "/user2/repo1/src/branch/master"},
-		{"/user2/repo1/src/master/file.txt", "/user2/repo1/src/branch/master/file.txt"},
-		{"/user2/repo1/src/master/directory/file.txt", "/user2/repo1/src/branch/master/directory/file.txt"},
-		{"/user/avatar/Ghost/-1", "/assets/img/avatar_default.png"},
+		{"/user2/repo1/src/master/a%2fb.txt", "/user2/repo1/src/branch/master/a%2fb.txt"},
+		{"/user2/repo1/src/master/directory/file.txt?a=1", "/user2/repo1/src/branch/master/directory/file.txt?a=1"},
+		{"/user2/repo1/tree/a%2fb?a=1", "/user2/repo1/src/a%2fb?a=1"},
+		{"/user2/repo1/blob/123456/%20?a=1", "/user2/repo1/src/commit/123456/%20?a=1"},
+		{"/user/avatar/GhosT/-1", "/assets/img/avatar_default.png"},
+		{"/user/avatar/Gitea-ActionS/0", "/assets/img/avatar_default.png"},
 		{"/api/v1/swagger", "/api/swagger"},
 	}
 	for _, c := range redirects {

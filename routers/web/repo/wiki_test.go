@@ -20,6 +20,7 @@ import (
 	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -28,7 +29,7 @@ const (
 )
 
 func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) *git.TreeEntry {
-	wikiRepo, err := gitrepo.OpenWikiRepository(git.DefaultContext, repo)
+	wikiRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo.WikiStorageRepo())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
@@ -66,12 +67,9 @@ func assertWikiNotExists(t *testing.T, repo *repo_model.Repository, wikiName wik
 
 func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {
 	pageMetas, ok := metas.([]PageMeta)
-	if !assert.True(t, ok) {
-		return
-	}
-	if !assert.Len(t, pageMetas, len(expectedNames)) {
-		return
-	}
+	require.True(t, ok)
+	require.Len(t, pageMetas, len(expectedNames))
+
 	for i, pageMeta := range pageMetas {
 		assert.EqualValues(t, expectedNames[i], pageMeta.Name)
 	}
@@ -84,7 +82,7 @@ func TestWiki(t *testing.T) {
 	ctx.SetPathParam("*", "Home")
 	contexttest.LoadRepo(t, ctx, 1)
 	Wiki(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
 	assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name", "Unescaped File"}, ctx.Data["Pages"])
 
@@ -92,7 +90,7 @@ func TestWiki(t *testing.T) {
 	ctx.SetPathParam("*", "jpeg.jpg")
 	contexttest.LoadRepo(t, ctx, 1)
 	Wiki(ctx)
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.Equal(t, "/user2/repo1/wiki/raw/jpeg.jpg", ctx.Resp.Header().Get("Location"))
 }
 
@@ -102,7 +100,7 @@ func TestWikiPages(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_pages")
 	contexttest.LoadRepo(t, ctx, 1)
 	WikiPages(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name", "Unescaped File"}, ctx.Data["Pages"])
 }
 
@@ -113,7 +111,7 @@ func TestNewWiki(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 1)
 	NewWiki(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, ctx.Tr("repo.wiki.new_page"), ctx.Data["Title"])
 }
 
@@ -133,7 +131,7 @@ func TestNewWikiPost(t *testing.T) {
 			Message: message,
 		})
 		NewWikiPost(ctx)
-		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
 		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)))
 	}
@@ -151,7 +149,7 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 		Message: message,
 	})
 	NewWikiPost(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page", "_edit"), ctx.Flash.ErrorMsg)
 	assertWikiNotExists(t, ctx.Repo.Repository, "_edit")
 }
@@ -164,7 +162,7 @@ func TestEditWiki(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 1)
 	EditWiki(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
 	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["content"])
 
@@ -173,7 +171,7 @@ func TestEditWiki(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 1)
 	EditWiki(ctx)
-	assert.EqualValues(t, http.StatusForbidden, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusForbidden, ctx.Resp.WrittenStatus())
 }
 
 func TestEditWikiPost(t *testing.T) {
@@ -192,7 +190,7 @@ func TestEditWikiPost(t *testing.T) {
 			Message: message,
 		})
 		EditWikiPost(ctx)
-		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
 		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)))
 		if title != "Home" {
@@ -208,7 +206,7 @@ func TestDeleteWikiPagePost(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 1)
 	DeleteWikiPagePost(ctx)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assertWikiNotExists(t, ctx.Repo.Repository, "Home")
 }
 
@@ -230,9 +228,9 @@ func TestWikiRaw(t *testing.T) {
 		contexttest.LoadRepo(t, ctx, 1)
 		WikiRaw(ctx)
 		if filetype == "" {
-			assert.EqualValues(t, http.StatusNotFound, ctx.Resp.Status(), "filepath: %s", filepath)
+			assert.EqualValues(t, http.StatusNotFound, ctx.Resp.WrittenStatus(), "filepath: %s", filepath)
 		} else {
-			assert.EqualValues(t, http.StatusOK, ctx.Resp.Status(), "filepath: %s", filepath)
+			assert.EqualValues(t, http.StatusOK, ctx.Resp.WrittenStatus(), "filepath: %s", filepath)
 			assert.EqualValues(t, filetype, ctx.Resp.Header().Get("Content-Type"), "filepath: %s", filepath)
 		}
 	}

@@ -49,7 +49,7 @@
 			</div>
 			{{else}}
 			<div class="stats-table">
-				<a class="table-cell tiny background light grey"></a>
+				<a class="table-cell tiny tw-bg-grey"></a>
 			</div>
 			{{end}}
 			{{ctx.Locale.TrN .Activity.ActiveIssueCount "repo.activity.active_issues_count_1" "repo.activity.active_issues_count_n" .Activity.ActiveIssueCount}}
@@ -82,7 +82,7 @@
 
 {{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 	{{if eq .Activity.Code.CommitCountInAllBranches 0}}
-		<div class="ui center aligned segment">
+		<div class="ui tw-text-center segment">
 		<h4 class="ui header">{{ctx.Locale.Tr "repo.activity.no_git_activity"}}</h4>
 		</div>
 	{{end}}

@@ -9,7 +9,6 @@ import (
 	"image"
 	"io"
 	"path"
-	"slices"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -42,10 +41,10 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 	defer dataRc.Close()
 
-	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
+	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefFullName.ShortName())
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
-	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
 	if err != nil {
@@ -79,7 +78,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
-	} else if slices.Contains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
+	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {
 		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
@@ -92,7 +91,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	isDisplayingRendered := !isDisplayingSource
 
 	if fInfo.isLFSFile {
-		ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+		ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
 	isRepresentableAsText := fInfo.st.IsRepresentableAsText()
@@ -170,9 +169,9 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
 			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
-			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
+			metas["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
 			rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-				CurrentRefPath:  ctx.Repo.BranchNameSubURL(),
+				CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
 				CurrentTreePath: path.Dir(ctx.Repo.TreePath),
 			}).
 				WithMarkupType(markupType).
@@ -232,7 +231,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 					ctx.Data["CanEditFile"] = true
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 				}
-			} else if !ctx.Repo.IsViewBranch {
+			} else if !ctx.Repo.RefFullName.IsBranch() {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 			} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
@@ -262,7 +261,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["MarkupType"] = markupType
 
 			rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-				CurrentRefPath:  ctx.Repo.BranchNameSubURL(),
+				CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
 				CurrentTreePath: path.Dir(ctx.Repo.TreePath),
 			}).
 				WithMarkupType(markupType).
@@ -305,7 +304,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["CanDeleteFile"] = true
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 		}
-	} else if !ctx.Repo.IsViewBranch {
+	} else if !ctx.Repo.RefFullName.IsBranch() {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 	} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")

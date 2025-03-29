@@ -5,15 +5,16 @@ package backend
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net"
+	"io"
 	"net/http"
-	"time"
+	"net/url"
+	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/proxyprotocol"
+	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -60,8 +61,7 @@ const (
 
 // Operations enum
 const (
-	opNone = iota
-	opDownload
+	opDownload = iota + 1
 	opUpload
 )
 
@@ -89,53 +89,60 @@ func statusCodeToErr(code int) error {
 	}
 }
 
-func newInternalRequest(ctx context.Context, url, method string, headers map[string]string, body []byte) *httplib.Request {
-	req := httplib.NewRequest(url, method).
-		SetContext(ctx).
-		SetTimeout(10*time.Second, 60*time.Second).
-		SetTLSClientConfig(&tls.Config{
-			InsecureSkipVerify: true,
-		})
-
-	if setting.Protocol == setting.HTTPUnix {
-		req.SetTransport(&http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				var d net.Dialer
-				conn, err := d.DialContext(ctx, "unix", setting.HTTPAddr)
-				if err != nil {
-					return conn, err
-				}
-				if setting.LocalUseProxyProtocol {
-					if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
-						_ = conn.Close()
-						return nil, err
-					}
-				}
-				return conn, err
-			},
-		})
-	} else if setting.LocalUseProxyProtocol {
-		req.SetTransport(&http.Transport{
-			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
-				var d net.Dialer
-				conn, err := d.DialContext(ctx, network, address)
-				if err != nil {
-					return conn, err
-				}
-				if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
-					_ = conn.Close()
-					return nil, err
-				}
-				return conn, err
-			},
-		})
+func toInternalLFSURL(s string) string {
+	pos1 := strings.Index(s, "://")
+	if pos1 == -1 {
+		return ""
 	}
+	appSubURLWithSlash := setting.AppSubURL + "/"
+	pos2 := strings.Index(s[pos1+3:], appSubURLWithSlash)
+	if pos2 == -1 {
+		return ""
+	}
+	routePath := s[pos1+3+pos2+len(appSubURLWithSlash):]
+	fields := strings.SplitN(routePath, "/", 3)
+	if len(fields) < 3 || !strings.HasPrefix(fields[2], "info/lfs") {
+		return ""
+	}
+	return setting.LocalURL + "api/internal/repo/" + routePath
+}
 
+func isInternalLFSURL(s string) bool {
+	if !strings.HasPrefix(s, setting.LocalURL) {
+		return false
+	}
+	u, err := url.Parse(s)
+	if err != nil {
+		return false
+	}
+	routePath := util.PathJoinRelX(u.Path)
+	subRoutePath, cut := strings.CutPrefix(routePath, "api/internal/repo/")
+	if !cut {
+		return false
+	}
+	fields := strings.SplitN(subRoutePath, "/", 3)
+	if len(fields) < 3 || !strings.HasPrefix(fields[2], "info/lfs") {
+		return false
+	}
+	return true
+}
+
+func newInternalRequestLFS(ctx context.Context, internalURL, method string, headers map[string]string, body any) *httplib.Request {
+	if !isInternalLFSURL(internalURL) {
+		return nil
+	}
+	req := private.NewInternalRequest(ctx, internalURL, method)
 	for k, v := range headers {
 		req.Header(k, v)
 	}
-
-	req.Body(body)
-
+	switch body := body.(type) {
+	case nil: // do nothing
+	case []byte:
+		req.Body(body) // []byte
+	case io.Reader:
+		req.Body(body) // io.Reader or io.ReadCloser
+	default:
+		panic(fmt.Sprintf("unsupported request body type %T", body))
+	}
 	return req
 }

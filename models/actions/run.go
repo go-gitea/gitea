@@ -88,7 +88,7 @@ func (run *ActionRun) RefLink() string {
 	if refName.IsPull() {
 		return run.Repo.Link() + "/pulls/" + refName.ShortName()
 	}
-	return git.RefURL(run.Repo.Link(), run.Ref)
+	return run.Repo.Link() + "/src/" + refName.RefWebLinkPath()
 }
 
 // PrettyRef return #id for pull ref or ShortName for others
@@ -194,7 +194,7 @@ func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) err
 
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.
 // It's useful when a new run is triggered, and all previous runs needn't be continued anymore.
-func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) error {
+func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID string, event webhook_module.HookEventType) ([]*ActionRunJob, error) {
 	// Find all runs in the specified repository, reference, and workflow with non-final status
 	runs, total, err := db.FindAndCount[ActionRun](ctx, FindRunOptions{
 		RepoID:       repoID,
@@ -204,13 +204,15 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 		Status:       []Status{StatusRunning, StatusWaiting, StatusBlocked},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If there are no runs found, there's no need to proceed with cancellation, so return nil.
 	if total == 0 {
-		return nil
+		return nil, nil
 	}
+
+	cancelledJobs := make([]*ActionRunJob, 0, total)
 
 	// Iterate over each found run and cancel its associated jobs.
 	for _, run := range runs {
@@ -219,7 +221,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 			RunID: run.ID,
 		})
 		if err != nil {
-			return err
+			return cancelledJobs, err
 		}
 
 		// Iterate over each job and attempt to cancel it.
@@ -238,27 +240,29 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 				// Update the job's status and stopped time in the database.
 				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
 				if err != nil {
-					return err
+					return cancelledJobs, err
 				}
 
 				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
 				if n == 0 {
-					return fmt.Errorf("job has changed, try again")
+					return cancelledJobs, fmt.Errorf("job has changed, try again")
 				}
 
+				cancelledJobs = append(cancelledJobs, job)
 				// Continue with the next job.
 				continue
 			}
 
 			// If the job has an associated task, try to stop the task, effectively cancelling the job.
 			if err := StopTask(ctx, job.TaskID, StatusCancelled); err != nil {
-				return err
+				return cancelledJobs, err
 			}
+			cancelledJobs = append(cancelledJobs, job)
 		}
 	}
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.
-	return nil
+	return cancelledJobs, nil
 }
 
 // InsertRun inserts a run

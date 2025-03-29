@@ -112,7 +112,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 func checkHookType(ctx *context.Context) string {
 	hookType := strings.ToLower(ctx.PathParam("type"))
 	if !util.SliceContainsString(setting.Webhook.Types, hookType, true) {
-		ctx.NotFound("checkHookType", nil)
+		ctx.NotFound(nil)
 		return ""
 	}
 	return hookType
@@ -163,27 +163,29 @@ func ParseHookEvent(form forms.WebhookForm) *webhook_module.HookEvent {
 		SendEverything: form.SendEverything(),
 		ChooseEvents:   form.ChooseEvents(),
 		HookEvents: webhook_module.HookEvents{
-			Create:                   form.Create,
-			Delete:                   form.Delete,
-			Fork:                     form.Fork,
-			Issues:                   form.Issues,
-			IssueAssign:              form.IssueAssign,
-			IssueLabel:               form.IssueLabel,
-			IssueMilestone:           form.IssueMilestone,
-			IssueComment:             form.IssueComment,
-			Release:                  form.Release,
-			Push:                     form.Push,
-			PullRequest:              form.PullRequest,
-			PullRequestAssign:        form.PullRequestAssign,
-			PullRequestLabel:         form.PullRequestLabel,
-			PullRequestMilestone:     form.PullRequestMilestone,
-			PullRequestComment:       form.PullRequestComment,
-			PullRequestReview:        form.PullRequestReview,
-			PullRequestSync:          form.PullRequestSync,
-			PullRequestReviewRequest: form.PullRequestReviewRequest,
-			Wiki:                     form.Wiki,
-			Repository:               form.Repository,
-			Package:                  form.Package,
+			webhook_module.HookEventCreate:                   form.Create,
+			webhook_module.HookEventDelete:                   form.Delete,
+			webhook_module.HookEventFork:                     form.Fork,
+			webhook_module.HookEventIssues:                   form.Issues,
+			webhook_module.HookEventIssueAssign:              form.IssueAssign,
+			webhook_module.HookEventIssueLabel:               form.IssueLabel,
+			webhook_module.HookEventIssueMilestone:           form.IssueMilestone,
+			webhook_module.HookEventIssueComment:             form.IssueComment,
+			webhook_module.HookEventRelease:                  form.Release,
+			webhook_module.HookEventPush:                     form.Push,
+			webhook_module.HookEventPullRequest:              form.PullRequest,
+			webhook_module.HookEventPullRequestAssign:        form.PullRequestAssign,
+			webhook_module.HookEventPullRequestLabel:         form.PullRequestLabel,
+			webhook_module.HookEventPullRequestMilestone:     form.PullRequestMilestone,
+			webhook_module.HookEventPullRequestComment:       form.PullRequestComment,
+			webhook_module.HookEventPullRequestReview:        form.PullRequestReview,
+			webhook_module.HookEventPullRequestSync:          form.PullRequestSync,
+			webhook_module.HookEventPullRequestReviewRequest: form.PullRequestReviewRequest,
+			webhook_module.HookEventWiki:                     form.Wiki,
+			webhook_module.HookEventRepository:               form.Repository,
+			webhook_module.HookEventPackage:                  form.Package,
+			webhook_module.HookEventStatus:                   form.Status,
+			webhook_module.HookEventWorkflowJob:              form.WorkflowJob,
 		},
 		BranchFilter: form.BranchFilter,
 	}
@@ -600,7 +602,7 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	}
 	if err != nil || w == nil {
 		if webhook.IsErrWebhookNotExist(err) {
-			ctx.NotFound("GetWebhookByID", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetWebhookByID", err)
 		}
@@ -654,6 +656,8 @@ func TestWebhook(ctx *context.Context) {
 	}
 
 	// Grab latest commit or fake one if it's empty repository.
+	// Note: in old code, the "ctx.Repo.Commit" is the last commit of the default branch.
+	// New code doesn't set that commit, so it always uses the fake commit to test webhook.
 	commit := ctx.Repo.Commit
 	if commit == nil {
 		ghost := user_model.NewGhostUser()
@@ -715,7 +719,7 @@ func ReplayWebhook(ctx *context.Context) {
 
 	if err := webhook_service.ReplayHookTask(ctx, w, hookTaskUUID); err != nil {
 		if webhook.IsErrHookTaskNotExist(err) {
-			ctx.NotFound("ReplayHookTask", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("ReplayHookTask", err)
 		}

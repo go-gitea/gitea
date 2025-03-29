@@ -1,5 +1,6 @@
 <button class="ui primary button js-btn-clone-panel">
-	<span>{{svg "octicon-code" 16}} Code</span>
+	{{svg "octicon-code" 16}}
+	<span>Code</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 </button>
 <div class="clone-panel-popup tippy-target">
@@ -13,6 +14,7 @@
 		{{if $.CloneButtonShowSSH}}
 			<button class="item repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">SSH</button>
 		{{end}}
+		<button class="item repo-clone-tea" data-link="{{$.CloneButtonOriginLink.Tea}}">Tea CLI</button>
 	</div>
 	<div class="divider"></div>
 
@@ -32,12 +34,14 @@
 			{{end}}
 		</div>
 
-		{{if and (not $.DisableDownloadSourceArchives) $.RefName}}
+		{{if and (not $.DisableDownloadSourceArchives) $.RefFullName}}
 		<div class="divider"></div>
 		<div class="flex-items-block clone-panel-list">
-				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_zip"}}</a>
-				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_tar"}}</a>
-				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package"}} {{ctx.Locale.Tr "repo.download_bundle"}}</a>
+				{{/* FIXME: here it only uses the shortname in the ref to build the link, it can't distinguish the branch/tag/commit with the same name
+					in the future, it's better to use something like "/archive/branch/the-name.zip", "/archive/tag/the-name.zip" */}}
+				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_zip"}}</a>
+				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_tar"}}</a>
+				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.bundle" rel="nofollow">{{svg "octicon-package"}} {{ctx.Locale.Tr "repo.download_bundle"}}</a>
 		</div>
 		{{end}}
 	{{end}}

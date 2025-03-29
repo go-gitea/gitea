@@ -32,7 +32,7 @@
 				<div class="ui top attached header">
 					<div class="ui compact small menu small-menu-items repo-editor-menu">
 						<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
-						<a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.BranchNameSubURL}}">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
+						<a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
 						{{if not .IsNewFile}}
 						<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
 						{{end}}
@@ -45,10 +45,10 @@
 							data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>
-					<div class="ui tab markup tw-px-4 tw-py-3" data-tab="preview">
+					<div class="ui tab tw-px-4 tw-py-3" data-tab="preview">
 						{{ctx.Locale.Tr "loading"}}
 					</div>
-					<div class="ui tab diff edit-diff" data-tab="diff">
+					<div class="ui tab" data-tab="diff">
 						<div class="tw-p-16"></div>
 					</div>
 				</div>

@@ -17,7 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
@@ -77,7 +80,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		Labels:         apiIssue.Labels,
 		Milestone:      apiIssue.Milestone,
 		Assignee:       apiIssue.Assignee,
-		Assignees:      apiIssue.Assignees,
+		Assignees:      util.SliceNilAsEmpty(apiIssue.Assignees),
 		State:          apiIssue.State,
 		Draft:          pr.IsWorkInProgress(ctx),
 		IsLocked:       apiIssue.IsLocked,
@@ -92,7 +95,11 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		Deadline:       apiIssue.Deadline,
 		Created:        pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
-		PinOrder:       apiIssue.PinOrder,
+		PinOrder:       util.Iif(apiIssue.PinOrder == -1, 0, apiIssue.PinOrder),
+
+		// output "[]" rather than null to align to github outputs
+		RequestedReviewers:      []*api.User{},
+		RequestedReviewersTeams: []*api.Team{},
 
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -234,9 +241,13 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		// Calculate diff
 		startCommitID = pr.MergeBase
 
-		apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
+		diffShortStats, err := gitdiff.GetDiffShortStat(gitRepo, startCommitID, endCommitID)
 		if err != nil {
 			log.Error("GetDiffShortStat: %v", err)
+		} else {
+			apiPullRequest.ChangedFiles = &diffShortStats.NumFiles
+			apiPullRequest.Additions = &diffShortStats.TotalAddition
+			apiPullRequest.Deletions = &diffShortStats.TotalDeletion
 		}
 	}
 
@@ -297,6 +308,9 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		return nil, err
 	}
 	if err := issueList.LoadAssignees(ctx); err != nil {
+		return nil, err
+	}
+	if err = issueList.LoadPinOrder(ctx); err != nil {
 		return nil, err
 	}
 
@@ -363,7 +377,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			Deadline:       apiIssue.Deadline,
 			Created:        pr.Issue.CreatedUnix.AsTimePtr(),
 			Updated:        pr.Issue.UpdatedUnix.AsTimePtr(),
-			PinOrder:       apiIssue.PinOrder,
+			PinOrder:       util.Iif(apiIssue.PinOrder == -1, 0, apiIssue.PinOrder),
 
 			AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
@@ -454,12 +468,6 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 				return nil, err
 			}
 
-			// Outer scope variables to be used in diff calculation
-			var (
-				startCommitID string
-				endCommitID   string
-			)
-
 			if git.IsErrBranchNotExist(err) {
 				headCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
 				if err != nil && !git.IsErrNotExist(err) {
@@ -468,7 +476,6 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 				}
 				if err == nil {
 					apiPullRequest.Head.Sha = headCommitID
-					endCommitID = headCommitID
 				}
 			} else {
 				commit, err := headBranch.GetCommit()
@@ -479,16 +486,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 				if err == nil {
 					apiPullRequest.Head.Ref = pr.HeadBranch
 					apiPullRequest.Head.Sha = commit.ID.String()
-					endCommitID = commit.ID.String()
 				}
-			}
-
-			// Calculate diff
-			startCommitID = pr.MergeBase
-
-			apiPullRequest.ChangedFiles, apiPullRequest.Additions, apiPullRequest.Deletions, err = gitRepo.GetDiffShortStat(startCommitID, endCommitID)
-			if err != nil {
-				log.Error("GetDiffShortStat: %v", err)
 			}
 		}
 
@@ -508,6 +506,12 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 			apiPullRequest.MergedCommitID = &pr.MergedCommitID
 			apiPullRequest.MergedBy = ToUser(ctx, pr.Merger, nil)
+		}
+
+		// Do not provide "ChangeFiles/Additions/Deletions" for the PR list, because the "diff" is quite slow
+		// If callers are interested in these values, they should do a separate request to get the PR details
+		if apiPullRequest.ChangedFiles != nil || apiPullRequest.Additions != nil || apiPullRequest.Deletions != nil {
+			setting.PanicInDevOrTesting("ChangedFiles/Additions/Deletions should not be set in PR list")
 		}
 
 		apiPullRequests = append(apiPullRequests, apiPullRequest)

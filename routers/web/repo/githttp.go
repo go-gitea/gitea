@@ -78,7 +78,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
 		isPull = true
 	} else {
-		isPull = ctx.Req.Method == "GET"
+		isPull = ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
 	}
 
 	var accessMode perm.AccessMode
@@ -147,7 +147,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea"`)
-			ctx.Error(http.StatusUnauthorized)
+			ctx.HTTPError(http.StatusUnauthorized)
 			return nil
 		}
 
@@ -320,7 +320,7 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, _, err := git.NewCommand(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Dir: tmpDir})
+		refs, _, err := git.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &git.RunOpts{Dir: tmpDir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -403,12 +403,12 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 // one or more key=value pairs separated by colons
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
-func prepareGitCmdWithAllowedService(ctx *context.Context, service string) (*git.Command, error) {
+func prepareGitCmdWithAllowedService(service string) (*git.Command, error) {
 	if service == "receive-pack" {
-		return git.NewCommand(ctx, "receive-pack"), nil
+		return git.NewCommand("receive-pack"), nil
 	}
 	if service == "upload-pack" {
-		return git.NewCommand(ctx, "upload-pack"), nil
+		return git.NewCommand("upload-pack"), nil
 	}
 
 	return nil, fmt.Errorf("service %q is not allowed", service)
@@ -428,7 +428,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		return
 	}
 
-	cmd, err := prepareGitCmdWithAllowedService(ctx, service)
+	cmd, err := prepareGitCmdWithAllowedService(service)
 	if err != nil {
 		log.Error("Failed to prepareGitCmdWithService: %v", err)
 		ctx.Resp.WriteHeader(http.StatusUnauthorized)
@@ -458,7 +458,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 
 	var stderr bytes.Buffer
 	cmd.AddArguments("--stateless-rpc").AddDynamicArguments(h.getRepoDir())
-	if err := cmd.Run(&git.RunOpts{
+	if err := cmd.Run(ctx, &git.RunOpts{
 		Dir:               h.getRepoDir(),
 		Env:               append(os.Environ(), h.environ...),
 		Stdout:            ctx.Resp,
@@ -498,7 +498,7 @@ func getServiceType(ctx *context.Context) string {
 }
 
 func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, _, err := git.NewCommand(ctx, "update-server-info").RunStdBytes(&git.RunOpts{Dir: dir})
+	out, _, err := git.NewCommand("update-server-info").RunStdBytes(ctx, &git.RunOpts{Dir: dir})
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -521,14 +521,14 @@ func GetInfoRefs(ctx *context.Context) {
 	}
 	setHeaderNoCache(ctx)
 	service := getServiceType(ctx)
-	cmd, err := prepareGitCmdWithAllowedService(ctx, service)
+	cmd, err := prepareGitCmdWithAllowedService(service)
 	if err == nil {
 		if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
 			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.getRepoDir()})
+		refs, _, err := cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").RunStdBytes(ctx, &git.RunOpts{Env: h.environ, Dir: h.getRepoDir()})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

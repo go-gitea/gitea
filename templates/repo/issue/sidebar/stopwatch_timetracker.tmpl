@@ -2,10 +2,12 @@
 	{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 		<div class="divider"></div>
 		<div>
-			<div class="ui dropdown jump">
+			<div class="ui dropdown text-flex-grow jump">
 				<a class="text muted">
-					<strong>{{ctx.Locale.Tr "repo.issues.tracker"}}</strong> {{svg "octicon-gear"}}
-					{{if $.IsStopwatchRunning}}{{svg "octicon-stopwatch"}}{{end}}
+					<div>
+						<strong>{{ctx.Locale.Tr "repo.issues.tracker"}}</strong> {{if $.IsStopwatchRunning}}{{svg "octicon-stopwatch"}}{{end}}
+					</div>
+					{{svg "octicon-gear"}}
 				</a>
 				<div class="menu">
 					<a class="item issue-set-time-estimate show-modal" data-modal="#issue-time-set-estimate-modal">
@@ -72,7 +74,7 @@
 	{{end}}
 	{{if .WorkingUsers}}
 		<div class="ui comments tw-mt-2">
-			{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Time)}}
+			{{ctx.Locale.Tr "repo.issues.time_spent_from_all_authors" ($.Issue.TotalTrackedTime | Sec2Hour)}}
 			<div>
 				{{range $user, $trackedtime := .WorkingUsers}}
 					<div class="comment tw-mt-2">
@@ -82,7 +84,7 @@
 						<div class="content">
 							{{template "shared/user/authorlink" $user}}
 							<div class="text">
-								{{$trackedtime|Sec2Time}}
+								{{$trackedtime|Sec2Hour}}
 							</div>
 						</div>
 					</div>

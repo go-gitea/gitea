@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_21"
 	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_23"
+	"code.gitea.io/gitea/models/migrations/v1_24"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -369,6 +370,15 @@ func prepareMigrationTasks() []*migration {
 		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
 		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
 		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
+
+		// Gitea 1.23.0-rc0 ends at migration ID number 311 (database version 312)
+		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_24.AddDeleteBranchAfterMergeForAutoMerge),
+		newMigration(313, "Move PinOrder from issue table to a new table issue_pin", v1_24.MovePinOrderToTableIssuePin),
+		newMigration(314, "Update OwnerID as zero for repository level action tables", v1_24.UpdateOwnerIDOfRepoLevelActionsTables),
+		newMigration(315, "Add Ephemeral to ActionRunner", v1_24.AddEphemeralToActionRunner),
+		newMigration(316, "Add description for secrets and variables", v1_24.AddDescriptionForSecretsAndVariables),
+		newMigration(317, "Add new index for action for heatmap", v1_24.AddNewIndexForUserDashboard),
+		newMigration(318, "Add anonymous_access_mode for repo_unit", v1_24.AddRepoUnitAnonymousAccessMode),
 	}
 	return preparedMigrations
 }
@@ -407,7 +417,7 @@ func ExpectedDBVersion() int64 {
 }
 
 // EnsureUpToDate will check if the db is at the correct version
-func EnsureUpToDate(x *xorm.Engine) error {
+func EnsureUpToDate(ctx context.Context, x *xorm.Engine) error {
 	currentDB, err := GetCurrentDBVersion(x)
 	if err != nil {
 		return err

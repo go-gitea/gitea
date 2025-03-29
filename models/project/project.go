@@ -106,6 +106,9 @@ type Project struct {
 	Type         Type
 
 	RenderedContent template.HTML `xorm:"-"`
+	NumOpenIssues   int64         `xorm:"-"`
+	NumClosedIssues int64         `xorm:"-"`
+	NumIssues       int64         `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -253,6 +256,10 @@ func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {
 		return db.SearchOrderByRecentUpdated
 	case "leastupdate":
 		return db.SearchOrderByLeastUpdated
+	case "alphabetically":
+		return "title ASC"
+	case "reversealphabetically":
+		return "title DESC"
 	default:
 		return db.SearchOrderByNewest
 	}

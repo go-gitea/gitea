@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/queue"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"xorm.io/builder"
@@ -49,6 +50,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 	if err != nil {
 		return err
 	}
+	var updatedjobs []*actions_model.ActionRunJob
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		idToJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
 		for _, job := range jobs {
@@ -64,6 +66,7 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 				} else if n != 1 {
 					return fmt.Errorf("no affected for updating blocked job %v", job.ID)
 				}
+				updatedjobs = append(updatedjobs, job)
 			}
 		}
 		return nil
@@ -71,6 +74,10 @@ func checkJobsOfRun(ctx context.Context, runID int64) error {
 		return err
 	}
 	CreateCommitStatus(ctx, jobs...)
+	for _, job := range updatedjobs {
+		_ = job.LoadAttributes(ctx)
+		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+	}
 	return nil
 }
 

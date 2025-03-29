@@ -11,8 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-var ErrNameEmpty = util.SilentWrap{Message: "name is empty", Err: util.ErrInvalidArgument}
-
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
 	Name string
@@ -79,7 +77,7 @@ func (err ErrNameCharsNotAllowed) Unwrap() error {
 func IsUsableName(reservedNames, reservedPatterns []string, name string) error {
 	name = strings.TrimSpace(strings.ToLower(name))
 	if utf8.RuneCountInString(name) == 0 {
-		return ErrNameEmpty
+		return util.NewInvalidArgumentErrorf("name is empty")
 	}
 
 	for i := range reservedNames {

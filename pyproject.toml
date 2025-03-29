@@ -5,8 +5,8 @@ package-mode = false
 python = "^3.10"
 
 [tool.poetry.group.dev.dependencies]
-djlint = "1.36.3"
-yamllint = "1.35.1"
+djlint = "1.36.4"
+yamllint = "1.36.1"
 
 [tool.djlint]
 profile="golang"

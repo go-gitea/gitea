@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
+	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -55,7 +56,7 @@ func startTasks(ctx context.Context) error {
 			// cancel running jobs if the event is push
 			if row.Schedule.Event == webhook_module.HookEventPush {
 				// cancel running jobs of the same workflow
-				if err := actions_model.CancelPreviousJobs(
+				if err := CancelPreviousJobs(
 					ctx,
 					row.RepoID,
 					row.Schedule.Ref,
@@ -147,6 +148,17 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 	// Insert the action run and its associated jobs into the database
 	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
 		return err
+	}
+	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	if err != nil {
+		log.Error("FindRunJobs: %v", err)
+	}
+	err = run.LoadAttributes(ctx)
+	if err != nil {
+		log.Error("LoadAttributes: %v", err)
+	}
+	for _, job := range allJobs {
+		notify_service.WorkflowJobStatusUpdate(ctx, run.Repo, run.TriggerUser, job, nil)
 	}
 
 	// Return nil if no errors occurred

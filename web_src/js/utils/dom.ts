@@ -255,12 +255,12 @@ export function loadElem(el: LoadableElement, src: string) {
 // it can't use other transparent polyfill patches because PaleMoon also doesn't support "addEventListener(capture)"
 const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
 
-export function submitEventSubmitter(e) {
+export function submitEventSubmitter(e: any) {
   e = e.originalEvent ?? e; // if the event is wrapped by jQuery, use "originalEvent", otherwise, use the event itself
   return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
 }
 
-function submitEventPolyfillListener(e) {
+function submitEventPolyfillListener(e: DOMEvent<Event>) {
   const form = e.target.closest('form');
   if (!form) return;
   form._submitter = e.target.closest('button:not([type]), button[type="submit"], input[type="submit"]');
@@ -355,7 +355,7 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
   return candidates.length ? candidates[0] as T : null;
 }
 
-export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
+export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => Promisable<void>, options?: boolean | AddEventListenerOptions) {
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
     if (!elem) return;

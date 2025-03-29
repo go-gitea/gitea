@@ -453,9 +453,8 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[nil, %s]: no repository specified", opts.SHA)
 	}
 
-	repoPath := opts.Repo.RepoPath()
 	if opts.Creator == nil {
-		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
+		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", opts.Repo.FullName(), opts.SHA)
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -477,13 +476,13 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 	opts.CommitStatus.CreatorID = opts.Creator.ID
 	opts.CommitStatus.RepoID = opts.Repo.ID
 	opts.CommitStatus.Index = idx
-	log.Debug("NewCommitStatus[%s, %s]: %d", repoPath, opts.SHA, opts.CommitStatus.Index)
+	log.Debug("NewCommitStatus[%s, %s]: %d", opts.Repo.FullName(), opts.SHA, opts.CommitStatus.Index)
 
 	opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
 
 	// Insert new CommitStatus
 	if _, err = db.GetEngine(ctx).Insert(opts.CommitStatus); err != nil {
-		return fmt.Errorf("insert CommitStatus[%s, %s]: %w", repoPath, opts.SHA, err)
+		return fmt.Errorf("insert CommitStatus[%s, %s]: %w", opts.Repo.FullName(), opts.SHA, err)
 	}
 
 	return committer.Commit()
@@ -496,45 +495,9 @@ type SignCommitWithStatuses struct {
 	*asymkey_model.SignCommit
 }
 
-// ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) []*SignCommitWithStatuses {
-	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
-
-	for _, c := range oldCommits {
-		commit := &SignCommitWithStatuses{
-			SignCommit: c,
-		}
-		statuses, _, err := GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
-		if err != nil {
-			log.Error("GetLatestCommitStatus: %v", err)
-		} else {
-			commit.Statuses = statuses
-			commit.Status = CalcCommitStatus(statuses)
-		}
-
-		newCommits = append(newCommits, commit)
-	}
-	return newCommits
-}
-
 // hashCommitStatusContext hash context
 func hashCommitStatusContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
-}
-
-// ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
-	return ParseCommitsWithStatus(ctx,
-		asymkey_model.ParseCommitsWithSignature(
-			ctx,
-			user_model.ValidateCommitsWithEmails(ctx, commits),
-			repo.GetTrustModel(),
-			func(user *user_model.User) (bool, error) {
-				return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
-			},
-		),
-		repo,
-	)
 }
 
 // CommitStatusesHideActionsURL hide Gitea Actions urls

@@ -34,10 +34,14 @@ func getClientIP() string {
 	return strings.Fields(sshConnEnv)[0]
 }
 
-func newInternalRequest(ctx context.Context, url, method string, body ...any) *httplib.Request {
+func NewInternalRequest(ctx context.Context, url, method string) *httplib.Request {
 	if setting.InternalToken == "" {
 		log.Fatal(`The INTERNAL_TOKEN setting is missing from the configuration file: %q.
 Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
+	}
+
+	if !strings.HasPrefix(url, setting.LocalURL) {
+		log.Fatal("Invalid internal request URL: %q", url)
 	}
 
 	req := httplib.NewRequest(url, method).
@@ -82,13 +86,17 @@ Ensure you are running in the correct environment or set the correct configurati
 			},
 		})
 	}
+	return req
+}
 
+func newInternalRequestAPI(ctx context.Context, url, method string, body ...any) *httplib.Request {
+	req := NewInternalRequest(ctx, url, method)
 	if len(body) == 1 {
 		req.Header("Content-Type", "application/json")
 		jsonBytes, _ := json.Marshal(body[0])
 		req.Body(jsonBytes)
 	} else if len(body) > 1 {
-		log.Fatal("Too many arguments for newInternalRequest")
+		log.Fatal("Too many arguments for newInternalRequestAPI")
 	}
 
 	req.SetTimeout(10*time.Second, 60*time.Second)

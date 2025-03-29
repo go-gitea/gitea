@@ -1,41 +1,31 @@
-import $ from 'jquery';
-import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
-import {initDiffFileTree, initDiffFileList} from './repo-diff-filetree.ts';
+import {initDiffFileTree} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {
-  submitEventSubmitter,
-  queryElemSiblings,
-  hideElem,
-  showElem,
-  animateOnce,
-  addDelegatedEventListener,
-  createElementFromHTML,
-} from '../utils/dom.ts';
+import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
+import {parseDom} from '../utils.ts';
+import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
-const {pageData, i18n} = window.config;
+const {i18n} = window.config;
 
-function initRepoDiffFileViewToggle() {
-  $('.file-view-toggle').on('click', function () {
-    for (const el of queryElemSiblings(this)) {
-      el.classList.remove('active');
-    }
-    this.classList.add('active');
+function initRepoDiffFileBox(el: HTMLElement) {
+  // switch between "rendered" and "source", for image and CSV files
+  queryElems(el, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
+    queryElemSiblings(btn, '.file-view-toggle', (el) => el.classList.remove('active'));
+    btn.classList.add('active');
 
-    const target = document.querySelector(this.getAttribute('data-toggle-selector'));
-    if (!target) return;
+    const target = document.querySelector(btn.getAttribute('data-toggle-selector'));
+    if (!target) throw new Error('Target element not found');
 
     hideElem(queryElemSiblings(target));
     showElem(target);
-  });
+  }));
 }
 
 function initRepoDiffConversationForm() {
@@ -83,7 +73,6 @@ function initRepoDiffConversationForm() {
           el.classList.add('tw-invisible');
         }
       }
-      fomanticQuery(newConversationHolder.querySelectorAll('.ui.dropdown')).dropdown();
 
       // the default behavior is to add a pending review, so if no submitter, it also means "pending_review"
       if (!submitter || submitter?.matches('button[name="pending_review"]')) {
@@ -103,22 +92,21 @@ function initRepoDiffConversationForm() {
     }
   });
 
-  $(document).on('click', '.resolve-conversation', async function (e) {
+  addDelegatedEventListener(document, 'click', '.resolve-conversation', async (el, e) => {
     e.preventDefault();
-    const comment_id = $(this).data('comment-id');
-    const origin = $(this).data('origin');
-    const action = $(this).data('action');
-    const url = $(this).data('update-url');
+    const comment_id = el.getAttribute('data-comment-id');
+    const origin = el.getAttribute('data-origin');
+    const action = el.getAttribute('data-action');
+    const url = el.getAttribute('data-update-url');
 
     try {
       const response = await POST(url, {data: new URLSearchParams({origin, action, comment_id})});
       const data = await response.text();
 
-      if ($(this).closest('.conversation-holder').length) {
-        const $conversation = $(data);
-        $(this).closest('.conversation-holder').replaceWith($conversation);
-        $conversation.find('.dropdown').dropdown();
-        initCompReactionSelector($conversation[0]);
+      const elConversationHolder = el.closest('.conversation-holder');
+      if (elConversationHolder) {
+        const elNewConversation = createElementFromHTML(data);
+        elConversationHolder.replaceWith(elNewConversation);
       } else {
         window.location.reload();
       }
@@ -128,24 +116,19 @@ function initRepoDiffConversationForm() {
   });
 }
 
-export function initRepoDiffConversationNav() {
+function initRepoDiffConversationNav() {
   // Previous/Next code review conversation
-  $(document).on('click', '.previous-conversation', (e) => {
-    const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.tw-hidden)');
-    const index = $conversations.index($conversation);
-    const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
-    const $previousConversation = $conversations.eq(previousIndex);
-    const anchor = $previousConversation.find('.comment').first()[0].getAttribute('id');
-    window.location.href = `#${anchor}`;
-  });
-  $(document).on('click', '.next-conversation', (e) => {
-    const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
-    const $conversations = $('.comment-code-cloud:not(.tw-hidden)');
-    const index = $conversations.index($conversation);
-    const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
-    const $nextConversation = $conversations.eq(nextIndex);
-    const anchor = $nextConversation.find('.comment').first()[0].getAttribute('id');
+  addDelegatedEventListener(document, 'click', '.previous-conversation, .next-conversation', (el, e) => {
+    e.preventDefault();
+    const isPrevious = el.matches('.previous-conversation');
+    const elCurConversation = el.closest('.comment-code-cloud');
+    const elAllConversations = document.querySelectorAll('.comment-code-cloud:not(.tw-hidden)');
+    const index = Array.from(elAllConversations).indexOf(elCurConversation);
+    const previousIndex = index > 0 ? index - 1 : elAllConversations.length - 1;
+    const nextIndex = index < elAllConversations.length - 1 ? index + 1 : 0;
+    const navIndex = isPrevious ? previousIndex : nextIndex;
+    const elNavConversation = elAllConversations[navIndex];
+    const anchor = elNavConversation.querySelector('.comment').id;
     window.location.href = `#${anchor}`;
   });
 }
@@ -161,6 +144,7 @@ function initDiffHeaderPopup() {
 
 // Will be called when the show more (files) button has been pressed
 function onShowMoreFiles() {
+  // TODO: replace these calls with the "observer.ts" methods
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   countAndUpdateViewedFiles();
@@ -168,84 +152,111 @@ function onShowMoreFiles() {
   initDiffHeaderPopup();
 }
 
-export async function loadMoreFiles(url) {
-  const target = document.querySelector('a#diff-show-more-files');
-  if (target?.classList.contains('disabled') || pageData.diffFileInfo.isLoadingNewData) {
-    return;
+async function loadMoreFiles(btn: Element): Promise<boolean> {
+  if (btn.classList.contains('disabled')) {
+    return false;
   }
 
-  pageData.diffFileInfo.isLoadingNewData = true;
-  target?.classList.add('disabled');
-
+  btn.classList.add('disabled');
+  const url = btn.getAttribute('data-href');
   try {
     const response = await GET(url);
     const resp = await response.text();
-    const $resp = $(resp);
+    const respDoc = parseDom(resp, 'text/html');
+    const respFileBoxes = respDoc.querySelector('#diff-file-boxes');
     // the response is a full HTML page, we need to extract the relevant contents:
-    // 1. append the newly loaded file list items to the existing list
-    $('#diff-incomplete').replaceWith($resp.find('#diff-file-boxes').children());
-    // 2. re-execute the script to append the newly loaded items to the JS variables to refresh the DiffFileTree
-    $('body').append($resp.find('script#diff-data-script'));
-
+    // * append the newly loaded file list items to the existing list
+    document.querySelector('#diff-incomplete').replaceWith(...Array.from(respFileBoxes.children));
     onShowMoreFiles();
+    return true;
   } catch (error) {
     console.error('Error:', error);
     showErrorToast('An error occurred while loading more files.');
   } finally {
-    target?.classList.remove('disabled');
-    pageData.diffFileInfo.isLoadingNewData = false;
+    btn.classList.remove('disabled');
   }
+  return false;
 }
 
 function initRepoDiffShowMore() {
-  $(document).on('click', 'a#diff-show-more-files', (e) => {
+  addDelegatedEventListener(document, 'click', 'a#diff-show-more-files', (el, e) => {
     e.preventDefault();
-
-    const linkLoadMore = e.target.getAttribute('data-href');
-    loadMoreFiles(linkLoadMore);
+    loadMoreFiles(el);
   });
 
-  $(document).on('click', 'a.diff-load-button', async (e) => {
+  addDelegatedEventListener(document, 'click', 'a.diff-load-button', async (el, e) => {
     e.preventDefault();
-    const $target = $(e.target);
+    if (el.classList.contains('disabled')) return;
 
-    if (e.target.classList.contains('disabled')) {
-      return;
-    }
-
-    e.target.classList.add('disabled');
-
-    const url = $target.data('href');
+    el.classList.add('disabled');
+    const url = el.getAttribute('data-href');
 
     try {
       const response = await GET(url);
       const resp = await response.text();
-
-      if (!resp) {
-        return;
-      }
-      $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
+      const respDoc = parseDom(resp, 'text/html');
+      const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body');
+      const respFileBodyChildren = Array.from(respFileBody.children); // respFileBody.children will be empty after replaceWith
+      el.parentElement.replaceWith(...respFileBodyChildren);
+      for (const el of respFileBodyChildren) window.htmx.process(el);
+      // FIXME: calling onShowMoreFiles is not quite right here.
+      // But since onShowMoreFiles mixes "init diff box" and "init diff body" together,
+      // so it still needs to call it to make the "ImageDiff" and something similar work.
       onShowMoreFiles();
     } catch (error) {
       console.error('Error:', error);
     } finally {
-      e.target.classList.remove('disabled');
+      el.classList.remove('disabled');
     }
   });
 }
 
+async function loadUntilFound() {
+  const hashTargetSelector = window.location.hash;
+  if (!hashTargetSelector.startsWith('#diff-') && !hashTargetSelector.startsWith('#issuecomment-')) {
+    return;
+  }
+
+  while (true) {
+    // use getElementById to avoid querySelector throws an error when the hash is invalid
+    // eslint-disable-next-line unicorn/prefer-query-selector
+    const targetElement = document.getElementById(hashTargetSelector.substring(1));
+    if (targetElement) {
+      targetElement.scrollIntoView();
+      return;
+    }
+
+    // the button will be refreshed after each "load more", so query it every time
+    const showMoreButton = document.querySelector('#diff-show-more-files');
+    if (!showMoreButton) {
+      return; // nothing more to load
+    }
+
+    // Load more files, await ensures we don't block progress
+    const ok = await loadMoreFiles(showMoreButton);
+    if (!ok) return; // failed to load more files
+  }
+}
+
+function initRepoDiffHashChangeListener() {
+  window.addEventListener('hashchange', loadUntilFound);
+  loadUntilFound();
+}
+
 export function initRepoDiffView() {
-  initRepoDiffConversationForm();
-  if (!$('#diff-file-list').length) return;
+  initRepoDiffConversationForm(); // such form appears on the "conversation" page and "diff" page
+
+  if (!document.querySelector('#diff-file-boxes')) return;
+  initRepoDiffConversationNav(); // "previous" and "next" buttons only appear on "diff" page
   initDiffFileTree();
-  initDiffFileList();
   initDiffCommitSelect();
   initRepoDiffShowMore();
   initDiffHeaderPopup();
-  initRepoDiffFileViewToggle();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
+  initRepoDiffHashChangeListener();
 
+  registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
   addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
     invertFileFolding(el.closest('.file-content'), el);
   });

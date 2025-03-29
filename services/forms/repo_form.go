@@ -110,41 +110,51 @@ type RepoSettingForm struct {
 	EnablePrune            bool
 
 	// Advanced settings
-	EnableCode                            bool
-	EnableWiki                            bool
-	EnableExternalWiki                    bool
-	DefaultWikiBranch                     string
-	DefaultWikiEveryoneAccess             string
-	ExternalWikiURL                       string
+	EnableCode                bool
+	DefaultCodeEveryoneAccess string
+
+	EnableWiki                bool
+	EnableExternalWiki        bool
+	DefaultWikiBranch         string
+	DefaultWikiEveryoneAccess string
+	ExternalWikiURL           string
+
 	EnableIssues                          bool
+	DefaultIssuesEveryoneAccess           string
 	EnableExternalTracker                 bool
 	ExternalTrackerURL                    string
 	TrackerURLFormat                      string
 	TrackerIssueStyle                     string
 	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
-	EnableProjects                        bool
-	ProjectsMode                          string
-	EnableReleases                        bool
-	EnablePackages                        bool
-	EnablePulls                           bool
-	EnableActions                         bool
-	PullsIgnoreWhitespace                 bool
-	PullsAllowMerge                       bool
-	PullsAllowRebase                      bool
-	PullsAllowRebaseMerge                 bool
-	PullsAllowSquash                      bool
-	PullsAllowFastForwardOnly             bool
-	PullsAllowManualMerge                 bool
-	PullsDefaultMergeStyle                string
-	EnableAutodetectManualMerge           bool
-	PullsAllowRebaseUpdate                bool
-	DefaultDeleteBranchAfterMerge         bool
-	DefaultAllowMaintainerEdit            bool
-	EnableTimetracker                     bool
-	AllowOnlyContributorsToTrackTime      bool
-	EnableIssueDependencies               bool
-	IsArchived                            bool
+
+	EnableProjects bool
+	ProjectsMode   string
+
+	EnableReleases bool
+
+	EnablePackages bool
+
+	EnablePulls                      bool
+	PullsIgnoreWhitespace            bool
+	PullsAllowMerge                  bool
+	PullsAllowRebase                 bool
+	PullsAllowRebaseMerge            bool
+	PullsAllowSquash                 bool
+	PullsAllowFastForwardOnly        bool
+	PullsAllowManualMerge            bool
+	PullsDefaultMergeStyle           string
+	EnableAutodetectManualMerge      bool
+	PullsAllowRebaseUpdate           bool
+	DefaultDeleteBranchAfterMerge    bool
+	DefaultAllowMaintainerEdit       bool
+	EnableTimetracker                bool
+	AllowOnlyContributorsToTrackTime bool
+	EnableIssueDependencies          bool
+
+	EnableActions bool
+
+	IsArchived bool
 
 	// Signing Settings
 	TrustModel string
@@ -159,13 +169,6 @@ func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) bindi
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
-
-// __________                             .__
-// \______   \____________    ____   ____ |  |__
-//  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
-//  |    |   \ |  | \// __ \|   |  \  \___|   Y  \
-//  |______  / |__|  (____  /___|  /\___  >___|  /
-//         \/             \/     \/     \/     \/
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
@@ -209,26 +212,18 @@ type ProtectBranchPriorityForm struct {
 	IDs []int64
 }
 
-//  __      __      ___.   .__                   __
-// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
-//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
-//        \/       \/    \/     \/                   \/
-
 // WebhookForm form for changing web hook
 type WebhookForm struct {
 	Events                   string
 	Create                   bool
 	Delete                   bool
 	Fork                     bool
+	Push                     bool
 	Issues                   bool
 	IssueAssign              bool
 	IssueLabel               bool
 	IssueMilestone           bool
 	IssueComment             bool
-	Release                  bool
-	Push                     bool
 	PullRequest              bool
 	PullRequestAssign        bool
 	PullRequestLabel         bool
@@ -239,7 +234,10 @@ type WebhookForm struct {
 	PullRequestReviewRequest bool
 	Wiki                     bool
 	Repository               bool
+	Release                  bool
 	Package                  bool
+	Status                   bool
+	WorkflowJob              bool
 	Active                   bool
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string
@@ -651,8 +649,8 @@ type NewReleaseForm struct {
 	Target     string `form:"tag_target" binding:"Required;MaxSize(255)"`
 	Title      string `binding:"MaxSize(255)"`
 	Content    string
-	Draft      string
-	TagOnly    string
+	Draft      bool
+	TagOnly    bool
 	Prerelease bool
 	AddTagMsg  bool
 	Files      []string
@@ -717,6 +715,7 @@ type EditRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -752,6 +751,7 @@ type CherryPickForm struct {
 	LastCommit    string
 	Revert        bool
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -777,6 +777,7 @@ type UploadRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	Files         []string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields
@@ -811,6 +812,7 @@ type DeleteRepoFileForm struct {
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
 	Signoff       bool
+	CommitEmail   string
 }
 
 // Validate validates the fields

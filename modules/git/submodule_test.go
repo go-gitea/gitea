@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,17 +27,17 @@ func TestGetTemplateSubmoduleCommits(t *testing.T) {
 }
 
 func TestAddTemplateSubmoduleIndexes(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	tmpDir := t.TempDir()
 	var err error
-	_, _, err = NewCommand(ctx, "init").RunStdString(&RunOpts{Dir: tmpDir})
+	_, _, err = NewCommand("init").RunStdString(ctx, &RunOpts{Dir: tmpDir})
 	require.NoError(t, err)
 	_ = os.Mkdir(filepath.Join(tmpDir, "new-dir"), 0o755)
 	err = AddTemplateSubmoduleIndexes(ctx, tmpDir, []TemplateSubmoduleCommit{{Path: "new-dir", Commit: "1234567890123456789012345678901234567890"}})
 	require.NoError(t, err)
-	_, _, err = NewCommand(ctx, "add", "--all").RunStdString(&RunOpts{Dir: tmpDir})
+	_, _, err = NewCommand("add", "--all").RunStdString(ctx, &RunOpts{Dir: tmpDir})
 	require.NoError(t, err)
-	_, _, err = NewCommand(ctx, "-c", "user.name=a", "-c", "user.email=b", "commit", "-m=test").RunStdString(&RunOpts{Dir: tmpDir})
+	_, _, err = NewCommand("-c", "user.name=a", "-c", "user.email=b", "commit", "-m=test").RunStdString(ctx, &RunOpts{Dir: tmpDir})
 	require.NoError(t, err)
 	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, tmpDir)
 	require.NoError(t, err)

@@ -42,22 +42,22 @@
 			{{if not .ReadmeInList}}
 				<div class="ui buttons tw-mr-1">
 					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
-					{{if not .IsViewCommit}}
+					{{if or .RefFullName.IsBranch .RefFullName.IsTag}}
 						<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
 					{{end}}
 					{{if .IsRepresentableAsText}}
-						<a class="ui mini basic button" href="{{.RepoLink}}/blame/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.blame"}}</a>
+						<a class="ui mini basic button" href="{{.RepoLink}}/blame/{{.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.blame"}}</a>
 					{{end}}
-					<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
+					<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
 					{{if .EscapeStatus.Escaped}}
 						<button class="ui mini basic button unescape-button tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 						<button class="ui mini basic button escape-button">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 					{{end}}
 				</div>
 				<a download class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.download_file"}}" href="{{$.RawFileLink}}">{{svg "octicon-download"}}</a>
-				<a id="copy-content" class="btn-octicon {{if not .CanCopyContent}} disabled{{end}}"{{if or .IsImageFile (and .HasSourceRenderedToggle (not .IsDisplayingSource))}} data-link="{{$.RawFileLink}}"{{end}} data-tooltip-content="{{if .CanCopyContent}}{{ctx.Locale.Tr "copy_content"}}{{else}}{{ctx.Locale.Tr "copy_type_unsupported"}}{{end}}">{{svg "octicon-copy"}}</a>
+				<a class="btn-octicon {{if not .CanCopyContent}} disabled{{end}}" data-global-click="onCopyContentButtonClick" {{if or .IsImageFile (and .HasSourceRenderedToggle (not .IsDisplayingSource))}} data-link="{{$.RawFileLink}}"{{end}} data-tooltip-content="{{if .CanCopyContent}}{{ctx.Locale.Tr "copy_content"}}{{else}}{{ctx.Locale.Tr "copy_type_unsupported"}}{{end}}">{{svg "octicon-copy"}}</a>
 				{{if .EnableFeed}}
-				<a class="btn-octicon" href="{{$.FeedURL}}/rss/{{$.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+				<a class="btn-octicon" href="{{$.RepoLink}}/rss/{{$.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 					{{svg "octicon-rss"}}
 				</a>
 				{{end}}
@@ -108,7 +108,7 @@
 							<strong>{{ctx.Locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 						</audio>
 					{{else if .IsPDFFile}}
-						<div class="pdf-content is-loading" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "repo.diff.view_file"}}"></div>
+						<div class="pdf-content is-loading" data-global-init="initPdfViewer" data-src="{{$.RawFileLink}}" data-fallback-button-text="{{ctx.Locale.Tr "repo.diff.view_file"}}"></div>
 					{{else}}
 						<a href="{{$.RawFileLink}}" rel="nofollow" class="tw-p-4">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 					{{end}}

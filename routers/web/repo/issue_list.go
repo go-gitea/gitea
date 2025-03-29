@@ -46,7 +46,7 @@ func retrieveProjectsForIssueList(ctx *context.Context, repo *repo_model.Reposit
 func SearchIssues(ctx *context.Context) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, err.Error())
+		ctx.HTTPError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -84,9 +84,9 @@ func SearchIssues(ctx *context.Context) {
 			owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
-					ctx.Error(http.StatusBadRequest, "Owner not found", err.Error())
+					ctx.HTTPError(http.StatusBadRequest, "Owner not found", err.Error())
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetUserByName", err.Error())
+					ctx.HTTPError(http.StatusInternalServerError, "GetUserByName", err.Error())
 				}
 				return
 			}
@@ -97,15 +97,15 @@ func SearchIssues(ctx *context.Context) {
 		}
 		if ctx.FormString("team") != "" {
 			if ctx.FormString("owner") == "" {
-				ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
+				ctx.HTTPError(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 				return
 			}
 			team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.Error(http.StatusBadRequest, "Team not found", err.Error())
+					ctx.HTTPError(http.StatusBadRequest, "Team not found", err.Error())
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetUserByName", err.Error())
+					ctx.HTTPError(http.StatusInternalServerError, "GetUserByName", err.Error())
 				}
 				return
 			}
@@ -118,7 +118,7 @@ func SearchIssues(ctx *context.Context) {
 		}
 		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, "SearchRepositoryIDs", err.Error())
 			return
 		}
 		if len(repoIDs) == 0 {
@@ -149,7 +149,7 @@ func SearchIssues(ctx *context.Context) {
 		}
 		includedAnyLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetLabelIDsByNames", err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, "GetLabelIDsByNames", err.Error())
 			return
 		}
 	}
@@ -163,7 +163,7 @@ func SearchIssues(ctx *context.Context) {
 		}
 		includedMilestones, err = issues_model.GetMilestoneIDsByNames(ctx, includedMilestoneNames)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetMilestoneIDsByNames", err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, "GetMilestoneIDsByNames", err.Error())
 			return
 		}
 	}
@@ -208,10 +208,10 @@ func SearchIssues(ctx *context.Context) {
 	if ctx.IsSigned {
 		ctxUserID := ctx.Doer.ID
 		if ctx.FormBool("created") {
-			searchOpt.PosterID = optional.Some(ctxUserID)
+			searchOpt.PosterID = strconv.FormatInt(ctxUserID, 10)
 		}
 		if ctx.FormBool("assigned") {
-			searchOpt.AssigneeID = optional.Some(ctxUserID)
+			searchOpt.AssigneeID = strconv.FormatInt(ctxUserID, 10)
 		}
 		if ctx.FormBool("mentioned") {
 			searchOpt.MentionID = optional.Some(ctxUserID)
@@ -230,12 +230,12 @@ func SearchIssues(ctx *context.Context) {
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchIssues", err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, "SearchIssues", err.Error())
 		return
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
 		return
 	}
 
@@ -251,12 +251,12 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 
 	user, err := user_model.GetUserByName(ctx, userName)
 	if user_model.IsErrUserNotExist(err) {
-		ctx.NotFound("", err)
+		ctx.NotFound(err)
 		return 0
 	}
 
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return 0
 	}
 
@@ -269,7 +269,7 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 func SearchRepoIssuesJSON(ctx *context.Context) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, err.Error())
+		ctx.HTTPError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -299,7 +299,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 				continue
 			}
 			if !issues_model.IsErrMilestoneNotExist(err) {
-				ctx.Error(http.StatusInternalServerError, err.Error())
+				ctx.HTTPError(http.StatusInternalServerError, err.Error())
 				return
 			}
 			id, err := strconv.ParseInt(part[i], 10, 64)
@@ -314,7 +314,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 			if issues_model.IsErrMilestoneNotExist(err) {
 				continue
 			}
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		}
 	}
 
@@ -373,10 +373,10 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 	}
 
 	if createdByID > 0 {
-		searchOpt.PosterID = optional.Some(createdByID)
+		searchOpt.PosterID = strconv.FormatInt(createdByID, 10)
 	}
 	if assignedByID > 0 {
-		searchOpt.AssigneeID = optional.Some(assignedByID)
+		searchOpt.AssigneeID = strconv.FormatInt(assignedByID, 10)
 	}
 	if mentionedByID > 0 {
 		searchOpt.MentionID = optional.Some(mentionedByID)
@@ -384,12 +384,12 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchIssues", err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, "SearchIssues", err.Error())
 		return
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
 		return
 	}
 
@@ -490,7 +490,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		viewType = "all"
 	}
 
-	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
+	assigneeID := ctx.FormString("assignee")
 	posterUsername := ctx.FormString("poster")
 	posterUserID := shared_user.GetFilterUserIDByName(ctx, posterUsername)
 	var mentionedID, reviewRequestedID, reviewedID int64
@@ -498,11 +498,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	if ctx.IsSigned {
 		switch viewType {
 		case "created_by":
-			posterUserID = optional.Some(ctx.Doer.ID)
+			posterUserID = strconv.FormatInt(ctx.Doer.ID, 10)
 		case "mentioned":
 			mentionedID = ctx.Doer.ID
 		case "assigned":
-			assigneeID = ctx.Doer.ID
+			assigneeID = fmt.Sprint(ctx.Doer.ID)
 		case "review_requested":
 			reviewRequestedID = ctx.Doer.ID
 		case "reviewed_by":
@@ -532,7 +532,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		LabelIDs:          labelIDs,
 		MilestoneIDs:      mileIDs,
 		ProjectID:         projectID,
-		AssigneeID:        optional.Some(assigneeID),
+		AssigneeID:        assigneeID,
 		MentionedID:       mentionedID,
 		PosterID:          posterUserID,
 		ReviewRequestedID: reviewRequestedID,
@@ -613,7 +613,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 				PageSize: setting.UI.IssuePagingNum,
 			},
 			RepoIDs:           []int64{repo.ID},
-			AssigneeID:        optional.Some(assigneeID),
+			AssigneeID:        assigneeID,
 			PosterID:          posterUserID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
