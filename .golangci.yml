@@ -87,7 +87,6 @@ linters:
         - -ST1005
         - -QF1001
         - -QF1006
-        - -QF1007
         - -QF1008
     testifylint:
       disable:
