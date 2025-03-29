@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -140,6 +141,23 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 		if err != nil {
 			return err
+		}
+
+		if pr.Flow == issues_model.PullRequestFlowGithub {
+			devLinks, err := issues_model.FindDevLinksByBranch(ctx, issue.RepoID, pr.HeadRepoID, pr.HeadBranch)
+			if err != nil {
+				return err
+			}
+			for _, link := range devLinks {
+				if err := issues_model.CreateIssueDevLink(ctx, &issues_model.IssueDevLink{
+					IssueID:      link.IssueID,
+					LinkType:     issues_model.IssueDevLinkTypePullRequest,
+					LinkedRepoID: pr.HeadRepoID,
+					LinkIndex:    strconv.FormatInt(pr.ID, 10),
+				}); err != nil {
+					return err
+				}
+			}
 		}
 
 		compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
