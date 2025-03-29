@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -244,100 +245,105 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		ObjectFormatName:                opts.ObjectFormatName,
 	}
 
-	var rollbackRepo *repo_model.Repository
+	needsUpdateStatus := opts.Status != repo_model.RepositoryReady
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
-			return err
-		}
-
-		// No need for init mirror.
-		if opts.IsMirror {
-			return nil
-		}
-
-		isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
-		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
-			return err
-		}
-		if isExist {
-			// repo already exists - We have two or three options.
-			// 1. We fail stating that the directory exists
-			// 2. We create the db repository to go with this data and adopt the git repo
-			// 3. We delete it and start afresh
-			//
-			// Previously Gitea would just delete and start afresh - this was naughty.
-			// So we will now fail and delegate to other functionality to adopt or delete
-			log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
-			return repo_model.ErrRepoFilesAlreadyExist{
-				Uname: u.Name,
-				Name:  repo.Name,
-			}
-		}
-
-		if err = initRepository(ctx, doer, repo, opts); err != nil {
-			if err2 := gitrepo.DeleteRepository(ctx, repo); err2 != nil {
-				log.Error("initRepository: %v", err)
-				return fmt.Errorf(
-					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
-			}
-			return fmt.Errorf("initRepository: %w", err)
-		}
-
-		// Initialize Issue Labels if selected
-		if len(opts.IssueLabels) > 0 {
-			if err = repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
-				return fmt.Errorf("InitializeLabels: %w", err)
-			}
-		}
-
-		if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-			return fmt.Errorf("checkDaemonExportOK: %w", err)
-		}
-
-		if stdout, _, err := git.NewCommand("update-server-info").
-			RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
-			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			rollbackRepo = repo
-			rollbackRepo.OwnerID = u.ID
-			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
-		}
-
-		// update licenses
-		var licenses []string
-		if len(opts.License) > 0 {
-			licenses = append(licenses, opts.License)
-
-			stdout, _, err := git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
-			if err != nil {
-				log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
-				return fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
-			}
-			if err := repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
-				return err
-			}
-		}
-		return nil
-	}); err != nil {
-		if rollbackRepo != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, rollbackRepo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
-
+	// 1 - create the repository database operations first
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		return CreateRepositoryInDB(ctx, doer, u, repo, false, false)
+	})
+	if err != nil {
 		return nil, err
+	}
+
+	// last - clean up if something goes wrong
+	// WARNING: Don't override all later err with local variables
+	defer func() {
+		if err != nil {
+			if errDelete := DeleteRepositoryDirectly(ctx, doer, repo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
+				// add system notice
+				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when create repository: %v", errDelete); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
+			}
+		}
+	}()
+
+	// No need for init mirror.
+	if opts.IsMirror {
+		return repo, nil
+	}
+
+	var isExist bool
+	isExist, err = gitrepo.IsRepositoryExist(ctx, repo)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
+		return nil, err
+	}
+	if isExist {
+		// repo already exists in disk - We have two or three options.
+		// 1. We fail stating that the directory exists
+		// 2. We create the db repository to go with this data and adopt the git repo
+		// 3. We delete it and start afresh
+		//
+		// Previously Gitea would just delete and start afresh - this was naughty.
+		// So we will now fail and delegate to other functionality to adopt or delete
+		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
+		return nil, repo_model.ErrRepoFilesAlreadyExist{
+			Uname: u.Name,
+			Name:  repo.Name,
+		}
+	}
+
+	if err = initRepository(ctx, doer, repo, opts); err != nil {
+		return nil, fmt.Errorf("initRepository: %w", err)
+	}
+
+	// Initialize Issue Labels if selected
+	if len(opts.IssueLabels) > 0 {
+		if err = repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
+			return nil, fmt.Errorf("InitializeLabels: %w", err)
+		}
+	}
+
+	if err = repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
+		return nil, fmt.Errorf("checkDaemonExportOK: %w", err)
+	}
+
+	var stdout string
+	if stdout, _, err = git.NewCommand("update-server-info").
+		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
+		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+		return nil, fmt.Errorf("CreateRepository(git update-server-info): %w", err)
+	}
+
+	if needsUpdateStatus {
+		repo.Status = repo_model.RepositoryReady
+		if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
+		}
+	}
+
+	// update licenses
+	var licenses []string
+	if len(opts.License) > 0 {
+		licenses = append(licenses, opts.License)
+
+		stdout, _, err = git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+		if err != nil {
+			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
+		}
+		if err = repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
+			return nil, err
+		}
 	}
 
 	return repo, nil
 }
 
-// CreateRepositoryByExample creates a repository for the user/organization.
-func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
+// CreateRepositoryInDB creates a repository for the user/organization.
+func CreateRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -357,7 +363,17 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return err
 	}
-	if !overwriteOrAdopt && isExist {
+	if overwriteOrAdopt != isExist {
+		if overwriteOrAdopt {
+			// repo should exist but doesn't - We have two or three options.
+			log.Error("Files do not exist in %s and we are not going to adopt or delete.", repo.FullName())
+			return repo_model.ErrRepoNotExist{
+				OwnerName: u.Name,
+				Name:      repo.Name,
+			}
+		}
+
+		// repo already exists - We have two or three options.
 		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
 		return repo_model.ErrRepoFilesAlreadyExist{
 			Uname: u.Name,
