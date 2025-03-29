@@ -37,11 +37,13 @@
 					</tr>
 				{{end}}
 			</table>
-			<div class="ui tw-my-2">
-				{{ctx.Locale.Tr "repo.settings.public_access.docs.not_set"}}<br>
-				{{ctx.Locale.Tr "repo.settings.public_access.docs.anonymous_read"}}<br>
-				{{ctx.Locale.Tr "repo.settings.public_access.docs.everyone_read"}}<br>
-				{{ctx.Locale.Tr "repo.settings.public_access.docs.everyone_write"}}<br>
+			<div class="tw-my-2">
+				<p class="help">
+					{{ctx.Locale.Tr "repo.settings.public_access.docs.not_set"}}<br>
+					{{ctx.Locale.Tr "repo.settings.public_access.docs.anonymous_read"}}<br>
+					{{ctx.Locale.Tr "repo.settings.public_access.docs.everyone_read"}}<br>
+					{{ctx.Locale.Tr "repo.settings.public_access.docs.everyone_write"}}
+				</p>
 			</div>
 			<button class="ui primary button {{if .GlobalForcePrivate}}disabled{{end}}">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 		</form>
