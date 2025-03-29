@@ -27,14 +27,14 @@ func CodeFrequency(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCodeFrequency)
 }
 
-// ContributorStats returns JSON of code contributor stats data
-func ContributorStats(ctx *context.Context) {
+// CodeFrequencyData returns JSON of code frequency data
+func CodeFrequencyData(ctx *context.Context) {
 	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch); err != nil {
 		if errors.Is(err, contributors_service.ErrAwaitGeneration) {
 			ctx.Status(http.StatusAccepted)
 			return
 		}
-		ctx.ServerError("ContributorStats", err)
+		ctx.ServerError("GetContributorStats", err)
 	} else {
 		ctx.JSON(http.StatusOK, contributorStats["total"].Weeks)
 	}
