@@ -278,7 +278,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 		repo.DefaultBranch = opts.RefName()
 		repo.IsEmpty = false
 		if repo.DefaultBranch != setting.Repository.DefaultBranch {
-			if err := gitrepo.SetDefaultBranch(ctx, repo); err != nil {
+			if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 				return nil, err
 			}
 		}

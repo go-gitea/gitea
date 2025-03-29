@@ -17,14 +17,13 @@ import (
 
 // Repository represents a git repository which stored in a disk
 type Repository interface {
-	GetRelativePath() string // We don't assume how the directory structure of the repository is, so we only need the relative path
-	GetDefaultBranch() string
+	RelativePath() string // We don't assume how the directory structure of the repository is, so we only need the relative path
 }
 
 // RelativePath should be an unix style path like username/reponame.git
 // This method should change it according to the current OS.
 func repoPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo.GetRelativePath()))
+	return filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo.RelativePath()))
 }
 
 // OpenRepository opens the repository at the given relative path with the provided context.

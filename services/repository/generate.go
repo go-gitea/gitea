@@ -281,7 +281,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 		repo.DefaultBranch = templateRepo.DefaultBranch
 	}
 
-	if err = gitrepo.SetDefaultBranch(ctx, repo); err != nil {
+	if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
 	if err = UpdateRepository(ctx, repo, false); err != nil {

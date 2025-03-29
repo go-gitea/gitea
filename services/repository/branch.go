@@ -464,7 +464,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 			}
 
 			// repo's default branch has been updated in git_model.RenameBranch
-			err2 = gitrepo.SetDefaultBranch(ctx, repo)
+			err2 = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
 			if err2 != nil {
 				return err2
 			}
@@ -651,7 +651,7 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newB
 			log.Error("CancelPreviousJobs: %v", err)
 		}
 
-		return gitrepo.SetDefaultBranch(ctx, repo)
+		return gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
 	}); err != nil {
 		return err
 	}

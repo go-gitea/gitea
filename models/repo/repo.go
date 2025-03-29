@@ -220,33 +220,19 @@ func RelativePath(ownerName, repoName string) string {
 }
 
 // RelativePath should be an unix style path like username/reponame.git
-func (repo *Repository) GetRelativePath() string {
+func (repo *Repository) RelativePath() string {
 	return RelativePath(repo.OwnerName, repo.Name)
 }
 
-func (repo *Repository) GetDefaultBranch() string {
-	return repo.DefaultBranch
-}
-
-type StorageRepo struct {
-	RelativePath  string
-	DefaultBranch string
-}
+type StorageRepo string
 
 // RelativePath should be an unix style path like username/reponame.git
-func (sr StorageRepo) GetRelativePath() string {
-	return sr.RelativePath
-}
-
-func (sr StorageRepo) GetDefaultBranch() string {
-	return sr.DefaultBranch
+func (sr StorageRepo) RelativePath() string {
+	return string(sr)
 }
 
 func (repo *Repository) WikiStorageRepo() StorageRepo {
-	return StorageRepo{
-		RelativePath:  strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git",
-		DefaultBranch: repo.DefaultWikiBranch,
-	}
+	return StorageRepo(strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git")
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL

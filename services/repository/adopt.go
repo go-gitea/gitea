@@ -124,14 +124,14 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 	if len(defaultBranch) > 0 {
 		repo.DefaultBranch = defaultBranch
 
-		if err = gitrepo.SetDefaultBranch(ctx, repo); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	} else {
 		repo.DefaultBranch, err = gitrepo.GetDefaultBranch(ctx, repo)
 		if err != nil {
 			repo.DefaultBranch = setting.Repository.DefaultBranch
-			if err = gitrepo.SetDefaultBranch(ctx, repo); err != nil {
+			if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 				return fmt.Errorf("setDefaultBranch: %w", err)
 			}
 		}
@@ -188,7 +188,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 			repo.DefaultBranch = setting.Repository.DefaultBranch
 		}
 
-		if err = gitrepo.SetDefaultBranch(ctx, repo); err != nil {
+		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
