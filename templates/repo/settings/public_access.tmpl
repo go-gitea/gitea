@@ -10,9 +10,12 @@
 			<tr>
 				<th></th>
 				<th>{{ctx.Locale.Tr "settings.permission_not_set"}}</th>
-				<th>{{ctx.Locale.Tr "settings.permission_anonymous_read"}}</th>
-				<th>{{ctx.Locale.Tr "settings.permission_everyone_read"}}</th>
-				<th>{{ctx.Locale.Tr "settings.permission_everyone_write"}}</th>
+				<th>{{ctx.Locale.Tr "settings.permission_anonymous_read"}}
+				<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "settings.permission_anonymous_read_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span></th>
+				<th>{{ctx.Locale.Tr "settings.permission_everyone_read"}}
+				<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "settings.permission_everyone_read_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span></th>
+				<th>{{ctx.Locale.Tr "settings.permission_everyone_write"}}
+				<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "settings.permission_everyone_write_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span></th>
 			</tr>
 			{{range $ua := .RepoUnitPublicAccesses}}
 				<tr>
