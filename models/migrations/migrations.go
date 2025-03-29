@@ -379,7 +379,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(316, "Add description for secrets and variables", v1_24.AddDescriptionForSecretsAndVariables),
 		newMigration(317, "Add new index for action for heatmap", v1_24.AddNewIndexForUserDashboard),
 		newMigration(318, "Add anonymous_access_mode for repo_unit", v1_24.AddRepoUnitAnonymousAccessMode),
-		newMigration(318, "Add table issue_dev_link", v1_24.CreateTableIssueDevLink),
+		newMigration(319, "Add table issue_dev_link", v1_24.CreateTableIssueDevLink),
 	}
 	return preparedMigrations
 }
