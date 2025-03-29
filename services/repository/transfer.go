@@ -25,14 +25,14 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-type RepositoryLimitReachedError struct{ Limit int }
+type LimitReachedError struct{ Limit int }
 
-func (RepositoryLimitReachedError) Error() string {
+func (LimitReachedError) Error() string {
 	return "Repository limit has been reached"
 }
 
 func IsRepositoryLimitReached(err error) bool {
-	_, ok := err.(RepositoryLimitReachedError)
+	_, ok := err.(LimitReachedError)
 	return ok
 }
 
@@ -63,7 +63,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 
 		if !doer.IsAdmin && !repoTransfer.Recipient.CanCreateRepo() {
 			limit := util.Iif(repoTransfer.Recipient.MaxRepoCreation >= 0, repoTransfer.Recipient.MaxRepoCreation, setting.Repository.MaxCreationLimit)
-			return RepositoryLimitReachedError{Limit: limit}
+			return LimitReachedError{Limit: limit}
 		}
 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
@@ -418,7 +418,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 	if !doer.IsAdmin && !newOwner.CanCreateRepo() {
 		limit := util.Iif(newOwner.MaxRepoCreation >= 0, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
-		return RepositoryLimitReachedError{Limit: limit}
+		return LimitReachedError{Limit: limit}
 	}
 
 	var isDirectTransfer bool

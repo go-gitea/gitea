@@ -309,7 +309,7 @@ func handleActionError(ctx *context.Context, err error) {
 	case errors.Is(err, user_model.ErrBlockedUser):
 		ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
 	case repo_service.IsRepositoryLimitReached(err):
-		limit := err.(repo_service.RepositoryLimitReachedError).Limit
+		limit := err.(repo_service.LimitReachedError).Limit
 		ctx.Flash.Error(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit))
 	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.HTTPError(http.StatusNotFound)
