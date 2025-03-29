@@ -121,7 +121,8 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 					storer: storage.LFS,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
 						// The oid of an LFS stored object is the name but with all the path.Separators removed
-						oid := strings.ReplaceAll(path, "/", "")
+						oidUnix := strings.ReplaceAll(path, "/", "")
+						oid := strings.ReplaceAll(oidUnix, "\\", "") // strip windows separator
 						exists, err := git.ExistsLFSObject(ctx, oid)
 						return !exists, err
 					},
