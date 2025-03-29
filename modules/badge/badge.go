@@ -49,11 +49,20 @@ func (b Badge) Width() int {
 	return b.Label.width + b.Message.width
 }
 
+// Style represents the style of a badge
+type Style string
+
+const (
+	StyleFlat       = "flat"
+	StyleFlatSquare = "flat-square"
+)
+
 const (
 	defaultOffset     = 10
 	defaultFontSize   = 11
 	DefaultColor      = "#9f9f9f" // Grey
 	DefaultFontFamily = "DejaVu Sans,Verdana,Geneva,sans-serif"
+	DefaultStyle      = StyleFlat
 )
 
 var StatusColorMap = map[actions_model.Status]string{

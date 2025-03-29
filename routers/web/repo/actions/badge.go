@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -25,15 +26,25 @@ func GetWorkflowBadge(ctx *context.Context) {
 	branchRef := fmt.Sprintf("refs/heads/%s", branch)
 	event := ctx.Req.URL.Query().Get("event")
 
-	badge, err := getWorkflowBadge(ctx, workflowFile, branchRef, event)
+	style := ctx.Req.URL.Query().Get("style")
+	if !slices.Contains([]badge.Style{badge.StyleFlat, badge.StyleFlatSquare}, badge.Style(style)) {
+		style = badge.DefaultStyle
+	}
+
+	b, err := getWorkflowBadge(ctx, workflowFile, branchRef, event)
 	if err != nil {
 		ctx.ServerError("GetWorkflowBadge", err)
 		return
 	}
 
-	ctx.Data["Badge"] = badge
+	ctx.Data["Badge"] = b
 	ctx.RespHeader().Set("Content-Type", "image/svg+xml")
-	ctx.HTML(http.StatusOK, "shared/actions/runner_badge")
+	switch ctx.Req.URL.Query().Get("style") {
+	case badge.StyleFlat:
+		ctx.HTML(http.StatusOK, "shared/actions/runner_badge_flat")
+	case badge.StyleFlatSquare:
+		ctx.HTML(http.StatusOK, "shared/actions/runner_badge_flat-square")
+	}
 }
 
 func getWorkflowBadge(ctx *context.Context, workflowFile, branchName, event string) (badge.Badge, error) {
