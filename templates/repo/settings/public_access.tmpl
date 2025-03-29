@@ -1,0 +1,36 @@
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings")}}
+<div class="repo-setting-content">
+	{{$paNotSet := "not-set"}}
+	{{$paAnonymousRead := "anonymous-read"}}
+	{{$paEveryoneRead := "everyone-read"}}
+	{{$paEveryoneWrite := "everyone-write"}}
+	<form class="ui form" method="post">
+		{{.CsrfTokenHtml}}
+		<table class="ui table unstackable tw-my-2">
+			<tr>
+				<th></th>
+				<th>{{ctx.Locale.Tr "settings.permission_not_set"}}</th>
+				<th>{{ctx.Locale.Tr "settings.permission_anonymous_read"}}</th>
+				<th>{{ctx.Locale.Tr "settings.permission_everyone_read"}}</th>
+				<th>{{ctx.Locale.Tr "settings.permission_everyone_write"}}</th>
+			</tr>
+			{{range $ua := .RepoUnitPublicAccesses}}
+				<tr>
+					<td>{{$ua.DisplayName}}</td>
+					<td class="tw-text-center"><label><input type="radio" name="{{$ua.FormKey}}" value="{{$paNotSet}}" {{Iif (eq $paNotSet $ua.UnitPublicAccess) "checked"}}></label></td>
+					<td class="tw-text-center"><label><input type="radio" name="{{$ua.FormKey}}" value="{{$paAnonymousRead}}" {{Iif (eq $paAnonymousRead $ua.UnitPublicAccess) "checked"}}></label></td>
+					<td class="tw-text-center"><label><input type="radio" name="{{$ua.FormKey}}" value="{{$paEveryoneRead}}" {{Iif (eq $paEveryoneRead $ua.UnitPublicAccess) "checked"}}></label></td>
+					<td class="tw-text-center">
+						{{if SliceUtils.Contains $ua.PublicAccessTypes $paEveryoneWrite}}
+							<label><input type="radio" name="{{$ua.FormKey}}" value="{{$paEveryoneWrite}}" {{Iif (eq $paEveryoneWrite $ua.UnitPublicAccess) "checked"}}></label>
+						{{else}}
+							-
+						{{end}}
+					</td>
+				</tr>
+			{{end}}
+		</table>
+		<button class="ui primary button {{if .GlobalForcePrivate}}disabled{{end}}">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+	</form>
+</div>
+{{template "repo/settings/layout_footer" .}}

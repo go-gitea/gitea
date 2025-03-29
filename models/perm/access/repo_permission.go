@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -50,7 +51,7 @@ func (p *Permission) HasAnyUnitAccess() bool {
 	return p.AccessMode >= perm_model.AccessModeRead
 }
 
-func (p *Permission) HasAnyUnitAccessOrPublicAccess() bool {
+func (p *Permission) HasAnyUnitPublicAccess() bool {
 	for _, v := range p.anonymousAccessMode {
 		if v >= perm_model.AccessModeRead {
 			return true
@@ -61,7 +62,11 @@ func (p *Permission) HasAnyUnitAccessOrPublicAccess() bool {
 			return true
 		}
 	}
-	return p.HasAnyUnitAccess()
+	return false
+}
+
+func (p *Permission) HasAnyUnitAccessOrPublicAccess() bool {
+	return p.HasAnyUnitPublicAccess() || p.HasAnyUnitAccess()
 }
 
 // HasUnits returns true if the permission contains attached units
@@ -188,6 +193,9 @@ func (p *Permission) LogString() string {
 }
 
 func applyPublicAccessPermission(unitType unit.Type, accessMode perm_model.AccessMode, modeMap *map[unit.Type]perm_model.AccessMode) {
+	if setting.Repository.ForcePrivate {
+		return
+	}
 	if accessMode >= perm_model.AccessModeRead && accessMode > (*modeMap)[unitType] {
 		if *modeMap == nil {
 			*modeMap = make(map[unit.Type]perm_model.AccessMode)

@@ -1,6 +1,7 @@
 {{$canReadCode := $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 
 <div class="ui fluid vertical menu">
+	{{/* the default activity page "pulse" could work with any permission: code, issue, pr, release*/}}
 	<a class="{{if .PageIsPulse}}active {{end}}item" href="{{.RepoLink}}/activity">
 		{{ctx.Locale.Tr "repo.activity.navbar.pulse"}}
 	</a>
