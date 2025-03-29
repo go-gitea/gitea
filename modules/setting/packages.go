@@ -67,9 +67,9 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 		return err
 	}
 
-	Packages.ChunkedUploadPath = filepath.ToSlash(sec.Key("CHUNKED_UPLOAD_PATH").MustString("tmp/package-upload"))
+	Packages.ChunkedUploadPath = filepath.ToSlash(sec.Key("CHUNKED_UPLOAD_PATH").MustString("package-upload"))
 	if !filepath.IsAbs(Packages.ChunkedUploadPath) {
-		Packages.ChunkedUploadPath = filepath.ToSlash(filepath.Join(AppDataPath, Packages.ChunkedUploadPath))
+		Packages.ChunkedUploadPath = filepath.Join(TempPath, Packages.ChunkedUploadPath)
 	}
 
 	if HasInstallLock(rootCfg) {

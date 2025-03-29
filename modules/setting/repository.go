@@ -187,7 +187,7 @@ var (
 			MaxFiles     int
 		}{
 			Enabled:      true,
-			TempPath:     "data/tmp/uploads",
+			TempPath:     "uploads",
 			AllowedTypes: "",
 			FileMaxSize:  50,
 			MaxFiles:     5,
@@ -197,7 +197,7 @@ var (
 		Local: struct {
 			LocalCopyPath string
 		}{
-			LocalCopyPath: "tmp/local-repo",
+			LocalCopyPath: "local-repo",
 		},
 
 		// Pull request settings
@@ -361,8 +361,10 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		}
 	}
 
-	if !filepath.IsAbs(Repository.Upload.TempPath) {
-		Repository.Upload.TempPath = filepath.Join(AppWorkPath, Repository.Upload.TempPath)
+	if Repository.Upload.TempPath == "" {
+		Repository.Upload.TempPath = filepath.Join(TempPath, "uploads")
+	} else if !filepath.IsAbs(Repository.Upload.TempPath) {
+		Repository.Upload.TempPath = filepath.Join(TempPath, Repository.Upload.TempPath)
 	}
 
 	if err := loadRepoArchiveFrom(rootCfg); err != nil {
