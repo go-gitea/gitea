@@ -14,13 +14,16 @@
 		<form class="ui form" method="post">
 			{{.CsrfTokenHtml}}
 			<table class="ui table unstackable tw-my-2">
-				<tr>
-					<th></th>
-					<th>{{ctx.Locale.Tr "settings.permission_not_set"}}</th>
-					<th>{{ctx.Locale.Tr "settings.permission_anonymous_read"}}</th>
-					<th>{{ctx.Locale.Tr "settings.permission_everyone_read"}}</th>
-					<th>{{ctx.Locale.Tr "settings.permission_everyone_write"}}</th>
-				</tr>
+				<thead>
+					<tr>
+						<th>{{ctx.Locale.Tr "units.unit"}}</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "settings.permission_not_set"}}</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "settings.permission_anonymous_read"}}</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "settings.permission_everyone_read"}}</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "settings.permission_everyone_write"}}</th>
+					</tr>
+				</thead>
+				<tbody>
 				{{range $ua := .RepoUnitPublicAccesses}}
 					<tr>
 						<td>{{$ua.DisplayName}}</td>
@@ -36,6 +39,7 @@
 						</td>
 					</tr>
 				{{end}}
+				</tbody>
 			</table>
 			<ul class="tw-my-3 tw-pl-5 tw-flex tw-flex-col tw-gap-3">
 				<li>{{ctx.Locale.Tr "repo.settings.public_access.docs.not_set"}}</li>
