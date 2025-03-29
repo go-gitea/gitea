@@ -10,7 +10,7 @@ export type File = {
   IsSubmodule: boolean;
 }
 
-type DirItem = {
+export type DirItem = {
     isFile: false;
     name: string;
     path: string;
