@@ -1454,18 +1454,21 @@ func registerRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}/activity", func() {
 		m.Get("", repo.Activity)
 		m.Get("/{period}", repo.Activity)
-		m.Group("/contributors", func() {
-			m.Get("", repo.Contributors)
-			m.Get("/data", repo.ContributorsData)
-		})
-		m.Group("/code-frequency", func() {
-			m.Get("", repo.CodeFrequency)
-			m.Get("/data", repo.CodeFrequencyData)
-		})
-		m.Group("/recent-commits", func() {
-			m.Get("", repo.RecentCommits)
-			m.Get("/data", repo.RecentCommitsData)
-		})
+
+		m.Group("", func() {
+			m.Group("/contributors", func() {
+				m.Get("", repo.Contributors)
+				m.Get("/data", repo.ContributorsData)
+			})
+			m.Group("/code-frequency", func() {
+				m.Get("", repo.CodeFrequency)
+				m.Get("/data", repo.CodeFrequencyData)
+			})
+			m.Group("/recent-commits", func() {
+				m.Get("", repo.RecentCommits)
+				m.Get("/data", repo.CodeFrequencyData) // "recent-commits" also uses the same data as "code-frequency"
+			})
+		}, reqRepoCodeReader)
 	},
 		optSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases),
 		context.RepoRef(), repo.MustBeNotEmpty,
