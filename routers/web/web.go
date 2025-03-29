@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	org_setting "code.gitea.io/gitea/routers/web/org/setting"
+	"code.gitea.io/gitea/routers/web/projects"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
@@ -1402,7 +1403,8 @@ func registerRoutes(m *web.Router) {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
 		m.Group("/{id}/workflows", func() {
-			m.Get("", repo.Workflows)
+			m.Get("", projects.Workflows)
+			m.Get("/{workflow_id}", projects.WorkflowEdit)
 		})
 		m.Group("", func() { //nolint:dupl
 			m.Get("/new", repo.RenderNewProject)
