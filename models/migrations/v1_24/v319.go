@@ -4,16 +4,11 @@
 package v1_24 //nolint
 
 import (
-<<<<<<< HEAD
 	"code.gitea.io/gitea/modules/timeutil"
-=======
-	"code.gitea.io/gitea/models/perm"
->>>>>>> main
 
 	"xorm.io/xorm"
 )
 
-<<<<<<< HEAD
 func CreateTableIssueDevLink(x *xorm.Engine) error {
 	type IssueDevLink struct {
 		ID           int64 `xorm:"pk autoincr"`
@@ -24,11 +19,4 @@ func CreateTableIssueDevLink(x *xorm.Engine) error {
 		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
 	}
 	return x.Sync(new(IssueDevLink))
-=======
-func AddRepoUnitAnonymousAccessMode(x *xorm.Engine) error {
-	type RepoUnit struct { //revive:disable-line:exported
-		AnonymousAccessMode perm.AccessMode `xorm:"NOT NULL DEFAULT 0"`
-	}
-	return x.Sync(&RepoUnit{})
->>>>>>> main
 }
