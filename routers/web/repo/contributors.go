@@ -21,7 +21,6 @@ func Contributors(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.activity.navbar.contributors")
 	ctx.Data["PageIsActivity"] = true
 	ctx.Data["PageIsContributors"] = true
-
 	ctx.HTML(http.StatusOK, tplContributors)
 }
 
