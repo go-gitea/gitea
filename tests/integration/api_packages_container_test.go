@@ -111,7 +111,7 @@ func TestPackageContainer(t *testing.T) {
 				AddTokenAuth(anonymousToken)
 			MakeRequest(t, req, http.StatusOK)
 
-			defer test.MockVariableValue(&setting.Service.RequireSignInView, true)()
+			defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 			MakeRequest(t, req, http.StatusUnauthorized)
