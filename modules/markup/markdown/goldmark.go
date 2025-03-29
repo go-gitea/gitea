@@ -156,7 +156,7 @@ func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.
 		if entering {
 			_, err = w.WriteString("<div")
 			if err == nil {
-				_, err = w.WriteString(fmt.Sprintf(` lang=%q`, val))
+				_, err = fmt.Fprintf(w, ` lang=%q`, val)
 			}
 			if err == nil {
 				_, err = w.WriteRune('>')
