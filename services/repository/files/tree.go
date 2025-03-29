@@ -6,6 +6,7 @@ package files
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/url"
 	"path"
 	"sort"
@@ -14,8 +15,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -142,6 +145,7 @@ func entryModeString(entryMode git.EntryMode) string {
 type TreeViewNode struct {
 	EntryName    string          `json:"entryName"`
 	EntryMode    string          `json:"entryMode"`
+	FileIcon     template.HTML   `json:"fileIcon"`
 	FullPath     string          `json:"fullPath"`
 	SubmoduleURL string          `json:"submoduleUrl,omitempty"`
 	Children     []*TreeViewNode `json:"children,omitempty"`
@@ -182,23 +186,23 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 	})
 }
 
-func listTreeNodes(ctx context.Context, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
+func listTreeNodes(ctx context.Context, renderUtils *templates.RenderUtils, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
 	entries, err := tree.ListEntries()
 	if err != nil {
 		return nil, err
 	}
-
 	subPathDirName, subPathRemaining, _ := strings.Cut(subPath, "/")
 	nodes := make([]*TreeViewNode, 0, len(entries))
 	for _, entry := range entries {
 		node := newTreeViewNodeFromEntry(ctx, commit, treePath, entry)
+		node.FileIcon = renderUtils.RenderFileIconByGitTreeEntry(entry)
 		nodes = append(nodes, node)
 		if entry.IsDir() && subPathDirName == entry.Name() {
 			subTreePath := treePath + "/" + node.EntryName
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]
 			}
-			subNodes, err := listTreeNodes(ctx, commit, entry.Tree(), subTreePath, subPathRemaining)
+			subNodes, err := listTreeNodes(ctx, renderUtils, commit, entry.Tree(), subTreePath, subPathRemaining)
 			if err != nil {
 				log.Error("listTreeNodes: %v", err)
 			} else {
@@ -215,5 +219,6 @@ func GetTreeViewNodes(ctx context.Context, commit *git.Commit, treePath, subPath
 	if err != nil {
 		return nil, err
 	}
-	return listTreeNodes(ctx, commit, entry.Tree(), treePath, subPath)
+	renderUtils := templates.NewRenderUtils(reqctx.FromContext(ctx))
+	return listTreeNodes(ctx, renderUtils, commit, entry.Tree(), treePath, subPath)
 }
