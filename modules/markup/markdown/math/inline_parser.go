@@ -70,10 +70,11 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 		startMarkLen = 1
 		stopMark = parser.endBytesSingleDollar
 		if len(line) > 1 {
-			if line[1] == '$' {
+			switch line[1] {
+			case '$':
 				startMarkLen = 2
 				stopMark = parser.endBytesDoubleDollar
-			} else if line[1] == '`' {
+			case '`':
 				pos := 1
 				for ; pos < len(line) && line[pos] == '`'; pos++ {
 				}
@@ -121,9 +122,10 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 			i++
 			continue
 		}
-		if line[i] == '{' {
+		switch line[i] {
+		case '{':
 			depth++
-		} else if line[i] == '}' {
+		case '}':
 			depth--
 		}
 	}

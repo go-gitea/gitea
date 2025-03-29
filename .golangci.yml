@@ -86,13 +86,8 @@ linters:
         - -ST1003
         - -ST1005
         - -QF1001
-        - -QF1002
-        - -QF1003
         - -QF1006
-        - -QF1007
         - -QF1008
-        - -QF1009
-        - -QF1012
     testifylint:
       disable:
         - go-require

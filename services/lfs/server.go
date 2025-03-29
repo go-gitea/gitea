@@ -164,11 +164,12 @@ func BatchHandler(ctx *context.Context) {
 	}
 
 	var isUpload bool
-	if br.Operation == "upload" {
+	switch br.Operation {
+	case "upload":
 		isUpload = true
-	} else if br.Operation == "download" {
+	case "download":
 		isUpload = false
-	} else {
+	default:
 		log.Trace("Attempt to BATCH with invalid operation: %s", br.Operation)
 		writeStatus(ctx, http.StatusBadRequest)
 		return

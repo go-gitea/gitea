@@ -19,11 +19,12 @@ func (repo *Repository) GetRefs() ([]*Reference, error) {
 // refType should only be a literal "branch" or "tag" and nothing else
 func (repo *Repository) ListOccurrences(ctx context.Context, refType, commitSHA string) ([]string, error) {
 	cmd := NewCommand()
-	if refType == "branch" {
+	switch refType {
+	case "branch":
 		cmd.AddArguments("branch")
-	} else if refType == "tag" {
+	case "tag":
 		cmd.AddArguments("tag")
-	} else {
+	default:
 		return nil, util.NewInvalidArgumentErrorf(`can only use "branch" or "tag" for refType, but got %q`, refType)
 	}
 	stdout, _, err := cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").AddDynamicArguments(commitSHA).RunStdString(ctx, &RunOpts{Dir: repo.Path})

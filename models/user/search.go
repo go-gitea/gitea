@@ -45,13 +45,14 @@ func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Sess
 	var cond builder.Cond
 	cond = builder.Eq{"type": opts.Type}
 	if opts.IncludeReserved {
-		if opts.Type == UserTypeIndividual {
+		switch opts.Type {
+		case UserTypeIndividual:
 			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
 				builder.Eq{"type": UserTypeBot},
 			).Or(
 				builder.Eq{"type": UserTypeRemoteUser},
 			)
-		} else if opts.Type == UserTypeOrganization {
+		case UserTypeOrganization:
 			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
 		}
 	}

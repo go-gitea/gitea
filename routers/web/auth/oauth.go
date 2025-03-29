@@ -155,9 +155,10 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 			if uname == "" {
-				if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname {
+				switch setting.OAuth2Client.Username {
+				case setting.OAuth2UsernameNickname:
 					missingFields = append(missingFields, "nickname")
-				} else if setting.OAuth2Client.Username == setting.OAuth2UsernamePreferredUsername {
+				case setting.OAuth2UsernamePreferredUsername:
 					missingFields = append(missingFields, "preferred_username")
 				} // else: "UserID" and "Email" have been handled above separately
 			}
