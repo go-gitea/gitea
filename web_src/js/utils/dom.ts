@@ -25,20 +25,26 @@ function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: a
   }
 }
 
+export function toggleClass(el: ElementArg, className: string, force?: boolean) {
+  elementsCall(el, (e: Element) => {
+    if (force === true) {
+      e.classList.add(className);
+    } else if (force === false) {
+      e.classList.remove(className);
+    } else if (force === undefined) {
+      e.classList.toggle(className);
+    } else {
+      throw new Error('invalid force argument');
+    }
+  });
+}
+
 /**
  * @param el Element
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
 function toggleShown(el: Element, force: boolean) {
-  if (force === true) {
-    el.classList.remove('tw-hidden');
-  } else if (force === false) {
-    el.classList.add('tw-hidden');
-  } else if (force === undefined) {
-    el.classList.toggle('tw-hidden');
-  } else {
-    throw new Error('invalid force argument');
-  }
+  toggleClass(el, 'tw-hidden', !force);
 }
 
 export function showElem(el: ElementArg) {
