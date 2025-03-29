@@ -16,7 +16,8 @@
 			<table class="ui table unstackable tw-my-2">
 				<tr>
 					<th></th>
-					<th>{{ctx.Locale.Tr "settings.permission_not_set"}}</th>
+					<th>{{ctx.Locale.Tr "settings.permission_not_set"}}
+					<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "settings.permission_not_set_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span></th>
 					<th>{{ctx.Locale.Tr "settings.permission_anonymous_read"}}
 					<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "settings.permission_anonymous_read_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span></th>
 					<th>{{ctx.Locale.Tr "settings.permission_everyone_read"}}
