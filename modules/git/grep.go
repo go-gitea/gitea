@@ -69,7 +69,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	case GrepModeRegexp:
 		cmd.AddArguments("--perl-regexp")
 		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
-	default:
+	default: /* words */
 		words := strings.Fields(search)
 		cmd.AddArguments("--fixed-strings", "--ignore-case")
 		for i, word := range words {
