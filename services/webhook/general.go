@@ -39,11 +39,12 @@ func getPullRequestInfo(p *api.PullRequestPayload) (title, link, by, operator, o
 	for i, user := range assignList {
 		assignStringList[i] = user.UserName
 	}
-	if p.Action == api.HookIssueAssigned {
+	switch p.Action {
+	case api.HookIssueAssigned:
 		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
-	} else if p.Action == api.HookIssueUnassigned {
+	case api.HookIssueUnassigned:
 		operateResult = fmt.Sprintf("%s unassigned this for someone", p.Sender.UserName)
-	} else if p.Action == api.HookIssueMilestoned {
+	case api.HookIssueMilestoned:
 		operateResult = fmt.Sprintf("%s/milestone/%d", p.Repository.HTMLURL, p.PullRequest.Milestone.ID)
 	}
 	link = p.PullRequest.HTMLURL
@@ -64,11 +65,12 @@ func getIssuesInfo(p *api.IssuePayload) (issueTitle, link, by, operator, operate
 	for i, user := range assignList {
 		assignStringList[i] = user.UserName
 	}
-	if p.Action == api.HookIssueAssigned {
+	switch p.Action {
+	case api.HookIssueAssigned:
 		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
-	} else if p.Action == api.HookIssueUnassigned {
+	case api.HookIssueUnassigned:
 		operateResult = fmt.Sprintf("%s unassigned this for someone", p.Sender.UserName)
-	} else if p.Action == api.HookIssueMilestoned {
+	case api.HookIssueMilestoned:
 		operateResult = fmt.Sprintf("%s/milestone/%d", p.Repository.HTMLURL, p.Issue.Milestone.ID)
 	}
 	link = p.Issue.HTMLURL
