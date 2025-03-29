@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"io/fs"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models/git"
@@ -122,7 +121,7 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 					storer: storage.LFS,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
 						// The oid of an LFS stored object is the name but with all the path.Separators removed
-						oid := strings.ReplaceAll(path, string(os.PathSeparator), "")
+						oid := strings.ReplaceAll(strings.ReplaceAll(path, "\\", ""), "/", "")
 						exists, err := git.ExistsLFSObject(ctx, oid)
 						return !exists, err
 					},
