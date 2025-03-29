@@ -40,23 +40,19 @@ export function toggleClass(el: ElementArg, className: string, force?: boolean) 
 }
 
 /**
- * @param el Element
+ * @param el ElementArg
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
-function toggleShown(el: Element, force: boolean) {
+export function toggleElem(el: ElementArg, force: boolean) {
   toggleClass(el, 'tw-hidden', !force);
 }
 
 export function showElem(el: ElementArg) {
-  elementsCall(el, toggleShown, true);
+  toggleElem(el, true);
 }
 
 export function hideElem(el: ElementArg) {
-  elementsCall(el, toggleShown, false);
-}
-
-export function toggleElem(el: ElementArg, force?: boolean) {
-  elementsCall(el, toggleShown, force);
+  toggleElem(el, false);
 }
 
 export function isElemHidden(el: ElementArg) {
