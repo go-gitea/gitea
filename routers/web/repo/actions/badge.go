@@ -39,7 +39,7 @@ func GetWorkflowBadge(ctx *context.Context) {
 
 	ctx.Data["Badge"] = b
 	ctx.RespHeader().Set("Content-Type", "image/svg+xml")
-	switch ctx.Req.URL.Query().Get("style") {
+	switch style {
 	case badge.StyleFlat:
 		ctx.HTML(http.StatusOK, "shared/actions/runner_badge_flat")
 	case badge.StyleFlatSquare:
