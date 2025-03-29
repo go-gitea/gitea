@@ -62,7 +62,7 @@ func Worktime(ctx *context.Context) {
 	case "members":
 		worktimeSumResult, err = organization.GetWorktimeByMembers(ctx.Org.Organization, unixFrom, unixTo)
 		ctx.Data["WorktimeByMembers"] = true
-	default:
+	default: /* by repos */
 		worktimeSumResult, err = organization.GetWorktimeByRepos(ctx.Org.Organization, unixFrom, unixTo)
 		ctx.Data["WorktimeByRepos"] = true
 	}

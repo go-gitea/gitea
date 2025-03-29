@@ -711,7 +711,7 @@ func ContainerRoutes() *web.Router {
 					container.UploadBlob(ctx)
 				case http.MethodPut:
 					container.EndUploadBlob(ctx)
-				default:
+				default: /* DELETE */
 					container.CancelUploadBlob(ctx)
 				}
 			})
