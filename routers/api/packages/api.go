@@ -46,13 +46,14 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			if ok { // it's a personal access token but not oauth2 token
 				scopeMatched := false
 				var err error
-				if accessMode == perm.AccessModeRead {
+				switch accessMode {
+				case perm.AccessModeRead:
 					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeReadPackage)
 					if err != nil {
 						ctx.HTTPError(http.StatusInternalServerError, "HasScope", err.Error())
 						return
 					}
-				} else if accessMode == perm.AccessModeWrite {
+				case perm.AccessModeWrite:
 					scopeMatched, err = scope.HasScope(auth_model.AccessTokenScopeWritePackage)
 					if err != nil {
 						ctx.HTTPError(http.StatusInternalServerError, "HasScope", err.Error())
@@ -703,13 +704,14 @@ func ContainerRoutes() *web.Router {
 			g.MatchPath("POST", "/<image:*>/blobs/uploads", reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.InitiateUploadBlob)
 			g.MatchPath("GET", "/<image:*>/tags/list", container.VerifyImageName, container.GetTagList)
 			g.MatchPath("GET,PATCH,PUT,DELETE", `/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, func(ctx *context.Context) {
-				if ctx.Req.Method == http.MethodGet {
+				switch ctx.Req.Method {
+				case http.MethodGet:
 					container.GetUploadBlob(ctx)
-				} else if ctx.Req.Method == http.MethodPatch {
+				case http.MethodPatch:
 					container.UploadBlob(ctx)
-				} else if ctx.Req.Method == http.MethodPut {
+				case http.MethodPut:
 					container.EndUploadBlob(ctx)
-				} else /* DELETE */ {
+				default: /* DELETE */
 					container.CancelUploadBlob(ctx)
 				}
 			})
