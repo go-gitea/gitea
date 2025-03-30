@@ -1470,7 +1470,7 @@ func registerRoutes(m *web.Router) {
 			})
 		}, reqRepoCodeReader)
 	},
-		optSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases),
+		optSignIn, context.RepoAssignment, context.RequireRepoReaderOr(unit.TypeCode, unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases),
 		context.RepoRef(), repo.MustBeNotEmpty,
 	)
 	// end "/{username}/{reponame}/activity"
