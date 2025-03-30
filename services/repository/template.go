@@ -114,6 +114,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	// last - clean up the repository if something goes wrong
 	defer func() {
 		if err != nil {
+			// we can not use the ctx because it maybe canceled or timeout
 			cleanupRepository(doer, generateRepo.ID)
 		}
 	}()

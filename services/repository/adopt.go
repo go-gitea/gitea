@@ -27,8 +27,8 @@ import (
 	"github.com/gobwas/glob"
 )
 
-func deleteFailedAdoptRepository(ctx context.Context, repoID int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+func deleteFailedAdoptRepository(repoID int64) error {
+	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		if err := deleteDBRepository(ctx, repoID); err != nil {
 			return fmt.Errorf("deleteDBRepository: %w", err)
 		}
@@ -75,7 +75,8 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 	// WARNING: Don't override all later err with local variables
 	defer func() {
 		if err != nil {
-			if errDel := deleteFailedAdoptRepository(ctx, repo.ID); errDel != nil {
+			// we can not use the ctx because it maybe canceled or timeout
+			if errDel := deleteFailedAdoptRepository(repo.ID); errDel != nil {
 				log.Error("Failed to delete repository %s that could not be adopted: %v", repo.FullName(), errDel)
 			}
 		}

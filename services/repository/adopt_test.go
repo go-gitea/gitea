@@ -102,7 +102,7 @@ func TestAdoptRepository(t *testing.T) {
 	assert.Equal(t, "sha1", repoTestAdopt.ObjectFormatName)
 
 	// just delete the adopted repo's db records
-	err = deleteFailedAdoptRepository(db.DefaultContext, adoptedRepo.ID)
+	err = deleteFailedAdoptRepository(adoptedRepo.ID)
 	assert.NoError(t, err)
 
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: "user2", Name: "test-adopt"})
