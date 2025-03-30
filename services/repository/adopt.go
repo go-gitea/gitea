@@ -16,7 +16,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -93,15 +92,8 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		return nil, fmt.Errorf("adoptRepository: %w", err)
 	}
 
-	if err = repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-		return nil, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	var stdout string
-	if stdout, _, err = git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
-		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-		return nil, fmt.Errorf("CreateRepository(git update-server-info): %w", err)
+	if err = updateGitRepoAfterCreate(ctx, repo); err != nil {
+		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
 	// 4 - update repository status

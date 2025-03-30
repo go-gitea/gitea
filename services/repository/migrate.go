@@ -118,14 +118,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.Owner = u
 	}
 
-	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-		return repo, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	if stdout, _, err := git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
-		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
+	if err := updateGitRepoAfterCreate(ctx, repo); err != nil {
+		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repoPath)

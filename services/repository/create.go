@@ -257,17 +257,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 
 	// last - clean up if something goes wrong
 	// WARNING: Don't override all later err with local variables
-	defer func() {
-		if err != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-				// add system notice
-				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when create repository: %v", errDelete); err != nil {
-					log.Error("CreateRepositoryNotice: %v", err)
-				}
-			}
-		}
-	}()
+	defer cleanupRepository(err, doer, repo.ID)
 
 	// No need for init mirror.
 	if opts.IsMirror {
@@ -306,15 +296,8 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		}
 	}
 
-	if err = repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-		return nil, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	var stdout string
-	if stdout, _, err = git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
-		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-		return nil, fmt.Errorf("CreateRepository(git update-server-info): %w", err)
+	if err = updateGitRepoAfterCreate(ctx, repo); err != nil {
+		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
 	if needsUpdateStatus {
@@ -329,6 +312,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	if len(opts.License) > 0 {
 		licenses = append(licenses, opts.License)
 
+		var stdout string
 		stdout, _, err = git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
@@ -486,5 +470,30 @@ func CreateRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return fmt.Errorf("CopyDefaultWebhooksToRepo: %w", err)
 	}
 
+	return nil
+}
+
+func cleanupRepository(err error, doer *user_model.User, repoID int64) {
+	if err != nil {
+		if errDelete := DeleteRepositoryDirectly(db.DefaultContext, doer, repoID); errDelete != nil {
+			log.Error("Rollback deleteRepository: %v", errDelete)
+			// add system notice
+			if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when create repository: %v", errDelete); err != nil {
+				log.Error("CreateRepositoryNotice: %v", err)
+			}
+		}
+	}
+}
+
+func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) error {
+	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
+		return fmt.Errorf("checkDaemonExportOK: %w", err)
+	}
+
+	if stdout, _, err := git.NewCommand("update-server-info").
+		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
+		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+		return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
+	}
 	return nil
 }

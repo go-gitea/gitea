@@ -121,13 +121,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	// last - clean up if something goes wrong
 	// WARNING: Don't override all later err with local variables
-	defer func() {
-		if err != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, repo.ID); errDelete != nil {
-				log.Error("Failed to remove fork repo: %v", errDelete)
-			}
-		}
-	}()
+	defer cleanupRepository(err, doer, repo.ID)
 
 	// 2 - Clone the repository
 	cloneCmd := git.NewCommand("clone", "--bare")
@@ -142,15 +136,8 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// 3 - Update the repository
-	if err = repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-		return nil, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	var output string
-	if output, _, err = git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
-		log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, output, err)
-		return nil, fmt.Errorf("git update-server-info: %w", err)
+	if err = updateGitRepoAfterCreate(ctx, repo); err != nil {
+		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
 	// 4 - Create hooks

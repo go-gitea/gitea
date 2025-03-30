@@ -12,9 +12,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -114,31 +112,15 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// last - clean up the repository if something goes wrong
-	defer func() {
-		if err != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, generateRepo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-				// add system notice
-				if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when generate repository: %v", errDelete); err != nil {
-					log.Error("CreateRepositoryNotice: %v", err)
-				}
-			}
-		}
-	}()
+	defer cleanupRepository(err, doer, generateRepo.ID)
 
 	// 3 - Generate the git repository in storage
 	if err = repo_module.CheckInitRepository(ctx, generateRepo); err != nil {
 		return nil, err
 	}
 
-	if err = repo_module.CheckDaemonExportOK(ctx, generateRepo); err != nil {
-		return nil, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	if stdout, _, err := git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: generateRepo.RepoPath()}); err != nil {
-		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
-		return nil, fmt.Errorf("error in GenerateRepository(git update-server-info): %w", err)
+	if err = updateGitRepoAfterCreate(ctx, generateRepo); err != nil {
+		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
 	// Git Content
