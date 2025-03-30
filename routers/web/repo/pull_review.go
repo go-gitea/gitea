@@ -209,11 +209,12 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
-	if origin == "diff" {
+	switch origin {
+	case "diff":
 		ctx.HTML(http.StatusOK, tplDiffConversation)
-	} else if origin == "timeline" {
+	case "timeline":
 		ctx.HTML(http.StatusOK, tplTimelineConversation)
-	} else {
+	default:
 		ctx.HTTPError(http.StatusBadRequest, "Unknown origin: "+origin)
 	}
 }

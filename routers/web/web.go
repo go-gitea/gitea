@@ -854,13 +854,13 @@ func registerRoutes(m *web.Router) {
 	individualPermsChecker := func(ctx *context.Context) {
 		// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 		if ctx.ContextUser.IsIndividual() {
-			switch {
-			case ctx.ContextUser.Visibility == structs.VisibleTypePrivate:
+			switch ctx.ContextUser.Visibility {
+			case structs.VisibleTypePrivate:
 				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
 					ctx.NotFound(nil)
 					return
 				}
-			case ctx.ContextUser.Visibility == structs.VisibleTypeLimited:
+			case structs.VisibleTypeLimited:
 				if ctx.Doer == nil {
 					ctx.NotFound(nil)
 					return
