@@ -219,38 +219,22 @@ func RelativePath(ownerName, repoName string) string {
 	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-// GetRelativePath should be an unix style path like username/reponame.git
-func (repo *Repository) GetRelativePath() string {
+// RelativePath should be an unix style path like username/reponame.git
+func (repo *Repository) RelativePath() string {
 	return RelativePath(repo.OwnerName, repo.Name)
 }
 
-// GetObjectFormatName returns the object format name of the repository
-func (repo *Repository) GetObjectFormatName() string {
-	return repo.ObjectFormatName
-}
+type StorageRepo string
 
-type StorageRepo struct {
-	RelativePath     string
-	ObjectFormatName string
-}
-
-// GetRelativePath should be an unix style path like username/reponame.git
-func (sr StorageRepo) GetRelativePath() string {
-	return sr.RelativePath
-}
-
-// GetObjectFormatName returns the object format name of the repository
-func (sr StorageRepo) GetObjectFormatName() string {
-	return sr.ObjectFormatName
+// RelativePath should be an unix style path like username/reponame.git
+func (sr StorageRepo) RelativePath() string {
+	return string(sr)
 }
 
 // WikiStorageRepo returns the storage repo for the wiki
 // The wiki repository should have the same object format as the code repository
 func (repo *Repository) WikiStorageRepo() StorageRepo {
-	return StorageRepo{
-		RelativePath:     strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git",
-		ObjectFormatName: repo.ObjectFormatName,
-	}
+	return StorageRepo(strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git")
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL

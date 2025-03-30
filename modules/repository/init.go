@@ -135,7 +135,7 @@ func CheckInitRepository(ctx context.Context, repo *repo_model.Repository) (err 
 	}
 
 	// Init git bare new repository.
-	if err = gitrepo.InitRepository(ctx, repo); err != nil {
+	if err = gitrepo.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)

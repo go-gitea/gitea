@@ -337,10 +337,7 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 	}
 
 	if err = gitrepo.RenameRepository(ctx, repo,
-		repo_model.StorageRepo{
-			RelativePath:     repo_model.RelativePath(repo.OwnerName, newRepoName),
-			ObjectFormatName: repo.ObjectFormatName,
-		}); err != nil {
+		repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, newRepoName))); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
