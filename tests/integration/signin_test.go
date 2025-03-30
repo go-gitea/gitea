@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
@@ -156,5 +157,34 @@ func TestEnablePasswordSignInFormAndEnablePasskeyAuth(t *testing.T) {
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)
 		NewHTMLParser(t, resp.Body).AssertElement(t, ".signin-passkey", true)
+	})
+}
+
+func TestRequireSignInView(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	t.Run("NoRequireSignInView", func(t *testing.T) {
+		require.False(t, setting.Service.RequireSignInViewStrict)
+		require.False(t, setting.Service.BlockAnonymousAccessExpensive)
+		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
+		MakeRequest(t, req, http.StatusOK)
+	})
+	t.Run("RequireSignInView", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+		defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
+		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
+		resp := MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/user/login", resp.Header().Get("Location"))
+	})
+	t.Run("BlockAnonymousAccessExpensive", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, false)()
+		defer test.MockVariableValue(&setting.Service.BlockAnonymousAccessExpensive, true)()
+		defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
+
+		req := NewRequest(t, "GET", "/user2/repo1")
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master")
+		resp := MakeRequest(t, req, http.StatusSeeOther)
+		assert.Equal(t, "/user/login", resp.Header().Get("Location"))
 	})
 }

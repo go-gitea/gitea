@@ -874,7 +874,7 @@ func Routes() *web.Router {
 	m.Use(apiAuth(buildAuthGroup()))
 
 	m.Use(verifyAuthWithOptions(&common.VerifyOptions{
-		SignInRequired: setting.Service.RequireSignInView,
+		SignInRequired: setting.Service.RequireSignInViewStrict,
 	}))
 
 	addActionsRoutes := func(
