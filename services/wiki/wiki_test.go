@@ -318,7 +318,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 func TestWebPathConversion(t *testing.T) {
 	assert.Equal(t, "path/wiki", WebPathToURLPath(WebPath("path/wiki")))
 	assert.Equal(t, "wiki", WebPathToURLPath(WebPath("wiki")))
-	assert.Equal(t, "", WebPathToURLPath(WebPath("")))
+	assert.Empty(t, WebPathToURLPath(WebPath("")))
 }
 
 func TestWebPathFromRequest(t *testing.T) {

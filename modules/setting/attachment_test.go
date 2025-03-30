@@ -80,7 +80,7 @@ func Test_getStorageGetDefaults(t *testing.T) {
 	assert.NoError(t, loadAttachmentFrom(cfg))
 
 	// default storage is local, so bucket is empty
-	assert.EqualValues(t, "", Attachment.Storage.MinioConfig.Bucket)
+	assert.Empty(t, Attachment.Storage.MinioConfig.Bucket)
 }
 
 func Test_getStorageInheritNameSectionType(t *testing.T) {

@@ -38,7 +38,7 @@ func TestAppStateDB(t *testing.T) {
 
 	item1 := new(testItem1)
 	assert.NoError(t, as.Get(db.DefaultContext, item1))
-	assert.Equal(t, "", item1.Val1)
+	assert.Empty(t, item1.Val1)
 	assert.EqualValues(t, 0, item1.Val2)
 
 	item1 = new(testItem1)

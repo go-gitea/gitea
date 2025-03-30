@@ -33,14 +33,14 @@ func TestAzureBlobStorageIterator(t *testing.T) {
 
 func TestAzureBlobStoragePath(t *testing.T) {
 	m := &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: ""}}
-	assert.Equal(t, "", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "", m.buildAzureBlobPath("."))
+	assert.Empty(t, m.buildAzureBlobPath("/"))
+	assert.Empty(t, m.buildAzureBlobPath("."))
 	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
 	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
 
 	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/"}}
-	assert.Equal(t, "", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "", m.buildAzureBlobPath("."))
+	assert.Empty(t, m.buildAzureBlobPath("/"))
+	assert.Empty(t, m.buildAzureBlobPath("."))
 	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
 	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
 

@@ -93,7 +93,6 @@ linters:
         - go-require
         - require-error
         - equal-values
-        - empty
         - formatter
     usetesting:
       os-temp-dir: true

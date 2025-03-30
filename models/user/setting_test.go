@@ -38,7 +38,7 @@ func TestSettings(t *testing.T) {
 
 	settingValue, err = user_model.GetUserSetting(db.DefaultContext, 99, "no_such")
 	assert.NoError(t, err)
-	assert.EqualValues(t, "", settingValue)
+	assert.Empty(t, settingValue)
 
 	// updated setting
 	updatedSetting := &user_model.Setting{UserID: 99, SettingKey: keyName, SettingValue: "Updated"}

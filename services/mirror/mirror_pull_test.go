@@ -26,18 +26,18 @@ func Test_parseRemoteUpdateOutput(t *testing.T) {
 	assert.Len(t, results, 10)
 	assert.EqualValues(t, "refs/tags/v0.1.8", results[0].refName.String())
 	assert.EqualValues(t, gitShortEmptySha, results[0].oldCommitID)
-	assert.EqualValues(t, "", results[0].newCommitID)
+	assert.Empty(t, results[0].newCommitID)
 
 	assert.EqualValues(t, "refs/heads/master", results[1].refName.String())
 	assert.EqualValues(t, gitShortEmptySha, results[1].oldCommitID)
-	assert.EqualValues(t, "", results[1].newCommitID)
+	assert.Empty(t, results[1].newCommitID)
 
 	assert.EqualValues(t, "refs/heads/test1", results[2].refName.String())
-	assert.EqualValues(t, "", results[2].oldCommitID)
+	assert.Empty(t, results[2].oldCommitID)
 	assert.EqualValues(t, gitShortEmptySha, results[2].newCommitID)
 
 	assert.EqualValues(t, "refs/tags/tag1", results[3].refName.String())
-	assert.EqualValues(t, "", results[3].oldCommitID)
+	assert.Empty(t, results[3].oldCommitID)
 	assert.EqualValues(t, gitShortEmptySha, results[3].newCommitID)
 
 	assert.EqualValues(t, "refs/heads/test2", results[4].refName.String())
@@ -50,11 +50,11 @@ func Test_parseRemoteUpdateOutput(t *testing.T) {
 
 	assert.EqualValues(t, "refs/pull/26595/head", results[6].refName.String())
 	assert.EqualValues(t, gitShortEmptySha, results[6].oldCommitID)
-	assert.EqualValues(t, "", results[6].newCommitID)
+	assert.Empty(t, results[6].newCommitID)
 
 	assert.EqualValues(t, "refs/pull/26595/merge", results[7].refName.String())
 	assert.EqualValues(t, gitShortEmptySha, results[7].oldCommitID)
-	assert.EqualValues(t, "", results[7].newCommitID)
+	assert.Empty(t, results[7].newCommitID)
 
 	assert.EqualValues(t, "refs/pull/25873/head", results[8].refName.String())
 	assert.EqualValues(t, "e0639e38fb", results[8].oldCommitID)

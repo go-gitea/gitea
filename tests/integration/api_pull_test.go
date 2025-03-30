@@ -107,7 +107,7 @@ func TestAPIViewPulls(t *testing.T) {
 				if assert.Len(t, files, 1) {
 					assert.Equal(t, "README.md", files[0].Filename)
 					// FIXME: The PreviousFilename name should be the same as Filename if it's a file change
-					assert.Equal(t, "", files[0].PreviousFilename)
+					assert.Empty(t, files[0].PreviousFilename)
 					assert.EqualValues(t, 4, files[0].Additions)
 					assert.EqualValues(t, 1, files[0].Deletions)
 					assert.Equal(t, "changed", files[0].Status)

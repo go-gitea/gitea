@@ -78,7 +78,7 @@ func TestConvertHits(t *testing.T) {
 }
 
 func TestDoubleQuoteKeyword(t *testing.T) {
-	assert.EqualValues(t, "", doubleQuoteKeyword(""))
+	assert.Empty(t, doubleQuoteKeyword(""))
 	assert.EqualValues(t, `"a" "b" "c"`, doubleQuoteKeyword("a b c"))
 	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
 	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))

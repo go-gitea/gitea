@@ -425,7 +425,7 @@ func Test_WebhookPullRequestComment(t *testing.T) {
 		assert.EqualValues(t, "repo1", payloads[0].Issue.Repo.Name)
 		assert.EqualValues(t, "user2/repo1", payloads[0].Issue.Repo.FullName)
 		assert.EqualValues(t, "first pull request", payloads[0].Issue.Title)
-		assert.EqualValues(t, "", payloads[0].Issue.Body)
+		assert.Empty(t, payloads[0].Issue.Body)
 		assert.EqualValues(t, "pull title2 comment1", payloads[0].Comment.Body)
 	})
 }
