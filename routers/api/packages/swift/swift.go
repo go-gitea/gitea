@@ -304,12 +304,52 @@ func UploadPackageFile(ctx *context.Context) {
 
 	packageVersion := v.Core().String()
 
-	file, _, err := ctx.Req.FormFile("source-archive")
+	// Get the multipart reader
+	reader, err := ctx.Req.MultipartReader()
 	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+		log.Error("Failed to get multipart reader: %v", err)
+		apiError(ctx, http.StatusBadRequest, fmt.Errorf("invalid multipart form: %v", err))
 		return
 	}
-	defer file.Close()
+
+	var file io.Reader
+	var metadata string
+
+	// Read through all parts
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Error("Error reading multipart: %v", err)
+			apiError(ctx, http.StatusBadRequest, fmt.Errorf("invalid multipart form: %v", err))
+			return
+		}
+
+		formName := part.FormName()
+		fileName := part.FileName()
+
+		log.Debug("Processing form part - Name: %s, FileName: %s", formName, fileName)
+
+		if formName == "source-archive" {
+			file = part
+		} else if formName == "metadata" {
+			metadataBytes, err := io.ReadAll(part)
+			if err != nil {
+				log.Error("Error reading metadata: %v", err)
+				apiError(ctx, http.StatusBadRequest, fmt.Errorf("invalid metadata: %v", err))
+				return
+			}
+			metadata = string(metadataBytes)
+		}
+	}
+
+	if file == nil {
+		log.Error("No source-archive found in request")
+		apiError(ctx, http.StatusBadRequest, errors.New("no source-archive found in request"))
+		return
+	}
 
 	buf, err := packages_module.CreateHashedBufferFromReader(file)
 	if err != nil {
@@ -319,7 +359,6 @@ func UploadPackageFile(ctx *context.Context) {
 	defer buf.Close()
 
 	var mr io.Reader
-	metadata := ctx.Req.FormValue("metadata")
 	if metadata != "" {
 		mr = strings.NewReader(metadata)
 	}
