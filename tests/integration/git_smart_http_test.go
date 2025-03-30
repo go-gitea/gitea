@@ -72,7 +72,7 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			assert.EqualValues(t, kase.code, resp.StatusCode)
+			assert.Equal(t, kase.code, resp.StatusCode)
 			_, err = io.ReadAll(resp.Body)
 			require.NoError(t, err)
 		})

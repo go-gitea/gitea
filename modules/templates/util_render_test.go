@@ -132,7 +132,7 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <a href="/mention-user">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
-	assert.EqualValues(t, expected, string(newTestRenderUtils(t).RenderCommitBody(testInput(), testMetas)))
+	assert.Equal(t, expected, string(newTestRenderUtils(t).RenderCommitBody(testInput(), testMetas)))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
@@ -169,7 +169,7 @@ mail@domain.com
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	assert.EqualValues(t, expected, string(newTestRenderUtils(t).RenderIssueTitle(testInput(), testMetas)))
+	assert.Equal(t, expected, string(newTestRenderUtils(t).RenderIssueTitle(testInput(), testMetas)))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
@@ -214,5 +214,5 @@ func TestRenderLabels(t *testing.T) {
 func TestUserMention(t *testing.T) {
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user @mention-user")
-	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
+	assert.Equal(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }

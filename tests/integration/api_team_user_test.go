@@ -40,8 +40,8 @@ func TestAPITeamUser(t *testing.T) {
 	expectedUser := convert.ToUser(db.DefaultContext, user, user)
 
 	// test time via unix timestamp
-	assert.EqualValues(t, expectedUser.LastLogin.Unix(), user2.LastLogin.Unix())
-	assert.EqualValues(t, expectedUser.Created.Unix(), user2.Created.Unix())
+	assert.Equal(t, expectedUser.LastLogin.Unix(), user2.LastLogin.Unix())
+	assert.Equal(t, expectedUser.Created.Unix(), user2.Created.Unix())
 	expectedUser.LastLogin = user2.LastLogin
 	expectedUser.Created = user2.Created
 

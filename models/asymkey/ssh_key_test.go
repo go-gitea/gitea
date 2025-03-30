@@ -42,7 +42,7 @@ func Test_SSHParsePublicKey(t *testing.T) {
 				keyTypeN, lengthN, err := SSHNativeParsePublicKey(tc.content)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.keyType, keyTypeN)
-				assert.EqualValues(t, tc.length, lengthN)
+				assert.Equal(t, tc.length, lengthN)
 			})
 			if tc.skipSSHKeygen {
 				return
@@ -56,7 +56,7 @@ func Test_SSHParsePublicKey(t *testing.T) {
 					}
 				}
 				assert.Equal(t, tc.keyType, keyTypeK)
-				assert.EqualValues(t, tc.length, lengthK)
+				assert.Equal(t, tc.length, lengthK)
 			})
 			t.Run("SSHParseKeyNative", func(t *testing.T) {
 				keyTypeK, lengthK, err := SSHNativeParsePublicKey(tc.content)
@@ -64,7 +64,7 @@ func Test_SSHParsePublicKey(t *testing.T) {
 					assert.FailNow(t, "%v", err)
 				}
 				assert.Equal(t, tc.keyType, keyTypeK)
-				assert.EqualValues(t, tc.length, lengthK)
+				assert.Equal(t, tc.length, lengthK)
 			})
 		})
 	}

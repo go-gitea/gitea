@@ -44,11 +44,11 @@ func TestNotificationsForUser(t *testing.T) {
 	assert.NoError(t, err)
 	if assert.Len(t, notfs, 3) {
 		assert.EqualValues(t, 5, notfs[0].ID)
-		assert.EqualValues(t, user.ID, notfs[0].UserID)
+		assert.Equal(t, user.ID, notfs[0].UserID)
 		assert.EqualValues(t, 4, notfs[1].ID)
-		assert.EqualValues(t, user.ID, notfs[1].UserID)
+		assert.Equal(t, user.ID, notfs[1].UserID)
 		assert.EqualValues(t, 2, notfs[2].ID)
-		assert.EqualValues(t, user.ID, notfs[2].UserID)
+		assert.Equal(t, user.ID, notfs[2].UserID)
 	}
 }
 
@@ -58,7 +58,7 @@ func TestNotification_GetRepo(t *testing.T) {
 	repo, err := notf.GetRepo(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, repo, notf.Repository)
-	assert.EqualValues(t, notf.RepoID, repo.ID)
+	assert.Equal(t, notf.RepoID, repo.ID)
 }
 
 func TestNotification_GetIssue(t *testing.T) {
@@ -67,7 +67,7 @@ func TestNotification_GetIssue(t *testing.T) {
 	issue, err := notf.GetIssue(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Equal(t, issue, notf.Issue)
-	assert.EqualValues(t, notf.IssueID, issue.ID)
+	assert.Equal(t, notf.IssueID, issue.ID)
 }
 
 func TestGetNotificationCount(t *testing.T) {
@@ -136,5 +136,5 @@ func TestSetIssueReadBy(t *testing.T) {
 
 	nt, err := activities_model.GetIssueNotification(db.DefaultContext, user.ID, issue.ID)
 	assert.NoError(t, err)
-	assert.EqualValues(t, activities_model.NotificationStatusRead, nt.Status)
+	assert.Equal(t, activities_model.NotificationStatusRead, nt.Status)
 }
