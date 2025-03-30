@@ -44,6 +44,7 @@ func isRoutePathExpensive(routePattern string) bool {
 		"/{username}/{reponame}/blame/",
 		"/{username}/{reponame}/commit/",
 		"/{username}/{reponame}/commits/",
+		"/{username}/{reponame}/graph",
 		"/{username}/{reponame}/media/",
 		"/{username}/{reponame}/raw/",
 		"/{username}/{reponame}/src/",
@@ -56,6 +57,9 @@ func isRoutePathExpensive(routePattern string) bool {
 
 		// wiki
 		"/{username}/{reponame}/wiki/",
+
+		// activity
+		"/{username}/{reponame}/activity/",
 	}
 	for _, path := range expensivePaths {
 		if strings.HasPrefix(routePattern, path) {
@@ -68,8 +72,6 @@ func isRoutePathExpensive(routePattern string) bool {
 func isRoutePathForLongPolling(routePattern string) bool {
 	return routePattern == "/user/events"
 }
-
-// TODO: add some tests
 
 func determineRequestPriority(reqCtx reqctx.RequestContext) (ret struct {
 	SignIn      bool
