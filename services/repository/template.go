@@ -112,7 +112,11 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// last - clean up the repository if something goes wrong
-	defer cleanupRepository(err, doer, generateRepo.ID)
+	defer func() {
+		if err != nil {
+			cleanupRepository(doer, generateRepo.ID)
+		}
+	}()
 
 	// 3 - Generate the git repository in storage
 	if err = repo_module.CheckInitRepository(ctx, generateRepo); err != nil {

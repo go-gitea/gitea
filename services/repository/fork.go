@@ -121,7 +121,11 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	// last - clean up if something goes wrong
 	// WARNING: Don't override all later err with local variables
-	defer cleanupRepository(err, doer, repo.ID)
+	defer func() {
+		if err != nil {
+			cleanupRepository(doer, repo.ID)
+		}
+	}()
 
 	// 2 - Clone the repository
 	cloneCmd := git.NewCommand("clone", "--bare")

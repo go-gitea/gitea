@@ -257,7 +257,11 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 
 	// last - clean up if something goes wrong
 	// WARNING: Don't override all later err with local variables
-	defer cleanupRepository(err, doer, repo.ID)
+	defer func() {
+		if err != nil {
+			cleanupRepository(doer, repo.ID)
+		}
+	}()
 
 	// No need for init mirror.
 	if opts.IsMirror {
@@ -474,14 +478,12 @@ func CreateRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 	return nil
 }
 
-func cleanupRepository(err error, doer *user_model.User, repoID int64) {
-	if err != nil {
-		if errDelete := DeleteRepositoryDirectly(db.DefaultContext, doer, repoID); errDelete != nil {
-			log.Error("Rollback deleteRepository: %v", errDelete)
-			// add system notice
-			if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when create repository: %v", errDelete); err != nil {
-				log.Error("CreateRepositoryNotice: %v", err)
-			}
+func cleanupRepository(doer *user_model.User, repoID int64) {
+	if errDelete := DeleteRepositoryDirectly(db.DefaultContext, doer, repoID); errDelete != nil {
+		log.Error("Rollback deleteRepository: %v", errDelete)
+		// add system notice
+		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when create repository: %v", errDelete); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
 }
