@@ -22,7 +22,7 @@ func BlockExpensive() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ret := determineRequestPriority(reqctx.FromContext(req.Context()))
-			if !ret.SignIn {
+			if !ret.SignedIn {
 				if ret.Expensive || ret.LongPolling {
 					http.Redirect(w, req, setting.AppSubURL+"/user/login", http.StatusSeeOther)
 					return
@@ -74,14 +74,14 @@ func isRoutePathForLongPolling(routePattern string) bool {
 }
 
 func determineRequestPriority(reqCtx reqctx.RequestContext) (ret struct {
-	SignIn      bool
+	SignedIn    bool
 	Expensive   bool
 	LongPolling bool
 },
 ) {
 	chiRoutePath := chi.RouteContext(reqCtx).RoutePattern()
 	if _, ok := reqCtx.GetData()[middleware.ContextDataKeySignedUser].(*user_model.User); ok {
-		ret.SignIn = true
+		ret.SignedIn = true
 	} else {
 		ret.Expensive = isRoutePathExpensive(chiRoutePath)
 		ret.LongPolling = isRoutePathForLongPolling(chiRoutePath)
