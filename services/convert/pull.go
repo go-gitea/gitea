@@ -441,11 +441,6 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		if apiPullRequest.Head.Ref == "" {
 			apiPullRequest.Head.Ref = pr.GetGitRefName()
 		}
-		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
-		if err != nil {
-			log.Error("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
-			return nil, err
-		}
 
 		if pr.HeadRepoID == pr.BaseRepoID {
 			apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
@@ -460,6 +455,10 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 
 		if pr.Flow == issues_model.PullRequestFlowAGit {
 			apiPullRequest.Head.Name = ""
+		}
+		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
+		if err != nil {
+			log.Error("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
 		}
 
 		if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
