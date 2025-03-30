@@ -156,7 +156,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 
 func TestAPIOrgDeny(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Service.RequireSignInView, true)()
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 
 	orgName := "user1_org"
 	req := NewRequestf(t, "GET", "/api/v1/orgs/%s", orgName)
