@@ -6,6 +6,8 @@ const {appSubUrl} = window.config;
 
 export function initRepoTemplateSearch() {
   const $repoTemplate = $('#repo_template');
+  if (!$repoTemplate.length) return; // make sure the current page is "new repo" page
+
   const checkTemplate = function () {
     const $templateUnits = $('#template_units');
     const $nonTemplate = $('#non_template');
