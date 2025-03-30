@@ -28,7 +28,7 @@ func SyncFile(srcPath, destPath string) error {
 	}
 
 	if src.Size() == dest.Size() &&
-		src.ModTime() == dest.ModTime() &&
+		src.ModTime().Equal(dest.ModTime()) &&
 		src.Mode() == dest.Mode() {
 		return nil
 	}
