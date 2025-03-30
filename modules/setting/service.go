@@ -168,7 +168,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 		// non-boolean value only supports "expensive" at the moment
 		Service.BlockAnonymousAccessExpensive = s == "expensive"
 		if !Service.BlockAnonymousAccessExpensive {
-			log.Fatal("Invalid config option: REQUIRE_SIGNIN_VIEW = %s", s)
+			log.Error("Invalid config option: REQUIRE_SIGNIN_VIEW = %s", s)
 		}
 	}
 
