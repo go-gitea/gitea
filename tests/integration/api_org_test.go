@@ -148,9 +148,9 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 
 func TestAPIOrgDeny(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		setting.Service.RequireSignInView = true
+		setting.Service.RequireSignInViewStrict = true
 		defer func() {
-			setting.Service.RequireSignInView = false
+			setting.Service.RequireSignInViewStrict = false
 		}()
 
 		orgName := "user1_org"

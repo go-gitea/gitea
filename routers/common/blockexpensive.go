@@ -4,11 +4,11 @@
 package common
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 
@@ -21,7 +21,7 @@ func BlockExpensive() func(next http.Handler) http.Handler {
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ret := determineRequestPriority(reqctx.FromContext(req.Context()))
+			ret := determineRequestPriority(req.Context())
 			if !ret.SignedIn {
 				if ret.Expensive || ret.LongPolling {
 					http.Redirect(w, req, setting.AppSubURL+"/user/login", http.StatusSeeOther)
@@ -73,14 +73,15 @@ func isRoutePathForLongPolling(routePattern string) bool {
 	return routePattern == "/user/events"
 }
 
-func determineRequestPriority(reqCtx reqctx.RequestContext) (ret struct {
+func determineRequestPriority(ctx context.Context) (ret struct {
 	SignedIn    bool
 	Expensive   bool
 	LongPolling bool
 },
 ) {
-	chiRoutePath := chi.RouteContext(reqCtx).RoutePattern()
-	if _, ok := reqCtx.GetData()[middleware.ContextDataKeySignedUser].(*user_model.User); ok {
+	dataStore := middleware.GetContextData(ctx)
+	chiRoutePath := chi.RouteContext(ctx).RoutePattern()
+	if _, ok := dataStore[middleware.ContextDataKeySignedUser].(*user_model.User); ok {
 		ret.SignedIn = true
 	} else {
 		ret.Expensive = isRoutePathExpensive(chiRoutePath)
