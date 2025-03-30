@@ -384,7 +384,8 @@ func CreateRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 	}
 	units := make([]repo_model.RepoUnit, 0, len(defaultUnits))
 	for _, tp := range defaultUnits {
-		if tp == unit.TypeIssues {
+		switch tp {
+		case unit.TypeIssues:
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
@@ -394,7 +395,7 @@ func CreateRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 					EnableDependencies:               setting.Service.DefaultEnableDependencies,
 				},
 			})
-		} else if tp == unit.TypePullRequests {
+		case unit.TypePullRequests:
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
@@ -404,13 +405,13 @@ func CreateRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 					AllowRebaseUpdate: true,
 				},
 			})
-		} else if tp == unit.TypeProjects {
+		case unit.TypeProjects:
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
 				Config: &repo_model.ProjectsConfig{ProjectsMode: repo_model.ProjectsModeAll},
 			})
-		} else {
+		default:
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
