@@ -31,15 +31,16 @@ func (m *mailNotifier) CreateIssueComment(ctx context.Context, doer *user_model.
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	var act activities_model.ActionType
-	if comment.Type == issues_model.CommentTypeClose {
+	switch comment.Type {
+	case issues_model.CommentTypeClose:
 		act = activities_model.ActionCloseIssue
-	} else if comment.Type == issues_model.CommentTypeReopen {
+	case issues_model.CommentTypeReopen:
 		act = activities_model.ActionReopenIssue
-	} else if comment.Type == issues_model.CommentTypeComment {
+	case issues_model.CommentTypeComment:
 		act = activities_model.ActionCommentIssue
-	} else if comment.Type == issues_model.CommentTypeCode {
+	case issues_model.CommentTypeCode:
 		act = activities_model.ActionCommentIssue
-	} else if comment.Type == issues_model.CommentTypePullRequestPush {
+	case issues_model.CommentTypePullRequestPush:
 		act = 0
 	}
 
@@ -95,11 +96,12 @@ func (m *mailNotifier) NewPullRequest(ctx context.Context, pr *issues_model.Pull
 
 func (m *mailNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, r *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	var act activities_model.ActionType
-	if comment.Type == issues_model.CommentTypeClose {
+	switch comment.Type {
+	case issues_model.CommentTypeClose:
 		act = activities_model.ActionCloseIssue
-	} else if comment.Type == issues_model.CommentTypeReopen {
+	case issues_model.CommentTypeReopen:
 		act = activities_model.ActionReopenIssue
-	} else if comment.Type == issues_model.CommentTypeComment {
+	case issues_model.CommentTypeComment:
 		act = activities_model.ActionCommentPull
 	}
 	if err := MailParticipantsComment(ctx, comment, act, pr.Issue, mentions); err != nil {

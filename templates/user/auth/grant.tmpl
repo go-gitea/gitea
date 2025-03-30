@@ -1,35 +1,33 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content ui one column stackable tw-text-center page grid oauth2-authorize-application-box">
-	<div class="column seven wide">
-		<div class="ui middle centered raised segments">
-			<h3 class="ui top attached header">
-				{{ctx.Locale.Tr "auth.authorize_title" .Application.Name}}
-			</h3>
-			<div class="ui attached segment">
-				{{template "base/alert" .}}
-				<p>
-					{{if not .AdditionalScopes}}
-					<b>{{ctx.Locale.Tr "auth.authorize_application_description"}}</b><br>
-					{{end}}
-					{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}<br>
-					{{ctx.Locale.Tr "auth.authorize_application_with_scopes" (HTMLFormat "<b>%s</b>" .Scope)}}
-				</p>
-			</div>
-			<div class="ui attached segment">
-				<p>{{ctx.Locale.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML}}</p>
-			</div>
-			<div class="ui attached segment">
-				<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
-					{{.CsrfTokenHtml}}
-					<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
-					<input type="hidden" name="state" value="{{.State}}">
-					<input type="hidden" name="scope" value="{{.Scope}}">
-					<input type="hidden" name="nonce" value="{{.Nonce}}">
-					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
-					<button type="submit" id="authorize-app" name="granted" value="true" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
-					<button type="submit" name="granted" value="false" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>
-				</form>
-			</div>
+<div role="main" aria-label="{{.Title}}" class="page-content oauth2-authorize-application-box">
+	<div class="ui container tw-max-w-[500px]">
+		<h3 class="ui top attached header">
+			{{ctx.Locale.Tr "auth.authorize_title" .Application.Name}}
+		</h3>
+		<div class="ui attached segment">
+			{{template "base/alert" .}}
+			<p>
+				{{if not .AdditionalScopes}}
+				<b>{{ctx.Locale.Tr "auth.authorize_application_description"}}</b><br>
+				{{end}}
+				{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}<br>
+				{{ctx.Locale.Tr "auth.authorize_application_with_scopes" (HTMLFormat "<b>%s</b>" .Scope)}}
+			</p>
+		</div>
+		<div class="ui attached segment">
+			<p>{{ctx.Locale.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML}}</p>
+		</div>
+		<div class="ui attached segment tw-text-center">
+			<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
+				<input type="hidden" name="state" value="{{.State}}">
+				<input type="hidden" name="scope" value="{{.Scope}}">
+				<input type="hidden" name="nonce" value="{{.Nonce}}">
+				<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
+				<button type="submit" id="authorize-app" name="granted" value="true" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
+				<button type="submit" name="granted" value="false" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>
+			</form>
 		</div>
 	</div>
 </div>

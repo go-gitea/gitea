@@ -62,13 +62,14 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	var results []*GrepResult
 	cmd := NewCommand("grep", "--null", "--break", "--heading", "--line-number", "--full-name")
 	cmd.AddOptionValues("--context", fmt.Sprint(opts.ContextLineNumber))
-	if opts.GrepMode == GrepModeExact {
+	switch opts.GrepMode {
+	case GrepModeExact:
 		cmd.AddArguments("--fixed-strings")
 		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
-	} else if opts.GrepMode == GrepModeRegexp {
+	case GrepModeRegexp:
 		cmd.AddArguments("--perl-regexp")
 		cmd.AddOptionValues("-e", strings.TrimLeft(search, "-"))
-	} else /* words */ {
+	default: /* words */
 		words := strings.Fields(search)
 		cmd.AddArguments("--fixed-strings", "--ignore-case")
 		for i, word := range words {
