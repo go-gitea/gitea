@@ -64,14 +64,9 @@ func TestRepository_GetTag(t *testing.T) {
 
 	// and try to get the Tag for lightweight tag
 	lTag, err := bareRepo1.GetTag(lTagName)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-	if lTag == nil {
-		assert.NotNil(t, lTag)
-		assert.FailNow(t, "nil lTag: %s", lTagName)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, lTag, "nil lTag: %s", lTagName)
+
 	assert.Equal(t, lTagName, lTag.Name)
 	assert.Equal(t, lTagCommitID, lTag.ID.String())
 	assert.Equal(t, lTagCommitID, lTag.Object.String())
@@ -97,14 +92,9 @@ func TestRepository_GetTag(t *testing.T) {
 	}
 
 	aTag, err := bareRepo1.GetTag(aTagName)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-	if aTag == nil {
-		assert.NotNil(t, aTag)
-		assert.FailNow(t, "nil aTag: %s", aTagName)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, aTag, "nil aTag: %s", aTagName)
+
 	assert.Equal(t, aTagName, aTag.Name)
 	assert.Equal(t, aTagID, aTag.ID.String())
 	assert.NotEqual(t, aTagID, aTag.Object.String())

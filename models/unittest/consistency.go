@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/builder"
 )
 
@@ -24,7 +25,7 @@ const (
 var consistencyCheckMap = make(map[string]func(t assert.TestingT, bean any))
 
 // CheckConsistencyFor test that all matching database entries are consistent
-func CheckConsistencyFor(t assert.TestingT, beansToCheck ...any) {
+func CheckConsistencyFor(t require.TestingT, beansToCheck ...any) {
 	for _, bean := range beansToCheck {
 		sliceType := reflect.SliceOf(reflect.TypeOf(bean))
 		sliceValue := reflect.MakeSlice(sliceType, 0, 10)
@@ -42,13 +43,11 @@ func CheckConsistencyFor(t assert.TestingT, beansToCheck ...any) {
 	}
 }
 
-func checkForConsistency(t assert.TestingT, bean any) {
+func checkForConsistency(t require.TestingT, bean any) {
 	tb, err := db.TableInfo(bean)
 	assert.NoError(t, err)
 	f := consistencyCheckMap[tb.Name]
-	if f == nil {
-		assert.FailNow(t, "unknown bean type: %#v", bean)
-	}
+	require.NotNil(t, f, "unknown bean type: %#v", bean)
 	f(t, bean)
 }
 

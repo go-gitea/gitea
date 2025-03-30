@@ -99,26 +99,14 @@ func TestGPGGit(t *testing.T) {
 			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
-					assert.NotNil(t, response.Verification)
-					if response.Verification == nil {
-						assert.FailNow(t, "no verification provided with response! %v", response)
-					}
-					assert.True(t, response.Verification.Verified)
-					if !response.Verification.Verified {
-						t.FailNow()
-					}
+					require.NotNil(t, response.Verification, "no verification provided with response! %v", response)
+					require.True(t, response.Verification.Verified)
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
 			t.Run("CreateCRUDFile-ParentSigned-always", crudActionCreateFile(
 				t, testCtx, user, "parentsigned", "parentsigned-always", "signed-parent2.txt", func(t *testing.T, response api.FileResponse) {
-					assert.NotNil(t, response.Verification)
-					if response.Verification == nil {
-						assert.FailNow(t, "no verification provided with response! %v", response)
-					}
-					assert.True(t, response.Verification.Verified)
-					if !response.Verification.Verified {
-						t.FailNow()
-					}
+					require.NotNil(t, response.Verification, "no verification provided with response! %v", response)
+					require.True(t, response.Verification.Verified)
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
 		})
@@ -129,14 +117,8 @@ func TestGPGGit(t *testing.T) {
 			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-Always-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "always", "always-parentsigned", "signed-always-parentsigned.txt", func(t *testing.T, response api.FileResponse) {
-					assert.NotNil(t, response.Verification)
-					if response.Verification == nil {
-						assert.FailNow(t, "no verification provided with response! %v", response)
-					}
-					assert.True(t, response.Verification.Verified)
-					if !response.Verification.Verified {
-						t.FailNow()
-					}
+					require.NotNil(t, response.Verification, "no verification provided with response! %v", response)
+					require.True(t, response.Verification.Verified)
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
 		})
@@ -147,18 +129,9 @@ func TestGPGGit(t *testing.T) {
 			testCtx := NewAPITestContext(t, username, "initial-always", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
-				assert.NotNil(t, branch.Commit)
-				if branch.Commit == nil {
-					assert.FailNow(t, "no commit provided with branch! %v", branch)
-				}
-				assert.NotNil(t, branch.Commit.Verification)
-				if branch.Commit.Verification == nil {
-					assert.FailNow(t, "no verification provided with branch commit! %v", branch.Commit)
-				}
-				assert.True(t, branch.Commit.Verification.Verified)
-				if !branch.Commit.Verification.Verified {
-					t.FailNow()
-				}
+				require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
+				require.NotNil(t, branch.Commit.Verification, "no verification provided with branch commit! %v", branch.Commit)
+				require.True(t, branch.Commit.Verification.Verified)
 				assert.Equal(t, "gitea@fake.local", branch.Commit.Verification.Signer.Email)
 			}))
 		})
@@ -181,11 +154,7 @@ func TestGPGGit(t *testing.T) {
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
-					assert.True(t, response.Verification.Verified)
-					if !response.Verification.Verified {
-						t.FailNow()
-						return
-					}
+					require.True(t, response.Verification.Verified)
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
 		})
@@ -197,11 +166,7 @@ func TestGPGGit(t *testing.T) {
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
-					assert.True(t, response.Verification.Verified)
-					if !response.Verification.Verified {
-						t.FailNow()
-						return
-					}
+					require.True(t, response.Verification.Verified)
 					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
 				}))
 		})

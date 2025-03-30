@@ -337,9 +337,9 @@ func TestAPIOrgReposWithCodeUnitDisabled(t *testing.T) {
 	var units []unit_model.Type
 	units = append(units, unit_model.TypeCode)
 
-	if err := repo_service.UpdateRepositoryUnits(db.DefaultContext, repo21, nil, units); err != nil {
-		assert.Fail(t, "should have been able to delete code repository unit; failed to %v", err)
-	}
+	err := repo_service.UpdateRepositoryUnits(db.DefaultContext, repo21, nil, units)
+	assert.NoError(t, err, "should have been able to delete code repository unit")
+
 	assert.False(t, repo21.UnitEnabled(db.DefaultContext, unit_model.TypeCode))
 
 	session := loginUser(t, "user2")
@@ -405,7 +405,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 			case "You can not import from disallowed hosts.":
 				assert.Equal(t, "private-ip", testCase.repoName)
 			default:
-				assert.FailNow(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
+				assert.FailNow(t, "unexpected error", "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
 			}
 		} else {
 			assert.Equal(t, testCase.expectedStatus, resp.Code)

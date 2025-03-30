@@ -92,7 +92,6 @@ linters:
       disable:
         - go-require
         - require-error
-        - formatter
     usetesting:
       os-temp-dir: true
   exclusions:
