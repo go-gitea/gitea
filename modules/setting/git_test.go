@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGitConfig(t *testing.T) {
@@ -50,16 +51,15 @@ func TestGitReflog(t *testing.T) {
 
 	assert.EqualValues(t, "true", GitConfig.GetOption("core.logAllRefUpdates"))
 	assert.EqualValues(t, "90", GitConfig.GetOption("gc.reflogExpire"))
+}
 
-	// custom reflog config by legacy options
-	cfg, err = NewConfigProviderFromData(`
+func TestLegacyRefLog(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
 [git.reflog]
 ENABLED = false
 EXPIRATION = 123
 `)
-	assert.NoError(t, err)
-	loadGitFrom(cfg)
+	require.NoError(t, err)
 
-	assert.EqualValues(t, "false", GitConfig.GetOption("core.logAllRefUpdates"))
-	assert.EqualValues(t, "123", GitConfig.GetOption("gc.reflogExpire"))
+	require.Len(t, checkForRemovedSettings(cfg), 2)
 }

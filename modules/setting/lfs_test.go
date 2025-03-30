@@ -40,10 +40,7 @@ LFS_CONTENT_PATH = deprecatedpath
 `
 	cfg, err = NewConfigProviderFromData(iniStr)
 	assert.NoError(t, err)
-	assert.NoError(t, loadLFSFrom(cfg))
-
-	assert.EqualValues(t, "local", LFS.Storage.Type)
-	assert.Contains(t, LFS.Storage.Path, "deprecatedpath")
+	assert.Len(t, checkForRemovedSettings(cfg), 1)
 
 	iniStr = `
 [storage.lfs]

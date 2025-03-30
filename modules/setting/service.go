@@ -153,9 +153,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	} else {
 		Service.RegisterManualConfirm = false
 	}
-	if sec.HasKey("EMAIL_DOMAIN_WHITELIST") {
-		deprecatedSetting(rootCfg, "service", "EMAIL_DOMAIN_WHITELIST", "service", "EMAIL_DOMAIN_ALLOWLIST", "1.21")
-	}
+	// legacy email config options have been moved to removed.go
 	Service.EmailDomainAllowList = CompileEmailGlobList(sec, "EMAIL_DOMAIN_WHITELIST", "EMAIL_DOMAIN_ALLOWLIST")
 	Service.EmailDomainBlockList = CompileEmailGlobList(sec, "EMAIL_DOMAIN_BLOCKLIST")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
