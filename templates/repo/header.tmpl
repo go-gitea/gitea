@@ -25,6 +25,9 @@
 							<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.internal"}}">{{svg "octicon-shield-lock" 18}}</div>
 						{{end}}
 					{{end}}
+					{{if $.Permission.HasAnyUnitPublicAccess}}
+						<span class="ui basic orange label">{{ctx.Locale.Tr "repo.desc.public_access"}}</span>
+					{{end}}
 					{{if .IsTemplate}}
 						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
@@ -208,7 +211,7 @@
 						</a>
 					{{end}}
 
-					{{if and (.Permission.CanReadAny ctx.Consts.RepoUnitTypePullRequests ctx.Consts.RepoUnitTypeIssues ctx.Consts.RepoUnitTypeReleases) (not .IsEmptyRepo)}}
+					{{if and (.Permission.CanReadAny ctx.Consts.RepoUnitTypePullRequests ctx.Consts.RepoUnitTypeIssues ctx.Consts.RepoUnitTypeReleases ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo)}}
 						<a class="{{if .PageIsActivity}}active {{end}}item" href="{{.RepoLink}}/activity">
 							{{svg "octicon-pulse"}} {{ctx.Locale.Tr "repo.activity"}}
 						</a>

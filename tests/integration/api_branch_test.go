@@ -24,13 +24,13 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, NoExpectedStatus)
 	if !exists {
-		assert.EqualValues(t, http.StatusNotFound, resp.Code)
+		assert.Equal(t, http.StatusNotFound, resp.Code)
 		return
 	}
-	assert.EqualValues(t, http.StatusOK, resp.Code)
+	assert.Equal(t, http.StatusOK, resp.Code)
 	var branch api.Branch
 	DecodeJSON(t, resp, &branch)
-	assert.EqualValues(t, branchName, branch.Name)
+	assert.Equal(t, branchName, branch.Name)
 	assert.True(t, branch.UserCanPush)
 	assert.True(t, branch.UserCanMerge)
 }
@@ -44,7 +44,7 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 	if resp.Code == http.StatusOK {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
-		assert.EqualValues(t, branchName, branchProtection.RuleName)
+		assert.Equal(t, branchName, branchProtection.RuleName)
 		return &branchProtection
 	}
 	return nil
@@ -60,7 +60,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPrio
 	if resp.Code == http.StatusCreated {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
-		assert.EqualValues(t, branchName, branchProtection.RuleName)
+		assert.Equal(t, branchName, branchProtection.RuleName)
 		assert.EqualValues(t, expectedPriority, branchProtection.Priority)
 	}
 }
@@ -74,7 +74,7 @@ func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.Bran
 	if resp.Code == http.StatusOK {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
-		assert.EqualValues(t, branchName, branchProtection.RuleName)
+		assert.Equal(t, branchName, branchProtection.RuleName)
 	}
 }
 
@@ -181,7 +181,7 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 	DecodeJSON(t, resp, &branch)
 
 	if resp.Result().StatusCode == http.StatusCreated {
-		assert.EqualValues(t, newBranch, branch.Name)
+		assert.Equal(t, newBranch, branch.Name)
 	}
 
 	return resp.Result().StatusCode == status

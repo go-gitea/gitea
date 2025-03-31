@@ -342,3 +342,9 @@ func UpdateRepoUnit(ctx context.Context, unit *RepoUnit) error {
 	_, err := db.GetEngine(ctx).ID(unit.ID).Update(unit)
 	return err
 }
+
+func UpdateRepoUnitPublicAccess(ctx context.Context, unit *RepoUnit) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=? AND `type`=?", unit.RepoID, unit.Type).
+		Cols("anonymous_access_mode", "everyone_access_mode").Update(unit)
+	return err
+}
