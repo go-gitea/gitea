@@ -240,7 +240,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	doc = NewHTMLParser(t, resp.Body)
-	// Check that the data-tippy="commit-statuses" (for trigger) and commit-status (svg) are present
-	sel := doc.doc.Find("#commits-table .message [data-tippy=\"commit-statuses\"] .commit-status")
+	// Check that the data-global-init="initCommitStatuses" (for trigger) and commit-status (svg) are present
+	sel := doc.doc.Find(`#commits-table .message [data-global-init="initCommitStatuses"] .commit-status`)
 	assert.Equal(t, 1, sel.Length())
 }
