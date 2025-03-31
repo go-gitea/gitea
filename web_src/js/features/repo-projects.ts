@@ -1,4 +1,5 @@
 import {contrastColor} from '../utils/color.ts';
+import {toggleClass, toggleElem} from '../utils/dom.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {POST, request} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -139,7 +140,41 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   });
 }
 
+function initRepoProjectToggleFullScreen(): void {
+  const el = document.querySelector('.toggle-fullscreen');
+  el.addEventListener('click', () => {
+    const isFullScreen = el.getAttribute('data-fullscreen') === 'true';
+
+    // hide other elements
+    const headerEl = document.querySelector('#navbar');
+    const contentEl = document.querySelector('.page-content');
+    const footerEl = document.querySelector('.page-footer');
+    toggleElem(headerEl, isFullScreen);
+    toggleElem(contentEl, isFullScreen);
+    toggleElem(footerEl, isFullScreen);
+
+    el.innerHTML = isFullScreen ? 'Fullscreen' : 'Exit';
+    el.setAttribute('data-fullscreen', String(!isFullScreen));
+    toggleClass(el, 'is-fullscreen');
+
+    const fullScreenEl1 = document.querySelector('.projects-view-top');
+    const fullScreenEl2 = document.querySelector('.projects-view-bottom');
+    const outerEl = document.querySelector('.full.height');
+    toggleClass(fullScreenEl1, 'is-fullscreen');
+    toggleClass(fullScreenEl2, 'is-fullscreen');
+    if (isFullScreen) {
+      contentEl.append(fullScreenEl1);
+      contentEl.append(fullScreenEl2);
+    } else {
+      outerEl.append(fullScreenEl1);
+      outerEl.append(fullScreenEl2);
+    }
+  });
+}
+
 export function initRepoProject(): void {
+  initRepoProjectToggleFullScreen();
+
   const writableProjectBoard = document.querySelector('#project-board[data-project-borad-writable="true"]');
   if (!writableProjectBoard) return;
 
