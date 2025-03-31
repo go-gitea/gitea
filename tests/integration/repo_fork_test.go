@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -46,7 +47,7 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 	assert.True(t, exists, "Fork owner '%s' is not present in select box", forkOwnerName)
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf":              htmlDoc.GetCSRF(),
-		"uid":                fmt.Sprintf("%d", forkOwner.ID),
+		"uid":                strconv.FormatInt(forkOwner.ID, 10),
 		"repo_name":          forkRepoName,
 		"fork_single_branch": forkBranch,
 	})

@@ -5,7 +5,6 @@
 package install
 
 import (
-	"fmt"
 	"net/http"
 	"net/mail"
 	"os"
@@ -398,7 +397,7 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("true")
 	} else {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("false")
-		cfg.Section("server").Key("SSH_PORT").SetValue(fmt.Sprint(form.SSHPort))
+		cfg.Section("server").Key("SSH_PORT").SetValue(strconv.Itoa(form.SSHPort))
 	}
 
 	if form.LFSRootPath != "" {

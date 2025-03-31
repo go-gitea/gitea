@@ -83,9 +83,6 @@ linters:
         - name: unreachable-code
         - name: var-declaration
         - name: var-naming
-    perfsprint:
-      integer-format: false
-      int-conversion: false
     staticcheck:
       checks:
         - all

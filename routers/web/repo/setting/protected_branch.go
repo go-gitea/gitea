@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -283,20 +284,20 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 func DeleteProtectedBranchRulePost(ctx *context.Context) {
 	ruleID := ctx.PathParamInt64("id")
 	if ruleID <= 0 {
-		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", strconv.FormatInt(ruleID, 10)))
 		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	rule, err := git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, ruleID)
 	if err != nil {
-		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", strconv.FormatInt(ruleID, 10)))
 		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	if rule == nil {
-		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", strconv.FormatInt(ruleID, 10)))
 		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}

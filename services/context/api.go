@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/unit"
@@ -168,7 +169,7 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	if paginater.HasNext() {
 		u := *curURL
 		queries := u.Query()
-		queries.Set("page", fmt.Sprintf("%d", paginater.Next()))
+		queries.Set("page", strconv.Itoa(paginater.Next()))
 		u.RawQuery = queries.Encode()
 
 		links = append(links, fmt.Sprintf("<%s%s>; rel=\"next\"", setting.AppURL, u.RequestURI()[1:]))
@@ -176,7 +177,7 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	if !paginater.IsLast() {
 		u := *curURL
 		queries := u.Query()
-		queries.Set("page", fmt.Sprintf("%d", paginater.TotalPages()))
+		queries.Set("page", strconv.Itoa(paginater.TotalPages()))
 		u.RawQuery = queries.Encode()
 
 		links = append(links, fmt.Sprintf("<%s%s>; rel=\"last\"", setting.AppURL, u.RequestURI()[1:]))
@@ -192,7 +193,7 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	if paginater.HasPrevious() {
 		u := *curURL
 		queries := u.Query()
-		queries.Set("page", fmt.Sprintf("%d", paginater.Previous()))
+		queries.Set("page", strconv.Itoa(paginater.Previous()))
 		u.RawQuery = queries.Encode()
 
 		links = append(links, fmt.Sprintf("<%s%s>; rel=\"prev\"", setting.AppURL, u.RequestURI()[1:]))

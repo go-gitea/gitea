@@ -4,11 +4,11 @@
 package httplib
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -30,7 +30,7 @@ func TestServeContentByReader(t *testing.T) {
 		ServeContentByReader(r, w, int64(len(data)), reader, &ServeHeaderOptions{})
 		assert.Equal(t, expectedStatusCode, w.Code)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
-			assert.Equal(t, fmt.Sprint(len(expectedContent)), w.Header().Get("Content-Length"))
+			assert.Equal(t, strconv.Itoa(len(expectedContent)), w.Header().Get("Content-Length"))
 			assert.Equal(t, expectedContent, w.Body.String())
 		}
 	}
@@ -79,7 +79,7 @@ func TestServeContentByReadSeeker(t *testing.T) {
 		ServeContentByReadSeeker(r, w, nil, seekReader, &ServeHeaderOptions{})
 		assert.Equal(t, expectedStatusCode, w.Code)
 		if expectedStatusCode == http.StatusPartialContent || expectedStatusCode == http.StatusOK {
-			assert.Equal(t, fmt.Sprint(len(expectedContent)), w.Header().Get("Content-Length"))
+			assert.Equal(t, strconv.Itoa(len(expectedContent)), w.Header().Get("Content-Length"))
 			assert.Equal(t, expectedContent, w.Body.String())
 		}
 	}

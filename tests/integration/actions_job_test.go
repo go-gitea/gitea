@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -418,9 +419,9 @@ jobs:
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRunJob.RunID), gtCtx["run_id"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRun.Index), gtCtx["run_number"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRunJob.Attempt), gtCtx["run_attempt"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRunJob.RunID, 10), gtCtx["run_id"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRun.Index, 10), gtCtx["run_number"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRunJob.Attempt, 10), gtCtx["run_attempt"].GetStringValue())
 		assert.Equal(t, "Actions", gtCtx["secret_source"].GetStringValue())
 		assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
 		assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())
@@ -510,9 +511,9 @@ jobs:
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRunJob.RunID), gtCtx["run_id"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRun.Index), gtCtx["run_number"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRunJob.Attempt), gtCtx["run_attempt"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRunJob.RunID, 10), gtCtx["run_id"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRun.Index, 10), gtCtx["run_number"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRunJob.Attempt, 10), gtCtx["run_attempt"].GetStringValue())
 		assert.Equal(t, "Actions", gtCtx["secret_source"].GetStringValue())
 		assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
 		assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())

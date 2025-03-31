@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -475,7 +476,7 @@ func TestPackageContainer(t *testing.T) {
 							AddTokenAuth(userToken)
 						resp := MakeRequest(t, req, http.StatusOK)
 
-						assert.Equal(t, fmt.Sprintf("%d", len(manifestContent)), resp.Header().Get("Content-Length"))
+						assert.Equal(t, strconv.Itoa(len(manifestContent)), resp.Header().Get("Content-Length"))
 						assert.Equal(t, manifestDigest, resp.Header().Get("Docker-Content-Digest"))
 					})
 
@@ -490,7 +491,7 @@ func TestPackageContainer(t *testing.T) {
 							AddTokenAuth(userToken)
 						resp := MakeRequest(t, req, http.StatusOK)
 
-						assert.Equal(t, fmt.Sprintf("%d", len(manifestContent)), resp.Header().Get("Content-Length"))
+						assert.Equal(t, strconv.Itoa(len(manifestContent)), resp.Header().Get("Content-Length"))
 						assert.Equal(t, oci.MediaTypeImageManifest, resp.Header().Get("Content-Type"))
 						assert.Equal(t, manifestDigest, resp.Header().Get("Docker-Content-Digest"))
 						assert.Equal(t, manifestContent, resp.Body.String())
@@ -512,7 +513,7 @@ func TestPackageContainer(t *testing.T) {
 					AddTokenAuth(userToken)
 				resp = MakeRequest(t, req, http.StatusOK)
 
-				assert.Equal(t, fmt.Sprintf("%d", len(untaggedManifestContent)), resp.Header().Get("Content-Length"))
+				assert.Equal(t, strconv.Itoa(len(untaggedManifestContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, untaggedManifestDigest, resp.Header().Get("Docker-Content-Digest"))
 
 				pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, untaggedManifestDigest)
@@ -598,7 +599,7 @@ func TestPackageContainer(t *testing.T) {
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				assert.Equal(t, fmt.Sprintf("%d", len(blobContent)), resp.Header().Get("Content-Length"))
+				assert.Equal(t, strconv.Itoa(len(blobContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 
 				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
@@ -617,7 +618,7 @@ func TestPackageContainer(t *testing.T) {
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				assert.Equal(t, fmt.Sprintf("%d", len(blobContent)), resp.Header().Get("Content-Length"))
+				assert.Equal(t, strconv.Itoa(len(blobContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 				assert.Equal(t, blobContent, resp.Body.Bytes())
 			})
