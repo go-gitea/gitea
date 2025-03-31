@@ -5,6 +5,7 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -74,7 +75,7 @@ func (g *giteaLockBackend) Create(path, refname string) (transfer.Lock, error) {
 
 	if respBody.Lock == nil {
 		g.logger.Log("api returned nil lock")
-		return nil, fmt.Errorf("api returned nil lock")
+		return nil, errors.New("api returned nil lock")
 	}
 	respLock := respBody.Lock
 	owner := userUnknown

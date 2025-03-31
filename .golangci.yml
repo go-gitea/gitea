@@ -16,6 +16,7 @@ linters:
     - mirror
     - nakedret
     - nolintlint
+    - perfsprint
     - revive
     - staticcheck
     - testifylint
@@ -82,6 +83,14 @@ linters:
         - name: unreachable-code
         - name: var-declaration
         - name: var-naming
+    perfsprint:
+      integer-format: false
+      int-conversion: false
+      string-format: false
+      sprintf1: false
+      strconcat: false
+      bool-format: false
+      hex-format: false
     staticcheck:
       checks:
         - all

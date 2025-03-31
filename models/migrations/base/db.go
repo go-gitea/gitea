@@ -82,7 +82,7 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 	}
 	newTableColumns := table.Columns()
 	if len(newTableColumns) == 0 {
-		return fmt.Errorf("no columns in new table")
+		return errors.New("no columns in new table")
 	}
 	hasID := false
 	for _, column := range newTableColumns {

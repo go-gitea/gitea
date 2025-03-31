@@ -4,6 +4,7 @@
 package template
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -31,17 +32,17 @@ func Validate(template *api.IssueTemplate) error {
 
 func validateMetadata(template *api.IssueTemplate) error {
 	if strings.TrimSpace(template.Name) == "" {
-		return fmt.Errorf("'name' is required")
+		return errors.New("'name' is required")
 	}
 	if strings.TrimSpace(template.About) == "" {
-		return fmt.Errorf("'about' is required")
+		return errors.New("'about' is required")
 	}
 	return nil
 }
 
 func validateYaml(template *api.IssueTemplate) error {
 	if len(template.Fields) == 0 {
-		return fmt.Errorf("'body' is required")
+		return errors.New("'body' is required")
 	}
 	ids := make(container.Set[string])
 	for idx, field := range template.Fields {
