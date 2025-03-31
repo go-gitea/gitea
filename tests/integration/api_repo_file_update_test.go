@@ -140,11 +140,11 @@ func TestAPIUpdateFile(t *testing.T) {
 			expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath, lasCommit.ID.String())
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
-			assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
-			assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
-			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
-			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
-			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+			assert.Equal(t, expectedFileResponse.Content, fileResponse.Content)
+			assert.Equal(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
+			assert.Equal(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
+			assert.Equal(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
+			assert.Equal(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
 			gitRepo.Close()
 		}
 
@@ -163,10 +163,10 @@ func TestAPIUpdateFile(t *testing.T) {
 		expectedSHA := "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/update/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/update/file%d.txt", fileID)
-		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
-		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
-		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
-		assert.EqualValues(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
+		assert.Equal(t, expectedSHA, fileResponse.Content.SHA)
+		assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
+		assert.Equal(t, updateFileOptions.Message+"\n", fileResponse.Commit.Message)
 
 		// Test updating a file and renaming it
 		updateFileOptions = getUpdateFileOptions()
@@ -183,9 +183,9 @@ func TestAPIUpdateFile(t *testing.T) {
 		expectedSHA = "08bd14b2e2852529157324de9c226b3364e76136"
 		expectedHTMLURL = fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/master/rename/update/file%d.txt", fileID)
 		expectedDownloadURL = fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/master/rename/update/file%d.txt", fileID)
-		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
-		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
-		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
+		assert.Equal(t, expectedSHA, fileResponse.Content.SHA)
+		assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+		assert.Equal(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
 
 		// Test updating a file without a message
 		updateFileOptions = getUpdateFileOptions()
@@ -199,7 +199,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &fileResponse)
 		expectedMessage := "Update " + treePath + "\n"
-		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
+		assert.Equal(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test updating a file with the wrong SHA
 		fileID++
