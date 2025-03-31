@@ -64,7 +64,7 @@ var microcmdUserCreate = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "access-token",
-			Usage: "Generate an access token for the user, passsing a comma separated list of scopes to apply to it",
+			Usage: `Generate an access token for the user, passing a comma separated list of scopes to apply to it, examples: "all", "public-only,read:issue", "write:repository,write:user"`,
 			Value: "",
 		},
 		&cli.BoolFlag{
