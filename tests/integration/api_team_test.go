@@ -40,9 +40,9 @@ func TestAPITeam(t *testing.T) {
 
 	var apiTeam api.Team
 	DecodeJSON(t, resp, &apiTeam)
-	assert.EqualValues(t, team.ID, apiTeam.ID)
+	assert.Equal(t, team.ID, apiTeam.ID)
 	assert.Equal(t, team.Name, apiTeam.Name)
-	assert.EqualValues(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
+	assert.Equal(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
 
 	// non team member user will not access the teams details
 	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
@@ -247,10 +247,10 @@ func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, d
 		if units != nil {
 			sort.StringSlice(units).Sort()
 			sort.StringSlice(apiTeam.Units).Sort()
-			assert.EqualValues(t, units, apiTeam.Units, "units")
+			assert.Equal(t, units, apiTeam.Units, "units")
 		}
 		if unitsMap != nil {
-			assert.EqualValues(t, unitsMap, apiTeam.UnitsMap, "unitsMap")
+			assert.Equal(t, unitsMap, apiTeam.UnitsMap, "unitsMap")
 		}
 	})
 }

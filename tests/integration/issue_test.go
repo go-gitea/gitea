@@ -32,7 +32,7 @@ import (
 
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
 	issueList := htmlDoc.doc.Find("#issue-list")
-	assert.EqualValues(t, 1, issueList.Length())
+	assert.Equal(t, 1, issueList.Length())
 	return issueList.Find(".flex-item").Find(".issue-title")
 }
 
@@ -84,11 +84,11 @@ func TestViewIssuesSortByType(t *testing.T) {
 	if expectedNumIssues > setting.UI.IssuePagingNum {
 		expectedNumIssues = setting.UI.IssuePagingNum
 	}
-	assert.EqualValues(t, expectedNumIssues, issuesSelection.Length())
+	assert.Equal(t, expectedNumIssues, issuesSelection.Length())
 
 	issuesSelection.Each(func(_ int, selection *goquery.Selection) {
 		issue := getIssue(t, repo.ID, selection)
-		assert.EqualValues(t, user.ID, issue.PosterID)
+		assert.Equal(t, user.ID, issue.PosterID)
 	})
 }
 
@@ -108,7 +108,7 @@ func TestViewIssuesKeyword(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(t, htmlDoc)
-	assert.EqualValues(t, 1, issuesSelection.Length())
+	assert.Equal(t, 1, issuesSelection.Length())
 	issuesSelection.Each(func(_ int, selection *goquery.Selection) {
 		issue := getIssue(t, repo.ID, selection)
 		assert.False(t, issue.IsClosed)
@@ -510,7 +510,7 @@ func TestSearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
+	assert.Equal(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 20)
 
 	query.Add("limit", "5")
@@ -518,7 +518,7 @@ func TestSearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "22", resp.Header().Get("X-Total-Count"))
+	assert.Equal(t, "22", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 5)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
@@ -645,7 +645,7 @@ func TestGetIssueInfo(t *testing.T) {
 	}
 	DecodeJSON(t, resp, &respStruct)
 
-	assert.EqualValues(t, issue.ID, respStruct.ConvertedIssue.ID)
+	assert.Equal(t, issue.ID, respStruct.ConvertedIssue.ID)
 	assert.Contains(t, string(respStruct.RenderedLabels), `"labels-list"`)
 }
 
@@ -665,7 +665,7 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{"deadline": "2022-04-06"})
 	session.MakeRequest(t, req, http.StatusOK)
 	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
-	assert.EqualValues(t, "2022-04-06", issueAfter.DeadlineUnix.FormatDate())
+	assert.Equal(t, "2022-04-06", issueAfter.DeadlineUnix.FormatDate())
 
 	req = NewRequestWithValues(t, "POST", urlStr, map[string]string{"deadline": ""})
 	session.MakeRequest(t, req, http.StatusOK)
@@ -686,8 +686,8 @@ func TestIssueReferenceURL(t *testing.T) {
 
 	// the "reference" uses relative URLs, then JS code will convert them to absolute URLs for current origin, in case users are using multiple domains
 	ref, _ := htmlDoc.Find(`.timeline-item.comment.first .reference-issue`).Attr("data-reference")
-	assert.EqualValues(t, "/user2/repo1/issues/1#issue-1", ref)
+	assert.Equal(t, "/user2/repo1/issues/1#issue-1", ref)
 
 	ref, _ = htmlDoc.Find(`.timeline-item.comment:not(.first) .reference-issue`).Attr("data-reference")
-	assert.EqualValues(t, "/user2/repo1/issues/1#issuecomment-2", ref)
+	assert.Equal(t, "/user2/repo1/issues/1#issuecomment-2", ref)
 }

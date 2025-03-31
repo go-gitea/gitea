@@ -115,15 +115,15 @@ func TestEllipsisString(t *testing.T) {
 }
 
 func TestTruncateRunes(t *testing.T) {
-	assert.Equal(t, "", TruncateRunes("", 0))
-	assert.Equal(t, "", TruncateRunes("", 1))
+	assert.Empty(t, TruncateRunes("", 0))
+	assert.Empty(t, TruncateRunes("", 1))
 
-	assert.Equal(t, "", TruncateRunes("ab", 0))
+	assert.Empty(t, TruncateRunes("ab", 0))
 	assert.Equal(t, "a", TruncateRunes("ab", 1))
 	assert.Equal(t, "ab", TruncateRunes("ab", 2))
 	assert.Equal(t, "ab", TruncateRunes("ab", 3))
 
-	assert.Equal(t, "", TruncateRunes("测试", 0))
+	assert.Empty(t, TruncateRunes("测试", 0))
 	assert.Equal(t, "测", TruncateRunes("测试", 1))
 	assert.Equal(t, "测试", TruncateRunes("测试", 2))
 	assert.Equal(t, "测试", TruncateRunes("测试", 3))
