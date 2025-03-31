@@ -13,6 +13,7 @@ linters:
     - gocritic
     - govet
     - ineffassign
+    - mirror
     - nakedret
     - nolintlint
     - revive
