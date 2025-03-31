@@ -12,7 +12,7 @@ export function initRepoEllipsisButton() {
 }
 
 export function initCommitStatuses() {
-  registerGlobalInitFunc('initCommitStatuses', async (el: HTMLElement) => {
+  registerGlobalInitFunc('initCommitStatuses', (el: HTMLElement) => {
     const nextEl = el.nextElementSibling;
     if (!nextEl.matches('.tippy-target')) throw new Error('Expected next element to be a tippy target');
     createTippy(el, {
