@@ -66,7 +66,7 @@ func TestAdminUserCreate(t *testing.T) {
 	})
 
 	t.Run("AccessToken", func(t *testing.T) {
-		resetIncluingTokens := func() {
+		resetIncludingTokens := func() {
 			reset()
 			require.NoError(t, db.TruncateBeans(db.DefaultContext, &auth_model.AccessToken{}))
 		}
@@ -76,7 +76,7 @@ func TestAdminUserCreate(t *testing.T) {
 		a := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "gitea-admin"})
 		assert.Empty(t, string(a.Scope))
 
-		resetIncluingTokens()
+		resetIncludingTokens()
 		assert.ErrorContains(t, createUser("u", "--random-password --with-scopes all"), "--access-token is required when using --with-scopes")
 
 		assert.NoError(t, createUser("u", "--random-password --access-token --with-scopes read:issue,read:user"))
