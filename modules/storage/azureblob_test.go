@@ -33,14 +33,14 @@ func TestAzureBlobStorageIterator(t *testing.T) {
 
 func TestAzureBlobStoragePath(t *testing.T) {
 	m := &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: ""}}
-	assert.Equal(t, "", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "", m.buildAzureBlobPath("."))
+	assert.Empty(t, m.buildAzureBlobPath("/"))
+	assert.Empty(t, m.buildAzureBlobPath("."))
 	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
 	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
 
 	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/"}}
-	assert.Equal(t, "", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "", m.buildAzureBlobPath("."))
+	assert.Empty(t, m.buildAzureBlobPath("/"))
+	assert.Empty(t, m.buildAzureBlobPath("."))
 	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
 	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
 
@@ -86,7 +86,7 @@ func Test_azureBlobObject(t *testing.T) {
 	buf1 := make([]byte, 3)
 	read, err := obj.Read(buf1)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, read)
+	assert.Equal(t, 3, read)
 	assert.Equal(t, data[2:5], string(buf1))
 	offset, err = obj.Seek(-5, io.SeekEnd)
 	assert.NoError(t, err)
@@ -94,7 +94,7 @@ func Test_azureBlobObject(t *testing.T) {
 	buf2 := make([]byte, 4)
 	read, err = obj.Read(buf2)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 4, read)
+	assert.Equal(t, 4, read)
 	assert.Equal(t, data[11:15], string(buf2))
 	assert.NoError(t, obj.Close())
 	assert.NoError(t, s.Delete("test.txt"))

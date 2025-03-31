@@ -81,21 +81,21 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	assert.NoError(t, err)
 	attr = <-wr.ReadAttribute()
 	assert.NoError(t, err)
-	assert.EqualValues(t, attributeTriple{
+	assert.Equal(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
 		Attribute: AttributeLinguistVendored,
 		Value:     "set",
 	}, attr)
 	attr = <-wr.ReadAttribute()
 	assert.NoError(t, err)
-	assert.EqualValues(t, attributeTriple{
+	assert.Equal(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
 		Attribute: AttributeLinguistGenerated,
 		Value:     "unspecified",
 	}, attr)
 	attr = <-wr.ReadAttribute()
 	assert.NoError(t, err)
-	assert.EqualValues(t, attributeTriple{
+	assert.Equal(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
 		Attribute: AttributeLinguistLanguage,
 		Value:     "unspecified",

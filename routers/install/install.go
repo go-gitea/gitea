@@ -151,7 +151,7 @@ func Install(ctx *context.Context) {
 	form.DisableRegistration = setting.Service.DisableRegistration
 	form.AllowOnlyExternalRegistration = setting.Service.AllowOnlyExternalRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
-	form.RequireSignInView = setting.Service.RequireSignInView
+	form.RequireSignInView = setting.Service.RequireSignInViewStrict
 	form.DefaultKeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking

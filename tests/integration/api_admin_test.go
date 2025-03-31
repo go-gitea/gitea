@@ -217,7 +217,7 @@ func TestAPIEditUser(t *testing.T) {
 
 	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
-	assert.EqualValues(t, "e-mail invalid [email: ]", errMap["message"].(string))
+	assert.Equal(t, "e-mail invalid [email: ]", errMap["message"].(string))
 
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.False(t, user2.IsRestricted)

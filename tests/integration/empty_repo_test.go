@@ -172,7 +172,7 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	var fileResponse api.FileResponse
 	DecodeJSON(t, resp, &fileResponse)
 	expectedHTMLURL := setting.AppURL + "user30/empty/src/branch/new_branch/new-file.txt"
-	assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+	assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 
 	req = NewRequest(t, "GET", "/user30/empty/src/branch/new_branch/new-file.txt")
 	resp = session.MakeRequest(t, req, http.StatusOK)

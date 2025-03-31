@@ -1,6 +1,6 @@
 import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.ts';
-import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
+import {onInputDebounce, queryElems, toggleClass, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
@@ -125,22 +125,14 @@ function initRepoSettingsOptions() {
   const pageContent = document.querySelector('.page-content.repository.settings.options');
   if (!pageContent) return;
 
-  const toggleClass = (elems: NodeListOf<Element>, className: string, value: boolean) => {
-    for (const el of elems) el.classList.toggle(className, value);
-  };
-
   // Enable or select internal/external wiki system and issue tracker.
   queryElems<HTMLInputElement>(pageContent, '.enable-system', (el) => el.addEventListener('change', () => {
-    const elTargets = document.querySelectorAll(el.getAttribute('data-target'));
-    const elContexts = document.querySelectorAll(el.getAttribute('data-context'));
-    toggleClass(elTargets, 'disabled', !el.checked);
-    toggleClass(elContexts, 'disabled', el.checked);
+    toggleClass(el.getAttribute('data-target'), 'disabled', !el.checked);
+    toggleClass(el.getAttribute('data-context'), 'disabled', el.checked);
   }));
   queryElems<HTMLInputElement>(pageContent, '.enable-system-radio', (el) => el.addEventListener('change', () => {
-    const elTargets = document.querySelectorAll(el.getAttribute('data-target'));
-    const elContexts = document.querySelectorAll(el.getAttribute('data-context'));
-    toggleClass(elTargets, 'disabled', el.value === 'false');
-    toggleClass(elContexts, 'disabled', el.value === 'true');
+    toggleClass(el.getAttribute('data-target'), 'disabled', el.value === 'false');
+    toggleClass(el.getAttribute('data-context'), 'disabled', el.value === 'true');
   }));
 
   queryElems<HTMLInputElement>(pageContent, '.js-tracker-issue-style', (el) => el.addEventListener('change', () => {
