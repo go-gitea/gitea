@@ -441,7 +441,7 @@ func TestPackageContainer(t *testing.T) {
 								assert.Equal(t, "application/vnd.docker.image.rootfs.diff.tar.gzip", pfd.Properties.GetByName(container_module.PropertyMediaType))
 								assert.Equal(t, blobDigest, pfd.Properties.GetByName(container_module.PropertyDigest))
 							default:
-								assert.FailNow(t, "unknown file: %s", pfd.File.Name)
+								assert.FailNow(t, "unknown file", "unknown file: %s", pfd.File.Name)
 							}
 						}
 

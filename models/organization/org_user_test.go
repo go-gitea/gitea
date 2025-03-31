@@ -139,7 +139,7 @@ func TestAddOrgUser(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, ou)
 		assert.Equal(t, isPublic, ou.IsPublic)
 		org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID})
-		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
+		assert.Equal(t, expectedNumMembers, org.NumMembers)
 	}
 
 	setting.Service.DefaultOrgMemberVisible = false

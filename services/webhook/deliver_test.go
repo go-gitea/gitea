@@ -138,7 +138,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 		case "/webhook/66d222a5d6349e1311f551e50722d837e30fce98":
 			// Version 1
 			assert.Equal(t, "push", r.Header.Get("X-GitHub-Event"))
-			assert.Equal(t, "", r.Header.Get("Content-Type"))
+			assert.Empty(t, r.Header.Get("Content-Type"))
 			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
 			assert.Equal(t, `{"data": 42}`, string(body))

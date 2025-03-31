@@ -64,7 +64,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, Name: repoName})
 	assert.True(t, repo.HasWiki())
-	assert.EqualValues(t, repo_model.RepositoryReady, repo.Status)
+	assert.Equal(t, repo_model.RepositoryReady, repo.Status)
 
 	milestones, err := db.Find[issues_model.Milestone](db.DefaultContext, issues_model.FindMilestoneOptions{
 		RepoID:   repo.ID,
@@ -152,7 +152,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	uploader.userMap = make(map[int64]int64)
 	err := uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, doer.ID, target.GetUserID())
+	assert.Equal(t, doer.ID, target.GetUserID())
 
 	//
 	// The externalID matches a known user but the name does not match,
@@ -163,7 +163,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	uploader.userMap = make(map[int64]int64)
 	err = uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, doer.ID, target.GetUserID())
+	assert.Equal(t, doer.ID, target.GetUserID())
 
 	//
 	// The externalID and externalName match an existing user, everything
@@ -174,7 +174,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	uploader.userMap = make(map[int64]int64)
 	err = uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, user.ID, target.GetUserID())
+	assert.Equal(t, user.ID, target.GetUserID())
 }
 
 func TestGiteaUploadRemapExternalUser(t *testing.T) {
@@ -202,7 +202,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	target := repo_model.Release{}
 	err := uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, doer.ID, target.GetUserID())
+	assert.Equal(t, doer.ID, target.GetUserID())
 
 	//
 	// Link the external ID to an existing user
@@ -225,7 +225,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	target = repo_model.Release{}
 	err = uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, linkedUser.ID, target.GetUserID())
+	assert.Equal(t, linkedUser.ID, target.GetUserID())
 }
 
 func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
@@ -508,14 +508,14 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 
 			head, err := uploader.updateGitForPullRequest(ctx, &testCase.pr)
 			assert.NoError(t, err)
-			assert.EqualValues(t, testCase.head, head)
+			assert.Equal(t, testCase.head, head)
 
 			log.Info(stopMark)
 
 			logFiltered, logStopped := logChecker.Check(5 * time.Second)
 			assert.True(t, logStopped)
 			if len(testCase.logFilter) > 0 {
-				assert.EqualValues(t, testCase.logFiltered, logFiltered, "for log message filters: %v", testCase.logFilter)
+				assert.Equal(t, testCase.logFiltered, logFiltered, "for log message filters: %v", testCase.logFilter)
 			}
 		})
 	}
