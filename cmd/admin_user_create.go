@@ -62,10 +62,19 @@ var microcmdUserCreate = &cli.Command{
 			Usage: "Length of the random password to be generated",
 			Value: 12,
 		},
-		&cli.StringFlag{
+		&cli.BoolFlag{
 			Name:  "access-token",
-			Usage: `Generate an access token for the user, passing a comma separated list of scopes to apply to it, examples: "all", "public-only,read:issue", "write:repository,write:user"`,
-			Value: "",
+			Usage: "Generate access token for the user",
+		},
+		&cli.StringFlag{
+			Name:  "access-token-name",
+			Usage: `Name of the generated access token`,
+			Value: "gitea-admin",
+		},
+		&cli.StringFlag{
+			Name:  "access-token-scopes",
+			Usage: `Scopes of the generated access token, comma separated. Examples: "all", "public-only,read:issue", "write:repository,write:user"`,
+			Value: "all",
 		},
 		&cli.BoolFlag{
 			Name:  "restricted",
@@ -194,12 +203,12 @@ func runCreateUser(c *cli.Context) error {
 
 	if c.IsSet("access-token") {
 		t := &auth_model.AccessToken{
-			Name: "gitea-admin",
+			Name: c.String("access-token-name"),
 			UID:  u.ID,
 		}
 
 		// include access token's scopes
-		accessTokenScope, err := auth_model.AccessTokenScope(c.String("access-token")).Normalize()
+		accessTokenScope, err := auth_model.AccessTokenScope(c.String("access-token-scopes")).Normalize()
 		if err != nil {
 			return fmt.Errorf("invalid access token scope provided: %w", err)
 		}
@@ -210,6 +219,8 @@ func runCreateUser(c *cli.Context) error {
 		}
 
 		fmt.Printf("Access token was successfully created... %s\n", t.Token)
+	} else if c.IsSet("access-token-name") || c.IsSet("access-token-scopes") {
+		return errors.New("access-token-name and access-token-scopes flags are only valid when access-token flag is set")
 	}
 
 	fmt.Printf("New user '%s' has been successfully created!\n", username)
