@@ -127,7 +127,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 	// Only public pull don't need auth.
 	isPublicPull := repoExist && !repo.IsPrivate && isPull
 	var (
-		askAuth = !isPublicPull || setting.Service.RequireSignInView
+		askAuth = !isPublicPull || setting.Service.RequireSignInViewStrict
 		environ []string
 	)
 

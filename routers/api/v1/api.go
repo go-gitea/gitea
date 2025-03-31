@@ -355,7 +355,7 @@ func reqToken() func(ctx *context.APIContext) {
 
 func reqExploreSignIn() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if (setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView) && !ctx.IsSigned {
+		if (setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView) && !ctx.IsSigned {
 			ctx.APIError(http.StatusUnauthorized, "you must be signed in to search for users")
 		}
 	}
@@ -842,13 +842,13 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 func individualPermsChecker(ctx *context.APIContext) {
 	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 	if ctx.ContextUser.IsIndividual() {
-		switch {
-		case ctx.ContextUser.Visibility == api.VisibleTypePrivate:
+		switch ctx.ContextUser.Visibility {
+		case api.VisibleTypePrivate:
 			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
 				ctx.APIErrorNotFound("Visit Project", nil)
 				return
 			}
-		case ctx.ContextUser.Visibility == api.VisibleTypeLimited:
+		case api.VisibleTypeLimited:
 			if ctx.Doer == nil {
 				ctx.APIErrorNotFound("Visit Project", nil)
 				return
@@ -886,7 +886,7 @@ func Routes() *web.Router {
 	m.Use(apiAuth(buildAuthGroup()))
 
 	m.Use(verifyAuthWithOptions(&common.VerifyOptions{
-		SignInRequired: setting.Service.RequireSignInView,
+		SignInRequired: setting.Service.RequireSignInViewStrict,
 	}))
 
 	addActionsRoutes := func(

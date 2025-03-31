@@ -29,7 +29,7 @@ func assertFileExist(t *testing.T, p string) {
 func assertFileEqual(t *testing.T, p string, content []byte) {
 	bs, err := os.ReadFile(p)
 	assert.NoError(t, err)
-	assert.EqualValues(t, content, bs)
+	assert.Equal(t, content, bs)
 }
 
 func TestRepoCloneWiki(t *testing.T) {
@@ -69,6 +69,6 @@ func Test_RepoWikiPages(t *testing.T) {
 		href, _ := firstAnchor.Attr("href")
 		pagePath := strings.TrimPrefix(href, "/user2/repo1/wiki/")
 
-		assert.EqualValues(t, expectedPagePaths[i], pagePath)
+		assert.Equal(t, expectedPagePaths[i], pagePath)
 	})
 }

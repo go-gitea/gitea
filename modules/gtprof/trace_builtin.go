@@ -40,7 +40,7 @@ func (t *traceBuiltinSpan) toString(out *strings.Builder, indent int) {
 	if t.ts.endTime.IsZero() {
 		out.WriteString(" duration: (not ended)")
 	} else {
-		out.WriteString(fmt.Sprintf(" duration=%.4fs", t.ts.endTime.Sub(t.ts.startTime).Seconds()))
+		fmt.Fprintf(out, " duration=%.4fs", t.ts.endTime.Sub(t.ts.startTime).Seconds())
 	}
 	for _, a := range t.ts.attributes {
 		out.WriteString(" ")
