@@ -4,6 +4,7 @@
 package cache
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -52,7 +53,7 @@ func Test() (time.Duration, error) {
 		return 0, errors.New("default cache not initialized")
 	}
 
-	testData := fmt.Sprintf("%x", make([]byte, 500))
+	testData := hex.EncodeToString(make([]byte, 500))
 
 	start := time.Now()
 

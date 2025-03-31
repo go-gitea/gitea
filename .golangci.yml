@@ -87,7 +87,6 @@ linters:
       integer-format: false
       int-conversion: false
       bool-format: false
-      hex-format: false
     staticcheck:
       checks:
         - all
