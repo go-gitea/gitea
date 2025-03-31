@@ -27,7 +27,7 @@ func GetWorkflowBadge(ctx *context.Context) {
 	event := ctx.Req.URL.Query().Get("event")
 
 	style := ctx.Req.URL.Query().Get("style")
-	if !slices.Contains([]badge.Style{badge.StyleFlat, badge.StyleFlatSquare}, badge.Style(style)) {
+	if !slices.Contains(badge.AllStyles, badge.Style(style)) {
 		style = badge.DefaultStyle
 	}
 

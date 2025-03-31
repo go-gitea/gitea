@@ -128,7 +128,6 @@ func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 
 func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	fontFamilyNames := strings.Split(badge.DefaultFontFamily, ",")
-	styles := []badge.Style{badge.StyleFlat, badge.StyleFlatSquare}
 	selectedFontFamilyName := ctx.FormString("font", fontFamilyNames[0])
 	selectedStyle := ctx.FormString("style", badge.DefaultStyle)
 	var badges []badge.Badge
@@ -163,7 +162,7 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	ctx.Data["BadgeSVGs"] = badgeSVGs
 	ctx.Data["BadgeFontFamilyNames"] = fontFamilyNames
 	ctx.Data["SelectedFontFamilyName"] = selectedFontFamilyName
-	ctx.Data["BadgeStyles"] = styles
+	ctx.Data["BadgeStyles"] = badge.AllStyles
 	ctx.Data["SelectedStyle"] = selectedStyle
 }
 

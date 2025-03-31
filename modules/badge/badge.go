@@ -65,16 +65,20 @@ const (
 	DefaultStyle      = StyleFlat
 )
 
-var StatusColorMap = map[actions_model.Status]string{
-	actions_model.StatusSuccess:   "#4c1",    // Green
-	actions_model.StatusSkipped:   "#dfb317", // Yellow
-	actions_model.StatusUnknown:   "#97ca00", // Light Green
-	actions_model.StatusFailure:   "#e05d44", // Red
-	actions_model.StatusCancelled: "#fe7d37", // Orange
-	actions_model.StatusWaiting:   "#dfb317", // Yellow
-	actions_model.StatusRunning:   "#dfb317", // Yellow
-	actions_model.StatusBlocked:   "#dfb317", // Yellow
-}
+var (
+	StatusColorMap = map[actions_model.Status]string{
+		actions_model.StatusSuccess:   "#4c1",    // Green
+		actions_model.StatusSkipped:   "#dfb317", // Yellow
+		actions_model.StatusUnknown:   "#97ca00", // Light Green
+		actions_model.StatusFailure:   "#e05d44", // Red
+		actions_model.StatusCancelled: "#fe7d37", // Orange
+		actions_model.StatusWaiting:   "#dfb317", // Yellow
+		actions_model.StatusRunning:   "#dfb317", // Yellow
+		actions_model.StatusBlocked:   "#dfb317", // Yellow
+	}
+
+	AllStyles = []Style{StyleFlat, StyleFlatSquare}
+)
 
 // GenerateBadge generates badge with given template
 func GenerateBadge(label, message, color string) Badge {
