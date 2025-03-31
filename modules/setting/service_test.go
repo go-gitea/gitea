@@ -7,16 +7,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/gobwas/glob"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadServices(t *testing.T) {
-	oldService := Service
-	defer func() {
-		Service = oldService
-	}()
+	defer test.MockVariableValue(&Service)()
 
 	cfg, err := NewConfigProviderFromData(`
 [service]
@@ -48,10 +46,7 @@ EMAIL_DOMAIN_BLOCKLIST = d3, *.b
 }
 
 func TestLoadServiceVisibilityModes(t *testing.T) {
-	oldService := Service
-	defer func() {
-		Service = oldService
-	}()
+	defer test.MockVariableValue(&Service)()
 
 	kases := map[string]func(){
 		`
@@ -129,4 +124,34 @@ ALLOWED_USER_VISIBILITY_MODES = public, limit, privated
 			Service.DefaultUserVisibilityMode = structs.VisibleTypePublic
 		})
 	}
+}
+
+func TestLoadServiceRequireSignInView(t *testing.T) {
+	defer test.MockVariableValue(&Service)()
+
+	cfg, err := NewConfigProviderFromData(`
+[service]
+`)
+	assert.NoError(t, err)
+	loadServiceFrom(cfg)
+	assert.False(t, Service.RequireSignInViewStrict)
+	assert.False(t, Service.BlockAnonymousAccessExpensive)
+
+	cfg, err = NewConfigProviderFromData(`
+[service]
+REQUIRE_SIGNIN_VIEW = true
+`)
+	assert.NoError(t, err)
+	loadServiceFrom(cfg)
+	assert.True(t, Service.RequireSignInViewStrict)
+	assert.False(t, Service.BlockAnonymousAccessExpensive)
+
+	cfg, err = NewConfigProviderFromData(`
+[service]
+REQUIRE_SIGNIN_VIEW = expensive
+`)
+	assert.NoError(t, err)
+	loadServiceFrom(cfg)
+	assert.False(t, Service.RequireSignInViewStrict)
+	assert.True(t, Service.BlockAnonymousAccessExpensive)
 }

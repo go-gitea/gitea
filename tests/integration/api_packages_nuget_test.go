@@ -276,7 +276,7 @@ func TestPackageNuGet(t *testing.T) {
 				case fmt.Sprintf("%s.nuspec", packageName):
 					assert.False(t, pf.IsLead)
 				default:
-					assert.Fail(t, "unexpected filename: %v", pf.Name)
+					assert.Fail(t, "unexpected filename", "unexpected filename: %v", pf.Name)
 				}
 			}
 
@@ -322,7 +322,7 @@ func TestPackageNuGet(t *testing.T) {
 				case fmt.Sprintf("%s.nuspec", packageName):
 					assert.False(t, pf.IsLead)
 				default:
-					assert.Fail(t, "unexpected filename: %v", pf.Name)
+					assert.Fail(t, "unexpected filename", "unexpected filename: %v", pf.Name)
 				}
 			}
 
@@ -419,7 +419,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					assert.Equal(t, nuget_module.PropertySymbolID, pps[0].Name)
 					assert.Equal(t, symbolID, pps[0].Value)
 				default:
-					assert.FailNow(t, "unexpected file: %v", pf.Name)
+					assert.FailNow(t, "unexpected file", "unexpected file: %v", pf.Name)
 				}
 			}
 

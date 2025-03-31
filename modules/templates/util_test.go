@@ -28,7 +28,7 @@ func TestDict(t *testing.T) {
 	for _, c := range cases {
 		got, err := dict(c.args...)
 		if assert.NoError(t, err) {
-			assert.EqualValues(t, c.want, got)
+			assert.Equal(t, c.want, got)
 		}
 	}
 

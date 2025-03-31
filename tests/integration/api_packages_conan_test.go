@@ -356,7 +356,7 @@ func TestPackageConan(t *testing.T) {
 
 						assert.Equal(t, int64(len(contentConaninfo)), pb.Size)
 					} else {
-						assert.FailNow(t, "unknown file: %s", pf.Name)
+						assert.FailNow(t, "unknown file", "unknown file: %s", pf.Name)
 					}
 				}
 			})
