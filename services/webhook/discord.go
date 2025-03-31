@@ -101,6 +101,8 @@ var (
 	redColor         = color("ff3232")
 )
 
+const discordDescriptionBytesLimit = 2048
+
 type discordConvertor struct {
 	Username  string
 	AvatarURL string
@@ -307,6 +309,9 @@ func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, 
 }
 
 func (d discordConvertor) createPayload(s *api.User, title, text, url string, color int) DiscordPayload {
+	if len(text) > discordDescriptionBytesLimit {
+		text = text[:discordDescriptionBytesLimit]
+	}
 	return DiscordPayload{
 		Username:  d.Username,
 		AvatarURL: d.AvatarURL,
