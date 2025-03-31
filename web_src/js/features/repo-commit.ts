@@ -1,6 +1,6 @@
 import {createTippy} from '../modules/tippy.ts';
 import {toggleElem} from '../utils/dom.ts';
-import {registerGlobalEventFunc} from '../modules/observer.ts';
+import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 
 export function initRepoEllipsisButton() {
   registerGlobalEventFunc('click', 'onRepoEllipsisButtonClick', async (el: HTMLInputElement, e: Event) => {
@@ -12,15 +12,15 @@ export function initRepoEllipsisButton() {
 }
 
 export function initCommitStatuses() {
-  for (const element of document.querySelectorAll('[data-tippy="commit-statuses"]')) {
+  registerGlobalInitFunc('commit-statuses', async (el: HTMLElement) => {
     const top = document.querySelector('.repository.file.list') || document.querySelector('.repository.diff');
 
-    createTippy(element, {
-      content: element.nextElementSibling,
+    createTippy(el, {
+      content: el.nextElementSibling,
       placement: top ? 'top-start' : 'bottom-start',
       interactive: true,
       role: 'dialog',
       theme: 'box-with-header',
     });
-  }
+  });
 }
