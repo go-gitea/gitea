@@ -86,7 +86,6 @@ linters:
     perfsprint:
       integer-format: false
       int-conversion: false
-      bool-format: false
     staticcheck:
       checks:
         - all
