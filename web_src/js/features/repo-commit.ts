@@ -12,12 +12,12 @@ export function initRepoEllipsisButton() {
 }
 
 export function initCommitStatuses() {
-  registerGlobalInitFunc('commit-statuses', async (el: HTMLElement) => {
-    const top = document.querySelector('.repository.file.list') || document.querySelector('.repository.diff');
-
+  registerGlobalInitFunc('initCommitStatuses', async (el: HTMLElement) => {
+    const nextEl = el.nextElementSibling;
+    if (!nextEl.matches('.tippy-target')) throw new Error('Expected next element to be a tippy target');
     createTippy(el, {
       content: el.nextElementSibling,
-      placement: top ? 'top-start' : 'bottom-start',
+      placement: 'bottom-start',
       interactive: true,
       role: 'dialog',
       theme: 'box-with-header',
