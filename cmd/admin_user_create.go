@@ -66,10 +66,21 @@ var microcmdUserCreate = &cli.Command{
 			Name:  "access-token",
 			Usage: "Generate access token for the user",
 		},
+		&cli.StringFlag{
+			Name:  "with-scopes",
+			Usage: "Comma separated list of scopes to apply to access token (--access-token is required)",
+			Value: "",
+		},
 		&cli.BoolFlag{
 			Name:  "restricted",
 			Usage: "Make a restricted user account",
 		},
+	},
+	Before: func(c *cli.Context) error {
+		if c.String("with-scopes") != "" && !c.Bool("access-token") {
+			return errors.New("--access-token is required when using --with-scopes")
+		}
+		return nil
 	},
 }
 
@@ -196,6 +207,13 @@ func runCreateUser(c *cli.Context) error {
 			Name: "gitea-admin",
 			UID:  u.ID,
 		}
+
+		// include access token scopes
+		accessTokenScope, err := auth_model.AccessTokenScope(c.String("with-scopes")).Normalize()
+		if err != nil {
+			return fmt.Errorf("invalid access token scope provided: %w", err)
+		}
+		t.Scope = accessTokenScope
 
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -48,11 +49,11 @@ func TestAdminUserCreate(t *testing.T) {
 		assert.Equal(t, check{IsAdmin: false, MustChangePassword: false}, createCheck("u5", "--must-change-password=false"))
 	})
 
-	t.Run("UserType", func(t *testing.T) {
-		createUser := func(name, args string) error {
-			return app.Run(strings.Fields(fmt.Sprintf("./gitea admin user create --username %s --email %s@gitea.local %s", name, name, args)))
-		}
+	createUser := func(name, args string) error {
+		return app.Run(strings.Fields(fmt.Sprintf("./gitea admin user create --username %s --email %s@gitea.local %s", name, name, args)))
+	}
 
+	t.Run("UserType", func(t *testing.T) {
 		reset()
 		assert.ErrorContains(t, createUser("u", "--user-type invalid"), "invalid user type")
 		assert.ErrorContains(t, createUser("u", "--user-type bot --password 123"), "can only be set for individual users")
@@ -62,5 +63,26 @@ func TestAdminUserCreate(t *testing.T) {
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"})
 		assert.Equal(t, user_model.UserTypeBot, u.Type)
 		assert.Equal(t, "", u.Passwd)
+	})
+
+	t.Run("AccessToken", func(t *testing.T) {
+		resetIncluingTokens := func() {
+			reset()
+			require.NoError(t, db.TruncateBeans(db.DefaultContext, &auth_model.AccessToken{}))
+		}
+
+		reset()
+		assert.NoError(t, createUser("u", "--random-password --access-token"))
+		a := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "gitea-admin"})
+		assert.Empty(t, string(a.Scope))
+
+		resetIncluingTokens()
+		assert.ErrorContains(t, createUser("u", "--random-password --with-scopes all"), "--access-token is required when using --with-scopes")
+
+		assert.NoError(t, createUser("u", "--random-password --access-token --with-scopes read:issue,read:user"))
+		a = unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "gitea-admin"})
+		hasScopes, err := a.Scope.HasScope(auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadUser)
+		assert.NoError(t, err)
+		assert.True(t, hasScopes)
 	})
 }
