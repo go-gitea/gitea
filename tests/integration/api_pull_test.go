@@ -61,8 +61,8 @@ func TestAPIViewPulls(t *testing.T) {
 			assert.Equal(t, "File-WoW", patch.Files[0].Name)
 			// FIXME: The old name should be empty if it's a file add type
 			assert.Equal(t, "File-WoW", patch.Files[0].OldName)
-			assert.EqualValues(t, 1, patch.Files[0].Addition)
-			assert.EqualValues(t, 0, patch.Files[0].Deletion)
+			assert.Equal(t, 1, patch.Files[0].Addition)
+			assert.Equal(t, 0, patch.Files[0].Deletion)
 			assert.Equal(t, gitdiff.DiffFileAdd, patch.Files[0].Type)
 		}
 
@@ -71,9 +71,9 @@ func TestAPIViewPulls(t *testing.T) {
 				if assert.Len(t, files, 1) {
 					assert.Equal(t, "File-WoW", files[0].Filename)
 					assert.Empty(t, files[0].PreviousFilename)
-					assert.EqualValues(t, 1, files[0].Additions)
-					assert.EqualValues(t, 1, files[0].Changes)
-					assert.EqualValues(t, 0, files[0].Deletions)
+					assert.Equal(t, 1, files[0].Additions)
+					assert.Equal(t, 1, files[0].Changes)
+					assert.Equal(t, 0, files[0].Deletions)
 					assert.Equal(t, "added", files[0].Status)
 				}
 			}))
@@ -97,8 +97,8 @@ func TestAPIViewPulls(t *testing.T) {
 		if assert.Len(t, patch.Files, 1) {
 			assert.Equal(t, "README.md", patch.Files[0].Name)
 			assert.Equal(t, "README.md", patch.Files[0].OldName)
-			assert.EqualValues(t, 4, patch.Files[0].Addition)
-			assert.EqualValues(t, 1, patch.Files[0].Deletion)
+			assert.Equal(t, 4, patch.Files[0].Addition)
+			assert.Equal(t, 1, patch.Files[0].Deletion)
 			assert.Equal(t, gitdiff.DiffFileChange, patch.Files[0].Type)
 		}
 
@@ -107,9 +107,9 @@ func TestAPIViewPulls(t *testing.T) {
 				if assert.Len(t, files, 1) {
 					assert.Equal(t, "README.md", files[0].Filename)
 					// FIXME: The PreviousFilename name should be the same as Filename if it's a file change
-					assert.Equal(t, "", files[0].PreviousFilename)
-					assert.EqualValues(t, 4, files[0].Additions)
-					assert.EqualValues(t, 1, files[0].Deletions)
+					assert.Empty(t, files[0].PreviousFilename)
+					assert.Equal(t, 4, files[0].Additions)
+					assert.Equal(t, 1, files[0].Deletions)
 					assert.Equal(t, "changed", files[0].Status)
 				}
 			}))
@@ -307,12 +307,12 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	DecodeJSON(t, res, pull)
 
 	assert.NotNil(t, pull.Milestone)
-	assert.EqualValues(t, opts.Milestone, pull.Milestone.ID)
+	assert.Equal(t, opts.Milestone, pull.Milestone.ID)
 	if assert.Len(t, pull.Assignees, 1) {
-		assert.EqualValues(t, opts.Assignees[0], owner10.Name)
+		assert.Equal(t, opts.Assignees[0], owner10.Name)
 	}
 	assert.NotNil(t, pull.Labels)
-	assert.EqualValues(t, opts.Labels[0], pull.Labels[0].ID)
+	assert.Equal(t, opts.Labels[0], pull.Labels[0].ID)
 }
 
 func TestAPICreatePullWithFieldsFailure(t *testing.T) {
@@ -366,7 +366,7 @@ func TestAPIEditPull(t *testing.T) {
 	apiPull := new(api.PullRequest)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, apiPull)
-	assert.EqualValues(t, "master", apiPull.Base.Name)
+	assert.Equal(t, "master", apiPull.Base.Name)
 
 	newTitle := "edit a this pr"
 	newBody := "edited body"
@@ -377,7 +377,7 @@ func TestAPIEditPull(t *testing.T) {
 	}).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, apiPull)
-	assert.EqualValues(t, "feature/1", apiPull.Base.Name)
+	assert.Equal(t, "feature/1", apiPull.Base.Name)
 	// check comment history
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
 	err := pull.LoadIssue(db.DefaultContext)

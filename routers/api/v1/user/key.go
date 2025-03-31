@@ -24,9 +24,10 @@ import (
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
 func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *asymkey_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
-	if key.Type == asymkey_model.KeyTypeDeploy {
+	switch key.Type {
+	case asymkey_model.KeyTypeDeploy:
 		apiKey.KeyType = "deploy"
-	} else if key.Type == asymkey_model.KeyTypeUser {
+	case asymkey_model.KeyTypeUser:
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
@@ -38,7 +39,7 @@ func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *a
 			}
 			apiKey.Owner = convert.ToUser(ctx, user, user)
 		}
-	} else {
+	default:
 		apiKey.KeyType = "unknown"
 	}
 	apiKey.ReadOnly = key.Mode == perm.AccessModeRead

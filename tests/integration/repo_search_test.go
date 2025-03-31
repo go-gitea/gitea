@@ -57,5 +57,5 @@ func testSearch(t *testing.T, url string, expected []string) {
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	filenames := resultFilenames(NewHTMLParser(t, resp.Body))
-	assert.EqualValues(t, expected, filenames)
+	assert.Equal(t, expected, filenames)
 }

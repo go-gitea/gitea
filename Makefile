@@ -28,7 +28,7 @@ XGO_VERSION := go-1.24.x
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.2.1
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.7.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.7
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.2
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.6.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
@@ -410,12 +410,12 @@ watch-backend: go-check ## watch backend files and continuously rebuild
 test: test-frontend test-backend ## test everything
 
 .PHONY: test-backend
-test-backend: ## test frontend files
+test-backend: ## test backend files
 	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend: node_modules ## test backend files
+test-frontend: node_modules ## test frontend files
 	npx vitest
 
 .PHONY: test-check
@@ -737,7 +737,7 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	go run $(GOVULNCHECK_PACKAGE) ./...
+	go run $(GOVULNCHECK_PACKAGE) -show color ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@

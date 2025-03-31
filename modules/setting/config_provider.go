@@ -26,6 +26,7 @@ type ConfigKey interface {
 	In(defaultVal string, candidates []string) string
 	String() string
 	Strings(delim string) []string
+	Bool() (bool, error)
 
 	MustString(defaultVal string) string
 	MustBool(defaultVal ...bool) bool

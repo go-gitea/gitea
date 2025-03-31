@@ -48,7 +48,7 @@ func TestAPIDownloadArchive(t *testing.T) {
 	bs2, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	// The locked URL should give the same bytes as the non-locked one
-	assert.EqualValues(t, bs, bs2)
+	assert.Equal(t, bs, bs2)
 
 	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master.bundle", user2.Name, repo.Name))
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
@@ -88,7 +88,7 @@ func TestAPIDownloadArchive2(t *testing.T) {
 	bs2, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	// The locked URL should give the same bytes as the non-locked one
-	assert.EqualValues(t, bs, bs2)
+	assert.Equal(t, bs, bs2)
 
 	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/bundle/master", user2.Name, repo.Name))
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)

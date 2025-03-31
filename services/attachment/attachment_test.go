@@ -41,6 +41,6 @@ func TestUploadAttachment(t *testing.T) {
 
 	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attach.UUID)
 	assert.NoError(t, err)
-	assert.EqualValues(t, user.ID, attachment.UploaderID)
+	assert.Equal(t, user.ID, attachment.UploaderID)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
 }

@@ -27,7 +27,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 
 	req := NewRequest(t, "GET", "/user30/renderer/src/branch/master/README.html")
 	resp := MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, "text/html; charset=utf-8", resp.Header().Get("Content-Type"))
+	assert.Equal(t, "text/html; charset=utf-8", resp.Header().Get("Content-Type"))
 
 	bs, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
@@ -36,25 +36,25 @@ func TestExternalMarkupRenderer(t *testing.T) {
 	div := doc.Find("div.file-view")
 	data, err := div.Html()
 	assert.NoError(t, err)
-	assert.EqualValues(t, "<div>\n\ttest external renderer\n</div>", strings.TrimSpace(data))
+	assert.Equal(t, "<div>\n\ttest external renderer\n</div>", strings.TrimSpace(data))
 
 	r := markup.GetRendererByFileName("a.html").(*external.Renderer)
 	r.RenderContentMode = setting.RenderContentModeIframe
 
 	req = NewRequest(t, "GET", "/user30/renderer/src/branch/master/README.html")
 	resp = MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, "text/html; charset=utf-8", resp.Header().Get("Content-Type"))
+	assert.Equal(t, "text/html; charset=utf-8", resp.Header().Get("Content-Type"))
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	doc = NewHTMLParser(t, bytes.NewBuffer(bs))
 	iframe := doc.Find("iframe")
-	assert.EqualValues(t, "/user30/renderer/render/branch/master/README.html", iframe.AttrOr("src", ""))
+	assert.Equal(t, "/user30/renderer/render/branch/master/README.html", iframe.AttrOr("src", ""))
 
 	req = NewRequest(t, "GET", "/user30/renderer/render/branch/master/README.html")
 	resp = MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, "text/html; charset=utf-8", resp.Header().Get("Content-Type"))
+	assert.Equal(t, "text/html; charset=utf-8", resp.Header().Get("Content-Type"))
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "frame-src 'self'; sandbox allow-scripts", resp.Header().Get("Content-Security-Policy"))
-	assert.EqualValues(t, "<div>\n\ttest external renderer\n</div>\n", string(bs))
+	assert.Equal(t, "frame-src 'self'; sandbox allow-scripts", resp.Header().Get("Content-Security-Policy"))
+	assert.Equal(t, "<div>\n\ttest external renderer\n</div>\n", string(bs))
 }

@@ -110,17 +110,14 @@ type RepoSettingForm struct {
 	EnablePrune            bool
 
 	// Advanced settings
-	EnableCode                bool
-	DefaultCodeEveryoneAccess string
+	EnableCode bool
 
-	EnableWiki                bool
-	EnableExternalWiki        bool
-	DefaultWikiBranch         string
-	DefaultWikiEveryoneAccess string
-	ExternalWikiURL           string
+	EnableWiki         bool
+	EnableExternalWiki bool
+	DefaultWikiBranch  string
+	ExternalWikiURL    string
 
 	EnableIssues                          bool
-	DefaultIssuesEveryoneAccess           string
 	EnableExternalTracker                 bool
 	ExternalTrackerURL                    string
 	TrackerURLFormat                      string

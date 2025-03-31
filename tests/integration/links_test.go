@@ -63,7 +63,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 	for _, c := range redirects {
 		req := NewRequest(t, "GET", c.from)
 		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.EqualValues(t, path.Join(setting.AppSubURL, c.to), test.RedirectURL(resp))
+		assert.Equal(t, path.Join(setting.AppSubURL, c.to), test.RedirectURL(resp))
 	}
 }
 

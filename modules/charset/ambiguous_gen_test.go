@@ -14,7 +14,7 @@ import (
 func TestAmbiguousCharacters(t *testing.T) {
 	for locale, ambiguous := range AmbiguousCharacters {
 		assert.Equal(t, locale, ambiguous.Locale)
-		assert.Equal(t, len(ambiguous.Confusable), len(ambiguous.With))
+		assert.Len(t, ambiguous.With, len(ambiguous.Confusable))
 		assert.True(t, sort.SliceIsSorted(ambiguous.Confusable, func(i, j int) bool {
 			return ambiguous.Confusable[i] < ambiguous.Confusable[j]
 		}))

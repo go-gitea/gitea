@@ -119,7 +119,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.Len(t, reviewNotifiers, 2)
 			reviewerIDs := []int64{reviewNotifiers[0].Reviewer.ID, reviewNotifiers[1].Reviewer.ID}
 			sort.Slice(reviewerIDs, func(i, j int) bool { return reviewerIDs[i] < reviewerIDs[j] })
-			assert.EqualValues(t, []int64{5, 8}, reviewerIDs)
+			assert.Equal(t, []int64{5, 8}, reviewerIDs)
 
 			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReviewSpecialCommits(db.DefaultContext, pr, resp1.Commit.SHA, resp2.Commit.SHA)
 			assert.NoError(t, err)
@@ -130,13 +130,13 @@ func TestPullView_CodeOwner(t *testing.T) {
 			assert.NoError(t, err)
 			prUpdated1 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 			assert.NoError(t, prUpdated1.LoadIssue(db.DefaultContext))
-			assert.EqualValues(t, "[WIP] Test Pull Request", prUpdated1.Issue.Title)
+			assert.Equal(t, "[WIP] Test Pull Request", prUpdated1.Issue.Title)
 
 			err = issue_service.ChangeTitle(db.DefaultContext, prUpdated1.Issue, user2, "Test Pull Request2")
 			assert.NoError(t, err)
 			prUpdated2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 			assert.NoError(t, prUpdated2.LoadIssue(db.DefaultContext))
-			assert.EqualValues(t, "Test Pull Request2", prUpdated2.Issue.Title)
+			assert.Equal(t, "Test Pull Request2", prUpdated2.Issue.Title)
 		})
 
 		// change the default branch CODEOWNERS file to change README.md's codeowner
@@ -229,7 +229,7 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			testEditFile(t, user1Session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "master", "This is a pull title")
 			elem := strings.Split(test.RedirectURL(resp), "/")
-			assert.EqualValues(t, "pulls", elem[3])
+			assert.Equal(t, "pulls", elem[3])
 			testPullMerge(t, user1Session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
 
 			// Grab the CSRF token.
@@ -249,7 +249,7 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			testEditFileToNewBranch(t, user1Session, "user1", "repo1", "master", "a-test-branch", "README.md", "Hello, World (Editied...again)\n")
 			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "a-test-branch", "This is a pull title")
 			elem := strings.Split(test.RedirectURL(resp), "/")
-			assert.EqualValues(t, "pulls", elem[3])
+			assert.Equal(t, "pulls", elem[3])
 			testIssueClose(t, user1Session, elem[1], elem[2], elem[4])
 
 			// Grab the CSRF token.

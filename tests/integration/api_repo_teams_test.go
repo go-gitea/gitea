@@ -37,15 +37,15 @@ func TestAPIRepoTeams(t *testing.T) {
 	var teams []*api.Team
 	DecodeJSON(t, res, &teams)
 	if assert.Len(t, teams, 2) {
-		assert.EqualValues(t, "Owners", teams[0].Name)
+		assert.Equal(t, "Owners", teams[0].Name)
 		assert.True(t, teams[0].CanCreateOrgRepo)
 		assert.True(t, util.SliceSortedEqual(unit.AllUnitKeyNames(), teams[0].Units), "%v == %v", unit.AllUnitKeyNames(), teams[0].Units)
-		assert.EqualValues(t, "owner", teams[0].Permission)
+		assert.Equal(t, "owner", teams[0].Permission)
 
-		assert.EqualValues(t, "test_team", teams[1].Name)
+		assert.Equal(t, "test_team", teams[1].Name)
 		assert.False(t, teams[1].CanCreateOrgRepo)
-		assert.EqualValues(t, []string{"repo.issues"}, teams[1].Units)
-		assert.EqualValues(t, "write", teams[1].Permission)
+		assert.Equal(t, []string{"repo.issues"}, teams[1].Units)
+		assert.Equal(t, "write", teams[1].Permission)
 	}
 
 	// IsTeam
@@ -54,7 +54,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	res = MakeRequest(t, req, http.StatusOK)
 	var team *api.Team
 	DecodeJSON(t, res, &team)
-	assert.EqualValues(t, teams[1], team)
+	assert.Equal(t, teams[1], team)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), "NonExistingTeam")).
 		AddTokenAuth(token)

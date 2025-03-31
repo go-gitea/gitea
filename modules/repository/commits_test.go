@@ -62,9 +62,9 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.Equal(t, "user2", payloadCommits[0].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[0].Author.Name)
 	assert.Equal(t, "user2", payloadCommits[0].Author.UserName)
-	assert.EqualValues(t, []string{}, payloadCommits[0].Added)
-	assert.EqualValues(t, []string{}, payloadCommits[0].Removed)
-	assert.EqualValues(t, []string{"readme.md"}, payloadCommits[0].Modified)
+	assert.Equal(t, []string{}, payloadCommits[0].Added)
+	assert.Equal(t, []string{}, payloadCommits[0].Removed)
+	assert.Equal(t, []string{"readme.md"}, payloadCommits[0].Modified)
 
 	assert.Equal(t, "27566bd", payloadCommits[1].ID)
 	assert.Equal(t, "good signed commit (with not yet validated email)", payloadCommits[1].Message)
@@ -73,9 +73,9 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.Equal(t, "user2", payloadCommits[1].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[1].Author.Name)
 	assert.Equal(t, "user2", payloadCommits[1].Author.UserName)
-	assert.EqualValues(t, []string{}, payloadCommits[1].Added)
-	assert.EqualValues(t, []string{}, payloadCommits[1].Removed)
-	assert.EqualValues(t, []string{"readme.md"}, payloadCommits[1].Modified)
+	assert.Equal(t, []string{}, payloadCommits[1].Added)
+	assert.Equal(t, []string{}, payloadCommits[1].Removed)
+	assert.Equal(t, []string{"readme.md"}, payloadCommits[1].Modified)
 
 	assert.Equal(t, "5099b81", payloadCommits[2].ID)
 	assert.Equal(t, "good signed commit", payloadCommits[2].Message)
@@ -84,9 +84,9 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.Equal(t, "user2", payloadCommits[2].Committer.UserName)
 	assert.Equal(t, "User2", payloadCommits[2].Author.Name)
 	assert.Equal(t, "user2", payloadCommits[2].Author.UserName)
-	assert.EqualValues(t, []string{"readme.md"}, payloadCommits[2].Added)
-	assert.EqualValues(t, []string{}, payloadCommits[2].Removed)
-	assert.EqualValues(t, []string{}, payloadCommits[2].Modified)
+	assert.Equal(t, []string{"readme.md"}, payloadCommits[2].Added)
+	assert.Equal(t, []string{}, payloadCommits[2].Removed)
+	assert.Equal(t, []string{}, payloadCommits[2].Modified)
 
 	assert.Equal(t, "69554a6", headCommit.ID)
 	assert.Equal(t, "not signed commit", headCommit.Message)
@@ -95,9 +95,9 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.Equal(t, "user2", headCommit.Committer.UserName)
 	assert.Equal(t, "User2", headCommit.Author.Name)
 	assert.Equal(t, "user2", headCommit.Author.UserName)
-	assert.EqualValues(t, []string{}, headCommit.Added)
-	assert.EqualValues(t, []string{}, headCommit.Removed)
-	assert.EqualValues(t, []string{"readme.md"}, headCommit.Modified)
+	assert.Equal(t, []string{}, headCommit.Added)
+	assert.Equal(t, []string{}, headCommit.Removed)
+	assert.Equal(t, []string{"readme.md"}, headCommit.Modified)
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {

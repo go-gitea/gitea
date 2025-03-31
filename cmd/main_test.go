@@ -131,14 +131,14 @@ func TestCliCmdError(t *testing.T) {
 	r, err := runTestApp(app, "./gitea", "test-cmd")
 	assert.Error(t, err)
 	assert.Equal(t, 1, r.ExitCode)
-	assert.Equal(t, "", r.Stdout)
+	assert.Empty(t, r.Stdout)
 	assert.Equal(t, "Command error: normal error\n", r.Stderr)
 
 	app = newTestApp(func(ctx *cli.Context) error { return cli.Exit("exit error", 2) })
 	r, err = runTestApp(app, "./gitea", "test-cmd")
 	assert.Error(t, err)
 	assert.Equal(t, 2, r.ExitCode)
-	assert.Equal(t, "", r.Stdout)
+	assert.Empty(t, r.Stdout)
 	assert.Equal(t, "exit error\n", r.Stderr)
 
 	app = newTestApp(func(ctx *cli.Context) error { return nil })
@@ -146,12 +146,12 @@ func TestCliCmdError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, 1, r.ExitCode)
 	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -no-such\n\n", r.Stdout)
-	assert.Equal(t, "", r.Stderr) // the cli package's strange behavior, the error message is not in stderr ....
+	assert.Empty(t, r.Stderr) // the cli package's strange behavior, the error message is not in stderr ....
 
 	app = newTestApp(func(ctx *cli.Context) error { return nil })
 	r, err = runTestApp(app, "./gitea", "test-cmd")
 	assert.NoError(t, err)
 	assert.Equal(t, -1, r.ExitCode) // the cli.OsExiter is not called
-	assert.Equal(t, "", r.Stdout)
-	assert.Equal(t, "", r.Stderr)
+	assert.Empty(t, r.Stdout)
+	assert.Empty(t, r.Stderr)
 }

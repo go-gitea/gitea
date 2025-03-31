@@ -271,11 +271,11 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 		expectedFileResponse := getExpectedFileResponseForRepofilesCreate(commitID, lastCommit.ID.String())
 		assert.NotNil(t, expectedFileResponse)
 		if expectedFileResponse != nil {
-			assert.EqualValues(t, expectedFileResponse.Content, filesResponse.Files[0])
-			assert.EqualValues(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
-			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
-			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
-			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, filesResponse.Commit.Author.Name)
+			assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
+			assert.Equal(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
+			assert.Equal(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
+			assert.Equal(t, expectedFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
+			assert.Equal(t, expectedFileResponse.Commit.Author.Name, filesResponse.Commit.Author.Name)
 		}
 	})
 }
@@ -306,11 +306,11 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
 		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String())
-		assert.EqualValues(t, expectedFileResponse.Content, filesResponse.Files[0])
-		assert.EqualValues(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
-		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, filesResponse.Commit.Author.Name)
+		assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
+		assert.Equal(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
+		assert.Equal(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
+		assert.Equal(t, expectedFileResponse.Commit.Author.Email, filesResponse.Commit.Author.Email)
+		assert.Equal(t, expectedFileResponse.Commit.Author.Name, filesResponse.Commit.Author.Name)
 	})
 }
 
@@ -355,12 +355,12 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 		assert.Nil(t, fromEntry)  // Should no longer exist here
 		assert.NotNil(t, toEntry) // Should exist here
 		// assert SHA has remained the same but paths use the new file name
-		assert.EqualValues(t, expectedFileResponse.Content.SHA, filesResponse.Files[0].SHA)
-		assert.EqualValues(t, expectedFileResponse.Content.Name, filesResponse.Files[0].Name)
-		assert.EqualValues(t, expectedFileResponse.Content.Path, filesResponse.Files[0].Path)
-		assert.EqualValues(t, expectedFileResponse.Content.URL, filesResponse.Files[0].URL)
-		assert.EqualValues(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
-		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
+		assert.Equal(t, expectedFileResponse.Content.SHA, filesResponse.Files[0].SHA)
+		assert.Equal(t, expectedFileResponse.Content.Name, filesResponse.Files[0].Name)
+		assert.Equal(t, expectedFileResponse.Content.Path, filesResponse.Files[0].Path)
+		assert.Equal(t, expectedFileResponse.Content.URL, filesResponse.Files[0].URL)
+		assert.Equal(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
+		assert.Equal(t, expectedFileResponse.Commit.HTMLURL, filesResponse.Commit.HTMLURL)
 	})
 }
 
@@ -393,7 +393,7 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
 		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String())
-		assert.EqualValues(t, expectedFileResponse.Content, filesResponse.Files[0])
+		assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
 	})
 }
 
@@ -421,10 +421,10 @@ func testDeleteRepoFiles(t *testing.T, u *url.URL) {
 		expectedFileResponse := getExpectedFileResponseForRepofilesDelete()
 		assert.NotNil(t, filesResponse)
 		assert.Nil(t, filesResponse.Files[0])
-		assert.EqualValues(t, expectedFileResponse.Commit.Message, filesResponse.Commit.Message)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Identity, filesResponse.Commit.Author.Identity)
-		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Identity, filesResponse.Commit.Committer.Identity)
-		assert.EqualValues(t, expectedFileResponse.Verification, filesResponse.Verification)
+		assert.Equal(t, expectedFileResponse.Commit.Message, filesResponse.Commit.Message)
+		assert.Equal(t, expectedFileResponse.Commit.Author.Identity, filesResponse.Commit.Author.Identity)
+		assert.Equal(t, expectedFileResponse.Commit.Committer.Identity, filesResponse.Commit.Committer.Identity)
+		assert.Equal(t, expectedFileResponse.Verification, filesResponse.Verification)
 	})
 
 	t.Run("Verify README.md has been deleted", func(t *testing.T) {
@@ -463,10 +463,10 @@ func testDeleteRepoFilesWithoutBranchNames(t *testing.T, u *url.URL) {
 		expectedFileResponse := getExpectedFileResponseForRepofilesDelete()
 		assert.NotNil(t, filesResponse)
 		assert.Nil(t, filesResponse.Files[0])
-		assert.EqualValues(t, expectedFileResponse.Commit.Message, filesResponse.Commit.Message)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Identity, filesResponse.Commit.Author.Identity)
-		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Identity, filesResponse.Commit.Committer.Identity)
-		assert.EqualValues(t, expectedFileResponse.Verification, filesResponse.Verification)
+		assert.Equal(t, expectedFileResponse.Commit.Message, filesResponse.Commit.Message)
+		assert.Equal(t, expectedFileResponse.Commit.Author.Identity, filesResponse.Commit.Author.Identity)
+		assert.Equal(t, expectedFileResponse.Commit.Committer.Identity, filesResponse.Commit.Committer.Identity)
+		assert.Equal(t, expectedFileResponse.Verification, filesResponse.Verification)
 	})
 }
 

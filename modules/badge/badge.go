@@ -4,6 +4,9 @@
 package badge
 
 import (
+	"strings"
+	"unicode"
+
 	actions_model "code.gitea.io/gitea/models/actions"
 )
 
@@ -11,54 +14,35 @@ import (
 // We use 10x scale to calculate more precisely
 // Then scale down to normal size in tmpl file
 
-type Label struct {
-	text  string
-	width int
-}
-
-func (l Label) Text() string {
-	return l.text
-}
-
-func (l Label) Width() int {
-	return l.width
-}
-
-func (l Label) TextLength() int {
-	return int(float64(l.width-defaultOffset) * 9.5)
-}
-
-func (l Label) X() int {
-	return l.width*5 + 10
-}
-
-type Message struct {
+type Text struct {
 	text  string
 	width int
 	x     int
 }
 
-func (m Message) Text() string {
-	return m.text
+func (t Text) Text() string {
+	return t.text
 }
 
-func (m Message) Width() int {
-	return m.width
+func (t Text) Width() int {
+	return t.width
 }
 
-func (m Message) X() int {
-	return m.x
+func (t Text) X() int {
+	return t.x
 }
 
-func (m Message) TextLength() int {
-	return int(float64(m.width-defaultOffset) * 9.5)
+func (t Text) TextLength() int {
+	return int(float64(t.width-defaultOffset) * 10)
 }
 
 type Badge struct {
-	Color    string
-	FontSize int
-	Label    Label
-	Message  Message
+	IDPrefix   string
+	FontFamily string
+	Color      string
+	FontSize   int
+	Label      Text
+	Message    Text
 }
 
 func (b Badge) Width() int {
@@ -66,10 +50,10 @@ func (b Badge) Width() int {
 }
 
 const (
-	defaultOffset    = 9
-	defaultFontSize  = 11
-	DefaultColor     = "#9f9f9f" // Grey
-	defaultFontWidth = 7         // approximate speculation
+	defaultOffset     = 10
+	defaultFontSize   = 11
+	DefaultColor      = "#9f9f9f" // Grey
+	DefaultFontFamily = "DejaVu Sans,Verdana,Geneva,sans-serif"
 )
 
 var StatusColorMap = map[actions_model.Status]string{
@@ -85,20 +69,43 @@ var StatusColorMap = map[actions_model.Status]string{
 
 // GenerateBadge generates badge with given template
 func GenerateBadge(label, message, color string) Badge {
-	lw := defaultFontWidth*len(label) + defaultOffset
-	mw := defaultFontWidth*len(message) + defaultOffset
-	x := lw*10 + mw*5 - 10
+	lw := calculateTextWidth(label) + defaultOffset
+	mw := calculateTextWidth(message) + defaultOffset
+
+	lx := lw * 5
+	mx := lw*10 + mw*5 - 10
 	return Badge{
-		Label: Label{
+		FontFamily: DefaultFontFamily,
+		Label: Text{
 			text:  label,
 			width: lw,
+			x:     lx,
 		},
-		Message: Message{
+		Message: Text{
 			text:  message,
 			width: mw,
-			x:     x,
+			x:     mx,
 		},
 		FontSize: defaultFontSize * 10,
 		Color:    color,
 	}
+}
+
+func calculateTextWidth(text string) int {
+	width := 0
+	widthData := DejaVuGlyphWidthData()
+	for _, char := range strings.TrimSpace(text) {
+		charWidth, ok := widthData[char]
+		if !ok {
+			// use the width of 'm' in case of missing glyph width data for a printable character
+			if unicode.IsPrint(char) {
+				charWidth = widthData['m']
+			} else {
+				charWidth = 0
+			}
+		}
+		width += int(charWidth)
+	}
+
+	return width
 }

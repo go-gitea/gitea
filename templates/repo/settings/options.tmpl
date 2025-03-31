@@ -310,15 +310,6 @@
 						<input class="enable-system" name="enable_code" type="checkbox"{{if $isCodeEnabled}} checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.code.desc"}}</label>
 					</div>
-					<div class="inline field tw-pl-4">
-						{{$unitCode := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeCode}}
-						<label>{{ctx.Locale.Tr "repo.settings.default_permission_everyone_access"}}</label>
-						<select name="default_code_everyone_access" class="ui selection dropdown">
-							{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
-							<option value="none" {{Iif (eq $unitCode.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
-							<option value="read" {{Iif (eq $unitCode.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
-						</select>
-					</div>
 				</div>
 
 				{{$isInternalWikiEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeWiki}}
@@ -345,16 +336,6 @@
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
 							<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
-						</div>
-						<div class="inline field">
-							{{$unitInternalWiki := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeWiki}}
-							<label>{{ctx.Locale.Tr "repo.settings.default_permission_everyone_access"}}</label>
-							<select name="default_wiki_everyone_access" class="ui selection dropdown">
-								{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
-								<option value="none" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
-								<option value="read" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
-								<option value="write" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 2) "selected"}}>{{ctx.Locale.Tr "settings.permission_write"}}</option>
-							</select>
 						</div>
 					</div>
 					<div class="field">
@@ -391,15 +372,6 @@
 						</div>
 					</div>
 					<div class="field tw-pl-4 {{if (.Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
-						<div class="inline field">
-							{{$unitIssue := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeIssues}}
-							<label>{{ctx.Locale.Tr "repo.settings.default_permission_everyone_access"}}</label>
-							<select name="default_issues_everyone_access" class="ui selection dropdown">
-								{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
-								<option value="none" {{Iif (eq $unitIssue.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
-								<option value="read" {{Iif (eq $unitIssue.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
-							</select>
-						</div>
 						{{if .Repository.CanEnableTimetracker}}
 							<div class="field">
 								<div class="ui checkbox">

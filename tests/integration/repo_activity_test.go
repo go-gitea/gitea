@@ -24,7 +24,7 @@ func TestRepoActivity(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 		elem := strings.Split(test.RedirectURL(resp), "/")
-		assert.EqualValues(t, "pulls", elem[3])
+		assert.Equal(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feat/better_readme", "README.md", "Hello, World (Edited Again)\n")

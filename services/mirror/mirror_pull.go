@@ -235,6 +235,24 @@ func pruneBrokenReferences(ctx context.Context,
 	return pruneErr
 }
 
+// checkRecoverableSyncError takes an error message from a git fetch command and returns false if it should be a fatal/blocking error
+func checkRecoverableSyncError(stderrMessage string) bool {
+	switch {
+	case strings.Contains(stderrMessage, "unable to resolve reference") && strings.Contains(stderrMessage, "reference broken"):
+		return true
+	case strings.Contains(stderrMessage, "remote error") && strings.Contains(stderrMessage, "not our ref"):
+		return true
+	case strings.Contains(stderrMessage, "cannot lock ref") && strings.Contains(stderrMessage, "but expected"):
+		return true
+	case strings.Contains(stderrMessage, "cannot lock ref") && strings.Contains(stderrMessage, "unable to resolve reference"):
+		return true
+	case strings.Contains(stderrMessage, "Unable to create") && strings.Contains(stderrMessage, ".lock"):
+		return true
+	default:
+		return false
+	}
+}
+
 // runSync returns true if sync finished without error.
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
@@ -275,7 +293,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		stdoutMessage := util.SanitizeCredentialURLs(stdout)
 
 		// Now check if the error is a resolve reference due to broken reference
-		if strings.Contains(stderr, "unable to resolve reference") && strings.Contains(stderr, "reference broken") {
+		if checkRecoverableSyncError(stderr) {
 			log.Warn("SyncMirrors [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 			err = nil
 
@@ -324,6 +342,15 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		return nil, false
 	}
 
+	if m.LFS && setting.LFS.StartServer {
+		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
+		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
+		lfsClient := lfs.NewClient(endpoint, nil)
+		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo, err)
+		}
+	}
+
 	log.Trace("SyncMirrors [repo: %-v]: syncing branches...", m.Repo)
 	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, m.Repo, gitRepo, 0); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize branches: %v", m.Repo, err)
@@ -332,15 +359,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	if err = repo_module.SyncReleasesWithTags(ctx, m.Repo, gitRepo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize tags to releases: %v", m.Repo, err)
-	}
-
-	if m.LFS && setting.LFS.StartServer {
-		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
-		lfsClient := lfs.NewClient(endpoint, nil)
-		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo, err)
-		}
 	}
 	gitRepo.Close()
 
@@ -368,7 +386,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 			stdoutMessage := util.SanitizeCredentialURLs(stdout)
 
 			// Now check if the error is a resolve reference due to broken reference
-			if strings.Contains(stderrMessage, "unable to resolve reference") && strings.Contains(stderrMessage, "reference broken") {
+			if checkRecoverableSyncError(stderrMessage) {
 				log.Warn("SyncMirrors [repo: %-v Wiki]: failed to update mirror wiki repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 				err = nil
 

@@ -61,6 +61,6 @@ func TestAdminUserCreate(t *testing.T) {
 		assert.NoError(t, createUser("u", "--user-type bot"))
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"})
 		assert.Equal(t, user_model.UserTypeBot, u.Type)
-		assert.Equal(t, "", u.Passwd)
+		assert.Empty(t, u.Passwd)
 	})
 }

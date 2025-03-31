@@ -68,7 +68,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		// Check if master branch has been locked successfully
 		flashMsg := session.GetCookieFlashMessage()
-		assert.EqualValues(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
+		assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
 
 		// Request editor page
 		req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
@@ -103,11 +103,11 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 		res := make(map[string]string)
 		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&res))
-		assert.EqualValues(t, "/user2/repo1/settings/branches", res["redirect"])
+		assert.Equal(t, "/user2/repo1/settings/branches", res["redirect"])
 
 		// Check if master branch has been locked successfully
 		flashMsg = session.GetCookieFlashMessage()
-		assert.EqualValues(t, `Removing branch protection rule "1" failed.`, flashMsg.ErrorMsg)
+		assert.Equal(t, `Removing branch protection rule "1" failed.`, flashMsg.ErrorMsg)
 	})
 }
 
@@ -135,7 +135,7 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 	// Verify the change
 	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", branch, filePath))
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, newContent, resp.Body.String())
+	assert.Equal(t, newContent, resp.Body.String())
 
 	return resp
 }
@@ -165,7 +165,7 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 	// Verify the change
 	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", targetBranch, filePath))
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	assert.EqualValues(t, newContent, resp.Body.String())
+	assert.Equal(t, newContent, resp.Body.String())
 
 	return resp
 }
@@ -215,10 +215,10 @@ func TestWebGitCommitEmail(t *testing.T) {
 				assert.Contains(t, errMsg, translation.NewLocale("en-US").Tr("repo.editor.invalid_commit_email"))
 			} else {
 				require.NotEqual(t, lastCommit.ID.String(), newCommit.ID.String())
-				assert.EqualValues(t, expectedUserName, newCommit.Author.Name)
-				assert.EqualValues(t, expectedEmail, newCommit.Author.Email)
-				assert.EqualValues(t, expectedUserName, newCommit.Committer.Name)
-				assert.EqualValues(t, expectedEmail, newCommit.Committer.Email)
+				assert.Equal(t, expectedUserName, newCommit.Author.Name)
+				assert.Equal(t, expectedEmail, newCommit.Author.Email)
+				assert.Equal(t, expectedUserName, newCommit.Committer.Name)
+				assert.Equal(t, expectedEmail, newCommit.Committer.Email)
 			}
 			return resp
 		}
@@ -254,7 +254,7 @@ func TestWebGitCommitEmail(t *testing.T) {
 		t.Run("EmailInvalid", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			email := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{ID: 1, IsActivated: true})
-			require.NotEqualValues(t, email.UID, user.ID)
+			require.NotEqual(t, email.UID, user.ID)
 			makeReq(t, "/user2/repo1/_edit/master/README.md", map[string]string{
 				"tree_path":    "README.md",
 				"content":      "test content",
@@ -332,7 +332,7 @@ index 0000000000..bbbbbbbbbb
 			)
 
 			// By the way, test the "cherrypick" page: a successful revert redirects to the main branch
-			assert.EqualValues(t, "/user2/repo1/src/branch/master", resp1.Header().Get("Location"))
+			assert.Equal(t, "/user2/repo1/src/branch/master", resp1.Header().Get("Location"))
 		})
 	})
 }

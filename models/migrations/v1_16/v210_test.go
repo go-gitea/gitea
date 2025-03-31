@@ -71,5 +71,5 @@ func Test_RemigrateU2FCredentials(t *testing.T) {
 		return
 	}
 
-	assert.EqualValues(t, expected, got)
+	assert.Equal(t, expected, got)
 }

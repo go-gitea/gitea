@@ -26,9 +26,10 @@ func indexSettingToGitGrepPathspecList() (list []string) {
 
 func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Repository, ref git.RefName, keyword string, searchMode indexer.SearchModeType) (searchResults []*code_indexer.Result, total int, err error) {
 	grepMode := git.GrepModeWords
-	if searchMode == indexer.SearchModeExact {
+	switch searchMode {
+	case indexer.SearchModeExact:
 		grepMode = git.GrepModeExact
-	} else if searchMode == indexer.SearchModeRegexp {
+	case indexer.SearchModeRegexp:
 		grepMode = git.GrepModeRegexp
 	}
 	res, err := git.GrepSearch(ctx, gitRepo, keyword, git.GrepOptions{

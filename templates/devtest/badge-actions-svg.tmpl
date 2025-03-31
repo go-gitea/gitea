@@ -1,0 +1,18 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<div>
+		<h1>Actions SVG</h1>
+		<form class="tw-my-3">
+			{{range $fontName := .BadgeFontFamilyNames}}
+				<label><input name="font" type="radio" value="{{$fontName}}" {{Iif (eq $.SelectedFontFamilyName $fontName) "checked"}}>{{$fontName}}</label>
+			{{end}}
+			<button>submit</button>
+		</form>
+		<div class="flex-text-block tw-flex-wrap">
+		{{range $badgeSVG := .BadgeSVGs}}
+			<div>{{$badgeSVG}}</div>
+		{{end}}
+		</div>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

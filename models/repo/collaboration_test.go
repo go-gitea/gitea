@@ -25,8 +25,8 @@ func TestRepository_GetCollaborators(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, collaborators, int(expectedLen))
 		for _, collaborator := range collaborators {
-			assert.EqualValues(t, collaborator.User.ID, collaborator.Collaboration.UserID)
-			assert.EqualValues(t, repoID, collaborator.Collaboration.RepoID)
+			assert.Equal(t, collaborator.User.ID, collaborator.Collaboration.UserID)
+			assert.Equal(t, repoID, collaborator.Collaboration.RepoID)
 		}
 	}
 	test(1)
@@ -51,7 +51,7 @@ func TestRepository_GetCollaborators(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, collaborators2, 1)
 
-	assert.NotEqualValues(t, collaborators1[0].ID, collaborators2[0].ID)
+	assert.NotEqual(t, collaborators1[0].ID, collaborators2[0].ID)
 }
 
 func TestRepository_IsCollaborator(t *testing.T) {
@@ -76,10 +76,10 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, 4, perm.AccessModeAdmin))
 
 	collaboration := unittest.AssertExistsAndLoadBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
-	assert.EqualValues(t, perm.AccessModeAdmin, collaboration.Mode)
+	assert.Equal(t, perm.AccessModeAdmin, collaboration.Mode)
 
 	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: repo.ID})
-	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
+	assert.Equal(t, perm.AccessModeAdmin, access.Mode)
 
 	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, 4, perm.AccessModeAdmin))
 

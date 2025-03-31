@@ -103,11 +103,11 @@ func TestDumper(t *testing.T) {
 	d.GlobalExcludeAbsPath(filepath.Join(tmpDir, "include/exclude1"))
 	err := d.AddRecursiveExclude("include", filepath.Join(tmpDir, "include"), []string{filepath.Join(tmpDir, "include/exclude2")})
 	assert.NoError(t, err)
-	assert.EqualValues(t, sortStrings([]string{"include/a", "include/sub", "include/sub/b"}), sortStrings(tw.added))
+	assert.Equal(t, sortStrings([]string{"include/a", "include/sub", "include/sub/b"}), sortStrings(tw.added))
 
 	tw = &testWriter{}
 	d = &Dumper{Writer: tw}
 	err = d.AddRecursiveExclude("include", filepath.Join(tmpDir, "include"), nil)
 	assert.NoError(t, err)
-	assert.EqualValues(t, sortStrings([]string{"include/exclude2", "include/exclude2/a-2", "include/a", "include/sub", "include/sub/b", "include/exclude1", "include/exclude1/a-1"}), sortStrings(tw.added))
+	assert.Equal(t, sortStrings([]string{"include/exclude2", "include/exclude2/a-2", "include/a", "include/sub", "include/sub/b", "include/exclude1", "include/exclude1/a-1"}), sortStrings(tw.added))
 }

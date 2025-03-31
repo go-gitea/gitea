@@ -752,6 +752,7 @@ $.fn.dropdown = function(parameters) {
               if(module.is.searchSelection() && module.can.show() && module.is.focusedOnSearch() ) {
                 module.show();
               }
+              settings.onAfterFiltered.call(element); // GITEA-PATCH: callback to correctly handle the filtered items
             }
           ;
           if(settings.useLabels && module.has.maxSelections()) {
@@ -3991,6 +3992,8 @@ $.fn.dropdown.settings = {
   onNoResults   : function(searchTerm) { return true; },
   onShow        : function(){},
   onHide        : function(){},
+
+  onAfterFiltered: function(){}, // GITEA-PATCH: callback to correctly handle the filtered items
 
   /* Component */
   name           : 'Dropdown',

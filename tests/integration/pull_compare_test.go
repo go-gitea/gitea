@@ -47,7 +47,7 @@ func TestPullCompare(t *testing.T) {
 		assert.True(t, exists, "The template has changed")
 		req = NewRequest(t, "GET", link)
 		resp = session.MakeRequest(t, req, http.StatusOK)
-		assert.EqualValues(t, http.StatusOK, resp.Code)
+		assert.Equal(t, http.StatusOK, resp.Code)
 
 		// test the edit button in the PR diff view
 		req = NewRequest(t, "GET", "/user2/repo1/pulls/3/files")
@@ -86,7 +86,7 @@ func TestPullCompare(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		doc = NewHTMLParser(t, resp.Body)
 		editButtonCount = doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
-		assert.EqualValues(t, 0, editButtonCount, "Expected not to find a button to edit a file in the PR diff view because head repository has been deleted")
+		assert.Equal(t, 0, editButtonCount, "Expected not to find a button to edit a file in the PR diff view because head repository has been deleted")
 	})
 }
 

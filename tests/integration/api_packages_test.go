@@ -116,7 +116,7 @@ func TestPackageAPI(t *testing.T) {
 			var ap2 *api.Package
 			DecodeJSON(t, resp, &ap2)
 			assert.NotNil(t, ap2.Repository)
-			assert.EqualValues(t, newRepo.ID, ap2.Repository.ID)
+			assert.Equal(t, newRepo.ID, ap2.Repository.ID)
 
 			// link to repository without write access, should fail
 			req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, "repo3")).AddTokenAuth(tokenWritePackage)

@@ -50,12 +50,12 @@ func TestIncomingEmail(t *testing.T) {
 			ref, err := incoming_payload.GetReferenceFromPayload(db.DefaultContext, issuePayload)
 			assert.NoError(t, err)
 			assert.IsType(t, ref, new(issues_model.Issue))
-			assert.EqualValues(t, issue.ID, ref.(*issues_model.Issue).ID)
+			assert.Equal(t, issue.ID, ref.(*issues_model.Issue).ID)
 
 			ref, err = incoming_payload.GetReferenceFromPayload(db.DefaultContext, commentPayload)
 			assert.NoError(t, err)
 			assert.IsType(t, ref, new(issues_model.Comment))
-			assert.EqualValues(t, comment.ID, ref.(*issues_model.Comment).ID)
+			assert.Equal(t, comment.ID, ref.(*issues_model.Comment).ID)
 		})
 
 		t.Run("Token", func(t *testing.T) {

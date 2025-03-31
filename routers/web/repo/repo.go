@@ -154,8 +154,8 @@ func createCommon(ctx *context.Context) {
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	ctx.Data["CanCreateRepoInDoer"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimitOfDoer"] = ctx.Doer.MaxCreationLimit()
 	ctx.Data["SupportedObjectFormats"] = git.DefaultFeatures().SupportedObjectFormats
 	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
 }

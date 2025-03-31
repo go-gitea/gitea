@@ -483,7 +483,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhit
 
 		// Check if master branch has been locked successfully
 		flashMsg := ctx.Session.GetCookieFlashMessage()
-		assert.EqualValues(t, `Branch protection for rule "`+branch+`" has been updated.`, flashMsg.SuccessMsg)
+		assert.Equal(t, `Branch protection for rule "`+branch+`" has been updated.`, flashMsg.SuccessMsg)
 	}
 }
 

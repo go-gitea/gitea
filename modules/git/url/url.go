@@ -133,12 +133,13 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 		}
 	}
 
-	if parsed.URL.Scheme == "http" || parsed.URL.Scheme == "https" {
+	switch parsed.URL.Scheme {
+	case "http", "https":
 		if !httplib.IsCurrentGiteaSiteURL(ctx, repoURL) {
 			return ret, nil
 		}
 		fillPathParts(strings.TrimPrefix(parsed.URL.Path, setting.AppSubURL))
-	} else if parsed.URL.Scheme == "ssh" || parsed.URL.Scheme == "git+ssh" {
+	case "ssh", "git+ssh":
 		domainSSH := setting.SSH.Domain
 		domainCur := httplib.GuessCurrentHostDomain(ctx)
 		urlDomain, _, _ := net.SplitHostPort(parsed.URL.Host)
@@ -166,9 +167,10 @@ func MakeRepositoryWebLink(repoURL *RepositoryURL) string {
 	// now, let's guess, for example:
 	// * git@github.com:owner/submodule.git
 	// * https://github.com/example/submodule1.git
-	if repoURL.GitURL.Scheme == "http" || repoURL.GitURL.Scheme == "https" {
+	switch repoURL.GitURL.Scheme {
+	case "http", "https":
 		return strings.TrimSuffix(repoURL.GitURL.String(), ".git")
-	} else if repoURL.GitURL.Scheme == "ssh" || repoURL.GitURL.Scheme == "git+ssh" {
+	case "ssh", "git+ssh":
 		hostname, _, _ := net.SplitHostPort(repoURL.GitURL.Host)
 		hostname = util.IfZero(hostname, repoURL.GitURL.Host)
 		urlPath := strings.TrimSuffix(repoURL.GitURL.Path, ".git")

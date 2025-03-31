@@ -94,7 +94,7 @@ func TestBasicAuthWithWebAuthn(t *testing.T) {
 	}
 	var userParsed userResponse
 	DecodeJSON(t, resp, &userParsed)
-	assert.EqualValues(t, "Basic authorization is not allowed while webAuthn enrolled", userParsed.Message)
+	assert.Equal(t, "Basic authorization is not allowed while webAuthn enrolled", userParsed.Message)
 
 	// user32 has webauthn enrolled, he can't request git protocol with basic auth
 	req = NewRequest(t, "GET", "/user2/repo1/info/refs")

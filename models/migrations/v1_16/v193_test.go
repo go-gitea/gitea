@@ -62,7 +62,7 @@ func Test_AddRepoIDForAttachment(t *testing.T) {
 		has, err := x.ID(attach.IssueID).Get(&issue)
 		assert.NoError(t, err)
 		assert.True(t, has)
-		assert.EqualValues(t, attach.RepoID, issue.RepoID)
+		assert.Equal(t, attach.RepoID, issue.RepoID)
 	}
 
 	var releaseAttachments []*NewAttachment
@@ -75,6 +75,6 @@ func Test_AddRepoIDForAttachment(t *testing.T) {
 		has, err := x.ID(attach.ReleaseID).Get(&release)
 		assert.NoError(t, err)
 		assert.True(t, has)
-		assert.EqualValues(t, attach.RepoID, release.RepoID)
+		assert.Equal(t, attach.RepoID, release.RepoID)
 	}
 }

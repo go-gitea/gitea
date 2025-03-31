@@ -447,10 +447,7 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 
 	baseBranchName := refFullName.ForBranchName()
 
-	baseBranchExist := false
-	if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, baseBranchName) {
-		baseBranchExist = true
-	}
+	baseBranchExist := gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, baseBranchName)
 
 	if !baseBranchExist {
 		for p, v := range baseBranchName {

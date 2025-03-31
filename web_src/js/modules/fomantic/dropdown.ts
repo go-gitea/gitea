@@ -9,26 +9,36 @@ const fomanticDropdownFn = $.fn.dropdown;
 // use our own `$().dropdown` function to patch Fomantic's dropdown module
 export function initAriaDropdownPatch() {
   if ($.fn.dropdown === ariaDropdownFn) throw new Error('initAriaDropdownPatch could only be called once');
+  $.fn.dropdown.settings.onAfterFiltered = onAfterFiltered;
   $.fn.dropdown = ariaDropdownFn;
   $.fn.fomanticExt.onResponseKeepSelectedItem = onResponseKeepSelectedItem;
   (ariaDropdownFn as FomanticInitFunction).settings = fomanticDropdownFn.settings;
 }
 
 // the patched `$.fn.dropdown` function, it passes the arguments to Fomantic's `$.fn.dropdown` function, and:
-// * it does the one-time attaching on the first call
-// * it delegates the `onLabelCreate` to the patched `onLabelCreate` to add necessary aria attributes
+// * it does the one-time element event attaching on the first call
+// * it delegates the module internal functions like `onLabelCreate` to the patched functions to add more features.
 function ariaDropdownFn(this: any, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticDropdownFn.apply(this, args);
 
-  // if the `$().dropdown()` call is without arguments, or it has non-string (object) argument,
-  // it means that this call will reset the dropdown internal settings, then we need to re-delegate the callbacks.
-  const needDelegate = (!args.length || typeof args[0] !== 'string');
-  for (const el of this) {
+  for (let el of this) {
+    // dropdown will replace '<select class="ui dropdown"/>' to '<div class="ui dropdown"><select (hidden)></select><div class="menu">...</div></div>'
+    // so we need to correctly find the closest '.ui.dropdown' element, it is the real fomantic dropdown module.
+    el = el.closest('.ui.dropdown');
     if (!el[ariaPatchKey]) {
-      attachInit(el);
+      // the elements don't belong to the dropdown "module" and won't be reset
+      // so we only need to initialize them once.
+      attachInitElements(el);
     }
-    if (needDelegate) {
-      delegateOne($(el));
+
+    // if the `$().dropdown()` is called without arguments, or it has non-string (object) argument,
+    // it means that such call will reset the dropdown "module" including internal settings,
+    // then we need to re-delegate the callbacks.
+    const $dropdown = $(el);
+    const dropdownModule = $dropdown.data('module-dropdown');
+    if (!dropdownModule.giteaDelegated) {
+      dropdownModule.giteaDelegated = true;
+      delegateDropdownModule($dropdown);
     }
   }
   return ret;
@@ -61,36 +71,16 @@ function updateSelectionLabel(label: HTMLElement) {
   }
 }
 
-function processMenuItems($dropdown: any, dropdownCall: any) {
-  const hideEmptyDividers = dropdownCall('setting', 'hideDividers') === 'empty';
+function onAfterFiltered(this: any) {
+  const $dropdown = $(this);
+  const hideEmptyDividers = $dropdown.dropdown('setting', 'hideDividers') === 'empty';
   const itemsMenu = $dropdown[0].querySelector('.scrolling.menu') || $dropdown[0].querySelector('.menu');
   if (hideEmptyDividers) hideScopedEmptyDividers(itemsMenu);
 }
 
 // delegate the dropdown's template functions and callback functions to add aria attributes.
-function delegateOne($dropdown: any) {
+function delegateDropdownModule($dropdown: any) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
-
-  // If there is a "search input" in the "menu", Fomantic will only "focus the input" but not "toggle the menu" when the "dropdown icon" is clicked.
-  // Actually, Fomantic UI doesn't support such layout/usage. It needs to patch the "focusSearch" / "blurSearch" functions to make sure it toggles the menu.
-  const oldFocusSearch = dropdownCall('internal', 'focusSearch');
-  const oldBlurSearch = dropdownCall('internal', 'blurSearch');
-  // * If the "dropdown icon" is clicked, Fomantic calls "focusSearch", so show the menu
-  dropdownCall('internal', 'focusSearch', function (this: any) { dropdownCall('show'); oldFocusSearch.call(this) });
-  // * If the "dropdown icon" is clicked again when the menu is visible, Fomantic calls "blurSearch", so hide the menu
-  dropdownCall('internal', 'blurSearch', function (this: any) { oldBlurSearch.call(this); dropdownCall('hide') });
-
-  const oldFilterItems = dropdownCall('internal', 'filterItems');
-  dropdownCall('internal', 'filterItems', function (this: any, ...args: any[]) {
-    oldFilterItems.call(this, ...args);
-    processMenuItems($dropdown, dropdownCall);
-  });
-
-  const oldShow = dropdownCall('internal', 'show');
-  dropdownCall('internal', 'show', function (this: any, ...args: any[]) {
-    oldShow.call(this, ...args);
-    processMenuItems($dropdown, dropdownCall);
-  });
 
   // the "template" functions are used for dynamic creation (eg: AJAX)
   const dropdownTemplates = {...dropdownCall('setting', 'templates'), t: performance.now()};
@@ -163,9 +153,8 @@ function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, men
   }
 }
 
-function attachInit(dropdown: HTMLElement) {
+function attachInitElements(dropdown: HTMLElement) {
   (dropdown as any)[ariaPatchKey] = {};
-  if (dropdown.classList.contains('custom')) return;
 
   // Dropdown has 2 different focusing behaviors
   // * with search input: the input is focused, and it works with aria-activedescendant pointing another sibling element.
@@ -305,9 +294,11 @@ export function hideScopedEmptyDividers(container: Element) {
   const visibleItems: Element[] = [];
   const curScopeVisibleItems: Element[] = [];
   let curScope: string = '', lastVisibleScope: string = '';
-  const isScopedDivider = (item: Element) => item.matches('.divider') && item.hasAttribute('data-scope');
+  const isDivider = (item: Element) => item.classList.contains('divider');
+  const isScopedDivider = (item: Element) => isDivider(item) && item.hasAttribute('data-scope');
   const hideDivider = (item: Element) => item.classList.add('hidden', 'transition'); // dropdown has its own classes to hide items
-
+  const showDivider = (item: Element) => item.classList.remove('hidden', 'transition');
+  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered') || item.classList.contains('tw-hidden');
   const handleScopeSwitch = (itemScope: string) => {
     if (curScopeVisibleItems.length === 1 && isScopedDivider(curScopeVisibleItems[0])) {
       hideDivider(curScopeVisibleItems[0]);
@@ -323,13 +314,16 @@ export function hideScopedEmptyDividers(container: Element) {
     curScopeVisibleItems.length = 0;
   };
 
+  // reset hidden dividers
+  queryElems(container, '.divider', showDivider);
+
   // hide the scope dividers if the scope items are empty
   for (const item of container.children) {
     const itemScope = item.getAttribute('data-scope') || '';
     if (itemScope !== curScope) {
       handleScopeSwitch(itemScope);
     }
-    if (!item.classList.contains('filtered') && !item.classList.contains('tw-hidden')) {
+    if (!isHidden(item)) {
       curScopeVisibleItems.push(item as HTMLElement);
     }
   }
@@ -337,20 +331,20 @@ export function hideScopedEmptyDividers(container: Element) {
 
   // hide all leading and trailing dividers
   while (visibleItems.length) {
-    if (!visibleItems[0].matches('.divider')) break;
+    if (!isDivider(visibleItems[0])) break;
     hideDivider(visibleItems[0]);
     visibleItems.shift();
   }
   while (visibleItems.length) {
-    if (!visibleItems[visibleItems.length - 1].matches('.divider')) break;
+    if (!isDivider(visibleItems[visibleItems.length - 1])) break;
     hideDivider(visibleItems[visibleItems.length - 1]);
     visibleItems.pop();
   }
   // hide all duplicate dividers, hide current divider if next sibling is still divider
   // no need to update "visibleItems" array since this is the last loop
-  for (const item of visibleItems) {
-    if (!item.matches('.divider')) continue;
-    if (item.nextElementSibling?.matches('.divider')) hideDivider(item);
+  for (let i = 0; i < visibleItems.length - 1; i++) {
+    if (!visibleItems[i].matches('.divider')) continue;
+    if (visibleItems[i + 1].matches('.divider')) hideDivider(visibleItems[i]);
   }
 }
 

@@ -52,7 +52,7 @@ func TestLayered(t *testing.T) {
 	assert.NoError(t, err)
 	bs, err := io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "f1", string(bs))
+	assert.Equal(t, "f1", string(bs))
 	_ = f.Close()
 
 	assertRead := func(expected string, expectedErr error, elems ...string) {
@@ -76,27 +76,27 @@ func TestLayered(t *testing.T) {
 
 	files, err := assets.ListFiles(".", true)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []string{"f1", "f2", "fa"}, files)
+	assert.Equal(t, []string{"f1", "f2", "fa"}, files)
 
 	files, err = assets.ListFiles(".", false)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []string{"d1", "d2", "da"}, files)
+	assert.Equal(t, []string{"d1", "d2", "da"}, files)
 
 	files, err = assets.ListFiles(".")
 	assert.NoError(t, err)
-	assert.EqualValues(t, []string{"d1", "d2", "da", "f1", "f2", "fa"}, files)
+	assert.Equal(t, []string{"d1", "d2", "da", "f1", "f2", "fa"}, files)
 
 	files, err = assets.ListAllFiles(".", true)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []string{"d1/f", "d2/f", "da/f", "f1", "f2", "fa"}, files)
+	assert.Equal(t, []string{"d1/f", "d2/f", "da/f", "f1", "f2", "fa"}, files)
 
 	files, err = assets.ListAllFiles(".", false)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []string{"d1", "d2", "da", "da/sub1", "da/sub2"}, files)
+	assert.Equal(t, []string{"d1", "d2", "da", "da/sub1", "da/sub2"}, files)
 
 	files, err = assets.ListAllFiles(".")
 	assert.NoError(t, err)
-	assert.EqualValues(t, []string{
+	assert.Equal(t, []string{
 		"d1", "d1/f",
 		"d2", "d2/f",
 		"da", "da/f", "da/sub1", "da/sub2",
@@ -104,6 +104,6 @@ func TestLayered(t *testing.T) {
 	}, files)
 
 	assert.Empty(t, assets.GetFileLayerName("no-such"))
-	assert.EqualValues(t, "l1", assets.GetFileLayerName("f1"))
-	assert.EqualValues(t, "l2", assets.GetFileLayerName("f2"))
+	assert.Equal(t, "l1", assets.GetFileLayerName("f1"))
+	assert.Equal(t, "l2", assets.GetFileLayerName("f2"))
 }

@@ -60,19 +60,19 @@ func TestGetString(t *testing.T) {
 		return "", fmt.Errorf("some error")
 	})
 	assert.Error(t, err)
-	assert.Equal(t, "", data)
+	assert.Empty(t, data)
 
 	data, err = GetString("key", func() (string, error) {
 		return "", nil
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "", data)
+	assert.Empty(t, data)
 
 	data, err = GetString("key", func() (string, error) {
 		return "some data", nil
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "", data)
+	assert.Empty(t, data)
 	Remove("key")
 
 	data, err = GetString("key", func() (string, error) {

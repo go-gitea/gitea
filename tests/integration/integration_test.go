@@ -360,7 +360,7 @@ func MakeRequestNilResponseRecorder(t testing.TB, rw *RequestWrapper, expectedSt
 	recorder := NewNilResponseRecorder()
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+		if !assert.Equal(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, &recorder.ResponseRecorder)
 		}
@@ -374,7 +374,7 @@ func MakeRequestNilResponseHashSumRecorder(t testing.TB, rw *RequestWrapper, exp
 	recorder := NewNilResponseHashSumRecorder()
 	testWebRoutes.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
-		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+		if !assert.Equal(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, &recorder.ResponseRecorder)
 		}

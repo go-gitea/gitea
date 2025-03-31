@@ -283,23 +283,23 @@ func Routes() *web.Router {
 	mid = append(mid, goGet)
 	mid = append(mid, common.PageTmplFunctions)
 
-	others := web.NewRouter()
-	others.Use(mid...)
-	registerRoutes(others)
-	routes.Mount("", others)
+	webRoutes := web.NewRouter()
+	webRoutes.Use(mid...)
+	webRoutes.Group("", func() { registerWebRoutes(webRoutes) }, common.BlockExpensive())
+	routes.Mount("", webRoutes)
 	return routes
 }
 
 var optSignInIgnoreCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
 
-// registerRoutes register routes
-func registerRoutes(m *web.Router) {
+// registerWebRoutes register routes
+func registerWebRoutes(m *web.Router) {
 	// required to be signed in or signed out
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
 	// optional sign in (if signed in, use the user as doer, if not, no doer)
-	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
-	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
+	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
+	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
 
 	validation.AddBindingRules()
 
@@ -854,13 +854,13 @@ func registerRoutes(m *web.Router) {
 	individualPermsChecker := func(ctx *context.Context) {
 		// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 		if ctx.ContextUser.IsIndividual() {
-			switch {
-			case ctx.ContextUser.Visibility == structs.VisibleTypePrivate:
+			switch ctx.ContextUser.Visibility {
+			case structs.VisibleTypePrivate:
 				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
 					ctx.NotFound(nil)
 					return
 				}
-			case ctx.ContextUser.Visibility == structs.VisibleTypeLimited:
+			case structs.VisibleTypeLimited:
 				if ctx.Doer == nil {
 					ctx.NotFound(nil)
 					return
@@ -1077,6 +1077,8 @@ func registerRoutes(m *web.Router) {
 		}, repo_setting.SettingsCtxData)
 		m.Post("/avatar", web.Bind(forms.AvatarForm{}), repo_setting.SettingsAvatar)
 		m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
+
+		m.Combo("/public_access").Get(repo_setting.PublicAccess).Post(repo_setting.PublicAccessPost)
 
 		m.Group("/collaboration", func() {
 			m.Combo("").Get(repo_setting.Collaboration).Post(repo_setting.CollaborationPost)
@@ -1488,7 +1490,7 @@ func registerRoutes(m *web.Router) {
 			})
 			m.Group("/recent-commits", func() {
 				m.Get("", repo.RecentCommits)
-				m.Get("/data", repo.RecentCommitsData)
+				m.Get("/data", repo.CodeFrequencyData) // "recent-commits" also uses the same data as "code-frequency"
 			})
 		}, reqUnitCodeReader)
 	},
@@ -1639,7 +1641,7 @@ func registerRoutes(m *web.Router) {
 		m.Group("/devtest", func() {
 			m.Any("", devtest.List)
 			m.Any("/fetch-action-test", devtest.FetchActionTest)
-			m.Any("/{sub}", devtest.Tmpl)
+			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/{run}/{job}", devtest.MockActionsView)
 			m.Post("/actions-mock/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 		})

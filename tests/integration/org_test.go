@@ -41,7 +41,7 @@ func TestOrgRepos(t *testing.T) {
 				sel := htmlDoc.doc.Find("a.name")
 				assert.Len(t, repos, len(sel.Nodes))
 				for i := 0; i < len(repos); i++ {
-					assert.EqualValues(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
+					assert.Equal(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
 				}
 			}
 		})

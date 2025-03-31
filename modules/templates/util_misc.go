@@ -38,10 +38,11 @@ func sortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML 
 	} else {
 		// if sort arg is in url test if it correlates with column header sort arguments
 		// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
-		if urlSort == normSort {
+		switch urlSort {
+		case normSort:
 			// the table is sorted with this header normal
 			return svg.RenderHTML("octicon-triangle-up", 16)
-		} else if urlSort == revSort {
+		case revSort:
 			// the table is sorted with this header reverse
 			return svg.RenderHTML("octicon-triangle-down", 16)
 		}

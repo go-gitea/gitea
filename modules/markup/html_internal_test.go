@@ -405,10 +405,10 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 		if v.CommitID == "" {
 			assert.False(t, ok)
 		} else {
-			assert.EqualValues(t, strings.TrimSuffix(k, "."), ret.FullURL)
-			assert.EqualValues(t, v.CommitID, ret.CommitID)
-			assert.EqualValues(t, v.SubPath, ret.SubPath)
-			assert.EqualValues(t, v.QueryHash, ret.QueryHash)
+			assert.Equal(t, strings.TrimSuffix(k, "."), ret.FullURL)
+			assert.Equal(t, v.CommitID, ret.CommitID)
+			assert.Equal(t, v.SubPath, ret.SubPath)
+			assert.Equal(t, v.QueryHash, ret.QueryHash)
 		}
 	}
 }

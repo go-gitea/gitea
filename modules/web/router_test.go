@@ -121,7 +121,7 @@ func TestRouter(t *testing.T) {
 			req, err := http.NewRequest(methodPathFields[0], methodPathFields[1], nil)
 			assert.NoError(t, err)
 			r.ServeHTTP(recorder, req)
-			assert.EqualValues(t, expected, res)
+			assert.Equal(t, expected, res)
 		})
 	}
 

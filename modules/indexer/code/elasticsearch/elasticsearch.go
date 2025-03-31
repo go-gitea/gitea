@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
@@ -209,12 +208,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
-		r, err := gitrepo.OpenRepository(ctx, repo)
-		if err != nil {
-			return err
-		}
-		defer r.Close()
-		batch, err := r.NewBatch(ctx)
+		batch, err := git.NewBatch(ctx, repo.RepoPath())
 		if err != nil {
 			return err
 		}

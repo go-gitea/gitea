@@ -1,4 +1,4 @@
-import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {hideElem, querySingleVisibleElem, showElem, toggleElem} from '../utils/dom.ts';
 import {htmlEscape} from 'escape-goat';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {sanitizeRepoName} from './repo-common.ts';
@@ -6,7 +6,9 @@ import {sanitizeRepoName} from './repo-common.ts';
 const {appSubUrl} = window.config;
 
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
-  const inputRepoOwnerUid = form.querySelector<HTMLInputElement>('#uid');
+  const elSubmitButton = querySingleVisibleElem<HTMLInputElement>(form, '.ui.primary.button');
+  const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message');
+  const elRepoOwnerDropdown = form.querySelector('#repo_owner_dropdown');
   const elRepoTemplateDropdown = form.querySelector<HTMLInputElement>('#repo_template_search');
   const inputRepoTemplate = form.querySelector<HTMLInputElement>('#repo_template');
   const elTemplateUnits = form.querySelector('#template_units');
@@ -19,11 +21,23 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
   inputRepoTemplate.addEventListener('change', checkTemplate);
   checkTemplate();
 
-  const $dropdown = fomanticQuery(elRepoTemplateDropdown);
+  const $repoOwnerDropdown = fomanticQuery(elRepoOwnerDropdown);
+  const $repoTemplateDropdown = fomanticQuery(elRepoTemplateDropdown);
   const onChangeOwner = function () {
-    $dropdown.dropdown('setting', {
+    const ownerId = $repoOwnerDropdown.dropdown('get value');
+    const $ownerItem = $repoOwnerDropdown.dropdown('get item', ownerId);
+    hideElem(elCreateRepoErrorMessage);
+    elSubmitButton.disabled = false;
+    if ($ownerItem?.length) {
+      const elOwnerItem = $ownerItem[0];
+      elCreateRepoErrorMessage.textContent = elOwnerItem.getAttribute('data-create-repo-disallowed-prompt') ?? '';
+      const hasError = Boolean(elCreateRepoErrorMessage.textContent);
+      toggleElem(elCreateRepoErrorMessage, hasError);
+      elSubmitButton.disabled = hasError;
+    }
+    $repoTemplateDropdown.dropdown('setting', {
       apiSettings: {
-        url: `${appSubUrl}/repo/search?q={query}&template=true&priority_owner_id=${inputRepoOwnerUid.value}`,
+        url: `${appSubUrl}/repo/search?q={query}&template=true&priority_owner_id=${ownerId}`,
         onResponse(response: any) {
           const results = [];
           results.push({name: '', value: ''}); // empty item means not using template
@@ -33,14 +47,14 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
               value: String(tmplRepo.repository.id),
             });
           }
-          $dropdown.fomanticExt.onResponseKeepSelectedItem($dropdown, inputRepoTemplate.value);
+          $repoTemplateDropdown.fomanticExt.onResponseKeepSelectedItem($repoTemplateDropdown, inputRepoTemplate.value);
           return {results};
         },
         cache: false,
       },
     });
   };
-  inputRepoOwnerUid.addEventListener('change', onChangeOwner);
+  $repoOwnerDropdown.dropdown('setting', 'onChange', onChangeOwner);
   onChangeOwner();
 }
 

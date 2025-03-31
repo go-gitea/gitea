@@ -99,7 +99,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	lastCommit, err := gitRepo.GetCommitByPath("README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse := getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// No ref
 	refType = "branch"
@@ -109,7 +109,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	assert.NotNil(t, contentsListResponse)
 
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(repo1.DefaultBranch, refType, lastCommit.ID.String())
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// ref is the branch we created above in setup
 	ref = newBranch
@@ -123,7 +123,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	lastCommit, err = branchCommit.GetCommitByPath("README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// ref is the new tag we created above in setup
 	ref = newTag
@@ -137,7 +137,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	lastCommit, err = tagCommit.GetCommitByPath("README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// ref is a commit
 	ref = commitID
@@ -147,7 +147,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, commitID)
-	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
+	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
 
 	// Test file contents a file with a bad ref
 	ref = "badref"
