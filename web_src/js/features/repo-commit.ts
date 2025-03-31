@@ -16,7 +16,7 @@ export function initCommitStatuses() {
     const nextEl = el.nextElementSibling;
     if (!nextEl.matches('.tippy-target')) throw new Error('Expected next element to be a tippy target');
     createTippy(el, {
-      content: el.nextElementSibling,
+      content: nextEl,
       placement: 'bottom-start',
       interactive: true,
       role: 'dialog',
