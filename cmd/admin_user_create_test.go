@@ -23,6 +23,7 @@ func TestAdminUserCreate(t *testing.T) {
 	reset := func() {
 		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.User{}))
 		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.EmailAddress{}))
+		require.NoError(t, db.TruncateBeans(db.DefaultContext, &auth_model.AccessToken{}))
 	}
 
 	t.Run("MustChangePassword", func(t *testing.T) {
@@ -66,15 +67,30 @@ func TestAdminUserCreate(t *testing.T) {
 	})
 
 	t.Run("AccessToken", func(t *testing.T) {
+		// no generated access token
 		reset()
 		assert.NoError(t, createUser("u", "--random-password"))
 		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
 
+		// using "--access-token" only means "all" access
 		reset()
-		assert.NoError(t, createUser("u", "--random-password --access-token --access-token-name new-token-name --access-token-scopes read:issue,read:user"))
-		a := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "new-token-name"})
-		hasScopes, err := a.Scope.HasScope(auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadUser)
+		assert.NoError(t, createUser("u", "--random-password --access-token"))
+		assert.Equal(t, 1, unittest.GetCount(t, &auth_model.AccessToken{}))
+		accessToken := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "gitea-admin"})
+		hasScopes, err := accessToken.Scope.HasScope(auth_model.AccessTokenScopeWriteAdmin, auth_model.AccessTokenScopeWriteRepository)
 		assert.NoError(t, err)
 		assert.True(t, hasScopes)
+
+		// using "--access-token" with name & scopes
+		reset()
+		assert.NoError(t, createUser("u", "--random-password --access-token --access-token-name new-token-name --access-token-scopes read:issue,read:user"))
+		assert.Equal(t, 1, unittest.GetCount(t, &auth_model.AccessToken{}))
+		accessToken = unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "new-token-name"})
+		hasScopes, err = accessToken.Scope.HasScope(auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadUser)
+		assert.NoError(t, err)
+		assert.True(t, hasScopes)
+		hasScopes, err = accessToken.Scope.HasScope(auth_model.AccessTokenScopeWriteAdmin, auth_model.AccessTokenScopeWriteRepository)
+		assert.NoError(t, err)
+		assert.False(t, hasScopes)
 	})
 }
