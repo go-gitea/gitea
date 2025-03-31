@@ -59,7 +59,7 @@ func TestAPIOrgCreateRename(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s", org.UserName).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiOrg)
-	assert.EqualValues(t, org.UserName, apiOrg.Name)
+	assert.Equal(t, org.UserName, apiOrg.Name)
 
 	t.Run("CheckPermission", func(t *testing.T) {
 		// Check owner team permission
@@ -86,7 +86,7 @@ func TestAPIOrgCreateRename(t *testing.T) {
 		var users []*api.User
 		DecodeJSON(t, resp, &users)
 		assert.Len(t, users, 1)
-		assert.EqualValues(t, "user1", users[0].UserName)
+		assert.Equal(t, "user1", users[0].UserName)
 	})
 
 	t.Run("RenameOrg", func(t *testing.T) {
@@ -225,6 +225,6 @@ func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 	DecodeJSON(t, resp, &data)
 	assert.True(t, data.Ok)
 	if assert.Len(t, data.Data, 1) {
-		assert.EqualValues(t, "Empty", data.Data[0].Name)
+		assert.Equal(t, "Empty", data.Data[0].Name)
 	}
 }

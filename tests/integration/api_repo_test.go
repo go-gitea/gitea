@@ -37,7 +37,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 		unittest.Cond("is_private = ?", false))
 	assert.Len(t, apiRepos, expectedLen)
 	for _, repo := range apiRepos {
-		assert.EqualValues(t, user.ID, repo.Owner.ID)
+		assert.Equal(t, user.ID, repo.Owner.ID)
 		assert.False(t, repo.Private)
 	}
 }
@@ -266,25 +266,25 @@ func TestAPIViewRepo(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 1, repo.ID)
-	assert.EqualValues(t, "repo1", repo.Name)
-	assert.EqualValues(t, 2, repo.Releases)
-	assert.EqualValues(t, 1, repo.OpenIssues)
-	assert.EqualValues(t, 3, repo.OpenPulls)
+	assert.Equal(t, "repo1", repo.Name)
+	assert.Equal(t, 2, repo.Releases)
+	assert.Equal(t, 1, repo.OpenIssues)
+	assert.Equal(t, 3, repo.OpenPulls)
 
 	req = NewRequest(t, "GET", "/api/v1/repos/user12/repo10")
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 10, repo.ID)
-	assert.EqualValues(t, "repo10", repo.Name)
-	assert.EqualValues(t, 1, repo.OpenPulls)
-	assert.EqualValues(t, 1, repo.Forks)
+	assert.Equal(t, "repo10", repo.Name)
+	assert.Equal(t, 1, repo.OpenPulls)
+	assert.Equal(t, 1, repo.Forks)
 
 	req = NewRequest(t, "GET", "/api/v1/repos/user5/repo4")
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 4, repo.ID)
-	assert.EqualValues(t, "repo4", repo.Name)
-	assert.EqualValues(t, 1, repo.Stars)
+	assert.Equal(t, "repo4", repo.Name)
+	assert.Equal(t, 1, repo.Stars)
 }
 
 func TestAPIOrgRepos(t *testing.T) {
@@ -337,9 +337,9 @@ func TestAPIOrgReposWithCodeUnitDisabled(t *testing.T) {
 	var units []unit_model.Type
 	units = append(units, unit_model.TypeCode)
 
-	if err := repo_service.UpdateRepositoryUnits(db.DefaultContext, repo21, nil, units); err != nil {
-		assert.Fail(t, "should have been able to delete code repository unit; failed to %v", err)
-	}
+	err := repo_service.UpdateRepositoryUnits(db.DefaultContext, repo21, nil, units)
+	assert.NoError(t, err, "should have been able to delete code repository unit")
+
 	assert.False(t, repo21.UnitEnabled(db.DefaultContext, unit_model.TypeCode))
 
 	session := loginUser(t, "user2")
@@ -403,12 +403,12 @@ func TestAPIRepoMigrate(t *testing.T) {
 			case "Remote visit addressed rate limitation.":
 				t.Log("test hit github rate limitation")
 			case "You can not import from disallowed hosts.":
-				assert.EqualValues(t, "private-ip", testCase.repoName)
+				assert.Equal(t, "private-ip", testCase.repoName)
 			default:
-				assert.FailNow(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
+				assert.FailNow(t, "unexpected error", "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
 			}
 		} else {
-			assert.EqualValues(t, testCase.expectedStatus, resp.Code)
+			assert.Equal(t, testCase.expectedStatus, resp.Code)
 		}
 	}
 }
