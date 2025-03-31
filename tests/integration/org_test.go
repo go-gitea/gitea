@@ -151,7 +151,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	// assert restrictedUser cannot see the org or the public repo
 	restrictedSession := loginUser(t, restrictedUser)
-	req := NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
+	req := NewRequest(t, "GET", "/"+orgName)
 	restrictedSession.MakeRequest(t, req, http.StatusNotFound)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
@@ -188,7 +188,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 	_ = adminSession.MakeRequest(t, req, http.StatusNoContent)
 
 	// Now we need to check if the restrictedUser can access the repo
-	req = NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
+	req = NewRequest(t, "GET", "/"+orgName)
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))

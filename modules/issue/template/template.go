@@ -402,7 +402,7 @@ func (f *valuedField) Render() string {
 }
 
 func (f *valuedField) Value() string {
-	return strings.TrimSpace(f.Get(fmt.Sprintf("form-field-%s", f.ID)))
+	return strings.TrimSpace(f.Get("form-field-" + f.ID))
 }
 
 func (f *valuedField) Options() []*valuedOption {
@@ -445,7 +445,7 @@ func (o *valuedOption) Label() string {
 func (o *valuedOption) IsChecked() bool {
 	switch o.field.Type {
 	case api.IssueFormFieldTypeDropdown:
-		checks := strings.Split(o.field.Get(fmt.Sprintf("form-field-%s", o.field.ID)), ",")
+		checks := strings.Split(o.field.Get("form-field-"+o.field.ID), ",")
 		idx := strconv.Itoa(o.index)
 		for _, v := range checks {
 			if v == idx {

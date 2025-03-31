@@ -5,7 +5,6 @@ package actions
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -22,7 +21,7 @@ func GetWorkflowBadge(ctx *context.Context) {
 	if branch == "" {
 		branch = ctx.Repo.Repository.DefaultBranch
 	}
-	branchRef := fmt.Sprintf("refs/heads/%s", branch)
+	branchRef := "refs/heads/" + branch
 	event := ctx.Req.URL.Query().Get("event")
 
 	badge, err := getWorkflowBadge(ctx, workflowFile, branchRef, event)

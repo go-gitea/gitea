@@ -63,6 +63,6 @@ func TestWebfinger(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/.well-known/webfinger?resource=acct:%s@%s", "user31", appURL.Host))
 	session.MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/.well-known/webfinger?resource=mailto:%s", user.Email))
+	req = NewRequest(t, "GET", "/.well-known/webfinger?resource=mailto:"+user.Email)
 	MakeRequest(t, req, http.StatusNotFound)
 }

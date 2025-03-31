@@ -137,9 +137,9 @@ jobs:
 		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		for _, tc := range testCases {
-			t.Run(fmt.Sprintf("test %s", tc.treePath), func(t *testing.T) {
+			t.Run("test "+tc.treePath, func(t *testing.T) {
 				// create the workflow file
-				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, fmt.Sprintf("create %s", tc.treePath), tc.fileContent)
+				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
 				fileResp := createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
 
 				// fetch and execute task
@@ -320,8 +320,8 @@ jobs:
 		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		for _, tc := range testCases {
-			t.Run(fmt.Sprintf("test %s", tc.treePath), func(t *testing.T) {
-				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, fmt.Sprintf("create %s", tc.treePath), tc.fileContent)
+			t.Run("test "+tc.treePath, func(t *testing.T) {
+				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
 				createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
 
 				for i := 0; i < len(tc.outcomes); i++ {
@@ -371,7 +371,7 @@ jobs:
     steps:
       - run: echo 'test the pull'
 `
-		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, fmt.Sprintf("create %s", wfTreePath), wfFileContent)
+		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
@@ -463,7 +463,7 @@ jobs:
     steps:
       - run: echo 'test the pull'
 `
-		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, fmt.Sprintf("create %s", wfTreePath), wfFileContent)
+		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{

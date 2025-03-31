@@ -52,7 +52,7 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 	// TODO: This will not work if there are foreign keys
 
 	tableName := sess.Engine().TableName(bean)
-	tempTableName := fmt.Sprintf("tmp_recreate__%s", tableName)
+	tempTableName := "tmp_recreate__" + tableName
 
 	// We need to move the old table away and create a new one with the correct columns
 	// We will need to do this in stages to prevent data loss
@@ -552,11 +552,11 @@ func deleteDB() error {
 		}
 		defer db.Close()
 
-		if _, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name)); err != nil {
+		if _, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name); err != nil {
 			return err
 		}
 
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
+		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name); err != nil {
 			return err
 		}
 		return nil
@@ -568,11 +568,11 @@ func deleteDB() error {
 		}
 		defer db.Close()
 
-		if _, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name)); err != nil {
+		if _, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name); err != nil {
 			return err
 		}
 
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
+		if _, err = db.Exec("CREATE DATABASE " + setting.Database.Name); err != nil {
 			return err
 		}
 		db.Close()
@@ -594,7 +594,7 @@ func deleteDB() error {
 
 			if !schrows.Next() {
 				// Create and setup a DB schema
-				_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema))
+				_, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema)
 				if err != nil {
 					return err
 				}

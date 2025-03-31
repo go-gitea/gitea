@@ -88,7 +88,7 @@ func WebfingerQuery(ctx *context.Context) {
 		appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
 	}
 	if !u.KeepEmailPrivate {
-		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
+		aliases = append(aliases, "mailto:"+u.Email)
 	}
 
 	links := []*webfingerLink{

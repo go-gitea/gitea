@@ -92,12 +92,12 @@ func TestPackageContainer(t *testing.T) {
 		t.Run("Anonymous", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
+			req := NewRequest(t, "GET", setting.AppURL+"v2")
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
 
 			assert.ElementsMatch(t, defaultAuthenticateValues, resp.Header().Values("WWW-Authenticate"))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+			req = NewRequest(t, "GET", setting.AppURL+"v2/token")
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			tokenResponse := &TokenResponse{}
@@ -105,18 +105,18 @@ func TestPackageContainer(t *testing.T) {
 
 			assert.NotEmpty(t, tokenResponse.Token)
 
-			anonymousToken = fmt.Sprintf("Bearer %s", tokenResponse.Token)
+			anonymousToken = "Bearer " + tokenResponse.Token
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
+			req = NewRequest(t, "GET", setting.AppURL+"v2").
 				AddTokenAuth(anonymousToken)
 			MakeRequest(t, req, http.StatusOK)
 
 			defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
+			req = NewRequest(t, "GET", setting.AppURL+"v2")
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+			req = NewRequest(t, "GET", setting.AppURL+"v2/token")
 			MakeRequest(t, req, http.StatusUnauthorized)
 
 			defer test.MockVariableValue(&setting.AppURL, "https://domain:8443/sub-path/")()
@@ -129,12 +129,12 @@ func TestPackageContainer(t *testing.T) {
 		t.Run("UserName/Password", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
+			req := NewRequest(t, "GET", setting.AppURL+"v2")
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
 
 			assert.ElementsMatch(t, defaultAuthenticateValues, resp.Header().Values("WWW-Authenticate"))
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL)).
+			req = NewRequest(t, "GET", setting.AppURL+"v2/token").
 				AddBasicAuth(user.Name)
 			resp = MakeRequest(t, req, http.StatusOK)
 
@@ -147,9 +147,9 @@ func TestPackageContainer(t *testing.T) {
 			assert.Equal(t, user.ID, pkgMeta.UserID)
 			assert.Equal(t, auth_model.AccessTokenScopeAll, pkgMeta.Scope)
 
-			userToken = fmt.Sprintf("Bearer %s", tokenResponse.Token)
+			userToken = "Bearer " + tokenResponse.Token
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
+			req = NewRequest(t, "GET", setting.AppURL+"v2").
 				AddTokenAuth(userToken)
 			MakeRequest(t, req, http.StatusOK)
 		})
@@ -161,23 +161,23 @@ func TestPackageContainer(t *testing.T) {
 			session := loginUser(t, user.Name)
 
 			readToken = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadPackage)
-			req := NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+			req := NewRequest(t, "GET", setting.AppURL+"v2/token")
 			req.Request.SetBasicAuth(user.Name, readToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 			tokenResponse := &TokenResponse{}
 			DecodeJSON(t, resp, &tokenResponse)
 
-			readToken = fmt.Sprintf("Bearer %s", tokenResponse.Token)
+			readToken = "Bearer " + tokenResponse.Token
 
 			badToken = getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadNotification)
-			req = NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+			req = NewRequest(t, "GET", setting.AppURL+"v2/token")
 			req.Request.SetBasicAuth(user.Name, badToken)
 			MakeRequest(t, req, http.StatusUnauthorized)
 
 			testCase := func(scope auth_model.AccessTokenScope, expectedAuthStatus, expectedStatus int) {
 				token := getTokenForLoggedInUser(t, session, scope)
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%sv2/token", setting.AppURL))
+				req := NewRequest(t, "GET", setting.AppURL+"v2/token")
 				req.SetBasicAuth(user.Name, token)
 
 				resp := MakeRequest(t, req, expectedAuthStatus)
@@ -190,8 +190,8 @@ func TestPackageContainer(t *testing.T) {
 
 				assert.NotEmpty(t, tokenResponse.Token)
 
-				req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
-					AddTokenAuth(fmt.Sprintf("Bearer %s", tokenResponse.Token))
+				req = NewRequest(t, "GET", setting.AppURL+"v2").
+					AddTokenAuth("Bearer " + tokenResponse.Token)
 				MakeRequest(t, req, expectedStatus)
 			}
 			testCase(auth_model.AccessTokenScopeReadPackage, http.StatusOK, http.StatusOK)
@@ -204,17 +204,17 @@ func TestPackageContainer(t *testing.T) {
 	t.Run("DetermineSupport", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
+		req := NewRequest(t, "GET", setting.AppURL+"v2").
 			AddTokenAuth(userToken)
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "registry/2.0", resp.Header().Get("Docker-Distribution-Api-Version"))
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
+		req = NewRequest(t, "GET", setting.AppURL+"v2").
 			AddTokenAuth(readToken)
 		resp = MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "registry/2.0", resp.Header().Get("Docker-Distribution-Api-Version"))
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL)).
+		req = NewRequest(t, "GET", setting.AppURL+"v2").
 			AddTokenAuth(badToken)
 		MakeRequest(t, req, http.StatusUnauthorized)
 	})
@@ -226,15 +226,15 @@ func TestPackageContainer(t *testing.T) {
 			t.Run("UploadBlob/Monolithic", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+				req := NewRequest(t, "POST", url+"/blobs/uploads").
 					AddTokenAuth(anonymousToken)
 				MakeRequest(t, req, http.StatusUnauthorized)
 
-				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+				req = NewRequest(t, "POST", url+"/blobs/uploads").
 					AddTokenAuth(readToken)
 				MakeRequest(t, req, http.StatusUnauthorized)
 
-				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+				req = NewRequest(t, "POST", url+"/blobs/uploads").
 					AddTokenAuth(badToken)
 				MakeRequest(t, req, http.StatusUnauthorized)
 
@@ -264,15 +264,15 @@ func TestPackageContainer(t *testing.T) {
 			t.Run("UploadBlob/Chunked", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+				req := NewRequest(t, "POST", url+"/blobs/uploads").
 					AddTokenAuth(readToken)
 				MakeRequest(t, req, http.StatusUnauthorized)
 
-				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+				req = NewRequest(t, "POST", url+"/blobs/uploads").
 					AddTokenAuth(badToken)
 				MakeRequest(t, req, http.StatusUnauthorized)
 
-				req = NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+				req = NewRequest(t, "POST", url+"/blobs/uploads").
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusAccepted)
 
@@ -325,7 +325,7 @@ func TestPackageContainer(t *testing.T) {
 				t.Run("Cancel", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
-					req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url)).
+					req := NewRequest(t, "POST", url+"/blobs/uploads").
 						AddTokenAuth(userToken)
 					resp := MakeRequest(t, req, http.StatusAccepted)
 
@@ -467,7 +467,7 @@ func TestPackageContainer(t *testing.T) {
 					t.Run("HeadManifest", func(t *testing.T) {
 						defer tests.PrintCurrentTest(t)()
 
-						req := NewRequest(t, "HEAD", fmt.Sprintf("%s/manifests/unknown-tag", url)).
+						req := NewRequest(t, "HEAD", url+"/manifests/unknown-tag").
 							AddTokenAuth(userToken)
 						MakeRequest(t, req, http.StatusNotFound)
 
@@ -482,7 +482,7 @@ func TestPackageContainer(t *testing.T) {
 					t.Run("GetManifest", func(t *testing.T) {
 						defer tests.PrintCurrentTest(t)()
 
-						req := NewRequest(t, "GET", fmt.Sprintf("%s/manifests/unknown-tag", url)).
+						req := NewRequest(t, "GET", url+"/manifests/unknown-tag").
 							AddTokenAuth(userToken)
 						MakeRequest(t, req, http.StatusNotFound)
 
@@ -631,27 +631,27 @@ func TestPackageContainer(t *testing.T) {
 					ExpectedLink string
 				}{
 					{
-						URL:          fmt.Sprintf("%s/tags/list", url),
+						URL:          url + "/tags/list",
 						ExpectedTags: []string{"latest", "main", "multi"},
 						ExpectedLink: fmt.Sprintf(`</v2/%s/%s/tags/list?last=multi>; rel="next"`, user.Name, image),
 					},
 					{
-						URL:          fmt.Sprintf("%s/tags/list?n=0", url),
+						URL:          url + "/tags/list?n=0",
 						ExpectedTags: []string{},
 						ExpectedLink: "",
 					},
 					{
-						URL:          fmt.Sprintf("%s/tags/list?n=2", url),
+						URL:          url + "/tags/list?n=2",
 						ExpectedTags: []string{"latest", "main"},
 						ExpectedLink: fmt.Sprintf(`</v2/%s/%s/tags/list?last=main&n=2>; rel="next"`, user.Name, image),
 					},
 					{
-						URL:          fmt.Sprintf("%s/tags/list?last=main", url),
+						URL:          url + "/tags/list?last=main",
 						ExpectedTags: []string{"multi"},
 						ExpectedLink: fmt.Sprintf(`</v2/%s/%s/tags/list?last=multi>; rel="next"`, user.Name, image),
 					},
 					{
-						URL:          fmt.Sprintf("%s/tags/list?n=1&last=latest", url),
+						URL:          url + "/tags/list?n=1&last=latest",
 						ExpectedTags: []string{"main"},
 						ExpectedLink: fmt.Sprintf(`</v2/%s/%s/tags/list?last=main&n=1>; rel="next"`, user.Name, image),
 					},
@@ -757,7 +757,7 @@ func TestPackageContainer(t *testing.T) {
 			return func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%sv2/_catalog", setting.AppURL)).
+				req := NewRequest(t, "GET", setting.AppURL+"v2/_catalog").
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusOK)
 

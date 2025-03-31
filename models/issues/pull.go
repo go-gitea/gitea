@@ -926,7 +926,7 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 		if strings.Contains(user, "/") {
 			s := strings.Split(user, "/")
 			if len(s) != 2 {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner group: %s", user))
+				warnings = append(warnings, "incorrect codeowner group: "+user)
 				continue
 			}
 			orgName := s[0]
@@ -934,12 +934,12 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 
 			org, err := org_model.GetOrgByName(ctx, orgName)
 			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner organization: %s", user))
+				warnings = append(warnings, "incorrect codeowner organization: "+user)
 				continue
 			}
 			teams, err := org.LoadTeams(ctx)
 			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner team: %s", user))
+				warnings = append(warnings, "incorrect codeowner team: "+user)
 				continue
 			}
 
@@ -951,7 +951,7 @@ func ParseCodeOwnersLine(ctx context.Context, tokens []string) (*CodeOwnerRule, 
 		} else {
 			u, err := user_model.GetUserByName(ctx, user)
 			if err != nil {
-				warnings = append(warnings, fmt.Sprintf("incorrect codeowner user: %s", user))
+				warnings = append(warnings, "incorrect codeowner user: "+user)
 				continue
 			}
 			rule.Users = append(rule.Users, u)

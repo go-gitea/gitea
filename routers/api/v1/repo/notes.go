@@ -5,7 +5,6 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/git"
@@ -55,7 +54,7 @@ func GetNote(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("no valid ref or sha: %s", sha))
+		ctx.APIError(http.StatusUnprocessableEntity, "no valid ref or sha: "+sha)
 		return
 	}
 	getNote(ctx, sha)

@@ -23,7 +23,7 @@ func TestServeContentByReader(t *testing.T) {
 		_, rangeStr, _ := strings.Cut(t.Name(), "_range_")
 		r := &http.Request{Header: http.Header{}, Form: url.Values{}}
 		if rangeStr != "" {
-			r.Header.Set("Range", fmt.Sprintf("bytes=%s", rangeStr))
+			r.Header.Set("Range", "bytes="+rangeStr)
 		}
 		reader := strings.NewReader(data)
 		w := httptest.NewRecorder()
@@ -68,7 +68,7 @@ func TestServeContentByReadSeeker(t *testing.T) {
 		_, rangeStr, _ := strings.Cut(t.Name(), "_range_")
 		r := &http.Request{Header: http.Header{}, Form: url.Values{}}
 		if rangeStr != "" {
-			r.Header.Set("Range", fmt.Sprintf("bytes=%s", rangeStr))
+			r.Header.Set("Range", "bytes="+rangeStr)
 		}
 
 		seekReader, err := os.OpenFile(tmpFile, os.O_RDONLY, 0o644)

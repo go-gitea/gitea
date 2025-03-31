@@ -173,7 +173,7 @@ func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServC
 	if err != nil {
 		return "", fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
 	}
-	return fmt.Sprintf("Bearer %s", tokenString), nil
+	return "Bearer " + tokenString, nil
 }
 
 func runServ(c *cli.Context) error {

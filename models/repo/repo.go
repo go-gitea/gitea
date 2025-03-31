@@ -60,7 +60,7 @@ type ErrRepoIsArchived struct {
 }
 
 func (err ErrRepoIsArchived) Error() string {
-	return fmt.Sprintf("%s is archived", err.Repo.LogString())
+	return err.Repo.LogString() + " is archived"
 }
 
 type globalVarsStruct struct {

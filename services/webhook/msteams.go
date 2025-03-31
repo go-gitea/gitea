@@ -73,7 +73,7 @@ func (m msteamsConvertor) Create(p *api.CreatePayload) (MSTeamsPayload, error) {
 		"",
 		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		greenColor,
-		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
+		&MSTeamsFact{p.RefType + ":", refName},
 	), nil
 }
 
@@ -90,7 +90,7 @@ func (m msteamsConvertor) Delete(p *api.DeletePayload) (MSTeamsPayload, error) {
 		"",
 		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		yellowColor,
-		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
+		&MSTeamsFact{p.RefType + ":", refName},
 	), nil
 }
 
