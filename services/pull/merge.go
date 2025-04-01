@@ -6,6 +6,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -59,7 +60,7 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 		issueReference = "!"
 	}
 
-	reviewedOn := fmt.Sprintf("Reviewed-on: %s", httplib.MakeAbsoluteURL(ctx, pr.Issue.Link()))
+	reviewedOn := "Reviewed-on: " + httplib.MakeAbsoluteURL(ctx, pr.Issue.Link())
 	reviewedBy := pr.GetApprovers(ctx)
 
 	if mergeStyle != "" {
@@ -621,13 +622,13 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 
 		objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 		if len(commitID) != objectFormat.FullLength() {
-			return fmt.Errorf("Wrong commit ID")
+			return errors.New("Wrong commit ID")
 		}
 
 		commit, err := baseGitRepo.GetCommit(commitID)
 		if err != nil {
 			if git.IsErrNotExist(err) {
-				return fmt.Errorf("Wrong commit ID")
+				return errors.New("Wrong commit ID")
 			}
 			return err
 		}
@@ -638,14 +639,14 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return err
 		}
 		if !ok {
-			return fmt.Errorf("Wrong commit ID")
+			return errors.New("Wrong commit ID")
 		}
 
 		var merged bool
 		if merged, err = SetMerged(ctx, pr, commitID, timeutil.TimeStamp(commit.Author.When.Unix()), doer, issues_model.PullRequestStatusManuallyMerged); err != nil {
 			return err
 		} else if !merged {
-			return fmt.Errorf("SetMerged failed")
+			return errors.New("SetMerged failed")
 		}
 		return nil
 	})

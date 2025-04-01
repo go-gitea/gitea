@@ -53,7 +53,7 @@ type FootnoteLink struct {
 // Dump implements Node.Dump.
 func (n *FootnoteLink) Dump(source []byte, level int) {
 	m := map[string]string{}
-	m["Index"] = fmt.Sprintf("%v", n.Index)
+	m["Index"] = strconv.Itoa(n.Index)
 	m["Name"] = fmt.Sprintf("%v", n.Name)
 	ast.DumpHelper(n, source, level, m, nil)
 }
@@ -85,7 +85,7 @@ type FootnoteBackLink struct {
 // Dump implements Node.Dump.
 func (n *FootnoteBackLink) Dump(source []byte, level int) {
 	m := map[string]string{}
-	m["Index"] = fmt.Sprintf("%v", n.Index)
+	m["Index"] = strconv.Itoa(n.Index)
 	m["Name"] = fmt.Sprintf("%v", n.Name)
 	ast.DumpHelper(n, source, level, m, nil)
 }
@@ -151,7 +151,7 @@ type FootnoteList struct {
 // Dump implements Node.Dump.
 func (n *FootnoteList) Dump(source []byte, level int) {
 	m := map[string]string{}
-	m["Count"] = fmt.Sprintf("%v", n.Count)
+	m["Count"] = strconv.Itoa(n.Count)
 	ast.DumpHelper(n, source, level, m, nil)
 }
 

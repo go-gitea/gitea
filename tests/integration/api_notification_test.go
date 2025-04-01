@@ -35,7 +35,7 @@ func TestAPINotification(t *testing.T) {
 	// -- GET /notifications --
 	// test filter
 	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?since=%s", since)).
+	req := NewRequest(t, "GET", "/api/v1/notifications?since="+since).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiNL []api.NotificationThread

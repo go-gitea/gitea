@@ -6,7 +6,6 @@ package private
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"os"
 
@@ -113,7 +112,7 @@ type errUnverifiedCommit struct {
 }
 
 func (e *errUnverifiedCommit) Error() string {
-	return fmt.Sprintf("Unverified commit: %s", e.sha)
+	return "Unverified commit: " + e.sha
 }
 
 func isErrUnverifiedCommit(err error) bool {

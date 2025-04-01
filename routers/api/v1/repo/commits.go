@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -65,7 +64,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("no valid ref or sha: %s", sha))
+		ctx.APIError(http.StatusUnprocessableEntity, "no valid ref or sha: "+sha)
 		return
 	}
 

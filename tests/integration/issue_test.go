@@ -195,21 +195,21 @@ func TestEditIssue(t *testing.T) {
 	session := loginUser(t, "user2")
 	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 
-	req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+	req := NewRequestWithValues(t, "POST", issueURL+"/content", map[string]string{
 		"_csrf":   GetUserCSRFToken(t, session),
 		"content": "modified content",
 		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+	req = NewRequestWithValues(t, "POST", issueURL+"/content", map[string]string{
 		"_csrf":   GetUserCSRFToken(t, session),
 		"content": "modified content",
 		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
 	})
 	session.MakeRequest(t, req, http.StatusBadRequest)
 
-	req = NewRequestWithValues(t, "POST", fmt.Sprintf("%s/content", issueURL), map[string]string{
+	req = NewRequestWithValues(t, "POST", issueURL+"/content", map[string]string{
 		"_csrf":           GetUserCSRFToken(t, session),
 		"content":         "modified content",
 		"content_version": "1",

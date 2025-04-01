@@ -552,10 +552,10 @@ func CommonRoutes() *web.Router {
 
 			r.Methods("HEAD,GET,PUT,DELETE", "*", func(ctx *context.Context) {
 				path := ctx.PathParam("*")
-				isHead := ctx.Req.Method == "HEAD"
-				isGetHead := ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
-				isPut := ctx.Req.Method == "PUT"
-				isDelete := ctx.Req.Method == "DELETE"
+				isHead := ctx.Req.Method == http.MethodHead
+				isGetHead := ctx.Req.Method == http.MethodHead || ctx.Req.Method == http.MethodGet
+				isPut := ctx.Req.Method == http.MethodPut
+				isDelete := ctx.Req.Method == http.MethodDelete
 
 				m := repoPattern.FindStringSubmatch(path)
 				if len(m) == 2 && isGetHead {

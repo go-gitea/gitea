@@ -258,7 +258,7 @@ func (p *iniConfigProvider) Save() error {
 	}
 	filename := p.file
 	if filename == "" {
-		return fmt.Errorf("config file path must not be empty")
+		return errors.New("config file path must not be empty")
 	}
 	if p.loadedFromEmpty {
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {

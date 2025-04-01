@@ -5,7 +5,6 @@ package ldap
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -41,7 +40,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		sr.Username = userName
 	}
 	if sr.Mail == "" {
-		sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
+		sr.Mail = sr.Username + "@localhost.local"
 	}
 	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 

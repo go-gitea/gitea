@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -95,7 +96,7 @@ func TestMigrateGiteaForm(t *testing.T) {
 			"issues":      "on",
 			"repo_name":   migratedRepoName,
 			"description": "",
-			"uid":         fmt.Sprintf("%d", repoOwner.ID),
+			"uid":         strconv.FormatInt(repoOwner.ID, 10),
 		})
 		resp = session.MakeRequest(t, req, http.StatusSeeOther)
 		// Step 5: a redirection displays the migrated repository

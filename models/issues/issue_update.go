@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -386,10 +387,10 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 	}
 
 	if opts.Issue.Index <= 0 {
-		return fmt.Errorf("no issue index provided")
+		return errors.New("no issue index provided")
 	}
 	if opts.Issue.ID > 0 {
-		return fmt.Errorf("issue exist")
+		return errors.New("issue exist")
 	}
 
 	if _, err := e.Insert(opts.Issue); err != nil {
