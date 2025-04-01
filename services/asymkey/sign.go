@@ -15,6 +15,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -176,7 +177,8 @@ func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_mo
 	if signingKey == "" {
 		return false, "", nil, &ErrWontSign{noKey}
 	}
-	keysCache := make(map[string][]*asymkey_model.GPGKey)
+
+	ctx = cache.WithCacheContext(ctx)
 
 Loop:
 	for _, rule := range rules {
@@ -217,7 +219,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := ParseCommitWithSignature(ctx, commit, keysCache)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -233,7 +235,7 @@ func SignCRUDAction(ctx context.Context, repoPath string, u *user_model.User, tm
 	if signingKey == "" {
 		return false, "", nil, &ErrWontSign{noKey}
 	}
-	keysCache := make(map[string][]*asymkey_model.GPGKey)
+	ctx = cache.WithCacheContext(ctx)
 
 Loop:
 	for _, rule := range rules {
@@ -274,7 +276,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := ParseCommitWithSignature(ctx, commit, keysCache)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -299,7 +301,7 @@ func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.
 
 	var gitRepo *git.Repository
 	var err error
-	keysCache := make(map[string][]*asymkey_model.GPGKey)
+	ctx = cache.WithCacheContext(ctx)
 
 Loop:
 	for _, rule := range rules {
@@ -350,7 +352,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := ParseCommitWithSignature(ctx, commit, keysCache)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{baseSigned}
 			}
@@ -366,7 +368,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := ParseCommitWithSignature(ctx, commit, keysCache)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{headSigned}
 			}
@@ -382,7 +384,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := ParseCommitWithSignature(ctx, commit, keysCache)
+			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{commitsSigned}
 			}
@@ -396,7 +398,7 @@ Loop:
 				return false, "", nil, err
 			}
 			for _, commit := range commitList {
-				verification := ParseCommitWithSignature(ctx, commit, keysCache)
+				verification := ParseCommitWithSignature(ctx, commit)
 				if !verification.Verified {
 					return false, "", nil, &ErrWontSign{commitsSigned}
 				}

@@ -22,6 +22,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -254,8 +255,7 @@ func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArti
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(ctx context.Context, c *git.Commit) *api.PayloadCommitVerification {
-	keysCache := make(map[string][]*asymkey_model.GPGKey)
-	verif := asymkey_service.ParseCommitWithSignature(ctx, c, keysCache)
+	verif := asymkey_service.ParseCommitWithSignature(cache.WithCacheContext(ctx), c)
 	commitVerification := &api.PayloadCommitVerification{
 		Verified: verif.Verified,
 		Reason:   verif.Reason,

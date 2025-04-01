@@ -15,6 +15,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -97,7 +98,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 
 	emails := map[string]*user_model.User{}
 	keyMap := map[string]bool{}
-	keysCache := make(map[string][]*asymkey_model.GPGKey)
+	ctx = cache.WithCacheContext(ctx)
 
 	for _, c := range graph.Commits {
 		if len(c.Rev) == 0 {
@@ -116,7 +117,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 			}
 		}
 
-		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit, keysCache)
+		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
 		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx, repository, user.ID)

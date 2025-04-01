@@ -11,6 +11,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -33,7 +34,7 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 		return nil, err
 	}
 
-	keysCache := make(map[string][]*asymkey_model.GPGKey)
+	ctx = cache.WithCacheContext(ctx)
 
 	for _, c := range oldCommits {
 		committer, ok := emailUsers[c.Committer.Email]
@@ -46,7 +47,7 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 
 		signCommit := &asymkey_model.SignCommit{
 			UserCommit:   c,
-			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committer, keysCache),
+			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committer),
 		}
 
 		_ = asymkey_model.CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)

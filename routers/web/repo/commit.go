@@ -20,6 +20,7 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -384,8 +385,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	keysCache := make(map[string][]*asymkey_model.GPGKey)
-	verification := asymkey_service.ParseCommitWithSignature(ctx, commit, keysCache)
+	verification := asymkey_service.ParseCommitWithSignature(cache.WithCacheContext(ctx), commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
 	ctx.Data["Parents"] = parents
