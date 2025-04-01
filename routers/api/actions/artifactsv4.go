@@ -162,8 +162,8 @@ func (r artifactV4Routes) buildSignature(endp, expires, artifactName string, tas
 	mac.Write([]byte(endp))
 	mac.Write([]byte(expires))
 	mac.Write([]byte(artifactName))
-	mac.Write([]byte(fmt.Sprint(taskID)))
-	mac.Write([]byte(fmt.Sprint(artifactID)))
+	fmt.Fprint(mac, taskID)
+	fmt.Fprint(mac, artifactID)
 	return mac.Sum(nil)
 }
 
