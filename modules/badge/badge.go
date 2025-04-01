@@ -5,6 +5,7 @@ package badge
 
 import (
 	"strings"
+	"sync"
 	"unicode"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -49,9 +50,6 @@ func (b Badge) Width() int {
 	return b.Label.width + b.Message.width
 }
 
-// Style represents the style of a badge
-type Style string
-
 const (
 	StyleFlat       = "flat"
 	StyleFlatSquare = "flat-square"
@@ -65,8 +63,13 @@ const (
 	DefaultStyle      = StyleFlat
 )
 
-var (
-	StatusColorMap = map[actions_model.Status]string{
+var GlobalVars = sync.OnceValue(func() (ret struct {
+	StatusColorMap       map[actions_model.Status]string
+	DejaVuGlyphWidthData map[rune]uint8
+	AllStyles            []string
+},
+) {
+	ret.StatusColorMap = map[actions_model.Status]string{
 		actions_model.StatusSuccess:   "#4c1",    // Green
 		actions_model.StatusSkipped:   "#dfb317", // Yellow
 		actions_model.StatusUnknown:   "#97ca00", // Light Green
@@ -76,9 +79,10 @@ var (
 		actions_model.StatusRunning:   "#dfb317", // Yellow
 		actions_model.StatusBlocked:   "#dfb317", // Yellow
 	}
-
-	AllStyles = []Style{StyleFlat, StyleFlatSquare}
-)
+	ret.DejaVuGlyphWidthData = dejaVuGlyphWidthDataFunc()
+	ret.AllStyles = []string{StyleFlat, StyleFlatSquare}
+	return ret
+})
 
 // GenerateBadge generates badge with given template
 func GenerateBadge(label, message, color string) Badge {
@@ -106,7 +110,7 @@ func GenerateBadge(label, message, color string) Badge {
 
 func calculateTextWidth(text string) int {
 	width := 0
-	widthData := DejaVuGlyphWidthData()
+	widthData := GlobalVars().DejaVuGlyphWidthData
 	for _, char := range strings.TrimSpace(text) {
 		charWidth, ok := widthData[char]
 		if !ok {

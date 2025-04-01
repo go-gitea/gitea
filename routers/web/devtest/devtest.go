@@ -162,7 +162,7 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	ctx.Data["BadgeSVGs"] = badgeSVGs
 	ctx.Data["BadgeFontFamilyNames"] = fontFamilyNames
 	ctx.Data["SelectedFontFamilyName"] = selectedFontFamilyName
-	ctx.Data["BadgeStyles"] = badge.AllStyles
+	ctx.Data["BadgeStyles"] = badge.GlobalVars().AllStyles
 	ctx.Data["SelectedStyle"] = selectedStyle
 }
 
