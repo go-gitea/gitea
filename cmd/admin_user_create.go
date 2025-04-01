@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -197,33 +198,38 @@ func runCreateUser(c *cli.Context) error {
 		IsRestricted: restricted,
 	}
 
-	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
-		return fmt.Errorf("CreateUser: %w", err)
-	}
-
+	var accessTokenName string
+	var accessTokenScope auth_model.AccessTokenScope
 	if c.IsSet("access-token") {
-		t := &auth_model.AccessToken{
-			Name: c.String("access-token-name"),
-			UID:  u.ID,
+		accessTokenName = strings.TrimSpace(c.String("access-token-name"))
+		if accessTokenName == "" {
+			return errors.New("access-token-name cannot be empty")
 		}
-
-		// include access token's scopes
-		accessTokenScope, err := auth_model.AccessTokenScope(c.String("access-token-scopes")).Normalize()
+		var err error
+		accessTokenScope, err = auth_model.AccessTokenScope(c.String("access-token-scopes")).Normalize()
 		if err != nil {
 			return fmt.Errorf("invalid access token scope provided: %w", err)
 		}
 		if !accessTokenScope.HasPermissionScope() {
 			return errors.New("access token does not have any permission")
 		}
-		t.Scope = accessTokenScope
+	} else if c.IsSet("access-token-name") || c.IsSet("access-token-scopes") {
+		return errors.New("access-token-name and access-token-scopes flags are only valid when access-token flag is set")
+	}
 
+	// arguments should be prepared before creating the user & access token, in case there is anything wrong
+
+	// create the user
+	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
+		return fmt.Errorf("CreateUser: %w", err)
+	}
+	// create the access token
+	if accessTokenScope != "" {
+		t := &auth_model.AccessToken{Name: accessTokenName, UID: u.ID, Scope: accessTokenScope}
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
-
 		fmt.Printf("Access token was successfully created... %s\n", t.Token)
-	} else if c.IsSet("access-token-name") || c.IsSet("access-token-scopes") {
-		return errors.New("access-token-name and access-token-scopes flags are only valid when access-token flag is set")
 	}
 
 	fmt.Printf("New user '%s' has been successfully created!\n", username)
