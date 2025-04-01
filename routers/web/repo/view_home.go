@@ -76,7 +76,7 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
 		var iconHTML template.HTML
 		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
-			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-%s", schema), 16)
+			iconHTML = svg.RenderHTML("gitea-"+schema, 16)
 		} else {
 			iconHTML = svg.RenderHTML("gitea-git", 16) // TODO: it could support user's customized icon in the future
 		}

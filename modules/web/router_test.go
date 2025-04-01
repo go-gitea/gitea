@@ -51,7 +51,7 @@ func TestPathProcessor(t *testing.T) {
 }
 
 func TestRouter(t *testing.T) {
-	buff := bytes.NewBufferString("")
+	buff := &bytes.Buffer{}
 	recorder := httptest.NewRecorder()
 	recorder.Body = buff
 
@@ -224,7 +224,7 @@ func TestRouteNormalizePath(t *testing.T) {
 			actualPaths.Path = req.URL.Path
 		})
 
-		req, err := http.NewRequest("GET", reqPath, nil)
+		req, err := http.NewRequest(http.MethodGet, reqPath, nil)
 		assert.NoError(t, err)
 		r.ServeHTTP(recorder, req)
 		assert.Equal(t, expectedPaths, actualPaths, "req path = %q", reqPath)

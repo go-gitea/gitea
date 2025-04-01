@@ -179,7 +179,7 @@ func prepareMockData(ctx *context.Context) {
 
 func TmplCommon(ctx *context.Context) {
 	prepareMockData(ctx)
-	if ctx.Req.Method == "POST" {
+	if ctx.Req.Method == http.MethodPost {
 		_ = ctx.Req.ParseForm()
 		ctx.Flash.Info("form: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"<br>"+
 			"Form: "+ctx.Req.Form.Encode()+"<br>"+

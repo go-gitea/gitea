@@ -238,7 +238,7 @@ func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.Use
 				Email: user.Email,
 			},
 		},
-		ContentBase64: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("This is new text for %s", path))),
+		ContentBase64: base64.StdEncoding.EncodeToString([]byte("This is new text for " + path)),
 	}, callback...)
 }
 

@@ -5,6 +5,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"maps"
@@ -59,7 +60,7 @@ type ErrRepoIsArchived struct {
 }
 
 func (err ErrRepoIsArchived) Error() string {
-	return fmt.Sprintf("%s is archived", err.Repo.LogString())
+	return err.Repo.LogString() + " is archived"
 }
 
 type globalVarsStruct struct {
@@ -820,7 +821,7 @@ func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repo
 func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
 	ret, err := giturl.ParseRepositoryURL(ctx, repoURL)
 	if err != nil || ret.OwnerName == "" {
-		return nil, fmt.Errorf("unknown or malformed repository URL")
+		return nil, errors.New("unknown or malformed repository URL")
 	}
 	return GetRepositoryByOwnerAndName(ctx, ret.OwnerName, ret.RepoName)
 }
