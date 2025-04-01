@@ -106,7 +106,7 @@ func TestAPICreateComment(t *testing.T) {
 
 	var updatedComment api.Comment
 	DecodeJSON(t, resp, &updatedComment)
-	assert.EqualValues(t, commentBody, updatedComment.Body)
+	assert.Equal(t, commentBody, updatedComment.Body)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: updatedComment.ID, IssueID: issue.ID, Content: commentBody})
 
 	t.Run("BlockedByRepoOwner", func(t *testing.T) {
@@ -233,8 +233,8 @@ func TestAPIEditComment(t *testing.T) {
 
 	var updatedComment api.Comment
 	DecodeJSON(t, resp, &updatedComment)
-	assert.EqualValues(t, comment.ID, updatedComment.ID)
-	assert.EqualValues(t, newCommentBody, updatedComment.Body)
+	assert.Equal(t, comment.ID, updatedComment.ID)
+	assert.Equal(t, newCommentBody, updatedComment.Body)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID, IssueID: issue.ID, Content: newCommentBody})
 }
 

@@ -88,7 +88,7 @@ func TestUpdateTeam(t *testing.T) {
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
 
 	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: 3})
-	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
+	assert.Equal(t, perm.AccessModeAdmin, access.Mode)
 
 	unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
 }

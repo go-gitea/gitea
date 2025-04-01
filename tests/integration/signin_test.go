@@ -36,7 +36,7 @@ func testLoginFailed(t *testing.T, username, password, message string) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	resultMsg := htmlDoc.doc.Find(".ui.message>p").Text()
 
-	assert.EqualValues(t, message, resultMsg)
+	assert.Equal(t, message, resultMsg)
 }
 
 func TestSignin(t *testing.T) {
