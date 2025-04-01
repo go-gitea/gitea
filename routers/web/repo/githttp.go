@@ -78,7 +78,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
 		isPull = true
 	} else {
-		isPull = ctx.Req.Method == "HEAD" || ctx.Req.Method == "GET"
+		isPull = ctx.Req.Method == http.MethodHead || ctx.Req.Method == http.MethodGet
 	}
 
 	var accessMode perm.AccessMode
@@ -360,8 +360,8 @@ func setHeaderNoCache(ctx *context.Context) {
 func setHeaderCacheForever(ctx *context.Context) {
 	now := time.Now().Unix()
 	expires := now + 31536000
-	ctx.Resp.Header().Set("Date", fmt.Sprintf("%d", now))
-	ctx.Resp.Header().Set("Expires", fmt.Sprintf("%d", expires))
+	ctx.Resp.Header().Set("Date", strconv.FormatInt(now, 10))
+	ctx.Resp.Header().Set("Expires", strconv.FormatInt(expires, 10))
 	ctx.Resp.Header().Set("Cache-Control", "public, max-age=31536000")
 }
 
@@ -394,7 +394,7 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 	}
 
 	ctx.Resp.Header().Set("Content-Type", contentType)
-	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
+	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(fi.Size(), 10))
 	// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
 	ctx.Resp.Header().Set("Last-Modified", fi.ModTime().UTC().Format(http.TimeFormat))
 	http.ServeFile(ctx.Resp, ctx.Req, reqFile)

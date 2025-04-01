@@ -32,13 +32,13 @@ func TestAPIStar(t *testing.T) {
 	t.Run("Star", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s", repo)).
+		req := NewRequest(t, "PUT", "/api/v1/user/starred/"+repo).
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusNoContent)
 
 		// blocked user can't star a repo
 		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
-		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s", repo)).
+		req = NewRequest(t, "PUT", "/api/v1/user/starred/"+repo).
 			AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteRepository))
 		MakeRequest(t, req, http.StatusForbidden)
 	})
@@ -76,11 +76,11 @@ func TestAPIStar(t *testing.T) {
 	t.Run("IsStarring", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s", repo)).
+		req := NewRequest(t, "GET", "/api/v1/user/starred/"+repo).
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s", repo+"notexisting")).
+		req = NewRequest(t, "GET", "/api/v1/user/starred/"+repo+"notexisting").
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
@@ -88,7 +88,7 @@ func TestAPIStar(t *testing.T) {
 	t.Run("Unstar", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/starred/%s", repo)).
+		req := NewRequest(t, "DELETE", "/api/v1/user/starred/"+repo).
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusNoContent)
 	})
@@ -109,12 +109,12 @@ func TestAPIStarDisabled(t *testing.T) {
 	t.Run("Star", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s", repo)).
+		req := NewRequest(t, "PUT", "/api/v1/user/starred/"+repo).
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusForbidden)
 
 		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
-		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s", repo)).
+		req = NewRequest(t, "PUT", "/api/v1/user/starred/"+repo).
 			AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteRepository))
 		MakeRequest(t, req, http.StatusForbidden)
 	})
@@ -138,11 +138,11 @@ func TestAPIStarDisabled(t *testing.T) {
 	t.Run("IsStarring", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s", repo)).
+		req := NewRequest(t, "GET", "/api/v1/user/starred/"+repo).
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusForbidden)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s", repo+"notexisting")).
+		req = NewRequest(t, "GET", "/api/v1/user/starred/"+repo+"notexisting").
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
@@ -150,7 +150,7 @@ func TestAPIStarDisabled(t *testing.T) {
 	t.Run("Unstar", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/starred/%s", repo)).
+		req := NewRequest(t, "DELETE", "/api/v1/user/starred/"+repo).
 			AddTokenAuth(tokenWithUserScope)
 		MakeRequest(t, req, http.StatusForbidden)
 	})

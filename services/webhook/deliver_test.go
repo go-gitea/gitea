@@ -64,7 +64,7 @@ func TestWebhookProxy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.req, func(t *testing.T) {
-			req, err := http.NewRequest("POST", tt.req, nil)
+			req, err := http.NewRequest(http.MethodPost, tt.req, nil)
 			require.NoError(t, err)
 
 			u, err := webhookProxy(allowedHostMatcher)(req)
@@ -91,7 +91,7 @@ func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/webhook", r.URL.Path)
 		assert.Equal(t, "Bearer s3cr3t-t0ken", r.Header.Get("Authorization"))
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		done <- struct{}{}
 	}))
 	t.Cleanup(s.Close)
@@ -152,11 +152,11 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 			assert.Len(t, body, 2147)
 
 		default:
-			w.WriteHeader(404)
+			w.WriteHeader(http.StatusNotFound)
 			t.Fatalf("unexpected url path %s", r.URL.Path)
 			return
 		}
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		done <- struct{}{}
 	}))
 	t.Cleanup(s.Close)

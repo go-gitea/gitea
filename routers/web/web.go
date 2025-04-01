@@ -178,7 +178,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			return
 		}
 
-		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" {
+		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == http.MethodPost {
 			ctx.Csrf.Validate(ctx)
 			if ctx.Written() {
 				return

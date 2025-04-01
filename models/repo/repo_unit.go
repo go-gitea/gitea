@@ -5,7 +5,6 @@ package repo
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
 
@@ -33,7 +32,7 @@ func IsErrUnitTypeNotExist(err error) bool {
 }
 
 func (err ErrUnitTypeNotExist) Error() string {
-	return fmt.Sprintf("Unit type does not exist: %s", err.UT.LogString())
+	return "Unit type does not exist: " + err.UT.LogString()
 }
 
 func (err ErrUnitTypeNotExist) Unwrap() error {
