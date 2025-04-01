@@ -130,7 +130,7 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 	mpForm := multipart.NewWriter(body)
 	_ = mpForm.WriteField("_csrf", GetUserCSRFToken(t, session))
 	file, _ := mpForm.CreateFormFile("file", "uploaded-file.txt")
-	_, _ = io.Copy(file, bytes.NewBufferString("newly-uploaded-test-file"))
+	_, _ = io.Copy(file, strings.NewReader("newly-uploaded-test-file"))
 	_ = mpForm.Close()
 
 	req = NewRequestWithBody(t, "POST", "/user30/empty/upload-file", body)

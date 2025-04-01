@@ -51,7 +51,7 @@ func TestPathProcessor(t *testing.T) {
 }
 
 func TestRouter(t *testing.T) {
-	buff := bytes.NewBufferString("")
+	buff := strings.NewReader("")
 	recorder := httptest.NewRecorder()
 	recorder.Body = buff
 

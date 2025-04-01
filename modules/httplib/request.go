@@ -108,7 +108,7 @@ func (r *Request) Body(data any) *Request {
 	switch t := data.(type) {
 	case nil: // do nothing
 	case string:
-		bf := bytes.NewBufferString(t)
+		bf := strings.NewReader(t)
 		r.req.Body = io.NopCloser(bf)
 		r.req.ContentLength = int64(len(t))
 	case []byte:

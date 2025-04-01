@@ -227,7 +227,7 @@ func TestWebGitCommitEmail(t *testing.T) {
 			body := &bytes.Buffer{}
 			uploadForm := multipart.NewWriter(body)
 			file, _ := uploadForm.CreateFormFile("file", name)
-			_, _ = io.Copy(file, bytes.NewBufferString(content))
+			_, _ = io.Copy(file, strings.NewReader(content))
 			_ = uploadForm.WriteField("_csrf", GetUserCSRFToken(t, session))
 			_ = uploadForm.Close()
 
