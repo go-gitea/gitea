@@ -92,5 +92,12 @@ func TestAdminUserCreate(t *testing.T) {
 		hasScopes, err = accessToken.Scope.HasScope(auth_model.AccessTokenScopeWriteAdmin, auth_model.AccessTokenScopeWriteRepository)
 		assert.NoError(t, err)
 		assert.False(t, hasScopes)
+
+		// using "--access-token-name" without "--access-token"
+		reset()
+		assert.ErrorContains(t, createUser("u", "--random-password --access-token-name new-token-name"), "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
+
+		// using "--access-token-scopes" without "--access-token"
+		assert.ErrorContains(t, createUser("u", "--random-password --access-token-scopes read:issue"), "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
 	})
 }
