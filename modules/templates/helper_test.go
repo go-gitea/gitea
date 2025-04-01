@@ -15,7 +15,7 @@ import (
 
 func TestSubjectBodySeparator(t *testing.T) {
 	test := func(input, subject, body string) {
-		loc := mailSubjectSplit.FindIndex([]byte(input))
+		loc := mailSubjectSplit.FindStringIndex(input)
 		if loc == nil {
 			assert.Empty(t, subject, "no subject found, but one expected")
 			assert.Equal(t, body, input)

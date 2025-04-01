@@ -198,7 +198,7 @@ func TestPackageNuGet(t *testing.T) {
 				t.Run(c.Owner, func(t *testing.T) {
 					url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
 
-					req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
+					req := NewRequest(t, "GET", url+"/index.json")
 					if c.UseBasicAuth {
 						req.AddBasicAuth(user.Name)
 					} else if c.token != "" {
@@ -273,7 +273,7 @@ func TestPackageNuGet(t *testing.T) {
 					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(len(content)), pb.Size)
-				case fmt.Sprintf("%s.nuspec", packageName):
+				case packageName + ".nuspec":
 					assert.False(t, pf.IsLead)
 				default:
 					assert.Fail(t, "unexpected filename", "unexpected filename: %v", pf.Name)
@@ -319,7 +319,7 @@ func TestPackageNuGet(t *testing.T) {
 					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(len(content)), pb.Size)
-				case fmt.Sprintf("%s.nuspec", packageName):
+				case packageName + ".nuspec":
 					assert.False(t, pf.IsLead)
 				default:
 					assert.Fail(t, "unexpected filename", "unexpected filename: %v", pf.Name)
@@ -360,15 +360,15 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				return &buf
 			}
 
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage("unknown-package", "SymbolsPackage")).
+			req := NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage("unknown-package", "SymbolsPackage")).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "DummyPackage")).
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "DummyPackage")).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage")).
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "SymbolsPackage")).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
@@ -400,7 +400,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
 					assert.NoError(t, err)
 					assert.Equal(t, int64(616), pb.Size)
-				case fmt.Sprintf("%s.nuspec", packageName):
+				case packageName + ".nuspec":
 					assert.False(t, pf.IsLead)
 
 					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
@@ -423,7 +423,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				}
 			}
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage")).
+			req = NewRequestWithBody(t, "PUT", url+"/symbolpackage", createSymbolPackage(packageName, "SymbolsPackage")).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
@@ -631,7 +631,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			})
 
 			t.Run("Next", func(t *testing.T) {
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/Search()?searchTerm='test'&$skip=0&$top=1", url)).
+				req := NewRequest(t, "GET", url+"/Search()?searchTerm='test'&$skip=0&$top=1").
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 

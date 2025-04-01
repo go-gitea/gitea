@@ -174,7 +174,7 @@ func TestAPIGetSystemUserComment(t *testing.T) {
 		user_model.NewGhostUser(),
 		user_model.NewActionsUser(),
 	} {
-		body := fmt.Sprintf("Hello %s", systemUser.Name)
+		body := "Hello " + systemUser.Name
 		comment, err := issues_model.CreateComment(db.DefaultContext, &issues_model.CreateCommentOptions{
 			Type:    issues_model.CommentTypeComment,
 			Doer:    systemUser,

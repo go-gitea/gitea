@@ -70,7 +70,7 @@ func (c *HTTPClient) transferNames() []string {
 func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Pointer) (*BatchResponse, error) {
 	log.Trace("BATCH operation with objects: %v", objects)
 
-	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
+	url := c.endpoint + "/objects/batch"
 
 	// Original:  In some lfs server implementations, they require the ref attribute. #32838
 	// `ref` is an "optional object describing the server ref that the objects belong to"

@@ -6,7 +6,6 @@ package setting
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -474,7 +473,7 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 	m := &repo_model.PushMirror{
 		RepoID:        repo.ID,
 		Repo:          repo,
-		RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+		RemoteName:    "remote_mirror_" + remoteSuffix,
 		SyncOnCommit:  form.PushMirrorSyncOnCommit,
 		Interval:      interval,
 		RemoteAddress: remoteAddress,

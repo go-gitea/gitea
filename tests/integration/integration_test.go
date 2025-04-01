@@ -310,7 +310,7 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 
 func NewRequestWithURLValues(t testing.TB, method, urlStr string, urlValues url.Values) *RequestWrapper {
 	t.Helper()
-	return NewRequestWithBody(t, method, urlStr, bytes.NewBufferString(urlValues.Encode())).
+	return NewRequestWithBody(t, method, urlStr, strings.NewReader(urlValues.Encode())).
 		SetHeader("Content-Type", "application/x-www-form-urlencoded")
 }
 

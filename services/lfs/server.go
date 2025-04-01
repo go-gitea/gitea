@@ -572,15 +572,15 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 
 	claims, claimsOk := token.Claims.(*Claims)
 	if !token.Valid || !claimsOk {
-		return nil, fmt.Errorf("invalid token claim")
+		return nil, errors.New("invalid token claim")
 	}
 
 	if claims.RepoID != target.ID {
-		return nil, fmt.Errorf("invalid token claim")
+		return nil, errors.New("invalid token claim")
 	}
 
 	if mode == perm_model.AccessModeWrite && claims.Op != "upload" {
-		return nil, fmt.Errorf("invalid token claim")
+		return nil, errors.New("invalid token claim")
 	}
 
 	u, err := user_model.GetUserByID(ctx, claims.UserID)
@@ -593,12 +593,12 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 
 func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Repository, mode perm_model.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
-		return nil, fmt.Errorf("no token")
+		return nil, errors.New("no token")
 	}
 
 	parts := strings.SplitN(authorization, " ", 2)
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("no token")
+		return nil, errors.New("no token")
 	}
 	tokenSHA := parts[1]
 	switch strings.ToLower(parts[0]) {
@@ -607,7 +607,7 @@ func parseToken(ctx stdCtx.Context, authorization string, target *repo_model.Rep
 	case "token":
 		return handleLFSToken(ctx, tokenSHA, target, mode)
 	}
-	return nil, fmt.Errorf("token not found")
+	return nil, errors.New("token not found")
 }
 
 func requireAuth(ctx *context.Context) {
