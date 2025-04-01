@@ -212,6 +212,9 @@ func runCreateUser(c *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("invalid access token scope provided: %w", err)
 		}
+		if !accessTokenScope.HasPermissionScope() {
+			return errors.New("access token does not have any permission")
+		}
 		t.Scope = accessTokenScope
 
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {

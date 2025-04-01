@@ -95,10 +95,17 @@ func TestAdminUserCreate(t *testing.T) {
 
 		// using "--access-token-name" without "--access-token"
 		reset()
-		assert.ErrorContains(t, createUser("u", "--random-password --access-token-name new-token-name"), "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
+		err = createUser("u", "--random-password --access-token-name new-token-name")
+		assert.ErrorContains(t, err, "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
 
 		// using "--access-token-scopes" without "--access-token"
 		reset()
-		assert.ErrorContains(t, createUser("u", "--random-password --access-token-scopes read:issue"), "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
+		err = createUser("u", "--random-password --access-token-scopes read:issue")
+		assert.ErrorContains(t, err, "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
+
+		// empty permission
+		reset()
+		err = createUser("u", "--random-password --access-token --access-token-scopes public-only")
+		assert.ErrorContains(t, err, "access token does not have any permission")
 	})
 }
