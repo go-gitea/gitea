@@ -70,11 +70,13 @@ func TestAdminUserCreate(t *testing.T) {
 		// no generated access token
 		reset()
 		assert.NoError(t, createUser("u", "--random-password"))
+		assert.Equal(t, 1, unittest.GetCount(t, &user_model.User{}))
 		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
 
 		// using "--access-token" only means "all" access
 		reset()
 		assert.NoError(t, createUser("u", "--random-password --access-token"))
+		assert.Equal(t, 1, unittest.GetCount(t, &user_model.User{}))
 		assert.Equal(t, 1, unittest.GetCount(t, &auth_model.AccessToken{}))
 		accessToken := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "gitea-admin"})
 		hasScopes, err := accessToken.Scope.HasScope(auth_model.AccessTokenScopeWriteAdmin, auth_model.AccessTokenScopeWriteRepository)
@@ -84,6 +86,7 @@ func TestAdminUserCreate(t *testing.T) {
 		// using "--access-token" with name & scopes
 		reset()
 		assert.NoError(t, createUser("u", "--random-password --access-token --access-token-name new-token-name --access-token-scopes read:issue,read:user"))
+		assert.Equal(t, 1, unittest.GetCount(t, &user_model.User{}))
 		assert.Equal(t, 1, unittest.GetCount(t, &auth_model.AccessToken{}))
 		accessToken = unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "new-token-name"})
 		hasScopes, err = accessToken.Scope.HasScope(auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadUser)
@@ -96,16 +99,22 @@ func TestAdminUserCreate(t *testing.T) {
 		// using "--access-token-name" without "--access-token"
 		reset()
 		err = createUser("u", "--random-password --access-token-name new-token-name")
+		assert.Equal(t, 0, unittest.GetCount(t, &user_model.User{}))
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
 		assert.ErrorContains(t, err, "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
 
 		// using "--access-token-scopes" without "--access-token"
 		reset()
 		err = createUser("u", "--random-password --access-token-scopes read:issue")
+		assert.Equal(t, 0, unittest.GetCount(t, &user_model.User{}))
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
 		assert.ErrorContains(t, err, "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
 
 		// empty permission
 		reset()
 		err = createUser("u", "--random-password --access-token --access-token-scopes public-only")
+		assert.Equal(t, 0, unittest.GetCount(t, &user_model.User{}))
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
 		assert.ErrorContains(t, err, "access token does not have any permission")
 	})
 }
