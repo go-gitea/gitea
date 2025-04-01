@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path"
+	"strings"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"

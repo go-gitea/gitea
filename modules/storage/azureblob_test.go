@@ -4,9 +4,9 @@
 package storage
 
 import (
-	"bytes"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"

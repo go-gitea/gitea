@@ -4,11 +4,11 @@
 package integration
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"

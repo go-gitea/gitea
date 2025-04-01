@@ -4,7 +4,7 @@
 package storage
 
 import (
-	"bytes"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
