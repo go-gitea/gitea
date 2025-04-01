@@ -33,6 +33,8 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 		return nil, err
 	}
 
+	keysCache := make(map[string][]*asymkey_model.GPGKey)
+
 	for _, c := range oldCommits {
 		committer, ok := emailUsers[c.Committer.Email]
 		if !ok && c.Committer != nil {
@@ -44,7 +46,7 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 
 		signCommit := &asymkey_model.SignCommit{
 			UserCommit:   c,
-			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committer),
+			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committer, keysCache),
 		}
 
 		_ = asymkey_model.CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)

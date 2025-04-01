@@ -254,7 +254,8 @@ func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArti
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(ctx context.Context, c *git.Commit) *api.PayloadCommitVerification {
-	verif := asymkey_service.ParseCommitWithSignature(ctx, c)
+	keysCache := make(map[string][]*asymkey_model.GPGKey)
+	verif := asymkey_service.ParseCommitWithSignature(ctx, c, keysCache)
 	commitVerification := &api.PayloadCommitVerification{
 		Verified: verif.Verified,
 		Reason:   verif.Reason,

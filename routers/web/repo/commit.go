@@ -384,7 +384,8 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
+	keysCache := make(map[string][]*asymkey_model.GPGKey)
+	verification := asymkey_service.ParseCommitWithSignature(ctx, commit, keysCache)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(ctx, commit)
 	ctx.Data["Parents"] = parents

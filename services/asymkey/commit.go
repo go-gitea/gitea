@@ -18,7 +18,7 @@ import (
 )
 
 // ParseCommitWithSignature check if signature is good against keystore.
-func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *asymkey_model.CommitVerification {
+func ParseCommitWithSignature(ctx context.Context, c *git.Commit, keysCache map[string][]*asymkey_model.GPGKey) *asymkey_model.CommitVerification {
 	var committer *user_model.User
 	if c.Committer != nil {
 		var err error
@@ -42,10 +42,10 @@ func ParseCommitWithSignature(ctx context.Context, c *git.Commit) *asymkey_model
 		}
 	}
 
-	return ParseCommitWithSignatureCommitter(ctx, c, committer)
+	return ParseCommitWithSignatureCommitter(ctx, c, committer, keysCache)
 }
 
-func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, committer *user_model.User) *asymkey_model.CommitVerification {
+func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, committer *user_model.User, keysCache map[string][]*asymkey_model.GPGKey) *asymkey_model.CommitVerification {
 	// If no signature just report the committer
 	if c.Signature == nil {
 		return &asymkey_model.CommitVerification{
@@ -82,7 +82,8 @@ func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, commi
 		committer,
 		keyID,
 		setting.AppName,
-		""); commitVerification != nil {
+		"",
+		keysCache); commitVerification != nil {
 		if commitVerification.Reason == asymkey_model.BadSignature {
 			defaultReason = asymkey_model.BadSignature
 		} else {
@@ -160,7 +161,7 @@ func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, commi
 		}
 		if err := gpgSettings.LoadPublicKeyContent(); err != nil {
 			log.Error("Error getting default signing key: %s %v", gpgSettings.KeyID, err)
-		} else if commitVerification := VerifyWithGPGSettings(ctx, &gpgSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+		} else if commitVerification := VerifyWithGPGSettings(ctx, &gpgSettings, sig, c.Signature.Payload, committer, keyID, keysCache); commitVerification != nil {
 			if commitVerification.Reason == asymkey_model.BadSignature {
 				defaultReason = asymkey_model.BadSignature
 			} else {
@@ -175,7 +176,7 @@ func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, commi
 	} else if defaultGPGSettings == nil {
 		log.Warn("Unable to get defaultGPGSettings for unattached commit: %s", c.ID.String())
 	} else if defaultGPGSettings.Sign {
-		if commitVerification := VerifyWithGPGSettings(ctx, defaultGPGSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+		if commitVerification := VerifyWithGPGSettings(ctx, defaultGPGSettings, sig, c.Signature.Payload, committer, keyID, keysCache); commitVerification != nil {
 			if commitVerification.Reason == asymkey_model.BadSignature {
 				defaultReason = asymkey_model.BadSignature
 			} else {
@@ -225,21 +226,26 @@ func checkKeyEmails(ctx context.Context, email string, keys ...*asymkey_model.GP
 	return false, email
 }
 
-func HashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload string, committer *user_model.User, keyID, name, email string) *asymkey_model.CommitVerification {
+func HashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload string, committer *user_model.User, keyID, name, email string, keysCache map[string][]*asymkey_model.GPGKey) *asymkey_model.CommitVerification {
 	if keyID == "" {
 		return nil
 	}
-	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-		KeyID:          keyID,
-		IncludeSubKeys: true,
-	})
-	if err != nil {
-		log.Error("GetGPGKeysByKeyID: %v", err)
-		return &asymkey_model.CommitVerification{
-			CommittingUser: committer,
-			Verified:       false,
-			Reason:         "gpg.error.failed_retrieval_gpg_keys",
+	var err error
+	keys, ok := keysCache[keyID]
+	if !ok {
+		keys, err = db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+			KeyID:          keyID,
+			IncludeSubKeys: true,
+		})
+		if err != nil {
+			log.Error("GetGPGKeysByKeyID: %v", err)
+			return &asymkey_model.CommitVerification{
+				CommittingUser: committer,
+				Verified:       false,
+				Reason:         "gpg.error.failed_retrieval_gpg_keys",
+			}
 		}
+		keysCache[keyID] = keys
 	}
 	if len(keys) == 0 {
 		return nil
@@ -247,17 +253,21 @@ func HashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 	for _, key := range keys {
 		var primaryKeys []*asymkey_model.GPGKey
 		if key.PrimaryKeyID != "" {
-			primaryKeys, err = db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				KeyID:          key.PrimaryKeyID,
-				IncludeSubKeys: true,
-			})
-			if err != nil {
-				log.Error("GetGPGKeysByKeyID: %v", err)
-				return &asymkey_model.CommitVerification{
-					CommittingUser: committer,
-					Verified:       false,
-					Reason:         "gpg.error.failed_retrieval_gpg_keys",
+			primaryKeys, ok = keysCache[keyID]
+			if !ok {
+				primaryKeys, err = db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
+					KeyID:          key.PrimaryKeyID,
+					IncludeSubKeys: true,
+				})
+				if err != nil {
+					log.Error("GetGPGKeysByKeyID: %v", err)
+					return &asymkey_model.CommitVerification{
+						CommittingUser: committer,
+						Verified:       false,
+						Reason:         "gpg.error.failed_retrieval_gpg_keys",
+					}
 				}
+				keysCache[keyID] = primaryKeys
 			}
 		}
 
@@ -297,9 +307,9 @@ func HashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 	}
 }
 
-func VerifyWithGPGSettings(ctx context.Context, gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *user_model.User, keyID string) *asymkey_model.CommitVerification {
+func VerifyWithGPGSettings(ctx context.Context, gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *user_model.User, keyID string, keysCache map[string][]*asymkey_model.GPGKey) *asymkey_model.CommitVerification {
 	// First try to find the key in the db
-	if commitVerification := HashAndVerifyForKeyID(ctx, sig, payload, committer, gpgSettings.KeyID, gpgSettings.Name, gpgSettings.Email); commitVerification != nil {
+	if commitVerification := HashAndVerifyForKeyID(ctx, sig, payload, committer, gpgSettings.KeyID, gpgSettings.Name, gpgSettings.Email, keysCache); commitVerification != nil {
 		return commitVerification
 	}
 

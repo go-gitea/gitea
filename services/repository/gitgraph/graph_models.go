@@ -97,6 +97,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 
 	emails := map[string]*user_model.User{}
 	keyMap := map[string]bool{}
+	keysCache := make(map[string][]*asymkey_model.GPGKey)
 
 	for _, c := range graph.Commits {
 		if len(c.Rev) == 0 {
@@ -115,7 +116,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 			}
 		}
 
-		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
+		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit, keysCache)
 
 		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx, repository, user.ID)
