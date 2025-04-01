@@ -92,7 +92,7 @@ var CmdDump = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "type",
-			Usage: "Dump output format, default to \"zip\", supported types: " + strings.Join(dump.SupportedOutputTypes, ", "),
+			Usage: `Dump output format, default to "zip", supported types: ` + strings.Join(dump.SupportedOutputTypes, ", "),
 		},
 	},
 }
