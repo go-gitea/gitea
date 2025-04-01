@@ -44,7 +44,7 @@ export function toggleClass(el: ElementArg, className: string, force?: boolean) 
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
 export function toggleElem(el: ElementArg, force?: boolean) {
-  toggleClass(el, 'tw-hidden', !force);
+  toggleClass(el, 'tw-hidden', force === undefined ? force : !force);
 }
 
 export function showElem(el: ElementArg) {
