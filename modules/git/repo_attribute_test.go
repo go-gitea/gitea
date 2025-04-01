@@ -4,16 +4,10 @@
 package git
 
 import (
-	"context"
-	mathRand "math/rand/v2"
-	"path/filepath"
-	"slices"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
@@ -100,58 +94,4 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 		Attribute: AttributeLinguistLanguage,
 		Value:     "unspecified",
 	}, attr)
-}
-
-func TestAttributeReader(t *testing.T) {
-	t.Skip() // for debug purpose only, do not run in CI
-
-	ctx := t.Context()
-
-	timeout := 1 * time.Second
-	repoPath := filepath.Join(testReposDir, "language_stats_repo")
-	commitRef := "HEAD"
-
-	oneRound := func(t *testing.T, roundIdx int) {
-		ctx, cancel := context.WithTimeout(ctx, timeout)
-		_ = cancel
-		gitRepo, err := OpenRepository(ctx, repoPath)
-		require.NoError(t, err)
-		defer gitRepo.Close()
-
-		commit, err := gitRepo.GetCommit(commitRef)
-		require.NoError(t, err)
-
-		files, err := gitRepo.LsFiles()
-		require.NoError(t, err)
-
-		randomFiles := slices.Clone(files)
-		randomFiles = append(randomFiles, "any-file-1", "any-file-2")
-
-		t.Logf("Round %v with %d files", roundIdx, len(randomFiles))
-
-		attrReader, deferrable := gitRepo.CheckAttributeReader(commit.ID.String())
-		defer deferrable()
-
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-
-		go func() {
-			for {
-				file := randomFiles[mathRand.IntN(len(randomFiles))]
-				_, err := attrReader.CheckPath(file)
-				if err != nil {
-					for i := 0; i < 10; i++ {
-						_, _ = attrReader.CheckPath(file)
-					}
-					break
-				}
-			}
-			wg.Done()
-		}()
-		wg.Wait()
-	}
-
-	for i := 0; i < 100; i++ {
-		oneRound(t, i)
-	}
 }

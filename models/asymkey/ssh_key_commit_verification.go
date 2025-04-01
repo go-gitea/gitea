@@ -4,7 +4,6 @@
 package asymkey
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -65,7 +64,7 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 }
 
 func verifySSHCommitVerification(sig, payload string, k *PublicKey, committer, signer *user_model.User, email string) *CommitVerification {
-	if err := sshsig.Verify(bytes.NewBuffer([]byte(payload)), []byte(sig), []byte(k.Content), "git"); err != nil {
+	if err := sshsig.Verify(strings.NewReader(payload), []byte(sig), []byte(k.Content), "git"); err != nil {
 		return nil
 	}
 

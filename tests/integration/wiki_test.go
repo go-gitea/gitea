@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -38,7 +37,7 @@ func TestRepoCloneWiki(t *testing.T) {
 
 		dstPath := t.TempDir()
 
-		r := fmt.Sprintf("%suser2/repo1.wiki.git", u.String())
+		r := u.String() + "user2/repo1.wiki.git"
 		u, _ = url.Parse(r)
 		u.User = url.UserPassword("user2", userPassword)
 		t.Run("Clone", func(t *testing.T) {

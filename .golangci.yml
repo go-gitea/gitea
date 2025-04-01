@@ -13,14 +13,17 @@ linters:
     - gocritic
     - govet
     - ineffassign
+    - mirror
     - nakedret
     - nolintlint
+    - perfsprint
     - revive
     - staticcheck
     - testifylint
     - unconvert
     - unparam
     - unused
+    - usestdlibvars
     - usetesting
     - wastedassign
   settings:

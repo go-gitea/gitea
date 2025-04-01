@@ -5,7 +5,7 @@
 package markdown
 
 import (
-	"fmt"
+	"errors"
 	"html/template"
 	"io"
 	"strings"
@@ -48,7 +48,7 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 		if err != nil {
 			return n, err
 		}
-		return n, fmt.Errorf("rendered content too large - truncating render")
+		return n, errors.New("rendered content too large - truncating render")
 	}
 	n, err := l.w.Write(data)
 	l.sum += int64(n)

@@ -5,6 +5,7 @@ package sender
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -99,7 +100,7 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 	canAuth, options := client.Extension("AUTH")
 	if len(opts.User) > 0 {
 		if !canAuth {
-			return fmt.Errorf("SMTP server does not support AUTH, but credentials provided")
+			return errors.New("SMTP server does not support AUTH, but credentials provided")
 		}
 
 		var auth smtp.Auth

@@ -193,7 +193,7 @@ func TestAPICreatePullSuccess(t *testing.T) {
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
-		Head:  fmt.Sprintf("%s:master", owner11.Name),
+		Head:  owner11.Name + ":master",
 		Base:  "master",
 		Title: "create a failure pr",
 	}).AddTokenAuth(token)
@@ -213,7 +213,7 @@ func TestAPICreatePullBasePermission(t *testing.T) {
 	session := loginUser(t, user4.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	opts := &api.CreatePullRequestOption{
-		Head:  fmt.Sprintf("%s:master", repo11.OwnerName),
+		Head:  repo11.OwnerName + ":master",
 		Base:  "master",
 		Title: "create a failure pr",
 	}
@@ -241,7 +241,7 @@ func TestAPICreatePullHeadPermission(t *testing.T) {
 	session := loginUser(t, user4.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	opts := &api.CreatePullRequestOption{
-		Head:  fmt.Sprintf("%s:master", repo11.OwnerName),
+		Head:  repo11.OwnerName + ":master",
 		Base:  "master",
 		Title: "create a failure pr",
 	}
@@ -269,7 +269,7 @@ func TestAPICreatePullSameRepoSuccess(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner.Name, repo.Name), &api.CreatePullRequestOption{
-		Head:  fmt.Sprintf("%s:pr-to-update", owner.Name),
+		Head:  owner.Name + ":pr-to-update",
 		Base:  "master",
 		Title: "successfully create a PR between branches of the same repository",
 	}).AddTokenAuth(token)
@@ -290,7 +290,7 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	opts := &api.CreatePullRequestOption{
-		Head:      fmt.Sprintf("%s:master", owner11.Name),
+		Head:      owner11.Name + ":master",
 		Base:      "master",
 		Title:     "create a failure pr",
 		Body:      "foobaaar",
@@ -328,7 +328,7 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	opts := &api.CreatePullRequestOption{
-		Head: fmt.Sprintf("%s:master", owner11.Name),
+		Head: owner11.Name + ":master",
 		Base: "master",
 	}
 

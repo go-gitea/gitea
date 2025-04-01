@@ -296,7 +296,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		err := git.NewCommand("read-tree", "--empty").Run(git.DefaultContext, &git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
-		stdin := bytes.NewBufferString("Unrelated File")
+		stdin := strings.NewReader("Unrelated File")
 		var stdout strings.Builder
 		err = git.NewCommand("hash-object", "-w", "--stdin").Run(git.DefaultContext, &git.RunOpts{
 			Dir:    path,

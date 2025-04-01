@@ -4,11 +4,11 @@
 package integration
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -59,7 +59,7 @@ func TestAPIRepoBranchesPlain(t *testing.T) {
 
 		req := NewRequest(t, "POST", link.String()).AddTokenAuth(token)
 		req.Header.Add("Content-Type", "application/json")
-		req.Body = io.NopCloser(bytes.NewBufferString(`{"new_branch_name":"test_branch2", "old_branch_name": "test_branch", "old_ref_name":"refs/heads/test_branch"}`))
+		req.Body = io.NopCloser(strings.NewReader(`{"new_branch_name":"test_branch2", "old_branch_name": "test_branch", "old_ref_name":"refs/heads/test_branch"}`))
 		resp = MakeRequest(t, req, http.StatusCreated)
 		bs, err = io.ReadAll(resp.Body)
 		assert.NoError(t, err)
@@ -117,7 +117,7 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 
 	req := NewRequest(t, "POST", link.String()).AddTokenAuth(token)
 	req.Header.Add("Content-Type", "application/json")
-	req.Body = io.NopCloser(bytes.NewBufferString(`{"new_branch_name":"test_branch2", "old_branch_name": "test_branch", "old_ref_name":"refs/heads/test_branch"}`))
+	req.Body = io.NopCloser(strings.NewReader(`{"new_branch_name":"test_branch2", "old_branch_name": "test_branch", "old_ref_name":"refs/heads/test_branch"}`))
 	resp = MakeRequest(t, req, http.StatusForbidden)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)

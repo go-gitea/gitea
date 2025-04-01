@@ -156,7 +156,7 @@ jobs:
 		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		for _, tc := range testCases {
-			t.Run(fmt.Sprintf("test %s", tc.treePath), func(t *testing.T) {
+			t.Run("test "+tc.treePath, func(t *testing.T) {
 				var resetFunc func()
 				if tc.zstdEnabled {
 					resetFunc = test.MockVariableValue(&setting.Actions.LogCompression, "zstd")
@@ -167,7 +167,7 @@ jobs:
 				}
 
 				// create the workflow file
-				opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, fmt.Sprintf("create %s", tc.treePath), tc.fileContent)
+				opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
 				createWorkflowFile(t, token, user2.Name, repo.Name, tc.treePath, opts)
 
 				// fetch and execute tasks
