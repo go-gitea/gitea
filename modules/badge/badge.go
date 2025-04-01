@@ -50,6 +50,7 @@ func (b Badge) Width() int {
 	return b.Label.width + b.Message.width
 }
 
+// styles follows https://shields.io/badges
 const (
 	StyleFlat       = "flat"
 	StyleFlatSquare = "flat-square"
