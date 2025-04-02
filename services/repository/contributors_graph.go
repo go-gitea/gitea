@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -98,10 +99,14 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 		return res, nil
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(setting.Git.Timeout.Default)*time.Second)
+	defer cancel()
+
 	res, err := generateContributorStats(ctx, repo, revision)
 	if err != nil {
 		return nil, err
 	}
+	cancel()
 
 	_ = cache.PutJSON(cacheKey, res, contributorStatsCacheTimeout)
 	return res, nil
@@ -230,12 +235,17 @@ func generateContributorStats(ctx context.Context, repo *repo_model.Repository, 
 	}
 	total := contributorsCommitStats["total"]
 
+	emailUserCache := make(map[string]*user_model.User)
 	for _, v := range extendedCommitStats {
 		userEmail := v.Author.Email
 		if len(userEmail) == 0 {
 			continue
 		}
-		u, _ := user_model.GetUserByEmail(ctx, userEmail)
+		u, ok := emailUserCache[userEmail]
+		if !ok {
+			u, _ = user_model.GetUserByEmail(ctx, userEmail)
+			emailUserCache[userEmail] = u
+		}
 		if u != nil {
 			// update userEmail with user's primary email address so
 			// that different mail addresses will linked to same account
