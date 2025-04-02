@@ -289,7 +289,7 @@ func HashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 			Email: email,
 		}
 		if key.OwnerID > 0 {
-			owner, err := cache.GetWithContextCache(ctx, cacheUserKey, committer.ID, func() (*user_model.User, error) {
+			owner, err := cache.GetWithContextCache(ctx, cacheUserKey, key.OwnerID, func() (*user_model.User, error) {
 				return user_model.GetUserByID(ctx, key.OwnerID)
 			})
 			if err == nil {
