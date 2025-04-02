@@ -1400,7 +1400,7 @@ jobs:
     steps:
       - run: echo 'Hello World'
 `
-		opts1 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, fmt.Sprintf("create %s", wfTreePath), wfFileContent)
+		opts1 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts1)
 
 		// user4 forks the repo
@@ -1434,7 +1434,7 @@ jobs:
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("// main.go")),
 		})(t)
-		apiPull, err := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, fmt.Sprintf("%s:user4/add-main", user4.Name))(t)
+		apiPull, err := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":user4/add-main")(t)
 		assert.NoError(t, err)
 
 		doAPIMergePullRequest(user2APICtx, baseRepo.OwnerName, baseRepo.Name, apiPull.Index)(t)
