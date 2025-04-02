@@ -53,18 +53,26 @@ func Activity(ctx *context.Context) {
 	ctx.Data["DateUntil"] = timeUntil
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
-	branchExist, _ := git.IsBranchExist(ctx, ctx.Repo.Repository.ID, ctx.Repo.Repository.DefaultBranch)
-	if !branchExist {
-		ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
-		ctx.NotFound(nil)
-		return
+	canReadCode := ctx.Repo.CanRead(unit.TypeCode)
+	if canReadCode {
+		// GetActivityStats needs to read the default branch to get some information
+		branchExist, _ := git.IsBranchExist(ctx, ctx.Repo.Repository.ID, ctx.Repo.Repository.DefaultBranch)
+		if !branchExist {
+			ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
+			ctx.NotFound(nil)
+			return
+		}
 	}
+
 	var err error
-	if ctx.Data["Activity"], err = activities_model.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom,
+	// TODO: refactor these arguments to a struct
+	ctx.Data["Activity"], err = activities_model.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom,
 		ctx.Repo.CanRead(unit.TypeReleases),
 		ctx.Repo.CanRead(unit.TypeIssues),
 		ctx.Repo.CanRead(unit.TypePullRequests),
-		ctx.Repo.CanRead(unit.TypeCode)); err != nil {
+		canReadCode,
+	)
+	if err != nil {
 		ctx.ServerError("GetActivityStats", err)
 		return
 	}
