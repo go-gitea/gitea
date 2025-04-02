@@ -54,6 +54,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 		{"/user2/repo1/src/master", "/user2/repo1/src/branch/master"},
 		{"/user2/repo1/src/master/a%2fb.txt", "/user2/repo1/src/branch/master/a%2fb.txt"},
 		{"/user2/repo1/src/master/directory/file.txt?a=1", "/user2/repo1/src/branch/master/directory/file.txt?a=1"},
+		{"/user2/repo1/src/branch/master/directory/file.txt?raw=1&other=2", "/user2/repo1/raw/branch/master/directory/file.txt"},
 		{"/user2/repo1/tree/a%2fb?a=1", "/user2/repo1/src/a%2fb?a=1"},
 		{"/user2/repo1/blob/123456/%20?a=1", "/user2/repo1/src/commit/123456/%20?a=1"},
 		{"/user/avatar/GhosT/-1", "/assets/img/avatar_default.png"},

@@ -343,12 +343,25 @@ func prepareHomeTreeSideBarSwitch(ctx *context.Context) {
 	ctx.Data["UserSettingCodeViewShowFileTree"] = showFileTree
 }
 
+func redirectSrcToRaw(ctx *context.Context) bool {
+	// GitHub redirects a tree path with "?raw=1" to the raw path
+	// It is useful to embed some raw contents into markdown files,
+	// then viewing the markdown in "src" path could embed the raw content correctly.
+	if ctx.Repo.TreePath != "" && ctx.FormBool("raw") {
+		ctx.Redirect(ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath))
+		return true
+	}
+	return false
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if handleRepoHomeFeed(ctx) {
 		return
 	}
-
+	if redirectSrcToRaw(ctx) {
+		return
+	}
 	// Check whether the repo is viewable: not in migration, and the code unit should be enabled
 	// Ideally the "feed" logic should be after this, but old code did so, so keep it as-is.
 	checkHomeCodeViewable(ctx)
