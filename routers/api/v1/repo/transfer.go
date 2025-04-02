@@ -119,8 +119,8 @@ func Transfer(ctx *context.APIContext) {
 			ctx.APIError(http.StatusForbidden, err)
 		default:
 			ctx.APIErrorInternal(err)
-			return
 		}
+		return
 	}
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
