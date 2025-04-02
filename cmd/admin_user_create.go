@@ -223,6 +223,8 @@ func runCreateUser(c *cli.Context) error {
 	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
+	fmt.Printf("New user '%s' has been successfully created!\n", username)
+
 	// create the access token
 	if accessTokenScope != "" {
 		t := &auth_model.AccessToken{Name: accessTokenName, UID: u.ID, Scope: accessTokenScope}
@@ -231,7 +233,5 @@ func runCreateUser(c *cli.Context) error {
 		}
 		fmt.Printf("Access token was successfully created... %s\n", t.Token)
 	}
-
-	fmt.Printf("New user '%s' has been successfully created!\n", username)
 	return nil
 }
