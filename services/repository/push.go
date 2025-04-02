@@ -66,7 +66,7 @@ func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
 
 	for _, opt := range opts {
 		if opt.IsNewRef() && opt.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both NULL")
+			return errors.New("Old and new revisions are both NULL")
 		}
 	}
 

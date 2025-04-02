@@ -5,6 +5,7 @@ package asymkey
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/42wim/sshsig"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
@@ -57,7 +59,7 @@ func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, commi
 
 	// If this a SSH signature handle it differently
 	if strings.HasPrefix(c.Signature.Signature, "-----BEGIN SSH SIGNATURE-----") {
-		return asymkey_model.ParseCommitWithSSHSignature(ctx, c, committer)
+		return ParseCommitWithSSHSignature(ctx, c, committer)
 	}
 
 	// Parsing signature
@@ -360,4 +362,66 @@ func VerifyWithGPGSettings(ctx context.Context, gpgSettings *git.GPGSettings, si
 		}
 	}
 	return nil
+}
+
+// ParseCommitWithSSHSignature check if signature is good against keystore.
+func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *user_model.User) *asymkey_model.CommitVerification {
+	// Now try to associate the signature with the committer, if present
+	if committer.ID != 0 {
+		keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			OwnerID:    committer.ID,
+			NotKeytype: asymkey_model.KeyTypePrincipal,
+		})
+		if err != nil { // Skipping failed to get ssh keys of user
+			log.Error("ListPublicKeys: %v", err)
+			return &asymkey_model.CommitVerification{
+				CommittingUser: committer,
+				Verified:       false,
+				Reason:         "gpg.error.failed_retrieval_gpg_keys",
+			}
+		}
+
+		committerEmailAddresses, err := user_model.GetEmailAddresses(ctx, committer.ID)
+		if err != nil {
+			log.Error("GetEmailAddresses: %v", err)
+		}
+
+		activated := false
+		for _, e := range committerEmailAddresses {
+			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
+				activated = true
+				break
+			}
+		}
+
+		for _, k := range keys {
+			if k.Verified && activated {
+				commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, k, committer, committer, c.Committer.Email)
+				if commitVerification != nil {
+					return commitVerification
+				}
+			}
+		}
+	}
+
+	return &asymkey_model.CommitVerification{
+		CommittingUser: committer,
+		Verified:       false,
+		Reason:         asymkey_model.NoKeyFound,
+	}
+}
+
+func verifySSHCommitVerification(sig, payload string, k *asymkey_model.PublicKey, committer, signer *user_model.User, email string) *asymkey_model.CommitVerification {
+	if err := sshsig.Verify(strings.NewReader(payload), []byte(sig), []byte(k.Content), "git"); err != nil {
+		return nil
+	}
+
+	return &asymkey_model.CommitVerification{ // Everything is ok
+		CommittingUser: committer,
+		Verified:       true,
+		Reason:         fmt.Sprintf("%s / %s", signer.Name, k.Fingerprint),
+		SigningUser:    signer,
+		SigningSSHKey:  k,
+		SigningEmail:   email,
+	}
 }

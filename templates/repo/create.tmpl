@@ -7,25 +7,21 @@
 		<div class="ui attached segment">
 			{{template "base/alert" .}}
 			{{template "repo/create_helper" .}}
-
-			{{if not .CanCreateRepo}}
-			<div class="ui negative message">
-				<p>{{ctx.Locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimit}}</p>
-			</div>
-			{{end}}
 			<form class="ui form left-right-form new-repo-form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
+				<div id="create-repo-error-message" class="ui negative message tw-text-center tw-hidden"></div>
 				<div class="inline required field {{if .Err_Owner}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
-					<div class="ui selection owner dropdown">
-						<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-						<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
-							{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
-							<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
-						</span>
+					<div class="ui selection dropdown" id="repo_owner_dropdown">
+						<input type="hidden" name="uid" value="{{.ContextUser.ID}}">
+						<span class="text truncated-item-name"></span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
+							<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}"
+								{{if not .CanCreateRepoInDoer}}
+									data-create-repo-disallowed-prompt="{{ctx.Locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimitOfDoer}}"
+								{{end}}
+							>
 								{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
 								<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 							</div>
@@ -212,7 +208,7 @@
 				<br>
 				<div class="inline field">
 					<label></label>
-					<button class="ui primary button{{if not .CanCreateRepo}} disabled{{end}}">
+					<button class="ui primary button">
 						{{ctx.Locale.Tr "repo.create_repo"}}
 					</button>
 				</div>

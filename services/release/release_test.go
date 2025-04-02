@@ -250,9 +250,9 @@ func TestRelease_Update(t *testing.T) {
 	assert.NoError(t, UpdateRelease(db.DefaultContext, user, gitRepo, release, []string{attach.UUID}, nil, nil))
 	assert.NoError(t, repo_model.GetReleaseAttachments(db.DefaultContext, release))
 	assert.Len(t, release.Attachments, 1)
-	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
-	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
-	assert.EqualValues(t, attach.Name, release.Attachments[0].Name)
+	assert.Equal(t, attach.UUID, release.Attachments[0].UUID)
+	assert.Equal(t, release.ID, release.Attachments[0].ReleaseID)
+	assert.Equal(t, attach.Name, release.Attachments[0].Name)
 
 	// update the attachment name
 	assert.NoError(t, UpdateRelease(db.DefaultContext, user, gitRepo, release, nil, nil, map[string]string{
@@ -261,9 +261,9 @@ func TestRelease_Update(t *testing.T) {
 	release.Attachments = nil
 	assert.NoError(t, repo_model.GetReleaseAttachments(db.DefaultContext, release))
 	assert.Len(t, release.Attachments, 1)
-	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
-	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
-	assert.EqualValues(t, "test2.txt", release.Attachments[0].Name)
+	assert.Equal(t, attach.UUID, release.Attachments[0].UUID)
+	assert.Equal(t, release.ID, release.Attachments[0].ReleaseID)
+	assert.Equal(t, "test2.txt", release.Attachments[0].Name)
 
 	// delete the attachment
 	assert.NoError(t, UpdateRelease(db.DefaultContext, user, gitRepo, release, nil, []string{attach.UUID}, nil))

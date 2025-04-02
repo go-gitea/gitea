@@ -989,14 +989,7 @@ table th[data-sortt-desc] .svg {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 
-.emoji {
-  font-size: 1.25em;
-  line-height: var(--line-height-default);
-  font-style: normal !important;
-  font-weight: var(--font-weight-normal) !important;
-  vertical-align: -0.075em;
-}
-
+/* for "image" emojis like ":git:"  ":gitea:" and ":github:" (see CUSTOM_EMOJIS config option) */
 .emoji img {
   border-width: 0 !important;
   margin: 0 !important;
@@ -1153,6 +1146,11 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: .5rem;
   min-width: 0;
+}
+
+.flex-text-block > .ui.button,
+.flex-text-inline > .ui.button {
+  margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */
 }
 
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content

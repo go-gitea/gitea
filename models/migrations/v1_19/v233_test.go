@@ -64,7 +64,7 @@ func Test_AddHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 		assert.Equal(t, e.Meta, got[i].Meta)
 
 		if e.HeaderAuthorization == "" {
-			assert.Equal(t, "", got[i].HeaderAuthorizationEncrypted)
+			assert.Empty(t, got[i].HeaderAuthorizationEncrypted)
 		} else {
 			cipherhex := got[i].HeaderAuthorizationEncrypted
 			cleartext, err := secret.DecryptSecret(setting.SecretKey, cipherhex)

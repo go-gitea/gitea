@@ -146,7 +146,7 @@ func TestCompareRouters(t *testing.T) {
 		t.Run(kase.router, func(t *testing.T) {
 			r, err := parseCompareRouter(kase.router)
 			assert.NoError(t, err)
-			assert.EqualValues(t, kase.compareRouter, r)
+			assert.Equal(t, kase.compareRouter, r)
 		})
 	}
 }
@@ -484,13 +484,13 @@ func Test_ParseComparePathParams(t *testing.T) {
 				assert.NotNil(t, r.close)
 				r.close = nil // close is a function, so we can't compare it
 			}
-			assert.EqualValues(t, *kase.compareInfo.CompareRouter, *r.CompareRouter)
-			assert.EqualValues(t, *kase.compareInfo.BaseRepo, *r.BaseRepo)
-			assert.EqualValues(t, *kase.compareInfo.HeadUser, *r.HeadUser)
-			assert.EqualValues(t, *kase.compareInfo.HeadRepo, *r.HeadRepo)
-			assert.EqualValues(t, kase.compareInfo.HeadGitRepo.Path, r.HeadGitRepo.Path)
-			assert.EqualValues(t, kase.compareInfo.IsBaseCommit, r.IsBaseCommit)
-			assert.EqualValues(t, kase.compareInfo.IsHeadCommit, r.IsHeadCommit)
+			assert.Equal(t, *kase.compareInfo.CompareRouter, *r.CompareRouter)
+			assert.Equal(t, *kase.compareInfo.BaseRepo, *r.BaseRepo)
+			assert.Equal(t, *kase.compareInfo.HeadUser, *r.HeadUser)
+			assert.Equal(t, *kase.compareInfo.HeadRepo, *r.HeadRepo)
+			assert.Equal(t, kase.compareInfo.HeadGitRepo.Path, r.HeadGitRepo.Path)
+			assert.Equal(t, kase.compareInfo.IsBaseCommit, r.IsBaseCommit)
+			assert.Equal(t, kase.compareInfo.IsHeadCommit, r.IsHeadCommit)
 		})
 	}
 }
