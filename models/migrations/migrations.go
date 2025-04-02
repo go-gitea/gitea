@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/migrations/v1_10"
@@ -378,7 +379,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(315, "Add Ephemeral to ActionRunner", v1_24.AddEphemeralToActionRunner),
 		newMigration(316, "Add description for secrets and variables", v1_24.AddDescriptionForSecretsAndVariables),
 		newMigration(317, "Add new index for action for heatmap", v1_24.AddNewIndexForUserDashboard),
-		newMigration(318, "Add branch commits count for branch table", v1_24.AddBranchCommitsCount),
+		newMigration(318, "Add anonymous_access_mode for repo_unit", v1_24.AddRepoUnitAnonymousAccessMode),
+		newMigration(319, "Add branch commits count for branch table", v1_24.AddBranchCommitsCount),
 	}
 	return preparedMigrations
 }
@@ -424,7 +426,7 @@ func EnsureUpToDate(ctx context.Context, x *xorm.Engine) error {
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("database has not been initialized")
+		return errors.New("database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {

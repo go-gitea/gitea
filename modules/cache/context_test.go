@@ -22,7 +22,7 @@ func TestWithCacheContext(t *testing.T) {
 	SetContextData(ctx, field, "my_config1", 1)
 	v = GetContextData(ctx, field, "my_config1")
 	assert.NotNil(t, v)
-	assert.EqualValues(t, 1, v.(int))
+	assert.Equal(t, 1, v.(int))
 
 	RemoveContextData(ctx, field, "my_config1")
 	RemoveContextData(ctx, field, "my_config2") // remove a non-exist key
@@ -34,7 +34,7 @@ func TestWithCacheContext(t *testing.T) {
 		return 1, nil
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, vInt)
+	assert.Equal(t, 1, vInt)
 
 	v = GetContextData(ctx, field, "my_config1")
 	assert.EqualValues(t, 1, v)

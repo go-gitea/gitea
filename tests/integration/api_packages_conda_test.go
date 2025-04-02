@@ -193,19 +193,19 @@ func TestPackageConda(t *testing.T) {
 			Removed       map[string]*PackageInfo `json:"removed"`
 		}
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/noarch/repodata.json", root))
+		req := NewRequest(t, "GET", root+"/noarch/repodata.json")
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "application/json", resp.Header().Get("Content-Type"))
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/noarch/repodata.json.bz2", root))
+		req = NewRequest(t, "GET", root+"/noarch/repodata.json.bz2")
 		resp = MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "application/x-bzip2", resp.Header().Get("Content-Type"))
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/noarch/current_repodata.json", root))
+		req = NewRequest(t, "GET", root+"/noarch/current_repodata.json")
 		resp = MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "application/json", resp.Header().Get("Content-Type"))
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/noarch/current_repodata.json.bz2", root))
+		req = NewRequest(t, "GET", root+"/noarch/current_repodata.json.bz2")
 		resp = MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "application/x-bzip2", resp.Header().Get("Content-Type"))
 
@@ -218,7 +218,7 @@ func TestPackageConda(t *testing.T) {
 			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pv)
 			assert.NoError(t, err)
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/noarch/repodata.json", root))
+			req := NewRequest(t, "GET", root+"/noarch/repodata.json")
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			var result RepoData

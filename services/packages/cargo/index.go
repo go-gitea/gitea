@@ -247,7 +247,7 @@ func createOrUpdateConfigFile(ctx context.Context, repo *repo_model.Repository, 
 		"Initialize Cargo Config",
 		func(t *files_service.TemporaryUploadRepository) error {
 			var b bytes.Buffer
-			err := json.NewEncoder(&b).Encode(BuildConfig(owner, setting.Service.RequireSignInView || owner.Visibility != structs.VisibleTypePublic || repo.IsPrivate))
+			err := json.NewEncoder(&b).Encode(BuildConfig(owner, setting.Service.RequireSignInViewStrict || owner.Visibility != structs.VisibleTypePublic || repo.IsPrivate))
 			if err != nil {
 				return err
 			}

@@ -4,13 +4,14 @@
 package v1_24 //nolint
 
 import (
+	"code.gitea.io/gitea/models/perm"
+
 	"xorm.io/xorm"
 )
 
-func AddBranchCommitsCount(x *xorm.Engine) error {
-	type Branch struct {
-		CommitCountID string // the commit id of the commit count
-		CommitCount   int64  // the number of commits in this branch
+func AddRepoUnitAnonymousAccessMode(x *xorm.Engine) error {
+	type RepoUnit struct { //revive:disable-line:exported
+		AnonymousAccessMode perm.AccessMode `xorm:"NOT NULL DEFAULT 0"`
 	}
-	return x.Sync(new(Branch))
+	return x.Sync(&RepoUnit{})
 }

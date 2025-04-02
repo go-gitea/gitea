@@ -36,7 +36,7 @@ func Init() error {
 
 	prAutoMergeQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_auto_merge", handler)
 	if prAutoMergeQueue == nil {
-		return fmt.Errorf("unable to create pr_auto_merge queue")
+		return errors.New("unable to create pr_auto_merge queue")
 	}
 	go graceful.GetManager().RunWithCancel(prAutoMergeQueue)
 	return nil

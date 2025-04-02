@@ -467,7 +467,7 @@ func TestFromDisplayName(t *testing.T) {
 		t.Run(tc.userDisplayName, func(t *testing.T) {
 			user := &user_model.User{FullName: tc.userDisplayName, Name: "tmp"}
 			got := fromDisplayName(user)
-			assert.EqualValues(t, tc.fromDisplayName, got)
+			assert.Equal(t, tc.fromDisplayName, got)
 		})
 	}
 
@@ -484,7 +484,7 @@ func TestFromDisplayName(t *testing.T) {
 			setting.Domain = oldDomain
 		}()
 
-		assert.EqualValues(t, "Mister X (by Code IT on [code.it])", fromDisplayName(&user_model.User{FullName: "Mister X", Name: "tmp"}))
+		assert.Equal(t, "Mister X (by Code IT on [code.it])", fromDisplayName(&user_model.User{FullName: "Mister X", Name: "tmp"}))
 	})
 }
 

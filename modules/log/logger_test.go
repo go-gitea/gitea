@@ -57,16 +57,16 @@ func TestLogger(t *testing.T) {
 
 	dump := logger.DumpWriters()
 	assert.Empty(t, dump)
-	assert.EqualValues(t, NONE, logger.GetLevel())
+	assert.Equal(t, NONE, logger.GetLevel())
 	assert.False(t, logger.IsEnabled())
 
 	w1 := newDummyWriter("dummy-1", DEBUG, 0)
 	logger.AddWriters(w1)
-	assert.EqualValues(t, DEBUG, logger.GetLevel())
+	assert.Equal(t, DEBUG, logger.GetLevel())
 
 	w2 := newDummyWriter("dummy-2", WARN, 200*time.Millisecond)
 	logger.AddWriters(w2)
-	assert.EqualValues(t, DEBUG, logger.GetLevel())
+	assert.Equal(t, DEBUG, logger.GetLevel())
 
 	dump = logger.DumpWriters()
 	assert.Len(t, dump, 2)
