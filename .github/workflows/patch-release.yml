@@ -8,6 +8,10 @@ on:
         description: 'Specify an upstream version tag'
         required: true
         default: 'v1.23.1'
+      suffix:
+        description: 'Optional image tag suffix'
+        default: ''
+        required: false
 
 jobs:
   patch-upstream:
@@ -38,7 +42,7 @@ jobs:
           fi
 
       - name: Create branch from determined tag
-        run: git checkout tags/${{ inputs.tag }} -b apply-patches-${{ inputs.tag }}
+        run: git checkout tags/${{ inputs.tag }} -b apply-patches-${{ inputs.tag }}${{ inputs.suffix }}
 
       - name: Configure Git user
         run: |
@@ -57,15 +61,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          git tag -d "${{ inputs.tag }}" || echo "Local tag does not exist, skipping delete."
-          git push --delete origin "${{ inputs.tag }}" || echo "Remote tag does not exist, skipping delete."
-          git tag -a "${{ inputs.tag }}" -m "Tagging version ${{ inputs.tag }} after applying patches"
-          git push origin "${{ inputs.tag }}" --force
-          echo '{"ref":"${{ inputs.tag }}"}' | gh workflow run build.yml --ref "ci"	--repo "blender/gitea" --json
+          git tag -d "${{ inputs.tag }}${{ inputs.suffix }}" || echo "Local tag does not exist, skipping delete."
+          git push --delete origin "${{ inputs.tag }}${{ inputs.suffix }}" || echo "Remote tag does not exist, skipping delete."
+          git tag -a "${{ inputs.tag }}${{ inputs.suffix }}" -m "Tagging version ${{ inputs.tag }} after applying patches"
+          git push origin "${{ inputs.tag }}${{ inputs.suffix }}" --force
+          echo '{"ref":"${{ inputs.tag }}${{ inputs.suffix }}"}' | gh workflow run build.yml --ref "${{ github.ref_name }}"	--repo "blender/gitea" --json
 
       - name: Push branch
         if: always()
-        run: git push origin apply-patches-${{ inputs.tag }} --force
+        run: git push origin apply-patches-${{ inputs.tag }}${{ inputs.suffix }} --force
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 

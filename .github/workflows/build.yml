@@ -7,6 +7,9 @@ on:
       ref:
         description: 'Ref to build'
         required: true
+      suffix:
+        description: 'Optional image tag suffix'
+        required: false
   push:
     tags:
       '*'
