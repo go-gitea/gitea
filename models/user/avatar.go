@@ -61,7 +61,9 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 
 // AvatarLinkWithSize returns a link to the user's avatar with size. size <= 0 means default size
 func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
-	if u.IsGhost() || u.IsGiteaActions() {
+	// ghost user was deleted, Gitea actions is a bot user, 0 means the user should be a virtual user
+	// which comes from git configure information
+	if u.IsGhost() || u.IsGiteaActions() || u.ID <= 0 {
 		return avatars.DefaultAvatarLink()
 	}
 
