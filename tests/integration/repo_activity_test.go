@@ -4,12 +4,15 @@
 package integration
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -61,5 +64,14 @@ func TestRepoActivity(t *testing.T) {
 		// Should be 3 new issues
 		list = htmlDoc.doc.Find("#new-issues").Next().Find("p.desc")
 		assert.Len(t, list.Nodes, 3)
+
+		// Non-existing default branch
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"})
+		repo1.DefaultBranch = "no-such-branch"
+		_, _ = db.GetEngine(context.Background()).Cols("default_branch").Update(repo1)
+		req = NewRequest(t, "GET", "/user2/repo1/activity")
+		req.Header.Add("Accept", "text/html")
+		resp = session.MakeRequest(t, req, http.StatusNotFound)
+		assert.Contains(t, resp.Body.String(), `Default branch "no-such-branch" does not exist.`)
 	})
 }
