@@ -817,9 +817,9 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		if reqPath == "" {
 			refShortName = ctx.Repo.Repository.DefaultBranch
 			if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
+				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 1)
 				if err == nil && len(brs) != 0 {
-					refShortName = brs[0].Name
+					refShortName = brs[0]
 				} else if len(brs) == 0 {
 					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
 				} else {

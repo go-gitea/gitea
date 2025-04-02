@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -490,7 +491,7 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 			filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
 			assert.Error(t, err)
 			assert.Nil(t, filesResponse)
-			expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
+			expectedError := fmt.Sprintf("branch does not exist [repo_id: %d name: %s]", repo.ID, opts.OldBranch)
 			assert.EqualError(t, err, expectedError)
 		})
 
