@@ -176,6 +176,10 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		}
 	}
 
+	if len(options.IssueIDs) > 0 {
+		query.And(inner_meilisearch.NewFilterIn("id", options.IssueIDs...))
+	}
+
 	if len(options.MilestoneIDs) > 0 {
 		query.And(inner_meilisearch.NewFilterIn("milestone_id", options.MilestoneIDs...))
 	}

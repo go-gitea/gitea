@@ -286,6 +286,14 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			"updated_unix"))
 	}
 
+	if len(options.IssueIDs) > 0 {
+		var idQueries []query.Query
+		for _, issueId := range options.IssueIDs {
+			idQueries = append(idQueries, inner_bleve.NumericEqualityQuery(issueId, "id"))
+		}
+		queries = append(queries, bleve.NewDisjunctionQuery(idQueries...))
+	}
+
 	var indexerQuery query.Query = bleve.NewConjunctionQuery(queries...)
 	if len(queries) == 0 {
 		indexerQuery = bleve.NewMatchAllQuery()

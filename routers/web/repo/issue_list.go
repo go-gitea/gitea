@@ -560,6 +560,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
+	var keywordMatchedIssueIds []int64
 	var issueStats *issues_model.IssueStats
 	statsOpts := &issues_model.IssuesOptions{
 		RepoIDs:           []int64{repo.ID},
@@ -575,7 +576,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		IssueIDs:          nil,
 	}
 	if keyword != "" {
-		allIssueIDs, err := issueIDsFromSearch(ctx, keyword, statsOpts)
+		keywordMatchedIssueIds, err = issueIDsFromSearch(ctx, keyword, statsOpts)
 		if err != nil {
 			if issue_indexer.IsAvailable(ctx) {
 				ctx.ServerError("issueIDsFromSearch", err)
@@ -584,7 +585,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			ctx.Data["IssueIndexerUnavailable"] = true
 			return
 		}
-		statsOpts.IssueIDs = allIssueIDs
+		statsOpts.IssueIDs = keywordMatchedIssueIds
 	}
 	if keyword != "" && len(statsOpts.IssueIDs) == 0 {
 		// So it did search with the keyword, but no issue found.
@@ -641,7 +642,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 
 	var issues issues_model.IssueList
 	{
-		ids, err := issueIDsFromSearch(ctx, keyword, &issues_model.IssuesOptions{
+		// Do not repeat the keyword search, since if we had any keyword matches we should
+		// already have their IDs available in allMatchingIssueIDs.
+		ids, err := issueIDsFromSearch(ctx, "", &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
@@ -658,6 +661,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			IsPull:            isPullOption,
 			LabelIDs:          labelIDs,
 			SortType:          sortType,
+			IssueIDs:          keywordMatchedIssueIds,
 		})
 		if err != nil {
 			if issue_indexer.IsAvailable(ctx) {
