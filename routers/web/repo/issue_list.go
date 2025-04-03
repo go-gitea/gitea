@@ -643,7 +643,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	var issues issues_model.IssueList
 	{
 		// Do not repeat the keyword search, since if we had any keyword matches we should
-		// already have their IDs available in allMatchingIssueIDs.
+		// already have their IDs available in keywordMatchedIssueIds.
 		ids, err := issueIDsFromSearch(ctx, "", &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
