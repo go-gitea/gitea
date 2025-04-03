@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,7 +28,7 @@ func assertFileExist(t *testing.T, p string) {
 func assertFileEqual(t *testing.T, p string, content []byte) {
 	bs, err := os.ReadFile(p)
 	assert.NoError(t, err)
-	assert.EqualValues(t, content, bs)
+	assert.Equal(t, content, bs)
 }
 
 func TestRepoCloneWiki(t *testing.T) {
@@ -38,7 +37,7 @@ func TestRepoCloneWiki(t *testing.T) {
 
 		dstPath := t.TempDir()
 
-		r := fmt.Sprintf("%suser2/repo1.wiki.git", u.String())
+		r := u.String() + "user2/repo1.wiki.git"
 		u, _ = url.Parse(r)
 		u.User = url.UserPassword("user2", userPassword)
 		t.Run("Clone", func(t *testing.T) {
@@ -69,6 +68,6 @@ func Test_RepoWikiPages(t *testing.T) {
 		href, _ := firstAnchor.Attr("href")
 		pagePath := strings.TrimPrefix(href, "/user2/repo1/wiki/")
 
-		assert.EqualValues(t, expectedPagePaths[i], pagePath)
+		assert.Equal(t, expectedPagePaths[i], pagePath)
 	})
 }

@@ -5,6 +5,7 @@ package asymkey
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -207,7 +208,7 @@ func parseGPGKey(ctx context.Context, ownerID int64, e *openpgp.Entity, verified
 // deleteGPGKey does the actual key deletion
 func deleteGPGKey(ctx context.Context, keyID string) (int64, error) {
 	if keyID == "" {
-		return 0, fmt.Errorf("empty KeyId forbidden") // Should never happen but just to be sure
+		return 0, errors.New("empty KeyId forbidden") // Should never happen but just to be sure
 	}
 	// Delete imported key
 	n, err := db.GetEngine(ctx).Where("key_id=?", keyID).Delete(new(GPGKeyImport))

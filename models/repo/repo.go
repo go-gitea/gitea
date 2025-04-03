@@ -5,6 +5,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"maps"
@@ -59,7 +60,7 @@ type ErrRepoIsArchived struct {
 }
 
 func (err ErrRepoIsArchived) Error() string {
-	return fmt.Sprintf("%s is archived", err.Repo.LogString())
+	return err.Repo.LogString() + " is archived"
 }
 
 type globalVarsStruct struct {
@@ -425,32 +426,33 @@ func (repo *Repository) MustGetUnit(ctx context.Context, tp unit.Type) *RepoUnit
 		return ru
 	}
 
-	if tp == unit.TypeExternalWiki {
+	switch tp {
+	case unit.TypeExternalWiki:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalWikiConfig),
 		}
-	} else if tp == unit.TypeExternalTracker {
+	case unit.TypeExternalTracker:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalTrackerConfig),
 		}
-	} else if tp == unit.TypePullRequests {
+	case unit.TypePullRequests:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(PullRequestsConfig),
 		}
-	} else if tp == unit.TypeIssues {
+	case unit.TypeIssues:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(IssuesConfig),
 		}
-	} else if tp == unit.TypeActions {
+	case unit.TypeActions:
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ActionsConfig),
 		}
-	} else if tp == unit.TypeProjects {
+	case unit.TypeProjects:
 		cfg := new(ProjectsConfig)
 		cfg.ProjectsMode = ProjectsModeNone
 		return &RepoUnit{
@@ -819,7 +821,7 @@ func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repo
 func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error) {
 	ret, err := giturl.ParseRepositoryURL(ctx, repoURL)
 	if err != nil || ret.OwnerName == "" {
-		return nil, fmt.Errorf("unknown or malformed repository URL")
+		return nil, errors.New("unknown or malformed repository URL")
 	}
 	return GetRepositoryByOwnerAndName(ctx, ret.OwnerName, ret.RepoName)
 }

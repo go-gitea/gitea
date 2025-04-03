@@ -210,5 +210,5 @@ func TestPackagistEmptyPayload(t *testing.T) {
 	var body PackagistPayload
 	err = json.NewDecoder(req.Body).Decode(&body)
 	assert.NoError(t, err)
-	assert.Equal(t, "", body.PackagistRepository.URL)
+	assert.Empty(t, body.PackagistRepository.URL)
 }

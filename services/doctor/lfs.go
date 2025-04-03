@@ -5,7 +5,7 @@ package doctor
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -27,7 +27,7 @@ func init() {
 
 func garbageCollectLFSCheck(ctx context.Context, logger log.Logger, autofix bool) error {
 	if !setting.LFS.StartServer {
-		return fmt.Errorf("LFS support is disabled")
+		return errors.New("LFS support is disabled")
 	}
 
 	if err := repository.GarbageCollectLFSMetaObjects(ctx, repository.GarbageCollectLFSMetaObjectsOptions{

@@ -154,8 +154,8 @@ func createCommon(ctx *context.Context) {
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	ctx.Data["CanCreateRepoInDoer"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimitOfDoer"] = ctx.Doer.MaxCreationLimit()
 	ctx.Data["SupportedObjectFormats"] = git.DefaultFeatures().SupportedObjectFormats
 	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
 }
@@ -305,11 +305,15 @@ func CreatePost(ctx *context.Context) {
 }
 
 func handleActionError(ctx *context.Context, err error) {
-	if errors.Is(err, user_model.ErrBlockedUser) {
+	switch {
+	case errors.Is(err, user_model.ErrBlockedUser):
 		ctx.Flash.Error(ctx.Tr("repo.action.blocked_user"))
-	} else if errors.Is(err, util.ErrPermissionDenied) {
+	case repo_service.IsRepositoryLimitReached(err):
+		limit := err.(repo_service.LimitReachedError).Limit
+		ctx.Flash.Error(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit))
+	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.HTTPError(http.StatusNotFound)
-	} else {
+	default:
 		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.PathParam("action")), err)
 	}
 }

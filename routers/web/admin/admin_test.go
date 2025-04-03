@@ -69,7 +69,7 @@ func TestShadowPassword(t *testing.T) {
 	}
 
 	for _, k := range kases {
-		assert.EqualValues(t, k.Result, shadowPassword(k.Provider, k.CfgItem))
+		assert.Equal(t, k.Result, shadowPassword(k.Provider, k.CfgItem))
 	}
 }
 
@@ -79,7 +79,7 @@ func TestSelfCheckPost(t *testing.T) {
 
 	ctx, resp := contexttest.MockContext(t, "GET http://host/sub/admin/self_check?location_origin=http://frontend")
 	SelfCheckPost(ctx)
-	assert.EqualValues(t, http.StatusOK, resp.Code)
+	assert.Equal(t, http.StatusOK, resp.Code)
 
 	data := struct {
 		Problems []string `json:"problems"`
