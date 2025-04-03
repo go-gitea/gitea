@@ -35,7 +35,7 @@ func TestAPINotification(t *testing.T) {
 	// -- GET /notifications --
 	// test filter
 	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?since=%s", since)).
+	req := NewRequest(t, "GET", "/api/v1/notifications?since="+since).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var apiNL []api.NotificationThread
@@ -104,10 +104,10 @@ func TestAPINotification(t *testing.T) {
 	assert.EqualValues(t, 5, apiN.ID)
 	assert.False(t, apiN.Pinned)
 	assert.True(t, apiN.Unread)
-	assert.EqualValues(t, "issue4", apiN.Subject.Title)
+	assert.Equal(t, "issue4", apiN.Subject.Title)
 	assert.EqualValues(t, "Issue", apiN.Subject.Type)
-	assert.EqualValues(t, thread5.Issue.APIURL(db.DefaultContext), apiN.Subject.URL)
-	assert.EqualValues(t, thread5.Repository.HTMLURL(), apiN.Repository.HTMLURL)
+	assert.Equal(t, thread5.Issue.APIURL(db.DefaultContext), apiN.Subject.URL)
+	assert.Equal(t, thread5.Repository.HTMLURL(), apiN.Repository.HTMLURL)
 
 	MakeRequest(t, NewRequest(t, "GET", "/api/v1/notifications/new"), http.StatusUnauthorized)
 

@@ -14,5 +14,5 @@ func TestCountFmt(t *testing.T) {
 	assert.Equal(t, "1.3k", countFmt(int64(1317)))
 	assert.Equal(t, "21.3M", countFmt(21317675))
 	assert.Equal(t, "45.7G", countFmt(45721317675))
-	assert.Equal(t, "", countFmt("test"))
+	assert.Empty(t, countFmt("test"))
 }

@@ -5,7 +5,6 @@ package elasticsearch
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -96,7 +95,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 		issue := issues[0]
 		_, err := b.inner.Client.Index().
 			Index(b.inner.VersionedIndexName()).
-			Id(fmt.Sprintf("%d", issue.ID)).
+			Id(strconv.FormatInt(issue.ID, 10)).
 			BodyJson(issue).
 			Do(ctx)
 		return err
@@ -107,7 +106,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 		reqs = append(reqs,
 			elastic.NewBulkIndexRequest().
 				Index(b.inner.VersionedIndexName()).
-				Id(fmt.Sprintf("%d", issue.ID)).
+				Id(strconv.FormatInt(issue.ID, 10)).
 				Doc(issue),
 		)
 	}
@@ -126,7 +125,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 	} else if len(ids) == 1 {
 		_, err := b.inner.Client.Delete().
 			Index(b.inner.VersionedIndexName()).
-			Id(fmt.Sprintf("%d", ids[0])).
+			Id(strconv.FormatInt(ids[0], 10)).
 			Do(ctx)
 		return err
 	}
@@ -136,7 +135,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 		reqs = append(reqs,
 			elastic.NewBulkDeleteRequest().
 				Index(b.inner.VersionedIndexName()).
-				Id(fmt.Sprintf("%d", id)),
+				Id(strconv.FormatInt(id, 10)),
 		)
 	}
 
@@ -212,12 +211,22 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectColumnID.Value()))
 	}
 
-	if options.PosterID.Has() {
-		query.Must(elastic.NewTermQuery("poster_id", options.PosterID.Value()))
+	if options.PosterID != "" {
+		// "(none)" becomes 0, it means no poster
+		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
+		query.Must(elastic.NewTermQuery("poster_id", posterIDInt64))
 	}
 
-	if options.AssigneeID.Has() {
-		query.Must(elastic.NewTermQuery("assignee_id", options.AssigneeID.Value()))
+	if options.AssigneeID != "" {
+		if options.AssigneeID == "(any)" {
+			q := elastic.NewRangeQuery("assignee_id")
+			q.Gte(1)
+			query.Must(q)
+		} else {
+			// "(none)" becomes 0, it means no assignee
+			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+			query.Must(elastic.NewTermQuery("assignee_id", assigneeIDInt64))
+		}
 	}
 
 	if options.MentionID.Has() {

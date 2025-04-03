@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -39,7 +40,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			if err != nil {
 				return nil, false, err
 			}
-			return nil, false, fmt.Errorf("runner has been removed")
+			return nil, false, errors.New("runner has been removed")
 		}
 	}
 

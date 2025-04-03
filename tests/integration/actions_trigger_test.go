@@ -286,7 +286,7 @@ jobs:
 					ContentReader: strings.NewReader("bar"),
 				},
 			},
-			Message:   fmt.Sprintf("%s add bar", setting.Actions.SkipWorkflowStrings[0]),
+			Message:   setting.Actions.SkipWorkflowStrings[0] + " add bar",
 			OldBranch: "master",
 			NewBranch: "master",
 			Author: &files_service.IdentityOptions{

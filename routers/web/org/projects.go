@@ -347,11 +347,11 @@ func ViewProject(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	assigneeID := ctx.FormInt64("assignee") // TODO: use "optional" but not 0 in the future
+	assigneeID := ctx.FormString("assignee")
 
 	opts := issues_model.IssuesOptions{
 		LabelIDs:   labelIDs,
-		AssigneeID: optional.Some(assigneeID),
+		AssigneeID: assigneeID,
 		Owner:      project.Owner,
 		Doer:       ctx.Doer,
 	}

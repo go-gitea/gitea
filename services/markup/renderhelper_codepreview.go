@@ -6,7 +6,7 @@ package markup
 import (
 	"bufio"
 	"context"
-	"fmt"
+	"errors"
 	"html/template"
 	"strings"
 
@@ -38,7 +38,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 
 	webCtx := gitea_context.GetWebContext(ctx)
 	if webCtx == nil {
-		return "", fmt.Errorf("context is not a web context")
+		return "", errors.New("context is not a web context")
 	}
 	doer := webCtx.Doer
 
@@ -68,7 +68,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	}
 
 	if blob.Size() > setting.UI.MaxDisplayFileSize {
-		return "", fmt.Errorf("file is too large")
+		return "", errors.New("file is too large")
 	}
 
 	dataRc, err := blob.DataAsync()

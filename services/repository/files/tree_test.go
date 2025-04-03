@@ -54,7 +54,7 @@ func TestGetTreeBySHA(t *testing.T) {
 		TotalCount: 1,
 	}
 
-	assert.EqualValues(t, expectedTree, tree)
+	assert.Equal(t, expectedTree, tree)
 }
 
 func TestGetTreeViewNodes(t *testing.T) {

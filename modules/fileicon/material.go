@@ -124,7 +124,8 @@ func (m *MaterialIconProvider) renderIconByName(ctx reqctx.RequestContext, name,
 		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
 		return m.renderFileIconSVG(ctx, name, iconSVG, extraClass)
 	}
-	return svg.RenderHTML("octicon-file")
+	// TODO: use an interface or wrapper for git.Entry to make the code testable.
+	return BasicThemeIcon(entry)
 }
 
 func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
