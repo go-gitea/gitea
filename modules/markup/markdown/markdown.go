@@ -184,11 +184,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	// Preserve original length.
 	bufWithMetadataLength := len(buf)
 
-	rc := &RenderConfig{
-		Meta: markup.RenderMetaAsDetails,
-		Icon: "table",
-		Lang: "",
-	}
+	rc := &RenderConfig{Meta: markup.RenderMetaAsDetails}
 	buf, _ = ExtractMetadataBytes(buf, rc)
 
 	metaLength := bufWithMetadataLength - len(buf)

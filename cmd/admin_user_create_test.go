@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -22,6 +23,7 @@ func TestAdminUserCreate(t *testing.T) {
 	reset := func() {
 		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.User{}))
 		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.EmailAddress{}))
+		require.NoError(t, db.TruncateBeans(db.DefaultContext, &auth_model.AccessToken{}))
 	}
 
 	t.Run("MustChangePassword", func(t *testing.T) {
@@ -48,11 +50,11 @@ func TestAdminUserCreate(t *testing.T) {
 		assert.Equal(t, check{IsAdmin: false, MustChangePassword: false}, createCheck("u5", "--must-change-password=false"))
 	})
 
-	t.Run("UserType", func(t *testing.T) {
-		createUser := func(name, args string) error {
-			return app.Run(strings.Fields(fmt.Sprintf("./gitea admin user create --username %s --email %s@gitea.local %s", name, name, args)))
-		}
+	createUser := func(name, args string) error {
+		return app.Run(strings.Fields(fmt.Sprintf("./gitea admin user create --username %s --email %s@gitea.local %s", name, name, args)))
+	}
 
+	t.Run("UserType", func(t *testing.T) {
 		reset()
 		assert.ErrorContains(t, createUser("u", "--user-type invalid"), "invalid user type")
 		assert.ErrorContains(t, createUser("u", "--user-type bot --password 123"), "can only be set for individual users")
@@ -62,5 +64,57 @@ func TestAdminUserCreate(t *testing.T) {
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"})
 		assert.Equal(t, user_model.UserTypeBot, u.Type)
 		assert.Empty(t, u.Passwd)
+	})
+
+	t.Run("AccessToken", func(t *testing.T) {
+		// no generated access token
+		reset()
+		assert.NoError(t, createUser("u", "--random-password"))
+		assert.Equal(t, 1, unittest.GetCount(t, &user_model.User{}))
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
+
+		// using "--access-token" only means "all" access
+		reset()
+		assert.NoError(t, createUser("u", "--random-password --access-token"))
+		assert.Equal(t, 1, unittest.GetCount(t, &user_model.User{}))
+		assert.Equal(t, 1, unittest.GetCount(t, &auth_model.AccessToken{}))
+		accessToken := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "gitea-admin"})
+		hasScopes, err := accessToken.Scope.HasScope(auth_model.AccessTokenScopeWriteAdmin, auth_model.AccessTokenScopeWriteRepository)
+		assert.NoError(t, err)
+		assert.True(t, hasScopes)
+
+		// using "--access-token" with name & scopes
+		reset()
+		assert.NoError(t, createUser("u", "--random-password --access-token --access-token-name new-token-name --access-token-scopes read:issue,read:user"))
+		assert.Equal(t, 1, unittest.GetCount(t, &user_model.User{}))
+		assert.Equal(t, 1, unittest.GetCount(t, &auth_model.AccessToken{}))
+		accessToken = unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{Name: "new-token-name"})
+		hasScopes, err = accessToken.Scope.HasScope(auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopeReadUser)
+		assert.NoError(t, err)
+		assert.True(t, hasScopes)
+		hasScopes, err = accessToken.Scope.HasScope(auth_model.AccessTokenScopeWriteAdmin, auth_model.AccessTokenScopeWriteRepository)
+		assert.NoError(t, err)
+		assert.False(t, hasScopes)
+
+		// using "--access-token-name" without "--access-token"
+		reset()
+		err = createUser("u", "--random-password --access-token-name new-token-name")
+		assert.Equal(t, 0, unittest.GetCount(t, &user_model.User{}))
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
+		assert.ErrorContains(t, err, "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
+
+		// using "--access-token-scopes" without "--access-token"
+		reset()
+		err = createUser("u", "--random-password --access-token-scopes read:issue")
+		assert.Equal(t, 0, unittest.GetCount(t, &user_model.User{}))
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
+		assert.ErrorContains(t, err, "access-token-name and access-token-scopes flags are only valid when access-token flag is set")
+
+		// empty permission
+		reset()
+		err = createUser("u", "--random-password --access-token --access-token-scopes public-only")
+		assert.Equal(t, 0, unittest.GetCount(t, &user_model.User{}))
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
+		assert.ErrorContains(t, err, "access token does not have any permission")
 	})
 }

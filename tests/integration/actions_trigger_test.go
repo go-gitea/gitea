@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -28,6 +29,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
@@ -1366,5 +1368,83 @@ jobs:
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
 		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+	})
+}
+
+func TestClosePullRequestWithPath(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// user2 is the owner of the base repo
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user2Token := getTokenForLoggedInUser(t, loginUser(t, user2.Name), auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		// user4 is the owner of the fork repo
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		user4Token := getTokenForLoggedInUser(t, loginUser(t, user4.Name), auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		// create the base repo
+		apiBaseRepo := createActionsTestRepo(t, user2Token, "close-pull-request-with-path", false)
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
+		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+
+		// init the workflow
+		wfTreePath := ".gitea/workflows/pull.yml"
+		wfFileContent := `name: Pull Request
+on:
+  pull_request:
+    types:
+      - closed
+    paths:
+      - 'app/**'
+jobs:
+  echo:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Hello World'
+`
+		opts1 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts1)
+
+		// user4 forks the repo
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
+			&api.CreateForkOption{
+				Name: util.ToPointer("close-pull-request-with-path-fork"),
+			}).AddTokenAuth(user4Token)
+		resp := MakeRequest(t, req, http.StatusAccepted)
+		var apiForkRepo api.Repository
+		DecodeJSON(t, resp, &apiForkRepo)
+		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
+		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+
+		// user4 creates a pull request to add file "app/main.go"
+		doAPICreateFile(user4APICtx, "app/main.go", &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				NewBranchName: "user4/add-main",
+				Message:       "create main.go",
+				Author: api.Identity{
+					Name:  user4.Name,
+					Email: user4.Email,
+				},
+				Committer: api.Identity{
+					Name:  user4.Name,
+					Email: user4.Email,
+				},
+				Dates: api.CommitDateOptions{
+					Author:    time.Now(),
+					Committer: time.Now(),
+				},
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("// main.go")),
+		})(t)
+		apiPull, err := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":user4/add-main")(t)
+		assert.NoError(t, err)
+
+		doAPIMergePullRequest(user2APICtx, baseRepo.OwnerName, baseRepo.Name, apiPull.Index)(t)
+
+		pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
+
+		// load and compare ActionRun
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
+		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
+		assert.Equal(t, actions_module.GithubEventPullRequest, actionRun.TriggerEvent)
+		assert.Equal(t, pullRequest.MergedCommitID, actionRun.CommitSHA)
 	})
 }
