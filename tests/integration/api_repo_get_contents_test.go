@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -33,18 +34,20 @@ func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) 
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
 	downloadURL := setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath
 	return &api.ContentsResponse{
-		Name:          treePath,
-		Path:          treePath,
-		SHA:           sha,
-		LastCommitSHA: lastCommitSHA,
-		Type:          "file",
-		Size:          30,
-		Encoding:      &encoding,
-		Content:       &content,
-		URL:           &selfURL,
-		HTMLURL:       &htmlURL,
-		GitURL:        &gitURL,
-		DownloadURL:   &downloadURL,
+		Name:              treePath,
+		Path:              treePath,
+		SHA:               sha,
+		LastCommitSHA:     lastCommitSHA,
+		LastCommitterDate: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+		LastAuthorDate:    time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+		Type:              "file",
+		Size:              30,
+		Encoding:          &encoding,
+		Content:           &content,
+		URL:               &selfURL,
+		HTMLURL:           &htmlURL,
+		GitURL:            &gitURL,
+		DownloadURL:       &downloadURL,
 		Links: &api.FileLinksResponse{
 			Self:    &selfURL,
 			GitURL:  &gitURL,
