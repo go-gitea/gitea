@@ -85,7 +85,6 @@ func (m *MaterialIconProvider) renderFileIconSVG(ctx reqctx.RequestContext, name
 }
 
 func (m *MaterialIconProvider) FolderIcon(ctx reqctx.RequestContext, isOpen bool) template.HTML {
-	// return svg.RenderHTML("material-folder-generic", 16, BasicThemeFolderIconName(isOpen))
 	iconName := "folder"
 	if isOpen {
 		iconName = "folder-open"
@@ -125,7 +124,7 @@ func (m *MaterialIconProvider) renderIconByName(ctx reqctx.RequestContext, name,
 		return m.renderFileIconSVG(ctx, name, iconSVG, extraClass)
 	}
 	// TODO: use an interface or wrapper for git.Entry to make the code testable.
-	return BasicThemeIcon(entry)
+	return svg.RenderHTML("octicon-file")
 }
 
 func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
