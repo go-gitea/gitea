@@ -261,8 +261,14 @@ func (r *TestRenderHelper) IsCommitIDExisting(commitID string) bool {
 	return strings.HasPrefix(commitID, "65f1bf2") //|| strings.HasPrefix(commitID, "88fc37a")
 }
 
-func (r *TestRenderHelper) ResolveLink(link string, likeType LinkType) string {
-	return r.ctx.ResolveLinkRelative(r.BaseLink, "", link)
+func (r *TestRenderHelper) ResolveLink(link, preferLinkType string) string {
+	linkType, link := ParseRenderedLink(link, preferLinkType)
+	switch linkType {
+	case LinkTypeRoot:
+		return r.ctx.ResolveLinkRoot(link)
+	default:
+		return r.ctx.ResolveLinkRelative(r.BaseLink, "", link)
+	}
 }
 
 var _ RenderHelper = (*TestRenderHelper)(nil)
