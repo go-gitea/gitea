@@ -1,0 +1,201 @@
+From e8630b784df196e5082e14160295cdbc48e4fc3b Mon Sep 17 00:00:00 2001
+From: Oleg Komarov <oleg@blender.org>
+Date: Wed, 2 Apr 2025 17:30:05 +0200
+Subject: [PATCH] Sync user badges on sign-in
+
+Don't escalate any errors, only log them, to avoid breaking sign-in.
+---
+ routers/web/auth/oauth.go   | 24 +++++++++++
+ services/user/badge.go      | 55 +++++++++++++++++++++++++
+ services/user/badge_test.go | 80 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 159 insertions(+)
+ create mode 100644 services/user/badge.go
+ create mode 100644 services/user/badge_test.go
+
+diff --git a/routers/web/auth/oauth.go b/routers/web/auth/oauth.go
+index 94a8bec565..73bc5bf877 100644
+--- a/routers/web/auth/oauth.go
++++ b/routers/web/auth/oauth.go
+@@ -298,8 +298,32 @@ func updateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
+ 	}
+ }
+ 
++// BLENDER: sync user badges
++func updateBadgesIfNeed(ctx *context.Context, rawData map[string]any, u *user_model.User) error {
++	blenderIDBadges, has := rawData["badges"]
++	if !has {
++		return nil
++	}
++	remoteBadgesMap, ok := blenderIDBadges.(map[string]any)
++	if !ok {
++		return fmt.Errorf("unexpected format of remote badges payload: %+v", blenderIDBadges)
++	}
++
++	remoteBadges := make([]*user_model.Badge, 0, len(remoteBadgesMap))
++	for slug := range remoteBadgesMap {
++		remoteBadges = append(remoteBadges, &user_model.Badge{Slug: slug})
++	}
++	return user_service.UpdateBadgesBestEffort(ctx, u, remoteBadges)
++}
++
+ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model.User, gothUser goth.User) {
+ 	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
++	// BLENDER: sync user badges
++	// Don't escalate any errors, only log them:
++	// we don't want to break login process due to errors in badges sync
++	if err := updateBadgesIfNeed(ctx, gothUser.RawData, u); err != nil {
++		log.Error("Failed to update user badges for %s: %w", u.LoginName, err)
++	}
+ 
+ 	needs2FA := false
+ 	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
+diff --git a/services/user/badge.go b/services/user/badge.go
+new file mode 100644
+index 0000000000..be6124a7fe
+--- /dev/null
++++ b/services/user/badge.go
+@@ -0,0 +1,55 @@
++// Copyright 2025 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++
++package user
++
++import (
++	"context"
++	"fmt"
++
++	"code.gitea.io/gitea/models/db"
++	user_model "code.gitea.io/gitea/models/user"
++	"code.gitea.io/gitea/modules/log"
++)
++
++// BLENDER: sync user badges
++// This function works in a best-effort fashion:
++// it tolerates all errors and tries to perform all badge changes one-by-one.
++func UpdateBadgesBestEffort(ctx context.Context, u *user_model.User, newBadges []*user_model.Badge) error {
++	return db.WithTx(ctx, func(ctx context.Context) error {
++		oldUserBadges, _, err := user_model.GetUserBadges(ctx, u)
++		if err != nil {
++			return fmt.Errorf("failed to fetch local badges for %s: %w", u.LoginName, err)
++		}
++
++		oldBadgeSlugs := map[string]struct{}{}
++		for _, badge := range oldUserBadges {
++			oldBadgeSlugs[badge.Slug] = struct{}{}
++		}
++
++		newBadgeSlugs := map[string]struct{}{}
++		for _, badge := range newBadges {
++			newBadgeSlugs[badge.Slug] = struct{}{}
++		}
++
++		for slug := range newBadgeSlugs {
++			if _, has := oldBadgeSlugs[slug]; has {
++				continue
++			}
++			if err := user_model.AddUserBadge(ctx, u, &user_model.Badge{Slug: slug}); err != nil {
++				// Don't escalate, continue processing other badges
++				log.Error("Failed to add badge slug %s to user %s: %v", slug, u.LoginName, err)
++			}
++		}
++		for slug := range oldBadgeSlugs {
++			if _, has := newBadgeSlugs[slug]; has {
++				continue
++			}
++			if err := user_model.RemoveUserBadge(ctx, u, &user_model.Badge{Slug: slug}); err != nil {
++				// Don't escalate, continue processing other badges
++				log.Error("Failed to remove badge slug %s from user %s: %v", slug, u.LoginName, err)
++			}
++		}
++		return nil
++	})
++}
+diff --git a/services/user/badge_test.go b/services/user/badge_test.go
+new file mode 100644
+index 0000000000..9744355390
+--- /dev/null
++++ b/services/user/badge_test.go
+@@ -0,0 +1,80 @@
++// Copyright 2025 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++
++// BLENDER: sync user badges
++
++package user
++
++import (
++	"fmt"
++	"slices"
++	"sync"
++	"testing"
++
++	"code.gitea.io/gitea/models/db"
++	"code.gitea.io/gitea/models/unittest"
++	user_model "code.gitea.io/gitea/models/user"
++
++	"github.com/stretchr/testify/assert"
++)
++
++// TestUpdateBadgesBestEffort executes UpdateBadgesBestEffort concurrently.
++//
++// This test illustrates the need for a database transaction around AddUserBadge and RemoveUserBadge calls.
++// This test is not deterministic, but at least it can demonstrate the problem after a few non-cached runs:
++//
++//     go test -count=1 -v -tags sqlite -run TestUpdateBadgesBestEffort ./services/user/...
++func TestUpdateBadgesBestEffort(t *testing.T) {
++	assert.NoError(t, unittest.PrepareTestDatabase())
++
++	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
++	badges := []*user_model.Badge{}
++	for i := range 5 {
++		badge := &user_model.Badge{Slug: fmt.Sprintf("update-badges-test-%d", i)}
++		user_model.CreateBadge(db.DefaultContext, badge)
++		badges = append(badges, badge)
++	}
++	var wg sync.WaitGroup
++	start := make(chan struct{})
++	f := func(wg *sync.WaitGroup, badges []*user_model.Badge) {
++		<-start
++		defer wg.Done()
++		UpdateBadgesBestEffort(db.DefaultContext, user, badges)
++	}
++	updateSets := [][]*user_model.Badge{
++		badges[0:1],
++		badges[1:3],
++		badges[3:5],
++	}
++	for _, s := range updateSets {
++		wg.Add(1)
++		go f(&wg, s)
++	}
++	t.Log("start")
++	// Use the channel to start goroutines' execution as close as possible.
++	close(start)
++	wg.Wait()
++
++	result, _, _ := user_model.GetUserBadges(db.DefaultContext, user)
++	resultSlugs := make([]string, 0, len(result))
++	for _, b := range result {
++		resultSlugs = append(resultSlugs, b.Slug)
++	}
++
++	match := false
++	for _, set := range updateSets {
++		setSlugs := make([]string, 0, len(set))
++		for _, b := range set {
++			setSlugs = append(setSlugs, b.Slug)
++		}
++		// Expecting to confirm that what we get at the end is not a mish-mash of different update attempts,
++		// but one complete attempt.
++		if slices.Equal(setSlugs, resultSlugs) {
++			match = true
++			break
++		}
++	}
++	if !match {
++		t.Fail()
++	}
++}
+-- 
+2.43.0
+

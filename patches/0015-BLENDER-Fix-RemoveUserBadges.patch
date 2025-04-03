@@ -1,0 +1,46 @@
+From 8c336e59e1b28a100f9dfc8209bfc700057fc957 Mon Sep 17 00:00:00 2001
+From: Oleg Komarov <oleg@blender.org>
+Date: Wed, 2 Apr 2025 17:11:01 +0200
+Subject: [PATCH] Fix RemoveUserBadges incorrect sql
+
+---
+ models/user/badge.go | 22 ++++++++++++++++------
+ 1 file changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/models/user/badge.go b/models/user/badge.go
+index 3ff3530a36..9f030c7019 100644
+--- a/models/user/badge.go
++++ b/models/user/badge.go
+@@ -105,13 +105,23 @@ func RemoveUserBadge(ctx context.Context, u *User, badge *Badge) error {
+ // RemoveUserBadges removes badges from a user.
+ func RemoveUserBadges(ctx context.Context, u *User, badges []*Badge) error {
+ 	return db.WithTx(ctx, func(ctx context.Context) error {
++		badgeSlugs := make([]string, 0, len(badges))
+ 		for _, badge := range badges {
+-			if _, err := db.GetEngine(ctx).
+-				Join("INNER", "badge", "badge.id = `user_badge`.badge_id").
+-				Where("`user_badge`.user_id=? AND `badge`.slug=?", u.ID, badge.Slug).
+-				Delete(&UserBadge{}); err != nil {
+-				return err
+-			}
++			badgeSlugs = append(badgeSlugs, badge.Slug)
++		}
++		var userBadges []UserBadge
++		if err := db.GetEngine(ctx).Table("user_badge").
++			Join("INNER", "badge", "badge.id = `user_badge`.badge_id").
++			Where("`user_badge`.user_id = ?", u.ID).In("`badge`.slug", badgeSlugs).
++			Find(&userBadges); err != nil {
++			return err
++		}
++		userBadgeIDs := make([]int64, 0, len(userBadges))
++		for _, ub := range userBadges {
++			userBadgeIDs = append(userBadgeIDs, ub.ID)
++		}
++		if _, err := db.GetEngine(ctx).Table("user_badge").In("id", userBadgeIDs).Delete(); err != nil {
++			return err
+ 		}
+ 		return nil
+ 	})
+-- 
+2.43.0
+
