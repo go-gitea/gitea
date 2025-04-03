@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
-	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -366,6 +365,10 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			ctx.Status(http.StatusForbidden)
 			return
 		}
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			ctx.ServerError("issue.LoadPullRequest", err)
+			return
+		}
 		if reviewID < 0 {
 			// negative reviewIDs represent team requests
 			if err := issue.Repo.LoadOwner(ctx); err != nil {
@@ -396,7 +399,8 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
+			// TODO: Team review request should check if the team has permission to review the PR
+			_, err = pull_service.TeamReviewRequest(ctx, issue.PullRequest, ctx.Doer, team, action == "attach")
 			if err != nil {
 				if issues_model.IsErrNotValidReviewRequest(err) {
 					log.Warn(
@@ -428,7 +432,8 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
+		// TODO: Reviewer review request should check if the user has permission to review the PR
+		_, err = pull_service.ReviewRequest(ctx, issue.PullRequest, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
 		if err != nil {
 			if issues_model.IsErrNotValidReviewRequest(err) {
 				log.Warn(
