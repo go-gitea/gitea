@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -65,6 +66,16 @@ var microcmdUserCreate = &cli.Command{
 		&cli.BoolFlag{
 			Name:  "access-token",
 			Usage: "Generate access token for the user",
+		},
+		&cli.StringFlag{
+			Name:  "access-token-name",
+			Usage: `Name of the generated access token`,
+			Value: "gitea-admin",
+		},
+		&cli.StringFlag{
+			Name:  "access-token-scopes",
+			Usage: `Scopes of the generated access token, comma separated. Examples: "all", "public-only,read:issue", "write:repository,write:user"`,
+			Value: "all",
 		},
 		&cli.BoolFlag{
 			Name:  "restricted",
@@ -187,23 +198,40 @@ func runCreateUser(c *cli.Context) error {
 		IsRestricted: restricted,
 	}
 
+	var accessTokenName string
+	var accessTokenScope auth_model.AccessTokenScope
+	if c.IsSet("access-token") {
+		accessTokenName = strings.TrimSpace(c.String("access-token-name"))
+		if accessTokenName == "" {
+			return errors.New("access-token-name cannot be empty")
+		}
+		var err error
+		accessTokenScope, err = auth_model.AccessTokenScope(c.String("access-token-scopes")).Normalize()
+		if err != nil {
+			return fmt.Errorf("invalid access token scope provided: %w", err)
+		}
+		if !accessTokenScope.HasPermissionScope() {
+			return errors.New("access token does not have any permission")
+		}
+	} else if c.IsSet("access-token-name") || c.IsSet("access-token-scopes") {
+		return errors.New("access-token-name and access-token-scopes flags are only valid when access-token flag is set")
+	}
+
+	// arguments should be prepared before creating the user & access token, in case there is anything wrong
+
+	// create the user
 	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
+	fmt.Printf("New user '%s' has been successfully created!\n", username)
 
-	if c.Bool("access-token") {
-		t := &auth_model.AccessToken{
-			Name: "gitea-admin",
-			UID:  u.ID,
-		}
-
+	// create the access token
+	if accessTokenScope != "" {
+		t := &auth_model.AccessToken{Name: accessTokenName, UID: u.ID, Scope: accessTokenScope}
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
-
 		fmt.Printf("Access token was successfully created... %s\n", t.Token)
 	}
-
-	fmt.Printf("New user '%s' has been successfully created!\n", username)
 	return nil
 }
