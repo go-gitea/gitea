@@ -5,6 +5,7 @@ package files
 
 import (
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -20,14 +21,14 @@ func TestCleanUploadFileName(t *testing.T) {
 		name := "this/is/test"
 		cleanName := CleanUploadFileName(name)
 		expectedCleanName := name
-		assert.EqualValues(t, expectedCleanName, cleanName)
+		assert.Equal(t, expectedCleanName, cleanName)
 	})
 
 	t.Run("Clean a .git path", func(t *testing.T) {
 		name := "this/is/test/.git"
 		cleanName := CleanUploadFileName(name)
 		expectedCleanName := ""
-		assert.EqualValues(t, expectedCleanName, cleanName)
+		assert.Equal(t, expectedCleanName, cleanName)
 	})
 }
 
@@ -42,18 +43,20 @@ func getExpectedFileResponse() *api.FileResponse {
 	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:          treePath,
-			Path:          treePath,
-			SHA:           sha,
-			LastCommitSHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-			Type:          "file",
-			Size:          30,
-			Encoding:      &encoding,
-			Content:       &content,
-			URL:           &selfURL,
-			HTMLURL:       &htmlURL,
-			GitURL:        &gitURL,
-			DownloadURL:   &downloadURL,
+			Name:              treePath,
+			Path:              treePath,
+			SHA:               sha,
+			LastCommitSHA:     "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+			LastCommitterDate: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+			LastAuthorDate:    time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+			Type:              "file",
+			Size:              30,
+			Encoding:          &encoding,
+			Content:           &content,
+			URL:               &selfURL,
+			HTMLURL:           &htmlURL,
+			GitURL:            &gitURL,
+			DownloadURL:       &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -116,5 +119,5 @@ func TestGetFileResponseFromCommit(t *testing.T) {
 
 	fileResponse, err := GetFileResponseFromCommit(ctx, repo, commit, branch, treePath)
 	assert.NoError(t, err)
-	assert.EqualValues(t, expectedFileResponse, fileResponse)
+	assert.Equal(t, expectedFileResponse, fileResponse)
 }

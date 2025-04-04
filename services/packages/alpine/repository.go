@@ -290,7 +290,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 
 	privPem, _ := pem.Decode([]byte(priv))
 	if privPem == nil {
-		return fmt.Errorf("failed to decode private key pem")
+		return errors.New("failed to decode private key pem")
 	}
 
 	privKey, err := x509.ParsePKCS1PrivateKey(privPem.Bytes)

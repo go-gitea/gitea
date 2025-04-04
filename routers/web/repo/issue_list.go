@@ -502,7 +502,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		case "mentioned":
 			mentionedID = ctx.Doer.ID
 		case "assigned":
-			assigneeID = fmt.Sprint(ctx.Doer.ID)
+			assigneeID = strconv.FormatInt(ctx.Doer.ID, 10)
 		case "review_requested":
 			reviewRequestedID = ctx.Doer.ID
 		case "reviewed_by":
@@ -696,9 +696,10 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			return 0
 		}
 		reviewTyp := issues_model.ReviewTypeApprove
-		if typ == "reject" {
+		switch typ {
+		case "reject":
 			reviewTyp = issues_model.ReviewTypeReject
-		} else if typ == "waiting" {
+		case "waiting":
 			reviewTyp = issues_model.ReviewTypeRequest
 		}
 		for _, count := range counts {

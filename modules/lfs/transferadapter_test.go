@@ -32,7 +32,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		if strings.Contains(url, "download-request") {
 			assert.Equal(t, "GET", req.Method)
 
-			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString("dummy"))}
+			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("dummy"))}
 		} else if strings.Contains(url, "upload-request") {
 			assert.Equal(t, "PUT", req.Method)
 			assert.Equal(t, "application/octet-stream", req.Header.Get("Content-Type"))
@@ -126,7 +126,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		}
 
 		for n, c := range cases {
-			err := a.Upload(t.Context(), c.link, p, bytes.NewBufferString("dummy"))
+			err := a.Upload(t.Context(), c.link, p, strings.NewReader("dummy"))
 			if len(c.expectederror) > 0 {
 				assert.Contains(t, err.Error(), c.expectederror, "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {
