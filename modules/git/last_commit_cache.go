@@ -6,18 +6,11 @@ package git
 import (
 	"crypto/sha256"
 	"fmt"
-	"sync"
 
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
-
-var lastCommitPool = sync.Pool{
-	New: func() any {
-		return &Commit{}
-	},
-}
 
 func getCacheKey(repoPath, commitID, entryPath string) string {
 	hashBytes := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%s", repoPath, commitID, entryPath)))
@@ -65,11 +58,6 @@ func (c *LastCommitCache) Get(ref, entryPath string) (*Commit, error) {
 		return nil, nil
 	}
 
-	commit := lastCommitPool.Get().(*Commit)
-	defer lastCommitPool.Put(commit)
-	var err error
-	var ok bool
-
 	commitID, ok := c.cache.Get(getCacheKey(c.repoPath, ref, entryPath))
 	if !ok || commitID == "" {
 		return nil, nil
@@ -77,13 +65,13 @@ func (c *LastCommitCache) Get(ref, entryPath string) (*Commit, error) {
 
 	log.Debug("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, commitID)
 	if c.commitCache != nil {
-		if commit, ok = c.commitCache[commitID]; ok {
+		if commit, ok := c.commitCache[commitID]; ok {
 			log.Debug("LastCommitCache hit level 2: [%s:%s:%s]", ref, entryPath, commitID)
 			return commit, nil
 		}
 	}
 
-	commit, err = c.repo.GetCommit(commitID)
+	commit, err := c.repo.GetCommit(commitID)
 	if err != nil {
 		return nil, err
 	}

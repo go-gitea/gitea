@@ -8,18 +8,31 @@ import (
 	"bytes"
 	"io"
 	"strings"
+	"sync"
 )
+
+var commitPool = sync.Pool{
+	New: func() any {
+		return &Commit{}
+	},
+}
 
 // CommitFromReader will generate a Commit from a provided reader
 // We need this to interpret commits from cat-file or cat-file --batch
 //
 // If used as part of a cat-file --batch stream you need to limit the reader to the correct size
 func CommitFromReader(gitRepo *Repository, objectID ObjectID, reader io.Reader) (*Commit, error) {
-	commit := &Commit{
-		ID:        objectID,
-		Author:    &Signature{},
-		Committer: &Signature{},
-	}
+	commit := commitPool.Get().(*Commit)
+	defer func() {
+		// Reset the commit for reuse
+		commit = commitPool.Get().(*Commit)
+		// Put it back in the pool
+		commitPool.Put(commit)
+	}()
+
+	commit.ID = objectID
+	commit.Author = &Signature{}
+	commit.Committer = &Signature{}
 
 	payloadSB := new(strings.Builder)
 	signatureSB := new(strings.Builder)
