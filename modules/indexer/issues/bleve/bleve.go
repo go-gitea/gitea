@@ -5,6 +5,7 @@ package bleve
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/indexer"
@@ -287,11 +288,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if len(options.IssueIDs) > 0 {
-		var idQueries []query.Query
-		for _, issueId := range options.IssueIDs {
-			idQueries = append(idQueries, inner_bleve.NumericEqualityQuery(issueId, "id"))
-		}
-		queries = append(queries, bleve.NewDisjunctionQuery(idQueries...))
+		return nil, errors.New("options.IssueIDs is not yet supported")
 	}
 
 	var indexerQuery query.Query = bleve.NewConjunctionQuery(queries...)

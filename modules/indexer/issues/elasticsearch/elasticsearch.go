@@ -5,6 +5,7 @@ package elasticsearch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -202,7 +203,7 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 
 	if len(options.IssueIDs) > 0 {
-		query.Must(elastic.NewTermsQuery("id", toAnySlice(options.IssueIDs)...))
+		return nil, errors.New("options.IssueIDs is not yet supported")
 	}
 
 	if len(options.MilestoneIDs) > 0 {
