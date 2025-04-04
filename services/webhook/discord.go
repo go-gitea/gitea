@@ -101,7 +101,7 @@ var (
 	redColor         = color("ff3232")
 )
 
-const discordDescriptionBytesLimit = 2048
+const discordDescriptionCharactersLimit = 2000
 
 type discordConvertor struct {
 	Username  string
@@ -309,16 +309,13 @@ func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, 
 }
 
 func (d discordConvertor) createPayload(s *api.User, title, text, url string, color int) DiscordPayload {
-	if len(text) > discordDescriptionBytesLimit {
-		text = text[:discordDescriptionBytesLimit]
-	}
 	return DiscordPayload{
 		Username:  d.Username,
 		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
-				Description: text,
+				Description: util.TruncateRunes(text, discordDescriptionCharactersLimit), // Discord has some limits in place for the embeds, to keep it simple we currently truncate at 2000
 				URL:         url,
 				Color:       color,
 				Author: DiscordEmbedAuthor{
