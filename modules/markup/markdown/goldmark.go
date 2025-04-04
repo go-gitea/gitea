@@ -65,10 +65,6 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			g.transformHeading(ctx, v, reader, &tocList)
 		case *ast.Paragraph:
 			g.applyElementDir(v)
-		case *ast.Image:
-			g.transformImage(ctx, v)
-		case *ast.Link:
-			g.transformLink(ctx, v)
 		case *ast.List:
 			g.transformList(ctx, v, rc)
 		case *ast.Text:
