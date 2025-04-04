@@ -48,8 +48,8 @@ func TestRepoFile(t *testing.T) {
 		assert.Equal(t,
 			`<p><a href="/user2/repo1/src/branch/main/test" rel="nofollow">/test</a>
 <a href="/user2/repo1/src/branch/main/test" rel="nofollow">./test</a>
-<a href="/user2/repo1/media/branch/main/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/image" alt="/image"/></a>
-<a href="/user2/repo1/media/branch/main/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/image" alt="./image"/></a></p>
+<a href="/user2/repo1/src/branch/main/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/image" alt="/image"/></a>
+<a href="/user2/repo1/src/branch/main/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/image" alt="./image"/></a></p>
 `, rendered)
 	})
 
@@ -62,7 +62,7 @@ func TestRepoFile(t *testing.T) {
 `)
 		assert.NoError(t, err)
 		assert.Equal(t, `<p><a href="/user2/repo1/src/commit/1234/test" rel="nofollow">/test</a>
-<a href="/user2/repo1/media/commit/1234/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/image" alt="/image"/></a></p>
+<a href="/user2/repo1/src/commit/1234/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/image" alt="/image"/></a></p>
 `, rendered)
 	})
 
@@ -77,7 +77,7 @@ func TestRepoFile(t *testing.T) {
 <video src="LINK">
 `)
 		assert.NoError(t, err)
-		assert.Equal(t, `<a href="/user2/repo1/media/commit/1234/my-dir/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/my-dir/LINK"/></a>
+		assert.Equal(t, `<a href="/user2/repo1/src/commit/1234/my-dir/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/my-dir/LINK"/></a>
 <video src="/user2/repo1/media/commit/1234/my-dir/LINK">
 </video>`, rendered)
 	})
@@ -100,7 +100,7 @@ func TestRepoFileOrgMode(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, `<p>
 <a href="https://google.com/" rel="nofollow">https://google.com/</a>
-<a href="/user2/repo1/media/commit/1234/my-dir/ImageLink.svg" rel="nofollow">The Image Desc</a></p>
+<a href="/user2/repo1/src/commit/1234/my-dir/ImageLink.svg" rel="nofollow">The Image Desc</a></p>
 `, rendered)
 	})
 
