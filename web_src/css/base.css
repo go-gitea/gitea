@@ -1166,14 +1166,20 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   margin: 0; /* use gap, but not margin */
 }
 
-.ui.dropdown.ellipsis-items-nowrap > .text {
+.ui.dropdown.ellipsis-text-items {
+  /* reset y padding and use the line-height below instead, to avoid the "overflow: hidden" clips the larger image in the "text" element */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ui.dropdown.ellipsis-text-items > .text {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: 2.71em; /* matches fomantic dropdown's default min-height */
 }
 
-.ellipsis-items-nowrap > .item,
-.ui.dropdown.ellipsis-items-nowrap .menu > .item {
+.ui.dropdown.ellipsis-text-items .menu > .item {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
