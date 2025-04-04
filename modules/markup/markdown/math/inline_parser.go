@@ -16,16 +16,16 @@ type inlineParser struct {
 	endBytesSingleDollar []byte
 	endBytesDoubleDollar []byte
 	endBytesParentheses  []byte
+	enableInlineDollar   bool
 }
 
-var defaultInlineDollarParser = &inlineParser{
-	trigger:              []byte{'$'},
-	endBytesSingleDollar: []byte{'$'},
-	endBytesDoubleDollar: []byte{'$', '$'},
-}
-
-func NewInlineDollarParser() parser.InlineParser {
-	return defaultInlineDollarParser
+func NewInlineDollarParser(enableInlineDollar bool) parser.InlineParser {
+	return &inlineParser{
+		trigger:              []byte{'$'},
+		endBytesSingleDollar: []byte{'$'},
+		endBytesDoubleDollar: []byte{'$', '$'},
+		enableInlineDollar:   enableInlineDollar,
+	}
 }
 
 var defaultInlineParenthesesParser = &inlineParser{
@@ -87,6 +87,10 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 	} else {
 		startMarkLen = 2
 		stopMark = parser.endBytesParentheses
+	}
+
+	if line[0] == '$' && !parser.enableInlineDollar && (len(line) == 1 || line[1] != '`') {
+		return nil
 	}
 
 	if checkSurrounding {

@@ -257,6 +257,9 @@ func TestMathRenderOptions(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(res)), "input: %s", input)
 	}
 
+	// default (non-conflict) inline syntax
+	test(t, `<p><code class="language-math">a</code></p>`, "$`a`$")
+
 	// ParseInlineDollar
 	test(t, `<p>$a$</p>`, `$a$`)
 	setting.Markdown.MathCodeBlockOptions.ParseInlineDollar = true

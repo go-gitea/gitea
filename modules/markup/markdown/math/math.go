@@ -47,9 +47,8 @@ func (e *Extension) Extend(m goldmark.Markdown) {
 	if e.options.ParseInlineParentheses {
 		inlines = append(inlines, util.Prioritized(NewInlineParenthesesParser(), 501))
 	}
-	if e.options.ParseInlineDollar {
-		inlines = append(inlines, util.Prioritized(NewInlineDollarParser(), 502))
-	}
+	inlines = append(inlines, util.Prioritized(NewInlineDollarParser(e.options.ParseInlineDollar), 502))
+
 	m.Parser().AddOptions(parser.WithInlineParsers(inlines...))
 	m.Parser().AddOptions(parser.WithBlockParsers(
 		util.Prioritized(NewBlockParser(e.options.ParseBlockDollar, e.options.ParseBlockSquareBrackets), 701),
