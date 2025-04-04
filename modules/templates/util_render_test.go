@@ -51,7 +51,7 @@ var testMetas = map[string]string{
 	"user":                         "user13",
 	"repo":                         "repo11",
 	"repoPath":                     "../../tests/gitea-repositories-meta/user13/repo11.git/",
-	"markdownLineBreakStyle":       "comment",
+	"markdownNewLineHardBreak":     "true",
 	"markupAllowShortIssuePattern": "true",
 }
 

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ExternalMarkupRenderers represents the external markup renderers
@@ -23,6 +24,11 @@ const (
 	RenderContentModeIframe      = "iframe"
 )
 
+type MarkdownRenderOptions struct {
+	NewLineHardBreak  bool
+	ShortIssuePattern bool // Actually it is a "markup" option because it is used in "post processor"
+}
+
 type MarkdownMathCodeBlockOptions struct {
 	ParseInlineDollar        bool
 	ParseInlineParentheses   bool
@@ -32,18 +38,19 @@ type MarkdownMathCodeBlockOptions struct {
 
 // Markdown settings
 var Markdown = struct {
-	EnableHardLineBreakInComments  bool
-	EnableHardLineBreakInDocuments bool
-	CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
-	FileExtensions                 []string
-	EnableMath                     bool
-	MathCodeBlockDetection         []string
-	MathCodeBlockOptions           MarkdownMathCodeBlockOptions `ini:"-"`
+	RenderOptionsComment  MarkdownRenderOptions `ini:"-"`
+	RenderOptionsWiki     MarkdownRenderOptions `ini:"-"`
+	RenderOptionsRepoFile MarkdownRenderOptions `ini:"-"`
+
+	CustomURLSchemes []string `ini:"CUSTOM_URL_SCHEMES"` // Actually it is a "markup" option because it is used in "post processor"
+	FileExtensions   []string
+
+	EnableMath             bool
+	MathCodeBlockDetection []string
+	MathCodeBlockOptions   MarkdownMathCodeBlockOptions `ini:"-"`
 }{
-	EnableHardLineBreakInComments:  true,
-	EnableHardLineBreakInDocuments: false,
-	FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd,.livemd", ","),
-	EnableMath:                     true,
+	FileExtensions: strings.Split(".md,.markdown,.mdown,.mkd,.livemd", ","),
+	EnableMath:     true,
 }
 
 // MarkupRenderer defines the external parser configured in ini
@@ -69,15 +76,38 @@ type MarkupSanitizerRule struct {
 
 func loadMarkupFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "markdown", &Markdown)
+	const none = "none"
 
-	const mathCodeNone = "none"
+	const renderOptionShortIssuePattern = "short-issue-pattern"
+	const renderOptionNewLineHardBreak = "new-line-hard-break"
+	cfgMarkdown := rootCfg.Section("markdown")
+	parseMarkdownRenderOptions := func(key string, defaults []string) (ret MarkdownRenderOptions) {
+		options := cfgMarkdown.Key(key).Strings(",")
+		options = util.IfEmpty(options, defaults)
+		for _, opt := range options {
+			switch opt {
+			case renderOptionShortIssuePattern:
+				ret.ShortIssuePattern = true
+			case renderOptionNewLineHardBreak:
+				ret.NewLineHardBreak = true
+			case none:
+				ret = MarkdownRenderOptions{}
+			case "":
+			default:
+				log.Error("Unknown markdown render option in %s: %s", key, opt)
+			}
+		}
+		return ret
+	}
+	Markdown.RenderOptionsComment = parseMarkdownRenderOptions("RENDER_OPTIONS_COMMENT", []string{renderOptionShortIssuePattern, renderOptionNewLineHardBreak})
+	Markdown.RenderOptionsWiki = parseMarkdownRenderOptions("RENDER_OPTIONS_WIKI", []string{renderOptionShortIssuePattern})
+	Markdown.RenderOptionsRepoFile = parseMarkdownRenderOptions("RENDER_OPTIONS_REPO_FILE", nil)
+
 	const mathCodeInlineDollar = "inline-dollar"
 	const mathCodeInlineParentheses = "inline-parentheses"
 	const mathCodeBlockDollar = "block-dollar"
 	const mathCodeBlockSquareBrackets = "block-square-brackets"
-	if len(Markdown.MathCodeBlockDetection) == 0 {
-		Markdown.MathCodeBlockDetection = []string{mathCodeInlineDollar, mathCodeBlockDollar}
-	}
+	Markdown.MathCodeBlockDetection = util.IfEmpty(Markdown.MathCodeBlockDetection, []string{mathCodeInlineDollar, mathCodeBlockDollar})
 	Markdown.MathCodeBlockOptions = MarkdownMathCodeBlockOptions{}
 	for _, s := range Markdown.MathCodeBlockDetection {
 		switch s {
@@ -89,11 +119,11 @@ func loadMarkupFrom(rootCfg ConfigProvider) {
 			Markdown.MathCodeBlockOptions.ParseBlockDollar = true
 		case mathCodeBlockSquareBrackets:
 			Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets = true
-		case mathCodeNone:
+		case none:
 			Markdown.MathCodeBlockOptions = MarkdownMathCodeBlockOptions{}
 		case "":
 		default:
-			log.Fatal("Unknown math code block detection option: " + s)
+			log.Error("Unknown math code block detection option: %s", s)
 		}
 	}
 

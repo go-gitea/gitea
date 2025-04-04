@@ -512,15 +512,15 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 			"repo": repo.Name,
 		}
 
-		unit, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
+		unitExternalTracker, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil {
-			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
-			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
+			metas["format"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
+			switch unitExternalTracker.ExternalTrackerConfig().ExternalTrackerStyle {
 			case markup.IssueNameStyleAlphanumeric:
 				metas["style"] = markup.IssueNameStyleAlphanumeric
 			case markup.IssueNameStyleRegexp:
 				metas["style"] = markup.IssueNameStyleRegexp
-				metas["regexp"] = unit.ExternalTrackerConfig().ExternalTrackerRegexpPattern
+				metas["regexp"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerRegexpPattern
 			default:
 				metas["style"] = markup.IssueNameStyleNumeric
 			}
@@ -544,11 +544,11 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 	return repo.commonRenderingMetas
 }
 
-// ComposeMetas composes a map of metas for properly rendering comments or comment-like contents (commit message)
-func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
+// ComposeCommentMetas composes a map of metas for properly rendering comments or comment-like contents (commit message)
+func (repo *Repository) ComposeCommentMetas(ctx context.Context) map[string]string {
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
-	metas["markdownLineBreakStyle"] = "comment"
-	metas["markupAllowShortIssuePattern"] = "true"
+	metas["markdownNewLineHardBreak"] = strconv.FormatBool(setting.Markdown.RenderOptionsComment.NewLineHardBreak)
+	metas["markupAllowShortIssuePattern"] = strconv.FormatBool(setting.Markdown.RenderOptionsComment.ShortIssuePattern)
 	return metas
 }
 
@@ -556,16 +556,17 @@ func (repo *Repository) ComposeMetas(ctx context.Context) map[string]string {
 func (repo *Repository) ComposeWikiMetas(ctx context.Context) map[string]string {
 	// does wiki need the "teams" and "org" from common metas?
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
-	metas["markdownLineBreakStyle"] = "document"
-	metas["markupAllowShortIssuePattern"] = "true"
+	metas["markdownNewLineHardBreak"] = strconv.FormatBool(setting.Markdown.RenderOptionsWiki.NewLineHardBreak)
+	metas["markupAllowShortIssuePattern"] = strconv.FormatBool(setting.Markdown.RenderOptionsWiki.ShortIssuePattern)
 	return metas
 }
 
-// ComposeDocumentMetas composes a map of metas for properly rendering documents (repo files)
-func (repo *Repository) ComposeDocumentMetas(ctx context.Context) map[string]string {
+// ComposeRepoFileMetas composes a map of metas for properly rendering documents (repo files)
+func (repo *Repository) ComposeRepoFileMetas(ctx context.Context) map[string]string {
 	// does document(file) need the "teams" and "org" from common metas?
 	metas := maps.Clone(repo.composeCommonMetas(ctx))
-	metas["markdownLineBreakStyle"] = "document"
+	metas["markdownNewLineHardBreak"] = strconv.FormatBool(setting.Markdown.RenderOptionsRepoFile.NewLineHardBreak)
+	metas["markupAllowShortIssuePattern"] = strconv.FormatBool(setting.Markdown.RenderOptionsRepoFile.ShortIssuePattern)
 	return metas
 }
 

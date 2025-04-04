@@ -61,15 +61,13 @@ func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, 
 	if repo != nil {
 		helper.repoLink = repo.Link()
 		helper.commitChecker = newCommitChecker(ctx, repo)
-		rctx = rctx.WithMetas(repo.ComposeDocumentMetas(ctx))
+		rctx = rctx.WithMetas(repo.ComposeRepoFileMetas(ctx))
 	} else {
 		// this is almost dead code, only to pass the incorrect tests
 		helper.repoLink = fmt.Sprintf("%s/%s", helper.opts.DeprecatedOwnerName, helper.opts.DeprecatedRepoName)
 		rctx = rctx.WithMetas(map[string]string{
 			"user": helper.opts.DeprecatedOwnerName,
 			"repo": helper.opts.DeprecatedRepoName,
-
-			"markdownLineBreakStyle": "document",
 		})
 	}
 	rctx = rctx.WithHelper(helper)

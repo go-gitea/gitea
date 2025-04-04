@@ -4,12 +4,12 @@
 package markdown
 
 import (
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -72,7 +72,7 @@ func TestMathRender(t *testing.T) {
 		},
 		{
 			"$$a$$",
-			`<code class="language-math display">a</code>` + nl,
+			`<p><code class="language-math">a</code></p>` + nl,
 		},
 		{
 			"$$a$$ test",
