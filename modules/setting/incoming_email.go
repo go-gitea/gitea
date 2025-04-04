@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"fmt"
 	"net/mail"
 	"strings"
@@ -50,7 +51,7 @@ func checkReplyToAddress() error {
 	}
 
 	if parsed.Name != "" {
-		return fmt.Errorf("name must not be set")
+		return errors.New("name must not be set")
 	}
 
 	c := strings.Count(IncomingEmail.ReplyToAddress, IncomingEmail.TokenPlaceholder)

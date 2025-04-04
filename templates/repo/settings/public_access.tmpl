@@ -1,0 +1,54 @@
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings")}}
+<div class="repo-setting-content">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "repo.settings.public_access"}}
+	</h4>
+	<div class="ui attached segment">
+		<p>
+			{{ctx.Locale.Tr "repo.settings.public_access_desc"}}
+		</p>
+		{{$paNotSet := "not-set"}}
+		{{$paAnonymousRead := "anonymous-read"}}
+		{{$paEveryoneRead := "everyone-read"}}
+		{{$paEveryoneWrite := "everyone-write"}}
+		<form class="ui form" method="post">
+			{{.CsrfTokenHtml}}
+			<table class="ui table unstackable tw-my-2">
+				<thead>
+					<tr>
+						<th>{{ctx.Locale.Tr "units.unit"}}</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "settings.permission_not_set"}}</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "settings.permission_anonymous_read"}}</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "settings.permission_everyone_read"}}</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "settings.permission_everyone_write"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+				{{range $ua := .RepoUnitPublicAccesses}}
+					<tr>
+						<td>{{$ua.DisplayName}}</td>
+						<td class="tw-text-center"><label><input type="radio" name="{{$ua.FormKey}}" value="{{$paNotSet}}" {{Iif (eq $paNotSet $ua.UnitPublicAccess) "checked"}}></label></td>
+						<td class="tw-text-center"><label><input type="radio" name="{{$ua.FormKey}}" value="{{$paAnonymousRead}}" {{Iif (eq $paAnonymousRead $ua.UnitPublicAccess) "checked"}}></label></td>
+						<td class="tw-text-center"><label><input type="radio" name="{{$ua.FormKey}}" value="{{$paEveryoneRead}}" {{Iif (eq $paEveryoneRead $ua.UnitPublicAccess) "checked"}}></label></td>
+						<td class="tw-text-center">
+							{{if SliceUtils.Contains $ua.PublicAccessTypes $paEveryoneWrite}}
+								<label><input type="radio" name="{{$ua.FormKey}}" value="{{$paEveryoneWrite}}" {{Iif (eq $paEveryoneWrite $ua.UnitPublicAccess) "checked"}}></label>
+							{{else}}
+								-
+							{{end}}
+						</td>
+					</tr>
+				{{end}}
+				</tbody>
+			</table>
+			<ul class="tw-my-3 tw-pl-5 tw-flex tw-flex-col tw-gap-3">
+				<li>{{ctx.Locale.Tr "repo.settings.public_access.docs.not_set"}}</li>
+				<li>{{ctx.Locale.Tr "repo.settings.public_access.docs.anonymous_read"}}</li>
+				<li>{{ctx.Locale.Tr "repo.settings.public_access.docs.everyone_read"}}</li>
+				<li>{{ctx.Locale.Tr "repo.settings.public_access.docs.everyone_write"}}</li>
+			</ul>
+			<button class="ui primary button {{if .GlobalForcePrivate}}disabled{{end}}">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+		</form>
+	</div>
+</div>
+{{template "repo/settings/layout_footer" .}}

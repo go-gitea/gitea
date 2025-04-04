@@ -400,7 +400,7 @@ func Init() error {
 	prPatchCheckerQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_patch_checker", handler)
 
 	if prPatchCheckerQueue == nil {
-		return fmt.Errorf("unable to create pr_patch_checker queue")
+		return errors.New("unable to create pr_patch_checker queue")
 	}
 
 	go graceful.GetManager().RunWithCancel(prPatchCheckerQueue)

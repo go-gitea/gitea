@@ -162,15 +162,15 @@ func (r artifactV4Routes) buildSignature(endp, expires, artifactName string, tas
 	mac.Write([]byte(endp))
 	mac.Write([]byte(expires))
 	mac.Write([]byte(artifactName))
-	mac.Write([]byte(fmt.Sprint(taskID)))
-	mac.Write([]byte(fmt.Sprint(artifactID)))
+	fmt.Fprint(mac, taskID)
+	fmt.Fprint(mac, artifactID)
 	return mac.Sum(nil)
 }
 
 func (r artifactV4Routes) buildArtifactURL(ctx *ArtifactContext, endp, artifactName string, taskID, artifactID int64) string {
 	expires := time.Now().Add(60 * time.Minute).Format("2006-01-02 15:04:05.999999999 -0700 MST")
 	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(r.prefix, "/") +
-		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID, artifactID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + fmt.Sprint(taskID) + "&artifactID=" + fmt.Sprint(artifactID)
+		"/" + endp + "?sig=" + base64.URLEncoding.EncodeToString(r.buildSignature(endp, expires, artifactName, taskID, artifactID)) + "&expires=" + url.QueryEscape(expires) + "&artifactName=" + url.QueryEscape(artifactName) + "&taskID=" + strconv.FormatInt(taskID, 10) + "&artifactID=" + strconv.FormatInt(artifactID, 10)
 	return uploadURL
 }
 

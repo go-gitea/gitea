@@ -4,6 +4,7 @@
 package oauth2_provider //nolint
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -44,12 +45,12 @@ func ParseToken(jwtToken string, signingKey JWTSigningKey) (*Token, error) {
 		return nil, err
 	}
 	if !parsedToken.Valid {
-		return nil, fmt.Errorf("invalid token")
+		return nil, errors.New("invalid token")
 	}
 	var token *Token
 	var ok bool
 	if token, ok = parsedToken.Claims.(*Token); !ok || !parsedToken.Valid {
-		return nil, fmt.Errorf("invalid token")
+		return nil, errors.New("invalid token")
 	}
 	return token, nil
 }

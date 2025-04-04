@@ -76,7 +76,7 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
 		var iconHTML template.HTML
 		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
-			iconHTML = svg.RenderHTML(fmt.Sprintf("gitea-%s", schema), 16)
+			iconHTML = svg.RenderHTML("gitea-"+schema, 16)
 		} else {
 			iconHTML = svg.RenderHTML("gitea-git", 16) // TODO: it could support user's customized icon in the future
 		}
@@ -269,7 +269,7 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 		} else if reallyEmpty {
 			showEmpty = true // the repo is really empty
 			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryReady)
-		} else if branches, _, _ := ctx.Repo.GitRepo.GetBranches(0, 1); len(branches) == 0 {
+		} else if branches, _, _ := ctx.Repo.GitRepo.GetBranchNames(0, 1); len(branches) == 0 {
 			showEmpty = true // it is not really empty, but there is no branch
 			// at the moment, other repo units like "actions" are not able to handle such case,
 			// so we just mark the repo as empty to prevent from displaying these units.
@@ -343,12 +343,25 @@ func prepareHomeTreeSideBarSwitch(ctx *context.Context) {
 	ctx.Data["UserSettingCodeViewShowFileTree"] = showFileTree
 }
 
+func redirectSrcToRaw(ctx *context.Context) bool {
+	// GitHub redirects a tree path with "?raw=1" to the raw path
+	// It is useful to embed some raw contents into markdown files,
+	// then viewing the markdown in "src" path could embed the raw content correctly.
+	if ctx.Repo.TreePath != "" && ctx.FormBool("raw") {
+		ctx.Redirect(ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath))
+		return true
+	}
+	return false
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if handleRepoHomeFeed(ctx) {
 		return
 	}
-
+	if redirectSrcToRaw(ctx) {
+		return
+	}
 	// Check whether the repo is viewable: not in migration, and the code unit should be enabled
 	// Ideally the "feed" logic should be after this, but old code did so, so keep it as-is.
 	checkHomeCodeViewable(ctx)

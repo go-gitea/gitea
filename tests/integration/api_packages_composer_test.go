@@ -64,7 +64,7 @@ func TestPackageComposer(t *testing.T) {
 	t.Run("ServiceIndex", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/packages.json", url)).
+		req := NewRequest(t, "GET", url+"/packages.json").
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 

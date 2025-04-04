@@ -67,7 +67,7 @@ func TestPackagePyPI(t *testing.T) {
 		body, writer, closeFunc := createBasicMultipartFile(filename, packageName, content)
 
 		writer.WriteField("project_urls", "DOCUMENTATION , https://readthedocs.org")
-		writer.WriteField("project_urls", fmt.Sprintf("Home-page, %s", projectURL))
+		writer.WriteField("project_urls", "Home-page, "+projectURL)
 
 		_ = closeFunc()
 

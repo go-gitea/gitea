@@ -335,7 +335,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment)", pl.Summary)
 		assert.Len(t, pl.Sections, 1)
 		assert.Equal(t, "user1", pl.Sections[0].ActivitySubtitle)
-		assert.Equal(t, "", pl.Sections[0].Text)
+		assert.Empty(t, pl.Sections[0].Text)
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
@@ -356,7 +356,7 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment)", pl.Summary)
 		assert.Len(t, pl.Sections, 1)
 		assert.Equal(t, "user1", pl.Sections[0].ActivitySubtitle)
-		assert.Equal(t, "", pl.Sections[0].Text)
+		assert.Empty(t, pl.Sections[0].Text)
 		assert.Len(t, pl.Sections[0].Facts, 2)
 		for _, fact := range pl.Sections[0].Facts {
 			if fact.Name == "Repository:" {
