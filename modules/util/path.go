@@ -291,3 +291,11 @@ func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
 
 	return 0, false
 }
+
+// SanitizeDirName replaces illegal characters in a directory name with "_"
+func SanitizeDirName(path string) string {
+	p := filepath.Clean(path)
+	re := regexp.MustCompile(`[<>:"/\\|?*]`)
+	sanitized := re.ReplaceAllString(p, "_")
+	return sanitized
+}

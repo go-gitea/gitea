@@ -7,6 +7,7 @@ package setting
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -187,12 +188,18 @@ func loadTempDir(rootCfg ConfigProvider) {
 	rootSec := rootCfg.Section("")
 	tempPath := rootSec.Key("TEMP_PATH").String()
 	if tempPath != "" {
+		if !filepath.IsAbs(tempPath) {
+			tempPath = filepath.Join(os.TempDir(), tempPath)
+		}
 		TempPath = tempPath
 	}
-	if TempPath != "" {
-		if err := os.MkdirAll(TempPath, os.ModePerm); err != nil {
-			log.Fatal("Failed to create temp directory %s: %v", TempPath, err)
-		}
+	// TempPath has been initialized in init function of global.go
+	if TempPath == "" {
+		log.Fatal("It's impossible that TEMP_PATH is empty")
+	}
+
+	if err := os.MkdirAll(TempPath, os.ModePerm); err != nil {
+		log.Fatal("Failed to create temp directory %s: %v", TempPath, err)
 	}
 }
 

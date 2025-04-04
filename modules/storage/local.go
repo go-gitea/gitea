@@ -36,7 +36,7 @@ func NewLocalStorage(ctx context.Context, config *setting.Storage) (ObjectStorag
 	}
 
 	if config.TemporaryPath == "" {
-		config.TemporaryPath = filepath.Join(setting.TempPath, filepath.Base(config.Path))
+		config.TemporaryPath = filepath.Join(setting.TempPath, "storage", util.SanitizeDirName(config.Path))
 	}
 	if !filepath.IsAbs(config.TemporaryPath) {
 		return nil, fmt.Errorf("LocalStorageConfig.TemporaryPath should be an absolute path, but not: %q", config.TemporaryPath)
