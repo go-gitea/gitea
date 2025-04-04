@@ -4,7 +4,9 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -24,7 +26,9 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -449,5 +453,111 @@ func TestCreateDeleteRefEvent(t *testing.T) {
 			CommitSHA:  branch.CommitID,
 		})
 		assert.NotNil(t, run)
+	})
+}
+
+func TestClosePullRequestWithPath(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// user2 is the owner of the base repo
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user2Token := getTokenForLoggedInUser(t, loginUser(t, user2.Name), auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		// user4 is the owner of the fork repo
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		user4Token := getTokenForLoggedInUser(t, loginUser(t, user4.Name), auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		// create the base repo
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
+			Name:          "close-pull-request-with-path",
+			Private:       false,
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "main",
+		}).AddTokenAuth(user2Token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var apiBaseRepo api.Repository
+		DecodeJSON(t, resp, &apiBaseRepo)
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
+		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+
+		// init the workflow
+		wfTreePath := ".gitea/workflows/pull.yml"
+		wfFileContent := `name: Pull Request
+on:
+  pull_request:
+    types:
+      - closed
+    paths:
+      - 'app/**'
+jobs:
+  echo:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Hello World'
+`
+
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", baseRepo.OwnerName, baseRepo.Name, wfTreePath), &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				BranchName: baseRepo.DefaultBranch,
+				Message:    "create " + wfTreePath,
+				Author: api.Identity{
+					Name:  user2.Name,
+					Email: user2.Email,
+				},
+				Committer: api.Identity{
+					Name:  user2.Name,
+					Email: user2.Email,
+				},
+				Dates: api.CommitDateOptions{
+					Author:    time.Now(),
+					Committer: time.Now(),
+				},
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte(wfFileContent)),
+		}).AddTokenAuth(user2Token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// user4 forks the repo
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
+			&api.CreateForkOption{
+				Name: util.ToPointer("close-pull-request-with-path-fork"),
+			}).AddTokenAuth(user4Token)
+		resp = MakeRequest(t, req, http.StatusAccepted)
+		var apiForkRepo api.Repository
+		DecodeJSON(t, resp, &apiForkRepo)
+		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
+		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+
+		// user4 creates a pull request to add file "app/main.go"
+		doAPICreateFile(user4APICtx, "app/main.go", &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				NewBranchName: "user4/add-main",
+				Message:       "create main.go",
+				Author: api.Identity{
+					Name:  user4.Name,
+					Email: user4.Email,
+				},
+				Committer: api.Identity{
+					Name:  user4.Name,
+					Email: user4.Email,
+				},
+				Dates: api.CommitDateOptions{
+					Author:    time.Now(),
+					Committer: time.Now(),
+				},
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("// main.go")),
+		})(t)
+		apiPull, err := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":user4/add-main")(t)
+		assert.NoError(t, err)
+
+		doAPIMergePullRequest(user2APICtx, baseRepo.OwnerName, baseRepo.Name, apiPull.Index)(t)
+
+		pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
+
+		// load and compare ActionRun
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
+		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
+		assert.Equal(t, actions_module.GithubEventPullRequest, actionRun.TriggerEvent)
+		assert.Equal(t, pullRequest.MergedCommitID, actionRun.CommitSHA)
 	})
 }
