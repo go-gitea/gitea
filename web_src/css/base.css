@@ -1029,26 +1029,12 @@ table th[data-sortt-desc] .svg {
   text-align: left;
 }
 
-.truncated-item-container {
-  display: flex !important;
-  align-items: center;
-}
-
 .ellipsis-button {
   padding: 0 5px 8px !important;
   display: inline-block !important;
   font-weight: var(--font-weight-semibold) !important;
   line-height: 6px !important;
   vertical-align: middle !important;
-}
-
-.truncated-item-name {
-  line-height: 2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: -0.5em;
-  margin-bottom: -0.5em;
 }
 
 .precolors {
