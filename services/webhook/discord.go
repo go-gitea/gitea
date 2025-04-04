@@ -103,7 +103,7 @@ var (
 
 // https://discord.com/developers/docs/resources/message#embed-object-embed-limits
 // Discord has some limits in place for the embeds.
-// According to some tests, there is no consistent limit for different characet sets.
+// According to some tests, there is no consistent limit for different character sets.
 // For example: 4096 ASCII letters are allowed, but only 2490 emoji characters are allowed.
 // To keep it simple, we currently truncate at 2000.
 const discordDescriptionCharactersLimit = 2000
