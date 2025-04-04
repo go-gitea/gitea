@@ -4,6 +4,8 @@
 package markdown
 
 import (
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"strings"
 	"testing"
 
@@ -15,6 +17,7 @@ import (
 const nl = "\n"
 
 func TestMathRender(t *testing.T) {
+	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{ParseInlineDollar: true, ParseInlineParentheses: true}
 	testcases := []struct {
 		testcase string
 		expected string
@@ -111,6 +114,7 @@ func TestMathRender(t *testing.T) {
 }
 
 func TestMathRenderBlockIndent(t *testing.T) {
+	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true, ParseBlockSquareBrackets: true}
 	testcases := []struct {
 		name     string
 		testcase string
@@ -242,4 +246,62 @@ x
 			assert.Equal(t, test.expected, string(res), "unexpected result for test case:\n%s", test.testcase)
 		})
 	}
+}
+
+func TestMathRenderOptions(t *testing.T) {
+	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{}
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions)
+	test := func(t *testing.T, expected, input string) {
+		res, err := RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(res)), "input: %s", input)
+	}
+
+	// ParseInlineDollar
+	test(t, `<p>$a$</p>`, `$a$`)
+	setting.Markdown.MathCodeBlockOptions.ParseInlineDollar = true
+	test(t, `<p><code class="language-math">a</code></p>`, `$a$`)
+
+	// ParseInlineParentheses
+	test(t, `<p>(a)</p>`, `\(a\)`)
+	setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses = true
+	test(t, `<p><code class="language-math">a</code></p>`, `\(a\)`)
+
+	// ParseBlockDollar
+	test(t, `<p>$$
+a
+$$</p>
+`, `
+$$
+a
+$$
+`)
+	setting.Markdown.MathCodeBlockOptions.ParseBlockDollar = true
+	test(t, `<pre class="code-block is-loading"><code class="language-math display">
+a
+</code></pre>
+`, `
+$$
+a
+$$
+`)
+
+	// ParseBlockSquareBrackets
+	test(t, `<p>[
+a
+]</p>
+`, `
+\[
+a
+\]
+`)
+	setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets = true
+	test(t, `<pre class="code-block is-loading"><code class="language-math display">
+a
+</code></pre>
+`, `
+\[
+a
+\]
+`)
 }

@@ -23,6 +23,13 @@ const (
 	RenderContentModeIframe      = "iframe"
 )
 
+type MarkdownMathCodeBlockOptions struct {
+	ParseInlineDollar        bool
+	ParseInlineParentheses   bool
+	ParseBlockDollar         bool
+	ParseBlockSquareBrackets bool
+}
+
 // Markdown settings
 var Markdown = struct {
 	EnableHardLineBreakInComments  bool
@@ -30,6 +37,8 @@ var Markdown = struct {
 	CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
 	FileExtensions                 []string
 	EnableMath                     bool
+	MathCodeBlockDetection         []string
+	MathCodeBlockOptions           MarkdownMathCodeBlockOptions `ini:"-"`
 }{
 	EnableHardLineBreakInComments:  true,
 	EnableHardLineBreakInDocuments: false,
@@ -60,6 +69,33 @@ type MarkupSanitizerRule struct {
 
 func loadMarkupFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "markdown", &Markdown)
+
+	const mathCodeNone = "none"
+	const mathCodeInlineDollar = "inline-dollar"
+	const mathCodeInlineParentheses = "inline-parentheses"
+	const mathCodeBlockDollar = "block-dollar"
+	const mathCodeBlockSquareBrackets = "block-square-brackets"
+	if len(Markdown.MathCodeBlockDetection) == 0 {
+		Markdown.MathCodeBlockDetection = []string{mathCodeInlineDollar, mathCodeBlockDollar}
+	}
+	Markdown.MathCodeBlockOptions = MarkdownMathCodeBlockOptions{}
+	for _, s := range Markdown.MathCodeBlockDetection {
+		switch s {
+		case mathCodeInlineDollar:
+			Markdown.MathCodeBlockOptions.ParseInlineDollar = true
+		case mathCodeInlineParentheses:
+			Markdown.MathCodeBlockOptions.ParseInlineParentheses = true
+		case mathCodeBlockDollar:
+			Markdown.MathCodeBlockOptions.ParseBlockDollar = true
+		case mathCodeBlockSquareBrackets:
+			Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets = true
+		case mathCodeNone:
+			Markdown.MathCodeBlockOptions = MarkdownMathCodeBlockOptions{}
+		case "":
+		default:
+			log.Fatal("Unknown math code block detection option: " + s)
+		}
+	}
 
 	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)

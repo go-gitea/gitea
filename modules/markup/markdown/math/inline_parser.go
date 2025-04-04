@@ -15,7 +15,7 @@ type inlineParser struct {
 	trigger              []byte
 	endBytesSingleDollar []byte
 	endBytesDoubleDollar []byte
-	endBytesBracket      []byte
+	endBytesParentheses  []byte
 }
 
 var defaultInlineDollarParser = &inlineParser{
@@ -28,13 +28,13 @@ func NewInlineDollarParser() parser.InlineParser {
 	return defaultInlineDollarParser
 }
 
-var defaultInlineBracketParser = &inlineParser{
-	trigger:         []byte{'\\', '('},
-	endBytesBracket: []byte{'\\', ')'},
+var defaultInlineParenthesesParser = &inlineParser{
+	trigger:             []byte{'\\', '('},
+	endBytesParentheses: []byte{'\\', ')'},
 }
 
-func NewInlineBracketParser() parser.InlineParser {
-	return defaultInlineBracketParser
+func NewInlineParenthesesParser() parser.InlineParser {
+	return defaultInlineParenthesesParser
 }
 
 // Trigger triggers this parser on $ or \
@@ -46,7 +46,7 @@ func isPunctuation(b byte) bool {
 	return b == '.' || b == '!' || b == '?' || b == ',' || b == ';' || b == ':'
 }
 
-func isBracket(b byte) bool {
+func isParenthesesClose(b byte) bool {
 	return b == ')'
 }
 
@@ -86,7 +86,7 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 		}
 	} else {
 		startMarkLen = 2
-		stopMark = parser.endBytesBracket
+		stopMark = parser.endBytesParentheses
 	}
 
 	if checkSurrounding {
@@ -110,7 +110,7 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 				succeedingCharacter = line[i+len(stopMark)]
 			}
 			// check valid ending character
-			isValidEndingChar := isPunctuation(succeedingCharacter) || isBracket(succeedingCharacter) ||
+			isValidEndingChar := isPunctuation(succeedingCharacter) || isParenthesesClose(succeedingCharacter) ||
 				succeedingCharacter == ' ' || succeedingCharacter == '\n' || succeedingCharacter == 0
 			if checkSurrounding && !isValidEndingChar {
 				break
