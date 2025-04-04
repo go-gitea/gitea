@@ -6,7 +6,6 @@ package elasticsearch
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
