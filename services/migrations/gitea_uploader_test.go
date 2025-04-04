@@ -239,7 +239,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
 	err := git.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef).Run(git.DefaultContext, &git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
-	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", fromRepo.RepoPath())), 0o644))
+	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("# Testing Repository\n\nOriginally created in: "+fromRepo.RepoPath()), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
 	signature := git.Signature{
 		Email: "test@example.com",
@@ -287,7 +287,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	}))
 	_, _, err = git.NewCommand("checkout", "-b").AddDynamicArguments(forkHeadRef).RunStdString(git.DefaultContext, &git.RunOpts{Dir: forkRepo.RepoPath()})
 	assert.NoError(t, err)
-	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# branch2 %s", forkRepo.RepoPath())), 0o644))
+	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte("# branch2 "+forkRepo.RepoPath()), 0o644))
 	assert.NoError(t, git.AddChanges(forkRepo.RepoPath(), true))
 	assert.NoError(t, git.CommitChanges(forkRepo.RepoPath(), git.CommitChangesOptions{
 		Committer: &signature,

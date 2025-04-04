@@ -99,12 +99,9 @@ func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.Tr
 	}
 
 	name := m.findIconNameByGit(entry)
-	if name == "folder" {
-		// the material icon pack's "folder" icon doesn't look good, so use our built-in one
-		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
-		return svg.RenderHTML("material-folder-generic", 16, "octicon-file-directory-fill")
-	}
-	if iconSVG, ok := m.svgs[name]; ok && iconSVG != "" {
+	// the material icon pack's "folder" icon doesn't look good, so use our built-in one
+	// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
+	if iconSVG, ok := m.svgs[name]; ok && name != "folder" && iconSVG != "" {
 		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
 		extraClass := "octicon-file"
 		switch {
@@ -115,7 +112,8 @@ func (m *MaterialIconProvider) FileIcon(ctx reqctx.RequestContext, entry *git.Tr
 		}
 		return m.renderFileIconSVG(ctx, name, iconSVG, extraClass)
 	}
-	return svg.RenderHTML("octicon-file")
+	// TODO: use an interface or wrapper for git.Entry to make the code testable.
+	return BasicThemeIcon(entry)
 }
 
 func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {

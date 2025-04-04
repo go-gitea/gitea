@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"regexp"
 	"slices"
+	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -815,7 +816,7 @@ func ChangeIssueTimeEstimate(ctx context.Context, issue *Issue, doer *user_model
 			Doer:    doer,
 			Repo:    issue.Repo,
 			Issue:   issue,
-			Content: fmt.Sprintf("%d", timeEstimate),
+			Content: strconv.FormatInt(timeEstimate, 10),
 		}
 		if _, err := CreateComment(ctx, opts); err != nil {
 			return fmt.Errorf("createComment: %w", err)
