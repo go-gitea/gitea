@@ -8,7 +8,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 * Enhancements
   * Add a config option to block "expensive" pages for anonymous users (#34024) (#34071)
+  * Also check default ssh-cert location for host (#34099) (#34100) (#34116)
 * BUGFIXES
+  * Fix discord webhook 400 status code when description limit is exceeded (#34084) (#34124)
+  * Get changed files based on merge base when checking `pull_request` actions trigger (#34106) (#34120)
+  * Fix invalid version in RPM package path (#34112) (#34115)
   * Return default avatar url when user id is zero rather than updating database (#34094) (#34095)
   * Add additional ReplaceAll in pathsep to cater for different pathsep (#34061) (#34070)
   * Try to fix check-attr bug (#34029) (#34033)
