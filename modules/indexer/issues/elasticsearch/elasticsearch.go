@@ -97,7 +97,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 		issue := issues[0]
 		_, err := b.inner.Client.Index().
 			Index(b.inner.VersionedIndexName()).
-			Id(fmt.Sprintf("%d", issue.ID)).
+			Id(strconv.FormatInt(issue.ID, 10)).
 			BodyJson(issue).
 			Do(ctx)
 		return err
@@ -108,7 +108,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 		reqs = append(reqs,
 			elastic.NewBulkIndexRequest().
 				Index(b.inner.VersionedIndexName()).
-				Id(fmt.Sprintf("%d", issue.ID)).
+				Id(strconv.FormatInt(issue.ID, 10)).
 				Doc(issue),
 		)
 	}
@@ -127,7 +127,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 	} else if len(ids) == 1 {
 		_, err := b.inner.Client.Delete().
 			Index(b.inner.VersionedIndexName()).
-			Id(fmt.Sprintf("%d", ids[0])).
+			Id(strconv.FormatInt(ids[0], 10)).
 			Do(ctx)
 		return err
 	}
@@ -137,7 +137,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 		reqs = append(reqs,
 			elastic.NewBulkDeleteRequest().
 				Index(b.inner.VersionedIndexName()).
-				Id(fmt.Sprintf("%d", id)),
+				Id(strconv.FormatInt(id, 10)),
 		)
 	}
 

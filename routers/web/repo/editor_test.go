@@ -36,7 +36,7 @@ func TestCleanUploadName(t *testing.T) {
 		"..a.dotty../.folder../.name...": "..a.dotty../.folder../.name...",
 	}
 	for k, v := range kases {
-		assert.EqualValues(t, cleanUploadFileName(k), v)
+		assert.Equal(t, cleanUploadFileName(k), v)
 	}
 }
 

@@ -134,7 +134,7 @@ type errMergeConflict struct {
 }
 
 func (e *errMergeConflict) Error() string {
-	return fmt.Sprintf("conflict detected at: %s", e.filename)
+	return "conflict detected at: " + e.filename
 }
 
 func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, filesToRemove *[]string, filesToAdd *[]git.IndexObjectInfo) error {
