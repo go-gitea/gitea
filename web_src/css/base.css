@@ -646,10 +646,11 @@ img.ui.avatar,
   border: 1px solid;
 }
 
-.ui.floating.dropdown .overflow.menu .scrolling.menu.items {
+.ui.dropdown .menu.context-user-switch .scrolling.menu {
   border-radius: 0 !important;
   box-shadow: none !important;
   border-bottom: 1px solid var(--color-secondary);
+  max-width: 80vw;
 }
 
 .user-menu > .item {
@@ -1176,7 +1177,7 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  line-height: 2.71em; /* matches fomantic dropdown's default min-height */
+  line-height: 2.71; /* matches fomantic dropdown's default min-height */
 }
 
 .ui.dropdown.ellipsis-text-items .menu > .item {
