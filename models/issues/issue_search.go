@@ -77,7 +77,8 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 		scope := strings.TrimPrefix(sortType, ScopeSortPrefix)
 		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
 		sess.Join("LEFT", "label", "label.id = issue_label.label_id and label.name LIKE ?", scope+"/%")
-		sess.Asc("label.exclusive_order").Desc("issue.id")
+		// 9223372036854775807 == max bigint
+		sess.OrderBy("COALESCE(label.exclusive_order, 9223372036854775807) ASC").Desc("issue.id")
 		return
 	}
 
