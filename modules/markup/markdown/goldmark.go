@@ -9,7 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/internal"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -69,16 +68,8 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			g.transformList(ctx, v, rc)
 		case *ast.Text:
 			if v.SoftLineBreak() && !v.HardLineBreak() {
-				// TODO: this was a quite unclear part, old code: `if metas["mode"] != "document" { use comment link break setting }`
-				// many places render non-comment contents with no mode=document, then these contents also use comment's hard line break setting
-				// especially in many tests.
-				markdownLineBreakStyle := ctx.RenderOptions.Metas["markdownLineBreakStyle"]
-				switch markdownLineBreakStyle {
-				case "comment":
-					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInComments)
-				case "document":
-					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)
-				}
+				newLineHardBreak := ctx.RenderOptions.Metas["markdownNewLineHardBreak"] == "true"
+				v.SetHardLineBreak(newLineHardBreak)
 			}
 		case *ast.CodeSpan:
 			g.transformCodeSpan(ctx, v, reader)

@@ -68,7 +68,6 @@ func NewRenderContextRepoWiki(ctx context.Context, repo *repo_model.Repository, 
 			"user": helper.opts.DeprecatedOwnerName,
 			"repo": helper.opts.DeprecatedRepoName,
 
-			"markdownLineBreakStyle":       "document",
 			"markupAllowShortIssuePattern": "true",
 		})
 	}

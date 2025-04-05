@@ -176,7 +176,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
+			metas := ctx.Repo.Repository.ComposeRepoFileMetas(ctx)
 			metas["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
 			rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 				CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),

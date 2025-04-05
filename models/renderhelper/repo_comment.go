@@ -56,7 +56,7 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 	if repo != nil {
 		helper.repoLink = repo.Link()
 		helper.commitChecker = newCommitChecker(ctx, repo)
-		rctx = rctx.WithMetas(repo.ComposeMetas(ctx))
+		rctx = rctx.WithMetas(repo.ComposeCommentMetas(ctx))
 	} else {
 		// this is almost dead code, only to pass the incorrect tests
 		helper.repoLink = fmt.Sprintf("%s/%s", helper.opts.DeprecatedOwnerName, helper.opts.DeprecatedRepoName)
@@ -64,7 +64,7 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 			"user": helper.opts.DeprecatedOwnerName,
 			"repo": helper.opts.DeprecatedRepoName,
 
-			"markdownLineBreakStyle":       "comment",
+			"markdownNewLineHardBreak":     "true",
 			"markupAllowShortIssuePattern": "true",
 		})
 	}
