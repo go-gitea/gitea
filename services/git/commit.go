@@ -11,13 +11,14 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) ([]*asymkey_model.SignCommit, error) {
+func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType) ([]*asymkey_model.SignCommit, error) {
 	newCommits := make([]*asymkey_model.SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
@@ -33,6 +34,8 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 		return nil, err
 	}
 
+	ctx = cache.WithCacheContext(ctx)
+
 	for _, c := range oldCommits {
 		committer, ok := emailUsers[c.Committer.Email]
 		if !ok && c.Committer != nil {
@@ -45,6 +48,10 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 		signCommit := &asymkey_model.SignCommit{
 			UserCommit:   c,
 			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committer),
+		}
+
+		isOwnerMemberCollaborator := func(user *user_model.User) (bool, error) {
+			return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
 		}
 
 		_ = asymkey_model.CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)
@@ -62,11 +69,9 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 	}
 	signedCommits, err := ParseCommitsWithSignature(
 		ctx,
+		repo,
 		validatedCommits,
 		repo.GetTrustModel(),
-		func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
-		},
 	)
 	if err != nil {
 		return nil, err

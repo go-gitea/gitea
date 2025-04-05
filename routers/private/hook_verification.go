@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -95,6 +96,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 				if err != nil {
 					return err
 				}
+				ctx = cache.WithCacheContext(ctx)
 				verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 				if !verification.Verified {
 					cancel()
