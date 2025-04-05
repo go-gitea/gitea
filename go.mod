@@ -317,10 +317,7 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
-// TEMPORARY replacement - looks like no tag was generated for this commit (https://gitea.com/gitea/act/commit/65c232c4a5a40e59e257ab5d956b32585f0405d7),
-// so I'm pointing to my own version of it. Should there be an automated action that creates a new tag for every push?
-// (I've made one in `$DAY_JOB`, happy to contribute/discuss if that would be helpful!)
-replace github.com/nektos/act => gitea.com/scubbo/act v0.262.0
+replace github.com/nektos/act => gitea.com/gitea/act v0.261.5
 
 // TODO: the only difference is in `PutObject`: the fork doesn't use `NewVerifyingReader(r, sha256.New(), oid, expectedSize)`, need to figure out why
 replace github.com/charmbracelet/git-lfs-transfer => gitea.com/gitea/git-lfs-transfer v0.2.0
