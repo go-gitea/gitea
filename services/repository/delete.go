@@ -32,6 +32,19 @@ import (
 	"xorm.io/builder"
 )
 
+func deleteDBRepository(ctx context.Context, repoID int64) error {
+	if cnt, err := db.GetEngine(ctx).ID(repoID).Delete(&repo_model.Repository{}); err != nil {
+		return err
+	} else if cnt != 1 {
+		return repo_model.ErrRepoNotExist{
+			ID:        repoID,
+			OwnerName: "",
+			Name:      "",
+		}
+	}
+	return nil
+}
+
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID int64, ignoreOrgTeams ...bool) error {
@@ -82,14 +95,8 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 	needRewriteKeysFile := deleted > 0
 
-	if cnt, err := sess.ID(repoID).Delete(&repo_model.Repository{}); err != nil {
+	if err := deleteDBRepository(ctx, repoID); err != nil {
 		return err
-	} else if cnt != 1 {
-		return repo_model.ErrRepoNotExist{
-			ID:        repoID,
-			OwnerName: "",
-			Name:      "",
-		}
 	}
 
 	if org != nil && org.IsOrganization() {
