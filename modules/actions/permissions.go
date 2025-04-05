@@ -63,7 +63,7 @@ func JobPermissions(contents []byte) (Permissions, error) {
 	return Permissions{}, errors.New("no jobs detected in workflow")
 }
 
-func (p *Permission) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (p *Permission) UnmarshalYAML(unmarshal func(any) error) error {
 	var data string
 	if err := unmarshal(&data); err != nil {
 		return err
