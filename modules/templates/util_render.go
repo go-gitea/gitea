@@ -181,11 +181,34 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 		textColor, itemColor, itemHTML)
 }
 
-func (ut *RenderUtils) RenderFileIcon(entry *git.TreeEntry) template.HTML {
+func (ut *RenderUtils) RenderExpandedFolderIcon() template.HTML {
+	return ut.RenderFolderIconByExpansionState(true)
+}
+
+func (ut *RenderUtils) RenderCollapsedFolderIcon() template.HTML {
+	return ut.RenderFolderIconByExpansionState(false)
+}
+
+func (ut *RenderUtils) RenderFolderIconByExpansionState(isOpen bool) template.HTML {
 	if setting.UI.FileIconTheme == "material" {
-		return fileicon.DefaultMaterialIconProvider().FileIcon(ut.ctx, entry)
+		return fileicon.DefaultMaterialIconProvider().FolderIcon(ut.ctx, isOpen)
 	}
-	return fileicon.BasicThemeIcon(entry)
+	return fileicon.BasicThemeFolderIcon(isOpen)
+}
+
+func (ut *RenderUtils) RenderFileIconByGitTreeEntry(entry *git.TreeEntry) template.HTML {
+	return ut.RenderFileIcon(&fileicon.FileIcon{
+		Name:      entry.Name(),
+		Entry:     *entry,
+		EntryMode: entry.Mode(),
+	})
+}
+
+func (ut *RenderUtils) RenderFileIcon(file *fileicon.FileIcon) template.HTML {
+	if setting.UI.FileIconTheme == "material" {
+		return fileicon.DefaultMaterialIconProvider().FileIcon(ut.ctx, file)
+	}
+	return fileicon.BasicThemeIcon(file)
 }
 
 // RenderEmoji renders html text with emoji post processors

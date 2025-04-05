@@ -6,7 +6,7 @@
 	</div>
 	{{if .HasParentPath}}
 	<a class="repo-file-line parent-link silenced" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">
-		{{svg "octicon-file-directory-fill"}} ..
+		{{ctx.RenderUtils.RenderCollapsedFolderIcon}} ..
 	</a>
 	{{end}}
 	{{range $item := .Files}}
@@ -15,7 +15,7 @@
 			{{$commit := $item.Commit}}
 			{{$submoduleFile := $item.SubmoduleFile}}
 			<div class="repo-file-cell name muted-links {{if not $commit}}notready{{end}}">
-				{{ctx.RenderUtils.RenderFileIcon $entry}}
+				{{ctx.RenderUtils.RenderFileIconByGitTreeEntry $entry}}
 				{{if $entry.IsSubModule}}
 					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
 					{{if $submoduleLink}}

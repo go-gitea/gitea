@@ -1,14 +1,17 @@
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
-import {ref} from 'vue';
+import {onMounted, ref} from 'vue';
 
 type Item = {
   entryName: string;
   entryMode: string;
+  fileIcon: string;
   fullPath: string;
   submoduleUrl?: string;
   children?: Item[];
 };
+
+const {pageData} = window.config;
 
 const props = defineProps<{
   item: Item,
@@ -17,9 +20,15 @@ const props = defineProps<{
   selectedItem?: string,
 }>();
 
+const elRoot = ref<HTMLElement | null>(null);
 const isLoading = ref(false);
 const children = ref(props.item.children);
 const collapsed = ref(!props.item.children);
+const isDirectory = ref(!(
+  props.item.entryMode === 'commit' ||
+  props.item.entryMode === 'symlink' ||
+  props.item.entryMode !== 'tree'
+));
 
 const doLoadChildren = async () => {
   collapsed.value = !collapsed.value;
@@ -45,59 +54,42 @@ const doLoadFileContent = () => {
 const doGotoSubModule = () => {
   location.href = props.item.submoduleUrl;
 };
+
+const doItemAction = () => {
+  if (props.item.entryMode === 'symlink' || props.item.entryMode === 'tree') {
+    doLoadFileContent();
+  } else if (props.item.entryMode === 'commit') {
+    doGotoSubModule();
+  } else {
+    doLoadDirContent();
+  }
+};
+
+onMounted(async () => {
+  elRoot.value.querySelector('.item-icon svg')?.classList?.add('preview-square');
+});
 </script>
 
 <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
 <template>
   <div
-    v-if="item.entryMode === 'commit'" class="tree-item type-submodule"
+    ref="elRoot"
+    class="tree-item"
+    :class="{'selected': selectedItem === item.fullPath, 'type-directory': isDirectory}"
     :title="item.entryName"
-    @click.stop="doGotoSubModule"
+    @click.stop="doItemAction"
   >
-    <!-- submodule -->
-    <div class="item-content">
-      <SvgIcon class="text primary" name="octicon-file-submodule"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
-    </div>
-  </div>
-  <div
-    v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink"
-    :class="{'selected': selectedItem === item.fullPath}"
-    :title="item.entryName"
-    @click.stop="doLoadFileContent"
-  >
-    <!-- symlink -->
-    <div class="item-content">
-      <SvgIcon name="octicon-file-symlink-file"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
-    </div>
-  </div>
-  <div
-    v-else-if="item.entryMode !== 'tree'" class="tree-item type-file"
-    :class="{'selected': selectedItem === item.fullPath}"
-    :title="item.entryName"
-    @click.stop="doLoadFileContent"
-  >
-    <!-- file -->
-    <div class="item-content">
-      <SvgIcon name="octicon-file"/>
-      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
-    </div>
-  </div>
-  <div
-    v-else class="tree-item type-directory"
-    :class="{'selected': selectedItem === item.fullPath}"
-    :title="item.entryName"
-    @click.stop="doLoadDirContent"
-  >
-    <!-- directory -->
-    <div class="item-toggle">
+    <div v-if="isDirectory" class="item-toggle">
+      <!-- directory -->
       <SvgIcon v-if="isLoading" name="octicon-sync" class="job-status-rotate"/>
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
     </div>
     <div class="item-content">
-      <SvgIcon class="text primary" :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
-      <span class="gt-ellipsis">{{ item.entryName }}</span>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span v-if="isDirectory" class="item-icon" v-html="collapsed ? pageData.collapsedFolderIcon : pageData.expandedFolderIcon"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span v-else class="item-icon" v-html="item.fileIcon"/>
+      <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
 
@@ -152,5 +144,9 @@ const doGotoSubModule = () => {
   gap: 0.25em;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+.item-content .item-icon {
+  display: contents;
 }
 </style>
