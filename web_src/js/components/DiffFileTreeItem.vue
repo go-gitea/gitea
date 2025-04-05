@@ -1,15 +1,81 @@
 <script lang="ts" setup>
 import {SvgIcon, type SvgName} from '../svg.ts';
 import {diffTreeStore} from '../modules/stores.ts';
-import {ref} from 'vue';
-import type {Item, File, FileStatus} from '../utils/filetree.ts';
+import {computed, nextTick, ref, watch} from 'vue';
+import type {Item, DirItem, File, FileStatus} from '../utils/filetree.ts';
 
-defineProps<{
+// ------------------------------------------------------------
+// Component Props
+// ------------------------------------------------------------
+const props = defineProps<{
   item: Item,
+  setViewed?:(val: boolean) => void,
 }>();
 
+// ------------------------------------------------------------
+// Reactive State & Refs
+// ------------------------------------------------------------
 const store = diffTreeStore();
-const collapsed = ref(false);
+const count = ref(0);
+let pendingUpdate = 0;
+let pendingTimer: Promise<void> | undefined;
+// ------------------------------------------------------------
+// Batch Update Mechanism
+// ------------------------------------------------------------
+/**
+ * Handles batched updates to count value
+ * Prevents multiple updates within the same tick
+ */
+const setCount = (isViewed: boolean) => {
+  pendingUpdate += (isViewed ? 1 : -1);
+
+  if (pendingTimer === undefined) {
+    pendingTimer = nextTick(() => {
+      count.value = Math.max(0, count.value + pendingUpdate);
+      pendingUpdate = 0;
+      pendingTimer = undefined;
+    });
+  }
+};
+
+// ------------------------------------------------------------
+// Computed Properties
+// ------------------------------------------------------------
+/**
+ * Determines viewed state based on item type:
+ * - Files: Directly use IsViewed property
+ * - Directories: Compare children count with viewed count
+ */
+const isViewed = computed(() => {
+  return props.item.isFile ? props.item.file.IsViewed : (props.item as DirItem).children.length === count.value;
+});
+// ------------------------------------------------------------
+// Watchers & Side Effects
+// ------------------------------------------------------------
+/**
+ * Propagate viewed state changes to parent component
+ * Using post flush to ensure DOM updates are complete
+ */
+watch(
+  () => isViewed.value,
+  (newVal) => {
+    if (props.setViewed) {
+      props.setViewed(newVal);
+    }
+  },
+  {immediate: true, flush: 'post'},
+);
+
+// ------------------------------------------------------------
+// Collapse Behavior Documentation
+// ------------------------------------------------------------
+/**
+ * Collapse behavior rules:
+ * - Viewed folders start collapsed initially
+ * - Manual expand/collapse takes precedence over automatic behavior
+ * - State persists after manual interaction
+ */
+const collapsed = ref(isViewed.value);
 
 function getIconForDiffStatus(pType: FileStatus) {
   const diffTypes: Record<FileStatus, { name: SvgName, classes: Array<string> }> = {
@@ -35,7 +101,7 @@ function fileIcon(file: File) {
   <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
   <a
     v-if="item.isFile" class="item-file"
-    :class="{ 'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': item.file.IsViewed }"
+    :class="{ 'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': isViewed }"
     :title="item.name" :href="'#diff-' + item.file.NameHash"
   >
     <!-- file -->
@@ -48,7 +114,7 @@ function fileIcon(file: File) {
   </a>
 
   <template v-else-if="item.isFile === false">
-    <div class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
+    <div class="item-directory" :class="{ 'viewed': isViewed }" :title="item.name" @click.stop="collapsed = !collapsed">
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
       <SvgIcon
@@ -59,7 +125,7 @@ function fileIcon(file: File) {
     </div>
 
     <div v-show="!collapsed" class="sub-items">
-      <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem"/>
+      <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" :set-viewed="setCount"/>
     </div>
   </template>
 </template>
@@ -88,7 +154,8 @@ a:hover {
   border-radius: 4px;
 }
 
-.item-file.viewed {
+.item-file.viewed,
+.item-directory.viewed {
   color: var(--color-text-light-3);
 }
 
