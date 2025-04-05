@@ -51,9 +51,10 @@ func ListHooks(ctx *context.APIContext) {
 	// for compatibility the default value is true
 	isSystemWebhook := optional.Some(true)
 	typeValue := ctx.FormString("type")
-	if typeValue == "default" {
+	switch typeValue {
+	case "default":
 		isSystemWebhook = optional.Some(false)
-	} else if typeValue == "all" {
+	case "all":
 		isSystemWebhook = optional.None[bool]()
 	}
 

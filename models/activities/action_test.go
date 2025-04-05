@@ -130,7 +130,7 @@ func TestDeleteIssueActions(t *testing.T) {
 
 	// load an issue
 	issue := unittest.AssertExistsAndLoadBean(t, &issue_model.Issue{ID: 4})
-	assert.NotEqualValues(t, issue.ID, issue.Index) // it needs to use different ID/Index to test the DeleteIssueActions to delete some actions by IssueIndex
+	assert.NotEqual(t, issue.ID, issue.Index) // it needs to use different ID/Index to test the DeleteIssueActions to delete some actions by IssueIndex
 
 	// insert a comment
 	err := db.Insert(db.DefaultContext, &issue_model.Comment{Type: issue_model.CommentTypeComment, IssueID: issue.ID})

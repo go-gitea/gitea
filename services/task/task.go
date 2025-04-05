@@ -5,6 +5,7 @@ package task
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	admin_model "code.gitea.io/gitea/models/admin"
@@ -41,7 +42,7 @@ func Run(ctx context.Context, t *admin_model.Task) error {
 func Init() error {
 	taskQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "task", handler)
 	if taskQueue == nil {
-		return fmt.Errorf("unable to create task queue")
+		return errors.New("unable to create task queue")
 	}
 	go graceful.GetManager().RunWithCancel(taskQueue)
 	return nil

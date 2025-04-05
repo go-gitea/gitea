@@ -41,5 +41,5 @@ func TestGetDirectorySize(t *testing.T) {
 	size, err := getDirectorySize(repo.RepoPath())
 	assert.NoError(t, err)
 	repo.Size = 8165 // real size on the disk
-	assert.EqualValues(t, repo.Size, size)
+	assert.Equal(t, repo.Size, size)
 }

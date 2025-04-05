@@ -74,7 +74,7 @@ func TestBranchRuleMatch(t *testing.T) {
 		} else {
 			infact = " not"
 		}
-		assert.EqualValues(t, kase.ExpectedMatch, pb.Match(kase.BranchName),
+		assert.Equal(t, kase.ExpectedMatch, pb.Match(kase.BranchName),
 			"%s should%s match %s but it is%s", kase.BranchName, should, kase.Rule, infact,
 		)
 	}
