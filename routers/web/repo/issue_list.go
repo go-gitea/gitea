@@ -6,7 +6,10 @@ package repo
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -459,6 +462,37 @@ func UpdateIssueStatus(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+func renderExclusiveLabelScopes(ctx *context.Context) {
+	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetAllRepoLabels", err)
+		return
+	}
+
+	if ctx.Repo.Owner.IsOrganization() {
+		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, "", db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetAllRepoLabels", err)
+			return
+		}
+
+		labels = append(labels, orgLabels...)
+	}
+
+	// This treats org- and repo-level label scopes equivalently.
+	scopeSet := make(map[string]bool, 0)
+	for _, label := range labels {
+		scope := label.ExclusiveScope()
+		if len(scope) > 0 {
+			scopeSet[scope] = true
+		}
+	}
+
+	scopes := slices.Collect(maps.Keys(scopeSet))
+	sort.Strings(scopes)
+	ctx.Data["ExclusiveLabelScopes"] = scopes
+}
+
 func renderMilestones(ctx *context.Context) {
 	// Get milestones
 	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
@@ -526,6 +560,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		return
 	}
 
+	var keywordMatchedIssueIDs []int64
 	var issueStats *issues_model.IssueStats
 	statsOpts := &issues_model.IssuesOptions{
 		RepoIDs:           []int64{repo.ID},
@@ -541,7 +576,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		IssueIDs:          nil,
 	}
 	if keyword != "" {
-		allIssueIDs, err := issueIDsFromSearch(ctx, keyword, statsOpts)
+		keywordMatchedIssueIDs, err = issueIDsFromSearch(ctx, keyword, statsOpts)
 		if err != nil {
 			if issue_indexer.IsAvailable(ctx) {
 				ctx.ServerError("issueIDsFromSearch", err)
@@ -550,7 +585,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			ctx.Data["IssueIndexerUnavailable"] = true
 			return
 		}
-		statsOpts.IssueIDs = allIssueIDs
+		statsOpts.IssueIDs = keywordMatchedIssueIDs
 	}
 	if keyword != "" && len(statsOpts.IssueIDs) == 0 {
 		// So it did search with the keyword, but no issue found.
@@ -607,7 +642,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 
 	var issues issues_model.IssueList
 	{
-		ids, err := issueIDsFromSearch(ctx, keyword, &issues_model.IssuesOptions{
+		// Do not repeat the keyword search, since if we had any keyword matches we should
+		// already have their IDs available in keywordMatchedIssueIDs.
+		ids, err := issueIDsFromSearch(ctx, "", &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
@@ -624,6 +661,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			IsPull:            isPullOption,
 			LabelIDs:          labelIDs,
 			SortType:          sortType,
+			IssueIDs:          keywordMatchedIssueIDs,
 		})
 		if err != nil {
 			if issue_indexer.IsAvailable(ctx) {
@@ -775,6 +813,11 @@ func Issues(ctx *context.Context) {
 	}
 
 	renderMilestones(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	renderExclusiveLabelScopes(ctx)
 	if ctx.Written() {
 		return
 	}

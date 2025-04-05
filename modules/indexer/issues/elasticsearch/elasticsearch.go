@@ -5,6 +5,7 @@ package elasticsearch
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -198,6 +199,10 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			}
 			query.Must(q)
 		}
+	}
+
+	if len(options.IssueIDs) > 0 {
+		return nil, errors.New("options.IssueIDs is not yet supported")
 	}
 
 	if len(options.MilestoneIDs) > 0 {
