@@ -878,7 +878,6 @@ overflow-menu .ui.label {
 .code-inner {
   font: 12px var(--fonts-monospace);
   white-space: pre-wrap;
-  word-break: break-all;
   overflow-wrap: anywhere;
   line-height: inherit; /* needed for inline code preview in markup */
 }
