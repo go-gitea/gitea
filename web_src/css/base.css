@@ -347,6 +347,7 @@ a.label,
 
 .ui.dropdown .menu > .item {
   color: var(--color-text);
+  line-height: var(--line-height-default);
 }
 
 .ui.dropdown .menu > .item:hover {
