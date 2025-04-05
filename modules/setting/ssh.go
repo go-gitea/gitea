@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -132,6 +133,11 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 		if !filepath.IsAbs(key) {
 			SSH.ServerHostKeys[i] = filepath.Join(AppDataPath, key)
 		}
+	}
+
+	// FIXME: why 0o644 for a directory .....
+	if err := os.MkdirAll(GetSSHKeyTestPath(), 0o644); err != nil {
+		log.Fatal("failed to create directory %q for ssh key test: %w", GetSSHKeyTestPath(), err)
 	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").String()
