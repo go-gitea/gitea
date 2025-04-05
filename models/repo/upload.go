@@ -53,7 +53,7 @@ func init() {
 
 // UploadLocalPath returns where uploads is stored in local file system based on given UUID.
 func UploadLocalPath(uuid string) string {
-	return filepath.Join(setting.Repository.Upload.TempPath, uuid[0:1], uuid[1:2], uuid)
+	return filepath.Join(setting.GetRepositoryUploadTempPath(), uuid[0:1], uuid[1:2], uuid)
 }
 
 // LocalPath returns where uploads are temporarily stored in local file system.

@@ -15,9 +15,8 @@ import (
 // Package registry settings
 var (
 	Packages = struct {
-		Storage           *Storage
-		Enabled           bool
-		ChunkedUploadPath string
+		Storage *Storage
+		Enabled bool
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
@@ -51,6 +50,10 @@ var (
 	}
 )
 
+func GetPacakgeUploadTempPath() string {
+	return filepath.Join(TempPath, "package-upload")
+}
+
 func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	sec, _ := rootCfg.GetSection("packages")
 	if sec == nil {
@@ -67,14 +70,9 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 		return err
 	}
 
-	Packages.ChunkedUploadPath = filepath.ToSlash(sec.Key("CHUNKED_UPLOAD_PATH").MustString("package-upload"))
-	if !filepath.IsAbs(Packages.ChunkedUploadPath) {
-		Packages.ChunkedUploadPath = filepath.Join(TempPath, Packages.ChunkedUploadPath)
-	}
-
 	if HasInstallLock(rootCfg) {
-		if err := os.MkdirAll(Packages.ChunkedUploadPath, os.ModePerm); err != nil {
-			return fmt.Errorf("unable to create chunked upload directory: %s (%v)", Packages.ChunkedUploadPath, err)
+		if err := os.MkdirAll(GetPacakgeUploadTempPath(), os.ModePerm); err != nil {
+			return fmt.Errorf("unable to create chunked upload directory: %s (%v)", GetPacakgeUploadTempPath(), err)
 		}
 	}
 

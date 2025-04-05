@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -31,7 +30,6 @@ var SSH = struct {
 	ServerKeyExchanges                    []string           `ini:"SSH_SERVER_KEY_EXCHANGES"`
 	ServerMACs                            []string           `ini:"SSH_SERVER_MACS"`
 	ServerHostKeys                        []string           `ini:"SSH_SERVER_HOST_KEYS"`
-	KeyTestPath                           string             `ini:"SSH_KEY_TEST_PATH"`
 	KeygenPath                            string             `ini:"SSH_KEYGEN_PATH"`
 	AuthorizedKeysBackup                  bool               `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
 	AuthorizedPrincipalsBackup            bool               `ini:"SSH_AUTHORIZED_PRINCIPALS_BACKUP"`
@@ -61,7 +59,6 @@ var SSH = struct {
 	MinimumKeySizeCheck:           true,
 	MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 3071},
 	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
-	KeyTestPath:                   "ssh_key_test",
 	AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
 	PerWriteTimeout:               PerWriteTimeout,
 	PerWritePerKbTimeout:          PerWritePerKbTimeout,
@@ -99,6 +96,10 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
+func GetSSHKeyTestPath() string {
+	return filepath.Join(TempPath, "ssh_key_test")
+}
+
 func loadSSHFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("server")
 	if len(SSH.Domain) == 0 {
@@ -131,14 +132,6 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 		if !filepath.IsAbs(key) {
 			SSH.ServerHostKeys[i] = filepath.Join(AppDataPath, key)
 		}
-	}
-
-	SSH.KeyTestPath = sec.Key("SSH_KEY_TEST_PATH").MustString("ssh_key_test")
-	if !filepath.IsAbs(SSH.KeyTestPath) {
-		SSH.KeyTestPath = filepath.Join(TempPath, SSH.KeyTestPath)
-	}
-	if err := os.MkdirAll(SSH.KeyTestPath, os.ModePerm); err != nil {
-		log.Fatal("failed to create directory %q for ssh key test: %w", SSH.KeyTestPath, err)
 	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").String()

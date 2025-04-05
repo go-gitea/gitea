@@ -262,7 +262,7 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 // writeTmpKeyFile writes key content to a temporary file
 // and returns the name of that file, along with any possible errors.
 func writeTmpKeyFile(content string) (string, error) {
-	tmpFile, err := os.CreateTemp(setting.SSH.KeyTestPath, "gitea_keytest")
+	tmpFile, err := os.CreateTemp(setting.GetSSHKeyTestPath(), "gitea_keytest")
 	if err != nil {
 		return "", fmt.Errorf("TempFile: %w", err)
 	}
