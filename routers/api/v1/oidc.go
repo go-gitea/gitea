@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	auth_service "code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -139,7 +139,7 @@ func generateOIDCToken(ctx *context.APIContext) {
 		idToken.RepositoryVisibility = "public"
 	}
 
-	signedIDToken, err := oauth2.SignToken(idToken, oauth2.DefaultSigningKey)
+	signedIDToken, err := oauth2_provider.SignToken(idToken, oauth2_provider.DefaultSigningKey)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, &IDTokenErrorResponse{
 			ErrorDescription: "unable to sign token",
