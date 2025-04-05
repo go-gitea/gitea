@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -314,7 +315,7 @@ func (d discordConvertor) createPayload(s *api.User, title, text, url string, co
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
-				Description: util.TruncateRunes(text, discordDescriptionCharactersLimit),
+				Description: base.TruncateString(text, discordDescriptionCharactersLimit),
 				URL:         url,
 				Color:       color,
 				Author: DiscordEmbedAuthor{
