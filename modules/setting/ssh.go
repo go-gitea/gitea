@@ -135,8 +135,7 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 		}
 	}
 
-	// FIXME: why 0o644 for a directory .....
-	if err := os.MkdirAll(GetSSHKeyTestPath(), 0o644); err != nil {
+	if err := os.MkdirAll(GetSSHKeyTestPath(), os.ModePerm); err != nil {
 		log.Fatal("failed to create directory %q for ssh key test: %w", GetSSHKeyTestPath(), err)
 	}
 
