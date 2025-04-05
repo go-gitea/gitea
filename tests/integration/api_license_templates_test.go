@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -39,7 +38,7 @@ func TestAPIGetLicenseTemplateInfo(t *testing.T) {
 	// Use the first template for the test
 	licenseName := repo_module.Licenses[0]
 
-	urlStr := fmt.Sprintf("/api/v1/licenses/%s", url.PathEscape(licenseName))
+	urlStr := "/api/v1/licenses/" + url.PathEscape(licenseName)
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 

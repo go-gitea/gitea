@@ -467,7 +467,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 				matchTimes++
 			}
 		case "paths":
-			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
+			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
 			} else {
@@ -480,7 +480,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 				}
 			}
 		case "paths-ignore":
-			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.Base.Ref)
+			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
 			} else {

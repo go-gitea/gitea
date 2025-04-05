@@ -178,7 +178,7 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 		}).([]*base.Comment)
 		assert.True(c.t, ok)
 		for _, comment := range comments {
-			assert.EqualValues(c.t, issue.Number, comment.IssueIndex)
+			assert.Equal(c.t, issue.Number, comment.IssueIndex)
 		}
 	}
 
@@ -205,7 +205,7 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 		comments, ok := c.assertEqual(filename, []base.Comment{}, compareFields{}).([]*base.Comment)
 		assert.True(c.t, ok)
 		for _, comment := range comments {
-			assert.EqualValues(c.t, pr.Number, comment.IssueIndex)
+			assert.Equal(c.t, pr.Number, comment.IssueIndex)
 		}
 	}
 }
@@ -213,7 +213,7 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 func (c *compareDump) assertLoadYAMLFiles(beforeFilename, afterFilename string, before, after any) {
 	_, beforeErr := os.Stat(beforeFilename)
 	_, afterErr := os.Stat(afterFilename)
-	assert.EqualValues(c.t, errors.Is(beforeErr, os.ErrNotExist), errors.Is(afterErr, os.ErrNotExist))
+	assert.Equal(c.t, errors.Is(beforeErr, os.ErrNotExist), errors.Is(afterErr, os.ErrNotExist))
 	if errors.Is(beforeErr, os.ErrNotExist) {
 		return
 	}
@@ -265,7 +265,7 @@ func (c *compareDump) assertEqual(filename string, kind any, fields compareField
 }
 
 func (c *compareDump) assertEqualSlices(before, after reflect.Value, fields compareFields) any {
-	assert.EqualValues(c.t, before.Len(), after.Len())
+	assert.Equal(c.t, before.Len(), after.Len())
 	if before.Len() == after.Len() {
 		for i := 0; i < before.Len(); i++ {
 			_ = c.assertEqualValues(
@@ -298,15 +298,15 @@ func (c *compareDump) assertEqualValues(before, after reflect.Value, fields comp
 				assert.True(c.t, ok)
 				as, ok := ai.(string)
 				assert.True(c.t, ok)
-				assert.EqualValues(c.t, compare.transform(bs), compare.transform(as))
+				assert.Equal(c.t, compare.transform(bs), compare.transform(as))
 				continue
 			}
 			if compare.before != nil && compare.after != nil {
 				//
 				// The fields are expected to have different values
 				//
-				assert.EqualValues(c.t, compare.before, bi)
-				assert.EqualValues(c.t, compare.after, ai)
+				assert.Equal(c.t, compare.before, bi)
+				assert.Equal(c.t, compare.after, ai)
 				continue
 			}
 			if compare.nested != nil {
@@ -317,7 +317,7 @@ func (c *compareDump) assertEqualValues(before, after reflect.Value, fields comp
 				continue
 			}
 		}
-		assert.EqualValues(c.t, bi, ai)
+		assert.Equal(c.t, bi, ai)
 	}
 	return after.Interface()
 }

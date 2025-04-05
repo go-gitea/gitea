@@ -22,7 +22,7 @@ func TestMigrations(t *testing.T) {
 
 	assert.EqualValues(t, 71, migrationIDNumberToDBVersion(70))
 
-	assert.EqualValues(t, []*migration{{idNumber: 70}, {idNumber: 71}}, getPendingMigrations(70, preparedMigrations))
-	assert.EqualValues(t, []*migration{{idNumber: 71}}, getPendingMigrations(71, preparedMigrations))
-	assert.EqualValues(t, []*migration{}, getPendingMigrations(72, preparedMigrations))
+	assert.Equal(t, []*migration{{idNumber: 70}, {idNumber: 71}}, getPendingMigrations(70, preparedMigrations))
+	assert.Equal(t, []*migration{{idNumber: 71}}, getPendingMigrations(71, preparedMigrations))
+	assert.Equal(t, []*migration{}, getPendingMigrations(72, preparedMigrations))
 }

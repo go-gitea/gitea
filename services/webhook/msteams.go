@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -73,7 +74,7 @@ func (m msteamsConvertor) Create(p *api.CreatePayload) (MSTeamsPayload, error) {
 		"",
 		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		greenColor,
-		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
+		&MSTeamsFact{p.RefType + ":", refName},
 	), nil
 }
 
@@ -90,7 +91,7 @@ func (m msteamsConvertor) Delete(p *api.DeletePayload) (MSTeamsPayload, error) {
 		"",
 		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		yellowColor,
-		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
+		&MSTeamsFact{p.RefType + ":", refName},
 	), nil
 }
 
@@ -148,7 +149,7 @@ func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 		text,
 		titleLink,
 		greenColor,
-		&MSTeamsFact{"Commit count:", fmt.Sprintf("%d", p.TotalCommits)},
+		&MSTeamsFact{"Commit count:", strconv.Itoa(p.TotalCommits)},
 	), nil
 }
 
@@ -163,7 +164,7 @@ func (m msteamsConvertor) Issue(p *api.IssuePayload) (MSTeamsPayload, error) {
 		extraMarkdown,
 		p.Issue.HTMLURL,
 		color,
-		&MSTeamsFact{"Issue #:", fmt.Sprintf("%d", p.Issue.ID)},
+		&MSTeamsFact{"Issue #:", strconv.FormatInt(p.Issue.ID, 10)},
 	), nil
 }
 
@@ -178,7 +179,7 @@ func (m msteamsConvertor) IssueComment(p *api.IssueCommentPayload) (MSTeamsPaylo
 		p.Comment.Body,
 		p.Comment.HTMLURL,
 		color,
-		&MSTeamsFact{"Issue #:", fmt.Sprintf("%d", p.Issue.ID)},
+		&MSTeamsFact{"Issue #:", strconv.FormatInt(p.Issue.ID, 10)},
 	), nil
 }
 
@@ -193,7 +194,7 @@ func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload
 		extraMarkdown,
 		p.PullRequest.HTMLURL,
 		color,
-		&MSTeamsFact{"Pull request #:", fmt.Sprintf("%d", p.PullRequest.ID)},
+		&MSTeamsFact{"Pull request #:", strconv.FormatInt(p.PullRequest.ID, 10)},
 	), nil
 }
 
@@ -230,7 +231,7 @@ func (m msteamsConvertor) Review(p *api.PullRequestPayload, event webhook_module
 		text,
 		p.PullRequest.HTMLURL,
 		color,
-		&MSTeamsFact{"Pull request #:", fmt.Sprintf("%d", p.PullRequest.ID)},
+		&MSTeamsFact{"Pull request #:", strconv.FormatInt(p.PullRequest.ID, 10)},
 	), nil
 }
 

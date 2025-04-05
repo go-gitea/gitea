@@ -1169,8 +1169,8 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 	needCheckEmails := make(container.Set[string])
 	needCheckUserNames := make(container.Set[string])
 	for _, email := range emails {
-		if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
-			username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+		if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
+			username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
 			needCheckUserNames.Add(username)
 		} else {
 			needCheckEmails.Add(strings.ToLower(email))
@@ -1232,8 +1232,8 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
-		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+	if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
+		username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
 		user := &User{}
 		has, err := db.GetEngine(ctx).Where("lower_name=?", username).Get(user)
 		if err != nil {

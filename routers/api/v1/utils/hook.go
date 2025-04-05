@@ -4,7 +4,6 @@
 package utils
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -80,7 +79,7 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*webhook.Webhoo
 // write the appropriate error to `ctx`. Return whether the form is valid
 func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
 	if !webhook_service.IsValidHookTaskType(form.Type) {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid hook type: %s", form.Type))
+		ctx.APIError(http.StatusUnprocessableEntity, "Invalid hook type: "+form.Type)
 		return false
 	}
 	for _, name := range []string{"url", "content_type"} {

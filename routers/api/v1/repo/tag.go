@@ -110,7 +110,7 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
 		ctx.APIError(http.StatusBadRequest, err)
 	} else {
-		commit, err := tag.Commit(ctx.Repo.GitRepo)
+		commit, err := ctx.Repo.GitRepo.GetTagCommit(tag.Name)
 		if err != nil {
 			ctx.APIError(http.StatusBadRequest, err)
 		}
