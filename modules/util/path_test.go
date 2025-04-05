@@ -230,3 +230,20 @@ func TestListDirRecursively(t *testing.T) {
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"d1/f-d1", "d1/s1/f-d1s1"}, res)
 }
+
+func TestSanitizeDirName(t *testing.T) {
+	cases := []struct {
+		path     string
+		expected string
+	}{
+		{"a", "a"},
+		{"a/b", "a_b"},
+		{"/a/b", "_a_b"},
+		{"a/b/c", "a_b_c"},
+		{"c:\\a\\b", "c__a_b"},
+		{"c:\\a/b", "c__a_b"},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.expected, SanitizeDirName(c.path))
+	}
+}

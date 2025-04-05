@@ -48,7 +48,7 @@ var CmdDump = &cli.Command{
 		&cli.StringFlag{
 			Name:    "tempdir",
 			Aliases: []string{"t"},
-			Value:   os.TempDir(),
+			Value:   setting.TempPath,
 			Usage:   "Temporary dir path",
 		},
 		&cli.StringFlag{
