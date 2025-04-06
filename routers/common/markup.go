@@ -88,7 +88,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		})
 		rctx = rctx.WithMarkupType("").WithRelativePath(filePath) // render the repo file content by its extension
 	default:
-		ctx.HTTPError(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
+		ctx.HTTPError(http.StatusUnprocessableEntity, "Unknown mode: "+mode)
 		return
 	}
 	rctx = rctx.WithUseAbsoluteLink(true)

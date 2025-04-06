@@ -5,7 +5,6 @@ package context
 
 import (
 	"bytes"
-	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -47,7 +46,7 @@ func parseRequestIDFromRequestHeader(req *http.Request) string {
 		}
 	}
 	if len(requestID) > maxRequestIDByteLength {
-		requestID = fmt.Sprintf("%s...", requestID[:maxRequestIDByteLength])
+		requestID = requestID[:maxRequestIDByteLength] + "..."
 	}
 	return requestID
 }

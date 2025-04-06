@@ -107,8 +107,13 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	defer closer.Close()
 
 	// oldBranch must exist for this operation
-	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil && !repo.IsEmpty {
+	if exist, err := git_model.IsBranchExist(ctx, repo.ID, opts.OldBranch); err != nil {
 		return nil, err
+	} else if !exist && !repo.IsEmpty {
+		return nil, git_model.ErrBranchNotExist{
+			RepoID:     repo.ID,
+			BranchName: opts.OldBranch,
+		}
 	}
 
 	var treePaths []string
@@ -145,14 +150,14 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
-		if existingBranch != nil {
+		exist, err := git_model.IsBranchExist(ctx, repo.ID, opts.NewBranch)
+		if err != nil {
+			return nil, err
+		}
+		if exist {
 			return nil, git_model.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
 			}
-		}
-		if err != nil && !git.IsErrBranchNotExist(err) {
-			return nil, err
 		}
 	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, treePaths); err != nil {
 		return nil, err

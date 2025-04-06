@@ -10,24 +10,24 @@
 				{{.CsrfTokenHtml}}
 				<div class="inline required field {{if .Err_Owner}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
-					<div class="ui selection owner dropdown">
+					<div class="ui selection owner dropdown ellipsis-text-items">
 						<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-						<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
+						<span class="text" title="{{.ContextUser.Name}}">
 							{{ctx.AvatarUtils.Avatar .ContextUser 28 "mini"}}
-							<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
+							{{.ContextUser.ShortName 40}}
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{if .CanForkToUser}}
-								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
+								<div class="item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
 									{{ctx.AvatarUtils.Avatar .SignedUser 28 "mini"}}
-									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
+									{{.SignedUser.ShortName 40}}
 								</div>
 							{{end}}
 							{{range .Orgs}}
-								<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
+								<div class="item" data-value="{{.ID}}" title="{{.Name}}">
 									{{ctx.AvatarUtils.Avatar . 28 "mini"}}
-									<span class="truncated-item-name">{{.ShortName 40}}</span>
+									{{.ShortName 40}}
 								</div>
 							{{end}}
 						</div>
@@ -52,10 +52,10 @@
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.fork_branch"}}</label>
-					<div class="ui selection dropdown ellipsis-items-nowrap">
+					<div class="ui selection dropdown ellipsis-text-items">
 						<input type="hidden" id="fork_single_branch" name="fork_single_branch" value="" required>
 						<div class="text" title="{{ctx.Locale.Tr "repo.all_branches"}}">
-							<span class="truncated-item-name">{{ctx.Locale.Tr "repo.all_branches"}}</span>
+							{{ctx.Locale.Tr "repo.all_branches"}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">

@@ -5,7 +5,7 @@ package migrations
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/url"
 	"strconv"
 	"strings"
@@ -42,13 +42,13 @@ func (c *CodeCommitDownloaderFactory) New(ctx context.Context, opts base.Migrate
 
 	hostElems := strings.Split(u.Host, ".")
 	if len(hostElems) != 4 {
-		return nil, fmt.Errorf("cannot get the region from clone URL")
+		return nil, errors.New("cannot get the region from clone URL")
 	}
 	region := hostElems[1]
 
 	pathElems := strings.Split(u.Path, "/")
 	if len(pathElems) == 0 {
-		return nil, fmt.Errorf("cannot get the repo name from clone URL")
+		return nil, errors.New("cannot get the repo name from clone URL")
 	}
 	repoName := pathElems[len(pathElems)-1]
 

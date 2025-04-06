@@ -30,18 +30,16 @@ func (r *RepoWiki) IsCommitIDExisting(commitID string) bool {
 	return r.commitChecker.IsCommitIDExisting(commitID)
 }
 
-func (r *RepoWiki) ResolveLink(link string, likeType markup.LinkType) string {
-	finalLink := link
-	switch likeType {
-	case markup.LinkTypeApp:
-		finalLink = r.ctx.ResolveLinkApp(link)
-	case markup.LinkTypeDefault:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki", r.opts.currentRefPath), r.opts.currentTreePath, link)
-	case markup.LinkTypeMedia:
+func (r *RepoWiki) ResolveLink(link, preferLinkType string) (finalLink string) {
+	linkType, link := markup.ParseRenderedLink(link, preferLinkType)
+	switch linkType {
+	case markup.LinkTypeRoot:
+		finalLink = r.ctx.ResolveLinkRoot(link)
+	case markup.LinkTypeMedia, markup.LinkTypeRaw:
 		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki/raw", r.opts.currentRefPath), r.opts.currentTreePath, link)
-	case markup.LinkTypeRaw: // wiki doesn't use it
+	default:
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki", r.opts.currentRefPath), r.opts.currentTreePath, link)
 	}
-
 	return finalLink
 }
 
@@ -70,7 +68,6 @@ func NewRenderContextRepoWiki(ctx context.Context, repo *repo_model.Repository, 
 			"user": helper.opts.DeprecatedOwnerName,
 			"repo": helper.opts.DeprecatedRepoName,
 
-			"markdownLineBreakStyle":       "document",
 			"markupAllowShortIssuePattern": "true",
 		})
 	}

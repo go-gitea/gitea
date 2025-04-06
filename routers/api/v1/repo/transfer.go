@@ -108,19 +108,16 @@ func Transfer(ctx *context.APIContext) {
 	oldFullname := ctx.Repo.Repository.FullName()
 
 	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
-		if repo_model.IsErrRepoTransferInProgress(err) {
+		switch {
+		case repo_model.IsErrRepoTransferInProgress(err):
 			ctx.APIError(http.StatusConflict, err)
-			return
-		}
-
-		if repo_model.IsErrRepoAlreadyExist(err) {
+		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.APIError(http.StatusUnprocessableEntity, err)
-			return
-		}
-
-		if errors.Is(err, user_model.ErrBlockedUser) {
+		case repo_service.IsRepositoryLimitReached(err):
 			ctx.APIError(http.StatusForbidden, err)
-		} else {
+		case errors.Is(err, user_model.ErrBlockedUser):
+			ctx.APIError(http.StatusForbidden, err)
+		default:
 			ctx.APIErrorInternal(err)
 		}
 		return
@@ -168,6 +165,8 @@ func AcceptTransfer(ctx *context.APIContext) {
 		case repo_model.IsErrNoPendingTransfer(err):
 			ctx.APIError(http.StatusNotFound, err)
 		case errors.Is(err, util.ErrPermissionDenied):
+			ctx.APIError(http.StatusForbidden, err)
+		case repo_service.IsRepositoryLimitReached(err):
 			ctx.APIError(http.StatusForbidden, err)
 		default:
 			ctx.APIErrorInternal(err)
