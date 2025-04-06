@@ -1017,7 +1017,7 @@ func (g *GiteaLocalUploader) remapLocalUser(ctx context.Context, source user_mod
 func (g *GiteaLocalUploader) remapExternalUser(ctx context.Context, source user_model.ExternalUserMigrated) (userid int64, err error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
-		userid, err = user_model.GetUserIDByExternalUserID(ctx, g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
+		userid, err = user_model.GetUserIDByExternalUserID(ctx, g.gitServiceType.Name(), strconv.FormatInt(source.GetExternalID(), 10))
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
 			return 0, err

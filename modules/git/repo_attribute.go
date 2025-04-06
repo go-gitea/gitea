@@ -6,6 +6,7 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -74,7 +75,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	fields := bytes.Split(stdOut.Bytes(), []byte{'\000'})
 
 	if len(fields)%3 != 1 {
-		return nil, fmt.Errorf("wrong number of fields in return from check-attr")
+		return nil, errors.New("wrong number of fields in return from check-attr")
 	}
 
 	name2attribute2info := make(map[string]map[string]string)
@@ -120,7 +121,7 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 
 		c.stdOut = lw
 		c.stdOut.Close()
-		return fmt.Errorf("no provided Attributes to check")
+		return errors.New("no provided Attributes to check")
 	}
 
 	c.ctx, c.cancel = context.WithCancel(ctx)

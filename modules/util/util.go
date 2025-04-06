@@ -219,6 +219,13 @@ func IfZero[T comparable](v, def T) T {
 	return v
 }
 
+func IfEmpty[T any](v, def []T) []T {
+	if len(v) == 0 {
+		return def
+	}
+	return v
+}
+
 // OptionalArg helps the "optional argument" in Golang:
 //
 //	func foo(optArg ...int) { return OptionalArg(optArg) }

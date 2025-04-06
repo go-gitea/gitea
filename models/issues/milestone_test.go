@@ -69,7 +69,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 
 		assert.Len(t, milestones, n)
 		for _, milestone := range milestones {
-			assert.EqualValues(t, repoID, milestone.RepoID)
+			assert.Equal(t, repoID, milestone.RepoID)
 		}
 	}
 	test(1, api.StateOpen)
@@ -327,7 +327,7 @@ func TestUpdateMilestone(t *testing.T) {
 	milestone.Content = "newMilestoneContent"
 	assert.NoError(t, issues_model.UpdateMilestone(db.DefaultContext, milestone, milestone.IsClosed))
 	milestone = unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1})
-	assert.EqualValues(t, "newMilestoneName", milestone.Name)
+	assert.Equal(t, "newMilestoneName", milestone.Name)
 	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
 }
 
@@ -364,7 +364,7 @@ func TestMigrate_InsertMilestones(t *testing.T) {
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, ms)
 	repoModified := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
-	assert.EqualValues(t, repo.NumMilestones+1, repoModified.NumMilestones)
+	assert.Equal(t, repo.NumMilestones+1, repoModified.NumMilestones)
 
 	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
 }

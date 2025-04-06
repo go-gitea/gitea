@@ -72,12 +72,12 @@ func TestAPIReposGitCommitList(t *testing.T) {
 	DecodeJSON(t, resp, &apiData)
 
 	assert.Len(t, apiData, 2)
-	assert.EqualValues(t, "cfe3b3c1fd36fba04f9183287b106497e1afe986", apiData[0].CommitMeta.SHA)
+	assert.Equal(t, "cfe3b3c1fd36fba04f9183287b106497e1afe986", apiData[0].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"link_hi", "test.csv"}, apiData[0].Files)
-	assert.EqualValues(t, "c8e31bc7688741a5287fcde4fbb8fc129ca07027", apiData[1].CommitMeta.SHA)
+	assert.Equal(t, "c8e31bc7688741a5287fcde4fbb8fc129ca07027", apiData[1].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"test.csv"}, apiData[1].Files)
 
-	assert.EqualValues(t, "2", resp.Header().Get("X-Total"))
+	assert.Equal(t, "2", resp.Header().Get("X-Total"))
 }
 
 func TestAPIReposGitCommitListNotMaster(t *testing.T) {
@@ -96,14 +96,14 @@ func TestAPIReposGitCommitListNotMaster(t *testing.T) {
 	DecodeJSON(t, resp, &apiData)
 
 	assert.Len(t, apiData, 3)
-	assert.EqualValues(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", apiData[0].CommitMeta.SHA)
+	assert.Equal(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", apiData[0].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
-	assert.EqualValues(t, "27566bd5738fc8b4e3fef3c5e72cce608537bd95", apiData[1].CommitMeta.SHA)
+	assert.Equal(t, "27566bd5738fc8b4e3fef3c5e72cce608537bd95", apiData[1].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"readme.md"}, apiData[1].Files)
-	assert.EqualValues(t, "5099b81332712fe655e34e8dd63574f503f61811", apiData[2].CommitMeta.SHA)
+	assert.Equal(t, "5099b81332712fe655e34e8dd63574f503f61811", apiData[2].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"readme.md"}, apiData[2].Files)
 
-	assert.EqualValues(t, "3", resp.Header().Get("X-Total"))
+	assert.Equal(t, "3", resp.Header().Get("X-Total"))
 }
 
 func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
@@ -177,7 +177,7 @@ func TestDownloadCommitDiffOrPatch(t *testing.T) {
 	reqDiff := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits/f27c2b2b03dcab38beaf89b0ab4ff61f6de63441.diff", user.Name).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, reqDiff, http.StatusOK)
-	assert.EqualValues(t,
+	assert.Equal(t,
 		"commit f27c2b2b03dcab38beaf89b0ab4ff61f6de63441\nAuthor: User2 <user2@example.com>\nDate:   Sun Aug 6 19:55:01 2017 +0200\n\n    good signed commit\n\ndiff --git a/readme.md b/readme.md\nnew file mode 100644\nindex 0000000..458121c\n--- /dev/null\n+++ b/readme.md\n@@ -0,0 +1 @@\n+good sign\n",
 		resp.Body.String())
 
@@ -185,7 +185,7 @@ func TestDownloadCommitDiffOrPatch(t *testing.T) {
 	reqPatch := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits/f27c2b2b03dcab38beaf89b0ab4ff61f6de63441.patch", user.Name).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, reqPatch, http.StatusOK)
-	assert.EqualValues(t,
+	assert.Equal(t,
 		"From f27c2b2b03dcab38beaf89b0ab4ff61f6de63441 Mon Sep 17 00:00:00 2001\nFrom: User2 <user2@example.com>\nDate: Sun, 6 Aug 2017 19:55:01 +0200\nSubject: [PATCH] good signed commit\n\n---\n readme.md | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 readme.md\n\ndiff --git a/readme.md b/readme.md\nnew file mode 100644\nindex 0000000..458121c\n--- /dev/null\n+++ b/readme.md\n@@ -0,0 +1 @@\n+good sign\n",
 		resp.Body.String())
 }
@@ -208,7 +208,7 @@ func TestGetFileHistory(t *testing.T) {
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
 
-	assert.EqualValues(t, "1", resp.Header().Get("X-Total"))
+	assert.Equal(t, "1", resp.Header().Get("X-Total"))
 }
 
 func TestGetFileHistoryNotOnMaster(t *testing.T) {
@@ -229,5 +229,5 @@ func TestGetFileHistoryNotOnMaster(t *testing.T) {
 	assert.Equal(t, "c8e31bc7688741a5287fcde4fbb8fc129ca07027", apiData[0].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"test.csv"}, apiData[0].Files)
 
-	assert.EqualValues(t, "1", resp.Header().Get("X-Total"))
+	assert.Equal(t, "1", resp.Header().Get("X-Total"))
 }

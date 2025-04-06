@@ -276,7 +276,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			}
 			err := api.APIError{}
 			DecodeJSON(t, resp, &err)
-			assert.EqualValues(t, "Please try again later", err.Message)
+			assert.Equal(t, "Please try again later", err.Message)
 			queue.GetManager().FlushAll(t.Context(), 5*time.Second)
 			<-time.After(1 * time.Second)
 		}
@@ -286,7 +286,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			expected = http.StatusOK
 		}
 
-		if !assert.EqualValues(t, expected, resp.Code,
+		if !assert.Equal(t, expected, resp.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, resp)
 		}

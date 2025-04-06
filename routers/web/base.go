@@ -25,7 +25,7 @@ func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objSto
 
 	if storageSetting.ServeDirect() {
 		return func(w http.ResponseWriter, req *http.Request) {
-			if req.Method != "GET" && req.Method != "HEAD" {
+			if req.Method != http.MethodGet && req.Method != http.MethodHead {
 				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 				return
 			}
@@ -56,7 +56,7 @@ func avatarStorageHandler(storageSetting *setting.Storage, prefix string, objSto
 	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != "GET" && req.Method != "HEAD" {
+		if req.Method != http.MethodGet && req.Method != http.MethodHead {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}

@@ -310,7 +310,7 @@ func TestESIndexAndSearch(t *testing.T) {
 		if indexer != nil {
 			indexer.Close()
 		}
-		assert.FailNow(t, "Unable to init ES indexer Error: %v", err)
+		require.NoError(t, err, "Unable to init ES indexer")
 	}
 
 	defer indexer.Close()

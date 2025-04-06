@@ -661,7 +661,7 @@ func UpdateFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("repo is empty"))
+		ctx.APIError(http.StatusUnprocessableEntity, errors.New("repo is empty"))
 		return
 	}
 

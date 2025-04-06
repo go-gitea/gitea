@@ -94,7 +94,7 @@
 								<img class="ui avatar" src="{{$push.AvatarLink ctx .AuthorEmail}}" title="{{.AuthorName}}" width="16" height="16">
 								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
 								<span class="text truncate">
-									{{ctx.RenderUtils.RenderCommitMessage .Message ($repo.ComposeMetas ctx)}}
+									{{ctx.RenderUtils.RenderCommitMessage .Message ($repo.ComposeCommentMetas ctx)}}
 								</span>
 							</div>
 						{{end}}

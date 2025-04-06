@@ -358,7 +358,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 				}
 
 				g.waitAndPickClient(ctx)
-				req, err := http.NewRequestWithContext(ctx, "GET", redirectURL, nil)
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, redirectURL, nil)
 				if err != nil {
 					return nil, err
 				}

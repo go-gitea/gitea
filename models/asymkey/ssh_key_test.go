@@ -18,6 +18,7 @@ import (
 
 	"github.com/42wim/sshsig"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_SSHParsePublicKey(t *testing.T) {
@@ -42,7 +43,7 @@ func Test_SSHParsePublicKey(t *testing.T) {
 				keyTypeN, lengthN, err := SSHNativeParsePublicKey(tc.content)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.keyType, keyTypeN)
-				assert.EqualValues(t, tc.length, lengthN)
+				assert.Equal(t, tc.length, lengthN)
 			})
 			if tc.skipSSHKeygen {
 				return
@@ -52,19 +53,18 @@ func Test_SSHParsePublicKey(t *testing.T) {
 				if err != nil {
 					// Some servers do not support ecdsa format.
 					if !strings.Contains(err.Error(), "line 1 too long:") {
-						assert.FailNow(t, "%v", err)
+						require.NoError(t, err)
 					}
 				}
 				assert.Equal(t, tc.keyType, keyTypeK)
-				assert.EqualValues(t, tc.length, lengthK)
+				assert.Equal(t, tc.length, lengthK)
 			})
 			t.Run("SSHParseKeyNative", func(t *testing.T) {
 				keyTypeK, lengthK, err := SSHNativeParsePublicKey(tc.content)
-				if err != nil {
-					assert.FailNow(t, "%v", err)
-				}
+				require.NoError(t, err)
+
 				assert.Equal(t, tc.keyType, keyTypeK)
-				assert.EqualValues(t, tc.length, lengthK)
+				assert.Equal(t, tc.length, lengthK)
 			})
 		})
 	}

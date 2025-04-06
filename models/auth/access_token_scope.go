@@ -295,6 +295,10 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 	return bitmap.toScope(), nil
 }
 
+func (s AccessTokenScope) HasPermissionScope() bool {
+	return s != "" && s != AccessTokenScopePublicOnly
+}
+
 // PublicOnly checks if this token scope is limited to public resources
 func (s AccessTokenScope) PublicOnly() (bool, error) {
 	bitmap, err := s.parse()

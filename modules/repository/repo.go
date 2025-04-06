@@ -126,7 +126,7 @@ func PushUpdateAddTag(ctx context.Context, repo *repo_model.Repository, gitRepo 
 	if err != nil {
 		return fmt.Errorf("unable to GetTag: %w", err)
 	}
-	commit, err := tag.Commit(gitRepo)
+	commit, err := gitRepo.GetTagCommit(tag.Name)
 	if err != nil {
 		return fmt.Errorf("unable to get tag Commit: %w", err)
 	}

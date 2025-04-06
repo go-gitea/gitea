@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/git"
@@ -23,7 +22,7 @@ func DownloadArchive(ctx *context.APIContext) {
 	case "bundle":
 		tp = git.ArchiveBundle
 	default:
-		ctx.APIError(http.StatusBadRequest, fmt.Sprintf("Unknown archive type: %s", ballType))
+		ctx.APIError(http.StatusBadRequest, "Unknown archive type: "+ballType)
 		return
 	}
 

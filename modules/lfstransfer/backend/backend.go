@@ -47,7 +47,7 @@ func New(ctx context.Context, repo, op, token string, logger transfer.Logger) (t
 		return nil, err
 	}
 	server = server.JoinPath("api/internal/repo", repo, "info/lfs")
-	return &GiteaBackend{ctx: ctx, server: server, op: op, authToken: token, internalAuth: fmt.Sprintf("Bearer %s", setting.InternalToken), logger: logger}, nil
+	return &GiteaBackend{ctx: ctx, server: server, op: op, authToken: token, internalAuth: "Bearer " + setting.InternalToken, logger: logger}, nil
 }
 
 // Batch implements transfer.Backend

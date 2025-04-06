@@ -37,7 +37,7 @@ func TestRenderHelperMention(t *testing.T) {
 	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(t.Context(), userNoSuch))
 
 	// when using web context, use user.IsUserVisibleToViewer to check
-	req, err := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	assert.NoError(t, err)
 	base := gitea_context.NewBaseContextForTest(httptest.NewRecorder(), req)
 	giteaCtx := gitea_context.NewWebContext(base, &contexttest.MockRender{}, nil)

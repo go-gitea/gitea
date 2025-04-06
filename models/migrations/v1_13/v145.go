@@ -42,7 +42,7 @@ func IncreaseLanguageField(x *xorm.Engine) error {
 
 	switch {
 	case setting.Database.Type.IsMySQL():
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat MODIFY COLUMN language %s", sqlType)); err != nil {
+		if _, err := sess.Exec("ALTER TABLE language_stat MODIFY COLUMN language " + sqlType); err != nil {
 			return err
 		}
 	case setting.Database.Type.IsMSSQL():
@@ -64,7 +64,7 @@ func IncreaseLanguageField(x *xorm.Engine) error {
 				return fmt.Errorf("Drop table `language_stat` constraint `%s`: %w", constraint, err)
 			}
 		}
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language %s", sqlType)); err != nil {
+		if _, err := sess.Exec("ALTER TABLE language_stat ALTER COLUMN language " + sqlType); err != nil {
 			return err
 		}
 		// Finally restore the constraint
@@ -72,7 +72,7 @@ func IncreaseLanguageField(x *xorm.Engine) error {
 			return err
 		}
 	case setting.Database.Type.IsPostgreSQL():
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language TYPE %s", sqlType)); err != nil {
+		if _, err := sess.Exec("ALTER TABLE language_stat ALTER COLUMN language TYPE " + sqlType); err != nil {
 			return err
 		}
 	}

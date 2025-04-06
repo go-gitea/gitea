@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"crypto"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -75,7 +76,7 @@ func base64DecPubKey(content string) (*packet.PublicKey, error) {
 	// Check type
 	pkey, ok := p.(*packet.PublicKey)
 	if !ok {
-		return nil, fmt.Errorf("key is not a public key")
+		return nil, errors.New("key is not a public key")
 	}
 	return pkey, nil
 }
@@ -122,15 +123,15 @@ func readArmoredSign(r io.Reader) (body io.Reader, err error) {
 func ExtractSignature(s string) (*packet.Signature, error) {
 	r, err := readArmoredSign(strings.NewReader(s))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read signature armor")
+		return nil, errors.New("Failed to read signature armor")
 	}
 	p, err := packet.Read(r)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read signature packet")
+		return nil, errors.New("Failed to read signature packet")
 	}
 	sig, ok := p.(*packet.Signature)
 	if !ok {
-		return nil, fmt.Errorf("Packet is not a signature")
+		return nil, errors.New("Packet is not a signature")
 	}
 	return sig, nil
 }

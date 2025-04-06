@@ -303,7 +303,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 	// For other batches, it will hit optimization 4.
 
 	if len(branchNames) != len(commitIDs) {
-		return fmt.Errorf("branchNames and commitIDs length not match")
+		return errors.New("branchNames and commitIDs length not match")
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {

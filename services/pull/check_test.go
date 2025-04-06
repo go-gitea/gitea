@@ -51,7 +51,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	select {
 	case id := <-idChan:
-		assert.EqualValues(t, pr.ID, id)
+		assert.Equal(t, pr.ID, id)
 	case <-time.After(time.Second):
 		assert.FailNow(t, "Timeout: nothing was added to pullRequestQueue")
 	}

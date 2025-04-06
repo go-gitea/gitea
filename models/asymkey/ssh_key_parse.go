@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -93,7 +94,7 @@ func parseKeyString(content string) (string, error) {
 
 			block, _ := pem.Decode([]byte(content))
 			if block == nil {
-				return "", fmt.Errorf("failed to parse PEM block containing the public key")
+				return "", errors.New("failed to parse PEM block containing the public key")
 			}
 			if strings.Contains(block.Type, "PRIVATE") {
 				return "", ErrKeyIsPrivate

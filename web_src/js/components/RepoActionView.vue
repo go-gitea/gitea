@@ -955,7 +955,6 @@ export default defineComponent({
 
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
-  word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
   overflow-wrap: anywhere;

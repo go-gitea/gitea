@@ -4,7 +4,6 @@
 package feed
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -22,7 +21,7 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 		return
 	}
 
-	title := fmt.Sprintf("Latest commits for branch %s", ctx.Repo.BranchName)
+	title := "Latest commits for branch " + ctx.Repo.BranchName
 	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.RefTypeNameSubURL()}
 
 	feed := &feeds.Feed{

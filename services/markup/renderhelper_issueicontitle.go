@@ -5,6 +5,7 @@ package markup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 
@@ -20,7 +21,7 @@ import (
 func renderRepoIssueIconTitle(ctx context.Context, opts markup.RenderIssueIconTitleOptions) (_ template.HTML, err error) {
 	webCtx := gitea_context.GetWebContext(ctx)
 	if webCtx == nil {
-		return "", fmt.Errorf("context is not a web context")
+		return "", errors.New("context is not a web context")
 	}
 
 	textIssueIndex := fmt.Sprintf("(#%d)", opts.IssueIndex)

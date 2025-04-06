@@ -35,7 +35,7 @@ func TestRenderInternal(t *testing.T) {
 		assert.EqualValues(t, c.protected, protected)
 		_, _ = io.WriteString(in, string(protected))
 		_ = in.Close()
-		assert.EqualValues(t, c.recovered, out.String())
+		assert.Equal(t, c.recovered, out.String())
 	}
 
 	var r1, r2 RenderInternal
@@ -44,11 +44,11 @@ func TestRenderInternal(t *testing.T) {
 	_ = r1.init("sec", nil)
 	protected = r1.ProtectSafeAttrs(`<div class="test"></div>`)
 	assert.EqualValues(t, `<div data-attr-class="sec:test"></div>`, protected)
-	assert.EqualValues(t, "data-attr-class", r1.SafeAttr("class"))
-	assert.EqualValues(t, "sec:val", r1.SafeValue("val"))
+	assert.Equal(t, "data-attr-class", r1.SafeAttr("class"))
+	assert.Equal(t, "sec:val", r1.SafeValue("val"))
 	recovered, ok := r1.RecoverProtectedValue("sec:val")
 	assert.True(t, ok)
-	assert.EqualValues(t, "val", recovered)
+	assert.Equal(t, "val", recovered)
 	recovered, ok = r1.RecoverProtectedValue("other:val")
 	assert.False(t, ok)
 	assert.Empty(t, recovered)
@@ -57,5 +57,5 @@ func TestRenderInternal(t *testing.T) {
 	in2 := r2.init("sec-other", out2)
 	_, _ = io.WriteString(in2, string(protected))
 	_ = in2.Close()
-	assert.EqualValues(t, `<div data-attr-class="sec:test"></div>`, out2.String(), "different secureID should not recover the value")
+	assert.Equal(t, `<div data-attr-class="sec:test"></div>`, out2.String(), "different secureID should not recover the value")
 }

@@ -4,6 +4,8 @@
 
 package structs
 
+import "time"
+
 // FileOptions options for all file APIs
 type FileOptions struct {
 	// message (optional) for the commit of this file. if not supplied, a default message will be used
@@ -121,6 +123,10 @@ type ContentsResponse struct {
 	Path          string `json:"path"`
 	SHA           string `json:"sha"`
 	LastCommitSHA string `json:"last_commit_sha"`
+	// swagger:strfmt date-time
+	LastCommitterDate time.Time `json:"last_committer_date"`
+	// swagger:strfmt date-time
+	LastAuthorDate time.Time `json:"last_author_date"`
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
 	Size int64  `json:"size"`

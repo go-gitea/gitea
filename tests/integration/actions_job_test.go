@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -137,9 +138,9 @@ jobs:
 		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		for _, tc := range testCases {
-			t.Run(fmt.Sprintf("test %s", tc.treePath), func(t *testing.T) {
+			t.Run("test "+tc.treePath, func(t *testing.T) {
 				// create the workflow file
-				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, fmt.Sprintf("create %s", tc.treePath), tc.fileContent)
+				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
 				fileResp := createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
 
 				// fetch and execute task
@@ -320,8 +321,8 @@ jobs:
 		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		for _, tc := range testCases {
-			t.Run(fmt.Sprintf("test %s", tc.treePath), func(t *testing.T) {
-				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, fmt.Sprintf("create %s", tc.treePath), tc.fileContent)
+			t.Run("test "+tc.treePath, func(t *testing.T) {
+				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
 				createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
 
 				for i := 0; i < len(tc.outcomes); i++ {
@@ -371,7 +372,7 @@ jobs:
     steps:
       - run: echo 'test the pull'
 `
-		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, fmt.Sprintf("create %s", wfTreePath), wfFileContent)
+		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
@@ -418,9 +419,9 @@ jobs:
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRunJob.RunID), gtCtx["run_id"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRun.Index), gtCtx["run_number"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRunJob.Attempt), gtCtx["run_attempt"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRunJob.RunID, 10), gtCtx["run_id"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRun.Index, 10), gtCtx["run_number"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRunJob.Attempt, 10), gtCtx["run_attempt"].GetStringValue())
 		assert.Equal(t, "Actions", gtCtx["secret_source"].GetStringValue())
 		assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
 		assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())
@@ -463,7 +464,7 @@ jobs:
     steps:
       - run: echo 'test the pull'
 `
-		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, fmt.Sprintf("create %s", wfTreePath), wfFileContent)
+		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
@@ -510,9 +511,9 @@ jobs:
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRunJob.RunID), gtCtx["run_id"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRun.Index), gtCtx["run_number"].GetStringValue())
-		assert.Equal(t, fmt.Sprint(actionRunJob.Attempt), gtCtx["run_attempt"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRunJob.RunID, 10), gtCtx["run_id"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRun.Index, 10), gtCtx["run_number"].GetStringValue())
+		assert.Equal(t, strconv.FormatInt(actionRunJob.Attempt, 10), gtCtx["run_attempt"].GetStringValue())
 		assert.Equal(t, "Actions", gtCtx["secret_source"].GetStringValue())
 		assert.Equal(t, setting.AppURL, gtCtx["server_url"].GetStringValue())
 		assert.Equal(t, actionRun.CommitSHA, gtCtx["sha"].GetStringValue())

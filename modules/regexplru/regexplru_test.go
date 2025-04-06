@@ -18,9 +18,9 @@ func TestRegexpLru(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, r.MatchString("a"))
 
-	assert.EqualValues(t, 1, lruCache.Len())
+	assert.Equal(t, 1, lruCache.Len())
 
 	_, err = GetCompiled("(")
 	assert.Error(t, err)
-	assert.EqualValues(t, 2, lruCache.Len())
+	assert.Equal(t, 2, lruCache.Len())
 }

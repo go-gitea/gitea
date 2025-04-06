@@ -72,22 +72,22 @@
 
 				<div class="inline required field {{if .Err_Owner}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
-					<div class="ui selection owner dropdown">
+					<div class="ui selection owner dropdown ellipsis-text-items">
 						<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-						<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
+						<span class="text" title="{{.ContextUser.Name}}">
 							{{ctx.AvatarUtils.Avatar .ContextUser}}
-							<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
+							{{.ContextUser.ShortName 40}}
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu" title="{{.SignedUser.Name}}">
-							<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}">
+							<div class="item" data-value="{{.SignedUser.ID}}">
 								{{ctx.AvatarUtils.Avatar .SignedUser}}
-								<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
+								{{.SignedUser.ShortName 40}}
 							</div>
 							{{range .Orgs}}
-							<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
+							<div class="item" data-value="{{.ID}}" title="{{.Name}}">
 								{{ctx.AvatarUtils.Avatar .}}
-								<span class="truncated-item-name">{{.ShortName 40}}</span>
+								{{.ShortName 40}}
 							</div>
 							{{end}}
 						</div>

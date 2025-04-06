@@ -197,7 +197,7 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:
-		panic(fmt.Sprintf("unknown package type: %s", string(p.Type)))
+		panic("unknown package type: " + string(p.Type))
 	}
 	if metadata != nil {
 		if err := json.Unmarshal([]byte(pv.MetadataJSON), &metadata); err != nil {

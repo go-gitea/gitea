@@ -25,6 +25,6 @@ func TestRenderCSV(t *testing.T) {
 		var buf strings.Builder
 		err := render.Render(markup.NewRenderContext(t.Context()), strings.NewReader(k), &buf)
 		assert.NoError(t, err)
-		assert.EqualValues(t, v, buf.String())
+		assert.Equal(t, v, buf.String())
 	}
 }

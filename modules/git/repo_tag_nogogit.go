@@ -41,8 +41,11 @@ func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 		return "", err
 	}
 	_, typ, _, err := ReadBatchLine(rd)
-	if IsErrNotExist(err) {
-		return "", ErrNotExist{ID: id.String()}
+	if err != nil {
+		if IsErrNotExist(err) {
+			return "", ErrNotExist{ID: id.String()}
+		}
+		return "", err
 	}
 	return typ, nil
 }

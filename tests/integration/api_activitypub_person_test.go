@@ -72,10 +72,10 @@ func TestActivityPubPerson(t *testing.T) {
 		ctx := t.Context()
 		user1, err := user_model.GetUserByName(ctx, username1)
 		assert.NoError(t, err)
-		user1url := fmt.Sprintf("%s/api/v1/activitypub/user-id/1#main-key", srv.URL)
+		user1url := srv.URL + "/api/v1/activitypub/user-id/1#main-key"
 		c, err := activitypub.NewClient(db.DefaultContext, user1, user1url)
 		assert.NoError(t, err)
-		user2inboxurl := fmt.Sprintf("%s/api/v1/activitypub/user-id/2/inbox", srv.URL)
+		user2inboxurl := srv.URL + "/api/v1/activitypub/user-id/2/inbox"
 
 		// Signed request succeeds
 		resp, err := c.Post([]byte{}, user2inboxurl)

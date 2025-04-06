@@ -216,7 +216,7 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
+  <div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
     <div tabindex="0" class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible">
       <span class="flex-text-block gt-ellipsis">
         <template v-if="dropdownFixedText">{{ dropdownFixedText }}</template>

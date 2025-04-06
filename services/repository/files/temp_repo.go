@@ -6,6 +6,7 @@ package files
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -414,7 +415,7 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Dif
 // GetBranchCommit Gets the commit object of the given branch
 func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit, error) {
 	if t.gitRepo == nil {
-		return nil, fmt.Errorf("repository has not been cloned")
+		return nil, errors.New("repository has not been cloned")
 	}
 	return t.gitRepo.GetBranchCommit(branch)
 }
@@ -422,7 +423,7 @@ func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit,
 // GetCommit Gets the commit object of the given commit ID
 func (t *TemporaryUploadRepository) GetCommit(commitID string) (*git.Commit, error) {
 	if t.gitRepo == nil {
-		return nil, fmt.Errorf("repository has not been cloned")
+		return nil, errors.New("repository has not been cloned")
 	}
 	return t.gitRepo.GetCommit(commitID)
 }

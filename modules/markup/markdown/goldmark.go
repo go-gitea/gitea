@@ -5,14 +5,10 @@ package markdown
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
-	"sync"
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/internal"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -51,7 +47,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 	tocList := make([]Header, 0, 20)
 	if rc.yamlNode != nil {
-		metaNode := rc.toMetaNode()
+		metaNode := rc.toMetaNode(g)
 		if metaNode != nil {
 			node.InsertBefore(node, firstChild, metaNode)
 		}
@@ -68,24 +64,12 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			g.transformHeading(ctx, v, reader, &tocList)
 		case *ast.Paragraph:
 			g.applyElementDir(v)
-		case *ast.Image:
-			g.transformImage(ctx, v)
-		case *ast.Link:
-			g.transformLink(ctx, v)
 		case *ast.List:
 			g.transformList(ctx, v, rc)
 		case *ast.Text:
 			if v.SoftLineBreak() && !v.HardLineBreak() {
-				// TODO: this was a quite unclear part, old code: `if metas["mode"] != "document" { use comment link break setting }`
-				// many places render non-comment contents with no mode=document, then these contents also use comment's hard line break setting
-				// especially in many tests.
-				markdownLineBreakStyle := ctx.RenderOptions.Metas["markdownLineBreakStyle"]
-				switch markdownLineBreakStyle {
-				case "comment":
-					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInComments)
-				case "document":
-					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)
-				}
+				newLineHardBreak := ctx.RenderOptions.Metas["markdownNewLineHardBreak"] == "true"
+				v.SetHardLineBreak(newLineHardBreak)
 			}
 		case *ast.CodeSpan:
 			g.transformCodeSpan(ctx, v, reader)
@@ -112,11 +96,6 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 	}
 }
 
-// it is copied from old code, which is quite doubtful whether it is correct
-var reValidIconName = sync.OnceValue(func() *regexp.Regexp {
-	return regexp.MustCompile(`^[-\w]+$`) // old: regexp.MustCompile("^[a-z ]+$")
-})
-
 // NewHTMLRenderer creates a HTMLRenderer to render in the gitea form.
 func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Option) renderer.NodeRenderer {
 	r := &HTMLRenderer{
@@ -141,11 +120,11 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindDocument, r.renderDocument)
 	reg.Register(KindDetails, r.renderDetails)
 	reg.Register(KindSummary, r.renderSummary)
-	reg.Register(KindIcon, r.renderIcon)
 	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(KindAttention, r.renderAttention)
 	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
+	reg.Register(KindRawHTML, r.renderRawHTML)
 }
 
 func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -207,30 +186,14 @@ func (r *HTMLRenderer) renderSummary(w util.BufWriter, source []byte, node ast.N
 	return ast.WalkContinue, nil
 }
 
-func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
 	}
-
-	n := node.(*Icon)
-
-	name := strings.TrimSpace(strings.ToLower(string(n.Name)))
-
-	if len(name) == 0 {
-		// skip this
-		return ast.WalkContinue, nil
-	}
-
-	if !reValidIconName().MatchString(name) {
-		// skip this
-		return ast.WalkContinue, nil
-	}
-
-	// FIXME: the "icon xxx" is from Fomantic UI, it's really questionable whether it still works correctly
-	err := r.renderInternal.FormatWithSafeAttrs(w, `<i class="icon %s"></i>`, name)
+	n := node.(*RawHTML)
+	_, err := w.WriteString(string(r.renderInternal.ProtectSafeAttrs(n.rawHTML)))
 	if err != nil {
 		return ast.WalkStop, err
 	}
-
 	return ast.WalkContinue, nil
 }

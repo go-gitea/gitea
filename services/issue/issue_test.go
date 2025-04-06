@@ -24,8 +24,8 @@ func TestGetRefEndNamesAndURLs(t *testing.T) {
 	repoLink := "/foo/bar"
 
 	endNames, urls := GetRefEndNamesAndURLs(issues, repoLink)
-	assert.EqualValues(t, map[int64]string{1: "branch1", 2: "tag1", 3: "c0ffee"}, endNames)
-	assert.EqualValues(t, map[int64]string{
+	assert.Equal(t, map[int64]string{1: "branch1", 2: "tag1", 3: "c0ffee"}, endNames)
+	assert.Equal(t, map[int64]string{
 		1: repoLink + "/src/branch/branch1",
 		2: repoLink + "/src/tag/tag1",
 		3: repoLink + "/src/commit/c0ffee",

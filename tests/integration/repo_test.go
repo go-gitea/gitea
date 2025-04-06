@@ -102,7 +102,7 @@ func testViewRepoWithCache(t *testing.T) {
 		})
 
 		commitT := time.Date(2017, time.June, 14, 13, 54, 21, 0, time.UTC).In(time.Local).Format(time.RFC1123)
-		assert.EqualValues(t, []file{
+		assert.Equal(t, []file{
 			{
 				fileName:   "doc",
 				commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
@@ -250,9 +250,9 @@ func testViewFileInRepo(t *testing.T) {
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
-	assert.EqualValues(t, 0, description.Length())
-	assert.EqualValues(t, 0, repoTopics.Length())
-	assert.EqualValues(t, 0, repoSummary.Length())
+	assert.Equal(t, 0, description.Length())
+	assert.Equal(t, 0, repoTopics.Length())
+	assert.Equal(t, 0, repoSummary.Length())
 }
 
 // TestBlameFileInRepo repo description, topics and summary should not be displayed when running blame on a file
@@ -269,9 +269,9 @@ func testBlameFileInRepo(t *testing.T) {
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
-	assert.EqualValues(t, 0, description.Length())
-	assert.EqualValues(t, 0, repoTopics.Length())
-	assert.EqualValues(t, 0, repoSummary.Length())
+	assert.Equal(t, 0, description.Length())
+	assert.Equal(t, 0, repoTopics.Length())
+	assert.Equal(t, 0, repoSummary.Length())
 }
 
 // TestViewRepoDirectory repo description, topics and summary should not be displayed when within a directory

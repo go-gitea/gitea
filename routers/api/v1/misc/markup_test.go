@@ -134,7 +134,7 @@ Here are some links to the most important topics. You can find the full list of 
 <h2 id="user-content-quick-links">Quick Links</h2>
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
 <p><a href="http://localhost:3000/user2/repo1/wiki/Configuration" rel="nofollow">Configuration</a>
-<a href="http://localhost:3000/user2/repo1/wiki/raw/images/icon-bug.png" rel="nofollow"><img src="http://localhost:3000/user2/repo1/wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
+<a href="http://localhost:3000/user2/repo1/wiki/images/icon-bug.png" rel="nofollow"><img src="http://localhost:3000/user2/repo1/wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
 `,
 	}
 
@@ -158,19 +158,19 @@ Here are some links to the most important topics. You can find the full list of 
 
 	input := "[Link](test.md)\n![Image](image.png)"
 	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/user2/repo1/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
+<a href="http://localhost:3000/user2/repo1/src/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
 `, http.StatusOK)
 
 	testRenderMarkdown(t, "gfm", false, input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/user2/repo1/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
+<a href="http://localhost:3000/user2/repo1/src/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
 `, http.StatusOK)
 
 	testRenderMarkup(t, "gfm", false, "", input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/user2/repo1/media/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
+<a href="http://localhost:3000/user2/repo1/src/branch/main/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/image.png" alt="Image"/></a></p>
 `, http.StatusOK)
 
 	testRenderMarkup(t, "file", false, "path/new-file.md", input, `<p><a href="http://localhost:3000/user2/repo1/src/branch/main/path/test.md" rel="nofollow">Link</a>
-<a href="http://localhost:3000/user2/repo1/media/branch/main/path/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/path/image.png" alt="Image"/></a></p>
+<a href="http://localhost:3000/user2/repo1/src/branch/main/path/image.png" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/user2/repo1/media/branch/main/path/image.png" alt="Image"/></a></p>
 `, http.StatusOK)
 
 	testRenderMarkup(t, "file", false, "path/test.unknown", "## Test", "unsupported file to render: \"path/test.unknown\"\n", http.StatusUnprocessableEntity)

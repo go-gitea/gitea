@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -42,7 +41,7 @@ func TestAPIGetLabelTemplateInfo(t *testing.T) {
 	// Use the first template for the test
 	templateName := repo_module.LabelTemplateFiles[0].DisplayName
 
-	urlStr := fmt.Sprintf("/api/v1/label/templates/%s", url.PathEscape(templateName))
+	urlStr := "/api/v1/label/templates/" + url.PathEscape(templateName)
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 

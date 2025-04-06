@@ -34,7 +34,7 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		},
 	}
 
-	req, err := http.NewRequest("GET", httpEndpoint, nil)
+	req, err := http.NewRequest(http.MethodGet, httpEndpoint, nil)
 	if err != nil {
 		return err
 	}

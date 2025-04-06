@@ -39,7 +39,7 @@ func TestRender_IssueList(t *testing.T) {
 	t.Run("NormalIssueRef", func(t *testing.T) {
 		test(
 			"#12345",
-			`<p><a href="http://localhost:3000/test-user/test-repo/issues/12345" class="ref-issue" rel="nofollow">#12345</a></p>`,
+			`<p><a href="/test-user/test-repo/issues/12345" class="ref-issue" rel="nofollow">#12345</a></p>`,
 		)
 	})
 
@@ -56,7 +56,7 @@ func TestRender_IssueList(t *testing.T) {
 		test(
 			"* foo #12345 bar",
 			`<ul>
-<li>foo <a href="http://localhost:3000/test-user/test-repo/issues/12345" class="ref-issue" rel="nofollow">#12345</a> bar</li>
+<li>foo <a href="/test-user/test-repo/issues/12345" class="ref-issue" rel="nofollow">#12345</a> bar</li>
 </ul>`,
 		)
 	})

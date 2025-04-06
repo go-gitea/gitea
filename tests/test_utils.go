@@ -93,7 +93,7 @@ func InitTest(requireGitea bool) {
 		if err != nil {
 			log.Fatal("sql.Open: %v", err)
 		}
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
+		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name); err != nil {
 			log.Fatal("db.Exec: %v", err)
 		}
 	case setting.Database.Type.IsPostgreSQL():
@@ -118,7 +118,7 @@ func InitTest(requireGitea bool) {
 		defer dbrows.Close()
 
 		if !dbrows.Next() {
-			if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
+			if _, err = db.Exec("CREATE DATABASE " + setting.Database.Name); err != nil {
 				log.Fatal("db.Exec: CREATE DATABASE: %v", err)
 			}
 		}
@@ -148,7 +148,7 @@ func InitTest(requireGitea bool) {
 
 		if !schrows.Next() {
 			// Create and setup a DB schema
-			if _, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema)); err != nil {
+			if _, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema); err != nil {
 				log.Fatal("db.Exec: CREATE SCHEMA: %v", err)
 			}
 		}

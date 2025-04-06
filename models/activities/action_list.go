@@ -5,6 +5,7 @@ package activities
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -205,7 +206,7 @@ func (actions ActionList) LoadIssues(ctx context.Context) error {
 // GetFeeds returns actions according to the provided options
 func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
-		return nil, 0, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+		return nil, 0, errors.New("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	var err error

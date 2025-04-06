@@ -53,11 +53,11 @@ func generatePathTokens(input analysis.TokenStream, reversed bool) analysis.Toke
 
 	for i := 0; i < len(input); i++ {
 		var sb strings.Builder
-		sb.WriteString(string(input[0].Term))
+		sb.Write(input[0].Term)
 
 		for j := 1; j < i; j++ {
 			sb.WriteString("/")
-			sb.WriteString(string(input[j].Term))
+			sb.Write(input[j].Term)
 		}
 
 		term := sb.String()

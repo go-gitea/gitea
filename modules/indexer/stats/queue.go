@@ -4,7 +4,7 @@
 package stats
 
 import (
-	"fmt"
+	"errors"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
@@ -31,7 +31,7 @@ func handler(items ...int64) []int64 {
 func initStatsQueue() error {
 	statsQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo_stats_update", handler)
 	if statsQueue == nil {
-		return fmt.Errorf("unable to create repo_stats_update queue")
+		return errors.New("unable to create repo_stats_update queue")
 	}
 	go graceful.GetManager().RunWithCancel(statsQueue)
 	return nil

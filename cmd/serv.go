@@ -173,7 +173,7 @@ func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServC
 	if err != nil {
 		return "", fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
 	}
-	return fmt.Sprintf("Bearer %s", tokenString), nil
+	return "Bearer " + tokenString, nil
 }
 
 func runServ(c *cli.Context) error {
@@ -372,9 +372,9 @@ func runServ(c *cli.Context) error {
 		repo_module.EnvPusherEmail+"="+results.UserEmail,
 		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
 		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
-		repo_module.EnvPRID+"="+fmt.Sprintf("%d", 0),
-		repo_module.EnvDeployKeyID+"="+fmt.Sprintf("%d", results.DeployKeyID),
-		repo_module.EnvKeyID+"="+fmt.Sprintf("%d", results.KeyID),
+		repo_module.EnvPRID+"="+strconv.Itoa(0),
+		repo_module.EnvDeployKeyID+"="+strconv.FormatInt(results.DeployKeyID, 10),
+		repo_module.EnvKeyID+"="+strconv.FormatInt(results.KeyID, 10),
 		repo_module.EnvAppURL+"="+setting.AppURL,
 	)
 	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.

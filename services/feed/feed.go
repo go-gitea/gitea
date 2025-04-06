@@ -6,6 +6,7 @@ package feed
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -86,7 +87,7 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 			return fmt.Errorf("count user feeds: %w", err)
 		}
 
-		_ = cache.GetCache().Put(userFeedCacheKey(act.UserID), fmt.Sprintf("%d", total), setting.CacheService.TTLSeconds())
+		_ = cache.GetCache().Put(userFeedCacheKey(act.UserID), strconv.FormatInt(total, 10), setting.CacheService.TTLSeconds())
 	}
 
 	return nil

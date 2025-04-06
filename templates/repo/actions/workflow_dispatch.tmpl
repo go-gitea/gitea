@@ -10,7 +10,7 @@
 				<span class="ui inline required field">
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
 				</span>
-				<div class="ui inline field dropdown button select-branch branch-selector-dropdown ellipsis-items-nowrap">
+				<div class="ui inline field dropdown button select-branch branch-selector-dropdown ellipsis-text-items">
 					<input type="hidden" name="ref" hx-sync="this:replace" hx-target="#runWorkflowDispatchModalInputs" hx-swap="innerHTML" hx-get="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}" hx-trigger="change" value="refs/heads/{{index .Branches 0}}">
 					{{svg "octicon-git-branch" 14}}
 					<div class="default text">{{index .Branches 0}}</div>

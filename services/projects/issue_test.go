@@ -130,7 +130,7 @@ func Test_Projects(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.Len(t, projects, 1)
-		assert.EqualValues(t, project1.ID, projects[0].ID)
+		assert.Equal(t, project1.ID, projects[0].ID)
 
 		t.Run("Authenticated user", func(t *testing.T) {
 			columnIssues, err := LoadIssuesFromProject(db.DefaultContext, projects[0], &issues_model.IssuesOptions{

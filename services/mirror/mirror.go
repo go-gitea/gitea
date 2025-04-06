@@ -5,7 +5,7 @@ package mirror
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
@@ -29,7 +29,7 @@ func doMirrorSync(ctx context.Context, req *SyncRequest) {
 	}
 }
 
-var errLimit = fmt.Errorf("reached limit")
+var errLimit = errors.New("reached limit")
 
 // Update checks and updates mirror repositories.
 func Update(ctx context.Context, pullLimit, pushLimit int) error {
@@ -68,7 +68,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 		// Check we've not been cancelled
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("aborted")
+			return errors.New("aborted")
 		default:
 		}
 
