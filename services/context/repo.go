@@ -669,12 +669,6 @@ func RepoAssignment(ctx *Context) {
 
 const headRefName = "HEAD"
 
-func RepoRef() func(*Context) {
-	// old code does: return RepoRefByType(git.RefTypeBranch)
-	// in most cases, it is an abuse, so we just disable it completely and fix the abuses one by one (if there is anything wrong)
-	return nil
-}
-
 func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
 	refName := ""
 	parts := strings.Split(path, "/")
