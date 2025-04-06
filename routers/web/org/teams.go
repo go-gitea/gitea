@@ -284,6 +284,8 @@ func NewTeam(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
+// FIXME: TEAM-UNIT-PERMISSION: this design is not right, when a new unit is added in the future,
+// admin team won't inherit the correct admin permission for the new unit.
 func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
 	unitPerms := make(map[unit_model.Type]perm.AccessMode)
 	for _, ut := range unit_model.AllRepoUnitTypes {
@@ -314,19 +316,14 @@ func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_mod
 func NewTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	includesAllRepositories := form.RepoAccess == "all"
-	p := perm.ParseAccessMode(form.Permission)
-	unitPerms := getUnitPerms(ctx.Req.Form, p)
-	if p < perm.AccessModeAdmin {
-		// if p is less than admin accessmode, then it should be general accessmode,
-		// so we should calculate the minial accessmode from units accessmodes.
-		p = unit_model.MinUnitAccessMode(unitPerms)
-	}
+	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
 
 	t := &org_model.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.TeamName,
 		Description:             form.Description,
-		AccessMode:              p,
+		AccessMode:              teamPermission,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
@@ -485,13 +482,8 @@ func EditTeam(ctx *context.Context) {
 func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	t := ctx.Org.Team
-	newAccessMode := perm.ParseAccessMode(form.Permission)
-	unitPerms := getUnitPerms(ctx.Req.Form, newAccessMode)
-	if newAccessMode < perm.AccessModeAdmin {
-		// if newAccessMode is less than admin accessmode, then it should be general accessmode,
-		// so we should calculate the minial accessmode from units accessmodes.
-		newAccessMode = unit_model.MinUnitAccessMode(unitPerms)
-	}
+	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
 	isAuthChanged := false
 	isIncludeAllChanged := false
 	includesAllRepositories := form.RepoAccess == "all"
@@ -503,9 +495,9 @@ func EditTeamPost(ctx *context.Context) {
 
 	if !t.IsOwnerTeam() {
 		t.Name = form.TeamName
-		if t.AccessMode != newAccessMode {
+		if t.AccessMode != teamPermission {
 			isAuthChanged = true
-			t.AccessMode = newAccessMode
+			t.AccessMode = teamPermission
 		}
 
 		if t.IncludesAllRepositories != includesAllRepositories {
