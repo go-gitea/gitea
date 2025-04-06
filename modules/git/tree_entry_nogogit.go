@@ -59,27 +59,27 @@ func (te *TreeEntry) Size() int64 {
 
 // IsSubModule if the entry is a sub module
 func (te *TreeEntry) IsSubModule() bool {
-	return te.entryMode.IsSubModule()
+	return te.entryMode == EntryModeCommit
 }
 
 // IsDir if the entry is a sub dir
 func (te *TreeEntry) IsDir() bool {
-	return te.entryMode.IsDir()
+	return te.entryMode == EntryModeTree
 }
 
 // IsLink if the entry is a symlink
 func (te *TreeEntry) IsLink() bool {
-	return te.entryMode.IsLink()
+	return te.entryMode == EntryModeSymlink
 }
 
 // IsRegular if the entry is a regular file
 func (te *TreeEntry) IsRegular() bool {
-	return te.entryMode.IsRegular()
+	return te.entryMode == EntryModeBlob
 }
 
 // IsExecutable if the entry is an executable file (not necessarily binary)
 func (te *TreeEntry) IsExecutable() bool {
-	return te.entryMode.IsExecutable()
+	return te.entryMode == EntryModeExec
 }
 
 // Blob returns the blob object the entry

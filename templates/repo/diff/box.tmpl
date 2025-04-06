@@ -15,9 +15,6 @@
 					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
 					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('tw-hidden');
 					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
-
-					window.config.pageData.expandedFolderIcon = {{ctx.RenderUtils.RenderExpandedFolderIcon}};
-					window.config.pageData.collapsedFolderIcon = {{ctx.RenderUtils.RenderCollapsedFolderIcon}};
 				</script>
 			{{end}}
 			{{if not .DiffNotAvailable}}

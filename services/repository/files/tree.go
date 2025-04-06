@@ -13,12 +13,11 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -143,9 +142,13 @@ func entryModeString(entryMode git.EntryMode) string {
 }
 
 type TreeViewNode struct {
-	EntryName    string          `json:"entryName"`
-	EntryMode    string          `json:"entryMode"`
-	FileIcon     template.HTML   `json:"fileIcon"`
+	EntryName     string        `json:"entryName"`
+	EntryMode     string        `json:"entryMode"`
+	EntryIcon     template.HTML `json:"entryIcon"`
+	EntryIconOpen template.HTML `json:"entryIconOpen,omitempty"`
+
+	SymLinkedToMode string `json:"symLinkedToMode,omitempty"` // TODO: for the EntryMode="symlink"
+
 	FullPath     string          `json:"fullPath"`
 	SubmoduleURL string          `json:"submoduleUrl,omitempty"`
 	Children     []*TreeViewNode `json:"children,omitempty"`
@@ -155,11 +158,26 @@ func (node *TreeViewNode) sortLevel() int {
 	return util.Iif(node.EntryMode == "tree" || node.EntryMode == "commit", 0, 1)
 }
 
-func newTreeViewNodeFromEntry(ctx context.Context, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
+func newTreeViewNodeFromEntry(ctx context.Context, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
 	node := &TreeViewNode{
 		EntryName: entry.Name(),
 		EntryMode: entryModeString(entry.Mode()),
 		FullPath:  path.Join(parentDir, entry.Name()),
+	}
+
+	if entry.IsLink() {
+		// TODO: symlink to a folder or a file
+		target, err := entry.FollowLinks()
+		if err == nil {
+			_ = target.IsDir()
+			// if target.IsDir() { } else { }
+		}
+	}
+
+	if node.EntryIcon == "" {
+		node.EntryIcon = fileicon.RenderEntryIcon(renderedIconPool, entry)
+		// TODO: no open icon support yet
+		// node.EntryIconOpen = fileicon.RenderFileIconOpen(renderedIconPool, entry)
 	}
 
 	if node.EntryMode == "commit" {
@@ -186,23 +204,23 @@ func sortTreeViewNodes(nodes []*TreeViewNode) {
 	})
 }
 
-func listTreeNodes(ctx context.Context, renderUtils *templates.RenderUtils, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
+func listTreeNodes(ctx context.Context, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, tree *git.Tree, treePath, subPath string) ([]*TreeViewNode, error) {
 	entries, err := tree.ListEntries()
 	if err != nil {
 		return nil, err
 	}
+
 	subPathDirName, subPathRemaining, _ := strings.Cut(subPath, "/")
 	nodes := make([]*TreeViewNode, 0, len(entries))
 	for _, entry := range entries {
-		node := newTreeViewNodeFromEntry(ctx, commit, treePath, entry)
-		node.FileIcon = renderUtils.RenderFileIconByGitTreeEntry(entry)
+		node := newTreeViewNodeFromEntry(ctx, renderedIconPool, commit, treePath, entry)
 		nodes = append(nodes, node)
 		if entry.IsDir() && subPathDirName == entry.Name() {
 			subTreePath := treePath + "/" + node.EntryName
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]
 			}
-			subNodes, err := listTreeNodes(ctx, renderUtils, commit, entry.Tree(), subTreePath, subPathRemaining)
+			subNodes, err := listTreeNodes(ctx, renderedIconPool, commit, entry.Tree(), subTreePath, subPathRemaining)
 			if err != nil {
 				log.Error("listTreeNodes: %v", err)
 			} else {
@@ -214,11 +232,10 @@ func listTreeNodes(ctx context.Context, renderUtils *templates.RenderUtils, comm
 	return nodes, nil
 }
 
-func GetTreeViewNodes(ctx context.Context, commit *git.Commit, treePath, subPath string) ([]*TreeViewNode, error) {
+func GetTreeViewNodes(ctx context.Context, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, treePath, subPath string) ([]*TreeViewNode, error) {
 	entry, err := commit.GetTreeEntryByPath(treePath)
 	if err != nil {
 		return nil, err
 	}
-	renderUtils := templates.NewRenderUtils(reqctx.FromContext(ctx))
-	return listTreeNodes(ctx, renderUtils, commit, entry.Tree(), treePath, subPath)
+	return listTreeNodes(ctx, renderedIconPool, commit, entry.Tree(), treePath, subPath)
 }

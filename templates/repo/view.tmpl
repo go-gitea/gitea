@@ -1,8 +1,4 @@
 {{template "base/head" .}}
-<script type="module">
-window.config.pageData.expandedFolderIcon = {{ctx.RenderUtils.RenderExpandedFolderIcon}};
-window.config.pageData.collapsedFolderIcon = {{ctx.RenderUtils.RenderCollapsedFolderIcon}};
-</script>
 <div role="main" aria-label="{{.Title}}" class="page-content repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
 	<div class="ui container {{if or .TreeNames .IsBlame}}fluid padded{{end}}">

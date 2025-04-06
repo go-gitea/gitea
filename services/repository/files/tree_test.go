@@ -7,13 +7,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -66,8 +61,6 @@ func TestGetTreeViewNodes(t *testing.T) {
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
-	defer test.MockVariableValue(&setting.UI.FileIconTheme, "basic")()
-	renderUtils := templates.NewRenderUtils(reqctx.FromContext(ctx))
 
 	treeNodes, err := GetTreeViewNodes(ctx, ctx.Repo.Commit, "", "")
 	assert.NoError(t, err)
@@ -75,11 +68,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 		{
 			EntryName: "docs",
 			EntryMode: "tree",
-			FileIcon: renderUtils.RenderFileIcon(&fileicon.FileIcon{
-				Name:      "docs",
-				EntryMode: git.EntryModeTree,
-			}),
-			FullPath: "docs",
+			FullPath:  "docs",
 		},
 	}, treeNodes)
 
@@ -89,20 +78,12 @@ func TestGetTreeViewNodes(t *testing.T) {
 		{
 			EntryName: "docs",
 			EntryMode: "tree",
-			FileIcon: renderUtils.RenderFileIcon(&fileicon.FileIcon{
-				Name:      "docs",
-				EntryMode: git.EntryModeTree,
-			}),
-			FullPath: "docs",
+			FullPath:  "docs",
 			Children: []*TreeViewNode{
 				{
 					EntryName: "README.md",
 					EntryMode: "blob",
-					FileIcon: renderUtils.RenderFileIcon(&fileicon.FileIcon{
-						Name:      "README.md",
-						EntryMode: git.EntryModeBlob,
-					}),
-					FullPath: "docs/README.md",
+					FullPath:  "docs/README.md",
 				},
 			},
 		},
@@ -114,11 +95,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 		{
 			EntryName: "README.md",
 			EntryMode: "blob",
-			FileIcon: renderUtils.RenderFileIcon(&fileicon.FileIcon{
-				Name:      "README.md",
-				EntryMode: git.EntryModeBlob,
-			}),
-			FullPath: "docs/README.md",
+			FullPath:  "docs/README.md",
 		},
 	}, treeNodes)
 }
