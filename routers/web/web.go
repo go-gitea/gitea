@@ -1211,7 +1211,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Get("/comments/{id}/attachments", repo.GetCommentAttachments)
 		m.Get("/labels", repo.RetrieveLabelsForList, repo.Labels)
 		m.Get("/milestones", repo.Milestones)
-		m.Get("/milestone/{id}", context.RepoRef(), repo.MilestoneIssuesAndPulls)
+		m.Get("/milestone/{id}", repo.MilestoneIssuesAndPulls)
 		m.Get("/issues/suggestions", repo.IssueSuggestions)
 	}, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader) // issue/pull attachments, labels, milestones
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
@@ -1225,9 +1225,9 @@ func registerWebRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}", func() { // edit issues, pulls, labels, milestones, etc
 		m.Group("/issues", func() {
 			m.Group("/new", func() {
-				m.Combo("").Get(context.RepoRef(), repo.NewIssue).
+				m.Combo("").Get(repo.NewIssue).
 					Post(web.Bind(forms.CreateIssueForm{}), repo.NewIssuePost)
-				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
+				m.Get("/choose", repo.NewIssueChooseTemplate)
 			})
 			m.Get("/search", repo.SearchRepoIssuesJSON)
 		}, reqUnitIssuesReader)
@@ -1290,7 +1290,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), repo.UpdateLabel)
 			m.Post("/delete", repo.DeleteLabel)
 			m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), repo.InitializeLabels)
-		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
+		}, reqRepoIssuesOrPullsWriter)
 
 		m.Group("/milestones", func() {
 			m.Combo("/new").Get(repo.NewMilestone).
@@ -1299,7 +1299,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/{id}/edit", web.Bind(forms.CreateMilestoneForm{}), repo.EditMilestonePost)
 			m.Post("/{id}/{action}", repo.ChangeMilestoneStatus)
 			m.Post("/delete", repo.DeleteMilestone)
-		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
+		}, reqRepoIssuesOrPullsWriter)
 
 		// FIXME: many "pulls" requests are sent to "issues" endpoints incorrectly, need to move these routes to the proper place
 		m.Group("/issues", func() {
@@ -1377,7 +1377,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/delete", repo.DeleteRelease)
 			m.Post("/attachments", repo.UploadReleaseAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
-		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
+		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter)
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
@@ -1506,19 +1506,19 @@ func registerWebRoutes(m *web.Router) {
 			m.Get(".diff", repo.DownloadPullDiff)
 			m.Get(".patch", repo.DownloadPullPatch)
 			m.Group("/commits", func() {
-				m.Get("", context.RepoRef(), repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
-				m.Get("/list", context.RepoRef(), repo.GetPullCommits)
-				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
+				m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
+				m.Get("/list", repo.GetPullCommits)
+				m.Get("/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
 			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
 			m.Post("/update", repo.UpdatePullRequest)
 			m.Post("/set_allow_maintainer_edit", web.Bind(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
-			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
+			m.Post("/cleanup", context.RepoMustNotBeArchived(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
-				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
-				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesStartingFromCommit)
-				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
+				m.Get("", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
+				m.Get("/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesStartingFromCommit)
+				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
 				m.Group("/reviews", func() {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCodeComment)
@@ -1605,7 +1605,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Get("/tree/*", repo.RedirectRepoTreeToSrc)    // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
 		m.Get("/blob/*", repo.RedirectRepoBlobToCommit) // redirect "/owner/repo/blob/*" requests to "/owner/repo/src/commit/*"
 
-		m.Get("/forks", context.RepoRef(), repo.Forks)
+		m.Get("/forks", repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
 		m.Post("/lastcommit/*", context.RepoRefByType(git.RefTypeCommit), repo.LastCommit)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
