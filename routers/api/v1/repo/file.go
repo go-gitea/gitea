@@ -25,7 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -981,4 +983,65 @@ func GetContentsList(ctx *context.APIContext) {
 
 	// same as GetContents(), this function is here because swagger fails if path is empty in GetContents() interface
 	GetContents(ctx)
+}
+
+// GetContentsFiles Get the metadata and contents of requested files
+func GetContentsFiles(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/contents/files repository repoGetContentsFiles
+	// ---
+	// summary: Get the metadata and contents of requested files
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/GetFilesOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/FilesList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	apiOpts := web.GetForm(ctx).(*api.GetFilesOptions)
+
+	ref := ctx.FormTrim("ref")
+	if ref == "" {
+		ref = ctx.Repo.Repository.DefaultBranch
+	}
+
+	files := apiOpts.Files
+
+	filesResponse := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
+	count := len(filesResponse)
+
+	listOpts := utils.GetListOptions(ctx)
+	filesResponse = util.PaginateSlice(filesResponse, listOpts.Page, listOpts.PageSize).([]*api.ContentsResponse)
+
+	ctx.SetTotalCountHeader(int64(count))
+	ctx.JSON(http.StatusOK, filesResponse)
 }

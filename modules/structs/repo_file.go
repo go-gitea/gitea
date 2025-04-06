@@ -176,3 +176,11 @@ type FileDeleteResponse struct {
 	Commit       *FileCommitResponse        `json:"commit"`
 	Verification *PayloadCommitVerification `json:"verification"`
 }
+
+// GetFilesOptions options for retrieving metadate and content of multiple files
+type GetFilesOptions struct {
+	Files []string `json:"files" binding:"Required"`
+}
+
+// FilesList contains multiple items if ContentsResponse
+type FilesList []*ContentsResponse

@@ -1382,6 +1382,7 @@ func Routes() *web.Router {
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
 					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
+					m.Post("/files", bind(api.GetFilesOptions{}), repo.GetContentsFiles)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
 						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.CreateFile)
