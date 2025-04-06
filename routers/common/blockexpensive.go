@@ -54,6 +54,7 @@ func isRoutePathExpensive(routePattern string) bool {
 		"/{username}/{reponame}/{type:issues}",
 		"/{username}/{reponame}/pulls",
 		"/{username}/{reponame}/{type:pulls}",
+		"/{username}/{reponame}/{type:issues|pulls}", // for 1.23 only
 
 		// wiki
 		"/{username}/{reponame}/wiki/",
