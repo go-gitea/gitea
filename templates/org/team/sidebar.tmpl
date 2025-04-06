@@ -46,7 +46,8 @@
 				{{if false}}{{/*(eq .Team.AccessMode 2)*/}}
 					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
 					{{ctx.Locale.Tr "org.teams.write_permission_desc"}}
-				{{else if false}}{{/*(eq .Team.AccessMode 3)*/}}
+				{{else if (eq .Team.AccessMode 3)}}
+					{{/* FIXME: here might not right, see "FIXME: TEAM-UNIT-PERMISSION", new units might not have correct admin permission*/}}
 					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
 					{{ctx.Locale.Tr "org.teams.admin_permission_desc"}}
 				{{else}}
