@@ -308,12 +308,12 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	testcase := `![image1](/image1)
 ![image2](/image2)
 `
-	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a>
-<a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
+	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"/></a>
+<a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"/></a></p>
 `
-	res, err := markdown.RenderRawString(markup.NewTestRenderContext(), testcase)
+	res, err := markdown.RenderString(markup.NewTestRenderContext(), testcase)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, res)
+	assert.Equal(t, expected, string(res))
 }
 
 func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
@@ -528,4 +528,17 @@ space</p>
 	result, err := markdown.RenderString(markup.NewTestRenderContext(localMetas), input)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(result))
+}
+
+func TestMarkdownLink(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
+	input := `<a href=foo>link1</a>
+<a href='/foo'>link2</a>
+<a href="#foo">link3</a>`
+	result, err := markdown.RenderString(markup.NewTestRenderContext("/base", localMetas), input)
+	assert.NoError(t, err)
+	assert.Equal(t, `<p><a href="/base/foo" rel="nofollow">link1</a>
+<a href="/base/foo" rel="nofollow">link2</a>
+<a href="#user-content-foo" rel="nofollow">link3</a></p>
+`, string(result))
 }
