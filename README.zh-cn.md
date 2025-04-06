@@ -11,7 +11,7 @@
 [![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
 
-[查看此文件的英文版本](./README.md) | [查看此文件的繁體中文版本](./README.zh-tw.md)
+[English](./README.md) | [繁體中文](./README.zh-tw.md)
 
 ## 目的
 
