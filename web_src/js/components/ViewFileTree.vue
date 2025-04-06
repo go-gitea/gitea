@@ -3,7 +3,7 @@ import ViewFileTreeItem from './ViewFileTreeItem.vue';
 import {onMounted, ref} from 'vue';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {GET} from '../modules/fetch.ts';
-import {createElementFromHTML} from "../utils/dom.ts";
+import {createElementFromHTML} from '../utils/dom.ts';
 
 const elRoot = ref<HTMLElement | null>(null);
 

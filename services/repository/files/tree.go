@@ -166,8 +166,8 @@ func newTreeViewNodeFromEntry(ctx context.Context, renderedIconPool *fileicon.Re
 	}
 
 	if entry.IsLink() {
-		// TODO: symlink to a folder or a file
-		target, err := entry.FollowLinks()
+		// TODO: symlink to a folder or a file, the icon differs
+		target, err := entry.FollowLink()
 		if err == nil {
 			_ = target.IsDir()
 			// if target.IsDir() { } else { }
@@ -177,7 +177,7 @@ func newTreeViewNodeFromEntry(ctx context.Context, renderedIconPool *fileicon.Re
 	if node.EntryIcon == "" {
 		node.EntryIcon = fileicon.RenderEntryIcon(renderedIconPool, entry)
 		// TODO: no open icon support yet
-		// node.EntryIconOpen = fileicon.RenderFileIconOpen(renderedIconPool, entry)
+		// node.EntryIconOpen = fileicon.RenderEntryIconOpen(renderedIconPool, entry)
 	}
 
 	if node.EntryMode == "commit" {
