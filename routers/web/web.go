@@ -1404,7 +1404,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/{id}", repo.ViewProject)
 		m.Group("/{id}/workflows", func() {
 			m.Get("", projects.Workflows)
-			m.Get("/{workflow_id}", projects.WorkflowEdit)
+			m.Get("/{workflow_id}", projects.Workflows)
 		})
 		m.Group("", func() { //nolint:dupl
 			m.Get("/new", repo.RenderNewProject)

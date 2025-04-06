@@ -39,7 +39,7 @@ type WorkflowAction struct {
 	ActionValue string
 }
 
-type ProjectWorkflowEvent struct {
+type ProjectWorkflow struct {
 	ID              int64
 	ProjectID       int64              `xorm:"unique(s)"`
 	WorkflowEvent   WorkflowEvent      `xorm:"unique(s)"`
@@ -48,24 +48,52 @@ type ProjectWorkflowEvent struct {
 	UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
 }
 
-func init() {
-	db.RegisterModel(new(ProjectWorkflowEvent))
+func (p *ProjectWorkflow) Link() string {
+	return ""
 }
 
-func FindWorkflowEvents(ctx context.Context, projectID int64) (map[WorkflowEvent]ProjectWorkflowEvent, error) {
-	events := make(map[WorkflowEvent]ProjectWorkflowEvent)
+func newDefaultWorkflows() []*ProjectWorkflow {
+	return []*ProjectWorkflow{
+		{
+			WorkflowEvent:   WorkflowEventItemAddedToProject,
+			WorkflowActions: []WorkflowAction{{ActionType: WorkflowActionTypeScope, ActionValue: "issue"}},
+		},
+		{
+			ProjectID:       0,
+			WorkflowEvent:   WorkflowEventItemReopened,
+			WorkflowActions: []WorkflowAction{{ActionType: WorkflowActionTypeScope, ActionValue: "issue"}},
+		},
+	}
+}
+
+func GetWorkflowDefaultValue(workflowIDStr string) *ProjectWorkflow {
+	workflows := newDefaultWorkflows()
+	for _, workflow := range workflows {
+		if workflow.WorkflowEvent == WorkflowEvent(workflowIDStr) {
+			return workflow
+		}
+	}
+	return &ProjectWorkflow{}
+}
+
+func init() {
+	db.RegisterModel(new(ProjectWorkflow))
+}
+
+func FindWorkflowEvents(ctx context.Context, projectID int64) (map[WorkflowEvent]ProjectWorkflow, error) {
+	events := make(map[WorkflowEvent]ProjectWorkflow)
 	if err := db.GetEngine(ctx).Where("project_id=?", projectID).Find(&events); err != nil {
 		return nil, err
 	}
-	res := make(map[WorkflowEvent]ProjectWorkflowEvent, len(events))
+	res := make(map[WorkflowEvent]ProjectWorkflow, len(events))
 	for _, event := range events {
 		res[event.WorkflowEvent] = event
 	}
 	return res, nil
 }
 
-func GetWorkflowEventByID(ctx context.Context, id int64) (*ProjectWorkflowEvent, error) {
-	p, exist, err := db.GetByID[ProjectWorkflowEvent](ctx, id)
+func GetWorkflowByID(ctx context.Context, id int64) (*ProjectWorkflow, error) {
+	p, exist, err := db.GetByID[ProjectWorkflow](ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -73,4 +101,20 @@ func GetWorkflowEventByID(ctx context.Context, id int64) (*ProjectWorkflowEvent,
 		return nil, util.ErrNotExist
 	}
 	return p, nil
+}
+
+func GetWorkflows(ctx context.Context, projectID int64) ([]*ProjectWorkflow, error) {
+	events := make([]*ProjectWorkflow, 0, 10)
+	if err := db.GetEngine(ctx).Where("project_id=?", projectID).Find(&events); err != nil {
+		return nil, err
+	}
+	workflows := newDefaultWorkflows()
+	for i, defaultWorkflow := range workflows {
+		for _, workflow := range events {
+			if workflow.WorkflowEvent == defaultWorkflow.WorkflowEvent {
+				workflows[i] = workflow
+			}
+		}
+	}
+	return workflows, nil
 }

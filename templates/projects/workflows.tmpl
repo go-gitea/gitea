@@ -1,0 +1,11 @@
+<div class="ui container">
+	<div class="ui stackable grid">
+		<div class="four wide column">
+			<div class="ui fluid vertical menu">
+				{{range .Workflows}}
+					<a class="item active" href="{{.Link}}">{{.Name}}</a>
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
