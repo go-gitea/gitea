@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/templates"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -44,6 +45,11 @@ func parseOrgTimes(ctx *context.Context) (unixFrom, unixTo int64) {
 
 func Worktime(ctx *context.Context) {
 	ctx.Data["PageIsOrgTimes"] = true
+
+	if err := shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 
 	unixFrom, unixTo := parseOrgTimes(ctx)
 	if ctx.Written() {
