@@ -306,16 +306,20 @@ func UploadPackageFile(ctx *context.Context) {
 
 	var file io.ReadCloser
 	multipartFile, _, err := ctx.Req.FormFile("source-archive")
-	if err != nil {
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	if multipartFile != nil {
+		file = multipartFile
+	} else {
 		content := ctx.Req.FormValue("source-archive")
-		if content != "" {
-			file = io.NopCloser(strings.NewReader(content))
-		} else {
-			apiError(ctx, http.StatusBadRequest, err)
+		if content == "" {
+			apiError(ctx, http.StatusBadRequest, "source-archive is required either as file or form value")
 			return
 		}
-	} else {
-		file = multipartFile
+		file = io.NopCloser(strings.NewReader(content))
 	}
 	defer file.Close()
 
