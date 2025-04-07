@@ -135,7 +135,7 @@ func TestIsOrganizationOwner(t *testing.T) {
 	test := func(orgID, userID int64, expected bool) {
 		isOwner, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, userID)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expected, isOwner)
+		assert.Equal(t, expected, isOwner)
 	}
 	test(3, 2, true)
 	test(3, 3, false)
@@ -149,7 +149,7 @@ func TestIsOrganizationMember(t *testing.T) {
 	test := func(orgID, userID int64, expected bool) {
 		isMember, err := organization.IsOrganizationMember(db.DefaultContext, orgID, userID)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expected, isMember)
+		assert.Equal(t, expected, isMember)
 	}
 	test(3, 2, true)
 	test(3, 3, false)
@@ -164,7 +164,7 @@ func TestIsPublicMembership(t *testing.T) {
 	test := func(orgID, userID int64, expected bool) {
 		isMember, err := organization.IsPublicMembership(db.DefaultContext, orgID, userID)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expected, isMember)
+		assert.Equal(t, expected, isMember)
 	}
 	test(3, 2, true)
 	test(3, 3, false)
@@ -237,7 +237,7 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 				memberUIDs = append(memberUIDs, member.UID)
 			}
 			slices.Sort(memberUIDs)
-			assert.EqualValues(t, tc.expectedUIDs, memberUIDs)
+			assert.Equal(t, tc.expectedUIDs, memberUIDs)
 		})
 	}
 }
@@ -255,7 +255,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	sort.Slice(orgUsers, func(i, j int) bool {
 		return orgUsers[i].ID < orgUsers[j].ID
 	})
-	assert.EqualValues(t, []*organization.OrgUser{{
+	assert.Equal(t, []*organization.OrgUser{{
 		ID:       1,
 		OrgID:    3,
 		UID:      2,
@@ -322,7 +322,7 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 		assert.NoError(t, err)
 		count, err := env.CountRepos(db.DefaultContext)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expectedCount, count)
+		assert.Equal(t, expectedCount, count)
 	}
 	testSuccess(2, 3)
 	testSuccess(4, 2)

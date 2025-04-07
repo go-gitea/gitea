@@ -224,7 +224,7 @@ func DeleteAttachmentsByComment(ctx context.Context, commentID int64, remove boo
 // UpdateAttachmentByUUID Updates attachment via uuid
 func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...string) error {
 	if attach.UUID == "" {
-		return fmt.Errorf("attachment uuid should be not blank")
+		return errors.New("attachment uuid should be not blank")
 	}
 	_, err := db.GetEngine(ctx).Where("uuid=?", attach.UUID).Cols(cols...).Update(attach)
 	return err

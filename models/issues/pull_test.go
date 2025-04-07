@@ -285,7 +285,7 @@ func TestDeleteOrphanedObjects(t *testing.T) {
 
 	countAfter, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, countBefore, countAfter)
+	assert.Equal(t, countBefore, countAfter)
 }
 
 func TestParseCodeOwnersLine(t *testing.T) {
@@ -318,7 +318,7 @@ func TestGetApprovers(t *testing.T) {
 	setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly = false
 	approvers := pr.GetApprovers(db.DefaultContext)
 	expected := "Reviewed-by: User Five <user5@example.com>\nReviewed-by: Org Six <org6@example.com>\n"
-	assert.EqualValues(t, expected, approvers)
+	assert.Equal(t, expected, approvers)
 }
 
 func TestGetPullRequestByMergedCommit(t *testing.T) {

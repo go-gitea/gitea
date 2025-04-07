@@ -74,13 +74,13 @@ func TestConvertHits(t *testing.T) {
 	}
 	hits, err := convertHits(validResponse)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []internal.Match{{ID: 11}, {ID: 22}, {ID: 33}}, hits)
+	assert.Equal(t, []internal.Match{{ID: 11}, {ID: 22}, {ID: 33}}, hits)
 }
 
 func TestDoubleQuoteKeyword(t *testing.T) {
-	assert.EqualValues(t, "", doubleQuoteKeyword(""))
-	assert.EqualValues(t, `"a" "b" "c"`, doubleQuoteKeyword("a b c"))
-	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
-	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
-	assert.EqualValues(t, `"a" "d" "g"`, doubleQuoteKeyword(`a  "" "d" """g`))
+	assert.Empty(t, doubleQuoteKeyword(""))
+	assert.Equal(t, `"a" "b" "c"`, doubleQuoteKeyword("a b c"))
+	assert.Equal(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
+	assert.Equal(t, `"a" "d" "g"`, doubleQuoteKeyword("a  d g"))
+	assert.Equal(t, `"a" "d" "g"`, doubleQuoteKeyword(`a  "" "d" """g`))
 }

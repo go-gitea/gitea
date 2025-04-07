@@ -107,7 +107,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 		isExternal := false
 		if marker == "!" {
 			path = "pulls"
-			prefix = "http://localhost:3000/someUser/someRepo/pulls/"
+			prefix = "/someUser/someRepo/pulls/"
 		} else {
 			path = "issues"
 			prefix = "https://someurl.com/someUser/someRepo/"
@@ -116,7 +116,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 
 		links := make([]any, len(indices))
 		for i, index := range indices {
-			links[i] = numericIssueLink(util.URLJoin(TestRepoURL, path), "ref-issue", index, marker)
+			links[i] = numericIssueLink(util.URLJoin("/test-owner/test-repo", path), "ref-issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, NewTestRenderContext(TestAppURL, localMetas))
@@ -293,13 +293,13 @@ func TestRender_AutoLink(t *testing.T) {
 
 	// render valid commit URLs
 	tmp := util.URLJoin(TestRepoURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
-	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code class=\"nohighlight\">d8a994ef24</code></a>")
+	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994ef24</code></a>")
 	tmp += "#diff-2"
-	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code class=\"nohighlight\">d8a994ef24 (diff-2)</code></a>")
+	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994ef24 (diff-2)</code></a>")
 
 	// render other commit URLs
 	tmp = "https://external-link.gitea.io/go-gitea/gitea/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
-	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code class=\"nohighlight\">d8a994ef24 (diff-2)</code></a>")
+	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code>d8a994ef24 (diff-2)</code></a>")
 }
 
 func TestRender_FullIssueURLs(t *testing.T) {
@@ -405,10 +405,10 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 		if v.CommitID == "" {
 			assert.False(t, ok)
 		} else {
-			assert.EqualValues(t, strings.TrimSuffix(k, "."), ret.FullURL)
-			assert.EqualValues(t, v.CommitID, ret.CommitID)
-			assert.EqualValues(t, v.SubPath, ret.SubPath)
-			assert.EqualValues(t, v.QueryHash, ret.QueryHash)
+			assert.Equal(t, strings.TrimSuffix(k, "."), ret.FullURL)
+			assert.Equal(t, v.CommitID, ret.CommitID)
+			assert.Equal(t, v.SubPath, ret.SubPath)
+			assert.Equal(t, v.QueryHash, ret.QueryHash)
 		}
 	}
 }

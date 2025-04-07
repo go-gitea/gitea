@@ -32,7 +32,7 @@ func TestAPIFollow(t *testing.T) {
 	t.Run("Follow", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/following/%s", user1)).
+		req := NewRequest(t, "PUT", "/api/v1/user/following/"+user1).
 			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusNoContent)
 
@@ -110,11 +110,11 @@ func TestAPIFollow(t *testing.T) {
 	t.Run("CheckMyFollowing", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/following/%s", user1)).
+		req := NewRequest(t, "GET", "/api/v1/user/following/"+user1).
 			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/following/%s", user2)).
+		req = NewRequest(t, "GET", "/api/v1/user/following/"+user2).
 			AddTokenAuth(token1)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
@@ -122,7 +122,7 @@ func TestAPIFollow(t *testing.T) {
 	t.Run("Unfollow", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/following/%s", user1)).
+		req := NewRequest(t, "DELETE", "/api/v1/user/following/"+user1).
 			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusNoContent)
 	})

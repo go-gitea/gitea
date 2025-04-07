@@ -37,7 +37,7 @@ func newMockRunner() *mockRunner {
 }
 
 func newMockRunnerClient(uuid, token string) *mockRunnerClient {
-	baseURL := fmt.Sprintf("%sapi/actions", setting.AppURL)
+	baseURL := setting.AppURL + "api/actions"
 
 	opt := connect.WithInterceptors(connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {

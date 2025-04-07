@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	auth "code.gitea.io/gitea/models/auth"
@@ -177,7 +178,7 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 				ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
 				Issuer:    setting.AppURL,
 				Audience:  []string{app.ClientID},
-				Subject:   fmt.Sprint(grant.UserID),
+				Subject:   strconv.FormatInt(grant.UserID, 10),
 			},
 			Nonce: grant.Nonce,
 		}

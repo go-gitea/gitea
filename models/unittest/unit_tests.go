@@ -153,9 +153,9 @@ func DumpQueryResult(t require.TestingT, sqlOrBean any, sqlArgs ...any) {
 	goDB := x.DB().DB
 	sql, ok := sqlOrBean.(string)
 	if !ok {
-		sql = fmt.Sprintf("SELECT * FROM %s", db.TableName(sqlOrBean))
+		sql = "SELECT * FROM " + db.TableName(sqlOrBean)
 	} else if !strings.Contains(sql, " ") {
-		sql = fmt.Sprintf("SELECT * FROM %s", sql)
+		sql = "SELECT * FROM " + sql
 	}
 	rows, err := goDB.Query(sql, sqlArgs...)
 	require.NoError(t, err)

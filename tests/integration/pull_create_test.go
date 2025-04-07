@@ -293,10 +293,10 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 		// sessionBase := loginUser(t, "user2")
 		token := getUserToken(t, RepoOwner, auth_model.AccessTokenScopeWriteUser)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
+		req := NewRequest(t, "GET", "/api/v1/user/blocks/"+ForkOwner).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
-		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
+		req = NewRequest(t, "PUT", "/api/v1/user/blocks/"+ForkOwner).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
@@ -308,7 +308,7 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 
 		// Teardown
 		// Unblock user
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/blocks/%s", ForkOwner)).
+		req = NewRequest(t, "DELETE", "/api/v1/user/blocks/"+ForkOwner).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 	})

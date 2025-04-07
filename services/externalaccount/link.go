@@ -5,7 +5,7 @@ package externalaccount
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -23,7 +23,7 @@ type Store interface {
 func LinkAccountFromStore(ctx context.Context, store Store, user *user_model.User) error {
 	gothUser := store.Get("linkAccountGothUser")
 	if gothUser == nil {
-		return fmt.Errorf("not in LinkAccount session")
+		return errors.New("not in LinkAccount session")
 	}
 
 	return LinkAccountToUser(ctx, user, gothUser.(goth.User))

@@ -31,15 +31,15 @@ func TestDbfsBasic(t *testing.T) {
 
 	n, err := f.Write([]byte("0123456789")) // blocks: 0123 4567 89
 	assert.NoError(t, err)
-	assert.EqualValues(t, 10, n)
+	assert.Equal(t, 10, n)
 
 	_, err = f.Seek(0, io.SeekStart)
 	assert.NoError(t, err)
 
 	buf, err := io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 10, n)
-	assert.EqualValues(t, "0123456789", string(buf))
+	assert.Equal(t, 10, n)
+	assert.Equal(t, "0123456789", string(buf))
 
 	// write some new data
 	_, err = f.Seek(1, io.SeekStart)
@@ -50,14 +50,14 @@ func TestDbfsBasic(t *testing.T) {
 	// read from offset
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "9", string(buf))
+	assert.Equal(t, "9", string(buf))
 
 	// read all
 	_, err = f.Seek(0, io.SeekStart)
 	assert.NoError(t, err)
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "0bcdefghi9", string(buf))
+	assert.Equal(t, "0bcdefghi9", string(buf))
 
 	// write to new size
 	_, err = f.Seek(-1, io.SeekEnd)
@@ -68,7 +68,7 @@ func TestDbfsBasic(t *testing.T) {
 	assert.NoError(t, err)
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "0bcdefghiJKLMNOP", string(buf))
+	assert.Equal(t, "0bcdefghiJKLMNOP", string(buf))
 
 	// write beyond EOF and fill with zero
 	_, err = f.Seek(5, io.SeekCurrent)
@@ -79,7 +79,7 @@ func TestDbfsBasic(t *testing.T) {
 	assert.NoError(t, err)
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "0bcdefghiJKLMNOP\x00\x00\x00\x00\x00xyzu", string(buf))
+	assert.Equal(t, "0bcdefghiJKLMNOP\x00\x00\x00\x00\x00xyzu", string(buf))
 
 	// write to the block with zeros
 	_, err = f.Seek(-6, io.SeekCurrent)
@@ -90,7 +90,7 @@ func TestDbfsBasic(t *testing.T) {
 	assert.NoError(t, err)
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "0bcdefghiJKLMNOP\x00\x00\x00ABCDzu", string(buf))
+	assert.Equal(t, "0bcdefghiJKLMNOP\x00\x00\x00ABCDzu", string(buf))
 
 	assert.NoError(t, f.Close())
 
@@ -117,7 +117,7 @@ func TestDbfsBasic(t *testing.T) {
 	assert.NoError(t, err)
 	stat, err := f.Stat()
 	assert.NoError(t, err)
-	assert.EqualValues(t, "test.txt", stat.Name())
+	assert.Equal(t, "test.txt", stat.Name())
 	assert.EqualValues(t, 0, stat.Size())
 	_, err = f.Write([]byte("0123456789"))
 	assert.NoError(t, err)
@@ -144,7 +144,7 @@ func TestDbfsReadWrite(t *testing.T) {
 
 	line, err := f2r.ReadString('\n')
 	assert.NoError(t, err)
-	assert.EqualValues(t, "line 1\n", line)
+	assert.Equal(t, "line 1\n", line)
 	_, err = f2r.ReadString('\n')
 	assert.ErrorIs(t, err, io.EOF)
 
@@ -153,7 +153,7 @@ func TestDbfsReadWrite(t *testing.T) {
 
 	line, err = f2r.ReadString('\n')
 	assert.NoError(t, err)
-	assert.EqualValues(t, "line 2\n", line)
+	assert.Equal(t, "line 2\n", line)
 	_, err = f2r.ReadString('\n')
 	assert.ErrorIs(t, err, io.EOF)
 }
@@ -186,5 +186,5 @@ func TestDbfsSeekWrite(t *testing.T) {
 
 	buf, err := io.ReadAll(fr)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "111333", string(buf))
+	assert.Equal(t, "111333", string(buf))
 }

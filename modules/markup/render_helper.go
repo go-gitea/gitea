@@ -10,13 +10,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-type LinkType string
-
 const (
-	LinkTypeApp     LinkType = "app"     // the link is relative to the AppSubURL
-	LinkTypeDefault LinkType = "default" // the link is relative to the default base (eg: repo link, or current ref tree path)
-	LinkTypeMedia   LinkType = "media"   // the link should be used to access media files (images, videos)
-	LinkTypeRaw     LinkType = "raw"     // not really useful, mainly for environment GITEA_PREFIX_RAW for external renders
+	LinkTypeDefault = ""
+	LinkTypeRoot    = "/:root"  // the link is relative to the AppSubURL(ROOT_URL)
+	LinkTypeMedia   = "/:media" // the link should be used to access media files (images, videos)
+	LinkTypeRaw     = "/:raw"   // not really useful, mainly for environment GITEA_PREFIX_RAW for external renders
 )
 
 type RenderHelper interface {
@@ -27,7 +25,7 @@ type RenderHelper interface {
 	// but not make processors to guess "is it rendering a comment or a wiki?" or "does it need to check commit ID?"
 
 	IsCommitIDExisting(commitID string) bool
-	ResolveLink(link string, likeType LinkType) string
+	ResolveLink(link, preferLinkType string) string
 }
 
 // RenderHelperFuncs is used to decouple cycle-import
@@ -51,7 +49,8 @@ func (r *SimpleRenderHelper) IsCommitIDExisting(commitID string) bool {
 	return false
 }
 
-func (r *SimpleRenderHelper) ResolveLink(link string, likeType LinkType) string {
+func (r *SimpleRenderHelper) ResolveLink(link, preferLinkType string) string {
+	_, link = ParseRenderedLink(link, preferLinkType)
 	return resolveLinkRelative(context.Background(), setting.AppSubURL+"/", "", link, false)
 }
 

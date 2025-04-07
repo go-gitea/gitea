@@ -31,6 +31,18 @@ if [ -e /data/ssh/ssh_host_ecdsa_cert ]; then
   SSH_ECDSA_CERT=${SSH_ECDSA_CERT:-"/data/ssh/ssh_host_ecdsa_cert"}
 fi
 
+if [ -e /data/ssh/ssh_host_ed25519-cert.pub ]; then
+  SSH_ED25519_CERT=${SSH_ED25519_CERT:-"/data/ssh/ssh_host_ed25519-cert.pub"}
+fi
+
+if [ -e /data/ssh/ssh_host_rsa-cert.pub ]; then
+  SSH_RSA_CERT=${SSH_RSA_CERT:-"/data/ssh/ssh_host_rsa-cert.pub"}
+fi
+
+if [ -e /data/ssh/ssh_host_ecdsa-cert.pub ]; then
+  SSH_ECDSA_CERT=${SSH_ECDSA_CERT:-"/data/ssh/ssh_host_ecdsa-cert.pub"}
+fi
+
 if [ -d /etc/ssh ]; then
     SSH_PORT=${SSH_PORT:-"22"} \
     SSH_LISTEN_PORT=${SSH_LISTEN_PORT:-"${SSH_PORT}"} \

@@ -45,6 +45,6 @@ func TestGenAPILinks(t *testing.T) {
 
 		links := genAPILinks(u, 100, 20, curPage)
 
-		assert.EqualValues(t, links, response)
+		assert.Equal(t, links, response)
 	}
 }

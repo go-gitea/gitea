@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -245,7 +246,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 
 				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
 				if n == 0 {
-					return cancelledJobs, fmt.Errorf("job has changed, try again")
+					return cancelledJobs, errors.New("job has changed, try again")
 				}
 
 				cancelledJobs = append(cancelledJobs, job)
@@ -412,7 +413,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		return err
 	}
 	if affected == 0 {
-		return fmt.Errorf("run has changed")
+		return errors.New("run has changed")
 		// It's impossible that the run is not found, since Gitea never deletes runs.
 	}
 

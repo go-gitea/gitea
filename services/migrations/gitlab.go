@@ -341,7 +341,7 @@ func (g *GitlabDownloader) convertGitlabRelease(ctx context.Context, rel *gitlab
 					return io.NopCloser(strings.NewReader(link.URL)), nil
 				}
 
-				req, err := http.NewRequest("GET", link.URL, nil)
+				req, err := http.NewRequest(http.MethodGet, link.URL, nil)
 				if err != nil {
 					return nil, err
 				}

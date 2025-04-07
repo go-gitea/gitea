@@ -47,7 +47,7 @@ func TestPullCompare(t *testing.T) {
 		assert.True(t, exists, "The template has changed")
 		req = NewRequest(t, "GET", link)
 		resp = session.MakeRequest(t, req, http.StatusOK)
-		assert.EqualValues(t, http.StatusOK, resp.Code)
+		assert.Equal(t, http.StatusOK, resp.Code)
 
 		// test the edit button in the PR diff view
 		req = NewRequest(t, "GET", "/user2/repo1/pulls/3/files")
@@ -86,7 +86,7 @@ func TestPullCompare(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		doc = NewHTMLParser(t, resp.Body)
 		editButtonCount = doc.doc.Find(".diff-file-header-actions a[href*='/_edit/']").Length()
-		assert.EqualValues(t, 0, editButtonCount, "Expected not to find a button to edit a file in the PR diff view because head repository has been deleted")
+		assert.Equal(t, 0, editButtonCount, "Expected not to find a button to edit a file in the PR diff view because head repository has been deleted")
 	})
 }
 
@@ -110,7 +110,7 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 
 		// user2 (admin of repo3) goes to the PR files page
 		user2Session := loginUser(t, "user2")
-		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/files", prURL)), http.StatusOK)
+		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files"), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		nodes := htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .tippy-target a")
 		if assert.Equal(t, 1, nodes.Length()) {
@@ -127,14 +127,14 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 		htmlDoc = NewHTMLParser(t, resp.Body)
 		dataURL, exists := htmlDoc.doc.Find("#allow-edits-from-maintainers").Attr("data-url")
 		assert.True(t, exists)
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/set_allow_maintainer_edit", dataURL), map[string]string{
+		req := NewRequestWithValues(t, "POST", dataURL+"/set_allow_maintainer_edit", map[string]string{
 			"_csrf":                 htmlDoc.GetCSRF(),
 			"allow_maintainer_edit": "true",
 		})
 		user4Session.MakeRequest(t, req, http.StatusOK)
 
 		// user2 (admin of repo3) goes to the PR files page again
-		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/files", prURL)), http.StatusOK)
+		resp = user2Session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files"), http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 		nodes = htmlDoc.doc.Find(".diff-file-box[data-new-filename=\"README.md\"] .diff-file-header-actions .tippy-target a")
 		if assert.Equal(t, 2, nodes.Length()) {

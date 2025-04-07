@@ -4,8 +4,8 @@
 package repository
 
 import (
-	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -72,9 +72,9 @@ func FullPushingEnvironment(author, committer *user_model.User, repo *repo_model
 		EnvRepoUsername+"="+repo.OwnerName,
 		EnvRepoIsWiki+"="+isWiki,
 		EnvPusherName+"="+committer.Name,
-		EnvPusherID+"="+fmt.Sprintf("%d", committer.ID),
-		EnvRepoID+"="+fmt.Sprintf("%d", repo.ID),
-		EnvPRID+"="+fmt.Sprintf("%d", prID),
+		EnvPusherID+"="+strconv.FormatInt(committer.ID, 10),
+		EnvRepoID+"="+strconv.FormatInt(repo.ID, 10),
+		EnvPRID+"="+strconv.FormatInt(prID, 10),
 		EnvAppURL+"="+setting.AppURL,
 		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)

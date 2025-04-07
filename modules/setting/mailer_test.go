@@ -34,8 +34,8 @@ func Test_loadMailerFrom(t *testing.T) {
 			// Check mailer setting
 			loadMailerFrom(cfg)
 
-			assert.EqualValues(t, kase.SMTPAddr, MailService.SMTPAddr)
-			assert.EqualValues(t, kase.SMTPPort, MailService.SMTPPort)
+			assert.Equal(t, kase.SMTPAddr, MailService.SMTPAddr)
+			assert.Equal(t, kase.SMTPPort, MailService.SMTPPort)
 		})
 	}
 }

@@ -12,7 +12,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -62,28 +61,25 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 		opts.NewBranch = opts.OldBranch
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return err
-	}
-	defer closer.Close()
-
 	// oldBranch must exist for this operation
-	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil {
+	if exist, err := git_model.IsBranchExist(ctx, repo.ID, opts.OldBranch); err != nil {
 		return err
+	} else if !exist {
+		return git_model.ErrBranchNotExist{
+			BranchName: opts.OldBranch,
+		}
 	}
 	// A NewBranch can be specified for the patch to be applied to.
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
-		if existingBranch != nil {
+		exist, err := git_model.IsBranchExist(ctx, repo.ID, opts.NewBranch)
+		if err != nil {
+			return err
+		} else if exist {
 			return git_model.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
 			}
-		}
-		if err != nil && !git.IsErrBranchNotExist(err) {
-			return err
 		}
 	} else {
 		protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, opts.OldBranch)

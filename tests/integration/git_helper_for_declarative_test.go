@@ -123,7 +123,7 @@ func doGitInitTestRepository(dstPath string) func(*testing.T) {
 		// forcibly set default branch to master
 		_, _, err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
-		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0o644))
+		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("# Testing Repository\n\nOriginally created in: "+dstPath), 0o644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
 		signature := git.Signature{
 			Email: "test@example.com",
@@ -163,7 +163,7 @@ func doGitAddSomeCommits(dstPath, branch string) func(*testing.T) {
 	return func(t *testing.T) {
 		doGitCheckoutBranch(dstPath, branch)(t)
 
-		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, fmt.Sprintf("file-%s.txt", branch)), []byte(fmt.Sprintf("file %s", branch)), 0o644))
+		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, fmt.Sprintf("file-%s.txt", branch)), []byte("file "+branch), 0o644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
 		signature := git.Signature{
 			Email: "test@test.test",
@@ -172,7 +172,7 @@ func doGitAddSomeCommits(dstPath, branch string) func(*testing.T) {
 		assert.NoError(t, git.CommitChanges(dstPath, git.CommitChangesOptions{
 			Committer: &signature,
 			Author:    &signature,
-			Message:   fmt.Sprintf("update %s", branch),
+			Message:   "update " + branch,
 		}))
 	}
 }

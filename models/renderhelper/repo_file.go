@@ -29,17 +29,17 @@ func (r *RepoFile) IsCommitIDExisting(commitID string) bool {
 	return r.commitChecker.IsCommitIDExisting(commitID)
 }
 
-func (r *RepoFile) ResolveLink(link string, likeType markup.LinkType) string {
-	finalLink := link
-	switch likeType {
-	case markup.LinkTypeApp:
-		finalLink = r.ctx.ResolveLinkApp(link)
-	case markup.LinkTypeDefault:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "src", r.opts.CurrentRefPath), r.opts.CurrentTreePath, link)
+func (r *RepoFile) ResolveLink(link, preferLinkType string) (finalLink string) {
+	linkType, link := markup.ParseRenderedLink(link, preferLinkType)
+	switch linkType {
+	case markup.LinkTypeRoot:
+		finalLink = r.ctx.ResolveLinkRoot(link)
 	case markup.LinkTypeRaw:
 		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "raw", r.opts.CurrentRefPath), r.opts.CurrentTreePath, link)
 	case markup.LinkTypeMedia:
 		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "media", r.opts.CurrentRefPath), r.opts.CurrentTreePath, link)
+	default:
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "src", r.opts.CurrentRefPath), r.opts.CurrentTreePath, link)
 	}
 	return finalLink
 }
@@ -61,15 +61,13 @@ func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, 
 	if repo != nil {
 		helper.repoLink = repo.Link()
 		helper.commitChecker = newCommitChecker(ctx, repo)
-		rctx = rctx.WithMetas(repo.ComposeDocumentMetas(ctx))
+		rctx = rctx.WithMetas(repo.ComposeRepoFileMetas(ctx))
 	} else {
 		// this is almost dead code, only to pass the incorrect tests
 		helper.repoLink = fmt.Sprintf("%s/%s", helper.opts.DeprecatedOwnerName, helper.opts.DeprecatedRepoName)
 		rctx = rctx.WithMetas(map[string]string{
 			"user": helper.opts.DeprecatedOwnerName,
 			"repo": helper.opts.DeprecatedRepoName,
-
-			"markdownLineBreakStyle": "document",
 		})
 	}
 	rctx = rctx.WithHelper(helper)

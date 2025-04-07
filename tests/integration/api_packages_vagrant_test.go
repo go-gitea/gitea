@@ -35,7 +35,7 @@ func TestPackageVagrant(t *testing.T) {
 	packageDescription := "Test Description"
 	packageProvider := "virtualbox"
 
-	filename := fmt.Sprintf("%s.box", packageProvider)
+	filename := packageProvider + ".box"
 
 	infoContent, _ := json.Marshal(map[string]string{
 		"description": packageDescription,
@@ -59,7 +59,7 @@ func TestPackageVagrant(t *testing.T) {
 	t.Run("Authenticate", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		authenticateURL := fmt.Sprintf("%s/authenticate", root)
+		authenticateURL := root + "/authenticate"
 
 		req := NewRequest(t, "GET", authenticateURL)
 		MakeRequest(t, req, http.StatusUnauthorized)

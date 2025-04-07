@@ -15,7 +15,7 @@ import (
 
 func TestRedirect(t *testing.T) {
 	setting.IsInTesting = true
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 	cases := []struct {
 		url  string
@@ -36,7 +36,7 @@ func TestRedirect(t *testing.T) {
 		assert.Equal(t, c.keep, has, "url = %q", c.url)
 	}
 
-	req, _ = http.NewRequest("GET", "/", nil)
+	req, _ = http.NewRequest(http.MethodGet, "/", nil)
 	resp := httptest.NewRecorder()
 	req.Header.Add("HX-Request", "true")
 	b := NewBaseContextForTest(resp, req)

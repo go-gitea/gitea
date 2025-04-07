@@ -54,7 +54,7 @@ func ApplicationsPost(ctx *context.Context) {
 		ctx.ServerError("GetScope", err)
 		return
 	}
-	if scope == "" || scope == auth_model.AccessTokenScopePublicOnly {
+	if !scope.HasPermissionScope() {
 		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
 	}
 

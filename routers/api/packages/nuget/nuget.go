@@ -488,7 +488,7 @@ func UploadPackage(ctx *context.Context) {
 		pv,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(fmt.Sprintf("%s.nuspec", np.ID)),
+				Filename: strings.ToLower(np.ID + ".nuspec"),
 			},
 			Data: nuspecBuf,
 		},

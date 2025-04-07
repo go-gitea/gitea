@@ -33,7 +33,7 @@ func TestArchive_Basic(t *testing.T) {
 	bogusReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
-	assert.EqualValues(t, firstCommit+".zip", bogusReq.GetArchiveName())
+	assert.Equal(t, firstCommit+".zip", bogusReq.GetArchiveName())
 
 	// Check a series of bogus requests.
 	// Step 1, valid commit with a bad extension.
@@ -54,12 +54,12 @@ func TestArchive_Basic(t *testing.T) {
 	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "master.zip")
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
-	assert.EqualValues(t, "master.zip", bogusReq.GetArchiveName())
+	assert.Equal(t, "master.zip", bogusReq.GetArchiveName())
 
 	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "test/archive.zip")
 	assert.NoError(t, err)
 	assert.NotNil(t, bogusReq)
-	assert.EqualValues(t, "test-archive.zip", bogusReq.GetArchiveName())
+	assert.Equal(t, "test-archive.zip", bogusReq.GetArchiveName())
 
 	// Now two valid requests, firstCommit with valid extensions.
 	zipReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")

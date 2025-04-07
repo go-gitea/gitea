@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/migrations/v1_10"
@@ -424,7 +425,7 @@ func EnsureUpToDate(ctx context.Context, x *xorm.Engine) error {
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("database has not been initialized")
+		return errors.New("database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {

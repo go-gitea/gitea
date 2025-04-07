@@ -37,7 +37,7 @@ func TestPackagePub(t *testing.T) {
 	packageVersion := "1.0.1"
 	packageDescription := "Test Description"
 
-	filename := fmt.Sprintf("%s.tar.gz", packageVersion)
+	filename := packageVersion + ".tar.gz"
 
 	pubspecContent := `name: ` + packageName + `
 version: ` + packageVersion + `

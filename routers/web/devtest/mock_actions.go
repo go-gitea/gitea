@@ -4,9 +4,9 @@
 package devtest
 
 import (
-	"fmt"
 	mathRand "math/rand/v2"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,8 +38,8 @@ func generateMockStepsLog(logCur actions.LogCursor) (stepsLog []*actions.ViewSte
 	for i := 0; i < mockCount; i++ {
 		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
-		logStr = strings.ReplaceAll(logStr, "{step}", fmt.Sprintf("%d", logCur.Step))
-		logStr = strings.ReplaceAll(logStr, "{cursor}", fmt.Sprintf("%d", cur))
+		logStr = strings.ReplaceAll(logStr, "{step}", strconv.Itoa(logCur.Step))
+		logStr = strings.ReplaceAll(logStr, "{cursor}", strconv.FormatInt(cur, 10))
 		stepsLog = append(stepsLog, &actions.ViewStepLog{
 			Step:    logCur.Step,
 			Cursor:  cur,

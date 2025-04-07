@@ -4,7 +4,7 @@
 package auth
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -55,13 +55,13 @@ func allowedOpenIDURI(uri string) (err error) {
 			}
 		}
 		// must match one of this or be refused
-		return fmt.Errorf("URI not allowed by whitelist")
+		return errors.New("URI not allowed by whitelist")
 	}
 
 	// A blacklist match expliclty forbids
 	for _, pat := range setting.Service.OpenIDBlacklist {
 		if pat.MatchString(uri) {
-			return fmt.Errorf("URI forbidden by blacklist")
+			return errors.New("URI forbidden by blacklist")
 		}
 	}
 
@@ -99,7 +99,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
 		log.Error("Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
-		ctx.RenderWithErr(fmt.Sprintf("Unable to find OpenID provider in %s", redirectTo), tplSignInOpenID, &form)
+		ctx.RenderWithErr("Unable to find OpenID provider in "+redirectTo, tplSignInOpenID, &form)
 		return
 	}
 

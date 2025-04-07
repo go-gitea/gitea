@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repository
@@ -14,11 +14,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/feed"
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var notifySync sync.Once
@@ -124,4 +127,41 @@ func TestRepositoryTransfer(t *testing.T) {
 	// Reject transfer
 	err = RejectRepositoryTransfer(db.DefaultContext, repo2, doer)
 	assert.True(t, repo_model.IsErrNoPendingTransfer(err))
+}
+
+// Test transfer rejections
+func TestRepositoryTransferRejection(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	// Set limit to 0 repositories so no repositories can be transferred
+	defer test.MockVariableValue(&setting.Repository.MaxCreationLimit, 0)()
+
+	// Admin case
+	doerAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+
+	transfer, err := repo_model.GetPendingRepositoryTransfer(db.DefaultContext, repo)
+	require.NoError(t, err)
+	require.NotNil(t, transfer)
+	require.NoError(t, transfer.LoadRecipient(db.DefaultContext))
+
+	require.True(t, transfer.Recipient.CanCreateRepo()) // admin is not subject to limits
+
+	// Administrator should not be affected by the limits so transfer should be successful
+	assert.NoError(t, AcceptTransferOwnership(db.DefaultContext, repo, doerAdmin))
+
+	// Non admin user case
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 21})
+
+	transfer, err = repo_model.GetPendingRepositoryTransfer(db.DefaultContext, repo)
+	require.NoError(t, err)
+	require.NotNil(t, transfer)
+	require.NoError(t, transfer.LoadRecipient(db.DefaultContext))
+
+	require.False(t, transfer.Recipient.CanCreateRepo()) // regular user is subject to limits
+
+	// Cannot accept because of the limit
+	err = AcceptTransferOwnership(db.DefaultContext, repo, doer)
+	assert.Error(t, err)
+	assert.True(t, IsRepositoryLimitReached(err))
 }

@@ -126,7 +126,7 @@ func apiUnauthorizedError(ctx *context.Context) {
 
 // ReqContainerAccess is a middleware which checks the current user valid (real user or ghost if anonymous access is enabled)
 func ReqContainerAccess(ctx *context.Context) {
-	if ctx.Doer == nil || (setting.Service.RequireSignInView && ctx.Doer.IsGhost()) {
+	if ctx.Doer == nil || (setting.Service.RequireSignInViewStrict && ctx.Doer.IsGhost()) {
 		apiUnauthorizedError(ctx)
 	}
 }
@@ -152,7 +152,7 @@ func Authenticate(ctx *context.Context) {
 	u := ctx.Doer
 	packageScope := auth_service.GetAccessScope(ctx.Data)
 	if u == nil {
-		if setting.Service.RequireSignInView {
+		if setting.Service.RequireSignInViewStrict {
 			apiUnauthorizedError(ctx)
 			return
 		}

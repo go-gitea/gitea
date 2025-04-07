@@ -59,7 +59,7 @@ func TestAccessLogger(t *testing.T) {
 	recorder.logger = mockLogger
 	req := &http.Request{
 		RemoteAddr: "remote-addr",
-		Method:     "GET",
+		Method:     http.MethodGet,
 		Proto:      "https",
 		URL:        &url.URL{Path: "/path"},
 	}

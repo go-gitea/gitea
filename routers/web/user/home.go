@@ -699,7 +699,7 @@ func ShowGPGKeys(ctx *context.Context) {
 
 	headers := make(map[string]string)
 	if len(failedEntitiesID) > 0 { // If some key need re-import to be exported
-		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
+		headers["Note"] = "The keys with the following IDs couldn't be exported and need to be reuploaded " + strings.Join(failedEntitiesID, ", ")
 	} else if len(entities) == 0 {
 		headers["Note"] = "This user hasn't uploaded any GPG keys."
 	}

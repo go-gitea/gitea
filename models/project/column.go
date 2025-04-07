@@ -147,7 +147,7 @@ func NewColumn(ctx context.Context, column *Column) error {
 		return err
 	}
 	if res.ColumnCount >= maxProjectColumns {
-		return fmt.Errorf("NewBoard: maximum number of columns reached")
+		return errors.New("NewBoard: maximum number of columns reached")
 	}
 	column.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
 	_, err := db.GetEngine(ctx).Insert(column)
@@ -172,7 +172,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 	}
 
 	if column.Default {
-		return fmt.Errorf("deleteColumnByID: cannot delete default column")
+		return errors.New("deleteColumnByID: cannot delete default column")
 	}
 
 	// move all issues to the default column

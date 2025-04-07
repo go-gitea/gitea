@@ -5,6 +5,8 @@ import {ref} from 'vue';
 type Item = {
   entryName: string;
   entryMode: string;
+  entryIcon: string;
+  entryIconOpen: string;
   fullPath: string;
   submoduleUrl?: string;
   children?: Item[];
@@ -80,7 +82,8 @@ const doGotoSubModule = () => {
   >
     <!-- file -->
     <div class="item-content">
-      <SvgIcon name="octicon-file"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -92,11 +95,13 @@ const doGotoSubModule = () => {
   >
     <!-- directory -->
     <div class="item-toggle">
+      <!-- FIXME: use a general and global class for this animation -->
       <SvgIcon v-if="isLoading" name="octicon-sync" class="job-status-rotate"/>
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
     </div>
     <div class="item-content">
-      <SvgIcon class="text primary" :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span class="text primary" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
       <span class="gt-ellipsis">{{ item.entryName }}</span>
     </div>
   </div>

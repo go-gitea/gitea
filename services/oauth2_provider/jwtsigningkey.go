@@ -31,7 +31,7 @@ type ErrInvalidAlgorithmType struct {
 }
 
 func (err ErrInvalidAlgorithmType) Error() string {
-	return fmt.Sprintf("JWT signing algorithm is not supported: %s", err.Algorithm)
+	return "JWT signing algorithm is not supported: " + err.Algorithm
 }
 
 // JWTSigningKey represents a algorithm/key pair to sign JWTs

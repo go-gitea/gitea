@@ -36,7 +36,7 @@ func TestGetWatchers(t *testing.T) {
 	// One watchers are inactive, thus minus 1
 	assert.Len(t, watches, repo.NumWatches-1)
 	for _, watch := range watches {
-		assert.EqualValues(t, repo.ID, watch.RepoID)
+		assert.Equal(t, repo.ID, watch.RepoID)
 	}
 
 	watches, err = repo_model.GetWatchers(db.DefaultContext, unittest.NonexistentID)

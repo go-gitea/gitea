@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -68,7 +69,7 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 		"repositoryUrl":     run.Repo.HTMLURL(),                       // string, The Git URL to the repository. For example, git://github.com/codertocat/hello-world.git.
 		"retention_days":    "",                                       // string, The number of days that workflow run logs and artifacts are kept.
 		"run_id":            "",                                       // string, A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
-		"run_number":        fmt.Sprint(run.Index),                    // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
+		"run_number":        strconv.FormatInt(run.Index, 10),         // string, A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
 		"run_attempt":       "",                                       // string, A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
 		"secret_source":     "Actions",                                // string, The source of a secret used in a workflow. Possible values are None, Actions, Dependabot, or Codespaces.
 		"server_url":        setting.AppURL,                           // string, The URL of the GitHub server. For example: https://github.com.
@@ -83,8 +84,8 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 
 	if job != nil {
 		gitContext["job"] = job.JobID
-		gitContext["run_id"] = fmt.Sprint(job.RunID)
-		gitContext["run_attempt"] = fmt.Sprint(job.Attempt)
+		gitContext["run_id"] = strconv.FormatInt(job.RunID, 10)
+		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
 	}
 
 	return gitContext

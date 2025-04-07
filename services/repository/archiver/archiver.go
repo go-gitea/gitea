@@ -44,7 +44,7 @@ type ErrUnknownArchiveFormat struct {
 
 // Error implements error
 func (err ErrUnknownArchiveFormat) Error() string {
-	return fmt.Sprintf("unknown format: %s", err.RequestNameType)
+	return "unknown format: " + err.RequestNameType
 }
 
 // Is implements error
@@ -60,7 +60,7 @@ type RepoRefNotFoundError struct {
 
 // Error implements error.
 func (e RepoRefNotFoundError) Error() string {
-	return fmt.Sprintf("unrecognized repository reference: %s", e.RefShortName)
+	return "unrecognized repository reference: " + e.RefShortName
 }
 
 func (e RepoRefNotFoundError) Is(err error) bool {

@@ -4,7 +4,6 @@
 package repository
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -45,7 +44,7 @@ func Test_detectLicense(t *testing.T) {
 		assert.NoError(t, err)
 
 		tests = append(tests, DetectLicenseTest{
-			name: fmt.Sprintf("single license test: %s", licenseName),
+			name: "single license test: " + licenseName,
 			arg:  string(license),
 			want: []string{licenseName},
 		})

@@ -8,6 +8,8 @@ import (
 	"io"
 	"sort"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Type returns the type of the entry (commit, tree, blob)
@@ -25,7 +27,7 @@ func (te *TreeEntry) Type() string {
 // FollowLink returns the entry pointed to by a symlink
 func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 	if !te.IsLink() {
-		return nil, ErrBadLink{te.Name(), "not a symlink"}
+		return nil, ErrSymlinkUnresolved{te.Name(), "not a symlink"}
 	}
 
 	// read the link
@@ -56,13 +58,13 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 	}
 
 	if t == nil {
-		return nil, ErrBadLink{te.Name(), "points outside of repo"}
+		return nil, ErrSymlinkUnresolved{te.Name(), "points outside of repo"}
 	}
 
 	target, err := t.GetTreeEntryByPath(lnk)
 	if err != nil {
 		if IsErrNotExist(err) {
-			return nil, ErrBadLink{te.Name(), "broken link"}
+			return nil, ErrSymlinkUnresolved{te.Name(), "broken link"}
 		}
 		return nil, err
 	}
@@ -70,33 +72,27 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 }
 
 // FollowLinks returns the entry ultimately pointed to by a symlink
-func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
+func (te *TreeEntry) FollowLinks(optLimit ...int) (*TreeEntry, error) {
 	if !te.IsLink() {
-		return nil, ErrBadLink{te.Name(), "not a symlink"}
+		return nil, ErrSymlinkUnresolved{te.Name(), "not a symlink"}
 	}
+	limit := util.OptionalArg(optLimit, 10)
 	entry := te
-	for i := 0; i < 999; i++ {
-		if entry.IsLink() {
-			next, err := entry.FollowLink()
-			if err != nil {
-				return nil, err
-			}
-			if next.ID == entry.ID {
-				return nil, ErrBadLink{
-					entry.Name(),
-					"recursive link",
-				}
-			}
-			entry = next
-		} else {
+	for i := 0; i < limit; i++ {
+		if !entry.IsLink() {
 			break
 		}
+		next, err := entry.FollowLink()
+		if err != nil {
+			return nil, err
+		}
+		if next.ID == entry.ID {
+			return nil, ErrSymlinkUnresolved{entry.Name(), "recursive link"}
+		}
+		entry = next
 	}
 	if entry.IsLink() {
-		return nil, ErrBadLink{
-			te.Name(),
-			"too many levels of symbolic links",
-		}
+		return nil, ErrSymlinkUnresolved{te.Name(), "too many levels of symbolic links"}
 	}
 	return entry, nil
 }

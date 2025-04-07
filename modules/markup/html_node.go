@@ -4,42 +4,79 @@
 package markup
 
 import (
+	"strings"
+
 	"golang.org/x/net/html"
 )
 
+func isAnchorIDUserContent(s string) bool {
+	// blackfridayExtRegex is for blackfriday extensions create IDs like fn:user-content-footnote
+	// old logic: blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
+	return strings.HasPrefix(s, "user-content-") || strings.Contains(s, ":user-content-")
+}
+
+func processNodeAttrID(node *html.Node) {
+	// Add user-content- to IDs and "#" links if they don't already have them,
+	// and convert the link href to a relative link to the host root
+	for idx, attr := range node.Attr {
+		if attr.Key == "id" {
+			if !isAnchorIDUserContent(attr.Val) {
+				node.Attr[idx].Val = "user-content-" + attr.Val
+			}
+		}
+	}
+}
+
+func processNodeA(ctx *RenderContext, node *html.Node) {
+	for idx, attr := range node.Attr {
+		if attr.Key == "href" {
+			if anchorID, ok := strings.CutPrefix(attr.Val, "#"); ok {
+				if !isAnchorIDUserContent(attr.Val) {
+					node.Attr[idx].Val = "#user-content-" + anchorID
+				}
+			} else {
+				node.Attr[idx].Val = ctx.RenderHelper.ResolveLink(attr.Val, LinkTypeDefault)
+			}
+		}
+	}
+}
+
 func visitNodeImg(ctx *RenderContext, img *html.Node) (next *html.Node) {
 	next = img.NextSibling
-	for i, attr := range img.Attr {
-		if attr.Key != "src" {
+	for i, imgAttr := range img.Attr {
+		if imgAttr.Key != "src" {
 			continue
 		}
 
-		if IsNonEmptyRelativePath(attr.Val) {
-			attr.Val = ctx.RenderHelper.ResolveLink(attr.Val, LinkTypeMedia)
+		imgSrcOrigin := imgAttr.Val
+		isLinkable := imgSrcOrigin != "" && !strings.HasPrefix(imgSrcOrigin, "data:")
 
-			// By default, the "<img>" tag should also be clickable,
-			// because frontend use `<img>` to paste the re-scaled image into the markdown,
-			// so it must match the default markdown image behavior.
-			hasParentAnchor := false
-			for p := img.Parent; p != nil; p = p.Parent {
-				if hasParentAnchor = p.Type == html.ElementNode && p.Data == "a"; hasParentAnchor {
-					break
-				}
+		// By default, the "<img>" tag should also be clickable,
+		// because frontend use `<img>` to paste the re-scaled image into the markdown,
+		// so it must match the default markdown image behavior.
+		cnt := 0
+		for p := img.Parent; isLinkable && p != nil && cnt < 2; p = p.Parent {
+			if hasParentAnchor := p.Type == html.ElementNode && p.Data == "a"; hasParentAnchor {
+				isLinkable = false
+				break
 			}
-			if !hasParentAnchor {
-				imgA := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{
-					{Key: "href", Val: attr.Val},
-					{Key: "target", Val: "_blank"},
-				}}
-				parent := img.Parent
-				imgNext := img.NextSibling
-				parent.RemoveChild(img)
-				parent.InsertBefore(imgA, imgNext)
-				imgA.AppendChild(img)
-			}
+			cnt++
 		}
-		attr.Val = camoHandleLink(attr.Val)
-		img.Attr[i] = attr
+		if isLinkable {
+			wrapper := &html.Node{Type: html.ElementNode, Data: "a", Attr: []html.Attribute{
+				{Key: "href", Val: ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeDefault)},
+				{Key: "target", Val: "_blank"},
+			}}
+			parent := img.Parent
+			imgNext := img.NextSibling
+			parent.RemoveChild(img)
+			parent.InsertBefore(wrapper, imgNext)
+			wrapper.AppendChild(img)
+		}
+
+		imgAttr.Val = ctx.RenderHelper.ResolveLink(imgSrcOrigin, LinkTypeMedia)
+		imgAttr.Val = camoHandleLink(imgAttr.Val)
+		img.Attr[i] = imgAttr
 	}
 	return next
 }

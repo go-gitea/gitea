@@ -142,12 +142,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	if !repo.IsEmpty {
 		if len(repo.DefaultBranch) == 0 {
 			// Try to get HEAD branch and set it as default branch.
-			headBranch, err := gitRepo.GetHEADBranch()
+			headBranchName, err := git.GetDefaultBranch(ctx, repoPath)
 			if err != nil {
 				return repo, fmt.Errorf("GetHEADBranch: %w", err)
 			}
-			if headBranch != nil {
-				repo.DefaultBranch = headBranch.Name
+			if headBranchName != "" {
+				repo.DefaultBranch = headBranchName
 			}
 		}
 

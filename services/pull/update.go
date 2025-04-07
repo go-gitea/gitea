@@ -5,6 +5,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -23,7 +24,7 @@ import (
 func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
 	if pr.Flow == issues_model.PullRequestFlowAGit {
 		// TODO: update of agit flow pull request's head branch is unsupported
-		return fmt.Errorf("update of agit flow pull request's head branch is unsupported")
+		return errors.New("update of agit flow pull request's head branch is unsupported")
 	}
 
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))

@@ -20,7 +20,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
 	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
 
 	// we can also configure packages storage directly
 	iniStr = `
@@ -32,7 +32,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
 	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
 
 	// or we can indicate the storage type in the packages section
 	iniStr = `
@@ -47,7 +47,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
 	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
 
 	// or we can indicate the storage type  and minio base path in the packages section
 	iniStr = `
@@ -63,7 +63,7 @@ STORAGE_TYPE = minio
 	assert.NoError(t, loadRepoArchiveFrom(cfg))
 
 	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.EqualValues(t, "my_archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	assert.Equal(t, "my_archive/", RepoArchive.Storage.MinioConfig.BasePath)
 }
 
 func Test_RepoArchiveStorage(t *testing.T) {
@@ -85,7 +85,7 @@ MINIO_SECRET_ACCESS_KEY = correct_key
 	storage := RepoArchive.Storage
 
 	assert.EqualValues(t, "minio", storage.Type)
-	assert.EqualValues(t, "gitea", storage.MinioConfig.Bucket)
+	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
 
 	iniStr = `
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -107,5 +107,5 @@ MINIO_SECRET_ACCESS_KEY = correct_key
 	storage = RepoArchive.Storage
 
 	assert.EqualValues(t, "minio", storage.Type)
-	assert.EqualValues(t, "gitea", storage.MinioConfig.Bucket)
+	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
 }

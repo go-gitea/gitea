@@ -223,11 +223,11 @@ func DeleteIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull {
-		ctx.Redirect(fmt.Sprintf("%s/pulls", ctx.Repo.Repository.Link()), http.StatusSeeOther)
+		ctx.Redirect(ctx.Repo.Repository.Link()+"/pulls", http.StatusSeeOther)
 		return
 	}
 
-	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.Link()), http.StatusSeeOther)
+	ctx.Redirect(ctx.Repo.Repository.Link()+"/issues", http.StatusSeeOther)
 }
 
 func toSet[ItemType any, KeyType comparable](slice []ItemType, keyFunc func(ItemType) KeyType) container.Set[KeyType] {

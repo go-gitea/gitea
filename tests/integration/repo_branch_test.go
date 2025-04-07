@@ -138,7 +138,7 @@ func TestCreateBranchInvalidCSRF(t *testing.T) {
 }
 
 func prepareRecentlyPushedBranchTest(t *testing.T, headSession *TestSession, baseRepo, headRepo *repo_model.Repository) {
-	refSubURL := fmt.Sprintf("branch/%s", headRepo.DefaultBranch)
+	refSubURL := "branch/" + headRepo.DefaultBranch
 	baseRepoPath := baseRepo.OwnerName + "/" + baseRepo.Name
 	headRepoPath := headRepo.OwnerName + "/" + headRepo.Name
 	// Case 1: Normal branch changeset to display pushed message
@@ -168,7 +168,7 @@ func prepareRecentlyPushedBranchTest(t *testing.T, headSession *TestSession, bas
 }
 
 func prepareRecentlyPushedBranchSpecialTest(t *testing.T, session *TestSession, baseRepo, headRepo *repo_model.Repository) {
-	refSubURL := fmt.Sprintf("branch/%s", headRepo.DefaultBranch)
+	refSubURL := "branch/" + headRepo.DefaultBranch
 	baseRepoPath := baseRepo.OwnerName + "/" + baseRepo.Name
 	headRepoPath := headRepo.OwnerName + "/" + headRepo.Name
 	// create branch with no new commit
@@ -196,7 +196,7 @@ func testCreatePullToDefaultBranch(t *testing.T, session *TestSession, baseRepo,
 }
 
 func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo, headRepo *repo_model.Repository) {
-	refSubURL := fmt.Sprintf("branch/%s", headRepo.DefaultBranch)
+	refSubURL := "branch/" + headRepo.DefaultBranch
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, refSubURL, "new-commit", http.StatusSeeOther)
 
 	// create opening PR

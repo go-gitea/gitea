@@ -28,14 +28,14 @@ func (r *RepoComment) IsCommitIDExisting(commitID string) bool {
 	return r.commitChecker.IsCommitIDExisting(commitID)
 }
 
-func (r *RepoComment) ResolveLink(link string, likeType markup.LinkType) (finalLink string) {
-	switch likeType {
-	case markup.LinkTypeApp:
-		finalLink = r.ctx.ResolveLinkApp(link)
+func (r *RepoComment) ResolveLink(link, preferLinkType string) string {
+	linkType, link := markup.ParseRenderedLink(link, preferLinkType)
+	switch linkType {
+	case markup.LinkTypeRoot:
+		return r.ctx.ResolveLinkRoot(link)
 	default:
-		finalLink = r.ctx.ResolveLinkRelative(r.repoLink, r.opts.CurrentRefPath, link)
+		return r.ctx.ResolveLinkRelative(r.repoLink, r.opts.CurrentRefPath, link)
 	}
-	return finalLink
 }
 
 var _ markup.RenderHelper = (*RepoComment)(nil)
@@ -56,7 +56,7 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 	if repo != nil {
 		helper.repoLink = repo.Link()
 		helper.commitChecker = newCommitChecker(ctx, repo)
-		rctx = rctx.WithMetas(repo.ComposeMetas(ctx))
+		rctx = rctx.WithMetas(repo.ComposeCommentMetas(ctx))
 	} else {
 		// this is almost dead code, only to pass the incorrect tests
 		helper.repoLink = fmt.Sprintf("%s/%s", helper.opts.DeprecatedOwnerName, helper.opts.DeprecatedRepoName)
@@ -64,7 +64,7 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 			"user": helper.opts.DeprecatedOwnerName,
 			"repo": helper.opts.DeprecatedRepoName,
 
-			"markdownLineBreakStyle":       "comment",
+			"markdownNewLineHardBreak":     "true",
 			"markupAllowShortIssuePattern": "true",
 		})
 	}

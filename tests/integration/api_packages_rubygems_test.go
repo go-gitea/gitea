@@ -185,7 +185,7 @@ func TestPackageRubyGems(t *testing.T) {
 	root := fmt.Sprintf("/api/packages/%s/rubygems", user.Name)
 
 	uploadFile := func(t *testing.T, content []byte, expectedStatus int) {
-		req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/api/v1/gems", root), bytes.NewReader(content)).
+		req := NewRequestWithBody(t, "POST", root+"/api/v1/gems", bytes.NewReader(content)).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, expectedStatus)
 	}
@@ -293,7 +293,7 @@ gAAAAP//MS06Gw==`)
 
 	t.Run("Versions", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/versions", root)).AddBasicAuth(user.Name)
+		req := NewRequest(t, "GET", root+"/versions").AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, `---
 gitea 1.0.5 08843c2dd0ea19910e6b056b98e38f1c
@@ -307,7 +307,7 @@ gitea-another 0.99 8b639e4048d282941485368ec42609be
 		_ = writer.WriteField("gem_name", packageName)
 		_ = writer.WriteField("version", packageVersion)
 		_ = writer.Close()
-		req := NewRequestWithBody(t, "DELETE", fmt.Sprintf("%s/api/v1/gems/yank", root), &body).
+		req := NewRequestWithBody(t, "DELETE", root+"/api/v1/gems/yank", &body).
 			SetHeader("Content-Type", writer.FormDataContentType()).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusOK)
@@ -330,7 +330,7 @@ gitea-another 0.99 8b639e4048d282941485368ec42609be
 
 	t.Run("VersionsAfterDelete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/versions", root)).AddBasicAuth(user.Name)
+		req := NewRequest(t, "GET", root+"/versions").AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "---\n", resp.Body.String())
 	})

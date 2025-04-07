@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
@@ -53,7 +54,7 @@ func (b *Base) AppendAccessControlExposeHeaders(names ...string) {
 
 // SetTotalCountHeader set "X-Total-Count" header
 func (b *Base) SetTotalCountHeader(total int64) {
-	b.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
+	b.RespHeader().Set("X-Total-Count", strconv.FormatInt(total, 10))
 	b.AppendAccessControlExposeHeaders("X-Total-Count")
 }
 

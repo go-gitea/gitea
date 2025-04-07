@@ -132,7 +132,7 @@ func IsErrGPGKeyParsing(err error) bool {
 }
 
 func (err ErrGPGKeyParsing) Error() string {
-	return fmt.Sprintf("failed to parse gpg key %s", err.ParseError.Error())
+	return "failed to parse gpg key " + err.ParseError.Error()
 }
 
 // ErrGPGKeyNotExist represents a "GPGKeyNotExist" kind of error.

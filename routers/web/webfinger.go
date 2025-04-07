@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -85,10 +86,10 @@ func WebfingerQuery(ctx *context.Context) {
 
 	aliases := []string{
 		u.HTMLURL(),
-		appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
+		appURL.String() + "api/v1/activitypub/user-id/" + strconv.FormatInt(u.ID, 10),
 	}
 	if !u.KeepEmailPrivate {
-		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
+		aliases = append(aliases, "mailto:"+u.Email)
 	}
 
 	links := []*webfingerLink{
@@ -104,7 +105,7 @@ func WebfingerQuery(ctx *context.Context) {
 		{
 			Rel:  "self",
 			Type: "application/activity+json",
-			Href: appURL.String() + "api/v1/activitypub/user-id/" + fmt.Sprint(u.ID),
+			Href: appURL.String() + "api/v1/activitypub/user-id/" + strconv.FormatInt(u.ID, 10),
 		},
 		{
 			Rel:  "http://openid.net/specs/connect/1.0/issuer",

@@ -15,26 +15,26 @@ type inlineParser struct {
 	trigger              []byte
 	endBytesSingleDollar []byte
 	endBytesDoubleDollar []byte
-	endBytesBracket      []byte
+	endBytesParentheses  []byte
+	enableInlineDollar   bool
 }
 
-var defaultInlineDollarParser = &inlineParser{
-	trigger:              []byte{'$'},
-	endBytesSingleDollar: []byte{'$'},
-	endBytesDoubleDollar: []byte{'$', '$'},
+func NewInlineDollarParser(enableInlineDollar bool) parser.InlineParser {
+	return &inlineParser{
+		trigger:              []byte{'$'},
+		endBytesSingleDollar: []byte{'$'},
+		endBytesDoubleDollar: []byte{'$', '$'},
+		enableInlineDollar:   enableInlineDollar,
+	}
 }
 
-func NewInlineDollarParser() parser.InlineParser {
-	return defaultInlineDollarParser
+var defaultInlineParenthesesParser = &inlineParser{
+	trigger:             []byte{'\\', '('},
+	endBytesParentheses: []byte{'\\', ')'},
 }
 
-var defaultInlineBracketParser = &inlineParser{
-	trigger:         []byte{'\\', '('},
-	endBytesBracket: []byte{'\\', ')'},
-}
-
-func NewInlineBracketParser() parser.InlineParser {
-	return defaultInlineBracketParser
+func NewInlineParenthesesParser() parser.InlineParser {
+	return defaultInlineParenthesesParser
 }
 
 // Trigger triggers this parser on $ or \
@@ -46,7 +46,7 @@ func isPunctuation(b byte) bool {
 	return b == '.' || b == '!' || b == '?' || b == ',' || b == ';' || b == ':'
 }
 
-func isBracket(b byte) bool {
+func isParenthesesClose(b byte) bool {
 	return b == ')'
 }
 
@@ -86,7 +86,11 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 		}
 	} else {
 		startMarkLen = 2
-		stopMark = parser.endBytesBracket
+		stopMark = parser.endBytesParentheses
+	}
+
+	if line[0] == '$' && !parser.enableInlineDollar && (len(line) == 1 || line[1] != '`') {
+		return nil
 	}
 
 	if checkSurrounding {
@@ -110,7 +114,7 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 				succeedingCharacter = line[i+len(stopMark)]
 			}
 			// check valid ending character
-			isValidEndingChar := isPunctuation(succeedingCharacter) || isBracket(succeedingCharacter) ||
+			isValidEndingChar := isPunctuation(succeedingCharacter) || isParenthesesClose(succeedingCharacter) ||
 				succeedingCharacter == ' ' || succeedingCharacter == '\n' || succeedingCharacter == 0
 			if checkSurrounding && !isValidEndingChar {
 				break

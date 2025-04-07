@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 
@@ -51,7 +52,7 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 			return fmt.Errorf("GetPushEventPayload: %w", err)
 		}
 		if payload.HeadCommit == nil {
-			return fmt.Errorf("head commit is missing in event payload")
+			return errors.New("head commit is missing in event payload")
 		}
 		sha = payload.HeadCommit.ID
 	case // pull_request
@@ -71,9 +72,9 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 			return fmt.Errorf("GetPullRequestEventPayload: %w", err)
 		}
 		if payload.PullRequest == nil {
-			return fmt.Errorf("pull request is missing in event payload")
+			return errors.New("pull request is missing in event payload")
 		} else if payload.PullRequest.Head == nil {
-			return fmt.Errorf("head of pull request is missing in event payload")
+			return errors.New("head of pull request is missing in event payload")
 		}
 		sha = payload.PullRequest.Head.Sha
 	case webhook_module.HookEventRelease:
