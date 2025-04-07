@@ -5,6 +5,7 @@ package files
 
 import (
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -30,18 +31,20 @@ func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 	gitURL := "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/" + sha
 	downloadURL := "https://try.gitea.io/user2/repo1/raw/branch/master/" + treePath
 	return &api.ContentsResponse{
-		Name:          treePath,
-		Path:          treePath,
-		SHA:           "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		LastCommitSHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		Type:          "file",
-		Size:          30,
-		Encoding:      &encoding,
-		Content:       &content,
-		URL:           &selfURL,
-		HTMLURL:       &htmlURL,
-		GitURL:        &gitURL,
-		DownloadURL:   &downloadURL,
+		Name:              treePath,
+		Path:              treePath,
+		SHA:               "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+		LastCommitSHA:     "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+		LastCommitterDate: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+		LastAuthorDate:    time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+		Type:              "file",
+		Size:              30,
+		Encoding:          &encoding,
+		Content:           &content,
+		URL:               &selfURL,
+		HTMLURL:           &htmlURL,
+		GitURL:            &gitURL,
+		DownloadURL:       &downloadURL,
 		Links: &api.FileLinksResponse{
 			Self:    &selfURL,
 			GitURL:  &gitURL,

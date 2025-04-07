@@ -126,11 +126,11 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 				highlighting.WithWrapperRenderer(r.highlightingRenderer),
 			),
 			math.NewExtension(&ctx.RenderInternal, math.Options{
-				Enabled:           setting.Markdown.EnableMath,
-				ParseDollarInline: true,
-				ParseDollarBlock:  true,
-				ParseSquareBlock:  true, // TODO: this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping, it should be deprecated in the future (by some config options)
-				// ParseBracketInline: true, // TODO: this is also a bad syntax "\( ... \)", it also conflicts, it should be deprecated in the future
+				Enabled:                  setting.Markdown.EnableMath,
+				ParseInlineDollar:        setting.Markdown.MathCodeBlockOptions.ParseInlineDollar,
+				ParseInlineParentheses:   setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses, // this is a bad syntax "\( ... \)", it conflicts with normal markdown escaping
+				ParseBlockDollar:         setting.Markdown.MathCodeBlockOptions.ParseBlockDollar,
+				ParseBlockSquareBrackets: setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets, //  this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping
 			}),
 			meta.Meta,
 		),
@@ -184,11 +184,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	// Preserve original length.
 	bufWithMetadataLength := len(buf)
 
-	rc := &RenderConfig{
-		Meta: markup.RenderMetaAsDetails,
-		Icon: "table",
-		Lang: "",
-	}
+	rc := &RenderConfig{Meta: markup.RenderMetaAsDetails}
 	buf, _ = ExtractMetadataBytes(buf, rc)
 
 	metaLength := bufWithMetadataLength - len(buf)
