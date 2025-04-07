@@ -483,7 +483,7 @@ func renderExclusiveLabelScopes(ctx *context.Context) {
 	scopeSet := make(map[string]bool, 0)
 	for _, label := range labels {
 		scope := label.ExclusiveScope()
-		if len(scope) > 0 {
+		if len(scope) > 0 && label.ExclusiveOrder > 0 {
 			scopeSet[scope] = true
 		}
 	}

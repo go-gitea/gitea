@@ -32,6 +32,12 @@ export function initCompLabelEdit(pageSelector: string) {
     toggleElem(elExclusiveWarning, showExclusiveWarning);
     if (!hasScope) elExclusiveInput.checked = false;
     toggleElem(elExclusiveOrderField, elExclusiveInput.checked);
+
+    if (parseInt(elExclusiveOrderInput.value) <= 0) {
+      elExclusiveOrderInput.style.color = "var(--color-placeholder-text) !important";
+    } else {
+      elExclusiveOrderInput.style.color = null;
+    }
   };
 
   const showLabelEditModal = (btn:HTMLElement) => {
