@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -253,6 +254,16 @@ func LastCommit(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplRepoViewList)
 }
 
+func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
+	renderedIconPool := fileicon.NewRenderedIconPool()
+	fileIcons := map[string]template.HTML{}
+	for _, f := range files {
+		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIcon(renderedIconPool, f.Entry)
+	}
+	ctx.Data["FileIcons"] = fileIcons
+	ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
+}
+
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
 	if err != nil {
@@ -294,6 +305,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 	ctx.Data["Files"] = files
+	prepareDirectoryFileIcons(ctx, files)
 	for _, f := range files {
 		if f.Commit == nil {
 			ctx.Data["HasFilesWithoutLatestCommit"] = true

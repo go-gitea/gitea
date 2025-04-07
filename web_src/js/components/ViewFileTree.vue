@@ -3,6 +3,7 @@ import ViewFileTreeItem from './ViewFileTreeItem.vue';
 import {onMounted, ref} from 'vue';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {GET} from '../modules/fetch.ts';
+import {createElementFromHTML} from '../utils/dom.ts';
 
 const elRoot = ref<HTMLElement | null>(null);
 
@@ -18,6 +19,15 @@ const selectedItem = ref('');
 async function loadChildren(treePath: string, subPath: string = '') {
   const response = await GET(`${props.repoLink}/tree-view/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}?sub_path=${encodeURIComponent(subPath)}`);
   const json = await response.json();
+  const poolSvgs = [];
+  for (const [svgId, svgContent] of Object.entries(json.renderedIconPool ?? {})) {
+    if (!document.querySelector(`.global-svg-icon-pool #${svgId}`)) poolSvgs.push(svgContent);
+  }
+  if (poolSvgs.length) {
+    const svgContainer = createElementFromHTML('<div class="global-svg-icon-pool tw-hidden"></div>');
+    svgContainer.innerHTML = poolSvgs.join('');
+    document.body.append(svgContainer);
+  }
   return json.fileTreeNodes ?? null;
 }
 

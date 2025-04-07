@@ -347,6 +347,7 @@ a.label,
 
 .ui.dropdown .menu > .item {
   color: var(--color-text);
+  line-height: var(--line-height-default);
 }
 
 .ui.dropdown .menu > .item:hover {
@@ -646,10 +647,11 @@ img.ui.avatar,
   border: 1px solid;
 }
 
-.ui.floating.dropdown .overflow.menu .scrolling.menu.items {
+.ui.dropdown .menu.context-user-switch .scrolling.menu {
   border-radius: 0 !important;
   box-shadow: none !important;
   border-bottom: 1px solid var(--color-secondary);
+  max-width: 80vw;
 }
 
 .user-menu > .item {
@@ -876,7 +878,6 @@ overflow-menu .ui.label {
 .code-inner {
   font: 12px var(--fonts-monospace);
   white-space: pre-wrap;
-  word-break: break-all;
   overflow-wrap: anywhere;
   line-height: inherit; /* needed for inline code preview in markup */
 }
@@ -1028,26 +1029,12 @@ table th[data-sortt-desc] .svg {
   text-align: left;
 }
 
-.truncated-item-container {
-  display: flex !important;
-  align-items: center;
-}
-
 .ellipsis-button {
   padding: 0 5px 8px !important;
   display: inline-block !important;
   font-weight: var(--font-weight-semibold) !important;
   line-height: 6px !important;
   vertical-align: middle !important;
-}
-
-.truncated-item-name {
-  line-height: 2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: -0.5em;
-  margin-bottom: -0.5em;
 }
 
 .precolors {
@@ -1166,14 +1153,20 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   margin: 0; /* use gap, but not margin */
 }
 
-.ui.dropdown.ellipsis-items-nowrap > .text {
+.ui.dropdown.ellipsis-text-items {
+  /* reset y padding and use the line-height below instead, to avoid the "overflow: hidden" clips the larger image in the "text" element */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ui.dropdown.ellipsis-text-items > .text {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: 2.71; /* matches fomantic dropdown's default min-height */
 }
 
-.ellipsis-items-nowrap > .item,
-.ui.dropdown.ellipsis-items-nowrap .menu > .item {
+.ui.dropdown.ellipsis-text-items .menu > .item {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
