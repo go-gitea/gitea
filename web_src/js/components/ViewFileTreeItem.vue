@@ -59,7 +59,7 @@ const doGotoSubModule = () => {
     <!-- submodule -->
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="contents" v-html="item.entryIcon"/>
+      <span class="tw-contents" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -72,7 +72,7 @@ const doGotoSubModule = () => {
     <!-- symlink -->
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="contents" v-html="item.entryIcon"/>
+      <span class="tw-contents" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -85,7 +85,7 @@ const doGotoSubModule = () => {
     <!-- file -->
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="contents" v-html="item.entryIcon"/>
+      <span class="tw-contents" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -103,7 +103,7 @@ const doGotoSubModule = () => {
     </div>
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="contents" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
+      <span class="tw-contents" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
       <span class="gt-ellipsis">{{ item.entryName }}</span>
     </div>
   </div>
@@ -159,9 +159,5 @@ const doGotoSubModule = () => {
   gap: 0.25em;
   text-overflow: ellipsis;
   min-width: 0;
-}
-
-.item-content .contents {
-  display: contents;
 }
 </style>
