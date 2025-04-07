@@ -1382,7 +1382,6 @@ func Routes() *web.Router {
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
 					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
-					m.Post("/files", bind(api.GetFilesOptions{}), repo.GetContentsFiles)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
 						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.CreateFile)
@@ -1390,6 +1389,7 @@ func Routes() *web.Router {
 						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.DeleteFile)
 					}, reqToken())
 				}, reqRepoReader(unit.TypeCode))
+				m.Post("/files", bind(api.GetFilesOptions{}), reqRepoReader(unit.TypeCode), repo.GetFiles)
 				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).

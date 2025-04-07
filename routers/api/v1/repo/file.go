@@ -985,9 +985,9 @@ func GetContentsList(ctx *context.APIContext) {
 	GetContents(ctx)
 }
 
-// GetContentsFiles Get the metadata and contents of requested files
-func GetContentsFiles(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/contents/files repository repoGetContentsFiles
+// GetFiles Get the metadata and contents of requested files
+func GetFiles(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/files repository repoGetFiles
 	// ---
 	// summary: Get the metadata and contents of requested files
 	// produces:
