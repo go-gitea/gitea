@@ -97,8 +97,7 @@ const doGotoSubModule = () => {
   >
     <!-- directory -->
     <div class="item-toggle">
-      <!-- FIXME: use a general and global class for this animation -->
-      <SvgIcon v-if="isLoading" name="octicon-sync" class="job-status-rotate"/>
+      <SvgIcon v-if="isLoading" name="octicon-sync" class="circular-spin"/>
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
     </div>
     <div class="item-content">
