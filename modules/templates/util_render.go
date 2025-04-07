@@ -15,8 +15,6 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -179,13 +177,6 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
 		textColor, itemColor, itemHTML)
-}
-
-func (ut *RenderUtils) RenderFileIcon(entry *git.TreeEntry) template.HTML {
-	if setting.UI.FileIconTheme == "material" {
-		return fileicon.DefaultMaterialIconProvider().FileIcon(ut.ctx, entry)
-	}
-	return fileicon.BasicThemeIcon(entry)
 }
 
 // RenderEmoji renders html text with emoji post processors

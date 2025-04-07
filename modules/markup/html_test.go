@@ -469,7 +469,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	assert.NotContains(t, res.String(), "<html")
 }
 
-func TestPostProcess_RenderDocument(t *testing.T) {
+func TestPostProcess(t *testing.T) {
 	setting.StaticURLPrefix = markup.TestAppURL // can't run standalone
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 
@@ -480,7 +480,7 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
 	}
 
-	// Issue index shouldn't be post processing in a document.
+	// Issue index shouldn't be post-processing in a document.
 	test(
 		"#1",
 		"#1")
@@ -490,7 +490,7 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		"go-gitea/gitea#12345",
 		`<a href="/go-gitea/gitea/issues/12345" class="ref-issue">go-gitea/gitea#12345</a>`)
 
-	// Test that other post processing still works.
+	// Test that other post-processing still works.
 	test(
 		":gitea:",
 		`<span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span>`)
@@ -499,6 +499,12 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		`Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
 		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
+
+	// special tags, GitHub's behavior, and for unclosed tags, output as text content as much as possible
+	test("<script>a", `&lt;script&gt;a`)
+	test("<script>a</script>", `&lt;script&gt;a&lt;/script&gt;`)
+	test("<STYLE>a", `&lt;STYLE&gt;a`)
+	test("<style>a</STYLE>", `&lt;style&gt;a&lt;/STYLE&gt;`)
 }
 
 func TestIssue16020(t *testing.T) {
