@@ -17,6 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add additional ReplaceAll in pathsep to cater for different pathsep (#34061) (#34070)
   * Try to fix check-attr bug (#34029) (#34033)
   * Git client will follow 301 but 307 (#34005) (#34010)
+  * Fix block expensive for 1.23 (#34127)
   * Fix markdown frontmatter rendering (#34102) (#34107)
   * Add new CLI flags to set name and scopes when creating a user with access token (#34080) (#34103)
   * Do not show 500 error when default branch doesn't exist (#34096) (#34097)
