@@ -20,12 +20,6 @@ func NewDateUtils() *DateUtils {
 	return (*DateUtils)(nil) // the util is stateless, and we do not need to create an instance
 }
 
-func (du *DateUtils) DaysInterval(t1, t2 time.Time) int {
-	t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
-	t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 0, 0, 0, 0, t2.Location())
-	return int(t2.Sub(t1).Hours() / 24)
-}
-
 // AbsoluteShort renders in "Jan 01, 2006" format
 func (du *DateUtils) AbsoluteShort(time any) template.HTML {
 	return dateTimeFormat("short", time)

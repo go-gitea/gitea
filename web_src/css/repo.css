@@ -916,11 +916,7 @@ td .commit-summary {
   width: 200px;
 }
 
-.repository #commits-table.ui.basic.striped.table tbody tr {
-  background-color: inherit !important;
-}
-
-.repository #commits-table.ui.basic.striped.table tbody tr:not(.header):nth-child(2n) {
+.repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n) {
   background-color: var(--color-light) !important;
 }
 

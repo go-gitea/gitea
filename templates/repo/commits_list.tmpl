@@ -11,13 +11,7 @@
 		</thead>
 		<tbody class="commit-list">
 			{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
-			{{$groupDate := DateUtils.ParseLegacy ""}}
 			{{range .Commits}}
-				{{$commitDate := ""}}{{if .Committer}}{{$commitDate = .Committer.When}}{{else}}{{$commitDate = .Author.When}}{{end}}
-				{{if ne (DateUtils.DaysInterval $groupDate $commitDate) 0}}
-					{{$groupDate = $commitDate}}
-					<tr class="header"><td colspan="5">Commits on {{DateUtils.AbsoluteShort $groupDate}}</td></tr>
-				{{end}}
 				<tr>
 					<td class="author">
 						<div class="tw-flex">
