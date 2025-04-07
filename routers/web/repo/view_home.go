@@ -434,6 +434,14 @@ func Home(ctx *context.Context) {
 			ctx.Data["ParentPath"] = "/" + paths[len(paths)-2]
 		}
 	}
+
+	starList, err := repo_model.GetStarListsForUser(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("SearchStarList", err)
+		return
+	}
+	log.Error("=============================")
+	ctx.Data["StarList"] = starList
 	ctx.Data["Paths"] = paths
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames

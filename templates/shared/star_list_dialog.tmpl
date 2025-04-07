@@ -66,18 +66,18 @@
 	<div class="header">List</div>
 	<div class="content">
 		<form class="ui form modal-form" method="post">
-			{{.CsrfTokenHtml}}
-			<input type="hidden" name="action" value="edit" />
-			<div class="field">
-				<label for="list-name">Name</label>
-				<input id="list-name" name="name" placeholder="⭐️ Name this list">
+			{{ range  .StarList}}
+			<div class="inline field">
+				<div class="ui checkbox">
+					<label>{{ .Name }}</label>
+					<input name="{{.Name}}" type="checkbox">
+				</div>
 			</div>
-			<div class="field">
-				<label for="list-description">Description</label>
-				<textarea id="list-description" name="description" placeholder="Write a description"></textarea>
-			</div>
+			{{ end }}
+			<div class="divider"></div>
 			<div class="text right actions">
 				<button class="ui cancel button">Cancel</button>
+				<button class="ui button muted show-modal" data-modal="#create-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">Create list</button>
 				<button class="ui primary button">Save</button>
 			</div>
 		</form>

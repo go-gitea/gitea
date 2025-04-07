@@ -7,7 +7,7 @@
 			<span aria-hidden="true">{{$buttonText}}</span>
 			<span class="ui small label">{{CountFmt .Repository.NumStars}}</span>
 		</button>
-		{{if .SignedUserID .ContextUser.ID}}
+		{{if and .IsSigned (gt .ContextUser.ID 0)}}
 		<a class="ui basic label muted show-modal" data-modal="#choose-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">
 			{{svg "octicon-triangle-down"}}
 		</a>
