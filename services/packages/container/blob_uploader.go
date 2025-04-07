@@ -31,7 +31,7 @@ type BlobUploader struct {
 }
 
 func buildFilePath(id string) string {
-	return util.FilePathJoinAbs(setting.GetPacakgeUploadTempPath(), id)
+	return util.FilePathJoinAbs(setting.Packages.ChunkedUploadPath, id)
 }
 
 // NewBlobUploader creates a new blob uploader for the given id

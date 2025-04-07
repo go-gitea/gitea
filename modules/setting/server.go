@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"net"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -329,6 +330,12 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
 	if !filepath.IsAbs(AppDataPath) {
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
+	}
+	if IsInTesting && HasInstallLock(rootCfg) {
+		// FIXME: in testing, the "app data" directory is not correctly initialized before loading settings
+		if _, err := os.Stat(AppDataPath); err != nil {
+			_ = os.MkdirAll(AppDataPath, os.ModePerm)
+		}
 	}
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()

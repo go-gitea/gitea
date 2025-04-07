@@ -213,6 +213,8 @@ func serveInstalled(ctx *cli.Context) error {
 		log.Fatal("Can not find APP_DATA_PATH %q", setting.AppDataPath)
 	}
 
+	setting.AppDataTempDir("").RemoveOutdated()
+
 	// Override the provided port number within the configuration
 	if ctx.IsSet("port") {
 		if err := setPort(ctx.String("port")); err != nil {

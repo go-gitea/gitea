@@ -6,8 +6,6 @@ package setting
 import (
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 
 	"github.com/dustin/go-humanize"
 )
@@ -15,8 +13,9 @@ import (
 // Package registry settings
 var (
 	Packages = struct {
-		Storage *Storage
-		Enabled bool
+		Storage           *Storage
+		Enabled           bool
+		ChunkedUploadPath string
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
@@ -50,10 +49,6 @@ var (
 	}
 )
 
-func GetPacakgeUploadTempPath() string {
-	return filepath.Join(TempPath, "package-upload")
-}
-
 func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	sec, _ := rootCfg.GetSection("packages")
 	if sec == nil {
@@ -71,8 +66,9 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	}
 
 	if HasInstallLock(rootCfg) {
-		if err := os.MkdirAll(GetPacakgeUploadTempPath(), os.ModePerm); err != nil {
-			return fmt.Errorf("unable to create chunked upload directory: %s (%v)", GetPacakgeUploadTempPath(), err)
+		Packages.ChunkedUploadPath, err = AppDataTempDir("package-upload").Mkdir("")
+		if err != nil {
+			return fmt.Errorf("unable to create chunked upload directory: %w", err)
 		}
 	}
 

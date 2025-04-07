@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/temp"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -257,7 +257,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
-	tmpDir, cleanup, err := temp.MkdirTemp("gitea-" + repo.Name)
+	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-" + repo.Name)
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir for repository %s: %w", repo.FullName(), err)
 	}

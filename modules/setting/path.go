@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/tempdir"
 )
 
 var (
@@ -195,4 +196,11 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 	AppWorkPath = tmpWorkPath.Value
 	CustomPath = tmpCustomPath.Value
 	CustomConf = tmpCustomConf.Value
+}
+
+func AppDataTempDir(sub string) *tempdir.TempDir {
+	if AppDataPath == "" {
+		panic("setting.AppDataPath is not set")
+	}
+	return tempdir.New(AppDataPath, "tmp/"+sub)
 }

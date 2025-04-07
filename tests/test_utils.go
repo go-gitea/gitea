@@ -66,7 +66,7 @@ func InitTest(requireGitea bool) {
 		setting.CustomConf = giteaConf
 	}
 
-	unittest.InitSettings()
+	unittest.InitSettingsForTesting()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 
 	if err := git.InitFull(context.Background()); err != nil {

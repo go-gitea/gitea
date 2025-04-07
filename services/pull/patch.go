@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/temp"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -356,15 +355,12 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	}
 
 	// 3b. Create a plain patch from head to base
-	tmpPatchFile, err := temp.CreateTemp("patch")
+	tmpPatchFile, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
 		return false, fmt.Errorf("unable to create temporary patch file! Error: %w", err)
 	}
-	defer func() {
-		tmpPatchFile.Close()
-		_ = util.Remove(tmpPatchFile.Name())
-	}()
+	defer cleanup()
 
 	if err := gitRepo.GetDiffBinary(pr.MergeBase+"...tracking", tmpPatchFile); err != nil {
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)

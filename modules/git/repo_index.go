@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/temp"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // ReadTreeToIndex reads a treeish to the index
@@ -58,7 +58,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (tmpIndexFilena
 		}
 	}()
 
-	tmpDir, cancel, err = temp.MkdirTemp("index")
+	tmpDir, cancel, err = setting.AppDataTempDir("git-repo-content").MkdirTempRandom("index")
 	if err != nil {
 		return "", "", nil, err
 	}

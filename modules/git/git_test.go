@@ -10,14 +10,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/temp"
+	"code.gitea.io/gitea/modules/tempdir"
 
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 )
 
 func testRun(m *testing.M) error {
-	gitHomePath, cleanup, err := temp.MkdirTemp("git-home")
+	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
 		return fmt.Errorf("unable to create temp dir: %w", err)
 	}

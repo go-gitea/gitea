@@ -348,7 +348,3 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("loadRepoArchiveFrom: %v", err)
 	}
 }
-
-func GetRepositoryUploadTempPath() string {
-	return filepath.Join(TempPath, "uploads")
-}

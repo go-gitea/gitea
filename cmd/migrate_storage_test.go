@@ -68,6 +68,7 @@ func TestMigratePackages(t *testing.T) {
 
 	entries, err := os.ReadDir(p)
 	assert.NoError(t, err)
-	assert.Len(t, entries, 1) // tmp directory should not be under storage any more
+	assert.Len(t, entries, 2)
 	assert.Equal(t, "01", entries[0].Name())
+	assert.Equal(t, "tmp", entries[1].Name())
 }
