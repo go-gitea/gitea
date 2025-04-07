@@ -34,7 +34,7 @@ export function initCompLabelEdit(pageSelector: string) {
     toggleElem(elExclusiveOrderField, elExclusiveInput.checked);
 
     if (parseInt(elExclusiveOrderInput.value) <= 0) {
-      elExclusiveOrderInput.style.color = "var(--color-placeholder-text) !important";
+      elExclusiveOrderInput.style.color = 'var(--color-placeholder-text) !important';
     } else {
       elExclusiveOrderInput.style.color = null;
     }
