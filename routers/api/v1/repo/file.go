@@ -83,7 +83,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
-	if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
+	if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified); err != nil {
 		ctx.APIErrorInternal(err)
 	}
 }
@@ -144,7 +144,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// OK not cached - serve!
-		if err := common.ServeBlob(ctx.Base, ctx.Repo.TreePath, blob, lastModified); err != nil {
+		if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified); err != nil {
 			ctx.APIErrorInternal(err)
 		}
 		return
@@ -661,7 +661,7 @@ func UpdateFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 	apiOpts := web.GetForm(ctx).(*api.UpdateFileOptions)
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("repo is empty"))
+		ctx.APIError(http.StatusUnprocessableEntity, errors.New("repo is empty"))
 		return
 	}
 

@@ -35,6 +35,7 @@ func TestRender_Commits(t *testing.T) {
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	repo := markup.TestAppURL + testRepoOwnerName + "/" + testRepoName + "/"
 	commit := util.URLJoin(repo, "commit", sha)
+	commitPath := "/user13/repo11/commit/" + sha
 	tree := util.URLJoin(repo, "tree", sha, "src")
 
 	file := util.URLJoin(repo, "commit", sha, "example.txt")
@@ -44,9 +45,9 @@ func TestRender_Commits(t *testing.T) {
 	commitCompare := util.URLJoin(repo, "compare", sha+"..."+sha)
 	commitCompareWithHash := commitCompare + "#L2"
 
-	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
-	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
-	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test(sha, `<p><a href="`+commitPath+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test(sha[:7], `<p><a href="`+commitPath[:len(commitPath)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
+	test(sha[:39], `<p><a href="`+commitPath[:len(commitPath)-(40-39)]+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>65f1bf27bc/src</code></a></p>`)
 
@@ -57,13 +58,13 @@ func TestRender_Commits(t *testing.T) {
 	test(commitCompare, `<p><a href="`+commitCompare+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc</code></a></p>`)
 	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc (L2)</code></a></p>`)
 
-	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test("commit "+sha, `<p>commit <a href="`+commitPath+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
 	test("d27ace93", `<p>d27ace93</p>`)
 	test(sha[:14]+".x", `<p>`+sha[:14]+`.x</p>`)
 
-	expected14 := `<a href="` + commit[:len(commit)-(40-14)] + `" rel="nofollow"><code>` + sha[:10] + `</code></a>`
+	expected14 := `<a href="` + commitPath[:len(commitPath)-(40-14)] + `" rel="nofollow"><code>` + sha[:10] + `</code></a>`
 	test(sha[:14]+".", `<p>`+expected14+`.</p>`)
 	test(sha[:14]+",", `<p>`+expected14+`,</p>`)
 	test("["+sha[:14]+"]", `<p>[`+expected14+`]</p>`)
@@ -80,10 +81,10 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test(
 		"test-owner/test-repo#12345",
-		`<p><a href="`+util.URLJoin(markup.TestAppURL, "test-owner", "test-repo", "issues", "12345")+`" class="ref-issue" rel="nofollow">test-owner/test-repo#12345</a></p>`)
+		`<p><a href="/test-owner/test-repo/issues/12345" class="ref-issue" rel="nofollow">test-owner/test-repo#12345</a></p>`)
 	test(
 		"go-gitea/gitea#12345",
-		`<p><a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		`<p><a href="/go-gitea/gitea/issues/12345" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
@@ -468,7 +469,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 	assert.NotContains(t, res.String(), "<html")
 }
 
-func TestPostProcess_RenderDocument(t *testing.T) {
+func TestPostProcess(t *testing.T) {
 	setting.StaticURLPrefix = markup.TestAppURL // can't run standalone
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 
@@ -479,7 +480,7 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res.String()))
 	}
 
-	// Issue index shouldn't be post processing in a document.
+	// Issue index shouldn't be post-processing in a document.
 	test(
 		"#1",
 		"#1")
@@ -487,9 +488,9 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 	// But cross-referenced issue index should work.
 	test(
 		"go-gitea/gitea#12345",
-		`<a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue">go-gitea/gitea#12345</a>`)
+		`<a href="/go-gitea/gitea/issues/12345" class="ref-issue">go-gitea/gitea#12345</a>`)
 
-	// Test that other post processing still works.
+	// Test that other post-processing still works.
 	test(
 		":gitea:",
 		`<span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span>`)
@@ -498,6 +499,12 @@ func TestPostProcess_RenderDocument(t *testing.T) {
 		`Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
 		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
+
+	// special tags, GitHub's behavior, and for unclosed tags, output as text content as much as possible
+	test("<script>a", `&lt;script&gt;a`)
+	test("<script>a</script>", `&lt;script&gt;a&lt;/script&gt;`)
+	test("<STYLE>a", `&lt;STYLE&gt;a`)
+	test("<style>a</STYLE>", `&lt;style&gt;a&lt;/STYLE&gt;`)
 }
 
 func TestIssue16020(t *testing.T) {
@@ -543,7 +550,7 @@ func TestIssue18471(t *testing.T) {
 	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code class="nohighlight">783b039...da951ce</code></a>`, res.String())
+	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
 }
 
 func TestIsFullURL(t *testing.T) {

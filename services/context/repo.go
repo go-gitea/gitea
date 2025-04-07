@@ -328,7 +328,9 @@ func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
+	// Git client needs a 301 redirect by default to follow the new location
+	// It's not documentated in git documentation, but it's the behavior of git client
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusMovedPermanently)
 }
 
 func repoAssignment(ctx *Context, repo *repo_model.Repository) {
@@ -344,7 +346,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() && !canWriteAsMaintainer(ctx) {
+	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -667,12 +669,6 @@ func RepoAssignment(ctx *Context) {
 
 const headRefName = "HEAD"
 
-func RepoRef() func(*Context) {
-	// old code does: return RepoRefByType(git.RefTypeBranch)
-	// in most cases, it is an abuse, so we just disable it completely and fix the abuses one by one (if there is anything wrong)
-	return nil
-}
-
 func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
 	refName := ""
 	parts := strings.Split(path, "/")
@@ -814,10 +810,10 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		reqPath := ctx.PathParam("*")
 		if reqPath == "" {
 			refShortName = ctx.Repo.Repository.DefaultBranch
-			if !ctx.Repo.GitRepo.IsBranchExist(refShortName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
+			if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
+				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 1)
 				if err == nil && len(brs) != 0 {
-					refShortName = brs[0].Name
+					refShortName = brs[0]
 				} else if len(brs) == 0 {
 					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
 				} else {
@@ -854,7 +850,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				return
 			}
 
-			if refType == git.RefTypeBranch && ctx.Repo.GitRepo.IsBranchExist(refShortName) {
+			if refType == git.RefTypeBranch && gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
 				ctx.Repo.BranchName = refShortName
 				ctx.Repo.RefFullName = git.RefNameFromBranch(refShortName)
 
@@ -864,7 +860,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if refType == git.RefTypeTag && ctx.Repo.GitRepo.IsTagExist(refShortName) {
+			} else if refType == git.RefTypeTag && gitrepo.IsTagExist(ctx, ctx.Repo.Repository, refShortName) {
 				ctx.Repo.RefFullName = git.RefNameFromTag(refShortName)
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refShortName)

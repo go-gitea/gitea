@@ -14,7 +14,8 @@
 
 Search "repo/branch_dropdown" in the template directory to find all occurrences.
 */}}
-<div class="js-branch-tag-selector {{if .ContainerClasses}}{{.ContainerClasses}}{{end}}"
+<div class="{{if .ContainerClasses}}{{.ContainerClasses}}{{end}}"
+	data-global-init="initRepoBranchTagSelector"
 	data-text-release-compare="{{ctx.Locale.Tr "repo.release.compare"}}"
 	data-text-branches="{{ctx.Locale.Tr "repo.branches"}}"
 	data-text-tags="{{ctx.Locale.Tr "repo.tags"}}"
@@ -45,7 +46,7 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 	data-enable-feed="{{ctx.RootData.EnableFeed}}"
 >
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
-	<div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
+	<div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
 		<div class="ui button branch-dropdown-button">
 			<span class="flex-text-block gt-ellipsis">
 				{{if not .DropdownFixedText}}

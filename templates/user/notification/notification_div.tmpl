@@ -1,6 +1,6 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
-		{{$notificationUnreadCount := call .NotificationUnreadCount}}
+		{{$notificationUnreadCount := call .NotificationUnreadCount ctx}}
 		<div class="tw-flex tw-items-center tw-justify-between tw-mb-[--page-spacing]">
 			<div class="small-menu-items ui compact tiny menu">
 				<a class="{{if eq .Status 1}}active {{end}}item" href="{{AppSubUrl}}/notifications?q=unread">

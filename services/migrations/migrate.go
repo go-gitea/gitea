@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -168,7 +169,7 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 	}
 
 	if setting.Migrations.MaxAttempts > 1 {
-		downloader = base.NewRetryDownloader(ctx, downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
+		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
 	return downloader, nil
 }
@@ -211,7 +212,7 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 
 		if cloneURL.Scheme == "file" || cloneURL.Scheme == "" {
 			if cloneAddrURL.Scheme != "file" && cloneAddrURL.Scheme != "" {
-				return fmt.Errorf("repo info has changed from external to local filesystem")
+				return errors.New("repo info has changed from external to local filesystem")
 			}
 		}
 

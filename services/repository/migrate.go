@@ -13,8 +13,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
@@ -120,8 +122,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
-		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+	if stdout, _, err := git.NewCommand("update-server-info").
+		RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
 		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
 	}
@@ -140,12 +142,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	if !repo.IsEmpty {
 		if len(repo.DefaultBranch) == 0 {
 			// Try to get HEAD branch and set it as default branch.
-			headBranch, err := gitRepo.GetHEADBranch()
+			headBranchName, err := git.GetDefaultBranch(ctx, repoPath)
 			if err != nil {
 				return repo, fmt.Errorf("GetHEADBranch: %w", err)
 			}
-			if headBranch != nil {
-				repo.DefaultBranch = headBranch.Name
+			if headBranchName != "" {
+				repo.DefaultBranch = headBranchName
 			}
 		}
 
@@ -230,9 +232,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 		// this is necessary for sync local tags from remote
 		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
-		if stdout, _, err := git.NewCommand(ctx, "config").
+		if stdout, _, err := git.NewCommand("config").
 			AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
-			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
+			RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
 		}
@@ -245,15 +247,28 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
+	var enableRepoUnits []repo_model.RepoUnit
+	if opts.Releases && !unit_model.TypeReleases.UnitGlobalDisabled() {
+		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeReleases})
+	}
+	if opts.Wiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
+		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeWiki})
+	}
+	if len(enableRepoUnits) > 0 {
+		err = UpdateRepositoryUnits(ctx, repo, enableRepoUnits, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return repo, committer.Commit()
 }
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
 // This also removes possible user credentials.
 func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
-	cmd := git.NewCommand(ctx, "remote", "rm", "origin")
+	cmd := git.NewCommand("remote", "rm", "origin")
 	// if the origin does not exist
-	_, _, err := cmd.RunStdString(&git.RunOpts{
+	_, _, err := cmd.RunStdString(ctx, &git.RunOpts{
 		Dir: repoPath,
 	})
 	if err != nil && !git.IsRemoteNotExistError(err) {
@@ -264,17 +279,16 @@ func cleanUpMigrateGitConfig(ctx context.Context, repoPath string) error {
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
-	repoPath := repo.RepoPath()
-	if err := repo_module.CreateDelegateHooks(repoPath); err != nil {
+	if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 	if repo.HasWiki() {
-		if err := repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
+		if err := gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
 	}
 
-	_, _, err := git.NewCommand(ctx, "remote", "rm", "origin").RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err := git.NewCommand("remote", "rm", "origin").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}

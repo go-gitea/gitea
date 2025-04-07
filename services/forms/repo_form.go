@@ -110,17 +110,14 @@ type RepoSettingForm struct {
 	EnablePrune            bool
 
 	// Advanced settings
-	EnableCode                bool
-	DefaultCodeEveryoneAccess string
+	EnableCode bool
 
-	EnableWiki                bool
-	EnableExternalWiki        bool
-	DefaultWikiBranch         string
-	DefaultWikiEveryoneAccess string
-	ExternalWikiURL           string
+	EnableWiki         bool
+	EnableExternalWiki bool
+	DefaultWikiBranch  string
+	ExternalWikiURL    string
 
 	EnableIssues                          bool
-	DefaultIssuesEveryoneAccess           string
 	EnableExternalTracker                 bool
 	ExternalTrackerURL                    string
 	TrackerURLFormat                      string
@@ -169,13 +166,6 @@ func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) bindi
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
-
-// __________                             .__
-// \______   \____________    ____   ____ |  |__
-//  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
-//  |    |   \ |  | \// __ \|   |  \  \___|   Y  \
-//  |______  / |__|  (____  /___|  /\___  >___|  /
-//         \/             \/     \/     \/     \/
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
@@ -244,6 +234,7 @@ type WebhookForm struct {
 	Release                  bool
 	Package                  bool
 	Status                   bool
+	WorkflowJob              bool
 	Active                   bool
 	BranchFilter             string `binding:"GlobPattern"`
 	AuthorizationHeader      string

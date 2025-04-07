@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -50,14 +49,14 @@ func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error
 
 func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
-		results, err := repository.CheckDelegateHooks(repo.RepoPath())
+		results, err := gitrepo.CheckDelegateHooks(ctx, repo)
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
 			return fmt.Errorf("Unable to check delegate hooks for repo %-v. ERROR: %w", repo, err)
 		}
 		if len(results) > 0 && autofix {
 			logger.Warn("Regenerated hooks for %s", repo.FullName())
-			if err := repository.CreateDelegateHooks(repo.RepoPath()); err != nil {
+			if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 				logger.Critical("Unable to recreate delegate hooks for %-v. ERROR: %v", repo, err)
 				return fmt.Errorf("Unable to recreate delegate hooks for %-v. ERROR: %w", repo, err)
 			}
@@ -99,11 +98,11 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 		defer r.Close()
 
 		if autofix {
-			_, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunStdString(&git.RunOpts{Dir: r.Path})
+			_, _, err := git.NewCommand("config", "receive.advertisePushOptions", "true").RunStdString(ctx, &git.RunOpts{Dir: r.Path})
 			return err
 		}
 
-		value, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunStdString(&git.RunOpts{Dir: r.Path})
+		value, _, err := git.NewCommand("config", "receive.advertisePushOptions").RunStdString(ctx, &git.RunOpts{Dir: r.Path})
 		if err != nil {
 			return err
 		}
@@ -149,7 +148,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+		daemonExportFile := filepath.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		isExist, err := util.IsExist(daemonExportFile)
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
@@ -197,7 +196,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 
 		commitGraphExists := func() (bool, error) {
 			// Check commit-graph exists
-			commitGraphFile := path.Join(repo.RepoPath(), `objects/info/commit-graph`)
+			commitGraphFile := filepath.Join(repo.RepoPath(), `objects/info/commit-graph`)
 			isExist, err := util.IsExist(commitGraphFile)
 			if err != nil {
 				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
@@ -205,7 +204,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 			}
 
 			if !isExist {
-				commitGraphsDir := path.Join(repo.RepoPath(), `objects/info/commit-graphs`)
+				commitGraphsDir := filepath.Join(repo.RepoPath(), `objects/info/commit-graphs`)
 				isExist, err = util.IsExist(commitGraphsDir)
 				if err != nil {
 					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)

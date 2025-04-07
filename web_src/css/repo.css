@@ -1085,10 +1085,6 @@ td .commit-summary {
   height: 30px;
 }
 
-.repository .diff-box .resolved-placeholder .button {
-  padding: 8px 12px;
-}
-
 .repository .diff-file-box .header {
   background-color: var(--color-box-header);
 }
@@ -1728,8 +1724,7 @@ tbody.commit-list {
   line-height: 18px;
   margin: 1em;
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .content-history-detail-dialog .header .avatar {

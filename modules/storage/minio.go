@@ -86,13 +86,14 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
 	var lookup minio.BucketLookupType
-	if config.BucketLookUpType == "auto" || config.BucketLookUpType == "" {
+	switch config.BucketLookUpType {
+	case "auto", "":
 		lookup = minio.BucketLookupAuto
-	} else if config.BucketLookUpType == "dns" {
+	case "dns":
 		lookup = minio.BucketLookupDNS
-	} else if config.BucketLookUpType == "path" {
+	case "path":
 		lookup = minio.BucketLookupPath
-	} else {
+	default:
 		return nil, fmt.Errorf("invalid minio bucket lookup type: %s", config.BucketLookUpType)
 	}
 

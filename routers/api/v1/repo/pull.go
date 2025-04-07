@@ -742,7 +742,7 @@ func EditPullRequest(ctx *context.APIContext) {
 
 	// change pull target branch
 	if !pr.HasMerged && len(form.Base) != 0 && form.Base != pr.BaseBranch {
-		if !ctx.Repo.GitRepo.IsBranchExist(form.Base) {
+		if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, form.Base) {
 			ctx.APIError(http.StatusNotFound, fmt.Errorf("new base '%s' not exist", form.Base))
 			return
 		}
@@ -1054,9 +1054,9 @@ func MergePullRequest(ctx *context.APIContext) {
 				case git.IsErrBranchNotExist(err):
 					ctx.APIErrorNotFound(err)
 				case errors.Is(err, repo_service.ErrBranchIsDefault):
-					ctx.APIError(http.StatusForbidden, fmt.Errorf("can not delete default branch"))
+					ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
 				case errors.Is(err, git_model.ErrBranchIsProtected):
-					ctx.APIError(http.StatusForbidden, fmt.Errorf("branch protected"))
+					ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
 				default:
 					ctx.APIErrorInternal(err)
 				}
@@ -1591,7 +1591,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	maxLines := setting.Git.MaxGitDiffLines
 
 	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
-	diff, err := gitdiff.GetDiff(ctx, baseGitRepo,
+	diff, err := gitdiff.GetDiffForAPI(ctx, baseGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     startCommitID,
 			AfterCommitID:      endCommitID,
@@ -1606,9 +1606,14 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
+	diffShortStat, err := gitdiff.GetDiffShortStat(baseGitRepo, startCommitID, endCommitID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	listOptions := utils.GetListOptions(ctx)
 
-	totalNumberOfFiles := diff.NumFiles
+	totalNumberOfFiles := diffShortStat.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
 
 	start, limit := listOptions.GetSkipTake()

@@ -47,7 +47,7 @@ func New(ctx context.Context, repo, op, token string, logger transfer.Logger) (t
 		return nil, err
 	}
 	server = server.JoinPath("api/internal/repo", repo, "info/lfs")
-	return &GiteaBackend{ctx: ctx, server: server, op: op, authToken: token, internalAuth: fmt.Sprintf("Bearer %s", setting.InternalToken), logger: logger}, nil
+	return &GiteaBackend{ctx: ctx, server: server, op: op, authToken: token, internalAuth: "Bearer " + setting.InternalToken, logger: logger}, nil
 }
 
 // Batch implements transfer.Backend
@@ -70,14 +70,13 @@ func (g *GiteaBackend) Batch(_ string, pointers []transfer.BatchItem, args trans
 		g.logger.Log("json marshal error", err)
 		return nil, err
 	}
-	url := g.server.JoinPath("objects/batch").String()
 	headers := map[string]string{
 		headerAuthorization:     g.authToken,
 		headerGiteaInternalAuth: g.internalAuth,
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequestLFS(g.ctx, url, http.MethodPost, headers, bodyBytes)
+	req := newInternalRequestLFS(g.ctx, g.server.JoinPath("objects/batch").String(), http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
 	if err != nil {
 		g.logger.Log("http request error", err)
@@ -179,13 +178,12 @@ func (g *GiteaBackend) Download(oid string, args transfer.Args) (io.ReadCloser, 
 		g.logger.Log("argument id incorrect")
 		return nil, 0, transfer.ErrCorruptData
 	}
-	url := action.Href
 	headers := map[string]string{
 		headerAuthorization:     g.authToken,
 		headerGiteaInternalAuth: g.internalAuth,
 		headerAccept:            mimeOctetStream,
 	}
-	req := newInternalRequestLFS(g.ctx, url, http.MethodGet, headers, nil)
+	req := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodGet, headers, nil)
 	resp, err := req.Response()
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get response: %w", err)
@@ -225,7 +223,6 @@ func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer
 		g.logger.Log("argument id incorrect")
 		return transfer.ErrCorruptData
 	}
-	url := action.Href
 	headers := map[string]string{
 		headerAuthorization:     g.authToken,
 		headerGiteaInternalAuth: g.internalAuth,
@@ -233,7 +230,7 @@ func (g *GiteaBackend) Upload(oid string, size int64, r io.Reader, args transfer
 		headerContentLength:     strconv.FormatInt(size, 10),
 	}
 
-	req := newInternalRequestLFS(g.ctx, url, http.MethodPut, headers, nil)
+	req := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodPut, headers, nil)
 	req.Body(r)
 	resp, err := req.Response()
 	if err != nil {
@@ -274,14 +271,13 @@ func (g *GiteaBackend) Verify(oid string, size int64, args transfer.Args) (trans
 		// the server sent no verify action
 		return transfer.SuccessStatus(), nil
 	}
-	url := action.Href
 	headers := map[string]string{
 		headerAuthorization:     g.authToken,
 		headerGiteaInternalAuth: g.internalAuth,
 		headerAccept:            mimeGitLFS,
 		headerContentType:       mimeGitLFS,
 	}
-	req := newInternalRequestLFS(g.ctx, url, http.MethodPost, headers, bodyBytes)
+	req := newInternalRequestLFS(g.ctx, toInternalLFSURL(action.Href), http.MethodPost, headers, bodyBytes)
 	resp, err := req.Response()
 	if err != nil {
 		return transfer.NewStatus(transfer.StatusInternalServerError), err

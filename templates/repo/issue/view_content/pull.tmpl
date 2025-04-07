@@ -83,13 +83,13 @@
 					{{ctx.Locale.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
+				<div class="item">
 					<div class="item-section-left flex-text-inline tw-flex-1">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
-						<button class="ui compact button">
+						<button class="ui compact button toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
 							{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
 						</button>
 					{{end}}

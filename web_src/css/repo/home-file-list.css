@@ -14,10 +14,6 @@
   }
 }
 
-#repo-files-table .repo-file-cell.name .svg {
-  margin-right: 2px;
-}
-
 #repo-files-table .svg.octicon-file-directory-fill,
 #repo-files-table .svg.octicon-file-submodule {
   color: var(--color-primary);
@@ -70,9 +66,23 @@
 }
 
 #repo-files-table .repo-file-cell.name {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  overflow: hidden;
+}
+
+#repo-files-table .repo-file-cell.name > a,
+#repo-files-table .repo-file-cell.name > span {
+  flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+#repo-files-table .repo-file-cell.name .entry-name {
+  flex-shrink: 1;
+  min-width: 3em;
 }
 
 @media (max-width: 767.98px) {

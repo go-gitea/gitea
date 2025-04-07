@@ -110,9 +110,12 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	if err != nil {
 		return nil, err
 	}
-	repository, err := repo_model.GetRepositoryByID(ctx, p.RepoID)
-	if err != nil && !repo_model.IsErrRepoNotExist(err) {
-		return nil, err
+	var repository *repo_model.Repository
+	if p.RepoID > 0 {
+		repository, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
+		if err != nil && !repo_model.IsErrRepoNotExist(err) {
+			return nil, err
+		}
 	}
 	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
 	if err != nil {
@@ -194,7 +197,7 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:
-		panic(fmt.Sprintf("unknown package type: %s", string(p.Type)))
+		panic("unknown package type: " + string(p.Type))
 	}
 	if metadata != nil {
 		if err := json.Unmarshal([]byte(pv.MetadataJSON), &metadata); err != nil {

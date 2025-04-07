@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"regexp"
 	"slices"
+	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -595,6 +596,9 @@ func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 // If keepOrder is true, the order of the returned issues will be the same as the given IDs.
 func GetIssuesByIDs(ctx context.Context, issueIDs []int64, keepOrder ...bool) (IssueList, error) {
 	issues := make([]*Issue, 0, len(issueIDs))
+	if len(issueIDs) == 0 {
+		return issues, nil
+	}
 
 	if err := db.GetEngine(ctx).In("id", issueIDs).Find(&issues); err != nil {
 		return nil, err
@@ -812,7 +816,7 @@ func ChangeIssueTimeEstimate(ctx context.Context, issue *Issue, doer *user_model
 			Doer:    doer,
 			Repo:    issue.Repo,
 			Issue:   issue,
-			Content: fmt.Sprintf("%d", timeEstimate),
+			Content: strconv.FormatInt(timeEstimate, 10),
 		}
 		if _, err := CreateComment(ctx, opts); err != nil {
 			return fmt.Errorf("createComment: %w", err)

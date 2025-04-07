@@ -1,6 +1,7 @@
 import {isDarkTheme} from '../utils.ts';
 import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
+import {queryElems} from '../utils/dom.ts';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
@@ -10,34 +11,32 @@ body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}
 blockquote, dd, dl, figure, h1, h2, h3, h4, h5, h6, hr, p, pre {margin: 0}`;
 
-export async function renderMermaid(): Promise<void> {
-  const els = document.querySelectorAll('.markup code.language-mermaid');
-  if (!els.length) return;
+export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
+  // .markup code.language-mermaid
+  queryElems(elMarkup, 'code.language-mermaid', async (el) => {
+    const {default: mermaid} = await import(/* webpackChunkName: "mermaid" */'mermaid');
 
-  const {default: mermaid} = await import(/* webpackChunkName: "mermaid" */'mermaid');
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: isDarkTheme() ? 'dark' : 'neutral',
+      securityLevel: 'strict',
+      suppressErrorRendering: true,
+    });
 
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: isDarkTheme() ? 'dark' : 'neutral',
-    securityLevel: 'strict',
-    suppressErrorRendering: true,
-  });
-
-  for (const el of els) {
     const pre = el.closest('pre');
-    if (pre.hasAttribute('data-render-done')) continue;
+    if (pre.hasAttribute('data-render-done')) return;
 
     const source = el.textContent;
     if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
       displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
-      continue;
+      return;
     }
 
     try {
       await mermaid.parse(source);
     } catch (err) {
       displayError(pre, err);
-      continue;
+      return;
     }
 
     try {
@@ -46,7 +45,7 @@ export async function renderMermaid(): Promise<void> {
       const {svg} = await mermaid.render('mermaid', source);
 
       const iframe = document.createElement('iframe');
-      iframe.classList.add('markup-render', 'tw-invisible');
+      iframe.classList.add('markup-content-iframe', 'tw-invisible');
       iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svg}</body></html>`;
 
       const mermaidBlock = document.createElement('div');
@@ -85,5 +84,5 @@ export async function renderMermaid(): Promise<void> {
     } catch (err) {
       displayError(pre, err);
     }
-  }
+  });
 }
