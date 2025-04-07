@@ -181,6 +181,3 @@ type FileDeleteResponse struct {
 type GetFilesOptions struct {
 	Files []string `json:"files" binding:"Required"`
 }
-
-// FilesList contains multiple items if ContentsResponse
-type FilesList []*ContentsResponse

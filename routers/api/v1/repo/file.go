@@ -1023,7 +1023,7 @@ func GetContentsFiles(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/GetFilesOptions"
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/FilesList"
+	//     "$ref": "#/responses/ContentsListResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
