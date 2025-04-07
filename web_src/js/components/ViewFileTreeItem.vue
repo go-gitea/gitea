@@ -58,7 +58,7 @@ const doGotoSubModule = () => {
   >
     <!-- submodule -->
     <div class="item-content">
-      <SvgIcon class="text primary" name="octicon-file-submodule"/>
+      <span class="text primary content" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -70,7 +70,7 @@ const doGotoSubModule = () => {
   >
     <!-- symlink -->
     <div class="item-content">
-      <SvgIcon name="octicon-file-symlink-file"/>
+      <span class="text primary content" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -83,7 +83,7 @@ const doGotoSubModule = () => {
     <!-- file -->
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span v-html="item.entryIcon"/>
+      <span class="text primary content" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -101,7 +101,7 @@ const doGotoSubModule = () => {
     </div>
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="text primary" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
+      <span class="text primary content" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
       <span class="gt-ellipsis">{{ item.entryName }}</span>
     </div>
   </div>
@@ -157,5 +157,9 @@ const doGotoSubModule = () => {
   gap: 0.25em;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+.item-content .content {
+  display: contents;
 }
 </style>
