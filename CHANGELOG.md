@@ -4,6 +4,32 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.23.7](https://github.com/go-gitea/gitea/releases/tag/1.23.7) - 2025-04-07
+
+* Enhancements
+  * Add a config option to block "expensive" pages for anonymous users (#34024) (#34071)
+  * Also check default ssh-cert location for host (#34099) (#34100) (#34116)
+* BUGFIXES
+  * Fix discord webhook 400 status code when description limit is exceeded (#34084) (#34124)
+  * Get changed files based on merge base when checking `pull_request` actions trigger (#34106) (#34120)
+  * Fix invalid version in RPM package path (#34112) (#34115)
+  * Return default avatar url when user id is zero rather than updating database (#34094) (#34095)
+  * Add additional ReplaceAll in pathsep to cater for different pathsep (#34061) (#34070)
+  * Try to fix check-attr bug (#34029) (#34033)
+  * Git client will follow 301 but 307 (#34005) (#34010)
+  * Fix block expensive for 1.23 (#34127)
+  * Fix markdown frontmatter rendering (#34102) (#34107)
+  * Add new CLI flags to set name and scopes when creating a user with access token (#34080) (#34103)
+  * Do not show 500 error when default branch doesn't exist (#34096) (#34097)
+  * Hide activity contributors, recent commits and code frequrency left tabs if there is no code permission (#34053) (#34065)
+  * Simplify emoji rendering (#34048) (#34049)
+  * Adjust the layout of the toolbar on the Issues/Projects page (#33667) (#34047)
+  * Pull request updates will also trigger code owners review requests (#33744) (#34045)
+  * Fix org repo creation being limited by user limits (#34030) (#34044)
+  * Fix git client accessing renamed repo (#34034) (#34043)
+  * Fix the issue with error message logging for the `check-attr` command on Windows OS. (#34035) (#34036)
+  * Polyfill WeakRef (#34025) (#34028)
+
 ## [1.23.6](https://github.com/go-gitea/gitea/releases/tag/v1.23.6) - 2025-03-24
 
 * SECURITY
