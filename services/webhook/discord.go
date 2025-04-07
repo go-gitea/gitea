@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -100,6 +101,13 @@ var (
 	orangeColorLight = color("e68d60")
 	redColor         = color("ff3232")
 )
+
+// https://discord.com/developers/docs/resources/message#embed-object-embed-limits
+// Discord has some limits in place for the embeds.
+// According to some tests, there is no consistent limit for different character sets.
+// For example: 4096 ASCII letters are allowed, but only 2490 emoji characters are allowed.
+// To keep it simple, we currently truncate at 2000.
+const discordDescriptionCharactersLimit = 2000
 
 type discordConvertor struct {
 	Username  string
@@ -307,7 +315,7 @@ func (d discordConvertor) createPayload(s *api.User, title, text, url string, co
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
-				Description: text,
+				Description: base.TruncateString(text, discordDescriptionCharactersLimit),
 				URL:         url,
 				Color:       color,
 				Author: DiscordEmbedAuthor{
