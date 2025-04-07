@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.23.7](https://github.com/go-gitea/gitea/releases/tag/1.23.7) - 2025-04-03
+## [1.23.7](https://github.com/go-gitea/gitea/releases/tag/1.23.7) - 2025-04-07
 
 * Enhancements
   * Add a config option to block "expensive" pages for anonymous users (#34024) (#34071)
