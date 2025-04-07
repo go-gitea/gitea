@@ -11,108 +11,102 @@
 [![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
 
-[繁體中文](./README.zh-tw.md) | [简体中文](./README.zh-cn.md)
+[English](./README.md) | [简体中文](./README.zh-cn.md)
 
-## Purpose
+## 目的
 
-The goal of this project is to make the easiest, fastest, and most
-painless way of setting up a self-hosted Git service.
+這個項目的目標是提供最簡單、最快速、最無痛的方式來設置自託管的 Git 服務。
 
-As Gitea is written in Go, it works across **all** the platforms and
-architectures that are supported by Go, including Linux, macOS, and
-Windows on x86, amd64, ARM and PowerPC architectures.
-This project has been
-[forked](https://blog.gitea.com/welcome-to-gitea/) from
-[Gogs](https://gogs.io) since November of 2016, but a lot has changed.
+由於 Gitea 是用 Go 語言編寫的，它可以在 Go 支援的所有平台和架構上運行，包括 Linux、macOS 和 Windows 的 x86、amd64、ARM 和 PowerPC 架構。這個項目自 2016 年 11 月從 [Gogs](https://gogs.io) [分叉](https://blog.gitea.com/welcome-to-gitea/) 而來，但已經有了很多變化。
 
-For online demonstrations, you can visit [demo.gitea.com](https://demo.gitea.com).
+在線演示可以訪問 [demo.gitea.com](https://demo.gitea.com)。
 
-For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
+要訪問免費的 Gitea 服務（有一定數量的倉庫限制），可以訪問 [gitea.com](https://gitea.com/user/login)。
 
-To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com).
+要快速部署您自己的專用 Gitea 實例，可以在 [cloud.gitea.com](https://cloud.gitea.com) 開始免費試用。
 
-## Documentation
+## 文件
 
-You can find comprehensive documentation on our official [documentation website](https://docs.gitea.com/).
+您可以在我們的官方 [文件網站](https://docs.gitea.com/) 上找到全面的文件。
 
-It includes installation, administration, usage, development, contributing guides, and more to help you get started and explore all features effectively.
+它包括安裝、管理、使用、開發、貢獻指南等，幫助您快速入門並有效地探索所有功能。
 
-If you have any suggestions or would like to contribute to it, you can visit the [documentation repository](https://gitea.com/gitea/docs)
+如果您有任何建議或想要貢獻，可以訪問 [文件倉庫](https://gitea.com/gitea/docs)
 
-## Building
+## 構建
 
-From the root of the source tree, run:
+從源代碼樹的根目錄運行：
 
     TAGS="bindata" make build
 
-or if SQLite support is required:
+如果需要 SQLite 支援：
 
     TAGS="bindata sqlite sqlite_unlock_notify" make build
 
-The `build` target is split into two sub-targets:
+`build` 目標分為兩個子目標：
 
-- `make backend` which requires [Go Stable](https://go.dev/dl/), the required version is defined in [go.mod](/go.mod).
-- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater.
+- `make backend` 需要 [Go Stable](https://go.dev/dl/)，所需版本在 [go.mod](/go.mod) 中定義。
+- `make frontend` 需要 [Node.js LTS](https://nodejs.org/en/download/) 或更高版本。
 
-Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
+需要互聯網連接來下載 go 和 npm 模塊。從包含預構建前端文件的官方源代碼壓縮包構建時，不會觸發 `frontend` 目標，因此可以在沒有 Node.js 的情況下構建。
 
-More info: https://docs.gitea.com/installation/install-from-source
+更多信息：https://docs.gitea.com/installation/install-from-source
 
-## Using
+## 使用
 
-After building, a binary file named `gitea` will be generated in the root of the source tree by default. To run it, use:
+構建後，默認情況下會在源代碼樹的根目錄生成一個名為 `gitea` 的二進制文件。要運行它，請使用：
 
     ./gitea web
 
-> [!NOTE]
-> If you're interested in using our APIs, we have experimental support with [documentation](https://docs.gitea.com/api).
+> [!注意]
+> 如果您對使用我們的 API 感興趣，我們提供了實驗性支援，並附有 [文件](https://docs.gitea.com/api)。
 
-## Contributing
+## 貢獻
 
-Expected workflow is: Fork -> Patch -> Push -> Pull Request
+預期的工作流程是：Fork -> Patch -> Push -> Pull Request
 
-> [!NOTE]
+> [!注意]
 >
-> 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
-> 2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+> 1. **在開始進行 Pull Request 之前，您必須閱讀 [貢獻者指南](CONTRIBUTING.md)。**
+> 2. 如果您在項目中發現了漏洞，請私下寫信給 **security@gitea.io**。謝謝！
 
-## Translating
+## 翻譯
 
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
 
-Translations are done through [Crowdin](https://translate.gitea.com). If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there.
+翻譯通過 [Crowdin](https://translate.gitea.com) 進行。如果您想翻譯成新的語言，請在 Crowdin 項目中請求管理員添加新語言。
 
-You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope to fill it as questions pop up.
+您也可以創建一個 issue 來添加語言，或者在 discord 的 #translation 頻道上詢問。如果您需要上下文或發現一些翻譯問題，可以在字符串上留言或在 Discord 上詢問。對於一般的翻譯問題，文檔中有一個部分。目前有點空，但我們希望隨著問題的出現而填充它。
 
-Get more information from [documentation](https://docs.gitea.com/contributing/localization).
+更多信息請參閱 [文件](https://docs.gitea.com/contributing/localization)。
 
-## Official and Third-Party Projects
+## 官方和第三方項目
 
-We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [tea](https://gitea.com/gitea/tea) and an [action runner](https://gitea.com/gitea/act_runner) for Gitea Action.
+我們提供了一個官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一個名為 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一個 Gitea Action 的 [action runner](https://gitea.com/gitea/act_runner)。
 
-We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea), where you can discover more third-party projects, including SDKs, plugins, themes, and more.
+我們在 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 維護了一個 Gitea 相關項目的列表，您可以在那裡發現更多的第三方項目，包括 SDK、插件、主題等。
 
-## Communication
+## 通訊
 
 [![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
 
-If you have questions that are not covered by the [documentation](https://docs.gitea.com/), you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create a post in the [discourse forum](https://forum.gitea.com/).
+如果您有任何文件未涵蓋的問題，可以在我們的 [Discord 服務器](https://discord.gg/Gitea) 上與我們聯繫，或者在 [discourse 論壇](https://forum.gitea.com/) 上創建帖子。
 
-## Authors
+## 作者
 
-- [Maintainers](https://github.com/orgs/go-gitea/people)
-- [Contributors](https://github.com/go-gitea/gitea/graphs/contributors)
-- [Translators](options/locale/TRANSLATORS)
+- [維護者](https://github.com/orgs/go-gitea/people)
+- [貢獻者](https://github.com/go-gitea/gitea/graphs/contributors)
+- [翻譯者](options/locale/TRANSLATORS)
 
-## Backers
+## 支持者
 
-Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/gitea#backer)]
+感謝所有支持者！ 🙏 [[成為支持者](https://opencollective.com/gitea#backer)]
 
 <a href="https://opencollective.com/gitea#backers" target="_blank"><img src="https://opencollective.com/gitea/backers.svg?width=890"></a>
 
-## Sponsors
+## 贊助商
 
-Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/gitea#sponsor)]
+通過成為贊助商來支持這個項目。您的標誌將顯示在這裡，並帶有鏈接到您的網站。 [[成為贊助商](https://opencollective.com/gitea#sponsor)]
 
 <a href="https://opencollective.com/gitea/sponsor/0/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/0/avatar.svg"></a>
 <a href="https://opencollective.com/gitea/sponsor/1/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/1/avatar.svg"></a>
@@ -125,54 +119,53 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 <a href="https://opencollective.com/gitea/sponsor/8/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/8/avatar.svg"></a>
 <a href="https://opencollective.com/gitea/sponsor/9/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/9/avatar.svg"></a>
 
-## FAQ
+## 常見問題
 
-**How do you pronounce Gitea?**
+**Gitea 怎麼發音？**
 
-Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" with a hard g.
+Gitea 的發音是 [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY)，就像 "gi-tea" 一樣，g 是硬音。
 
-**Why is this not hosted on a Gitea instance?**
+**為什麼這個項目沒有託管在 Gitea 實例上？**
 
-We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
+我們正在 [努力](https://github.com/go-gitea/gitea/issues/1029)。
 
-**Where can I find the security patches?**
+**在哪裡可以找到安全補丁？**
 
-In the [release log](https://github.com/go-gitea/gitea/releases) or the [change log](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md), search for the keyword `SECURITY` to find the security patches.
+在 [發佈日誌](https://github.com/go-gitea/gitea/releases) 或 [變更日誌](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md) 中，搜索關鍵詞 `SECURITY` 以找到安全補丁。
 
-## License
+## 許可證
 
-This project is licensed under the MIT License.
-See the [LICENSE](https://github.com/go-gitea/gitea/blob/main/LICENSE) file
-for the full license text.
+這個項目是根據 MIT 許可證授權的。
+請參閱 [LICENSE](https://github.com/go-gitea/gitea/blob/main/LICENSE) 文件以獲取完整的許可證文本。
 
-## Further information
+## 進一步信息
 
 <details>
-<summary>Looking for an overview of the interface? Check it out!</summary>
+<summary>尋找界面概述？查看這裡！</summary>
 
-### Login/Register Page
+### 登錄/註冊頁面
 
 ![Login](https://dl.gitea.com/screenshots/login.png)
 ![Register](https://dl.gitea.com/screenshots/register.png)
 
-### User Dashboard
+### 用戶儀表板
 
 ![Home](https://dl.gitea.com/screenshots/home.png)
 ![Issues](https://dl.gitea.com/screenshots/issues.png)
 ![Pull Requests](https://dl.gitea.com/screenshots/pull_requests.png)
 ![Milestones](https://dl.gitea.com/screenshots/milestones.png)
 
-### User Profile
+### 用戶資料
 
 ![Profile](https://dl.gitea.com/screenshots/user_profile.png)
 
-### Explore
+### 探索
 
 ![Repos](https://dl.gitea.com/screenshots/explore_repos.png)
 ![Users](https://dl.gitea.com/screenshots/explore_users.png)
 ![Orgs](https://dl.gitea.com/screenshots/explore_orgs.png)
 
-### Repository
+### 倉庫
 
 ![Home](https://dl.gitea.com/screenshots/repo_home.png)
 ![Commits](https://dl.gitea.com/screenshots/repo_commits.png)
@@ -182,31 +175,31 @@ for the full license text.
 ![Releases](https://dl.gitea.com/screenshots/repo_releases.png)
 ![Tags](https://dl.gitea.com/screenshots/repo_tags.png)
 
-#### Repository Issue
+#### 倉庫問題
 
 ![List](https://dl.gitea.com/screenshots/repo_issues.png)
 ![Issue](https://dl.gitea.com/screenshots/repo_issue.png)
 
-#### Repository Pull Requests
+#### 倉庫拉取請求
 
 ![List](https://dl.gitea.com/screenshots/repo_pull_requests.png)
 ![Pull Request](https://dl.gitea.com/screenshots/repo_pull_request.png)
 ![File](https://dl.gitea.com/screenshots/repo_pull_request_file.png)
 ![Commits](https://dl.gitea.com/screenshots/repo_pull_request_commits.png)
 
-#### Repository Actions
+#### 倉庫操作
 
 ![List](https://dl.gitea.com/screenshots/repo_actions.png)
 ![Details](https://dl.gitea.com/screenshots/repo_actions_run.png)
 
-#### Repository Activity
+#### 倉庫活動
 
 ![Activity](https://dl.gitea.com/screenshots/repo_activity.png)
 ![Contributors](https://dl.gitea.com/screenshots/repo_contributors.png)
 ![Code Frequency](https://dl.gitea.com/screenshots/repo_code_frequency.png)
 ![Recent Commits](https://dl.gitea.com/screenshots/repo_recent_commits.png)
 
-### Organization
+### 組織
 
 ![Home](https://dl.gitea.com/screenshots/org_home.png)
 
