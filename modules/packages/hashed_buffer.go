@@ -35,7 +35,7 @@ func NewHashedBuffer() (*HashedBuffer, error) {
 
 // NewHashedBufferWithSize creates a hashed buffer with a specific memory size
 func NewHashedBufferWithSize(maxMemorySize int) (*HashedBuffer, error) {
-	tempDir, err := setting.AppDataTempDir("package-hashed-buffer").Mkdir("")
+	tempDir, err := setting.AppDataTempDir("package-hashed-buffer").MkdirAllSub("")
 	if err != nil {
 		return nil, err
 	}

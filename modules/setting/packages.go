@@ -66,7 +66,7 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	}
 
 	if HasInstallLock(rootCfg) {
-		Packages.ChunkedUploadPath, err = AppDataTempDir("package-upload").Mkdir("")
+		Packages.ChunkedUploadPath, err = AppDataTempDir("package-upload").MkdirAllSub("")
 		if err != nil {
 			return fmt.Errorf("unable to create chunked upload directory: %w", err)
 		}

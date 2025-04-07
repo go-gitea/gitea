@@ -12,6 +12,8 @@ import (
 )
 
 type TempDir struct {
+	// base is the base directory for temporary files, it must exist before accessing and won't be created automatically.
+	// for example: base="/system-tmpdir", sub="gitea-tmp"
 	base, sub string
 }
 
@@ -19,7 +21,8 @@ func (td *TempDir) JoinPath(elems ...string) string {
 	return filepath.Join(append([]string{td.base, td.sub}, elems...)...)
 }
 
-func (td *TempDir) Mkdir(dir string) (string, error) {
+// MkdirAllSub works like os.MkdirAll, but the base directory must exist
+func (td *TempDir) MkdirAllSub(dir string) (string, error) {
 	if _, err := os.Stat(td.base); err != nil {
 		return "", err
 	}
@@ -41,6 +44,7 @@ func (td *TempDir) prepareDirWithPattern(elems ...string) (dir, pattern string, 
 	return dir, pattern, nil
 }
 
+// MkdirTempRandom works like os.MkdirTemp, the last path field is the "pattern"
 func (td *TempDir) MkdirTempRandom(elems ...string) (string, func(), error) {
 	dir, pattern, err := td.prepareDirWithPattern(elems...)
 	if err != nil {
@@ -57,6 +61,7 @@ func (td *TempDir) MkdirTempRandom(elems ...string) (string, func(), error) {
 	}, nil
 }
 
+// CreateTempFileRandom works like os.CreateTemp, the last path field is the "pattern"
 func (td *TempDir) CreateTempFileRandom(elems ...string) (*os.File, func(), error) {
 	dir, pattern, err := td.prepareDirWithPattern(elems...)
 	if err != nil {
