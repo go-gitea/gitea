@@ -183,17 +183,17 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 			textColor, scopeColor, scopeHTML,
 			textColor, itemColor, itemHTML,
 			orderHTML)
-	} else {
-		// <scope> | <label>
-		return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
-			`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
-			`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
-			`</span>`,
-			extraCSSClasses, descriptionText,
-			textColor, scopeColor, scopeHTML,
-			textColor, itemColor, itemHTML,
-		)
 	}
+
+	// <scope> | <label>
+	return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
+		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
+		`</span>`,
+		extraCSSClasses, descriptionText,
+		textColor, scopeColor, scopeHTML,
+		textColor, itemColor, itemHTML,
+	)
 }
 
 // RenderEmoji renders html text with emoji post processors
