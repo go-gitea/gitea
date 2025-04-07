@@ -323,3 +323,32 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 
 	return committer.Commit()
 }
+
+// DeleteOrphanedIssues delete issues without a repo
+func DeleteOrphanedIssues(ctx context.Context) error {
+	var attachmentPaths []string
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		repoIDs, err := issues_model.GetOrphanedIssueRepoIDs(ctx)
+		if err != nil {
+			return err
+		}
+		for i := range repoIDs {
+			paths, err := issues_model.DeleteIssuesByRepoID(ctx, repoIDs[i])
+			if err != nil {
+				return err
+			}
+			attachmentPaths = append(attachmentPaths, paths...)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Remove issue attachment files.
+	for i := range attachmentPaths {
+		system_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+	}
+	return nil
+}

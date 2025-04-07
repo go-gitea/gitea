@@ -15,6 +15,7 @@ import (
 	secret_model "code.gitea.io/gitea/models/secret"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 type consistencyCheck struct {
@@ -93,7 +94,7 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 			// find issues without existing repository
 			Name:    "Orphaned Issues without existing repository",
 			Counter: issues_model.CountOrphanedIssues,
-			Fixer:   asFixer(issues_model.DeleteOrphanedIssues),
+			Fixer:   asFixer(issue_service.DeleteOrphanedIssues),
 		},
 		// find releases without existing repository
 		genericOrphanCheck("Orphaned Releases without existing repository",

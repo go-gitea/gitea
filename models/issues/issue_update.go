@@ -15,7 +15,6 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -817,36 +816,13 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	return attachmentPaths, err
 }
 
-// DeleteOrphanedIssues delete issues without a repo
-func DeleteOrphanedIssues(ctx context.Context) error {
-	var attachmentPaths []string
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		var ids []int64
-
-		if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
-			Join("LEFT", "repository", "issue.repo_id=repository.id").
-			Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
-			Find(&ids); err != nil {
-			return err
-		}
-
-		for i := range ids {
-			paths, err := DeleteIssuesByRepoID(ctx, ids[i])
-			if err != nil {
-				return err
-			}
-			attachmentPaths = append(attachmentPaths, paths...)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
+func GetOrphanedIssueRepoIDs(ctx context.Context) ([]int64, error) {
+	var repoIDs []int64
+	if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
+		Find(&repoIDs); err != nil {
+		return nil, err
 	}
-
-	// Remove issue attachment files.
-	for i := range attachmentPaths {
-		system_model.RemoveAllWithNotice(ctx, "Delete issue attachment", attachmentPaths[i])
-	}
-	return nil
+	return repoIDs, nil
 }
