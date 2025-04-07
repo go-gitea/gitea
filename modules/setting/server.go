@@ -60,6 +60,8 @@ var (
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
 
+	appTempPathInternal string // the temporary path for the app, it is only an internal variable, do not use it, always use AppDataTempDir
+
 	Protocol                   Scheme
 	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
 	ProxyProtocolTLSBridging   bool //`ini:"PROXY_PROTOCOL_TLS_BRIDGING"`
@@ -335,6 +337,13 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		// FIXME: in testing, the "app data" directory is not correctly initialized before loading settings
 		if _, err := os.Stat(AppDataPath); err != nil {
 			_ = os.MkdirAll(AppDataPath, os.ModePerm)
+		}
+	}
+
+	appTempPathInternal = sec.Key("APP_TEMP_PATH").String()
+	if appTempPathInternal != "" {
+		if _, err := os.Stat(appTempPathInternal); err != nil {
+			log.Fatal("APP_TEMP_PATH %q is not accessible: %v", appTempPathInternal, err)
 		}
 	}
 

@@ -199,6 +199,9 @@ func InitWorkPathAndCfgProvider(getEnvFn func(name string) string, args ArgWorkP
 }
 
 func AppDataTempDir(sub string) *tempdir.TempDir {
+	if appTempPathInternal != "" {
+		return tempdir.New(appTempPathInternal, "gitea-tmp/"+sub)
+	}
 	if AppDataPath == "" {
 		panic("setting.AppDataPath is not set")
 	}
