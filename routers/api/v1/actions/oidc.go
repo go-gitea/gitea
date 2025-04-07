@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // OIDC provider for Gitea Actions
-package v1
+package actions
 
 import (
 	"fmt"
@@ -61,7 +61,7 @@ type IDToken struct {
 	*/
 }
 
-func generateOIDCToken(ctx *context.APIContext) {
+func GenerateOIDCToken(ctx *context.APIContext) {
 	if ctx.Doer == nil || ctx.Data["AuthedMethod"] != (&auth_service.OAuth2{}).Name() || ctx.Data["IsActionsToken"] != true {
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
