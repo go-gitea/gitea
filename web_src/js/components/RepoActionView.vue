@@ -895,6 +895,7 @@ export default defineComponent({
 </style>
 
 <style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
+/* some elements are not managed by vue, so we need to use global style */
 .job-step-section {
   margin: 10px;
 }

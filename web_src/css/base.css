@@ -1192,13 +1192,3 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
 .svg.octicon-file-directory-symlink {
   color: var(--color-secondary-dark-7);
 }
-
-.circular-spin {
-  animation: circular-spin-keyframes 1s linear infinite;
-}
-
-@keyframes circular-spin-keyframes {
-  100% {
-    transform: rotate(-360deg);
-  }
-}
