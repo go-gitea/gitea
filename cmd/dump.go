@@ -48,7 +48,7 @@ var CmdDump = &cli.Command{
 		&cli.StringFlag{
 			Name:    "tempdir",
 			Aliases: []string{"t"},
-			Value:   filepath.Join(setting.TempPath, "dump"),
+			Value:   os.TempDir(),
 			Usage:   "Temporary dir path",
 		},
 		&cli.StringFlag{
@@ -194,8 +194,8 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Skipping database")
 	} else {
 		tmpDir := ctx.String("tempdir")
-		if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-			fatal("Unable to create temporary directory: %s (%v)", tmpDir, err)
+		if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
+			fatal("Path does not exist: %s", tmpDir)
 		}
 
 		dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
