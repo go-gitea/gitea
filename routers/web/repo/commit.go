@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -82,11 +83,12 @@ func Commits(ctx *context.Context) {
 		ctx.ServerError("CommitsByRange", err)
 		return
 	}
-	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	processedCommits, err := processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
+	ctx.Data["GroupCommits"] = GroupCommitsByDate(processedCommits)
 	commitIDs := make([]string, 0, len(commits))
 	for _, c := range commits {
 		commitIDs = append(commitIDs, c.ID.String())
@@ -198,11 +200,12 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CommitCount"] = len(commits)
-	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	processedCommits, err := processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
+	ctx.Data["GroupCommits"] = GroupCommitsByDate(processedCommits)
 
 	ctx.Data["Keyword"] = query
 	if all {
@@ -244,11 +247,12 @@ func FileHistory(ctx *context.Context) {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
-	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	processedCommits, err := processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
+	ctx.Data["GroupCommits"] = GroupCommitsByDate(processedCommits)
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
@@ -457,4 +461,39 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 		}
 	}
 	return commits, nil
+}
+
+// GroupedCommits defines the structure for grouped commits.
+type GroupedCommits struct {
+	Date    time.Time
+	Commits []*git_model.SignCommitWithStatuses
+}
+
+// GroupCommitsByDate groups the commits by date (in days).
+func GroupCommitsByDate(commits []*git_model.SignCommitWithStatuses) []GroupedCommits {
+	grouped := make(map[string][]*git_model.SignCommitWithStatuses)
+
+	for _, commit := range commits {
+		var sigTime time.Time
+		if commit.Committer != nil {
+			sigTime = commit.Committer.When
+		} else if commit.Author != nil {
+			sigTime = commit.Author.When
+		}
+
+		// Extract the date part
+		date := sigTime.Format("2006-01-02")
+		grouped[date] = append(grouped[date], commit)
+	}
+
+	result := make([]GroupedCommits, 0, len(grouped))
+	for dateStr, commitsGroup := range grouped {
+		date, _ := time.Parse("2006-01-02", dateStr)
+		result = append(result, GroupedCommits{
+			Date:    date,
+			Commits: commitsGroup,
+		})
+	}
+
+	return result
 }

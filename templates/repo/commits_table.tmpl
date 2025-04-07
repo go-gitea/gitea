@@ -29,8 +29,8 @@
 	</div>
 {{end}}
 
-{{if and .Commits (gt .CommitCount 0)}}
-	{{template "repo/commits_list" .}}
+{{if and .GroupCommits (gt .CommitCount 0)}}
+	{{template "repo/commits_list_group_by_date" .}}
 {{end}}
 
 {{template "base/paginate" .}}
