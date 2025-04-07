@@ -4,6 +4,7 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/bohde/codel"
+	"github.com/go-chi/chi/v5"
 )
 
 type Priority int
@@ -40,6 +42,10 @@ const (
 // or not the user is logged in. All traffic may get dropped, and
 // anonymous users are deprioritized.
 func QoS() func(next http.Handler) http.Handler {
+	if !setting.Service.QoS.Enabled {
+		return nil
+	}
+
 	maxOutstanding := setting.Service.QoS.MaxInFlightRequests
 	if maxOutstanding <= 0 {
 		maxOutstanding = 10
@@ -59,16 +65,7 @@ func QoS() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			ctx := req.Context()
 
-			priority := DefaultPriority
-
-			// If the user is logged in, assign high priority.
-			data := middleware.GetContextData(req.Context())
-			if _, ok := data[middleware.ContextDataKeySignedUser].(*user_model.User); ok {
-				priority = HighPriority
-			} else if IsGitContents(req.URL.Path) {
-				// Otherwise, if the path would is accessing git contents directly, mark as low priority
-				priority = LowPriority
-			}
+			priority := requestPriority(ctx)
 
 			// Check if the request can begin processing.
 			err := c.Acquire(ctx, int(priority))
@@ -91,31 +88,25 @@ func QoS() func(next http.Handler) http.Handler {
 	}
 }
 
-func IsGitContents(path string) bool {
-	parts := []string{
-		"refs",
-		"archive",
-		"commit",
-		"graph",
-		"blame",
-		"branches",
-		"tags",
-		"labels",
-		"stars",
-		"search",
-		"activity",
-		"wiki",
-		"watchers",
-		"compare",
-		"raw",
-		"src",
-		"commits",
+// requestPriority assigns a priority value for a request based upon
+// whether the user is logged in and how expensive the endpoint is
+func requestPriority(ctx context.Context) Priority {
+	// If the user is logged in, assign high priority.
+	data := middleware.GetContextData(ctx)
+	if _, ok := data[middleware.ContextDataKeySignedUser].(*user_model.User); ok {
+		return HighPriority
 	}
 
-	for _, p := range parts {
-		if strings.Contains(path, p) {
-			return true
-		}
+	rctx := chi.RouteContext(ctx)
+	if rctx == nil {
+		return DefaultPriority
 	}
-	return false
+
+	// If we're operating in the context of a repo, assign low priority
+	routePattern := rctx.RoutePattern()
+	if strings.HasPrefix(routePattern, "/{username}/{reponame}") {
+		return LowPriority
+	}
+
+	return DefaultPriority
 }
