@@ -447,8 +447,7 @@
   margin: 0;
   font-size: 100%;
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   background: transparent;
   border: 0;
 }
