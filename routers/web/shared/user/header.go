@@ -145,6 +145,17 @@ func RenderUserHeader(ctx *context.Context) {
 	ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
 }
 
+func RenderUserOrgHeader(ctx *context.Context) error {
+	RenderUserHeader(ctx)
+	if ctx.ContextUser.IsOrganization() {
+		_, err := PrepareOrgHeader(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func LoadHeaderCount(ctx *context.Context) error {
 	prepareContextForCommonProfile(ctx)
 

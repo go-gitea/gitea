@@ -94,7 +94,10 @@ func ListPackages(ctx *context.Context) {
 		return
 	}
 
-	shared_user.RenderUserHeader(ctx)
+	if err = shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
@@ -124,11 +127,6 @@ func ListPackages(ctx *context.Context) {
 		} else {
 			ctx.Data["IsOrganizationMember"] = false
 			ctx.Data["IsOrganizationOwner"] = false
-		}
-		_, err := shared_user.PrepareOrgHeader(ctx)
-		if err != nil {
-			ctx.ServerError("PrepareOrgHeader", err)
-			return
 		}
 	}
 
@@ -415,7 +413,10 @@ func ListPackageVersions(ctx *context.Context) {
 func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
-	shared_user.RenderUserHeader(ctx)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
@@ -432,13 +433,6 @@ func PackageSettings(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("LoadHeaderCount", err)
 		return
-	}
-	if ctx.ContextUser.IsOrganization() {
-		_, err = shared_user.PrepareOrgHeader(ctx)
-		if err != nil {
-			ctx.ServerError("PrepareOrgHeader", err)
-			return
-		}
 	}
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }

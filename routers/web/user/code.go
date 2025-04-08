@@ -27,18 +27,14 @@ func CodeSearch(ctx *context.Context) {
 		return
 	}
 	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	shared_user.RenderUserHeader(ctx)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	if err := shared_user.LoadHeaderCount(ctx); err != nil {
 		ctx.ServerError("LoadHeaderCount", err)
 		return
-	}
-	if ctx.ContextUser.IsOrganization() {
-		_, err := shared_user.PrepareOrgHeader(ctx)
-		if err != nil {
-			ctx.ServerError("PrepareOrgHeader", err)
-			return
-		}
 	}
 
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled

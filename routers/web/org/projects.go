@@ -101,7 +101,10 @@ func Projects(ctx *context.Context) {
 	}
 
 	ctx.Data["Projects"] = projects
-	shared_user.RenderUserHeader(ctx)
+	if err = shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -126,13 +129,6 @@ func Projects(ctx *context.Context) {
 
 	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, numPages)
 	pager.AddParamFromRequest(ctx.Req)
-
-	_, err = shared_user.PrepareOrgHeader(ctx)
-	if err != nil {
-		ctx.ServerError("PrepareOrgHeader", err)
-		return
-	}
-
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
