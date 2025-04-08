@@ -267,7 +267,6 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		}
 	}()
 
-
 	// No need for init mirror.
 	if opts.IsMirror {
 		return repo, nil

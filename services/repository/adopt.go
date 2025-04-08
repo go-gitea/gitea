@@ -103,7 +103,9 @@ func AdoptRepository(ctx context.Context, doer, owner *user_model.User, opts Cre
 	if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 	}
+
 	notify_service.AdoptRepository(ctx, doer, owner, repo)
+
 	return repo, nil
 }
 
