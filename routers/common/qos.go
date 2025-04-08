@@ -104,7 +104,7 @@ func requestPriority(ctx context.Context) Priority {
 
 	// If we're operating in the context of a repo, assign low priority
 	routePattern := rctx.RoutePattern()
-	if strings.HasPrefix(routePattern, "/{username}/{reponame}") {
+	if strings.HasPrefix(routePattern, "/{username}/{reponame}/") {
 		return LowPriority
 	}
 

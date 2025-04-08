@@ -34,6 +34,11 @@ func TestRequestPriority(t *testing.T) {
 			Expected:     DefaultPriority,
 		},
 		{
+			Name:         "Repo Home",
+			RoutePattern: "/{username}/{reponame}",
+			Expected:     DefaultPriority,
+		},
+		{
 			Name:         "User Repo",
 			RoutePattern: "/{username}/{reponame}/src/branch/main",
 			Expected:     LowPriority,
