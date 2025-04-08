@@ -15,7 +15,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -178,8 +177,6 @@ func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_mo
 		return false, "", nil, &ErrWontSign{noKey}
 	}
 
-	ctx = cache.WithCacheContext(ctx)
-
 Loop:
 	for _, rule := range rules {
 		switch rule {
@@ -235,7 +232,6 @@ func SignCRUDAction(ctx context.Context, repoPath string, u *user_model.User, tm
 	if signingKey == "" {
 		return false, "", nil, &ErrWontSign{noKey}
 	}
-	ctx = cache.WithCacheContext(ctx)
 
 Loop:
 	for _, rule := range rules {
@@ -301,7 +297,6 @@ func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.
 
 	var gitRepo *git.Repository
 	var err error
-	ctx = cache.WithCacheContext(ctx)
 
 Loop:
 	for _, rule := range rules {
