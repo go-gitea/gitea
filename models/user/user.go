@@ -248,6 +248,7 @@ func (u *User) MaxCreationLimit() int {
 }
 
 // CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
+// NOTE: functions calling this assume a failure due to repository count limit; it ONLY checks the repo number LIMIT, if new checks are added, those functions should be revised
 func (u *User) CanCreateRepoIn(owner *User) bool {
 	if u.IsAdmin {
 		return true
