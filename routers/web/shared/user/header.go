@@ -139,11 +139,13 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 }
 
 func RenderUserOrgHeader(ctx *context.Context) error {
-	prepareContextForCommonProfile(ctx)
+	if err := LoadHeaderCount(ctx); err != nil {
+		return err
+	}
 	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
 	ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
 
-	if ctx.ContextUser.IsOrganization() {
+	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
 		_, err := PrepareOrgHeader(ctx)
 		if err != nil {
 			return err

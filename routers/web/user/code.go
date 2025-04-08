@@ -32,11 +32,6 @@ func CodeSearch(ctx *context.Context) {
 		return
 	}
 
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["Title"] = ctx.Tr("explore.code")
 	ctx.Data["IsCodePage"] = true

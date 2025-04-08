@@ -86,12 +86,6 @@ func home(ctx *context.Context, viewRepositories bool) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	opts := &organization.FindOrgMembersOpts{
 		Doer:         ctx.Doer,
 		OrgID:        org.ID,

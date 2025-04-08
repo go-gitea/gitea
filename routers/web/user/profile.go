@@ -302,9 +302,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 

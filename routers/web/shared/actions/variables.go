@@ -49,9 +49,8 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 	}
 
 	if ctx.Data["PageIsOrgSettings"] == true {
-		err := shared_user.LoadHeaderCount(ctx)
-		if err != nil {
-			ctx.ServerError("LoadHeaderCount", err)
+		if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+			ctx.ServerError("RenderUserOrgHeader", err)
 			return nil, nil
 		}
 		return &variablesCtx{

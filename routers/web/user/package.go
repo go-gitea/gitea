@@ -109,12 +109,6 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	// TODO: context/org -> HandleOrgAssignment() can not be used
 	if ctx.ContextUser.IsOrganization() {
 		org := org_model.OrgFromUser(ctx.ContextUser)
@@ -308,12 +302,6 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
 
@@ -402,12 +390,6 @@ func ListPackageVersions(ctx *context.Context) {
 
 	ctx.Data["Total"] = total
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
@@ -435,11 +417,6 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
 

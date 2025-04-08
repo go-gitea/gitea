@@ -116,12 +116,6 @@ func Projects(ctx *context.Context) {
 		project.RenderedContent = renderUtils.MarkdownToHtml(project.Description)
 	}
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	numPages := 0
 	if total > 0 {
 		numPages = (int(total) - 1/setting.UI.IssuePagingNum)
@@ -157,12 +151,6 @@ func RenderNewProject(ctx *context.Context) {
 	ctx.Data["CancelLink"] = ctx.ContextUser.HomeLink() + "/-/projects"
 	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
-		return
-	}
-
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 
@@ -296,12 +284,6 @@ func EditProjectPost(ctx *context.Context) {
 
 	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
-		return
-	}
-
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 
@@ -461,12 +443,6 @@ func ViewProject(ctx *context.Context) {
 
 	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
-		return
-	}
-
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 
