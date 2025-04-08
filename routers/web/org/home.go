@@ -103,6 +103,10 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
+	if err = shared_user.LoadHeaderCount(ctx); err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 	prepareResult, err := shared_user.PrepareOrgHeader(ctx)
 	if err != nil {
 		ctx.ServerError("PrepareOrgHeader", err)

@@ -202,10 +202,6 @@ type PrepareOrgHeaderResult struct {
 }
 
 func PrepareOrgHeader(ctx *context.Context) (result *PrepareOrgHeaderResult, err error) {
-	if err = LoadHeaderCount(ctx); err != nil {
-		return nil, err
-	}
-
 	result = &PrepareOrgHeaderResult{}
 	result.ProfilePublicRepo, result.ProfilePublicReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer)
 	result.ProfilePrivateRepo, result.ProfilePrivateReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
