@@ -128,6 +128,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}()
 
+	// 2 - check whether the repository with the same storage exists
 	var isExist bool
 	isExist, err = gitrepo.IsRepositoryExist(ctx, repo)
 	if err != nil {
@@ -144,7 +145,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		return nil, err
 	}
 
-	// 2 - Clone the repository
+	// 3 - Clone the repository
 	cloneCmd := git.NewCommand("clone", "--bare")
 	if opts.SingleBranch != "" {
 		cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
@@ -156,17 +157,17 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		return nil, fmt.Errorf("git clone: %w", err)
 	}
 
-	// 3 - Update the repository
+	// 4 - Update the git repository
 	if err = updateGitRepoAfterCreate(ctx, repo); err != nil {
 		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
-	// 4 - Create hooks
+	// 5 - Create hooks
 	if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
-	// 5 - Sync the repository branches and tags
+	// 6 - Sync the repository branches and tags
 	var gitRepo *git.Repository
 	gitRepo, err = gitrepo.OpenRepository(ctx, repo)
 	if err != nil {
@@ -181,7 +182,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		return nil, fmt.Errorf("Sync releases from git tags failed: %v", err)
 	}
 
-	// 6 - Update the repository
+	// 7 - Update the repository
 	// even if below operations failed, it could be ignored. And they will be retried
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
@@ -195,7 +196,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		return nil, err
 	}
 
-	// 7 - update repository status to be ready
+	// 8 - update repository status to be ready
 	repo.Status = repo_model.RepositoryReady
 	if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)

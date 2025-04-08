@@ -121,18 +121,19 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return nil, err
 	}
 
-	// 3 - Generate the git repository in storage
-	// Init git bare new repository.
+	// 3 -Init git bare new repository.
 	if err = git.InitRepository(ctx, generateRepo.RepoPath(), true, generateRepo.ObjectFormatName); err != nil {
 		return nil, fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = gitrepo.CreateDelegateHooks(ctx, generateRepo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
+	// 4 - Update the git repository
 	if err = updateGitRepoAfterCreate(ctx, generateRepo); err != nil {
 		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
+	// 5 - generate the repository contents according to the template
 	// Git Content
 	if opts.GitContent && !templateRepo.IsEmpty {
 		if err = GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
@@ -181,7 +182,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	// 4 - update repository status to be ready
+	// 6 - update repository status to be ready
 	generateRepo.Status = repo_model.RepositoryReady
 	if err = repo_model.UpdateRepositoryCols(ctx, generateRepo, "status"); err != nil {
 		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)

@@ -272,6 +272,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		return repo, nil
 	}
 
+	// 2 - check whether the repository with the same storage exists
 	var isExist bool
 	isExist, err = gitrepo.IsRepositoryExist(ctx, repo)
 	if err != nil {
@@ -288,29 +289,24 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		return nil, err
 	}
 
+	// 3 - init git repository in storage
 	if err = initRepository(ctx, doer, repo, opts); err != nil {
 		return nil, fmt.Errorf("initRepository: %w", err)
 	}
 
-	// Initialize Issue Labels if selected
+	// 4 - Initialize Issue Labels if selected
 	if len(opts.IssueLabels) > 0 {
 		if err = repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 			return nil, fmt.Errorf("InitializeLabels: %w", err)
 		}
 	}
 
+	// 5 - Update the git repository
 	if err = updateGitRepoAfterCreate(ctx, repo); err != nil {
 		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
-	if needsUpdateStatus {
-		repo.Status = repo_model.RepositoryReady
-		if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
-			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
-		}
-	}
-
-	// update licenses
+	// 6 - update licenses
 	var licenses []string
 	if len(opts.License) > 0 {
 		licenses = append(licenses, opts.License)
@@ -323,6 +319,14 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		}
 		if err = repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
 			return nil, err
+		}
+	}
+
+	// 7 - update repository status to be ready
+	if needsUpdateStatus {
+		repo.Status = repo_model.RepositoryReady
+		if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 		}
 	}
 

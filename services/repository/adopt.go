@@ -88,11 +88,12 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		return nil, fmt.Errorf("getRepositoryByID: %w", err)
 	}
 
-	// 3 - adopt the repository from disk
+	// 2 - adopt the repository from disk
 	if err = adoptRepository(ctx, repo, opts.DefaultBranch); err != nil {
 		return nil, fmt.Errorf("adoptRepository: %w", err)
 	}
 
+	// 3 - Update the git repository
 	if err = updateGitRepoAfterCreate(ctx, repo); err != nil {
 		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
