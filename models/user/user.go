@@ -247,19 +247,19 @@ func (u *User) MaxCreationLimit() int {
 	return u.MaxRepoCreation
 }
 
-// CanCreateRepo returns if user login can create a repository
-// NOTE: functions calling this assume a failure due to repository count limit; if new checks are added, those functions should be revised
-func (u *User) CanCreateRepo() bool {
+// CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
+func (u *User) CanCreateRepoIn(owner *User) bool {
 	if u.IsAdmin {
 		return true
 	}
-	if u.MaxRepoCreation <= -1 {
-		if setting.Repository.MaxCreationLimit <= -1 {
+	const noLimit = -1
+	if owner.MaxRepoCreation == noLimit {
+		if setting.Repository.MaxCreationLimit == noLimit {
 			return true
 		}
-		return u.NumRepos < setting.Repository.MaxCreationLimit
+		return owner.NumRepos < setting.Repository.MaxCreationLimit
 	}
-	return u.NumRepos < u.MaxRepoCreation
+	return owner.NumRepos < owner.MaxRepoCreation
 }
 
 // CanCreateOrganization returns true if user can create organisation.
@@ -272,13 +272,11 @@ func (u *User) CanEditGitHook() bool {
 	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
 }
 
-// CanForkRepo returns if user login can fork a repository
-// It checks especially that the user can create repos, and potentially more
-func (u *User) CanForkRepo() bool {
+func (u *User) CanForkRepoIn(owner *User) bool {
 	if setting.Repository.AllowForkWithoutMaximumLimit {
 		return true
 	}
-	return u.CanCreateRepo()
+	return u.CanCreateRepoIn(owner)
 }
 
 // CanImportLocal returns true if user can migrate repository by local path.

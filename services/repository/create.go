@@ -200,10 +200,10 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 }
 
 // CreateRepositoryDirectly creates a repository for the user/organization.
-func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
-	if !doer.IsAdmin && !u.CanCreateRepo() {
+func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
+	if !doer.CanCreateRepoIn(owner) {
 		return nil, repo_model.ErrReachLimitOfRepo{
-			Limit: u.MaxRepoCreation,
+			Limit: owner.MaxRepoCreation,
 		}
 	}
 
@@ -223,9 +223,9 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	}
 
 	repo := &repo_model.Repository{
-		OwnerID:                         u.ID,
-		Owner:                           u,
-		OwnerName:                       u.Name,
+		OwnerID:                         owner.ID,
+		Owner:                           owner,
+		OwnerName:                       owner.Name,
 		Name:                            opts.Name,
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
@@ -247,7 +247,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	var rollbackRepo *repo_model.Repository
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
+		if err := CreateRepositoryByExample(ctx, doer, owner, repo, false, false); err != nil {
 			return err
 		}
 
@@ -271,7 +271,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			// So we will now fail and delegate to other functionality to adopt or delete
 			log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
 			return repo_model.ErrRepoFilesAlreadyExist{
-				Uname: u.Name,
+				Uname: owner.Name,
 				Name:  repo.Name,
 			}
 		}
@@ -280,7 +280,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			if err2 := gitrepo.DeleteRepository(ctx, repo); err2 != nil {
 				log.Error("initRepository: %v", err)
 				return fmt.Errorf(
-					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
+					"delete repo directory %s/%s failed(2): %v", owner.Name, repo.Name, err2)
 			}
 			return fmt.Errorf("initRepository: %w", err)
 		}
@@ -289,7 +289,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		if len(opts.IssueLabels) > 0 {
 			if err = repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
+				rollbackRepo.OwnerID = owner.ID
 				return fmt.Errorf("InitializeLabels: %w", err)
 			}
 		}
@@ -302,7 +302,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			rollbackRepo = repo
-			rollbackRepo.OwnerID = u.ID
+			rollbackRepo.OwnerID = owner.ID
 			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 		}
 
@@ -315,7 +315,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 			if err != nil {
 				log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
+				rollbackRepo.OwnerID = owner.ID
 				return fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
 			}
 			if err := repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {

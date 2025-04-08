@@ -96,7 +96,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	} else if len(orgs) > 0 {
 		ctx.Data["ContextUser"] = orgs[0]
 	} else {
-		ctx.Data["CanForkRepo"] = false
+		ctx.Data["CanForkRepoInDoer"] = false
 		ctx.Flash.Error(ctx.Tr("repo.fork_no_valid_owners"), true)
 		return nil
 	}
@@ -121,8 +121,8 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 func Fork(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
-	if ctx.Doer.CanForkRepo() {
-		ctx.Data["CanForkRepo"] = true
+	if ctx.Doer.CanForkRepoIn(ctx.Doer) {
+		ctx.Data["CanForkRepoInDoer"] = true
 	} else {
 		maxCreationLimit := ctx.Doer.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
@@ -141,7 +141,7 @@ func Fork(ctx *context.Context) {
 func ForkPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
-	ctx.Data["CanForkRepo"] = true
+	ctx.Data["CanForkRepoInDoer"] = true
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {

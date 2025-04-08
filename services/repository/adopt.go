@@ -29,17 +29,17 @@ import (
 )
 
 // AdoptRepository adopts pre-existing repository files for the user/organization.
-func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
-	if !doer.IsAdmin && !u.CanCreateRepo() {
+func AdoptRepository(ctx context.Context, doer, owner *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
+	if !doer.CanCreateRepoIn(owner) {
 		return nil, repo_model.ErrReachLimitOfRepo{
-			Limit: u.MaxRepoCreation,
+			Limit: owner.MaxRepoCreation,
 		}
 	}
 
 	repo := &repo_model.Repository{
-		OwnerID:                         u.ID,
-		Owner:                           u,
-		OwnerName:                       u.Name,
+		OwnerID:                         owner.ID,
+		Owner:                           owner,
+		OwnerName:                       owner.Name,
 		Name:                            opts.Name,
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
@@ -60,12 +60,12 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		}
 		if !isExist {
 			return repo_model.ErrRepoNotExist{
-				OwnerName: u.Name,
+				OwnerName: owner.Name,
 				Name:      repo.Name,
 			}
 		}
 
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, true, false); err != nil {
+		if err := CreateRepositoryByExample(ctx, doer, owner, repo, true, false); err != nil {
 			return err
 		}
 
@@ -100,7 +100,7 @@ func AdoptRepository(ctx context.Context, doer, u *user_model.User, opts CreateR
 		}
 		return nil, err
 	}
-	notify_service.AdoptRepository(ctx, doer, u, repo)
+	notify_service.AdoptRepository(ctx, doer, owner, repo)
 
 	return repo, nil
 }

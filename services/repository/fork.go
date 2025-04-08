@@ -65,7 +65,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// Fork is prohibited, if user has reached maximum limit of repositories
-	if !owner.CanForkRepo() {
+	if !doer.CanForkRepoIn(owner) {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
 		}
