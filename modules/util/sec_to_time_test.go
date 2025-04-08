@@ -24,5 +24,5 @@ func TestSecToHours(t *testing.T) {
 	assert.Equal(t, "672 hours", SecToHours(4*7*day))
 	assert.Equal(t, "1 second", SecToHours(1))
 	assert.Equal(t, "2 seconds", SecToHours(2))
-	assert.Equal(t, "", SecToHours(nil)) // old behavior, empty means no output
+	assert.Empty(t, SecToHours(nil)) // old behavior, empty means no output
 }

@@ -173,6 +173,18 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 	return &branch, nil
 }
 
+// IsBranchExist returns true if the branch exists in the repository.
+func IsBranchExist(ctx context.Context, repoID int64, branchName string) (bool, error) {
+	var branch Branch
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
+	if err != nil {
+		return false, err
+	} else if !has {
+		return false, nil
+	}
+	return !branch.IsDeleted, nil
+}
+
 func GetBranches(ctx context.Context, repoID int64, branchNames []string, includeDeleted bool) ([]*Branch, error) {
 	branches := make([]*Branch, 0, len(branchNames))
 

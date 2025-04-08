@@ -222,7 +222,7 @@ func (status *CommitStatus) HideActionsURL(ctx context.Context) {
 		}
 	}
 
-	prefix := fmt.Sprintf("%s/actions", status.Repo.Link())
+	prefix := status.Repo.Link() + "/actions"
 	if strings.HasPrefix(status.TargetURL, prefix) {
 		status.TargetURL = ""
 	}

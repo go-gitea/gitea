@@ -69,7 +69,7 @@ func findReadmeFileInEntries(ctx *context.Context, entries []*git.TreeEntry, try
 			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].Name(), entry.Blob().Name()) {
 				if entry.IsLink() {
 					target, err := entry.FollowLinks()
-					if err != nil && !git.IsErrBadLink(err) {
+					if err != nil && !git.IsErrSymlinkUnresolved(err) {
 						return "", nil, err
 					} else if target != nil && (target.IsExecutable() || target.IsRegular()) {
 						readmeFiles[i] = entry

@@ -437,7 +437,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 
 	for _, branch := range branches {
-		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch.Name, true))
+		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch, true))
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
