@@ -43,7 +43,10 @@ func MustEnableProjects(ctx *context.Context) {
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	ctx.Data["Title"] = ctx.Tr("repo.projects")
 
 	sortType := ctx.FormTrim("sort")
@@ -101,10 +104,6 @@ func Projects(ctx *context.Context) {
 	}
 
 	ctx.Data["Projects"] = projects
-	if err = shared_user.RenderUserOrgHeader(ctx); err != nil {
-		ctx.ServerError("RenderUserOrgHeader", err)
-		return
-	}
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"

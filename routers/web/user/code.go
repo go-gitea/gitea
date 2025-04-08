@@ -26,7 +26,6 @@ func CodeSearch(ctx *context.Context) {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return

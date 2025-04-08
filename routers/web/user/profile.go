@@ -78,8 +78,11 @@ func userProfile(ctx *context.Context) {
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileReadmeBlob)
-	// call PrepareContextForProfileBigAvatar later to avoid re-querying the NumFollowers & NumFollowing
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	// call prepareContextForProfileBigAvatar later to avoid re-querying the NumFollowers & NumFollowing
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
@@ -327,9 +330,11 @@ func ActionUserFollow(ctx *context.Context) {
 		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 		return
 	}
-
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	if ctx.ContextUser.IsIndividual() {
-		shared_user.PrepareContextForProfileBigAvatar(ctx)
 		ctx.HTML(http.StatusOK, tplProfileBigAvatar)
 		return
 	} else if ctx.ContextUser.IsOrganization() {

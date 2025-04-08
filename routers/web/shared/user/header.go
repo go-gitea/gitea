@@ -4,6 +4,7 @@
 package user
 
 import (
+	"errors"
 	"net/url"
 
 	"code.gitea.io/gitea/models/db"
@@ -33,10 +34,8 @@ func prepareContextForCommonProfile(ctx *context.Context) {
 	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 }
 
-// PrepareContextForProfileBigAvatar set the context for big avatar view on the profile page
-func PrepareContextForProfileBigAvatar(ctx *context.Context) {
-	prepareContextForCommonProfile(ctx)
-
+// prepareContextForProfileBigAvatar set the context for big avatar view on the profile page
+func prepareContextForProfileBigAvatar(ctx *context.Context) {
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail && ctx.ContextUser.Email != "" && ctx.IsSigned && !ctx.ContextUser.KeepEmailPrivate
 	if setting.Service.UserLocationMapURL != "" {
@@ -145,18 +144,23 @@ func RenderUserOrgHeader(ctx *context.Context) error {
 	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
 	ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
 
-	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
-		_, err := PrepareOrgHeader(ctx)
-		if err != nil {
-			return err
+	if ctx.ContextUser == nil {
+		return errors.New("ctx.ContextUser is nil")
+	}
+	if ctx.ContextUser.IsOrganization() {
+		if ctx.Data["HasOrgProfileReadme"] == nil {
+			if _, err := PrepareOrgHeader(ctx); err != nil {
+				return err
+			}
 		}
+	} else {
+		prepareContextForProfileBigAvatar(ctx)
 	}
 	return nil
 }
 
 func LoadHeaderCount(ctx *context.Context) error {
 	prepareContextForCommonProfile(ctx)
-
 	repoCount, err := repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,

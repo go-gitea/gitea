@@ -103,21 +103,21 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	if err = shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 	prepareResult, err := shared_user.PrepareOrgHeader(ctx)
 	if err != nil {
 		ctx.ServerError("PrepareOrgHeader", err)
 		return
 	}
-
 	// if no profile readme, it still means "view repositories"
 	isViewOverview := !viewRepositories && prepareOrgProfileReadme(ctx, prepareResult)
 	ctx.Data["PageIsViewRepositories"] = !isViewOverview
 	ctx.Data["PageIsViewOverview"] = isViewOverview
 	ctx.Data["ShowOrgProfileReadmeSelector"] = isViewOverview && prepareResult.ProfilePublicReadmeBlob != nil && prepareResult.ProfilePrivateReadmeBlob != nil
+
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
