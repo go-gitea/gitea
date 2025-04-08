@@ -11,11 +11,7 @@ import (
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -118,29 +114,6 @@ func LoadRepoConfig() error {
 		}
 	}
 	Licenses = sortedLicenses
-	return nil
-}
-
-func CheckInitRepository(ctx context.Context, repo *repo_model.Repository) (err error) {
-	// Somehow the directory could exist.
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
-		return err
-	}
-	if isExist {
-		return repo_model.ErrRepoFilesAlreadyExist{
-			Uname: repo.OwnerName,
-			Name:  repo.Name,
-		}
-	}
-
-	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
-		return fmt.Errorf("git.InitRepository: %w", err)
-	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
-		return fmt.Errorf("createDelegateHooks: %w", err)
-	}
 	return nil
 }
 

@@ -235,6 +235,11 @@ func GetDeletedBranchByID(ctx context.Context, repoID, branchID int64) (*Branch,
 	return &branch, nil
 }
 
+func DeleteRepoBranches(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Delete(new(Branch))
+	return err
+}
+
 func DeleteBranches(ctx context.Context, repoID, doerID int64, branchIDs []int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		branches := make([]*Branch, 0, len(branchIDs))

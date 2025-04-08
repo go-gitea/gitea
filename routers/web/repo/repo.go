@@ -87,17 +87,13 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 		return nil
 	}
 
-	if !ctx.Doer.IsAdmin {
-		orgsAvailable := []*organization.Organization{}
-		for i := 0; i < len(orgs); i++ {
-			if orgs[i].CanCreateRepo() {
-				orgsAvailable = append(orgsAvailable, orgs[i])
-			}
+	var orgsAvailable []*organization.Organization
+	for i := 0; i < len(orgs); i++ {
+		if ctx.Doer.CanCreateRepoIn(orgs[i].AsUser()) {
+			orgsAvailable = append(orgsAvailable, orgs[i])
 		}
-		ctx.Data["Orgs"] = orgsAvailable
-	} else {
-		ctx.Data["Orgs"] = orgs
 	}
+	ctx.Data["Orgs"] = orgsAvailable
 
 	// Not equal means current user is an organization.
 	if uid == ctx.Doer.ID || uid == 0 {
@@ -154,7 +150,7 @@ func createCommon(ctx *context.Context) {
 	ctx.Data["Licenses"] = repo_module.Licenses
 	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["CanCreateRepoInDoer"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["CanCreateRepoInDoer"] = ctx.Doer.CanCreateRepoIn(ctx.Doer)
 	ctx.Data["MaxCreationLimitOfDoer"] = ctx.Doer.MaxCreationLimit()
 	ctx.Data["SupportedObjectFormats"] = git.DefaultFeatures().SupportedObjectFormats
 	ctx.Data["DefaultObjectFormat"] = git.Sha1ObjectFormat
