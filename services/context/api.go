@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/unit"
@@ -168,7 +169,7 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	if paginater.HasNext() {
 		u := *curURL
 		queries := u.Query()
-		queries.Set("page", fmt.Sprintf("%d", paginater.Next()))
+		queries.Set("page", strconv.Itoa(paginater.Next()))
 		u.RawQuery = queries.Encode()
 
 		links = append(links, fmt.Sprintf("<%s%s>; rel=\"next\"", setting.AppURL, u.RequestURI()[1:]))
@@ -176,7 +177,7 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	if !paginater.IsLast() {
 		u := *curURL
 		queries := u.Query()
-		queries.Set("page", fmt.Sprintf("%d", paginater.TotalPages()))
+		queries.Set("page", strconv.Itoa(paginater.TotalPages()))
 		u.RawQuery = queries.Encode()
 
 		links = append(links, fmt.Sprintf("<%s%s>; rel=\"last\"", setting.AppURL, u.RequestURI()[1:]))
@@ -192,7 +193,7 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 	if paginater.HasPrevious() {
 		u := *curURL
 		queries := u.Query()
-		queries.Set("page", fmt.Sprintf("%d", paginater.Previous()))
+		queries.Set("page", strconv.Itoa(paginater.Previous()))
 		u.RawQuery = queries.Encode()
 
 		links = append(links, fmt.Sprintf("<%s%s>; rel=\"prev\"", setting.AppURL, u.RequestURI()[1:]))
@@ -225,14 +226,14 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx.SetContextValue(apiContextKey, ctx)
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
-			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
+			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
 				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
 					ctx.APIErrorInternal(err)
 					return
 				}
 			}
 
-			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), 0, "no-transform")
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
@@ -297,21 +298,21 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		}
 
 		if ctx.Repo.GitRepo == nil {
-			ctx.APIErrorInternal(fmt.Errorf("no open git repo"))
+			ctx.APIErrorInternal(errors.New("no open git repo"))
 			return
 		}
 
 		refName, _, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
 
-		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
 			ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+		} else if gitrepo.IsTagExist(ctx, ctx.Repo.Repository, refName) {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 			if err != nil {
 				ctx.APIErrorInternal(err)

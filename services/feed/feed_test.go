@@ -30,7 +30,7 @@ func TestGetFeeds(t *testing.T) {
 	assert.NoError(t, err)
 	if assert.Len(t, actions, 1) {
 		assert.EqualValues(t, 1, actions[0].ID)
-		assert.EqualValues(t, user.ID, actions[0].UserID)
+		assert.Equal(t, user.ID, actions[0].UserID)
 	}
 	assert.Equal(t, int64(1), count)
 
@@ -107,7 +107,7 @@ func TestGetFeeds2(t *testing.T) {
 	assert.Len(t, actions, 1)
 	if assert.Len(t, actions, 1) {
 		assert.EqualValues(t, 2, actions[0].ID)
-		assert.EqualValues(t, org.ID, actions[0].UserID)
+		assert.Equal(t, org.ID, actions[0].UserID)
 	}
 	assert.Equal(t, int64(1), count)
 
@@ -162,4 +162,41 @@ func TestRepoActions(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
+}
+
+func TestNotifyWatchers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	action := &activities_model.Action{
+		ActUserID: 8,
+		RepoID:    1,
+		OpType:    activities_model.ActionStarRepo,
+	}
+	assert.NoError(t, NotifyWatchers(db.DefaultContext, action))
+
+	// One watchers are inactive, thus action is only created for user 8, 1, 4, 11
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    8,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    1,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    4,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    11,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
 }

@@ -82,7 +82,7 @@
 
 {{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 	{{if eq .Activity.Code.CommitCountInAllBranches 0}}
-		<div class="ui center aligned segment">
+		<div class="ui tw-text-center segment">
 		<h4 class="ui header">{{ctx.Locale.Tr "repo.activity.no_git_activity"}}</h4>
 		</div>
 	{{end}}

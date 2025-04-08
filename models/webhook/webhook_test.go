@@ -67,13 +67,13 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 }
 
 func TestWebhook_EventsArray(t *testing.T) {
-	assert.EqualValues(t, []string{
+	assert.Equal(t, []string{
 		"create", "delete", "fork", "push",
 		"issues", "issue_assign", "issue_label", "issue_milestone", "issue_comment",
 		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
 		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
 		"pull_request_review_comment", "pull_request_sync", "pull_request_review_request", "wiki", "repository", "release",
-		"package", "status",
+		"package", "status", "workflow_job",
 	},
 		(&Webhook{
 			HookEvent: &webhook_module.HookEvent{SendEverything: true},

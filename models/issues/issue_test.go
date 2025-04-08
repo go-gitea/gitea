@@ -15,7 +15,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -142,8 +141,8 @@ func TestUpdateIssueCols(t *testing.T) {
 	then := time.Now().Unix()
 
 	updatedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID})
-	assert.EqualValues(t, newTitle, updatedIssue.Title)
-	assert.EqualValues(t, prevContent, updatedIssue.Content)
+	assert.Equal(t, newTitle, updatedIssue.Title)
+	assert.Equal(t, prevContent, updatedIssue.Content)
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
@@ -155,7 +154,7 @@ func TestIssues(t *testing.T) {
 	}{
 		{
 			issues_model.IssuesOptions{
-				AssigneeID: optional.Some(int64(1)),
+				AssigneeID: "1",
 				SortType:   "oldest",
 			},
 			[]int64{1, 6},
@@ -202,7 +201,7 @@ func TestIssues(t *testing.T) {
 		assert.NoError(t, err)
 		if assert.Len(t, issues, len(test.ExpectedIssueIDs)) {
 			for i, issue := range issues {
-				assert.EqualValues(t, test.ExpectedIssueIDs[i], issue.ID)
+				assert.Equal(t, test.ExpectedIssueIDs[i], issue.ID)
 			}
 		}
 	}
@@ -235,10 +234,10 @@ func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *is
 		has, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Get(&newIssue)
 		assert.NoError(t, err)
 		assert.True(t, has)
-		assert.EqualValues(t, issue.Title, newIssue.Title)
-		assert.EqualValues(t, issue.Content, newIssue.Content)
+		assert.Equal(t, issue.Title, newIssue.Title)
+		assert.Equal(t, issue.Content, newIssue.Content)
 		if expectIndex > 0 {
-			assert.EqualValues(t, expectIndex, newIssue.Index)
+			assert.Equal(t, expectIndex, newIssue.Index)
 		}
 	})
 	return &newIssue
@@ -272,7 +271,7 @@ func TestIssue_ResolveMentions(t *testing.T) {
 			ids[i] = user.ID
 		}
 		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
-		assert.EqualValues(t, expected, ids)
+		assert.Equal(t, expected, ids)
 	}
 
 	// Public repo, existing user
@@ -393,28 +392,28 @@ func TestIssueLoadAttributes(t *testing.T) {
 
 	for _, issue := range issueList {
 		assert.NoError(t, issue.LoadAttributes(db.DefaultContext))
-		assert.EqualValues(t, issue.RepoID, issue.Repo.ID)
+		assert.Equal(t, issue.RepoID, issue.Repo.ID)
 		for _, label := range issue.Labels {
-			assert.EqualValues(t, issue.RepoID, label.RepoID)
+			assert.Equal(t, issue.RepoID, label.RepoID)
 			unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: label.ID})
 		}
 		if issue.PosterID > 0 {
-			assert.EqualValues(t, issue.PosterID, issue.Poster.ID)
+			assert.Equal(t, issue.PosterID, issue.Poster.ID)
 		}
 		if issue.AssigneeID > 0 {
-			assert.EqualValues(t, issue.AssigneeID, issue.Assignee.ID)
+			assert.Equal(t, issue.AssigneeID, issue.Assignee.ID)
 		}
 		if issue.MilestoneID > 0 {
-			assert.EqualValues(t, issue.MilestoneID, issue.Milestone.ID)
+			assert.Equal(t, issue.MilestoneID, issue.Milestone.ID)
 		}
 		if issue.IsPull {
-			assert.EqualValues(t, issue.ID, issue.PullRequest.IssueID)
+			assert.Equal(t, issue.ID, issue.PullRequest.IssueID)
 		}
 		for _, attachment := range issue.Attachments {
-			assert.EqualValues(t, issue.ID, attachment.IssueID)
+			assert.Equal(t, issue.ID, attachment.IssueID)
 		}
 		for _, comment := range issue.Comments {
-			assert.EqualValues(t, issue.ID, comment.IssueID)
+			assert.Equal(t, issue.ID, comment.IssueID)
 		}
 		if issue.ID == int64(1) {
 			assert.Equal(t, int64(400), issue.TotalTrackedTime)

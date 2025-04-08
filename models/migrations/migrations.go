@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/migrations/v1_10"
@@ -375,6 +376,10 @@ func prepareMigrationTasks() []*migration {
 		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_24.AddDeleteBranchAfterMergeForAutoMerge),
 		newMigration(313, "Move PinOrder from issue table to a new table issue_pin", v1_24.MovePinOrderToTableIssuePin),
 		newMigration(314, "Update OwnerID as zero for repository level action tables", v1_24.UpdateOwnerIDOfRepoLevelActionsTables),
+		newMigration(315, "Add Ephemeral to ActionRunner", v1_24.AddEphemeralToActionRunner),
+		newMigration(316, "Add description for secrets and variables", v1_24.AddDescriptionForSecretsAndVariables),
+		newMigration(317, "Add new index for action for heatmap", v1_24.AddNewIndexForUserDashboard),
+		newMigration(318, "Add anonymous_access_mode for repo_unit", v1_24.AddRepoUnitAnonymousAccessMode),
 	}
 	return preparedMigrations
 }
@@ -413,14 +418,14 @@ func ExpectedDBVersion() int64 {
 }
 
 // EnsureUpToDate will check if the db is at the correct version
-func EnsureUpToDate(x *xorm.Engine) error {
+func EnsureUpToDate(ctx context.Context, x *xorm.Engine) error {
 	currentDB, err := GetCurrentDBVersion(x)
 	if err != nil {
 		return err
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("database has not been initialized")
+		return errors.New("database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {

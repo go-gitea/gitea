@@ -38,14 +38,14 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		keys = append(keys, k)
 	}
 	slices.Sort(keys)
-	assert.EqualValues(t, []string{
+	assert.Equal(t, []string{
 		"ethantkoenig@gmail.com",
 		"jimmy.praet@telenet.be",
 		"jon@allspice.io",
 		"total", // generated summary
 	}, keys)
 
-	assert.EqualValues(t, &ContributorData{
+	assert.Equal(t, &ContributorData{
 		Name:         "Ethan Koenig",
 		AvatarLink:   "/assets/img/avatar_default.png",
 		TotalCommits: 1,
@@ -58,7 +58,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 			},
 		},
 	}, data["ethantkoenig@gmail.com"])
-	assert.EqualValues(t, &ContributorData{
+	assert.Equal(t, &ContributorData{
 		Name:         "Total",
 		AvatarLink:   "",
 		TotalCommits: 3,

@@ -303,8 +303,8 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	// Check if base branch is valid.
 	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ci.BaseBranch)
-	baseIsBranch := ctx.Repo.GitRepo.IsBranchExist(ci.BaseBranch)
-	baseIsTag := ctx.Repo.GitRepo.IsTagExist(ci.BaseBranch)
+	baseIsBranch := gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, ci.BaseBranch)
+	baseIsTag := gitrepo.IsTagExist(ctx, ctx.Repo.Repository, ci.BaseBranch)
 
 	if !baseIsCommit && !baseIsBranch && !baseIsTag {
 		// Check if baseBranch is short sha commit hash
@@ -506,8 +506,8 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	// Check if head branch is valid.
 	headIsCommit := ci.HeadGitRepo.IsCommitExist(ci.HeadBranch)
-	headIsBranch := ci.HeadGitRepo.IsBranchExist(ci.HeadBranch)
-	headIsTag := ci.HeadGitRepo.IsTagExist(ci.HeadBranch)
+	headIsBranch := gitrepo.IsBranchExist(ctx, ci.HeadRepo, ci.HeadBranch)
+	headIsTag := gitrepo.IsTagExist(ctx, ci.HeadRepo, ci.HeadBranch)
 	if !headIsCommit && !headIsBranch && !headIsTag {
 		// Check if headBranch is short sha commit hash
 		if headCommit, _ := ci.HeadGitRepo.GetCommit(ci.HeadBranch); headCommit != nil {
@@ -571,19 +571,13 @@ func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *common.CompareInfo,
 	whitespaceBehavior git.TrustedCmdArgs,
-) bool {
-	var (
-		repo  = ctx.Repo.Repository
-		err   error
-		title string
-	)
-
-	// Get diff information.
-	ctx.Data["CommitRepoLink"] = ci.HeadRepo.Link()
-
+) (nothingToCompare bool) {
+	repo := ctx.Repo.Repository
 	headCommitID := ci.CompareInfo.HeadCommitID
 
+	ctx.Data["CommitRepoLink"] = ci.HeadRepo.Link()
 	ctx.Data["AfterCommitID"] = headCommitID
+	ctx.Data["ExpandNewPrForm"] = ctx.FormBool("expand")
 
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
@@ -616,7 +610,7 @@ func PrepareCompareDiff(
 
 	fileOnly := ctx.FormBool("file-only")
 
-	diff, err := gitdiff.GetDiff(ctx, ci.HeadGitRepo,
+	diff, err := gitdiff.GetDiffForRender(ctx, ci.HeadGitRepo,
 		&gitdiff.DiffOptions{
 			BeforeCommitID:     beforeCommitID,
 			AfterCommitID:      headCommitID,
@@ -626,14 +620,19 @@ func PrepareCompareDiff(
 			MaxFiles:           maxFiles,
 			WhitespaceBehavior: whitespaceBehavior,
 			DirectComparison:   ci.DirectComparison,
-			FileOnly:           fileOnly,
 		}, ctx.FormStrings("files")...)
 	if err != nil {
-		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
+		ctx.ServerError("GetDiff", err)
 		return false
 	}
+	diffShortStat, err := gitdiff.GetDiffShortStat(ci.HeadGitRepo, beforeCommitID, headCommitID)
+	if err != nil {
+		ctx.ServerError("GetDiffShortStat", err)
+		return false
+	}
+	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
+	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
 	if !fileOnly {
 		diffTree, err := gitdiff.GetDiffTree(ctx, ci.HeadGitRepo, false, beforeCommitID, headCommitID)
@@ -667,6 +666,7 @@ func PrepareCompareDiff(
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
+	title := ci.HeadBranch
 	if len(commits) == 1 {
 		c := commits[0]
 		title = strings.TrimSpace(c.UserCommit.Summary())
@@ -675,9 +675,8 @@ func PrepareCompareDiff(
 		if len(body) > 1 {
 			ctx.Data["content"] = strings.Join(body[1:], "\n")
 		}
-	} else {
-		title = ci.HeadBranch
 	}
+
 	if len(title) > 255 {
 		var trailer string
 		title, trailer = util.EllipsisDisplayStringX(title, 255)
@@ -742,8 +741,7 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Data["OtherCompareSeparator"] = "..."
 	}
 
-	nothingToCompare := PrepareCompareDiff(ctx, ci,
-		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+	nothingToCompare := PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if ctx.Written() {
 		return
 	}
@@ -886,7 +884,7 @@ func ExcerptBlob(ctx *context.Context) {
 
 	if ctx.Data["PageIsWiki"] == true {
 		var err error
-		gitRepo, err = gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
+		gitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return
@@ -901,8 +899,6 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	section := &gitdiff.DiffSection{
 		FileName: filePath,
-		Name:     filePath,
-		Lines:    []*gitdiff.DiffLine{},
 	}
 	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
 		idxLeft -= chunkSize
@@ -950,9 +946,10 @@ func ExcerptBlob(ctx *context.Context) {
 			},
 			Comments: nil,
 		}
-		if direction == "up" {
+		switch direction {
+		case "up":
 			section.Lines = append([]*gitdiff.DiffLine{lineSection}, section.Lines...)
-		} else if direction == "down" {
+		case "down":
 			section.Lines = append(section.Lines, lineSection)
 		}
 	}

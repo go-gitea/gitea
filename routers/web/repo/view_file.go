@@ -9,7 +9,6 @@ import (
 	"image"
 	"io"
 	"path"
-	"slices"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -31,31 +30,30 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
+func prepareLatestCommitInfo(ctx *context.Context) bool {
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.ServerError("GetCommitByPath", err)
+		return false
+	}
+
+	return loadLatestCommitData(ctx, commit)
+}
+
 func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["IsViewFile"] = true
 	ctx.Data["HideRepoInfo"] = true
-	blob := entry.Blob()
-	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
-	if err != nil {
-		ctx.ServerError("getFileReader", err)
+
+	if !prepareLatestCommitInfo(ctx) {
 		return
 	}
-	defer dataRc.Close()
+
+	blob := entry.Blob()
 
 	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefFullName.ShortName())
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-
-	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
-	if err != nil {
-		ctx.ServerError("GetCommitByPath", err)
-		return
-	}
-
-	if !loadLatestCommitData(ctx, commit) {
-		return
-	}
 
 	if ctx.Repo.TreePath == ".editorconfig" {
 		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
@@ -79,7 +77,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		if workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
-	} else if slices.Contains([]string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}, ctx.Repo.TreePath) {
+	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {
 		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
@@ -90,6 +88,15 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 
 	isDisplayingSource := ctx.FormString("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
+
+	// Don't call any other repository functions depends on git.Repository until the dataRc closed to
+	// avoid create unnecessary temporary cat file.
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
+	if err != nil {
+		ctx.ServerError("getFileReader", err)
+		return
+	}
+	defer dataRc.Close()
 
 	if fInfo.isLFSFile {
 		ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
@@ -169,7 +176,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			metas := ctx.Repo.Repository.ComposeDocumentMetas(ctx)
+			metas := ctx.Repo.Repository.ComposeRepoFileMetas(ctx)
 			metas["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
 			rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 				CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),

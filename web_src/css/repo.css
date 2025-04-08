@@ -1724,8 +1724,7 @@ tbody.commit-list {
   line-height: 18px;
   margin: 1em;
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .content-history-detail-dialog .header .avatar {

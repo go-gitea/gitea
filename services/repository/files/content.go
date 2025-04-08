@@ -188,6 +188,14 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		},
 	}
 
+	// GitHub doesn't have these fields in the response, but we could follow other similar APIs to name them
+	// https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#list-commits
+	if lastCommit.Committer != nil {
+		contentsResponse.LastCommitterDate = lastCommit.Committer.When
+	}
+	if lastCommit.Author != nil {
+		contentsResponse.LastAuthorDate = lastCommit.Author.When
+	}
 	// Now populate the rest of the ContentsResponse based on entry type
 	if entry.IsRegular() || entry.IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)

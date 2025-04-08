@@ -23,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -30,6 +31,19 @@ import (
 
 	"xorm.io/builder"
 )
+
+func deleteDBRepository(ctx context.Context, repoID int64) error {
+	if cnt, err := db.GetEngine(ctx).ID(repoID).Delete(&repo_model.Repository{}); err != nil {
+		return err
+	} else if cnt != 1 {
+		return repo_model.ErrRepoNotExist{
+			ID:        repoID,
+			OwnerName: "",
+			Name:      "",
+		}
+	}
+	return nil
+}
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
@@ -81,14 +95,8 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 	needRewriteKeysFile := deleted > 0
 
-	if cnt, err := sess.ID(repoID).Delete(&repo_model.Repository{}); err != nil {
+	if err := deleteDBRepository(ctx, repoID); err != nil {
 		return err
-	} else if cnt != 1 {
-		return repo_model.ErrRepoNotExist{
-			ID:        repoID,
-			OwnerName: "",
-			Name:      "",
-		}
 	}
 
 	if org != nil && org.IsOrganization() {
@@ -289,8 +297,13 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	// we delete the file but the database rollback, the repository will be broken.
 
 	// Remove repository files.
-	repoPath := repo.RepoPath()
-	system_model.RemoveAllWithNotice(ctx, "Delete repository files", repoPath)
+	if err := gitrepo.DeleteRepository(ctx, repo); err != nil {
+		desc := fmt.Sprintf("Delete repository files [%s]: %v", repo.FullName(), err)
+		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
+		if err = system_model.CreateNotice(db.DefaultContext, system_model.NoticeRepository, desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+	}
 
 	// Remove wiki files
 	if repo.HasWiki() {

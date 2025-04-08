@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -374,7 +375,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 		review.Type = ReviewTypeRequest
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
 	} else {
-		return nil, fmt.Errorf("provide either reviewer or reviewer team")
+		return nil, errors.New("provide either reviewer or reviewer team")
 	}
 
 	if _, err := sess.Insert(review); err != nil {
@@ -933,7 +934,7 @@ func MarkConversation(ctx context.Context, comment *Comment, doer *user_model.Us
 // the PR writer , official reviewer and poster can do it
 func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.User) (permResult bool, err error) {
 	if doer == nil || issue == nil {
-		return false, fmt.Errorf("issue or doer is nil")
+		return false, errors.New("issue or doer is nil")
 	}
 
 	if err = issue.LoadRepo(ctx); err != nil {
@@ -972,11 +973,11 @@ func DeleteReview(ctx context.Context, r *Review) error {
 	defer committer.Close()
 
 	if r.ID == 0 {
-		return fmt.Errorf("review is not allowed to be 0")
+		return errors.New("review is not allowed to be 0")
 	}
 
 	if r.Type == ReviewTypeRequest {
-		return fmt.Errorf("review request can not be deleted using this method")
+		return errors.New("review request can not be deleted using this method")
 	}
 
 	opts := FindCommentsOptions{

@@ -5,6 +5,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -23,7 +24,7 @@ import (
 func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
 	if pr.Flow == issues_model.PullRequestFlowAGit {
 		// TODO: update of agit flow pull request's head branch is unsupported
-		return fmt.Errorf("update of agit flow pull request's head branch is unsupported")
+		return errors.New("update of agit flow pull request's head branch is unsupported")
 	}
 
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
@@ -42,7 +43,15 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 
 	if rebase {
 		defer func() {
-			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
+			go AddTestPullRequestTask(TestPullRequestOptions{
+				RepoID:      pr.BaseRepo.ID,
+				Doer:        doer,
+				Branch:      pr.BaseBranch,
+				IsSync:      false,
+				IsForcePush: false,
+				OldCommitID: "",
+				NewCommitID: "",
+			})
 		}()
 
 		return updateHeadByRebaseOnToBase(ctx, pr, doer)
@@ -83,7 +92,15 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, repository.PushTriggerPRUpdateWithBase)
 
 	defer func() {
-		go AddTestPullRequestTask(doer, reversePR.HeadRepo.ID, reversePR.HeadBranch, false, "", "")
+		go AddTestPullRequestTask(TestPullRequestOptions{
+			RepoID:      reversePR.HeadRepo.ID,
+			Doer:        doer,
+			Branch:      reversePR.HeadBranch,
+			IsSync:      false,
+			IsForcePush: false,
+			OldCommitID: "",
+			NewCommitID: "",
+		})
 	}()
 
 	return err

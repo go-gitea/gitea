@@ -19,11 +19,11 @@ func TestGetTemplateSubmoduleCommits(t *testing.T) {
 
 	assert.Len(t, submodules, 2)
 
-	assert.EqualValues(t, "<°)))><", submodules[0].Path)
-	assert.EqualValues(t, "d2932de67963f23d43e1c7ecf20173e92ee6c43c", submodules[0].Commit)
+	assert.Equal(t, "<°)))><", submodules[0].Path)
+	assert.Equal(t, "d2932de67963f23d43e1c7ecf20173e92ee6c43c", submodules[0].Commit)
 
-	assert.EqualValues(t, "libtest", submodules[1].Path)
-	assert.EqualValues(t, "1234567890123456789012345678901234567890", submodules[1].Commit)
+	assert.Equal(t, "libtest", submodules[1].Path)
+	assert.Equal(t, "1234567890123456789012345678901234567890", submodules[1].Commit)
 }
 
 func TestAddTemplateSubmoduleIndexes(t *testing.T) {
@@ -42,6 +42,6 @@ func TestAddTemplateSubmoduleIndexes(t *testing.T) {
 	submodules, err := GetTemplateSubmoduleCommits(DefaultContext, tmpDir)
 	require.NoError(t, err)
 	assert.Len(t, submodules, 1)
-	assert.EqualValues(t, "new-dir", submodules[0].Path)
-	assert.EqualValues(t, "1234567890123456789012345678901234567890", submodules[0].Commit)
+	assert.Equal(t, "new-dir", submodules[0].Path)
+	assert.Equal(t, "1234567890123456789012345678901234567890", submodules[0].Commit)
 }

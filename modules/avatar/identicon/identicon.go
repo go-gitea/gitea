@@ -8,6 +8,7 @@ package identicon
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -29,7 +30,7 @@ type Identicon struct {
 // fore all possible foreground colors. only one foreground color will be picked randomly for one image
 func New(size int, back color.Color, fore ...color.Color) (*Identicon, error) {
 	if len(fore) == 0 {
-		return nil, fmt.Errorf("foreground is not set")
+		return nil, errors.New("foreground is not set")
 	}
 
 	if size < minImageSize {

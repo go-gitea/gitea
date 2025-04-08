@@ -1,5 +1,9 @@
 @import "./theme-gitea-light.css";
 
+gitea-theme-meta-info {
+  --theme-display-name: "Light (Red/Green Colorblind-friendly)";
+}
+
 /* red/green colorblind-friendly colors */
 /* from GitHub: --diffBlob-addition-*, --diffBlob-deletion-*, etc */
 :root {

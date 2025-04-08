@@ -51,7 +51,7 @@ func Test_Suggestion(t *testing.T) {
 			for _, issue := range issues {
 				issueIndexes = append(issueIndexes, issue.Index)
 			}
-			assert.EqualValues(t, testCase.expectedIndexes, issueIndexes)
+			assert.Equal(t, testCase.expectedIndexes, issueIndexes)
 		})
 	}
 }

@@ -24,6 +24,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -277,7 +278,7 @@ func ViewIssue(ctx *context.Context) {
 		extIssueUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 		if err == nil && extIssueUnit != nil {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
-				metas := ctx.Repo.Repository.ComposeMetas(ctx)
+				metas := ctx.Repo.Repository.ComposeCommentMetas(ctx)
 				metas["index"] = ctx.PathParam("index")
 				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
@@ -526,7 +527,7 @@ func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue
 	pull := issue.PullRequest
 	isPullBranchDeletable := canDelete &&
 		pull.HeadRepo != nil &&
-		git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
+		gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.HeadBranch) &&
 		(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
 	if isPullBranchDeletable && pull.HasMerged {

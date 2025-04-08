@@ -55,7 +55,7 @@ func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, m
 	)
 	for _, verb := range verbs {
 		if verb != "" {
-			reqURL += fmt.Sprintf("&verb=%s", url.QueryEscape(verb))
+			reqURL += "&verb=" + url.QueryEscape(verb)
 		}
 	}
 	req := newInternalRequestAPI(ctx, reqURL, "GET")

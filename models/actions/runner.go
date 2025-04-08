@@ -57,6 +57,8 @@ type ActionRunner struct {
 
 	// Store labels defined in state file (default: .runner file) of `act_runner`
 	AgentLabels []string `xorm:"TEXT"`
+	// Store if this is a runner that only ever get one single job assigned
+	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -84,9 +86,10 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 		return types.OwnerTypeRepository
 	}
 	if r.OwnerID != 0 {
-		if r.Owner.Type == user_model.UserTypeOrganization {
+		switch r.Owner.Type {
+		case user_model.UserTypeOrganization:
 			return types.OwnerTypeOrganization
-		} else if r.Owner.Type == user_model.UserTypeIndividual {
+		case user_model.UserTypeIndividual:
 			return types.OwnerTypeIndividual
 		}
 	}
