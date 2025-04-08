@@ -6,6 +6,7 @@ package tempdir
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -80,15 +81,32 @@ func (td *TempDir) CreateTempFileRandom(elems ...string) (*os.File, func(), erro
 	}, err
 }
 
-func (td *TempDir) RemoveOutdated() {
-	// TODO: remove the out-dated temp files
-	log.Error("TODO: remove the out-dated temp files, not implemented yet")
+func (td *TempDir) RemoveOutdated(d time.Duration) {
+	var remove func(path string)
+	remove = func(path string) {
+		entries, _ := os.ReadDir(path)
+		for _, entry := range entries {
+			full := filepath.Join(path, entry.Name())
+			if entry.IsDir() {
+				remove(full)
+				_ = os.Remove(full)
+				continue
+			}
+			info, err := entry.Info()
+			if err == nil && time.Since(info.ModTime()) > d {
+				_ = os.Remove(full)
+			}
+		}
+	}
+	remove(td.JoinPath(""))
+}
+
+// New create a new TempDir instance, "base" must be an existing directory,
+// "sub" could be a multi-level directory and will be created if not exist
+func New(base, sub string) *TempDir {
+	return &TempDir{base: base, sub: sub}
 }
 
 func OsTempDir(sub string) *TempDir {
-	return &TempDir{base: os.TempDir(), sub: sub}
-}
-
-func New(base, sub string) *TempDir {
-	return &TempDir{base: base, sub: sub}
+	return New(os.TempDir(), sub)
 }

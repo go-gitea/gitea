@@ -213,7 +213,9 @@ func serveInstalled(ctx *cli.Context) error {
 		log.Fatal("Can not find APP_DATA_PATH %q", setting.AppDataPath)
 	}
 
-	setting.AppDataTempDir("").RemoveOutdated()
+	// the AppDataTempDir is fully managed by us with a safe sub-path
+	// so it's safe to automatically remove the outdated files
+	setting.AppDataTempDir("").RemoveOutdated(3 * 24 * time.Hour)
 
 	// Override the provided port number within the configuration
 	if ctx.IsSet("port") {
