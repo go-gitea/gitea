@@ -9,11 +9,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRepository_GetLanguageStats(t *testing.T) {
+	setting.AppDataPath = t.TempDir()
 	repoPath := filepath.Join(testReposDir, "language_stats_repo")
 	gitRepo, err := openRepositoryWithDefaultContext(repoPath)
 	require.NoError(t, err)

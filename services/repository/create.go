@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // CreateRepoOptions contains the create repository options
@@ -150,15 +149,11 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
+		tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("repos-" + repo.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.FullName(), err)
+			return fmt.Errorf("failed to create temp dir for repository %s: %w", repo.FullName(), err)
 		}
-		defer func() {
-			if err := util.RemoveAll(tmpDir); err != nil {
-				log.Warn("Unable to remove temporary directory: %s: Error: %v", tmpDir, err)
-			}
-		}()
+		defer cleanup()
 
 		if err = prepareRepoCommit(ctx, repo, tmpDir, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %w", err)

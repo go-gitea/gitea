@@ -845,6 +845,7 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
+		// FIXME: it's not right, because the attachment might not be on local filesystem
 		system_model.RemoveAllWithNotice(ctx, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil

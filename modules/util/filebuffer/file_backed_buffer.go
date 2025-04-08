@@ -7,16 +7,10 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"math"
 	"os"
 )
 
-var (
-	// ErrInvalidMemorySize occurs if the memory size is not in a valid range
-	ErrInvalidMemorySize = errors.New("Memory size must be greater 0 and lower math.MaxInt32")
-	// ErrWriteAfterRead occurs if Write is called after a read operation
-	ErrWriteAfterRead = errors.New("Write is unsupported after a read operation")
-)
+var ErrWriteAfterRead = errors.New("write is unsupported after a read operation") // occurs if Write is called after a read operation
 
 type readAtSeeker interface {
 	io.ReadSeeker
@@ -30,34 +24,17 @@ type FileBackedBuffer struct {
 	maxMemorySize int64
 	size          int64
 	buffer        bytes.Buffer
+	tempDir       string
 	file          *os.File
 	reader        readAtSeeker
 }
 
 // New creates a file backed buffer with a specific maximum memory size
-func New(maxMemorySize int) (*FileBackedBuffer, error) {
-	if maxMemorySize < 0 || maxMemorySize > math.MaxInt32 {
-		return nil, ErrInvalidMemorySize
-	}
-
+func New(maxMemorySize int, tempDir string) *FileBackedBuffer {
 	return &FileBackedBuffer{
 		maxMemorySize: int64(maxMemorySize),
-	}, nil
-}
-
-// CreateFromReader creates a file backed buffer and copies the provided reader data into it.
-func CreateFromReader(r io.Reader, maxMemorySize int) (*FileBackedBuffer, error) {
-	b, err := New(maxMemorySize)
-	if err != nil {
-		return nil, err
+		tempDir:       tempDir,
 	}
-
-	_, err = io.Copy(b, r)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
 }
 
 // Write implements io.Writer
@@ -73,7 +50,7 @@ func (b *FileBackedBuffer) Write(p []byte) (int, error) {
 		n, err = b.file.Write(p)
 	} else {
 		if b.size+int64(len(p)) > b.maxMemorySize {
-			b.file, err = os.CreateTemp("", "gitea-buffer-")
+			b.file, err = os.CreateTemp(b.tempDir, "gitea-buffer-")
 			if err != nil {
 				return 0, err
 			}
@@ -148,7 +125,7 @@ func (b *FileBackedBuffer) Seek(offset int64, whence int) (int64, error) {
 func (b *FileBackedBuffer) Close() error {
 	if b.file != nil {
 		err := b.file.Close()
-		os.Remove(b.file.Name())
+		_ = os.Remove(b.file.Name())
 		b.file = nil
 		return err
 	}
