@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -1237,7 +1238,10 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 		return nil, err
 	}
 
-	checker, deferrable := gitRepo.CheckAttributeReader(opts.AfterCommitID)
+	checker, deferrable, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID)
+	if err != nil {
+		return nil, err
+	}
 	defer deferrable()
 
 	for _, diffFile := range diff.Files {
@@ -1246,10 +1250,9 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 		if checker != nil {
 			attrs, err := checker.CheckPath(diffFile.Name)
 			if err == nil {
-				isVendored = git.AttributeToBool(attrs, git.AttributeLinguistVendored)
-				isGenerated = git.AttributeToBool(attrs, git.AttributeLinguistGenerated)
-
-				language := git.TryReadLanguageAttribute(attrs)
+				isVendored = attrs.HasVendored()
+				isGenerated = attrs.HasGenerated()
+				language := attrs.Language()
 				if language.Has() {
 					diffFile.Language = language.Value()
 				}

@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -146,7 +147,7 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+	attributesMap, err := attribute.CheckAttribute(gitRepo, attribute.CheckAttributeOpts{
 		Attributes: []string{"lockable"},
 		Filenames:  filenames,
 		CachedOnly: true,
@@ -159,7 +160,7 @@ func LFSLocks(ctx *context.Context) {
 
 	lockables := make([]bool, len(lfsLocks))
 	for i, lock := range lfsLocks {
-		attribute2info, has := name2attribute2info[lock.Path]
+		attribute2info, has := attributesMap[lock.Path]
 		if !has {
 			continue
 		}

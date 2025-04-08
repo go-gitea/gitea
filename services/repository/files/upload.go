@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -105,9 +106,9 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 	}
 
-	var filename2attribute2info map[string]map[string]string
+	var attributesMap map[string]attribute.Attributes
 	if setting.LFS.StartServer {
-		filename2attribute2info, err = t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
+		attributesMap, err = attribute.CheckAttribute(t.gitRepo, attribute.CheckAttributeOpts{
 			Attributes: []string{"filter"},
 			Filenames:  names,
 			CachedOnly: true,
@@ -119,7 +120,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	// Copy uploaded files into repository.
 	for i := range infos {
-		if err := copyUploadedLFSFileIntoRepository(ctx, &infos[i], filename2attribute2info, t, opts.TreePath); err != nil {
+		if err := copyUploadedLFSFileIntoRepository(ctx, &infos[i], attributesMap, t, opts.TreePath); err != nil {
 			return err
 		}
 	}
@@ -176,7 +177,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	return repo_model.DeleteUploads(ctx, uploads...)
 }
 
-func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, filename2attribute2info map[string]map[string]string, t *TemporaryUploadRepository, treePath string) error {
+func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, attributesMap map[string]attribute.Attributes, t *TemporaryUploadRepository, treePath string) error {
 	file, err := os.Open(info.upload.LocalPath())
 	if err != nil {
 		return err
@@ -184,7 +185,7 @@ func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, fi
 	defer file.Close()
 
 	var objectHash string
-	if setting.LFS.StartServer && filename2attribute2info[info.upload.Name] != nil && filename2attribute2info[info.upload.Name]["filter"] == "lfs" {
+	if setting.LFS.StartServer && attributesMap[info.upload.Name] != nil && attributesMap[info.upload.Name]["filter"] == "lfs" {
 		// Handle LFS
 		// FIXME: Inefficient! this should probably happen in models.Upload
 		pointer, err := lfs.GeneratePointer(file)

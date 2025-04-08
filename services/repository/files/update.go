@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -488,7 +489,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	var lfsMetaObject *git_model.LFSMetaObject
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
-		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
+		attributesMap, err := attribute.CheckAttribute(t.gitRepo, attribute.CheckAttributeOpts{
 			Attributes: []string{"filter"},
 			Filenames:  []string{file.Options.treePath},
 			CachedOnly: true,
@@ -497,7 +498,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 			return err
 		}
 
-		if filename2attribute2info[file.Options.treePath] != nil && filename2attribute2info[file.Options.treePath]["filter"] == "lfs" {
+		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath]["filter"] == "lfs" {
 			// OK so we are supposed to LFS this data!
 			pointer, err := lfs.GeneratePointer(treeObjectContentReader)
 			if err != nil {

@@ -1,7 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package attribute
 
 import (
 	"testing"
@@ -24,7 +24,7 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	select {
 	case attr := <-wr.ReadAttribute():
 		assert.Equal(t, ".gitignore\"\n", attr.Filename)
-		assert.Equal(t, AttributeLinguistVendored, attr.Attribute)
+		assert.Equal(t, LinguistVendored, attr.Attribute)
 		assert.Equal(t, "unspecified", attr.Value)
 	case <-time.After(100 * time.Millisecond):
 		assert.FailNow(t, "took too long to read an attribute from the list")
@@ -38,7 +38,7 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	select {
 	case attr := <-wr.ReadAttribute():
 		assert.Equal(t, ".gitignore\"\n", attr.Filename)
-		assert.Equal(t, AttributeLinguistVendored, attr.Attribute)
+		assert.Equal(t, LinguistVendored, attr.Attribute)
 		assert.Equal(t, "unspecified", attr.Value)
 	case <-time.After(100 * time.Millisecond):
 		assert.FailNow(t, "took too long to read an attribute from the list")
@@ -77,21 +77,21 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
-		Attribute: AttributeLinguistVendored,
+		Attribute: LinguistVendored,
 		Value:     "set",
 	}, attr)
 	attr = <-wr.ReadAttribute()
 	assert.NoError(t, err)
 	assert.Equal(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
-		Attribute: AttributeLinguistGenerated,
+		Attribute: LinguistGenerated,
 		Value:     "unspecified",
 	}, attr)
 	attr = <-wr.ReadAttribute()
 	assert.NoError(t, err)
 	assert.Equal(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
-		Attribute: AttributeLinguistLanguage,
+		Attribute: LinguistLanguage,
 		Value:     "unspecified",
 	}, attr)
 }

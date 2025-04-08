@@ -3,7 +3,7 @@
 
 //go:build gogit
 
-package git
+package languagestats
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ import (
 )
 
 // GetLanguageStats calculates language stats for git repository at specified commit
-func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
+func GetLanguageStats(repo *Repository, commitID string) (map[string]int64, error) {
 	r, err := git.PlainOpen(repo.Path)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,10 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
-	checker, deferable := repo.CheckAttributeReader(commitID)
+	checker, deferable, err := NewAttributeChecker(repo, commitID)
+	if err != nil {
+		return nil, err
+	}
 	defer deferable()
 
 	// sizes contains the current calculated size of all files by language
@@ -62,43 +65,41 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		isDocumentation := optional.None[bool]()
 		isDetectable := optional.None[bool]()
 
-		if checker != nil {
-			attrs, err := checker.CheckPath(f.Name)
-			if err == nil {
-				isVendored = AttributeToBool(attrs, AttributeLinguistVendored)
-				if isVendored.ValueOrDefault(false) {
-					return nil
+		attrs, err := checker.CheckPath(f.Name)
+		if err == nil {
+			isVendored = attrs.HasVendored()
+			if isVendored.ValueOrDefault(false) {
+				return nil
+			}
+
+			isGenerated = attrs.HasGenerated()
+			if isGenerated.ValueOrDefault(false) {
+				return nil
+			}
+
+			isDocumentation = attrs.HasDocumentation()
+			if isDocumentation.ValueOrDefault(false) {
+				return nil
+			}
+
+			isDetectable = attrs.HasDetectable()
+			if !isDetectable.ValueOrDefault(true) {
+				return nil
+			}
+
+			hasLanguage := attrs.Language()
+			if hasLanguage.Value() != "" {
+				language := hasLanguage.Value()
+
+				// group languages, such as Pug -> HTML; SCSS -> CSS
+				group := enry.GetLanguageGroup(language)
+				if len(group) != 0 {
+					language = group
 				}
 
-				isGenerated = AttributeToBool(attrs, AttributeLinguistGenerated)
-				if isGenerated.ValueOrDefault(false) {
-					return nil
-				}
-
-				isDocumentation = AttributeToBool(attrs, AttributeLinguistDocumentation)
-				if isDocumentation.ValueOrDefault(false) {
-					return nil
-				}
-
-				isDetectable = AttributeToBool(attrs, AttributeLinguistDetectable)
-				if !isDetectable.ValueOrDefault(true) {
-					return nil
-				}
-
-				hasLanguage := TryReadLanguageAttribute(attrs)
-				if hasLanguage.Value() != "" {
-					language := hasLanguage.Value()
-
-					// group languages, such as Pug -> HTML; SCSS -> CSS
-					group := enry.GetLanguageGroup(language)
-					if len(group) != 0 {
-						language = group
-					}
-
-					// this language will always be added to the size
-					sizes[language] += f.Size
-					return nil
-				}
+				// this language will always be added to the size
+				sizes[language] += f.Size
+				return nil
 			}
 		}
 

@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -284,14 +285,16 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 
 	if ctx.Repo.GitRepo != nil {
-		checker, deferable := ctx.Repo.GitRepo.CheckAttributeReader(ctx.Repo.CommitID)
-		if checker != nil {
-			defer deferable()
-			attrs, err := checker.CheckPath(ctx.Repo.TreePath)
-			if err == nil {
-				ctx.Data["IsVendored"] = git.AttributeToBool(attrs, git.AttributeLinguistVendored).Value()
-				ctx.Data["IsGenerated"] = git.AttributeToBool(attrs, git.AttributeLinguistGenerated).Value()
-			}
+		checker, deferable, err := attribute.NewBatchChecker(ctx.Repo.GitRepo, ctx.Repo.CommitID)
+		if err != nil {
+			ctx.ServerError("NewAttributeChecker", err)
+			return
+		}
+		defer deferable()
+		attrs, err := checker.CheckPath(ctx.Repo.TreePath)
+		if err == nil {
+			ctx.Data["IsVendored"] = attrs.HasVendored().Value()
+			ctx.Data["IsGenerated"] = attrs.HasGenerated().Value()
 		}
 	}
 

@@ -12,6 +12,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -287,9 +288,9 @@ func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (
 
 	defer deleteTemporaryFile()
 
-	filename2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+	attributesMap, err := attribute.CheckAttribute(gitRepo, attribute.CheckAttributeOpts{
 		CachedOnly: true,
-		Attributes: []string{git.AttributeLinguistLanguage, git.AttributeGitlabLanguage},
+		Attributes: []string{attribute.LinguistLanguage, attribute.GitlabLanguage},
 		Filenames:  []string{treePath},
 		IndexFile:  indexFilename,
 		WorkTree:   worktree,
@@ -298,7 +299,7 @@ func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (
 		return "", err
 	}
 
-	language := git.TryReadLanguageAttribute(filename2attribute2info[treePath])
+	language := attributesMap[treePath].Language()
 
 	return language.Value(), nil
 }

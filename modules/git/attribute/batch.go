@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package attribute
 
 import (
 	"bytes"
@@ -13,107 +13,29 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
 
-// CheckAttributeOpts represents the possible options to CheckAttribute
-type CheckAttributeOpts struct {
-	CachedOnly    bool
-	AllAttributes bool
-	Attributes    []string
-	Filenames     []string
-	IndexFile     string
-	WorkTree      string
-}
-
-// CheckAttribute return the Blame object of file
-func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[string]string, error) {
-	env := []string{}
-
-	if len(opts.IndexFile) > 0 {
-		env = append(env, "GIT_INDEX_FILE="+opts.IndexFile)
-	}
-	if len(opts.WorkTree) > 0 {
-		env = append(env, "GIT_WORK_TREE="+opts.WorkTree)
-	}
-
-	if len(env) > 0 {
-		env = append(os.Environ(), env...)
-	}
-
-	stdOut := new(bytes.Buffer)
-	stdErr := new(bytes.Buffer)
-
-	cmd := NewCommand("check-attr", "-z")
-
-	if opts.AllAttributes {
-		cmd.AddArguments("-a")
-	} else {
-		for _, attribute := range opts.Attributes {
-			if attribute != "" {
-				cmd.AddDynamicArguments(attribute)
-			}
-		}
-	}
-
-	if opts.CachedOnly {
-		cmd.AddArguments("--cached")
-	}
-
-	cmd.AddDashesAndList(opts.Filenames...)
-
-	if err := cmd.Run(repo.Ctx, &RunOpts{
-		Env:    env,
-		Dir:    repo.Path,
-		Stdout: stdOut,
-		Stderr: stdErr,
-	}); err != nil {
-		return nil, fmt.Errorf("failed to run check-attr: %w\n%s\n%s", err, stdOut.String(), stdErr.String())
-	}
-
-	// FIXME: This is incorrect on versions < 1.8.5
-	fields := bytes.Split(stdOut.Bytes(), []byte{'\000'})
-
-	if len(fields)%3 != 1 {
-		return nil, errors.New("wrong number of fields in return from check-attr")
-	}
-
-	name2attribute2info := make(map[string]map[string]string)
-
-	for i := 0; i < (len(fields) / 3); i++ {
-		filename := string(fields[3*i])
-		attribute := string(fields[3*i+1])
-		info := string(fields[3*i+2])
-		attribute2info := name2attribute2info[filename]
-		if attribute2info == nil {
-			attribute2info = make(map[string]string)
-		}
-		attribute2info[attribute] = info
-		name2attribute2info[filename] = attribute2info
-	}
-
-	return name2attribute2info, nil
-}
-
-// CheckAttributeReader provides a reader for check-attribute content that can be long running
-type CheckAttributeReader struct {
+// BatchChecker provides a reader for check-attribute content that can be long running
+type BatchChecker struct {
 	// params
 	Attributes []string
-	Repo       *Repository
+	Repo       *git.Repository
 	IndexFile  string
 	WorkTree   string
 
 	stdinReader io.ReadCloser
 	stdinWriter *os.File
 	stdOut      *nulSeparatedAttributeWriter
-	cmd         *Command
+	cmd         *git.Command
 	env         []string
 	ctx         context.Context
 	cancel      context.CancelFunc
 }
 
-// Init initializes the CheckAttributeReader
-func (c *CheckAttributeReader) Init(ctx context.Context) error {
+// init initializes the AttributeChecker
+func (c *BatchChecker) init(ctx context.Context) error {
 	if len(c.Attributes) == 0 {
 		lw := new(nulSeparatedAttributeWriter)
 		lw.attributes = make(chan attributeTriple)
@@ -125,7 +47,7 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 	}
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	c.cmd = NewCommand("check-attr", "--stdin", "-z")
+	c.cmd = git.NewCommand("check-attr", "--stdin", "-z")
 
 	if len(c.IndexFile) > 0 {
 		c.cmd.AddArguments("--cached")
@@ -155,27 +77,27 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 	return nil
 }
 
-func (c *CheckAttributeReader) Run() error {
+func (c *BatchChecker) run() error {
 	defer func() {
 		_ = c.stdinReader.Close()
 		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
-	err := c.cmd.Run(c.ctx, &RunOpts{
+	err := c.cmd.Run(c.ctx, &git.RunOpts{
 		Env:    c.env,
 		Dir:    c.Repo.Path,
 		Stdin:  c.stdinReader,
 		Stdout: c.stdOut,
 		Stderr: stdErr,
 	})
-	if err != nil && !IsErrCanceledOrKilled(err) {
+	if err != nil && !git.IsErrCanceledOrKilled(err) {
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
 	return nil
 }
 
 // CheckPath check attr for given path
-func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err error) {
+func (c *BatchChecker) CheckPath(path string) (rs Attributes, err error) {
 	defer func() {
 		if err != nil && err != c.ctx.Err() {
 			log.Error("Unexpected error when checking path %s in %s, error: %v", path, filepath.Base(c.Repo.Path), err)
@@ -202,14 +124,15 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 		}
 		debugMsg := fmt.Sprintf("check path %q in repo %q", path, filepath.Base(c.Repo.Path))
 		debugMsg += fmt.Sprintf(", stdOut: tmp=%q, pos=%d, closed=%v", string(c.stdOut.tmp), c.stdOut.pos, stdOutClosed)
-		if c.cmd.cmd != nil {
-			debugMsg += fmt.Sprintf(", process state: %q", c.cmd.cmd.ProcessState.String())
-		}
+		// FIXME:
+		//if c.cmd.cmd != nil {
+		//	debugMsg += fmt.Sprintf(", process state: %q", c.cmd.cmd.ProcessState.String())
+		//}
 		_ = c.Close()
 		return fmt.Errorf("CheckPath timeout: %s", debugMsg)
 	}
 
-	rs = make(map[string]string)
+	rs = make(map[string]Attribute)
 	for range c.Attributes {
 		select {
 		case <-time.After(5 * time.Second):
@@ -222,7 +145,7 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 			if !ok {
 				return nil, c.ctx.Err()
 			}
-			rs[attr.Attribute] = attr.Value
+			rs[attr.Attribute] = Attribute(attr.Value)
 		case <-c.ctx.Done():
 			return nil, c.ctx.Err()
 		}
@@ -230,7 +153,7 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 	return rs, nil
 }
 
-func (c *CheckAttributeReader) Close() error {
+func (c *BatchChecker) Close() error {
 	c.cancel()
 	err := c.stdinWriter.Close()
 	return err
@@ -299,43 +222,45 @@ func (wr *nulSeparatedAttributeWriter) Close() error {
 	return nil
 }
 
-// CheckAttributeReader creates a check attribute reader for the current repository and provided commit ID
-func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
+// NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
+func NewBatchChecker(repo *git.Repository, commitID string) (*BatchChecker, context.CancelFunc, error) {
 	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
 	if err != nil {
-		return nil, func() {}
+		return nil, nil, err
 	}
 
-	checker := &CheckAttributeReader{
+	checker := &BatchChecker{
 		Attributes: []string{
-			AttributeLinguistVendored,
-			AttributeLinguistGenerated,
-			AttributeLinguistDocumentation,
-			AttributeLinguistDetectable,
-			AttributeLinguistLanguage,
-			AttributeGitlabLanguage,
+			LinguistVendored,
+			LinguistGenerated,
+			LinguistDocumentation,
+			LinguistDetectable,
+			LinguistLanguage,
+			GitlabLanguage,
 		},
 		Repo:      repo,
 		IndexFile: indexFilename,
 		WorkTree:  worktree,
 	}
 	ctx, cancel := context.WithCancel(repo.Ctx)
-	if err := checker.Init(ctx); err != nil {
-		log.Error("Unable to open attribute checker for commit %s, error: %v", commitID, err)
-	} else {
-		go func() {
-			err := checker.Run()
-			if err != nil && !IsErrCanceledOrKilled(err) {
-				log.Error("Attribute checker for commit %s exits with error: %v", commitID, err)
-			}
-			cancel()
-		}()
-	}
 	deferrable := func() {
 		_ = checker.Close()
 		cancel()
 		deleteTemporaryFile()
 	}
+	if err := checker.init(ctx); err != nil {
+		log.Error("Unable to open attribute checker for commit %s, error: %v", commitID, err)
+		deferrable()
+		return nil, nil, err
+	}
 
-	return checker, deferrable
+	go func() {
+		err := checker.run()
+		if err != nil && !git.IsErrCanceledOrKilled(err) {
+			log.Error("Attribute checker for commit %s exits with error: %v", commitID, err)
+		}
+		cancel()
+	}()
+
+	return checker, deferrable, nil
 }
