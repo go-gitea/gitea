@@ -175,7 +175,10 @@ func RedirectToLastVersion(ctx *context.Context) {
 func ViewPackageVersion(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
-	shared_user.RenderUserHeader(ctx)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
@@ -339,7 +342,10 @@ func ListPackageVersions(ctx *context.Context) {
 	query := ctx.FormTrim("q")
 	sort := ctx.FormTrim("sort")
 
-	shared_user.RenderUserHeader(ctx)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true

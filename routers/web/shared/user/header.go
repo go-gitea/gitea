@@ -138,15 +138,11 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 	return profileDbRepo, profileReadmeBlob
 }
 
-func RenderUserHeader(ctx *context.Context) {
+func RenderUserOrgHeader(ctx *context.Context) error {
 	prepareContextForCommonProfile(ctx)
-
 	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
 	ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
-}
 
-func RenderUserOrgHeader(ctx *context.Context) error {
-	RenderUserHeader(ctx)
 	if ctx.ContextUser.IsOrganization() {
 		_, err := PrepareOrgHeader(ctx)
 		if err != nil {

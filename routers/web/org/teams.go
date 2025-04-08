@@ -58,9 +58,8 @@ func Teams(ctx *context.Context) {
 	}
 	ctx.Data["Teams"] = ctx.Org.Teams
 
-	_, err := shared_user.PrepareOrgHeader(ctx)
-	if err != nil {
-		ctx.ServerError("PrepareOrgHeader", err)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 

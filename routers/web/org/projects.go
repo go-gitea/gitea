@@ -155,7 +155,10 @@ func RenderNewProject(ctx *context.Context) {
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["CancelLink"] = ctx.ContextUser.HomeLink() + "/-/projects"
-	shared_user.RenderUserHeader(ctx)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	err := shared_user.LoadHeaderCount(ctx)
 	if err != nil {
@@ -170,7 +173,10 @@ func RenderNewProject(ctx *context.Context) {
 func NewProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	shared_user.RenderUserHeader(ctx)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	if ctx.HasError() {
 		RenderNewProject(ctx)
@@ -251,7 +257,10 @@ func RenderEditProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 
-	shared_user.RenderUserHeader(ctx)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	p, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -285,7 +294,10 @@ func EditProjectPost(ctx *context.Context) {
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CancelLink"] = project_model.ProjectLinkForOrg(ctx.ContextUser, projectID)
 
-	shared_user.RenderUserHeader(ctx)
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	err := shared_user.LoadHeaderCount(ctx)
 	if err != nil {
@@ -446,7 +458,11 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Columns"] = columns
-	shared_user.RenderUserHeader(ctx)
+
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	err = shared_user.LoadHeaderCount(ctx)
 	if err != nil {
