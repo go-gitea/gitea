@@ -4,7 +4,7 @@
 package user
 
 import (
-	"errors"
+	"fmt"
 	"net/url"
 
 	"code.gitea.io/gitea/models/db"
@@ -138,15 +138,15 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 }
 
 func RenderUserOrgHeader(ctx *context.Context) error {
+	if ctx.ContextUser == nil {
+		return fmt.Errorf("ctx.ContextUser is nil")
+	}
 	if err := LoadHeaderCount(ctx); err != nil {
 		return err
 	}
 	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
 	ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
 
-	if ctx.ContextUser == nil {
-		return errors.New("ctx.ContextUser is nil")
-	}
 	if ctx.ContextUser.IsOrganization() {
 		if ctx.Data["HasOrgProfileReadme"] == nil {
 			if _, err := PrepareOrgHeader(ctx); err != nil {
