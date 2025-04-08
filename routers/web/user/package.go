@@ -109,6 +109,11 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
 
+	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+
 	// TODO: context/org -> HandleOrgAssignment() can not be used
 	if ctx.ContextUser.IsOrganization() {
 		org := org_model.OrgFromUser(ctx.ContextUser)
@@ -123,11 +128,9 @@ func ListPackages(ctx *context.Context) {
 			ctx.Data["IsOrganizationOwner"] = false
 		}
 	}
-
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-
 	ctx.HTML(http.StatusOK, tplPackagesList)
 }
 
@@ -161,12 +164,12 @@ func RedirectToLastVersion(ctx *context.Context) {
 		ctx.ServerError("GetPackageDescriptor", err)
 		return
 	}
-
 	ctx.Redirect(pd.VersionWebLink())
 }
 
 // ViewPackageVersion displays a single package version
 func ViewPackageVersion(ctx *context.Context) {
+	shared_user.PrepareContextForProfileBigAvatar(ctx)
 	pd := ctx.Package.Descriptor
 
 	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
@@ -302,6 +305,11 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
 
@@ -390,6 +398,12 @@ func ListPackageVersions(ctx *context.Context) {
 
 	ctx.Data["Total"] = total
 
+	err = shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
+
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
@@ -417,6 +431,11 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
+	err := shared_user.LoadHeaderCount(ctx)
+	if err != nil {
+		ctx.ServerError("LoadHeaderCount", err)
+		return
+	}
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
 
