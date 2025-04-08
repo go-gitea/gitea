@@ -31,6 +31,7 @@ if [ -e /data/ssh/ssh_host_ecdsa_cert ]; then
   SSH_ECDSA_CERT=${SSH_ECDSA_CERT:-"/data/ssh/ssh_host_ecdsa_cert"}
 fi
 
+# check locations ssh-keygen would put the certs in
 if [ -e /data/ssh/ssh_host_ed25519_key-cert.pub ]; then
   SSH_ED25519_CERT=${SSH_ED25519_CERT:-"/data/ssh/ssh_host_ed25519_key-cert.pub"}
 fi
