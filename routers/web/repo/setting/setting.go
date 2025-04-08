@@ -1068,3 +1068,32 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 	}
 	ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
 }
+
+func AddWebhookAddRoutes(m *web.Router) {
+	m.Get("/{type}/new", WebhooksNew)
+	m.Post("/gitea/new", web.Bind(forms.NewWebhookForm{}), GiteaHooksNewPost)
+	m.Post("/gogs/new", web.Bind(forms.NewGogshookForm{}), GogsHooksNewPost)
+	m.Post("/slack/new", web.Bind(forms.NewSlackHookForm{}), SlackHooksNewPost)
+	m.Post("/discord/new", web.Bind(forms.NewDiscordHookForm{}), DiscordHooksNewPost)
+	m.Post("/dingtalk/new", web.Bind(forms.NewDingtalkHookForm{}), DingtalkHooksNewPost)
+	m.Post("/telegram/new", web.Bind(forms.NewTelegramHookForm{}), TelegramHooksNewPost)
+	m.Post("/matrix/new", web.Bind(forms.NewMatrixHookForm{}), MatrixHooksNewPost)
+	m.Post("/msteams/new", web.Bind(forms.NewMSTeamsHookForm{}), MSTeamsHooksNewPost)
+	m.Post("/feishu/new", web.Bind(forms.NewFeishuHookForm{}), FeishuHooksNewPost)
+	m.Post("/wechatwork/new", web.Bind(forms.NewWechatWorkHookForm{}), WechatworkHooksNewPost)
+	m.Post("/packagist/new", web.Bind(forms.NewPackagistHookForm{}), PackagistHooksNewPost)
+}
+
+func AddWebhookEditRoutes(m *web.Router) {
+	m.Post("/gitea/{id}", web.Bind(forms.NewWebhookForm{}), GiteaHooksEditPost)
+	m.Post("/gogs/{id}", web.Bind(forms.NewGogshookForm{}), GogsHooksEditPost)
+	m.Post("/slack/{id}", web.Bind(forms.NewSlackHookForm{}), SlackHooksEditPost)
+	m.Post("/discord/{id}", web.Bind(forms.NewDiscordHookForm{}), DiscordHooksEditPost)
+	m.Post("/dingtalk/{id}", web.Bind(forms.NewDingtalkHookForm{}), DingtalkHooksEditPost)
+	m.Post("/telegram/{id}", web.Bind(forms.NewTelegramHookForm{}), TelegramHooksEditPost)
+	m.Post("/matrix/{id}", web.Bind(forms.NewMatrixHookForm{}), MatrixHooksEditPost)
+	m.Post("/msteams/{id}", web.Bind(forms.NewMSTeamsHookForm{}), MSTeamsHooksEditPost)
+	m.Post("/feishu/{id}", web.Bind(forms.NewFeishuHookForm{}), FeishuHooksEditPost)
+	m.Post("/wechatwork/{id}", web.Bind(forms.NewWechatWorkHookForm{}), WechatworkHooksEditPost)
+	m.Post("/packagist/{id}", web.Bind(forms.NewPackagistHookForm{}), PackagistHooksEditPost)
+}
