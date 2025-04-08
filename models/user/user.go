@@ -273,6 +273,7 @@ func (u *User) CanEditGitHook() bool {
 	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
 }
 
+// CanForkRepoIn ONLY checks repository count limit
 func (u *User) CanForkRepoIn(owner *User) bool {
 	if setting.Repository.AllowForkWithoutMaximumLimit {
 		return true
