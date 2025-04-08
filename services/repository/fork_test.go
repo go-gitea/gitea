@@ -83,9 +83,9 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	assert.Error(t, err)
 
 	// assert the cleanup is successful
-	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: "test", Name: "test"})
+	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: "test"})
 
-	exist, err = util.IsExist(repo_model.RepoPath("test", "test"))
+	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, "test"))
 	assert.NoError(t, err)
 	assert.False(t, exist)
 }

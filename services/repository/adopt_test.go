@@ -115,9 +115,9 @@ func TestAdoptRepository(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, adoptedRepo)
 
-	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: "user2", Name: "test-adopt"})
+	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: "test-adopt"})
 
-	exist, err := util.IsExist(repo_model.RepoPath("user2", "test-adopt"))
+	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, "test-adopt"))
 	assert.NoError(t, err)
 	assert.True(t, exist) // the repository should be still in the disk
 }
