@@ -10,6 +10,8 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/optional"
 
 	"github.com/go-enry/go-enry/v2"
@@ -19,7 +21,7 @@ import (
 )
 
 // GetLanguageStats calculates language stats for git repository at specified commit
-func GetLanguageStats(repo *Repository, commitID string) (map[string]int64, error) {
+func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, error) {
 	r, err := git.PlainOpen(repo.Path)
 	if err != nil {
 		return nil, err
@@ -40,7 +42,7 @@ func GetLanguageStats(repo *Repository, commitID string) (map[string]int64, erro
 		return nil, err
 	}
 
-	checker, deferable, err := NewAttributeChecker(repo, commitID)
+	checker, deferable, err := attribute.NewBatchChecker(repo, commitID)
 	if err != nil {
 		return nil, err
 	}

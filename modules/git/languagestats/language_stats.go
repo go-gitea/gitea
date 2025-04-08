@@ -4,8 +4,12 @@
 package languagestats
 
 import (
+	"context"
 	"strings"
 	"unicode"
+
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 )
 
 const (
@@ -45,4 +49,17 @@ func mergeLanguageStats(stats map[string]int64) map[string]int64 {
 		res[names[strings.ToLower(name)].uniqueName] += num
 	}
 	return res
+}
+
+// GetFileLanguage tries to get the (linguist) language of the file content
+func GetFileLanguage(ctx context.Context, gitRepo *git.Repository, treeish, treePath string) (string, error) {
+	attributesMap, err := attribute.CheckAttribute(ctx, gitRepo, treeish, attribute.CheckAttributeOpts{
+		Attributes: []string{attribute.LinguistLanguage, attribute.GitlabLanguage},
+		Filenames:  []string{treePath},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return attributesMap[treePath].Language().Value(), nil
 }

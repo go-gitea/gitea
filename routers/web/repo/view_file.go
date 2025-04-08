@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
+	"code.gitea.io/gitea/modules/git/languagestats"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -26,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
-	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/nektos/act/pkg/model"
 )
@@ -210,7 +210,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
 			}
 
-			language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+			language, err := languagestats.GetFileLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 			if err != nil {
 				log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 			}

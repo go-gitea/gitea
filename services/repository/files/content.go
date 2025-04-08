@@ -12,7 +12,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -277,29 +276,4 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		Encoding: "base64",
 		Content:  content,
 	}, nil
-}
-
-// TryGetContentLanguage tries to get the (linguist) language of the file content
-func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (string, error) {
-	indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(commitID)
-	if err != nil {
-		return "", err
-	}
-
-	defer deleteTemporaryFile()
-
-	attributesMap, err := attribute.CheckAttribute(gitRepo, attribute.CheckAttributeOpts{
-		CachedOnly: true,
-		Attributes: []string{attribute.LinguistLanguage, attribute.GitlabLanguage},
-		Filenames:  []string{treePath},
-		IndexFile:  indexFilename,
-		WorkTree:   worktree,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	language := attributesMap[treePath].Language()
-
-	return language.Value(), nil
 }

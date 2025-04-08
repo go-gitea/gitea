@@ -22,8 +22,7 @@ type BatchChecker struct {
 	// params
 	Attributes []string
 	Repo       *git.Repository
-	IndexFile  string
-	WorkTree   string
+	Treeish    string
 
 	stdinReader io.ReadCloser
 	stdinWriter *os.File
@@ -36,27 +35,13 @@ type BatchChecker struct {
 
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
 func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string) (*BatchChecker, error) {
-	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(treeish)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(attributes) == 0 {
-		attributes = LinguistAttributes
-	}
-
 	ctx, cancel := context.WithCancel(repo.Ctx)
-
 	checker := &BatchChecker{
 		Attributes: attributes,
 		Repo:       repo,
-		IndexFile:  indexFilename,
-		WorkTree:   worktree,
+		Treeish:    treeish,
 		ctx:        ctx,
-		cancel: func() {
-			cancel()
-			deleteTemporaryFile()
-		},
+		cancel:     cancel,
 	}
 
 	if err := checker.init(ctx); err != nil {
@@ -88,22 +73,19 @@ func (c *BatchChecker) init(ctx context.Context) error {
 		return errors.New("no provided Attributes to check")
 	}
 
-	c.cmd = git.NewCommand("check-attr", "--stdin", "-z")
-
-	if len(c.IndexFile) > 0 {
-		c.cmd.AddArguments("--cached")
-		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
+	cmd, envs, cancel, err := checkAttrCommand(c.Repo, c.Treeish, nil, c.Attributes)
+	if err != nil {
+		c.cancel()
+		return err
+	}
+	c.cmd = cmd
+	c.env = envs
+	c.cancel = func() {
+		cancel()
+		c.cancel()
 	}
 
-	if len(c.WorkTree) > 0 {
-		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
-	}
-
-	c.env = append(c.env, "GIT_FLUSH=1")
-
-	c.cmd.AddDynamicArguments(c.Attributes...)
-
-	var err error
+	c.cmd.AddArguments("--stdin")
 
 	c.stdinReader, c.stdinWriter, err = os.Pipe()
 	if err != nil {
