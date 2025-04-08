@@ -4,7 +4,7 @@
 package user
 
 import (
-	"fmt"
+	"errors"
 	"net/url"
 
 	"code.gitea.io/gitea/models/db"
@@ -130,7 +130,7 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 
 func RenderUserOrgHeader(ctx *context.Context) error {
 	if ctx.ContextUser == nil {
-		return fmt.Errorf("ctx.ContextUser is nil")
+		return errors.New("ctx.ContextUser is nil")
 	}
 
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
