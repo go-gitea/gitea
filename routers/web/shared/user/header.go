@@ -25,15 +25,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-// prepareContextForCommonProfile store some common data into context data for user's profile related pages (including the nav menu)
-// It is designed to be fast and safe to be called multiple times in one request
-func prepareContextForCommonProfile(ctx *context.Context) {
-	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
-	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
-	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
-}
-
 // prepareContextForProfileBigAvatar set the context for big avatar view on the profile page
 func prepareContextForProfileBigAvatar(ctx *context.Context) {
 	ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
@@ -141,7 +132,13 @@ func RenderUserOrgHeader(ctx *context.Context) error {
 	if ctx.ContextUser == nil {
 		return fmt.Errorf("ctx.ContextUser is nil")
 	}
-	if err := LoadHeaderCount(ctx); err != nil {
+
+	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
+	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
+	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
+
+	if err := loadHeaderCount(ctx); err != nil {
 		return err
 	}
 	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
@@ -159,8 +156,7 @@ func RenderUserOrgHeader(ctx *context.Context) error {
 	return nil
 }
 
-func LoadHeaderCount(ctx *context.Context) error {
-	prepareContextForCommonProfile(ctx)
+func loadHeaderCount(ctx *context.Context) error {
 	repoCount, err := repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
