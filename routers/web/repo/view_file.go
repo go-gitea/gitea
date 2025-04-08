@@ -285,12 +285,13 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 
 	if ctx.Repo.GitRepo != nil {
-		checker, deferable, err := attribute.NewBatchChecker(ctx.Repo.GitRepo, ctx.Repo.CommitID)
+		checker, err := attribute.NewBatchChecker(ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.LinguistGenerated, attribute.LinguistVendored)
 		if err != nil {
 			ctx.ServerError("NewAttributeChecker", err)
 			return
 		}
-		defer deferable()
+		defer checker.Close()
+
 		attrs, err := checker.CheckPath(ctx.Repo.TreePath)
 		if err == nil {
 			ctx.Data["IsVendored"] = attrs.HasVendored().Value()

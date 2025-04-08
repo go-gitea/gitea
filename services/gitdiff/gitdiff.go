@@ -1238,26 +1238,22 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 		return nil, err
 	}
 
-	checker, deferrable, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID)
+	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID)
 	if err != nil {
 		return nil, err
 	}
-	defer deferrable()
+	defer checker.Close()
 
 	for _, diffFile := range diff.Files {
 		isVendored := optional.None[bool]()
 		isGenerated := optional.None[bool]()
-		if checker != nil {
-			attrs, err := checker.CheckPath(diffFile.Name)
-			if err == nil {
-				isVendored = attrs.HasVendored()
-				isGenerated = attrs.HasGenerated()
-				language := attrs.Language()
-				if language.Has() {
-					diffFile.Language = language.Value()
-				}
-			} else {
-				checker = nil // CheckPath fails, it's not impossible to "check" anymore
+		attrs, err := checker.CheckPath(diffFile.Name)
+		if err == nil {
+			isVendored = attrs.HasVendored()
+			isGenerated = attrs.HasGenerated()
+			language := attrs.Language()
+			if language.Has() {
+				diffFile.Language = language.Value()
 			}
 		}
 

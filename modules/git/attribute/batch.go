@@ -34,6 +34,48 @@ type BatchChecker struct {
 	cancel      context.CancelFunc
 }
 
+// NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
+func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string) (*BatchChecker, error) {
+	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(treeish)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(attributes) == 0 {
+		attributes = LinguistAttributes
+	}
+
+	ctx, cancel := context.WithCancel(repo.Ctx)
+
+	checker := &BatchChecker{
+		Attributes: attributes,
+		Repo:       repo,
+		IndexFile:  indexFilename,
+		WorkTree:   worktree,
+		ctx:        ctx,
+		cancel: func() {
+			cancel()
+			deleteTemporaryFile()
+		},
+	}
+
+	if err := checker.init(ctx); err != nil {
+		log.Error("Unable to open attribute checker for commit %s, error: %v", treeish, err)
+		checker.Close()
+		return nil, err
+	}
+
+	go func() {
+		err := checker.run(ctx)
+		if err != nil && !git.IsErrCanceledOrKilled(err) {
+			log.Error("Attribute checker for commit %s exits with error: %v", treeish, err)
+		}
+		cancel()
+	}()
+
+	return checker, nil
+}
+
 // init initializes the AttributeChecker
 func (c *BatchChecker) init(ctx context.Context) error {
 	if len(c.Attributes) == 0 {
@@ -46,7 +88,6 @@ func (c *BatchChecker) init(ctx context.Context) error {
 		return errors.New("no provided Attributes to check")
 	}
 
-	c.ctx, c.cancel = context.WithCancel(ctx)
 	c.cmd = git.NewCommand("check-attr", "--stdin", "-z")
 
 	if len(c.IndexFile) > 0 {
@@ -77,13 +118,13 @@ func (c *BatchChecker) init(ctx context.Context) error {
 	return nil
 }
 
-func (c *BatchChecker) run() error {
+func (c *BatchChecker) run(ctx context.Context) error {
 	defer func() {
 		_ = c.stdinReader.Close()
 		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
-	err := c.cmd.Run(c.ctx, &git.RunOpts{
+	err := c.cmd.Run(ctx, &git.RunOpts{
 		Env:    c.env,
 		Dir:    c.Repo.Path,
 		Stdin:  c.stdinReader,
@@ -220,47 +261,4 @@ func (wr *nulSeparatedAttributeWriter) Close() error {
 	close(wr.attributes)
 	close(wr.closed)
 	return nil
-}
-
-// NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
-func NewBatchChecker(repo *git.Repository, commitID string) (*BatchChecker, context.CancelFunc, error) {
-	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	checker := &BatchChecker{
-		Attributes: []string{
-			LinguistVendored,
-			LinguistGenerated,
-			LinguistDocumentation,
-			LinguistDetectable,
-			LinguistLanguage,
-			GitlabLanguage,
-		},
-		Repo:      repo,
-		IndexFile: indexFilename,
-		WorkTree:  worktree,
-	}
-	ctx, cancel := context.WithCancel(repo.Ctx)
-	deferrable := func() {
-		_ = checker.Close()
-		cancel()
-		deleteTemporaryFile()
-	}
-	if err := checker.init(ctx); err != nil {
-		log.Error("Unable to open attribute checker for commit %s, error: %v", commitID, err)
-		deferrable()
-		return nil, nil, err
-	}
-
-	go func() {
-		err := checker.run()
-		if err != nil && !git.IsErrCanceledOrKilled(err) {
-			log.Error("Attribute checker for commit %s exits with error: %v", commitID, err)
-		}
-		cancel()
-	}()
-
-	return checker, deferrable, nil
 }

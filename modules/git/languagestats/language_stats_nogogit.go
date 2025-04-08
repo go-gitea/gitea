@@ -64,11 +64,11 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		return nil, err
 	}
 
-	checker, deferable, err := attribute.NewBatchChecker(repo, commitID)
+	checker, err := attribute.NewBatchChecker(repo, commitID)
 	if err != nil {
 		return nil, err
 	}
-	defer deferable()
+	defer checker.Close()
 
 	contentBuf := bytes.Buffer{}
 	var content []byte

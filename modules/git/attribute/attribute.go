@@ -20,6 +20,15 @@ const (
 	GitlabLanguage        = "gitlab-language"
 )
 
+var LinguistAttributes = []string{
+	LinguistVendored,
+	LinguistGenerated,
+	LinguistDocumentation,
+	LinguistDetectable,
+	LinguistLanguage,
+	GitlabLanguage,
+}
+
 func (a Attribute) ToString() optional.Option[string] {
 	if a != "" && a != "unspecified" {
 		return optional.Some(string(a))
