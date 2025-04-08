@@ -91,10 +91,12 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 func TestAdoptRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	// a successful adopt
-	destDir := filepath.Join(setting.RepoRootPath, "user2", "test-adopt.git")
-	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.RepoRootPath, "user2", "repo1.git"), destDir))
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// a successful adopt
+	destDir := filepath.Join(setting.RepoRootPath, user2.Name, "test-adopt.git")
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.RepoRootPath, user2.Name, "repo1.git"), destDir))
+
 	adoptedRepo, err := AdoptRepository(db.DefaultContext, user2, user2, CreateRepoOptions{Name: "test-adopt"})
 	assert.NoError(t, err)
 	repoTestAdopt := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "test-adopt"})
@@ -104,7 +106,7 @@ func TestAdoptRepository(t *testing.T) {
 	err = deleteFailedAdoptRepository(adoptedRepo.ID)
 	assert.NoError(t, err)
 
-	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: "user2", Name: "test-adopt"})
+	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: "test-adopt"})
 
 	// a failed adopt because some mock data
 	// remove the hooks directory and create a file so that we cannot create the hooks successfully
