@@ -141,8 +141,11 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
-	if err = repo_module.CheckInitRepository(ctx, repo); err != nil {
-		return err
+	// Init git bare new repository.
+	if err = git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
+		return fmt.Errorf("git.InitRepository: %w", err)
+	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
+		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
 	// Initialize repository according to user's choice.
@@ -276,15 +279,8 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		return nil, err
 	}
 	if isExist {
-		// repo already exists in disk - We have two or three options.
-		// 1. We fail stating that the directory exists
-		// 2. We create the db repository to go with this data and adopt the git repo
-		// 3. We delete it and start afresh
-		//
-		// Previously Gitea would just delete and start afresh - this was naughty.
-		// So we will now fail and delegate to other functionality to adopt or delete
 		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
-		// we need err in defer to cleanupRepository
+		// Don't return directly, we need err in defer to cleanupRepository
 		err = repo_model.ErrRepoFilesAlreadyExist{
 			Uname: repo.OwnerName,
 			Name:  repo.Name,

@@ -13,9 +13,9 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -113,7 +113,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return nil, err
 	}
 	if isExist {
-		// we need err in defer to cleanupRepository
+		// Don't return directly, we need err in defer to cleanupRepository
 		err = repo_model.ErrRepoFilesAlreadyExist{
 			Uname: generateRepo.OwnerName,
 			Name:  generateRepo.Name,
@@ -122,8 +122,11 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// 3 - Generate the git repository in storage
-	if err = repo_module.CheckInitRepository(ctx, generateRepo); err != nil {
-		return nil, err
+	// Init git bare new repository.
+	if err = git.InitRepository(ctx, generateRepo.RepoPath(), true, generateRepo.ObjectFormatName); err != nil {
+		return nil, fmt.Errorf("git.InitRepository: %w", err)
+	} else if err = gitrepo.CreateDelegateHooks(ctx, generateRepo); err != nil {
+		return nil, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
 	if err = updateGitRepoAfterCreate(ctx, generateRepo); err != nil {
