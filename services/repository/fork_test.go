@@ -4,9 +4,8 @@
 package repository
 
 import (
-	"context"
+	"os"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -72,10 +71,11 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	err = DeleteRepositoryDirectly(db.DefaultContext, user2, fork.ID)
 	assert.NoError(t, err)
 
-	// a failed fork because a timeout
-	ctx, cancel := context.WithTimeout(db.DefaultContext, 1*time.Millisecond)
-	defer cancel()
-	fork2, err := ForkRepository(ctx, user2, user2, ForkRepoOptions{
+	// a failed creating because some mock data
+	// create the repository directory so that the creation will fail after database record created.
+	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "test"), os.ModePerm))
+
+	fork2, err := ForkRepository(db.DefaultContext, user2, user2, ForkRepoOptions{
 		BaseRepo: repo10,
 		Name:     "test",
 	})

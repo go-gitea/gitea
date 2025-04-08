@@ -4,12 +4,10 @@
 package repository
 
 import (
-	"context"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -94,7 +92,8 @@ func TestAdoptRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// a successful adopt
-	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.RepoRootPath, "user2", "repo1.git"), filepath.Join(setting.RepoRootPath, "user2", "test-adopt.git")))
+	destDir := filepath.Join(setting.RepoRootPath, "user2", "test-adopt.git")
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.RepoRootPath, "user2", "repo1.git"), destDir))
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	adoptedRepo, err := AdoptRepository(db.DefaultContext, user2, user2, CreateRepoOptions{Name: "test-adopt"})
 	assert.NoError(t, err)
@@ -107,10 +106,12 @@ func TestAdoptRepository(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: "user2", Name: "test-adopt"})
 
-	// a failed adopt
-	ctx, cancel := context.WithTimeout(db.DefaultContext, 1*time.Microsecond)
-	defer cancel()
-	adoptedRepo, err = AdoptRepository(ctx, user2, user2, CreateRepoOptions{Name: "test-adopt"})
+	// a failed adopt because some mock data
+	// remove the hooks directory and create a file so that we cannot create the hooks successfully
+	_ = os.RemoveAll(filepath.Join(destDir, "hooks", "update.d"))
+	assert.NoError(t, os.WriteFile(filepath.Join(destDir, "hooks", "update.d"), []byte("tests"), os.ModePerm))
+
+	adoptedRepo, err = AdoptRepository(db.DefaultContext, user2, user2, CreateRepoOptions{Name: "test-adopt"})
 	assert.Error(t, err)
 	assert.Nil(t, adoptedRepo)
 

@@ -249,7 +249,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 
 	// 1 - create the repository database operations first
 	err := db.WithTx(ctx, func(ctx context.Context) error {
-		return CreateRepositoryInDB(ctx, doer, u, repo, false, false)
+		return createRepositoryInDB(ctx, doer, u, repo, false)
 	})
 	if err != nil {
 		return nil, err
@@ -284,10 +284,12 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		// Previously Gitea would just delete and start afresh - this was naughty.
 		// So we will now fail and delegate to other functionality to adopt or delete
 		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
-		return nil, repo_model.ErrRepoFilesAlreadyExist{
-			Uname: u.Name,
+		// we need err in defer to cleanupRepository
+		err = repo_model.ErrRepoFilesAlreadyExist{
+			Uname: repo.OwnerName,
 			Name:  repo.Name,
 		}
+		return nil, err
 	}
 
 	if err = initRepository(ctx, doer, repo, opts); err != nil {
@@ -331,8 +333,8 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	return repo, nil
 }
 
-// CreateRepositoryInDB creates a repository for the user/organization.
-func CreateRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
+// createRepositoryInDB creates a repository for the user/organization.
+func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -342,29 +344,6 @@ func CreateRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
-			Uname: u.Name,
-			Name:  repo.Name,
-		}
-	}
-
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
-		return err
-	}
-	if overwriteOrAdopt != isExist {
-		if overwriteOrAdopt {
-			// repo should exist but doesn't - We have two or three options.
-			log.Error("Files do not exist in %s and we are not going to adopt or delete.", repo.FullName())
-			return repo_model.ErrRepoNotExist{
-				OwnerName: u.Name,
-				Name:      repo.Name,
-			}
-		}
-
-		// repo already exists - We have two or three options.
-		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
-		return repo_model.ErrRepoFilesAlreadyExist{
 			Uname: u.Name,
 			Name:  repo.Name,
 		}

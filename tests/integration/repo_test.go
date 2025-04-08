@@ -4,9 +4,9 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -502,6 +502,7 @@ func testViewCommit(t *testing.T) {
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "non-existing commit should render 404 page")
 }
 
+// TestGenerateRepository the test cannot succeed when moved as a unit test
 func TestGenerateRepository(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -525,10 +526,11 @@ func TestGenerateRepository(t *testing.T) {
 	err = repo_service.DeleteRepositoryDirectly(db.DefaultContext, user2, generatedRepo.ID)
 	assert.NoError(t, err)
 
-	// a failed generate because a timeout
-	ctx, cancel := context.WithTimeout(db.DefaultContext, 1*time.Millisecond)
-	defer cancel()
-	generatedRepo2, err := repo_service.GenerateRepository(ctx, user2, user2, repo44, repo_service.GenerateRepoOptions{
+	// a failed creating because some mock data
+	// create the repository directory so that the creation will fail after database record created.
+	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44"), os.ModePerm))
+
+	generatedRepo2, err := repo_service.GenerateRepository(db.DefaultContext, user2, user2, repo44, repo_service.GenerateRepoOptions{
 		Name:       "generated-from-template-44",
 		GitContent: true,
 	})

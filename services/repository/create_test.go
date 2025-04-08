@@ -4,9 +4,8 @@
 package repository
 
 import (
-	"context"
+	"os"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -39,10 +38,11 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 	err = DeleteRepositoryDirectly(db.DefaultContext, user2, createdRepo.ID)
 	assert.NoError(t, err)
 
-	// a failed creating because a timeout
-	ctx, cancel := context.WithTimeout(db.DefaultContext, 1*time.Millisecond)
-	defer cancel()
-	createdRepo2, err := CreateRepositoryDirectly(ctx, user2, user2, CreateRepoOptions{
+	// a failed creating because some mock data
+	// create the repository directory so that the creation will fail after database record created.
+	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, createdRepo.Name), os.ModePerm))
+
+	createdRepo2, err := CreateRepositoryDirectly(db.DefaultContext, user2, user2, CreateRepoOptions{
 		Name: "created-repo",
 	})
 	assert.Nil(t, createdRepo2)

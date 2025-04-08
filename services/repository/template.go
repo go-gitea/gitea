@@ -91,22 +91,9 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		Status:           repo_model.RepositoryBeingMigrated,
 	}
 
-	// 1 - check whether the repository with the same storage exists
-	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", generateRepo.FullName(), err)
-		return nil, err
-	}
-	if isExist {
-		return nil, repo_model.ErrRepoFilesAlreadyExist{
-			Uname: generateRepo.OwnerName,
-			Name:  generateRepo.Name,
-		}
-	}
-
-	// 2 - Create the repository in the database
+	// 1 - Create the repository in the database
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		return CreateRepositoryInDB(ctx, doer, owner, generateRepo, false, false)
+		return createRepositoryInDB(ctx, doer, owner, generateRepo, false)
 	}); err != nil {
 		return nil, err
 	}
@@ -118,6 +105,21 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 			cleanupRepository(doer, generateRepo.ID)
 		}
 	}()
+
+	// 2 - check whether the repository with the same storage exists
+	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", generateRepo.FullName(), err)
+		return nil, err
+	}
+	if isExist {
+		// we need err in defer to cleanupRepository
+		err = repo_model.ErrRepoFilesAlreadyExist{
+			Uname: generateRepo.OwnerName,
+			Name:  generateRepo.Name,
+		}
+		return nil, err
+	}
 
 	// 3 - Generate the git repository in storage
 	if err = repo_module.CheckInitRepository(ctx, generateRepo); err != nil {

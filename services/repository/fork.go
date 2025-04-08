@@ -105,7 +105,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	// 1 - Create the repository in the database
 	err = db.WithTx(ctx, func(ctx context.Context) error {
-		if err = CreateRepositoryInDB(ctx, doer, owner, repo, false, true); err != nil {
+		if err = createRepositoryInDB(ctx, doer, owner, repo, true); err != nil {
 			return err
 		}
 		if err = repo_model.IncrementRepoForkNum(ctx, opts.BaseRepo.ID); err != nil {
@@ -127,6 +127,22 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			cleanupRepository(doer, repo.ID)
 		}
 	}()
+
+	var isExist bool
+	isExist, err = gitrepo.IsRepositoryExist(ctx, repo)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
+		return nil, err
+	}
+	if isExist {
+		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
+		// we need err in defer to cleanupRepository
+		err = repo_model.ErrRepoFilesAlreadyExist{
+			Uname: repo.OwnerName,
+			Name:  repo.Name,
+		}
+		return nil, err
+	}
 
 	// 2 - Clone the repository
 	cloneCmd := git.NewCommand("clone", "--bare")
