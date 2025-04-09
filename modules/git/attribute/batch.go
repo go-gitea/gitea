@@ -6,7 +6,6 @@ package attribute
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -39,68 +38,46 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string)
 	if len(attributes) == 0 {
 		attributes = LinguistAttributes
 	}
+	cmd, envs, cleanup, err := checkAttrCommand(repo, treeish, nil, attributes)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	cmd.AddArguments("--stdin")
+
 	checker := &BatchChecker{
 		Attributes: attributes,
 		Repo:       repo,
 		Treeish:    treeish,
 		ctx:        ctx,
-		cancel:     cancel,
+		cancel: func() {
+			cancel()
+			cleanup()
+		},
+		cmd: cmd,
+		env: envs,
 	}
 
-	if err := checker.init(); err != nil {
-		log.Error("Unable to open attribute checker for commit %s, error: %v", treeish, err)
-		checker.Close()
+	checker.stdinReader, checker.stdinWriter, err = os.Pipe()
+	if err != nil {
+		checker.cancel()
 		return nil, err
 	}
+
+	lw := new(nulSeparatedAttributeWriter)
+	lw.attributes = make(chan attributeTriple, 5)
+	lw.closed = make(chan struct{})
+	checker.stdOut = lw
 
 	go func() {
 		err := checker.run(ctx)
 		if err != nil && !git.IsErrCanceledOrKilled(err) {
 			log.Error("Attribute checker for commit %s exits with error: %v", treeish, err)
 		}
-		cancel()
+		checker.cancel()
 	}()
 
 	return checker, nil
-}
-
-// init initializes the AttributeChecker
-func (c *BatchChecker) init() error {
-	if len(c.Attributes) == 0 {
-		lw := new(nulSeparatedAttributeWriter)
-		lw.attributes = make(chan attributeTriple)
-		lw.closed = make(chan struct{})
-
-		c.stdOut = lw
-		c.stdOut.Close()
-		return errors.New("no provided Attributes to check")
-	}
-
-	cmd, envs, cancel, err := checkAttrCommand(c.Repo, c.Treeish, nil, c.Attributes)
-	if err != nil {
-		c.cancel()
-		return err
-	}
-	c.cmd = cmd
-	c.env = envs
-	c.cancel = func() {
-		cancel()
-		c.cancel()
-	}
-
-	c.cmd.AddArguments("--stdin")
-
-	c.stdinReader, c.stdinWriter, err = os.Pipe()
-	if err != nil {
-		c.cancel()
-		return err
-	}
-
-	lw := new(nulSeparatedAttributeWriter)
-	lw.attributes = make(chan attributeTriple, 5)
-	lw.closed = make(chan struct{})
-	c.stdOut = lw
-	return nil
 }
 
 func (c *BatchChecker) run(ctx context.Context) error {
