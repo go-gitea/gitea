@@ -73,7 +73,6 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		ExcludedLabelNames: nil,
 		IncludeMilestones:  nil,
 		SortType:           sortType,
-		IssueIDs:           options.IssueIDs,
 		UpdatedAfterUnix:   options.UpdatedAfterUnix.Value(),
 		UpdatedBeforeUnix:  options.UpdatedBeforeUnix.Value(),
 		PriorityRepoID:     0,

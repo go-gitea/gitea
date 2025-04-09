@@ -76,9 +76,10 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 	if strings.HasPrefix(sortType, ScopeSortPrefix) {
 		scope := strings.TrimPrefix(sortType, ScopeSortPrefix)
 		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
-		sess.Join("LEFT", "label", "label.id = issue_label.label_id and label.name LIKE ?", scope+"/%")
-		// Use COALESCE to make sure we sort NULL last regardless of backend DB (9223372036854775807 == max bigint)
-		sess.OrderBy("COALESCE(label.exclusive_order, 9223372036854775807) ASC").Desc("issue.id")
+		// "exclusive_order=0" means "no order is set", so exclude it from the JOIN criteria and then "LEFT JOIN" result is also null
+		sess.Join("LEFT", "label", "label.id = issue_label.label_id AND label.exclusive_order <> 0 AND label.name LIKE ?", scope+"/%")
+		// Use COALESCE to make sure we sort NULL last regardless of backend DB (2147483647 == max int)
+		sess.OrderBy("COALESCE(label.exclusive_order, 2147483647) ASC").Desc("issue.id")
 		return
 	}
 

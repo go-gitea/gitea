@@ -10,9 +10,13 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOptions {
+	if opts.IssueIDs != nil {
+		setting.PanicInDevOrTesting("Indexer SearchOptions doesn't support IssueIDs")
+	}
 	searchOpt := &SearchOptions{
 		Keyword:    keyword,
 		RepoIDs:    opts.RepoIDs,
@@ -20,7 +24,6 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		IsPull:     opts.IsPull,
 		IsClosed:   opts.IsClosed,
 		IsArchived: opts.IsArchived,
-		IssueIDs:   opts.IssueIDs,
 	}
 
 	if len(opts.LabelIDs) == 1 && opts.LabelIDs[0] == 0 {

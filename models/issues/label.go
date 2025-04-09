@@ -87,7 +87,7 @@ type Label struct {
 	OrgID           int64 `xorm:"INDEX"`
 	Name            string
 	Exclusive       bool
-	ExclusiveOrder  int `xorm:"DEFAULT 0"`
+	ExclusiveOrder  int `xorm:"DEFAULT 0"` // 0 means no exclusive order
 	Description     string
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int

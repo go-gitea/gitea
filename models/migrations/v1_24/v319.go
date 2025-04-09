@@ -9,7 +9,7 @@ import (
 
 func AddExclusiveOrderColumnToLabelTable(x *xorm.Engine) error {
 	type Label struct {
-		ExclusiveOrder int64 `xorm:"DEFAULT 0"`
+		ExclusiveOrder int `xorm:"DEFAULT 0"`
 	}
 
 	return x.Sync(new(Label))

@@ -6,6 +6,7 @@ package db
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
@@ -18,7 +19,7 @@ import (
 	"xorm.io/builder"
 )
 
-var _ internal.Indexer = &Indexer{}
+var _ internal.Indexer = (*Indexer)(nil)
 
 // Indexer implements Indexer interface to use database's like search
 type Indexer struct {
@@ -29,11 +30,9 @@ func (i *Indexer) SupportedSearchModes() []indexer.SearchMode {
 	return indexer.SearchModesExactWords()
 }
 
-func NewIndexer() *Indexer {
-	return &Indexer{
-		Indexer: &inner_db.Indexer{},
-	}
-}
+var GetIndexer = sync.OnceValue(func() *Indexer {
+	return &Indexer{Indexer: &inner_db.Indexer{}}
+})
 
 // Index dummy function
 func (i *Indexer) Index(_ context.Context, _ ...*internal.IndexerData) error {
