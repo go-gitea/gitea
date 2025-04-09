@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package repo
@@ -6,6 +6,8 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
+	"unicode"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	api "code.gitea.io/gitea/modules/structs"
@@ -15,7 +17,7 @@ import (
 
 // LockIssue lock an issue
 func LockIssue(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/lock issue issueLockIssue
+	// swagger:operation PUT /repos/{owner}/{repo}/issues/{index}/lock issue issueLockIssue
 	// ---
 	// summary: Lock an issue
 	// consumes:
@@ -46,8 +48,6 @@ func LockIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "208":
-	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
@@ -56,6 +56,15 @@ func LockIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	reason := web.GetForm(ctx).(*api.LockIssueOption).Reason
+	reason = strings.ToLower(reason)
+
+	if reason != "" {
+		// make the first character uppercase
+		runes := []rune(reason)
+		runes[0] = unicode.ToUpper(runes[0])
+		reason = string(runes)
+	}
+
 	if !issues_model.IsValidReason(reason) {
 		ctx.APIError(http.StatusBadRequest, errors.New("reason not valid"))
 		return
@@ -76,22 +85,19 @@ func LockIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsLocked {
-		ctx.Status(http.StatusAlreadyReported)
-		return
-	}
+	if !issue.IsLocked {
+		opt := &issues_model.IssueLockOptions{
+			Doer:   ctx.ContextUser,
+			Issue:  issue,
+			Reason: reason,
+		}
 
-	opt := &issues_model.IssueLockOptions{
-		Doer:   ctx.ContextUser,
-		Issue:  issue,
-		Reason: reason,
-	}
-
-	issue.Repo = ctx.Repo.Repository
-	err = issues_model.LockIssue(ctx, opt)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
+		issue.Repo = ctx.Repo.Repository
+		err = issues_model.LockIssue(ctx, opt)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -126,8 +132,6 @@ func UnlockIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "208":
-	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -148,21 +152,18 @@ func UnlockIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue.IsLocked {
-		ctx.Status(http.StatusAlreadyReported)
-		return
-	}
+	if issue.IsLocked {
+		opt := &issues_model.IssueLockOptions{
+			Doer:  ctx.ContextUser,
+			Issue: issue,
+		}
 
-	opt := &issues_model.IssueLockOptions{
-		Doer:  ctx.ContextUser,
-		Issue: issue,
-	}
-
-	issue.Repo = ctx.Repo.Repository
-	err = issues_model.UnlockIssue(ctx, opt)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
+		issue.Repo = ctx.Repo.Repository
+		err = issues_model.UnlockIssue(ctx, opt)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
 
 	ctx.Status(http.StatusNoContent)

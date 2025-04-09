@@ -269,5 +269,5 @@ type IssueMeta struct {
 
 // LockIssueOption options to lock an issue
 type LockIssueOption struct {
-	Reason string `json:"reason"`
+	Reason string `json:"lock_reason"`
 }

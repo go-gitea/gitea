@@ -1523,7 +1523,8 @@ func Routes() *web.Router {
 							m.Patch("/{position}", reqToken(), reqAdmin(), repo.MoveIssuePin)
 						})
 						m.Group("/lock", func() {
-							m.Combo("").Post(bind(api.LockIssueOption{}), repo.LockIssue).
+							m.Combo("").
+								Put(bind(api.LockIssueOption{}), repo.LockIssue).
 								Delete(repo.UnlockIssue)
 						}, reqToken())
 					})

@@ -468,9 +468,6 @@ func TestMigrate_CreateIssuesIsPullTrue(t *testing.T) {
 }
 
 func TestIssueLock_IsValidReason(t *testing.T) {
-	// Init settings
-	_ = setting.Repository
-
 	cases := []struct {
 		reason   string
 		expected bool

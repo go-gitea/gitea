@@ -1,4 +1,4 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package integration
@@ -32,23 +32,31 @@ func TestAPILockIssue(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
 	// check invalid reason
-	req := NewRequestWithJSON(t, "POST", urlStr, api.LockIssueOption{Reason: "Not valid"}).AddTokenAuth(token)
+	req := NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Not valid"}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// check lock issue
-	req = NewRequestWithJSON(t, "POST", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	assert.True(t, issueAfter.IsLocked)
 
-	// check locking a second time
-	MakeRequest(t, req, http.StatusAlreadyReported)
+	// check reason is case insensitive
+	unlockReq := NewRequest(t, "DELETE", urlStr).AddTokenAuth(token)
+	MakeRequest(t, unlockReq, http.StatusNoContent)
+	issueAfter = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.False(t, issueAfter.IsLocked)
+
+	req = NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "too heated"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+	issueAfter = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.True(t, issueAfter.IsLocked)
 
 	// check with other user
 	user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
 	session34 := loginUser(t, user34.Name)
 	token34 := getTokenForLoggedInUser(t, session34, auth_model.AccessTokenScopeAll)
-	req = NewRequestWithJSON(t, "POST", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token34)
+	req = NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token34)
 	MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -63,7 +71,7 @@ func TestAPIUnlockIssue(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	lockReq := NewRequestWithJSON(t, "POST", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
+	lockReq := NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
 	MakeRequest(t, lockReq, http.StatusNoContent)
 
 	// check unlock issue
@@ -71,9 +79,6 @@ func TestAPIUnlockIssue(t *testing.T) {
 	MakeRequest(t, req, http.StatusNoContent)
 	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	assert.False(t, issueAfter.IsLocked)
-
-	// check unlocking a second time
-	MakeRequest(t, req, http.StatusAlreadyReported)
 
 	// check with other user
 	user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
