@@ -121,7 +121,11 @@ func (i *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		}, nil
 	}
 
-	ids, total, err := issue_model.IssueIDs(ctx, opt, cond)
+	return i.FindWithIssueOptions(ctx, opt, cond)
+}
+
+func (i *Indexer) FindWithIssueOptions(ctx context.Context, opt *issue_model.IssuesOptions, otherConds ...builder.Cond) (*internal.SearchResult, error) {
+	ids, total, err := issue_model.IssueIDs(ctx, opt, otherConds...)
 	if err != nil {
 		return nil, err
 	}

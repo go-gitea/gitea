@@ -5,7 +5,6 @@ package repo
 
 import (
 	"bytes"
-	"fmt"
 	"maps"
 	"net/http"
 	"slices"
@@ -33,14 +32,6 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
-
-func issueIDsFromSearch(ctx *context.Context, keyword string, opts *issues_model.IssuesOptions) ([]int64, error) {
-	ids, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
-	if err != nil {
-		return nil, fmt.Errorf("SearchIssues: %w", err)
-	}
-	return ids, nil
-}
 
 func retrieveProjectsForIssueList(ctx *context.Context, repo *repo_model.Repository) {
 	ctx.Data["OpenProjects"], ctx.Data["ClosedProjects"] = retrieveProjectsInternal(ctx, repo)
@@ -561,7 +552,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		IssueIDs:          nil,
 	}
 	if keyword != "" {
-		keywordMatchedIssueIDs, err = issueIDsFromSearch(ctx, keyword, statsOpts)
+		keywordMatchedIssueIDs, _, err = issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, statsOpts))
 		if err != nil {
 			if issue_indexer.IsAvailable(ctx) {
 				ctx.ServerError("issueIDsFromSearch", err)
@@ -626,7 +617,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		// Either it did search with the keyword, and found some issues, then keywordMatchedIssueIDs is not null, it needs to use db indexer.
 		// Or the keyword is empty, it also needs to usd db indexer.
 		// In either case, no need to use keyword anymore
-		searchResult, err := db_indexer.GetIndexer().Search(ctx, issue_indexer.ToSearchOptions("", &issues_model.IssuesOptions{
+		searchResult, err := db_indexer.GetIndexer().FindWithIssueOptions(ctx, &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
@@ -644,7 +635,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 			SortType:          sortType,
 			IssueIDs:          keywordMatchedIssueIDs,
-		}))
+		})
 		if err != nil {
 			ctx.ServerError("DBIndexer.Search", err)
 			return
