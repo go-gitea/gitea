@@ -44,7 +44,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 	}
 
 	if ctx.Data["PageIsOrgSettings"] == true {
-		if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 			ctx.ServerError("RenderUserOrgHeader", err)
 			return nil, nil
 		}

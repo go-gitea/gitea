@@ -72,7 +72,7 @@ func Worktime(ctx *context.Context) {
 		return
 	}
 
-	if err = shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}

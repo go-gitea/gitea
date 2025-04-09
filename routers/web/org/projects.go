@@ -43,7 +43,7 @@ func MustEnableProjects(ctx *context.Context) {
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -148,7 +148,7 @@ func RenderNewProject(ctx *context.Context) {
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["CancelLink"] = ctx.ContextUser.HomeLink() + "/-/projects"
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -160,7 +160,7 @@ func RenderNewProject(ctx *context.Context) {
 func NewProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -244,7 +244,7 @@ func RenderEditProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -281,7 +281,7 @@ func EditProjectPost(ctx *context.Context) {
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CancelLink"] = project_model.ProjectLinkForOrg(ctx.ContextUser, projectID)
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -440,7 +440,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Columns"] = columns
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}

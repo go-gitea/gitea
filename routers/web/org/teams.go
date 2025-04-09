@@ -46,7 +46,7 @@ const (
 
 // Teams render teams list page
 func Teams(ctx *context.Context) {
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -270,7 +270,7 @@ func TeamsRepoAction(ctx *context.Context) {
 
 // NewTeam render create new team page
 func NewTeam(ctx *context.Context) {
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -368,7 +368,7 @@ func NewTeamPost(ctx *context.Context) {
 
 // TeamMembers render team members page
 func TeamMembers(ctx *context.Context) {
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -396,7 +396,7 @@ func TeamMembers(ctx *context.Context) {
 
 // TeamRepositories show the repositories of team
 func TeamRepositories(ctx *context.Context) {
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -461,7 +461,7 @@ func SearchTeam(ctx *context.Context) {
 
 // EditTeam render team edit page
 func EditTeam(ctx *context.Context) {
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}

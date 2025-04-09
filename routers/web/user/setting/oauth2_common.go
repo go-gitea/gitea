@@ -28,7 +28,7 @@ func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 	ctx.Data["FormActionPath"] = fmt.Sprintf("%s/%d", oa.BasePathEditPrefix, app.ID)
 
 	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
-		if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 			ctx.ServerError("RenderUserOrgHeader", err)
 			return
 		}

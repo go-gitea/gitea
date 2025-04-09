@@ -4,7 +4,6 @@
 package user
 
 import (
-	"errors"
 	"net/url"
 
 	"code.gitea.io/gitea/models/db"
@@ -128,32 +127,41 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 	return profileDbRepo, profileReadmeBlob
 }
 
-func RenderUserOrgHeader(ctx *context.Context) error {
-	if ctx.ContextUser == nil {
-		return errors.New("ctx.ContextUser is nil")
-	}
+type PrepareOwnerHeaderResult struct {
+	ProfilePublicRepo        *repo_model.Repository
+	ProfilePublicReadmeBlob  *git.Blob
+	ProfilePrivateRepo       *repo_model.Repository
+	ProfilePrivateReadmeBlob *git.Blob
+	HasOrgProfileReadme      bool
+}
 
+const (
+	RepoNameProfilePrivate = ".profile-private"
+	RepoNameProfile        = ".profile"
+)
+
+func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult, err error) {
 	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 	ctx.Data["FeedURL"] = ctx.ContextUser.HomeLink()
 
 	if err := loadHeaderCount(ctx); err != nil {
-		return err
+		return nil, err
 	}
 	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
 	ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
 
+	result = &PrepareOwnerHeaderResult{}
 	if ctx.ContextUser.IsOrganization() {
-		if ctx.Data["HasOrgProfileReadme"] == nil {
-			if _, err := PrepareOrgHeader(ctx); err != nil {
-				return err
-			}
-		}
+		result.ProfilePublicRepo, result.ProfilePublicReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer)
+		result.ProfilePrivateRepo, result.ProfilePrivateReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
+		result.HasOrgProfileReadme = result.ProfilePublicReadmeBlob != nil || result.ProfilePrivateReadmeBlob != nil
+		ctx.Data["HasOrgProfileReadme"] = result.HasOrgProfileReadme // many pages need it to show the "overview" tab
 	} else {
 		prepareContextForProfileBigAvatar(ctx)
 	}
-	return nil
+	return result, nil
 }
 
 func loadHeaderCount(ctx *context.Context) error {
@@ -186,26 +194,4 @@ func loadHeaderCount(ctx *context.Context) error {
 	ctx.Data["ProjectCount"] = projectCount
 
 	return nil
-}
-
-const (
-	RepoNameProfilePrivate = ".profile-private"
-	RepoNameProfile        = ".profile"
-)
-
-type PrepareOrgHeaderResult struct {
-	ProfilePublicRepo        *repo_model.Repository
-	ProfilePublicReadmeBlob  *git.Blob
-	ProfilePrivateRepo       *repo_model.Repository
-	ProfilePrivateReadmeBlob *git.Blob
-	HasOrgProfileReadme      bool
-}
-
-func PrepareOrgHeader(ctx *context.Context) (result *PrepareOrgHeaderResult, err error) {
-	result = &PrepareOrgHeaderResult{}
-	result.ProfilePublicRepo, result.ProfilePublicReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer)
-	result.ProfilePrivateRepo, result.ProfilePrivateReadmeBlob = FindOwnerProfileReadme(ctx, ctx.Doer, RepoNameProfilePrivate)
-	result.HasOrgProfileReadme = result.ProfilePublicReadmeBlob != nil || result.ProfilePrivateReadmeBlob != nil
-	ctx.Data["HasOrgProfileReadme"] = result.HasOrgProfileReadme // many pages need it to show the "overview" tab
-	return result, nil
 }

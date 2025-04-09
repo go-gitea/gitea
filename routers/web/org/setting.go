@@ -48,7 +48,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -193,7 +193,7 @@ func SettingsDelete(ctx *context.Context) {
 		return
 	}
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -216,7 +216,7 @@ func Webhooks(ctx *context.Context) {
 		return
 	}
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -243,7 +243,7 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}

@@ -42,7 +42,7 @@ const (
 
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -107,7 +107,7 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -167,7 +167,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 
 // ViewPackageVersion displays a single package version
 func ViewPackageVersion(ctx *context.Context) {
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -305,7 +305,7 @@ func ViewPackageVersion(ctx *context.Context) {
 
 // ListPackageVersions lists all versions of a package
 func ListPackageVersions(ctx *context.Context) {
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -398,7 +398,7 @@ func ListPackageVersions(ctx *context.Context) {
 func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}

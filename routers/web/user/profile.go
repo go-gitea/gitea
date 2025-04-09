@@ -78,8 +78,12 @@ func userProfile(ctx *context.Context) {
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileReadmeBlob)
-	// call prepareContextForProfileBigAvatar later to avoid re-querying the NumFollowers & NumFollowing
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+
+	// prepare the user nav header data after "prepareUserProfileTabData" to avoid re-querying the NumFollowers & NumFollowing
+	// because ctx.Data["NumFollowers"] and "NumFollowing" logic duplicates in both of them
+	// and the "profile readme" related logic also duplicates in both of FindOwnerProfileReadme and RenderUserOrgHeader
+	// TODO: it is a bad design and should be refactored later,
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -305,7 +309,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
 
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
@@ -330,7 +334,7 @@ func ActionUserFollow(ctx *context.Context) {
 		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("Action %q failed", ctx.FormString("action")))
 		return
 	}
-	if err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
