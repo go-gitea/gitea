@@ -819,7 +819,7 @@ func GetOrphanedIssueRepoIDs(ctx context.Context) ([]int64, error) {
 	var repoIDs []int64
 	if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
-		Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
+		Where(builder.IsNull{"repository.id"}).
 		Find(&repoIDs); err != nil {
 		return nil, err
 	}
