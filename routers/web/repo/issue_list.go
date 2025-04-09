@@ -630,7 +630,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 
 	// prepare pager
 	total := int(issueStats.OpenCount + issueStats.ClosedCount)
-	if isShowClosed.Value() {
+	if isShowClosed.Has() {
 		total = util.Iif(isShowClosed.Value(), int(issueStats.ClosedCount), int(issueStats.OpenCount))
 	}
 	page := max(ctx.FormInt("page"), 1)
