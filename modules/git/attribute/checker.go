@@ -18,7 +18,9 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 	if len(attributes) == 0 {
 		cmd.AddArguments("--all")
 	}
-	cmd.AddDashesAndList(filenames...)
+	if len(filenames) > 0 {
+		cmd.AddDashesAndList(filenames...)
+	}
 	cancel := func() {}
 	if git.DefaultFeatures().SupportCheckAttrOnBare && treeish != "" {
 		cmd.AddArguments("--source")

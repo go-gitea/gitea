@@ -36,6 +36,9 @@ type BatchChecker struct {
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
 func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string) (*BatchChecker, error) {
 	ctx, cancel := context.WithCancel(repo.Ctx)
+	if len(attributes) == 0 {
+		attributes = LinguistAttributes
+	}
 	checker := &BatchChecker{
 		Attributes: attributes,
 		Repo:       repo,
