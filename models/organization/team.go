@@ -113,7 +113,7 @@ func (t *Team) LoadUnits(ctx context.Context) (err error) {
 
 // GetUnitNames returns the team units names
 func (t *Team) GetUnitNames() (res []string) {
-	if t.AccessMode >= perm.AccessModeAdmin {
+	if t.HasAdminAccess() {
 		return unit.AllUnitKeyNames()
 	}
 
@@ -126,7 +126,7 @@ func (t *Team) GetUnitNames() (res []string) {
 // GetUnitsMap returns the team units permissions
 func (t *Team) GetUnitsMap() map[string]string {
 	m := make(map[string]string)
-	if t.AccessMode >= perm.AccessModeAdmin {
+	if t.HasAdminAccess() {
 		for _, u := range unit.Units {
 			m[u.NameKey] = t.AccessMode.ToString()
 		}
@@ -151,6 +151,10 @@ func (t *Team) IsMember(ctx context.Context, userID int64) bool {
 		return false
 	}
 	return isMember
+}
+
+func (t *Team) HasAdminAccess() bool {
+	return t.AccessMode >= perm.AccessModeAdmin
 }
 
 // LoadMembers returns paginated members in team of organization.
@@ -236,22 +240,6 @@ func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
-}
-
-// GetTeamNamesByID returns team's lower name from a list of team ids.
-func GetTeamNamesByID(ctx context.Context, teamIDs []int64) ([]string, error) {
-	if len(teamIDs) == 0 {
-		return []string{}, nil
-	}
-
-	var teamNames []string
-	err := db.GetEngine(ctx).Table("team").
-		Select("lower_name").
-		In("id", teamIDs).
-		Asc("name").
-		Find(&teamNames)
-
-	return teamNames, err
 }
 
 // IncrTeamRepoNum increases the number of repos for the given team by 1
