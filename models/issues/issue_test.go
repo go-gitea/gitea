@@ -466,3 +466,26 @@ func TestMigrate_CreateIssuesIsPullFalse(t *testing.T) {
 func TestMigrate_CreateIssuesIsPullTrue(t *testing.T) {
 	assertCreateIssues(t, true)
 }
+
+func TestIssueLock_IsValidReason(t *testing.T) {
+	// Init settings
+	_ = setting.Repository
+
+	cases := []struct {
+		reason   string
+		expected bool
+	}{
+		{"", true}, // an empty reason is accepted
+		{"Off-topic", true},
+		{"Too heated", true},
+		{"Spam", true},
+		{"Resolved", true},
+
+		{"ZZZZ", false},
+		{"I want to lock this issue", false},
+	}
+
+	for _, v := range cases {
+		assert.Equal(t, v.expected, issues_model.IsValidReason(v.reason))
+	}
+}
