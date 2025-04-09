@@ -10,7 +10,6 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -44,8 +43,9 @@ func ApplicationsPost(ctx *context.Context) {
 
 	_ = ctx.Req.ParseForm()
 	var scopeNames []string
+	const accessTokenScopePrefix = "scope-"
 	for k, v := range ctx.Req.Form {
-		if strings.HasPrefix(k, issues_model.ScopeSortPrefix) {
+		if strings.HasPrefix(k, accessTokenScopePrefix) {
 			scopeNames = append(scopeNames, v...)
 		}
 	}

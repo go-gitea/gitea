@@ -10,7 +10,6 @@ import (
 	"math"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"unicode"
 
@@ -173,16 +172,15 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 
 	if label.ExclusiveOrder > 0 {
 		// <scope> | <label> | <order>
-		orderHTML := ut.RenderEmoji(strconv.Itoa(label.ExclusiveOrder))
 		return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 			`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 			`<div class="ui label scope-middle" style="color: %s !important; background-color: %s !important">%s</div>`+
-			`<div class="ui label scope-right">%s</div>`+
+			`<div class="ui label scope-right">%d</div>`+
 			`</span>`,
 			extraCSSClasses, descriptionText,
 			textColor, scopeColor, scopeHTML,
 			textColor, itemColor, itemHTML,
-			orderHTML)
+			label.ExclusiveOrder)
 	}
 
 	// <scope> | <label>
