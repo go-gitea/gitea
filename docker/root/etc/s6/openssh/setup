@@ -31,7 +31,9 @@ if [ -e /data/ssh/ssh_host_ecdsa_cert ]; then
   SSH_ECDSA_CERT=${SSH_ECDSA_CERT:-"/data/ssh/ssh_host_ecdsa_cert"}
 fi
 
-# check locations ssh-keygen would put the certs in
+# In case someone wants to sign the `{keyname}.pub` key by `ssh-keygen -s ca -I identity ...` to
+# make use of the ssh-key certificate authority feature (see ssh-keygen CERTIFICATES section),
+# the generated key file name is `{keyname}-cert.pub`
 if [ -e /data/ssh/ssh_host_ed25519_key-cert.pub ]; then
   SSH_ED25519_CERT=${SSH_ED25519_CERT:-"/data/ssh/ssh_host_ed25519_key-cert.pub"}
 fi
