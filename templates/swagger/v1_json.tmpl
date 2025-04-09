@@ -10091,7 +10091,7 @@
       }
     },
     "/repos/{owner}/{repo}/issues/{index}/lock": {
-      "post": {
+      "put": {
         "consumes": [
           "application/json"
         ],
@@ -10136,9 +10136,6 @@
         ],
         "responses": {
           "204": {
-            "$ref": "#/responses/empty"
-          },
-          "208": {
             "$ref": "#/responses/empty"
           },
           "400": {
@@ -10190,9 +10187,6 @@
         ],
         "responses": {
           "204": {
-            "$ref": "#/responses/empty"
-          },
-          "208": {
             "$ref": "#/responses/empty"
           },
           "403": {
@@ -23888,7 +23882,7 @@
       "description": "LockIssueOption options to lock an issue",
       "type": "object",
       "properties": {
-        "reason": {
+        "lock_reason": {
           "type": "string",
           "x-go-name": "Reason"
         }
