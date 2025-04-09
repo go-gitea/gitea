@@ -10,7 +10,7 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/git"
+	git_module "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/optional"
 
@@ -21,7 +21,7 @@ import (
 )
 
 // GetLanguageStats calculates language stats for git repository at specified commit
-func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, error) {
+func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]int64, error) {
 	r, err := git.PlainOpen(repo.Path)
 	if err != nil {
 		return nil, err
@@ -42,11 +42,11 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		return nil, err
 	}
 
-	checker, deferable, err := attribute.NewBatchChecker(repo, commitID)
+	checker, err := attribute.NewBatchChecker(repo, commitID)
 	if err != nil {
 		return nil, err
 	}
-	defer deferable()
+	defer checker.Close()
 
 	// sizes contains the current calculated size of all files by language
 	sizes := make(map[string]int64)
