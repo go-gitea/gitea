@@ -355,23 +355,19 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	}
 
 	// 3b. Create a plain patch from head to base
-	tmpPatchFile, err := os.CreateTemp("", "patch")
+	tmpPatchFile, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
 		return false, fmt.Errorf("unable to create temporary patch file! Error: %w", err)
 	}
-	defer func() {
-		_ = util.Remove(tmpPatchFile.Name())
-	}()
+	defer cleanup()
 
 	if err := gitRepo.GetDiffBinary(pr.MergeBase+"...tracking", tmpPatchFile); err != nil {
-		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return false, fmt.Errorf("unable to get patch file from %s to %s in %s Error: %w", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {
-		tmpPatchFile.Close()
 		return false, fmt.Errorf("unable to stat patch file: %w", err)
 	}
 	patchPath := tmpPatchFile.Name()
