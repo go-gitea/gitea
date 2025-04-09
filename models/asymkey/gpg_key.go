@@ -240,3 +240,10 @@ func DeleteGPGKey(ctx context.Context, doer *user_model.User, id int64) (err err
 
 	return committer.Commit()
 }
+
+func FindGPGKeyWithSubKeys(ctx context.Context, keyID string) ([]*GPGKey, error) {
+	return db.Find[GPGKey](ctx, FindGPGKeyOptions{
+		KeyID:          keyID,
+		IncludeSubKeys: true,
+	})
+}
