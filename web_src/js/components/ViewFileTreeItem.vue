@@ -134,7 +134,7 @@ const doGotoSubModule = () => {
   display: grid;
   grid-template-columns: 16px 1fr;
   grid-template-areas: "toggle content";
-  gap: 0.25em;
+  gap: 0.5em;
   padding: 6px;
 }
 
