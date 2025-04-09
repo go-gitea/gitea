@@ -19,14 +19,14 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 		cmd.AddArguments("--all")
 	}
 	cmd.AddDashesAndList(filenames...)
+	cancel := func() {}
 	if git.DefaultFeatures().SupportCheckAttrOnBare && treeish != "" {
 		cmd.AddArguments("--source")
 		cmd.AddDynamicArguments(treeish)
 		cmd.AddDynamicArguments(attributes...)
-		return cmd, []string{"GIT_FLUSH=1"}, nil, nil
+		return cmd, []string{"GIT_FLUSH=1"}, cancel, nil
 	}
 
-	var cancel func()
 	var envs []string
 	if treeish != "" { // if it's empty, then we assume it's a worktree repository
 		indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(treeish)
