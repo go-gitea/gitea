@@ -44,7 +44,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string)
 		cancel:     cancel,
 	}
 
-	if err := checker.init(ctx); err != nil {
+	if err := checker.init(); err != nil {
 		log.Error("Unable to open attribute checker for commit %s, error: %v", treeish, err)
 		checker.Close()
 		return nil, err
@@ -62,7 +62,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string)
 }
 
 // init initializes the AttributeChecker
-func (c *BatchChecker) init(ctx context.Context) error {
+func (c *BatchChecker) init() error {
 	if len(c.Attributes) == 0 {
 		lw := new(nulSeparatedAttributeWriter)
 		lw.attributes = make(chan attributeTriple)

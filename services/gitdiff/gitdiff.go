@@ -1238,7 +1238,7 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID)
+	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage)
 	if err != nil {
 		return nil, err
 	}
