@@ -1183,6 +1183,7 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
 }
 
 .svg.octicon-file-directory-fill,
+.svg.octicon-file-directory-open-fill,
 .svg.octicon-file-submodule {
   color: var(--color-primary);
 }
