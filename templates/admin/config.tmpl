@@ -69,10 +69,6 @@
 					{{if not .SSH.StartBuiltinServer}}
 						<dt>{{ctx.Locale.Tr "admin.config.ssh_root_path"}}</dt>
 						<dd>{{.SSH.RootPath}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.ssh_key_test_path"}}</dt>
-						<dd>{{.SSH.KeyTestPath}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.ssh_keygen_path"}}</dt>
-						<dd>{{.SSH.KeygenPath}}</dd>
 						<dt>{{ctx.Locale.Tr "admin.config.ssh_minimum_key_size_check"}}</dt>
 						<dd>{{svg (Iif .SSH.MinimumKeySizeCheck "octicon-check" "octicon-x")}}</dd>
 						{{if .SSH.MinimumKeySizeCheck}}
