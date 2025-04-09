@@ -149,8 +149,6 @@ func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult
 	if err := loadHeaderCount(ctx); err != nil {
 		return nil, err
 	}
-	_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
-	ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
 
 	result = &PrepareOwnerHeaderResult{}
 	if ctx.ContextUser.IsOrganization() {
@@ -159,6 +157,8 @@ func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult
 		result.HasOrgProfileReadme = result.ProfilePublicReadmeBlob != nil || result.ProfilePrivateReadmeBlob != nil
 		ctx.Data["HasOrgProfileReadme"] = result.HasOrgProfileReadme // many pages need it to show the "overview" tab
 	} else {
+		_, profileReadmeBlob := FindOwnerProfileReadme(ctx, ctx.Doer)
+		ctx.Data["HasUserProfileReadme"] = profileReadmeBlob != nil
 		prepareContextForProfileBigAvatar(ctx)
 	}
 	return result, nil
