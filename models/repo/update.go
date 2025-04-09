@@ -111,31 +111,31 @@ func (err ErrRepoFilesAlreadyExist) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
-// CheckCreateRepository check if could created a repository
-func CheckCreateRepository(ctx context.Context, doer, u *user_model.User, name string, overwriteOrAdopt bool) error {
-	if !doer.CanCreateRepo() {
-		return ErrReachLimitOfRepo{u.MaxRepoCreation}
+// CheckCreateRepository check if doer could create a repository in new owner
+func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, name string, overwriteOrAdopt bool) error {
+	if !doer.CanCreateRepoIn(owner) {
+		return ErrReachLimitOfRepo{owner.MaxRepoCreation}
 	}
 
 	if err := IsUsableRepoName(name); err != nil {
 		return err
 	}
 
-	has, err := IsRepositoryModelOrDirExist(ctx, u, name)
+	has, err := IsRepositoryModelOrDirExist(ctx, owner, name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
-		return ErrRepoAlreadyExist{u.Name, name}
+		return ErrRepoAlreadyExist{owner.Name, name}
 	}
 
-	repoPath := RepoPath(u.Name, name)
+	repoPath := RepoPath(owner.Name, name)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {
-		return ErrRepoFilesAlreadyExist{u.Name, name}
+		return ErrRepoFilesAlreadyExist{owner.Name, name}
 	}
 	return nil
 }

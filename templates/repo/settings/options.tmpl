@@ -802,7 +802,7 @@
 						</div>
 					</div>
 				{{end}}
-				{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+				{{if .CanConvertFork}}
 					<div class="flex-item">
 						<div class="flex-item-main">
 							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.convert_fork"}}</div>
@@ -916,7 +916,7 @@
 			</div>
 		</div>
 	{{end}}
-	{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+	{{if .CanConvertFork}}
 		<div class="ui small modal" id="convert-fork-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.settings.convert_fork"}}

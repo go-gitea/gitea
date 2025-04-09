@@ -181,7 +181,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 
 	p := perm.AccessModeWrite
 	if form.Permission != nil {
-		p = perm.ParseAccessMode(*form.Permission)
+		p = perm.ParseAccessMode(*form.Permission, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
 	}
 
 	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
