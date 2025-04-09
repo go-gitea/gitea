@@ -463,32 +463,14 @@ func UpdateIssueStatus(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-func renderExclusiveLabelScopes(ctx *context.Context) {
-	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{})
-	if err != nil {
-		ctx.ServerError("GetAllRepoLabels", err)
-		return
-	}
-
-	if ctx.Repo.Owner.IsOrganization() {
-		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, "", db.ListOptions{})
-		if err != nil {
-			ctx.ServerError("GetAllRepoLabels", err)
-			return
-		}
-
-		labels = append(labels, orgLabels...)
-	}
-
-	// This treats org- and repo-level label scopes equivalently.
-	scopeSet := make(map[string]bool, 0)
-	for _, label := range labels {
+func prepareIssueFilterExclusiveOrderScopes(ctx *context.Context, allLabels []*issues_model.Label) {
+	scopeSet := make(map[string]bool)
+	for _, label := range allLabels {
 		scope := label.ExclusiveScope()
 		if len(scope) > 0 && label.ExclusiveOrder > 0 {
 			scopeSet[scope] = true
 		}
 	}
-
 	scopes := slices.Collect(maps.Keys(scopeSet))
 	sort.Strings(scopes)
 	ctx.Data["ExclusiveLabelScopes"] = scopes
@@ -556,16 +538,18 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		mileIDs = []int64{milestoneID}
 	}
 
-	labelIDs := issue.PrepareFilterIssueLabels(ctx, repo.ID, ctx.Repo.Owner)
+	preparedLabelFilter := issue.PrepareFilterIssueLabels(ctx, repo.ID, ctx.Repo.Owner)
 	if ctx.Written() {
 		return
 	}
+
+	prepareIssueFilterExclusiveOrderScopes(ctx, preparedLabelFilter.AllLabels)
 
 	var keywordMatchedIssueIDs []int64
 	var issueStats *issues_model.IssueStats
 	statsOpts := &issues_model.IssuesOptions{
 		RepoIDs:           []int64{repo.ID},
-		LabelIDs:          labelIDs,
+		LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 		MilestoneIDs:      mileIDs,
 		ProjectID:         projectID,
 		AssigneeID:        assigneeID,
@@ -657,7 +641,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 			ProjectID:         projectID,
 			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
-			LabelIDs:          labelIDs,
+			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 			SortType:          sortType,
 			IssueIDs:          keywordMatchedIssueIDs,
 		}))
@@ -761,7 +745,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
-	ctx.Data["SelLabelIDs"] = labelIDs
+	ctx.Data["SelLabelIDs"] = preparedLabelFilter.SelectedLabelIDs
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
@@ -808,11 +792,6 @@ func Issues(ctx *context.Context) {
 	}
 
 	renderMilestones(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	renderExclusiveLabelScopes(ctx)
 	if ctx.Written() {
 		return
 	}
