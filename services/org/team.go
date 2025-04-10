@@ -259,37 +259,6 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 		}
 
 		team.NumMembers++
-
-		// Give access to team repositories.
-		// update exist access if mode become bigger
-		subQuery := builder.Select("repo_id").From("team_repo").
-			Where(builder.Eq{"team_id": team.ID})
-
-		if _, err := sess.Where("user_id=?", user.ID).
-			In("repo_id", subQuery).
-			And("mode < ?", team.AccessMode).
-			SetExpr("mode", team.AccessMode).
-			Update(new(access_model.Access)); err != nil {
-			return fmt.Errorf("update user accesses: %w", err)
-		}
-
-		// for not exist access
-		var repoIDs []int64
-		accessSubQuery := builder.Select("repo_id").From("access").Where(builder.Eq{"user_id": user.ID})
-		if err := sess.SQL(subQuery.And(builder.NotIn("repo_id", accessSubQuery))).Find(&repoIDs); err != nil {
-			return fmt.Errorf("select id accesses: %w", err)
-		}
-
-		accesses := make([]*access_model.Access, 0, 100)
-		for i, repoID := range repoIDs {
-			accesses = append(accesses, &access_model.Access{RepoID: repoID, UserID: user.ID, Mode: team.AccessMode})
-			if (i%100 == 0 || i == len(repoIDs)-1) && len(accesses) > 0 {
-				if err = db.Insert(ctx, accesses); err != nil {
-					return fmt.Errorf("insert new user accesses: %w", err)
-				}
-				accesses = accesses[:0]
-			}
-		}
 		return nil
 	})
 	if err != nil {
