@@ -4,6 +4,7 @@
 package cache
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -30,7 +31,7 @@ func TestWithCacheContext(t *testing.T) {
 	v = GetContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
 
-	vInt, err := GetWithContextCache(ctx, field, "my_config1", func() (int, error) {
+	vInt, err := GetWithContextCache(ctx, field, "my_config1", func(context.Context, string) (int, error) {
 		return 1, nil
 	})
 	assert.NoError(t, err)

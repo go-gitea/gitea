@@ -56,7 +56,7 @@ var testMetas = map[string]string{
 }
 
 func TestMain(m *testing.M) {
-	unittest.InitSettings()
+	unittest.InitSettingsForTesting()
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
