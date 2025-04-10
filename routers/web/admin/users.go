@@ -298,7 +298,7 @@ func ViewUser(ctx *context.Context) {
 		signupIP, err := user_model.GetUserSetting(ctx, u.ID, user_model.SignupIP)
 		if err == nil && len(signupIP) > 0 {
 			ctx.Data["HasSignupIP"] = true
-			ctx.Data["SignupIP"] = trimPortFromIP(signupIP)
+			ctx.Data["SignupIP"] = util.TrimPortFromIP(signupIP)
 		} else {
 			ctx.Data["HasSignupIP"] = false
 		}
