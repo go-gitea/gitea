@@ -304,10 +304,22 @@ func UploadPackageFile(ctx *context.Context) {
 
 	packageVersion := v.Core().String()
 
-	file, _, err := ctx.Req.FormFile("source-archive")
-	if err != nil {
+	var file io.ReadCloser
+	multipartFile, _, err := ctx.Req.FormFile("source-archive")
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
+	}
+
+	if multipartFile != nil {
+		file = multipartFile
+	} else {
+		content := ctx.Req.FormValue("source-archive")
+		if content == "" {
+			apiError(ctx, http.StatusBadRequest, "source-archive is required either as file or form value")
+			return
+		}
+		file = io.NopCloser(strings.NewReader(content))
 	}
 	defer file.Close()
 
@@ -318,10 +330,18 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	var mr io.Reader
-	metadata := ctx.Req.FormValue("metadata")
-	if metadata != "" {
-		mr = strings.NewReader(metadata)
+	var mr io.ReadCloser
+	metadataFile, _, err := ctx.Req.FormFile("metadata")
+	if err != nil {
+		metadata := ctx.Req.FormValue("metadata")
+		if metadata != "" {
+			mr = io.NopCloser(strings.NewReader(metadata))
+		}
+	} else {
+		mr = metadataFile
+	}
+	if mr != nil {
+		defer mr.Close()
 	}
 
 	pck, err := swift_module.ParsePackage(buf, buf.Size(), mr)
