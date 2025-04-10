@@ -2,7 +2,7 @@
 import {SvgIcon, type SvgName} from '../svg.ts';
 import {diffTreeStore} from '../modules/stores.ts';
 import {ref} from 'vue';
-import type {Item, File, FileStatus} from '../utils/filetree.ts';
+import type {Item, FileStatus} from '../utils/filetree.ts';
 
 defineProps<{
   item: Item,
@@ -22,13 +22,6 @@ function getIconForDiffStatus(pType: FileStatus) {
   };
   return diffTypes[pType];
 }
-
-function fileIcon(file: File) {
-  if (file.IsSubmodule) {
-    return 'octicon-file-submodule';
-  }
-  return 'octicon-file';
-}
 </script>
 
 <template>
@@ -39,7 +32,8 @@ function fileIcon(file: File) {
     :title="item.name" :href="'#diff-' + item.file.NameHash"
   >
     <!-- file -->
-    <SvgIcon :name="fileIcon(item.file)"/>
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <span class="tw-contents" v-html="item.file.FileIcon"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
     <SvgIcon
       :name="getIconForDiffStatus(item.file.Status).name"
@@ -51,10 +45,8 @@ function fileIcon(file: File) {
     <div class="item-directory" :title="item.name" @click.stop="collapsed = !collapsed">
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
-      <SvgIcon
-        class="text primary"
-        :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"
-      />
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span class="tw-contents" v-html="collapsed ? store.folderIcon : store.folderOpenIcon"/>
       <span class="gt-ellipsis">{{ item.name }}</span>
     </div>
 

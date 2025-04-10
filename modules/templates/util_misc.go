@@ -195,7 +195,7 @@ func tabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
 	return "tab-size-4"
 }
 
-func folderIconHTMLByOpenStatus(isOpen bool) template.HTML {
+func FolderIconHTMLByOpenStatus(isOpen bool) template.HTML {
 	if setting.UI.FileIconTheme == "material" {
 		return fileicon.DefaultMaterialIconProvider().FolderIconWithOpenStatus(nil, isOpen)
 	}

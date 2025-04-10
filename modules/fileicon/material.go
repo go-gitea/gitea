@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
@@ -84,13 +83,13 @@ func (m *MaterialIconProvider) FolderIconWithOpenStatus(p *RenderedIconPool, isO
 	return m.renderFileIconSVG(p, name, m.svgs[name], BasicThemeFolderIconName(isOpen))
 }
 
-func (m *MaterialIconProvider) FileIconWithOpenStatus(p *RenderedIconPool, entry *git.TreeEntry, isOpen bool) template.HTML {
+func (m *MaterialIconProvider) FileIconWithOpenStatus(p *RenderedIconPool, entry *FileEntry, isOpen bool) template.HTML {
 	if m.rules == nil {
 		return BasicThemeIconWithOpenStatus(entry, isOpen)
 	}
 
-	if entry.IsLink() {
-		if te, err := entry.FollowLink(); err == nil && te.IsDir() {
+	if entry.EntryMode.IsLink() {
+		if entry.FollowEntryMode.IsDir() {
 			// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
 			return svg.RenderHTML("material-folder-symlink", 16, "octicon-file-directory-symlink")
 		}
@@ -105,9 +104,9 @@ func (m *MaterialIconProvider) FileIconWithOpenStatus(p *RenderedIconPool, entry
 		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
 		extraClass := "octicon-file"
 		switch {
-		case entry.IsDir():
+		case entry.EntryMode.IsDir():
 			extraClass = BasicThemeFolderIconName(isOpen)
-		case entry.IsSubModule():
+		case entry.EntryMode.IsSubModule():
 			extraClass = "octicon-file-submodule"
 		}
 		return m.renderFileIconSVG(p, name, iconSVG, extraClass)
@@ -160,9 +159,9 @@ func (m *MaterialIconProvider) FindIconName(name string, isDir, isOpen bool) str
 	return "file"
 }
 
-func (m *MaterialIconProvider) findIconNameByGit(entry *git.TreeEntry, isOpen bool) string {
-	if entry.IsSubModule() {
+func (m *MaterialIconProvider) findIconNameByGit(entry *FileEntry, isOpen bool) string {
+	if entry.EntryMode.IsSubModule() {
 		return "folder-git"
 	}
-	return m.FindIconName(entry.Name(), entry.IsDir(), isOpen)
+	return m.FindIconName(entry.Name, entry.EntryMode.IsDir(), isOpen)
 }

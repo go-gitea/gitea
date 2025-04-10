@@ -60,7 +60,7 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
 		"svg":                        svg.RenderHTML,
-		"folderIconHTMLByOpenStatus": folderIconHTMLByOpenStatus,
+		"folderIconHTMLByOpenStatus": FolderIconHTMLByOpenStatus,
 		"MigrationIcon":              migrationIcon,
 		"ActionIcon":                 actionIcon,
 		"SortArrow":                  sortArrow,

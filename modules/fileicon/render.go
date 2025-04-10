@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -34,9 +33,7 @@ func (p *RenderedIconPool) RenderToHTML() template.HTML {
 	return template.HTML(sb.String())
 }
 
-// TODO: use an interface or struct to replace "*git.TreeEntry", to decouple the fileicon module from git module
-
-func RenderEntryIconWithOpenStatus(renderedIconPool *RenderedIconPool, entry *git.TreeEntry, isOpen bool) template.HTML {
+func RenderEntryIconWithOpenStatus(renderedIconPool *RenderedIconPool, entry *FileEntry, isOpen bool) template.HTML {
 	if setting.UI.FileIconTheme == "material" {
 		return DefaultMaterialIconProvider().FileIconWithOpenStatus(renderedIconPool, entry, isOpen)
 	}
