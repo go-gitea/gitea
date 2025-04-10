@@ -36,16 +36,9 @@ func (p *RenderedIconPool) RenderToHTML() template.HTML {
 
 // TODO: use an interface or struct to replace "*git.TreeEntry", to decouple the fileicon module from git module
 
-func RenderEntryIcon(renderedIconPool *RenderedIconPool, entry *git.TreeEntry) template.HTML {
+func RenderEntryIconWithOpenStatus(renderedIconPool *RenderedIconPool, entry *git.TreeEntry, isOpen bool) template.HTML {
 	if setting.UI.FileIconTheme == "material" {
-		return DefaultMaterialIconProvider().FileIcon(renderedIconPool, entry)
+		return DefaultMaterialIconProvider().FileIconWithOpenStatus(renderedIconPool, entry, isOpen)
 	}
-	return BasicThemeIcon(entry)
-}
-
-func RenderEntryIconOpen(renderedIconPool *RenderedIconPool, entry *git.TreeEntry) template.HTML {
-	if setting.UI.FileIconTheme == "material" {
-		return DefaultMaterialIconProvider().FileIconOpen(renderedIconPool, entry)
-	}
-	return BasicThemeIconOpen(entry)
+	return BasicThemeIconWithOpenStatus(entry, isOpen)
 }

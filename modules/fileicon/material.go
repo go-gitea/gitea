@@ -75,14 +75,6 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 	return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
 }
 
-func (m *MaterialIconProvider) FileIcon(p *RenderedIconPool, entry *git.TreeEntry) template.HTML {
-	return m.FileIconWithOpenStatus(p, entry, false)
-}
-
-func (m *MaterialIconProvider) FileIconOpen(p *RenderedIconPool, entry *git.TreeEntry) template.HTML {
-	return m.FileIconWithOpenStatus(p, entry, true)
-}
-
 func (m *MaterialIconProvider) FileIconWithOpenStatus(p *RenderedIconPool, entry *git.TreeEntry, isOpen bool) template.HTML {
 	if m.rules == nil {
 		return BasicThemeIconWithOpenStatus(entry, isOpen)
