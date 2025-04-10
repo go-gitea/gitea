@@ -10,7 +10,23 @@ import (
 	"code.gitea.io/gitea/modules/svg"
 )
 
+func BasicThemeFolderIconName(isOpen bool) string {
+	if isOpen {
+		return "octicon-file-directory-open-fill"
+	}
+	return "octicon-file-directory-fill"
+}
+
 func BasicThemeIcon(entry *git.TreeEntry) template.HTML {
+	return BasicThemeIconWithOpenStatus(entry, false)
+}
+
+func BasicThemeIconOpen(entry *git.TreeEntry) template.HTML {
+	return BasicThemeIconWithOpenStatus(entry, true)
+}
+
+func BasicThemeIconWithOpenStatus(entry *git.TreeEntry, isOpen bool) template.HTML {
+	// TODO: add "open icon" support
 	svgName := "octicon-file"
 	switch {
 	case entry.IsLink():
@@ -19,7 +35,7 @@ func BasicThemeIcon(entry *git.TreeEntry) template.HTML {
 			svgName = "octicon-file-directory-symlink"
 		}
 	case entry.IsDir():
-		svgName = "octicon-file-directory-fill"
+		svgName = BasicThemeFolderIconName(isOpen)
 	case entry.IsSubModule():
 		svgName = "octicon-file-submodule"
 	}

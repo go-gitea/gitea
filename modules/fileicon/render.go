@@ -44,9 +44,8 @@ func RenderEntryIcon(renderedIconPool *RenderedIconPool, entry *git.TreeEntry) t
 }
 
 func RenderEntryIconOpen(renderedIconPool *RenderedIconPool, entry *git.TreeEntry) template.HTML {
-	// TODO: add "open icon" support
 	if setting.UI.FileIconTheme == "material" {
-		return DefaultMaterialIconProvider().FileIcon(renderedIconPool, entry)
+		return DefaultMaterialIconProvider().FileIconOpen(renderedIconPool, entry)
 	}
-	return BasicThemeIcon(entry)
+	return BasicThemeIconOpen(entry)
 }

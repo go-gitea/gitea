@@ -76,8 +76,16 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 }
 
 func (m *MaterialIconProvider) FileIcon(p *RenderedIconPool, entry *git.TreeEntry) template.HTML {
+	return m.FileIconWithOpenStatus(p, entry, false)
+}
+
+func (m *MaterialIconProvider) FileIconOpen(p *RenderedIconPool, entry *git.TreeEntry) template.HTML {
+	return m.FileIconWithOpenStatus(p, entry, true)
+}
+
+func (m *MaterialIconProvider) FileIconWithOpenStatus(p *RenderedIconPool, entry *git.TreeEntry, isOpen bool) template.HTML {
 	if m.rules == nil {
-		return BasicThemeIcon(entry)
+		return BasicThemeIconWithOpenStatus(entry, isOpen)
 	}
 
 	if entry.IsLink() {
@@ -88,6 +96,7 @@ func (m *MaterialIconProvider) FileIcon(p *RenderedIconPool, entry *git.TreeEntr
 		return svg.RenderHTML("octicon-file-symlink-file") // TODO: find some better icons for them
 	}
 
+	// TODO: add "open icon" support
 	name := m.findIconNameByGit(entry)
 	// the material icon pack's "folder" icon doesn't look good, so use our built-in one
 	// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
@@ -96,14 +105,14 @@ func (m *MaterialIconProvider) FileIcon(p *RenderedIconPool, entry *git.TreeEntr
 		extraClass := "octicon-file"
 		switch {
 		case entry.IsDir():
-			extraClass = "octicon-file-directory-fill"
+			extraClass = BasicThemeFolderIconName(isOpen)
 		case entry.IsSubModule():
 			extraClass = "octicon-file-submodule"
 		}
 		return m.renderFileIconSVG(p, name, iconSVG, extraClass)
 	}
 	// TODO: use an interface or wrapper for git.Entry to make the code testable.
-	return BasicThemeIcon(entry)
+	return BasicThemeIconWithOpenStatus(entry, isOpen)
 }
 
 func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
