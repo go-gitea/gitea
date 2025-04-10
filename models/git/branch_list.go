@@ -146,3 +146,38 @@ func FindBranchesByRepoAndBranchName(ctx context.Context, repoBranches map[int64
 	}
 	return branchMap, nil
 }
+
+func FindCommitsCountOutdatedBranches(ctx context.Context, startID, limit int64) (BranchList, error) {
+	var branches BranchList
+	if err := db.GetEngine(ctx).
+		Join("INNER", "repository", "branch.repo_id = repository.id").
+		And("repository.is_empty = ?", false).
+		Where("id > ?", startID).
+		And(
+			builder.Expr("commit_count_id IS NULL").
+				Or(builder.Expr("commit_id <> commit_count_id")),
+		).
+		Asc("id").
+		Limit(int(limit)).Find(&branches); err != nil {
+		return nil, err
+	}
+	return branches, nil
+}
+
+func FindRepoCommitsCountOutdatedBranches(ctx context.Context, repoID, startID, limit int64) (BranchList, error) {
+	var branches BranchList
+	if err := db.GetEngine(ctx).
+		Join("INNER", "repository", "branch.repo_id = repository.id").
+		Where("branch.repo_id = ?", repoID).
+		And("repository.is_empty = ?", false).
+		And("id > ?", startID).
+		And(
+			builder.Expr("commit_count_id IS NULL").
+				Or(builder.Expr("commit_id <> commit_count_id")),
+		).
+		Asc("id").
+		Limit(int(limit)).Find(&branches); err != nil {
+		return nil, err
+	}
+	return branches, nil
+}
