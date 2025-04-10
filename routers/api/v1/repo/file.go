@@ -1034,6 +1034,11 @@ func GetFiles(ctx *context.APIContext) {
 		ref = ctx.Repo.Repository.DefaultBranch
 	}
 
+	if !ctx.Repo.GitRepo.IsReferenceExist(ref) {
+		ctx.APIErrorNotFound("GetFiles", "ref does not exist")
+		return
+	}
+
 	files := apiOpts.Files
 
 	filesResponse := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
