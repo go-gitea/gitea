@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -65,7 +64,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("no valid ref or sha: %s", sha))
+		ctx.APIError(http.StatusUnprocessableEntity, "no valid ref or sha: "+sha)
 		return
 	}
 
@@ -180,13 +179,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
-			head, err := ctx.Repo.GitRepo.GetHEADBranch()
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-
-			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head.Name)
+			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return

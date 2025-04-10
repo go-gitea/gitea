@@ -66,7 +66,7 @@ func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
 
 	for _, opt := range opts {
 		if opt.IsNewRef() && opt.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both NULL")
+			return errors.New("Old and new revisions are both NULL")
 		}
 	}
 
@@ -385,7 +385,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		if err != nil {
 			return fmt.Errorf("GetTag: %w", err)
 		}
-		commit, err := tag.Commit(gitRepo)
+		commit, err := gitRepo.GetTagCommit(tag.Name)
 		if err != nil {
 			return fmt.Errorf("Commit: %w", err)
 		}

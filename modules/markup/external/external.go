@@ -12,11 +12,9 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // RegisterRenderers registers all supported third part renderers according settings
@@ -77,27 +75,22 @@ func envMark(envName string) string {
 
 // Render renders the data of the document to HTML via the external tool.
 func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	var (
-		command = strings.NewReplacer(
-			envMark("GITEA_PREFIX_SRC"), ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault),
-			envMark("GITEA_PREFIX_RAW"), ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw),
-		).Replace(p.Command)
-		commands = strings.Fields(command)
-		args     = commands[1:]
-	)
+	baseLinkSrc := ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault)
+	baseLinkRaw := ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw)
+	command := strings.NewReplacer(
+		envMark("GITEA_PREFIX_SRC"), baseLinkSrc,
+		envMark("GITEA_PREFIX_RAW"), baseLinkRaw,
+	).Replace(p.Command)
+	commands := strings.Fields(command)
+	args := commands[1:]
 
 	if p.IsInputFile {
 		// write to temp file
-		f, err := os.CreateTemp("", "gitea_input")
+		f, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("gitea_input")
 		if err != nil {
 			return fmt.Errorf("%s create temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
-		tmpPath := f.Name()
-		defer func() {
-			if err := util.Remove(tmpPath); err != nil {
-				log.Warn("Unable to remove temporary file: %s: Error: %v", tmpPath, err)
-			}
-		}()
+		defer cleanup()
 
 		_, err = io.Copy(f, input)
 		if err != nil {
@@ -112,14 +105,14 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		args = append(args, f.Name())
 	}
 
-	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault)))
+	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", commands[0], baseLinkSrc))
 	defer finished()
 
 	cmd := exec.CommandContext(processCtx, commands[0], args...)
 	cmd.Env = append(
 		os.Environ(),
-		"GITEA_PREFIX_SRC="+ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault),
-		"GITEA_PREFIX_RAW="+ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw),
+		"GITEA_PREFIX_SRC="+baseLinkSrc,
+		"GITEA_PREFIX_RAW="+baseLinkRaw,
 	)
 	if !p.IsInputFile {
 		cmd.Stdin = input

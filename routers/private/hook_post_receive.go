@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cachegroup"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -303,14 +304,11 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 
 			if pr == nil {
-				if repo.IsFork {
-					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
-				}
 				results = append(results, private.HookPostReceiveBranchResult{
 					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
 					Create:  true,
 					Branch:  branch,
-					URL:     fmt.Sprintf("%s/compare/%s...%s", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch)),
+					URL:     fmt.Sprintf("%s/pulls/new/%s", repo.HTMLURL(), util.PathEscapeSegments(branch)),
 				})
 			} else {
 				results = append(results, private.HookPostReceiveBranchResult{
@@ -329,9 +327,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 }
 
 func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, error) {
-	return cache.GetWithContextCache(ctx, "hook_post_receive_user", id, func() (*user_model.User, error) {
-		return user_model.GetUserByID(ctx, id)
-	})
+	return cache.GetWithContextCache(ctx, cachegroup.User, id, user_model.GetUserByID)
 }
 
 // handlePullRequestMerging handle pull request merging, a pull request action should push at least 1 commit

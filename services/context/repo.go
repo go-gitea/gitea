@@ -328,7 +328,9 @@ func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
+	// Git client needs a 301 redirect by default to follow the new location
+	// It's not documentated in git documentation, but it's the behavior of git client
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusMovedPermanently)
 }
 
 func repoAssignment(ctx *Context, repo *repo_model.Repository) {
@@ -344,7 +346,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	if !ctx.Repo.Permission.HasAnyUnitAccessOrEveryoneAccess() && !canWriteAsMaintainer(ctx) {
+	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -667,12 +669,6 @@ func RepoAssignment(ctx *Context) {
 
 const headRefName = "HEAD"
 
-func RepoRef() func(*Context) {
-	// old code does: return RepoRefByType(git.RefTypeBranch)
-	// in most cases, it is an abuse, so we just disable it completely and fix the abuses one by one (if there is anything wrong)
-	return nil
-}
-
 func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
 	refName := ""
 	parts := strings.Split(path, "/")
@@ -815,9 +811,9 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		if reqPath == "" {
 			refShortName = ctx.Repo.Repository.DefaultBranch
 			if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 1)
+				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 1)
 				if err == nil && len(brs) != 0 {
-					refShortName = brs[0].Name
+					refShortName = brs[0]
 				} else if len(brs) == 0 {
 					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
 				} else {
