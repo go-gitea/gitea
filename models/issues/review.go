@@ -17,6 +17,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -393,6 +394,7 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,
 		ReviewerID: reviewer.ID,
+		Dismissed:  optional.Some(true),
 	})
 	if err != nil {
 		return nil, err
@@ -535,12 +537,18 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 }
 
 // GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
-func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*Review, error) {
+func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64, dismissed ...bool) (*Review, error) {
 	review := new(Review)
 
-	has, err := db.GetEngine(ctx).Where(
-		builder.In("type", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
-			And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": 0})).
+	cond := builder.In("type", ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+		And(builder.Eq{"issue_id": issueID, "reviewer_id": userID, "original_author_id": 0})
+
+	// apply optional filter for dismissed
+	if len(dismissed) != 0 {
+		cond = cond.And(builder.Eq{"dismissed": dismissed[0]})
+	}
+
+	has, err := db.GetEngine(ctx).Where(cond).
 		Desc("id").
 		Get(review)
 	if err != nil {
@@ -732,7 +740,7 @@ func RemoveReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user
 	}
 	defer committer.Close()
 
-	review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
+	review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID, false)
 	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
