@@ -101,6 +101,109 @@
   object-fit: contain;
 }
 
+.star-list .top {
+  height: 43.75px;
+  line-height: 43.75px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.star-list .top-right {
+  display: flex;
+  justify-content: space-between;
+}
+
+#profile-lists-container .list-box {
+  margin-top: 10px;
+  background-color: var(--color-body);
+  border-color: #d1d9e0;
+  border-radius: 0.375rem;
+  border-style: solid;
+  border-width: 0.0625rem;
+}
+
+#profile-lists-container .box-row,.box-row:link,.box-row:visited,.box-row:hover,.box-row:active {
+  height: 42px;
+  line-height: 42px;
+  text-decoration: none;
+  display: flex;
+  justify-content: space-between;
+}
+
+#profile-lists-container .box-row:hover {
+  background-color: #f6f8fa;
+}
+
+#profile-lists-container .box-row {
+  border-bottom: 0.0625rem solid #d1d9e0;
+}
+
+#profile-lists-container .box-row:first-of-type {
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+}
+
+#profile-lists-container .box-row:last-of-type {
+  border-bottom: none;
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+#profile-lists-container h3 {
+  line-height: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+#profile-lists-container .name {
+  margin-left: 10px;
+  color: var(--color-text-dark);
+}
+
+#profile-lists-container .repositories {
+  color: #5b6167;
+  margin-right: 10px;
+}
+
+.star-list-repos .top {
+  height: 37.75px;
+  line-height: 37.75px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.star-list-repos .box-header {
+  background-color: #f6f8fa;
+  height: 37.75px;
+}
+
+.star-list-repos h1 {
+  margin-left: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  height: 37.75px;
+  line-height: 37.75px;
+}
+
+.star-list-repos .box-title {
+  height: 37.75px;
+  line-height: 37.75px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+}
+
+.star-list-repos .description {
+  font-size: 16px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.star-list-repos .repositories {
+  color: #59536e;
+}
+
 #readme_profile {
   padding: 1em 2em;
   border-radius: var(--border-radius);

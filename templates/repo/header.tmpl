@@ -93,9 +93,10 @@
 								{{end}}
 							>
 								{{svg "octicon-repo-forked"}}<span class="text not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
+								<span class="ui small label">{{CountFmt .NumForks}}</span>
 							</a>
 							<a class="ui basic label" href="{{.Link}}/forks">
-								{{CountFmt .NumForks}}
+								{{svg "octicon-triangle-down"}}
 							</a>
 						</div>
 						<div class="ui small modal" id="fork-repo-modal">

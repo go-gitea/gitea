@@ -5,9 +5,18 @@
 		<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}} aria-label="{{$buttonText}}">
 			{{svg (Iif $.IsStaringRepo "octicon-star-fill" "octicon-star")}}
 			<span aria-hidden="true">{{$buttonText}}</span>
+			<span class="ui small label">{{CountFmt .Repository.NumStars}}</span>
 		</button>
-		<a hx-boost="false" class="ui basic label" href="{{$.RepoLink}}/stars">
-			{{CountFmt .Repository.NumStars}}
+		{{if and .IsSigned (gt .ContextUser.ID 0)}}
+		<a class="ui basic label muted show-modal" data-modal="#choose-star-list" data-modal-modal-form.action="{{AppSubUrl}}/stars/lists">
+			{{svg "octicon-triangle-down"}}
 		</a>
+		{{else}}
+		<a class="ui basic label">
+			{{svg "octicon-triangle-down"}}
+		</a>
+		{{end}}
 	</div>
 </form>
+
+{{template "shared/star_list_dialog" .}}

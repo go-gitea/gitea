@@ -39,6 +39,7 @@ import (
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
 	shared_actions "code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/routers/web/shared/project"
+	"code.gitea.io/gitea/routers/web/shared/starlists"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -1619,6 +1620,18 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/action/{action:watch|unwatch}", reqSignIn, repo.ActionWatch)
 		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
+
+	m.Group("/stars/lists", func() {
+		m.Post("", web.Bind(forms.StarListForm{}), starlists.Create) // 创建一个新的list
+		m.Get("/{listname}", starlists.GetByName)                    // 获取当前listname的所有repo
+		m.Post("/{listname}", starlists.UpdateByName)                // 更新当前listname的所有repo
+		m.Delete("/{listname}", starlists.DeleteByName)              // 删除当前listname
+	})
+
+	m.Group("/{username}/{reponame}", func() {
+		m.Get("/lists", starlists.List)             // List the repo in all star lists
+		m.Post("/lists", starlists.UpdateListRepos) // Update the repo star lists
+	})
 
 	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
 
