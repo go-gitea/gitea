@@ -12,11 +12,9 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // RegisterRenderers registers all supported third part renderers according settings
@@ -88,16 +86,11 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 
 	if p.IsInputFile {
 		// write to temp file
-		f, err := os.CreateTemp("", "gitea_input")
+		f, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("gitea_input")
 		if err != nil {
 			return fmt.Errorf("%s create temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
-		tmpPath := f.Name()
-		defer func() {
-			if err := util.Remove(tmpPath); err != nil {
-				log.Warn("Unable to remove temporary file: %s: Error: %v", tmpPath, err)
-			}
-		}()
+		defer cleanup()
 
 		_, err = io.Copy(f, input)
 		if err != nil {
