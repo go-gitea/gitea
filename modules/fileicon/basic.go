@@ -17,6 +17,10 @@ func BasicThemeFolderIconName(isOpen bool) string {
 	return "octicon-file-directory-fill"
 }
 
+func BasicThemeFolderIconWithOpenStatus(isOpen bool) template.HTML {
+	return svg.RenderHTML(BasicThemeFolderIconName(isOpen))
+}
+
 func BasicThemeIconWithOpenStatus(entry *git.TreeEntry, isOpen bool) template.HTML {
 	// TODO: add "open icon" support
 	svgName := "octicon-file"

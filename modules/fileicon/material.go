@@ -69,10 +69,15 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 	}
 	svgID := "svg-mfi-" + name
 	svgCommonAttrs := `class="svg git-entry-icon ` + extraClass + `" width="16" height="16" aria-hidden="true"`
-	if p.IconSVGs[svgID] == "" {
+	if p != nil && p.IconSVGs[svgID] == "" {
 		p.IconSVGs[svgID] = template.HTML(`<svg id="` + svgID + `" ` + svgCommonAttrs + svg[4:])
 	}
 	return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
+}
+
+func (m *MaterialIconProvider) FolderIconWithOpenStatus(p *RenderedIconPool, isOpen bool) template.HTML {
+	name := m.FindIconName("folder", true, isOpen)
+	return m.renderFileIconSVG(p, name, m.svgs[name], BasicThemeFolderIconName(isOpen))
 }
 
 func (m *MaterialIconProvider) FileIconWithOpenStatus(p *RenderedIconPool, entry *git.TreeEntry, isOpen bool) template.HTML {
@@ -89,10 +94,10 @@ func (m *MaterialIconProvider) FileIconWithOpenStatus(p *RenderedIconPool, entry
 	}
 
 	// TODO: add "open icon" support
-	name := m.findIconNameByGit(entry)
+	name := m.findIconNameByGit(entry, isOpen)
 	// the material icon pack's "folder" icon doesn't look good, so use our built-in one
 	// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
-	if iconSVG, ok := m.svgs[name]; ok && name != "folder" && iconSVG != "" {
+	if iconSVG, ok := m.svgs[name]; ok && iconSVG != "" {
 		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
 		extraClass := "octicon-file"
 		switch {
@@ -119,11 +124,14 @@ func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
 	return ""
 }
 
-func (m *MaterialIconProvider) FindIconName(name string, isDir bool) string {
+func (m *MaterialIconProvider) FindIconName(name string, isDir, isOpen bool) string {
 	fileNameLower := strings.ToLower(path.Base(name))
 	if isDir {
 		if s, ok := m.rules.FolderNames[fileNameLower]; ok {
 			return s
+		}
+		if isOpen {
+			return "folder-open"
 		}
 		return "folder"
 	}
@@ -148,9 +156,9 @@ func (m *MaterialIconProvider) FindIconName(name string, isDir bool) string {
 	return "file"
 }
 
-func (m *MaterialIconProvider) findIconNameByGit(entry *git.TreeEntry) string {
+func (m *MaterialIconProvider) findIconNameByGit(entry *git.TreeEntry, isOpen bool) string {
 	if entry.IsSubModule() {
 		return "folder-git"
 	}
-	return m.FindIconName(entry.Name(), entry.IsDir())
+	return m.FindIconName(entry.Name(), entry.IsDir(), isOpen)
 }
