@@ -1,0 +1,15 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content">
+	{{if .IsRepo}}{{template "repo/header" .}}{{end}}
+	<div class="ui container">
+		{{/*TODO: this page could be improved*/}}
+		Server is busy, loading .... or <a href="{{AppSubUrl}}/user/login">click here to sign in</a>.
+		<script>
+			setTimeout(() => {
+				document.cookie = "{{.RateLimitCookieName}}={{.RateLimitTokenKey}}; path=/";
+				window.location.reload();
+			}, {{.RateLimitRetryAfterMs}});
+		</script>
+	</div>
+</div>
+{{template "base/footer" .}}

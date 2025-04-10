@@ -5,6 +5,7 @@ package setting
 
 import (
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -45,6 +46,8 @@ var Service = struct {
 	ShowMilestonesDashboardPage             bool
 	RequireSignInViewStrict                 bool
 	BlockAnonymousAccessExpensive           bool
+	BlockAnonymousAccessOverload            bool
+	OverloadInflightAnonymousRequests       int
 	EnableNotifyMail                        bool
 	EnableBasicAuth                         bool
 	EnablePasskeyAuth                       bool
@@ -164,10 +167,12 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	// boolean values are considered as "strict"
 	var err error
 	Service.RequireSignInViewStrict, err = sec.Key("REQUIRE_SIGNIN_VIEW").Bool()
+	Service.OverloadInflightAnonymousRequests = sec.Key("OVERLOAD_INFLIGHT_ANONYMOUS_REQUESTS").MustInt(4 * runtime.NumCPU())
 	if s := sec.Key("REQUIRE_SIGNIN_VIEW").String(); err != nil && s != "" {
 		// non-boolean value only supports "expensive" at the moment
 		Service.BlockAnonymousAccessExpensive = s == "expensive"
-		if !Service.BlockAnonymousAccessExpensive {
+		Service.BlockAnonymousAccessOverload = s == "overload"
+		if !Service.BlockAnonymousAccessExpensive && !Service.BlockAnonymousAccessOverload {
 			log.Fatal("Invalid config option: REQUIRE_SIGNIN_VIEW = %s", s)
 		}
 	}
