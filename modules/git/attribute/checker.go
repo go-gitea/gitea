@@ -18,33 +18,34 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 	if len(attributes) == 0 {
 		cmd.AddArguments("--all")
 	}
+	cancel := func() {}
+	envs := []string{"GIT_FLUSH=1"}
+
+	// if there is a treeish, we asssume this is a bare repository
+	// if it's empty, then we assume it's a worktree repository
+	if treeish != "" {
+		if git.DefaultFeatures().SupportCheckAttrOnBare {
+			cmd.AddArguments("--source")
+			cmd.AddDynamicArguments(treeish)
+		} else {
+			indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(treeish)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+
+			cmd.AddArguments("--cached")
+			envs = append(envs,
+				"GIT_INDEX_FILE="+indexFilename,
+				"GIT_WORK_TREE="+worktree,
+			)
+			cancel = deleteTemporaryFile
+		}
+	}
+
+	cmd.AddDynamicArguments(attributes...)
 	if len(filenames) > 0 {
 		cmd.AddDashesAndList(filenames...)
 	}
-	cancel := func() {}
-	if git.DefaultFeatures().SupportCheckAttrOnBare && treeish != "" {
-		cmd.AddArguments("--source")
-		cmd.AddDynamicArguments(treeish)
-		cmd.AddDynamicArguments(attributes...)
-		return cmd, []string{"GIT_FLUSH=1"}, cancel, nil
-	}
-
-	var envs []string
-	if treeish != "" { // if it's empty, then we assume it's a worktree repository
-		indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(treeish)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		envs = []string{
-			"GIT_INDEX_FILE=" + indexFilename,
-			"GIT_WORK_TREE=" + worktree,
-			"GIT_FLUSH=1",
-		}
-		cancel = deleteTemporaryFile
-	}
-	cmd.AddArguments("--cached")
-	cmd.AddDynamicArguments(attributes...)
 	return cmd, envs, cancel, nil
 }
 
