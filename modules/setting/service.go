@@ -263,12 +263,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "service.explore", &Service.Explore)
 
 	loadOpenIDSetting(rootCfg)
-
-	qosSection := rootCfg.Section("service.qos")
-	Service.QoS.Enabled = qosSection.Key("ENABLED").MustBool(false)
-	Service.QoS.MaxInFlightRequests = qosSection.Key("MAX_INFLIGHT").MustInt(4 * runtime.NumCPU())
-	Service.QoS.MaxWaitingRequests = qosSection.Key("MAX_WAITING").MustInt(100)
-	Service.QoS.TargetWaitTime = qosSection.Key("TARGET_WAIT_TIME").MustDuration(50 * time.Millisecond)
+	loadQosSetting(rootCfg)
 }
 
 func loadOpenIDSetting(rootCfg ConfigProvider) {
@@ -289,4 +284,12 @@ func loadOpenIDSetting(rootCfg ConfigProvider) {
 			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
+}
+
+func loadQosSetting(rootCfg ConfigProvider) {
+	sec := rootCfg.Section("qos")
+	Service.QoS.Enabled = sec.Key("ENABLED").MustBool(false)
+	Service.QoS.MaxInFlightRequests = sec.Key("MAX_INFLIGHT").MustInt(4 * runtime.NumCPU())
+	Service.QoS.MaxWaitingRequests = sec.Key("MAX_WAITING").MustInt(100)
+	Service.QoS.TargetWaitTime = sec.Key("TARGET_WAIT_TIME").MustDuration(50 * time.Millisecond)
 }
