@@ -127,10 +127,11 @@ func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg
 	labels := make([]*issues_model.Label, len(list))
 	for i := 0; i < len(list); i++ {
 		labels[i] = &issues_model.Label{
-			Name:        list[i].Name,
-			Exclusive:   list[i].Exclusive,
-			Description: list[i].Description,
-			Color:       list[i].Color,
+			Name:           list[i].Name,
+			Exclusive:      list[i].Exclusive,
+			ExclusiveOrder: list[i].ExclusiveOrder,
+			Description:    list[i].Description,
+			Color:          list[i].Color,
 		}
 		if isOrg {
 			labels[i].OrgID = id

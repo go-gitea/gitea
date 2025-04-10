@@ -339,14 +339,14 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	labelIDs := issue.PrepareFilterIssueLabels(ctx, project.RepoID, project.Owner)
+	preparedLabelFilter := issue.PrepareFilterIssueLabels(ctx, project.RepoID, project.Owner)
 	if ctx.Written() {
 		return
 	}
 	assigneeID := ctx.FormString("assignee")
 
 	opts := issues_model.IssuesOptions{
-		LabelIDs:   labelIDs,
+		LabelIDs:   preparedLabelFilter.SelectedLabelIDs,
 		AssigneeID: assigneeID,
 		Owner:      project.Owner,
 		Doer:       ctx.Doer,
@@ -402,8 +402,8 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	// Get the exclusive scope for every label ID
-	labelExclusiveScopes := make([]string, 0, len(labelIDs))
-	for _, labelID := range labelIDs {
+	labelExclusiveScopes := make([]string, 0, len(preparedLabelFilter.SelectedLabelIDs))
+	for _, labelID := range preparedLabelFilter.SelectedLabelIDs {
 		foundExclusiveScope := false
 		for _, label := range labels {
 			if label.ID == labelID || label.ID == -labelID {
@@ -418,7 +418,7 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	for _, l := range labels {
-		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
+		l.LoadSelectedLabelsAfterClick(preparedLabelFilter.SelectedLabelIDs, labelExclusiveScopes)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
