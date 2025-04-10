@@ -46,6 +46,10 @@ const (
 
 // Teams render teams list page
 func Teams(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	org := ctx.Org.Organization
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgTeams"] = true
@@ -57,12 +61,6 @@ func Teams(ctx *context.Context) {
 		}
 	}
 	ctx.Data["Teams"] = ctx.Org.Teams
-
-	_, err := shared_user.PrepareOrgHeader(ctx)
-	if err != nil {
-		ctx.ServerError("PrepareOrgHeader", err)
-		return
-	}
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
@@ -272,15 +270,15 @@ func TeamsRepoAction(ctx *context.Context) {
 
 // NewTeam render create new team page
 func NewTeam(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &org_model.Team{}
 	ctx.Data["Units"] = unit_model.Units
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
@@ -370,14 +368,14 @@ func NewTeamPost(ctx *context.Context) {
 
 // TeamMembers render team members page
 func TeamMembers(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamMembers"] = true
-
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 
 	if err := ctx.Org.Team.LoadMembers(ctx); err != nil {
 		ctx.ServerError("GetMembers", err)
@@ -398,14 +396,14 @@ func TeamMembers(ctx *context.Context) {
 
 // TeamRepositories show the repositories of team
 func TeamRepositories(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamRepos"] = true
-
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 
 	repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
 		TeamID: ctx.Org.Team.ID,
@@ -463,14 +461,14 @@ func SearchTeam(ctx *context.Context) {
 
 // EditTeam render team edit page
 func EditTeam(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	if err := ctx.Org.Team.LoadUnits(ctx); err != nil {
 		ctx.ServerError("LoadUnits", err)
-		return
-	}
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
 		return
 	}
 	ctx.Data["Team"] = ctx.Org.Team
