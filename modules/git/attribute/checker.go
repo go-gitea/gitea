@@ -28,7 +28,7 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 	isBare, _ := strconv.ParseBool(res)
 	// bare repository must have a treeish
 	if isBare && treeish == "" {
-		return nil, nil, nil, fmt.Errorf("bare repository must have a treeish")
+		return nil, nil, nil, errors.New("bare repository must have a treeish")
 	}
 
 	cmd := git.NewCommand("check-attr", "-z")
