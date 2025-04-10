@@ -69,8 +69,12 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 	}
 	svgID := "svg-mfi-" + name
 	svgCommonAttrs := `class="svg git-entry-icon ` + extraClass + `" width="16" height="16" aria-hidden="true"`
-	if p != nil && p.IconSVGs[svgID] == "" {
-		p.IconSVGs[svgID] = template.HTML(`<svg id="` + svgID + `" ` + svgCommonAttrs + svg[4:])
+	svgHTML := template.HTML(`<svg id="` + svgID + `" ` + svgCommonAttrs + svg[4:])
+	if p == nil {
+		return svgHTML
+	}
+	if p.IconSVGs[svgID] == "" {
+		p.IconSVGs[svgID] = svgHTML
 	}
 	return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
 }
