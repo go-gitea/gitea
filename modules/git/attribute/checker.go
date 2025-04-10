@@ -9,20 +9,33 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/git"
 )
 
 func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attributes []string) (*git.Command, []string, func(), error) {
+	cancel := func() {}
+	envs := []string{"GIT_FLUSH=1"}
+
+	// Check if the repository is bare
+	res, _, err := git.NewCommand("rev-parse", "--is-bare-repository").RunStdString(gitRepo.Ctx, &git.RunOpts{
+		Dir: gitRepo.Path,
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to run rev-parse: %w", err)
+	}
+	isBare, _ := strconv.ParseBool(res)
+	// bare repository must have a treeish
+	if isBare && treeish == "" {
+		return nil, nil, nil, fmt.Errorf("bare repository must have a treeish")
+	}
+
 	cmd := git.NewCommand("check-attr", "-z")
 	if len(attributes) == 0 {
 		cmd.AddArguments("--all")
 	}
-	cancel := func() {}
-	envs := []string{"GIT_FLUSH=1"}
 
-	// if there is a treeish, we asssume this is a bare repository
-	// if it's empty, then we assume it's a worktree repository
 	if treeish != "" {
 		if git.DefaultFeatures().SupportCheckAttrOnBare {
 			cmd.AddArguments("--source")
