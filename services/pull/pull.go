@@ -64,6 +64,46 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return user_model.ErrBlockedUser
 	}
 
+	// check if reviewers are valid
+	if len(opts.Reviewers) > 0 {
+		allowedUsers, err := GetReviewers(ctx, repo, pr.Issue.PosterID, pr.Issue.PosterID)
+		if err != nil {
+			return err
+		}
+		for _, reviewer := range opts.Reviewers {
+			var found bool
+			for _, allowedUser := range allowedUsers {
+				if allowedUser.ID == reviewer.ID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return issues_model.ErrNotValidReviewRequest{UserID: reviewer.ID}
+			}
+		}
+	}
+
+	// check if team reviewers are valid
+	if len(opts.TeamReviewers) > 0 {
+		allowedTeams, err := GetReviewerTeams(ctx, repo)
+		if err != nil {
+			return err
+		}
+		for _, teamReviewer := range opts.TeamReviewers {
+			var found bool
+			for _, allowedTeam := range allowedTeams {
+				if allowedTeam.ID == teamReviewer.ID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return issues_model.ErrNotValidReviewRequest{TeamID: teamReviewer.ID}
+			}
+		}
+	}
+
 	// user should be a collaborator or a member of the organization for base repo
 	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
 	if !canCreate {
@@ -116,7 +156,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	defer baseGitRepo.Close()
 
-	var reviewNotifiers []*issue_service.ReviewRequestNotifier
+	var reviewNotifiers []*ReviewRequestNotifier
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
 			return err
@@ -175,8 +215,33 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			return err
 		}
 
-		if !pr.IsWorkInProgress(ctx) {
-			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, pr)
+		// if there are reviewers or review teams, we don't need to request code owners review
+		if len(opts.Reviewers)+len(opts.TeamReviewers) > 0 {
+			for _, reviewer := range opts.Reviewers {
+				comment, err := issues_model.AddReviewRequest(ctx, pr.Issue, reviewer, issue.Poster)
+				if err != nil {
+					return err
+				}
+				reviewNotifiers = append(reviewNotifiers, &ReviewRequestNotifier{
+					Comment:  comment,
+					Reviewer: reviewer,
+					IsAdd:    true,
+				})
+			}
+
+			for _, teamReviewer := range opts.TeamReviewers {
+				comment, err := issues_model.AddTeamReviewRequest(ctx, pr.Issue, teamReviewer, issue.Poster)
+				if err != nil {
+					return err
+				}
+				reviewNotifiers = append(reviewNotifiers, &ReviewRequestNotifier{
+					Comment:    comment,
+					ReviewTeam: teamReviewer,
+					IsAdd:      true,
+				})
+			}
+		} else if !pr.IsWorkInProgress(ctx) {
+			reviewNotifiers, err = RequestCodeOwnersReview(ctx, pr)
 			if err != nil {
 				return err
 			}
@@ -191,7 +256,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	baseGitRepo.Close() // close immediately to avoid notifications will open the repository again
 
-	issue_service.ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
+	ReviewRequestNotify(ctx, issue, issue.Poster, reviewNotifiers)
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, issue.Poster, issue.Content)
 	if err != nil {
@@ -211,17 +276,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 		notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assigneeID])
 	}
-	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
-	for _, reviewer := range opts.Reviewers {
-		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
-			return err
-		}
-	}
-	for _, teamReviewer := range opts.TeamReviewers {
-		if _, err = issue_service.TeamReviewRequest(ctx, pr.Issue, issue.Poster, teamReviewer, true); err != nil {
-			return err
-		}
-	}
+
 	return nil
 }
 
@@ -398,6 +453,11 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 			return
 		}
 
+		if _, err = prs.LoadIssues(ctx); err != nil {
+			log.Error("LoadIssues: %v", err)
+			return
+		}
+
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			if pr.Flow == issues_model.PullRequestFlowGithub {
@@ -463,17 +523,17 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 					}
 
 					if !pr.IsWorkInProgress(ctx) {
-						var reviewNotifiers []*issue_service.ReviewRequestNotifier
+						var reviewNotifiers []*ReviewRequestNotifier
 						if opts.IsForcePush {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, pr)
+							reviewNotifiers, err = RequestCodeOwnersReview(ctx, pr)
 						} else {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, opts.OldCommitID, opts.NewCommitID)
+							reviewNotifiers, err = RequestCodeOwnersReviewSpecialCommits(ctx, pr, opts.OldCommitID, opts.NewCommitID)
 						}
 						if err != nil {
 							log.Error("PullRequestCodeOwnersReview: %v", err)
 						}
 						if len(reviewNotifiers) > 0 {
-							issue_service.ReviewRequestNotify(ctx, pr.Issue, opts.Doer, reviewNotifiers)
+							ReviewRequestNotify(ctx, pr.Issue, opts.Doer, reviewNotifiers)
 						}
 					}
 
