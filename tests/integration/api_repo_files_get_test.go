@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package integration
@@ -45,10 +45,10 @@ func testAPIGetRequestedFiles(t *testing.T, u *url.URL) {
 
 	// Get user2's token	req.Body =
 	session := loginUser(t, user2.Name)
-	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository) //TODO: allow for a POST-request to be scope read
+	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository) // TODO: allow for a POST-request to be scope read
 	// Get user4's token
 	session = loginUser(t, user4.Name)
-	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository) //TODO: allow for a POST-request to be scope read
+	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository) // TODO: allow for a POST-request to be scope read
 
 	// Get the commit ID of the default branch
 	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
