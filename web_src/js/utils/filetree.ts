@@ -8,6 +8,7 @@ export type File = {
   Status: FileStatus;
   IsViewed: boolean;
   IsSubmodule: boolean;
+  FileIcon: string;
 }
 
 type DirItem = {

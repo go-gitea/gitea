@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"html/template"
 	"net/http"
 
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -63,11 +64,12 @@ type FileDiffFile struct {
 	IsSubmodule bool
 	IsViewed    bool
 	Status      string
+	FileIcon    template.HTML
 }
 
 // transformDiffTreeForUI transforms a DiffTree into a slice of FileDiffFile for UI rendering
 // it also takes a map of file names to their viewed state, which is used to mark files as viewed
-func transformDiffTreeForUI(diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) []FileDiffFile {
+func transformDiffTreeForUI(renderedIconPool *fileicon.RenderedIconPool, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) []FileDiffFile {
 	files := make([]FileDiffFile, 0, len(diffTree.Files))
 
 	for _, file := range diffTree.Files {
@@ -81,6 +83,10 @@ func transformDiffTreeForUI(diffTree *gitdiff.DiffTree, filesViewedState map[str
 			IsSubmodule: isSubmodule,
 			IsViewed:    isViewed,
 			Status:      file.Status,
+			FileIcon: fileicon.RenderEntryIconWithOpenStatus(renderedIconPool, &fileicon.FileEntry{
+				Name:      file.HeadPath,
+				EntryMode: file.HeadMode,
+			}, false),
 		})
 	}
 

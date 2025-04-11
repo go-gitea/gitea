@@ -175,9 +175,8 @@ func newTreeViewNodeFromEntry(ctx context.Context, renderedIconPool *fileicon.Re
 	}
 
 	if node.EntryIcon == "" {
-		node.EntryIcon = fileicon.RenderEntryIcon(renderedIconPool, entry)
-		// TODO: no open icon support yet
-		// node.EntryIconOpen = fileicon.RenderEntryIconOpen(renderedIconPool, entry)
+		node.EntryIcon = fileicon.RenderEntryIconWithOpenStatus(renderedIconPool, fileicon.GetFileEntryByTreeEntry(entry), false)
+		node.EntryIconOpen = fileicon.RenderEntryIconWithOpenStatus(renderedIconPool, fileicon.GetFileEntryByTreeEntry(entry), true)
 	}
 
 	if node.EntryMode == "commit" {

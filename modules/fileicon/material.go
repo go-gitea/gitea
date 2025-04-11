@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
@@ -69,41 +68,51 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 	}
 	svgID := "svg-mfi-" + name
 	svgCommonAttrs := `class="svg git-entry-icon ` + extraClass + `" width="16" height="16" aria-hidden="true"`
+	svgHTML := template.HTML(`<svg id="` + svgID + `" ` + svgCommonAttrs + svg[4:])
+	if p == nil {
+		return svgHTML
+	}
 	if p.IconSVGs[svgID] == "" {
-		p.IconSVGs[svgID] = template.HTML(`<svg id="` + svgID + `" ` + svgCommonAttrs + svg[4:])
+		p.IconSVGs[svgID] = svgHTML
 	}
 	return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
 }
 
-func (m *MaterialIconProvider) FileIcon(p *RenderedIconPool, entry *git.TreeEntry) template.HTML {
+func (m *MaterialIconProvider) FolderIconWithOpenStatus(p *RenderedIconPool, isOpen bool) template.HTML {
+	name := m.FindIconName("folder", true, isOpen)
+	return m.renderFileIconSVG(p, name, m.svgs[name], BasicThemeFolderIconName(isOpen))
+}
+
+func (m *MaterialIconProvider) FileIconWithOpenStatus(p *RenderedIconPool, entry *FileEntry, isOpen bool) template.HTML {
 	if m.rules == nil {
-		return BasicThemeIcon(entry)
+		return BasicThemeIconWithOpenStatus(entry, isOpen)
 	}
 
-	if entry.IsLink() {
-		if te, err := entry.FollowLink(); err == nil && te.IsDir() {
+	if entry.EntryMode.IsLink() {
+		if entry.FollowEntryMode.IsDir() {
 			// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
 			return svg.RenderHTML("material-folder-symlink", 16, "octicon-file-directory-symlink")
 		}
 		return svg.RenderHTML("octicon-file-symlink-file") // TODO: find some better icons for them
 	}
 
-	name := m.findIconNameByGit(entry)
+	// TODO: add "open icon" support
+	name := m.findIconNameByGit(entry, isOpen)
 	// the material icon pack's "folder" icon doesn't look good, so use our built-in one
 	// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
-	if iconSVG, ok := m.svgs[name]; ok && name != "folder" && iconSVG != "" {
+	if iconSVG, ok := m.svgs[name]; ok && iconSVG != "" {
 		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
 		extraClass := "octicon-file"
 		switch {
-		case entry.IsDir():
-			extraClass = "octicon-file-directory-fill"
-		case entry.IsSubModule():
+		case entry.EntryMode.IsDir():
+			extraClass = BasicThemeFolderIconName(isOpen)
+		case entry.EntryMode.IsSubModule():
 			extraClass = "octicon-file-submodule"
 		}
 		return m.renderFileIconSVG(p, name, iconSVG, extraClass)
 	}
 	// TODO: use an interface or wrapper for git.Entry to make the code testable.
-	return BasicThemeIcon(entry)
+	return BasicThemeIconWithOpenStatus(entry, isOpen)
 }
 
 func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
@@ -118,11 +127,14 @@ func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
 	return ""
 }
 
-func (m *MaterialIconProvider) FindIconName(name string, isDir bool) string {
+func (m *MaterialIconProvider) FindIconName(name string, isDir, isOpen bool) string {
 	fileNameLower := strings.ToLower(path.Base(name))
 	if isDir {
 		if s, ok := m.rules.FolderNames[fileNameLower]; ok {
 			return s
+		}
+		if isOpen {
+			return "folder-open"
 		}
 		return "folder"
 	}
@@ -147,9 +159,9 @@ func (m *MaterialIconProvider) FindIconName(name string, isDir bool) string {
 	return "file"
 }
 
-func (m *MaterialIconProvider) findIconNameByGit(entry *git.TreeEntry) string {
-	if entry.IsSubModule() {
+func (m *MaterialIconProvider) findIconNameByGit(entry *FileEntry, isOpen bool) string {
+	if entry.EntryMode.IsSubModule() {
 		return "folder-git"
 	}
-	return m.FindIconName(entry.Name(), entry.IsDir())
+	return m.FindIconName(entry.Name, entry.EntryMode.IsDir(), isOpen)
 }

@@ -59,11 +59,12 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
-		"svg":           svg.RenderHTML,
-		"MigrationIcon": migrationIcon,
-		"ActionIcon":    actionIcon,
-		"SortArrow":     sortArrow,
-		"ContrastColor": util.ContrastColor,
+		"svg":                        svg.RenderHTML,
+		"folderIconHTMLByOpenStatus": FolderIconHTMLByOpenStatus,
+		"MigrationIcon":              migrationIcon,
+		"ActionIcon":                 actionIcon,
+		"SortArrow":                  sortArrow,
+		"ContrastColor":              util.ContrastColor,
 
 		// -----------------------------------------------------------------
 		// time / number / format

@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	csv_module "code.gitea.io/gitea/modules/csv"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -639,7 +640,11 @@ func PrepareCompareDiff(
 			return false
 		}
 
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(diffTree, nil)
+		renderedIconPool := fileicon.NewRenderedIconPool()
+		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(renderedIconPool, diffTree, nil)
+		ctx.PageData["FolderIcon"] = templates.FolderIconHTMLByOpenStatus(false)
+		ctx.PageData["FolderOpenIcon"] = templates.FolderIconHTMLByOpenStatus(true)
+		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 	}
 
 	headCommit, err := ci.HeadGitRepo.GetCommit(headCommitID)
