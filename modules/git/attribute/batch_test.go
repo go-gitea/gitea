@@ -102,13 +102,17 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	}, attr)
 }
 
-var expectedAttrs = Attributes{
-	LinguistGenerated:     "unspecified",
-	LinguistDetectable:    "unspecified",
-	LinguistDocumentation: "unspecified",
-	LinguistVendored:      "unspecified",
-	LinguistLanguage:      "Python",
-	GitlabLanguage:        "unspecified",
+func expectedAttrs() *Attributes {
+	return &Attributes{
+		m: map[string]Attribute{
+			LinguistGenerated:     "unspecified",
+			LinguistDetectable:    "unspecified",
+			LinguistDocumentation: "unspecified",
+			LinguistVendored:      "unspecified",
+			LinguistLanguage:      "Python",
+			GitlabLanguage:        "unspecified",
+		},
+	}
 }
 
 func Test_BatchChecker(t *testing.T) {
@@ -127,7 +131,7 @@ func Test_BatchChecker(t *testing.T) {
 		defer checker.Close()
 		attributes, err := checker.CheckPath("i-am-a-python.p")
 		assert.NoError(t, err)
-		assert.Equal(t, expectedAttrs, attributes)
+		assert.Equal(t, expectedAttrs(), attributes)
 	})
 
 	// run git check-attr on work tree
@@ -148,7 +152,7 @@ func Test_BatchChecker(t *testing.T) {
 		defer checker.Close()
 		attributes, err := checker.CheckPath("i-am-a-python.p")
 		assert.NoError(t, err)
-		assert.Equal(t, expectedAttrs, attributes)
+		assert.Equal(t, expectedAttrs(), attributes)
 	})
 
 	if !git.DefaultFeatures().SupportCheckAttrOnBare {
@@ -163,6 +167,6 @@ func Test_BatchChecker(t *testing.T) {
 
 		attributes, err := checker.CheckPath("i-am-a-python.p")
 		assert.NoError(t, err)
-		assert.Equal(t, expectedAttrs, attributes)
+		assert.Equal(t, expectedAttrs(), attributes)
 	})
 }

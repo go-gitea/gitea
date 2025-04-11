@@ -32,7 +32,7 @@ func Test_Checker(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.Len(t, attrs, 1)
-		assert.Equal(t, expectedAttrs, attrs["i-am-a-python.p"])
+		assert.Equal(t, expectedAttrs(), attrs["i-am-a-python.p"])
 	})
 
 	// run git check-attr on work tree
@@ -54,7 +54,7 @@ func Test_Checker(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.Len(t, attrs, 1)
-		assert.Equal(t, expectedAttrs, attrs["i-am-a-python.p"])
+		assert.Equal(t, expectedAttrs(), attrs["i-am-a-python.p"])
 	})
 
 	if !git.DefaultFeatures().SupportCheckAttrOnBare {
@@ -69,6 +69,6 @@ func Test_Checker(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.Len(t, attrs, 1)
-		assert.Equal(t, expectedAttrs, attrs["i-am-a-python.p"])
+		assert.Equal(t, expectedAttrs(), attrs["i-am-a-python.p"])
 	})
 }

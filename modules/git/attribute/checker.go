@@ -21,7 +21,7 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 		cmd.AddArguments("--all")
 	}
 
-	// there is treeish, read from source or index
+	// there is treeish, read from bare repo or temp index created by "read-tree"
 	if treeish != "" {
 		if git.DefaultFeatures().SupportCheckAttrOnBare {
 			cmd.AddArguments("--source")
@@ -39,7 +39,7 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 			)
 			cancel = deleteTemporaryFile
 		}
-	} // no treeish, read from working directory
+	} // else: no treeish, assume it is a not a bare repo, read from working directory
 
 	cmd.AddDynamicArguments(attributes...)
 	if len(filenames) > 0 {
