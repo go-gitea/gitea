@@ -1,84 +1,17 @@
 <script lang="ts" setup>
 import {SvgIcon, type SvgName} from '../svg.ts';
-import {diffTreeStore} from '../modules/stores.ts';
-import {computed, nextTick, ref, watch} from 'vue';
-import type {Item, DirItem, File, FileStatus} from '../utils/filetree.ts';
+import {ref} from 'vue';
+import {type DiffStatus, type DiffTreeEntry, diffTreeStore} from '../modules/diff-file.ts';
 
-// ------------------------------------------------------------
-// Component Props
-// ------------------------------------------------------------
-const props = defineProps<{
-  item: Item,
-  setViewed?:(val: boolean) => void,
+defineProps<{
+  item: DiffTreeEntry,
 }>();
 
-// ------------------------------------------------------------
-// Reactive State & Refs
-// ------------------------------------------------------------
 const store = diffTreeStore();
-const count = ref(0);
-let pendingUpdate = 0;
-let pendingTimer: Promise<void> | undefined;
-// ------------------------------------------------------------
-// Batch Update Mechanism
-// ------------------------------------------------------------
-/**
- * Handles batched updates to count value
- * Prevents multiple updates within the same tick
- */
-const setCount = (isViewed: boolean) => {
-  pendingUpdate += (isViewed ? 1 : -1);
+const collapsed = ref(false);
 
-  if (pendingTimer === undefined) {
-    pendingTimer = nextTick(() => {
-      count.value = Math.max(0, count.value + pendingUpdate);
-      pendingUpdate = 0;
-      pendingTimer = undefined;
-    });
-  }
-};
-
-// ------------------------------------------------------------
-// Computed Properties
-// ------------------------------------------------------------
-/**
- * Determines viewed state based on item type:
- * - Files: Directly use IsViewed property
- * - Directories: Compare children count with viewed count
- */
-const isViewed = computed(() => {
-  return props.item.isFile ? props.item.file.IsViewed : (props.item as DirItem).children.length === count.value;
-});
-// ------------------------------------------------------------
-// Watchers & Side Effects
-// ------------------------------------------------------------
-/**
- * Propagate viewed state changes to parent component
- * Using post flush to ensure DOM updates are complete
- */
-watch(
-  () => isViewed.value,
-  (newVal) => {
-    if (props.setViewed) {
-      props.setViewed(newVal);
-    }
-  },
-  {immediate: true, flush: 'post'},
-);
-
-// ------------------------------------------------------------
-// Collapse Behavior Documentation
-// ------------------------------------------------------------
-/**
- * Collapse behavior rules:
- * - Viewed folders start collapsed initially
- * - Manual expand/collapse takes precedence over automatic behavior
- * - State persists after manual interaction
- */
-const collapsed = ref(isViewed.value);
-
-function getIconForDiffStatus(pType: FileStatus) {
-  const diffTypes: Record<FileStatus, { name: SvgName, classes: Array<string> }> = {
+function getIconForDiffStatus(pType: DiffStatus) {
+  const diffTypes: Record<DiffStatus, { name: SvgName, classes: Array<string> }> = {
     'added': {name: 'octicon-diff-added', classes: ['text', 'green']},
     'modified': {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
     'deleted': {name: 'octicon-diff-removed', classes: ['text', 'red']},
@@ -86,11 +19,11 @@ function getIconForDiffStatus(pType: FileStatus) {
     'copied': {name: 'octicon-diff-renamed', classes: ['text', 'green']},
     'typechange': {name: 'octicon-diff-modified', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
   };
-  return diffTypes[pType];
+  return diffTypes[pType] ?? {name: 'octicon-blocked', classes: ['text', 'red']};
 }
 
-function fileIcon(file: File) {
-  if (file.IsSubmodule) {
+function entryIcon(entry: DiffTreeEntry) {
+  if (entry.EntryMode === 'commit') {
     return 'octicon-file-submodule';
   }
   return 'octicon-file';
@@ -98,36 +31,35 @@ function fileIcon(file: File) {
 </script>
 
 <template>
-  <!--title instead of tooltip above as the tooltip needs too much work with the current methods, i.e. not being loaded or staying open for "too long"-->
-  <a
-    v-if="item.isFile" class="item-file"
-    :class="{ 'selected': store.selectedItem === '#diff-' + item.file.NameHash, 'viewed': isViewed }"
-    :title="item.name" :href="'#diff-' + item.file.NameHash"
-  >
-    <!-- file -->
-    <SvgIcon :name="fileIcon(item.file)"/>
-    <span class="gt-ellipsis tw-flex-1">{{ item.name }}</span>
-    <SvgIcon
-      :name="getIconForDiffStatus(item.file.Status).name"
-      :class="getIconForDiffStatus(item.file.Status).classes"
-    />
-  </a>
-
-  <template v-else-if="item.isFile === false">
-    <div class="item-directory" :class="{ 'viewed': isViewed }" :title="item.name" @click.stop="collapsed = !collapsed">
+  <template v-if="item.EntryMode === 'tree'">
+    <div class="item-directory" :class="{ 'viewed': item.IsViewed }" :title="item.DisplayName" @click.stop="collapsed = !collapsed">
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
       <SvgIcon
         class="text primary"
         :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"
       />
-      <span class="gt-ellipsis">{{ item.name }}</span>
+      <span class="gt-ellipsis">{{ item.DisplayName }}</span>
     </div>
 
     <div v-show="!collapsed" class="sub-items">
-      <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" :set-viewed="setCount"/>
+      <DiffFileTreeItem v-for="childItem in item.Children" :key="childItem.DisplayName" :item="childItem"/>
     </div>
   </template>
+  <a
+    v-else
+    class="item-file" :class="{ 'selected': store.selectedItem === '#diff-' + item.NameHash, 'viewed': item.IsViewed }"
+    :title="item.DisplayName" :href="'#diff-' + item.NameHash"
+  >
+    <!-- file -->
+    <SvgIcon :name="entryIcon(item)"/>
+    <span class="gt-ellipsis tw-flex-1">{{ item.DisplayName }}</span>
+    <SvgIcon
+      :name="getIconForDiffStatus(item.DiffStatus).name"
+      :class="getIconForDiffStatus(item.DiffStatus).classes"
+    />
+  </a>
+
 </template>
 <style scoped>
 a,

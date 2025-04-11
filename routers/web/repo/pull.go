@@ -829,12 +829,12 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 			// This sort of sucks because we already fetch this when getting the diff
 			review, err := pull_model.GetNewestReviewState(ctx, ctx.Doer.ID, issue.ID)
 			if err == nil && review != nil && review.UpdatedFiles != nil {
-				// If there wasn't an error and we have a review with updated files, use that
+				// If there wasn't an error, and we have a review with updated files, use that
 				filesViewedState = review.UpdatedFiles
 			}
 		}
-
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(diffTree, filesViewedState)
+		// FIXME: filesViewedState is always nil?
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(diffTree, filesViewedState)
 	}
 
 	ctx.Data["Diff"] = diff
