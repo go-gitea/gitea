@@ -128,8 +128,6 @@ func Runners(ctx *context.Context) {
 	} else if rCtx.IsOrg || rCtx.IsUser {
 		opts.OwnerID = rCtx.OwnerID
 		opts.WithAvailable = true
-	} else {
-		opts.WithAvailable = true
 	}
 
 	runners, count, err := db.FindAndCount[actions_model.ActionRunner](ctx, opts)

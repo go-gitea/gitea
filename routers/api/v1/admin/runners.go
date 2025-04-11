@@ -40,11 +40,11 @@ func CreateRegistrationToken(ctx *context.APIContext) {
 	shared.GetRegistrationToken(ctx, 0, 0)
 }
 
-// ListRunners get global runners
+// ListRunners get all runners
 func ListRunners(ctx *context.APIContext) {
 	// swagger:operation GET /admin/actions/runners admin getAdminRunners
 	// ---
-	// summary: Get global runners
+	// summary: Get all runners
 	// produces:
 	// - application/json
 	// responses:
