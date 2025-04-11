@@ -10,7 +10,6 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
@@ -471,22 +470,6 @@ type IssueLockForm struct {
 func (i *IssueLockForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, i, ctx.Locale)
-}
-
-// HasValidReason checks to make sure that the reason submitted in
-// the form matches any of the values in the config
-func (i IssueLockForm) HasValidReason() bool {
-	if strings.TrimSpace(i.Reason) == "" {
-		return true
-	}
-
-	for _, v := range setting.Repository.Issue.LockReasons {
-		if v == i.Reason {
-			return true
-		}
-	}
-
-	return false
 }
 
 // CreateProjectForm form for creating a project
