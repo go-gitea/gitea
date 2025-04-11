@@ -1544,14 +1544,19 @@ func Routes() *web.Router {
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}", func() {
+				m.Get("/", packages.ListPackageVersions)
+
 				m.Group("/{version}", func() {
 					m.Get("", packages.GetPackage)
 					m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
 					m.Get("/files", packages.ListPackageFiles)
 				})
 
-				m.Post("/-/link/{repo_name}", reqPackageAccess(perm.AccessModeWrite), packages.LinkPackage)
-				m.Post("/-/unlink", reqPackageAccess(perm.AccessModeWrite), packages.UnlinkPackage)
+				m.Group("/-", func() {
+					m.Get("/latest", packages.GetLatestPackageVersion)
+					m.Post("/link/{repo_name}", reqPackageAccess(perm.AccessModeWrite), packages.LinkPackage)
+					m.Post("/unlink", reqPackageAccess(perm.AccessModeWrite), packages.UnlinkPackage)
+				})
 			})
 
 			m.Get("/", packages.ListPackages)

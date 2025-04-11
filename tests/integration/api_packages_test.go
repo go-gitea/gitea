@@ -83,70 +83,101 @@ func TestPackageAPI(t *testing.T) {
 		assert.Equal(t, packageVersion, p.Version)
 		assert.NotNil(t, p.Creator)
 		assert.Equal(t, user.Name, p.Creator.UserName)
+	})
 
-		t.Run("RepositoryLink", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
+	t.Run("ListPackageVersions", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-			_, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
-			assert.NoError(t, err)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s", user.Name, packageName)).
+			AddTokenAuth(tokenReadPackage)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-			// no repository link
-			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
-				AddTokenAuth(tokenReadPackage)
-			resp := MakeRequest(t, req, http.StatusOK)
+		var apiPackages []*api.Package
+		DecodeJSON(t, resp, &apiPackages)
 
-			var ap1 *api.Package
-			DecodeJSON(t, resp, &ap1)
-			assert.Nil(t, ap1.Repository)
+		assert.Len(t, apiPackages, 1)
+		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
+		assert.Equal(t, packageName, apiPackages[0].Name)
+		assert.Equal(t, packageVersion, apiPackages[0].Version)
+	})
 
-			// create a repository
-			newRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
-				Name: "repo4",
-			})
-			assert.NoError(t, err)
+	t.Run("LatestPackageVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-			// link to public repository
-			req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, newRepo.Name)).AddTokenAuth(tokenWritePackage)
-			MakeRequest(t, req, http.StatusCreated)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/latest", user.Name, packageName)).
+			AddTokenAuth(tokenReadPackage)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
-				AddTokenAuth(tokenReadPackage)
-			resp = MakeRequest(t, req, http.StatusOK)
+		var apiPackage *api.Package
+		DecodeJSON(t, resp, &apiPackage)
 
-			var ap2 *api.Package
-			DecodeJSON(t, resp, &ap2)
-			assert.NotNil(t, ap2.Repository)
-			assert.Equal(t, newRepo.ID, ap2.Repository.ID)
+		assert.Equal(t, string(packages_model.TypeGeneric), apiPackage.Type)
+		assert.Equal(t, packageName, apiPackage.Name)
+		assert.Equal(t, packageVersion, apiPackage.Version)
+	})
 
-			// link to repository without write access, should fail
-			req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, "repo3")).AddTokenAuth(tokenWritePackage)
-			MakeRequest(t, req, http.StatusNotFound)
+	t.Run("RepositoryLink", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
 
-			// remove link
-			req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/unlink", user.Name, packageName)).AddTokenAuth(tokenWritePackage)
-			MakeRequest(t, req, http.StatusNoContent)
+		_, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
+		assert.NoError(t, err)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
-				AddTokenAuth(tokenReadPackage)
-			resp = MakeRequest(t, req, http.StatusOK)
+		// no repository link
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-			var ap3 *api.Package
-			DecodeJSON(t, resp, &ap3)
-			assert.Nil(t, ap3.Repository)
+		var ap1 *api.Package
+		DecodeJSON(t, resp, &ap1)
+		assert.Nil(t, ap1.Repository)
 
-			// force link to a repository the currently logged-in user doesn't have access to
-			privateRepoID := int64(6)
-			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, privateRepoID))
-
-			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(tokenReadPackage)
-			resp = MakeRequest(t, req, http.StatusOK)
-
-			var ap4 *api.Package
-			DecodeJSON(t, resp, &ap4)
-			assert.Nil(t, ap4.Repository)
-
-			assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, privateRepoID))
+		// create a repository
+		newRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
+			Name: "repo4",
 		})
+		assert.NoError(t, err)
+
+		// link to public repository
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, newRepo.Name)).AddTokenAuth(tokenWritePackage)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		var ap2 *api.Package
+		DecodeJSON(t, resp, &ap2)
+		assert.NotNil(t, ap2.Repository)
+		assert.Equal(t, newRepo.ID, ap2.Repository.ID)
+
+		// link to repository without write access, should fail
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/link/%s", user.Name, packageName, "repo3")).AddTokenAuth(tokenWritePackage)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// remove link
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/packages/%s/generic/%s/-/unlink", user.Name, packageName)).AddTokenAuth(tokenWritePackage)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).
+			AddTokenAuth(tokenReadPackage)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		var ap3 *api.Package
+		DecodeJSON(t, resp, &ap3)
+		assert.Nil(t, ap3.Repository)
+
+		// force link to a repository the currently logged-in user doesn't have access to
+		privateRepoID := int64(6)
+		assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, ap1.ID, privateRepoID))
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(tokenReadPackage)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		var ap4 *api.Package
+		DecodeJSON(t, resp, &ap4)
+		assert.Nil(t, ap4.Repository)
+
+		assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, privateRepoID))
 	})
 
 	t.Run("ListPackageFiles", func(t *testing.T) {
