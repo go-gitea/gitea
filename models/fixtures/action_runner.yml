@@ -1,0 +1,40 @@
+-
+  id: 34346
+  name: runner_to_be_deleted-user
+  uuid: 3EF231BD-FBB7-4E4B-9602-E6F28363EF18
+  token_hash: 3EF231BD-FBB7-4E4B-9602-E6F28363EF18
+  version: "1.0.0"
+  owner_id: 1
+  repo_id: 0
+  description: "This runner is going to be deleted"
+  agent_labels: '["runner_to_be_deleted","linux"]'
+-
+  id: 34347
+  name: runner_to_be_deleted-org
+  uuid: 3EF231BD-FBB7-4E4B-9602-E6F28363EF19
+  token_hash: 3EF231BD-FBB7-4E4B-9602-E6F28363EF19
+  version: "1.0.0"
+  owner_id: 3
+  repo_id: 0
+  description: "This runner is going to be deleted"
+  agent_labels: '["runner_to_be_deleted","linux"]'
+-
+  id: 34348
+  name: runner_to_be_deleted-repo1
+  uuid: 3EF231BD-FBB7-4E4B-9602-E6F28363EF20
+  token_hash: 3EF231BD-FBB7-4E4B-9602-E6F28363EF20
+  version: "1.0.0"
+  owner_id: 0
+  repo_id: 1
+  description: "This runner is going to be deleted"
+  agent_labels: '["runner_to_be_deleted","linux"]'
+-
+  id: 34349
+  name: runner_to_be_deleted
+  uuid: 3EF231BD-FBB7-4E4B-9602-E6F28363EF17
+  token_hash: 3EF231BD-FBB7-4E4B-9602-E6F28363EF17
+  version: "1.0.0"
+  owner_id: 0
+  repo_id: 0
+  description: "This runner is going to be deleted"
+  agent_labels: '["runner_to_be_deleted","linux"]'
