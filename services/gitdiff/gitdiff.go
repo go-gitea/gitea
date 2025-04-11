@@ -1249,9 +1249,8 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 		isGenerated := optional.None[bool]()
 		attrs, err := checker.CheckPath(diffFile.Name)
 		if err == nil {
-			isVendored = attrs.HasVendored()
-			isGenerated = attrs.HasGenerated()
-			language := attrs.Language()
+			isVendored, isGenerated = attrs.GetVendored(), attrs.GetGenerated()
+			language := attrs.GetLanguage()
 			if language.Has() {
 				diffFile.Language = language.Value()
 			}

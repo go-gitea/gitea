@@ -294,8 +294,8 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 
 		attrs, err := checker.CheckPath(ctx.Repo.TreePath)
 		if err == nil {
-			ctx.Data["IsVendored"] = attrs.HasVendored().Value()
-			ctx.Data["IsGenerated"] = attrs.HasGenerated().Value()
+			ctx.Data["IsVendored"] = attrs.GetVendored().Value()
+			ctx.Data["IsGenerated"] = attrs.GetGenerated().Value()
 		}
 	}
 

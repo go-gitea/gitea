@@ -27,19 +27,17 @@ type BatchChecker struct {
 }
 
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
-func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string) (*BatchChecker, error) {
+func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string) (checker *BatchChecker, returnedErr error) {
 	ctx, cancel := context.WithCancel(repo.Ctx)
-	if len(attributes) == 0 {
-		attributes = LinguistAttributes
-	}
 	cmd, envs, cleanup, err := checkAttrCommand(repo, treeish, nil, attributes)
 	if err != nil {
 		cancel()
 		return nil, err
 	}
+
 	cmd.AddArguments("--stdin")
 
-	checker := &BatchChecker{
+	checker = &BatchChecker{
 		attributesNum: len(attributes),
 		repo:          repo,
 		ctx:           ctx,
@@ -49,16 +47,20 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string)
 			cleanup()
 		},
 	}
+	defer func() {
+		if returnedErr != nil {
+			checker.cancel()
+		}
+	}()
 
 	stdinReader, stdinWriter, err := os.Pipe()
 	if err != nil {
-		checker.cancel()
 		return nil, err
 	}
 	checker.stdinWriter = stdinWriter
 
 	lw := new(nulSeparatedAttributeWriter)
-	lw.attributes = make(chan attributeTriple, 5)
+	lw.attributes = make(chan attributeTriple, len(attributes))
 	lw.closed = make(chan struct{})
 	checker.stdOut = lw
 
@@ -124,10 +126,7 @@ func (c *BatchChecker) CheckPath(path string) (rs Attributes, err error) {
 	for i := 0; i < c.attributesNum; i++ {
 		select {
 		case <-time.After(5 * time.Second):
-			// There is a strange "hang" problem in gitdiff.GetDiff -> CheckPath
-			// So add a timeout here to mitigate the problem, and output more logs for debug purpose
-			// In real world, if CheckPath runs long than seconds, it blocks the end user's operation,
-			// and at the moment the CheckPath result is not so important, so we can just ignore it.
+			// there is no "hang" problem now. This code is just used to catch other potential problems.
 			return nil, reportTimeout()
 		case attr, ok := <-c.stdOut.ReadAttribute():
 			if !ok {

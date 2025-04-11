@@ -64,7 +64,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(repo, commitID)
+	checker, err := attribute.NewBatchChecker(repo, commitID, attribute.LinguistAttributes...)
 	if err != nil {
 		return nil, err
 	}
@@ -103,28 +103,23 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 
 		attrs, err := checker.CheckPath(f.Name())
 		if err == nil {
-			isVendored = attrs.HasVendored()
-			if isVendored.ValueOrDefault(false) {
+			if isVendored = attrs.GetVendored(); isVendored.ValueOrDefault(false) {
 				continue
 			}
 
-			isGenerated = attrs.HasGenerated()
-			if isGenerated.ValueOrDefault(false) {
+			if isGenerated = attrs.GetGenerated(); isGenerated.ValueOrDefault(false) {
 				continue
 			}
 
-			isDocumentation = attrs.HasDocumentation()
-			if isDocumentation.ValueOrDefault(false) {
+			if isDocumentation = attrs.GetDocumentation(); isDocumentation.ValueOrDefault(false) {
 				continue
 			}
 
-			isDetectable = attrs.HasDetectable()
-			if !isDetectable.ValueOrDefault(true) {
+			if isDetectable = attrs.GetDetectable(); !isDetectable.ValueOrDefault(true) {
 				continue
 			}
 
-			hasLanguage := attrs.Language()
-			if hasLanguage.Value() != "" {
+			if hasLanguage := attrs.GetLanguage(); hasLanguage.Value() != "" {
 				language := hasLanguage.Value()
 
 				// group languages, such as Pug -> HTML; SCSS -> CSS

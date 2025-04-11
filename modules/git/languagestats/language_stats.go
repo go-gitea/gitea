@@ -61,5 +61,5 @@ func GetFileLanguage(ctx context.Context, gitRepo *git.Repository, treeish, tree
 		return "", err
 	}
 
-	return attributesMap[treePath].Language().Value(), nil
+	return attributesMap[treePath].GetLanguage().Value(), nil
 }
