@@ -199,7 +199,10 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 }
 
 // CreateRepositoryDirectly creates a repository for the user/organization.
-func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
+// if needsUpdateToReady is true, it will update the repository status to ready when success
+func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
+	opts CreateRepoOptions, needsUpdateToReady bool,
+) (*repo_model.Repository, error) {
 	if !doer.CanCreateRepoIn(owner) {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
@@ -242,8 +245,6 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		DefaultWikiBranch:               setting.Repository.DefaultBranch,
 		ObjectFormatName:                opts.ObjectFormatName,
 	}
-
-	needsUpdateStatus := opts.Status != repo_model.RepositoryReady
 
 	// 1 - create the repository database operations first
 	err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -318,7 +319,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	}
 
 	// 7 - update repository status to be ready
-	if needsUpdateStatus {
+	if needsUpdateToReady {
 		repo.Status = repo_model.RepositoryReady
 		if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
