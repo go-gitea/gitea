@@ -17,12 +17,17 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch string, treeNames []string) (*api.FilesResponse, error) {
+func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, branch string, treeNames []string) []*api.ContentsResponse {
 	files := []*api.ContentsResponse{}
 	for _, file := range treeNames {
 		fileContents, _ := GetContents(ctx, repo, file, branch, false) // ok if fails, then will be nil
 		files = append(files, fileContents)
 	}
+	return files
+}
+
+func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch string, treeNames []string) (*api.FilesResponse, error) {
+	files := GetContentsListFromTrees(ctx, repo, branch, treeNames)
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(ctx, commit)
 	filesResponse := &api.FilesResponse{
