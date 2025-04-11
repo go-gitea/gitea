@@ -54,6 +54,7 @@ type CheckAttributeOpts struct {
 }
 
 // CheckAttributes return the attributes of the given filenames and attributes in the given treeish.
+// If treeish is empty, then it will use current working directory, otherwise it will use the provided treeish on the bare repo
 func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish string, opts CheckAttributeOpts) (map[string]Attributes, error) {
 	cmd, envs, cancel, err := checkAttrCommand(gitRepo, treeish, opts.Filenames, opts.Attributes)
 	if err != nil {

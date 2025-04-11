@@ -27,6 +27,7 @@ type BatchChecker struct {
 }
 
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
+// If treeish is empty, then it will use current working directory, otherwise it will use the provided treeish on the bare repo
 func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) (checker *BatchChecker, returnedErr error) {
 	ctx, cancel := context.WithCancel(repo.Ctx)
 	defer func() {
