@@ -10,9 +10,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/web"
 	shared "code.gitea.io/gitea/routers/web/shared/secrets"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -125,4 +127,12 @@ func SecretsDelete(ctx *context.Context) {
 		sCtx.RepoID,
 		sCtx.RedirectLink,
 	)
+}
+
+func AddSettingsSecretsRoutes(m *web.Router) {
+	m.Group("/secrets", func() {
+		m.Get("", Secrets)
+		m.Post("", web.Bind(forms.AddSecretForm{}), SecretsPost)
+		m.Post("/delete", SecretsDelete)
+	})
 }
