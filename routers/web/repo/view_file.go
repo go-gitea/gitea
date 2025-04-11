@@ -159,7 +159,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 	attrs := attrsMap[ctx.Repo.TreePath]
 	if attrs == nil {
-		// this case shouldn't happe, just in case.
+		// this case shouldn't happen, just in case.
 		setting.PanicInDevOrTesting("no attributes found for %s", ctx.Repo.TreePath)
 		attrs = attribute.NewAttributes()
 	}
