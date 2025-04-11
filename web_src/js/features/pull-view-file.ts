@@ -1,4 +1,4 @@
-import {diffTreeStore, diffTreeStoreSetViewed} from '../modules/diff-file.ts';
+import {diffTreeStoreSetViewed} from '../modules/diff-file.ts';
 import {setFileFolding} from './file-fold.ts';
 import {POST} from '../modules/fetch.ts';
 

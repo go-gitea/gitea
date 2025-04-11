@@ -59,8 +59,8 @@ function entryIcon(entry: DiffTreeEntry) {
       :class="getIconForDiffStatus(item.DiffStatus).classes"
     />
   </a>
-
 </template>
+
 <style scoped>
 a,
 a:hover {
