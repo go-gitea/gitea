@@ -75,6 +75,7 @@ func QoS() func(next http.Handler) http.Handler {
 			// Check if the request can begin processing.
 			err := c.Acquire(ctx, int(priority))
 			if err != nil {
+				log.Error("QoS error, dropping request of priority %s: %v", priority, err)
 				renderServiceUnavailable(w, req)
 				return
 			}
