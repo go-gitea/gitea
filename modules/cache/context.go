@@ -166,15 +166,15 @@ func RemoveContextData(ctx context.Context, tp, key any) {
 }
 
 // GetWithContextCache returns the cache value of the given key in the given context.
-func GetWithContextCache[T any](ctx context.Context, cacheGroupKey string, cacheTargetID any, f func() (T, error)) (T, error) {
-	v := GetContextData(ctx, cacheGroupKey, cacheTargetID)
+func GetWithContextCache[T, K any](ctx context.Context, groupKey string, targetKey K, f func(context.Context, K) (T, error)) (T, error) {
+	v := GetContextData(ctx, groupKey, targetKey)
 	if vv, ok := v.(T); ok {
 		return vv, nil
 	}
-	t, err := f()
+	t, err := f(ctx, targetKey)
 	if err != nil {
 		return t, err
 	}
-	SetContextData(ctx, cacheGroupKey, cacheTargetID, t)
+	SetContextData(ctx, groupKey, targetKey, t)
 	return t, nil
 }

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -266,11 +267,11 @@ func GetDivergingCommits(ctx context.Context, repoPath, baseBranch, targetBranch
 
 // CreateBundle create bundle content to the target path
 func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.Writer) error {
-	tmp, err := os.MkdirTemp(os.TempDir(), "gitea-bundle")
+	tmp, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-bundle")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tmp)
+	defer cleanup()
 
 	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
 	_, _, err = NewCommand("init", "--bare").RunStdString(ctx, &RunOpts{Dir: tmp, Env: env})

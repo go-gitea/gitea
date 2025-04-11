@@ -24,7 +24,13 @@
 				<div class="desc tw-ml-1 tw-mt-2 tw-hidden label-exclusive-warning">
 					{{svg "octicon-alert"}} {{ctx.Locale.Tr "repo.issues.label_exclusive_warning"}}
 				</div>
-				<br>
+				<div class="field label-exclusive-order-input-field tw-mt-2">
+					<label class="flex-text-block">
+						{{ctx.Locale.Tr "repo.issues.label_exclusive_order"}}
+						<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.label_exclusive_order_tooltip"}}">{{svg "octicon-info"}}</span>
+					</label>
+					<input class="label-exclusive-order-input" name="exclusive_order" type="number" maxlength="4">
+				</div>
 			</div>
 			<div class="field label-is-archived-input-field">
 				<div class="ui checkbox">

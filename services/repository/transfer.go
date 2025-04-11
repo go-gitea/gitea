@@ -61,7 +61,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 			return err
 		}
 
-		if !doer.IsAdmin && !repoTransfer.Recipient.CanCreateRepo() {
+		if !doer.CanCreateRepoIn(repoTransfer.Recipient) {
 			limit := util.Iif(repoTransfer.Recipient.MaxRepoCreation >= 0, repoTransfer.Recipient.MaxRepoCreation, setting.Repository.MaxCreationLimit)
 			return LimitReachedError{Limit: limit}
 		}
@@ -416,7 +416,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		return err
 	}
 
-	if !doer.IsAdmin && !newOwner.CanCreateRepo() {
+	if !doer.CanForkRepoIn(newOwner) {
 		limit := util.Iif(newOwner.MaxRepoCreation >= 0, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
 		return LimitReachedError{Limit: limit}
 	}
