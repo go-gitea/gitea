@@ -16,13 +16,15 @@ func Test_Attribute(t *testing.T) {
 	assert.Equal(t, "Java", Attribute("Java").ToString().Value())
 
 	attributes := Attributes{
-		LinguistGenerated:     "true",
-		LinguistDocumentation: "false",
-		LinguistDetectable:    "set",
-		LinguistLanguage:      "Python",
-		GitlabLanguage:        "Java",
-		"filter":              "unspecified",
-		"test":                "",
+		m: map[string]Attribute{
+			LinguistGenerated:     "true",
+			LinguistDocumentation: "false",
+			LinguistDetectable:    "set",
+			LinguistLanguage:      "Python",
+			GitlabLanguage:        "Java",
+			"filter":              "unspecified",
+			"test":                "",
+		},
 	}
 
 	assert.Empty(t, attributes.Get("test").ToString().Value())

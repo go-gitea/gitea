@@ -490,14 +490,14 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
 		attributesMap, err := attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
-			Attributes: []string{"filter"},
+			Attributes: []string{attribute.Filter},
 			Filenames:  []string{file.Options.treePath},
 		})
 		if err != nil {
 			return err
 		}
 
-		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath]["filter"] == "lfs" {
+		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath].Get(attribute.Filter).ToString().Value() == "lfs" {
 			// OK so we are supposed to LFS this data!
 			pointer, err := lfs.GeneratePointer(treeObjectContentReader)
 			if err != nil {

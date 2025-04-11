@@ -147,8 +147,22 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
-	var attrs attribute.Attributes
-	attributes := []string{attribute.LinguistGenerated, attribute.LinguistVendored}
+	// read all needed attributes which will be used later
+	// there should be no performance different between reading 2 or 4 here
+	attrsMap, err := attribute.CheckAttributes(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.CheckAttributeOpts{
+		Filenames:  []string{ctx.Repo.TreePath},
+		Attributes: []string{attribute.LinguistGenerated, attribute.LinguistVendored, attribute.LinguistLanguage, attribute.GitlabLanguage},
+	})
+	if err != nil {
+		ctx.ServerError("attribute.CheckAttributes", err)
+		return
+	}
+	attrs := attrsMap[ctx.Repo.TreePath]
+	if attrs == nil {
+		// this case shouldn't happe, just in case.
+		setting.PanicInDevOrTesting("no attributes found for %s", ctx.Repo.TreePath)
+		attrs = attribute.NewAttributes()
+	}
 
 	switch {
 	case isRepresentableAsText:
@@ -212,19 +226,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
 			}
 
-			var language string
-			attributes = append(attributes, attribute.LinguistLanguage, attribute.GitlabLanguage)
-			attrsMap, err := attribute.CheckAttributes(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.CheckAttributeOpts{
-				Filenames:  []string{ctx.Repo.TreePath},
-				Attributes: attributes,
-			})
-			if err != nil {
-				log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
-			} else {
-				attrs = attrsMap[ctx.Repo.TreePath] // then it will be reused out of the switch block
-				language = attrs.GetLanguage().Value()
-			}
-
+			language := attrs.GetLanguage().Value()
 			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
 			ctx.Data["LexerName"] = lexerName
 			if err != nil {
@@ -292,18 +294,6 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 				return
 			}
 		}
-	}
-
-	if attrs == nil {
-		attrsMap, err := attribute.CheckAttributes(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.CheckAttributeOpts{
-			Filenames:  []string{ctx.Repo.TreePath},
-			Attributes: attributes,
-		})
-		if err != nil {
-			ctx.ServerError("attribute.CheckAttributes", err)
-			return
-		}
-		attrs = attrsMap[ctx.Repo.TreePath]
 	}
 
 	ctx.Data["IsVendored"], ctx.Data["IsGenerated"] = attrs.GetVendored().Value(), attrs.GetGenerated().Value()

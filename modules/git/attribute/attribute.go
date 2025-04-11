@@ -19,6 +19,7 @@ const (
 	LinguistLanguage      = "linguist-language"
 	GitlabLanguage        = "gitlab-language"
 	Lockable              = "lockable"
+	Filter                = "filter"
 )
 
 var LinguistAttributes = []string{
@@ -41,7 +42,7 @@ func (a Attribute) ToString() optional.Option[string] {
 	return optional.None[string]()
 }
 
-// true if "set"/"true", false if "unset"/"false", none otherwise
+// ToBool converts the attribute value to optional boolean: true if "set"/"true", false if "unset"/"false", none otherwise
 func (a Attribute) ToBool() optional.Option[bool] {
 	switch a {
 	case "set", "true":
@@ -52,36 +53,42 @@ func (a Attribute) ToBool() optional.Option[bool] {
 	return optional.None[bool]()
 }
 
-type Attributes map[string]Attribute
+type Attributes struct {
+	m map[string]Attribute
+}
 
-func (attrs Attributes) Get(name string) Attribute {
-	if value, has := attrs[name]; has {
+func NewAttributes() *Attributes {
+	return &Attributes{m: make(map[string]Attribute)}
+}
+
+func (attrs *Attributes) Get(name string) Attribute {
+	if value, has := attrs.m[name]; has {
 		return value
 	}
 	return ""
 }
 
-func (attrs Attributes) GetVendored() optional.Option[bool] {
+func (attrs *Attributes) GetVendored() optional.Option[bool] {
 	return attrs.Get(LinguistVendored).ToBool()
 }
 
-func (attrs Attributes) GetGenerated() optional.Option[bool] {
+func (attrs *Attributes) GetGenerated() optional.Option[bool] {
 	return attrs.Get(LinguistGenerated).ToBool()
 }
 
-func (attrs Attributes) GetDocumentation() optional.Option[bool] {
+func (attrs *Attributes) GetDocumentation() optional.Option[bool] {
 	return attrs.Get(LinguistDocumentation).ToBool()
 }
 
-func (attrs Attributes) GetDetectable() optional.Option[bool] {
+func (attrs *Attributes) GetDetectable() optional.Option[bool] {
 	return attrs.Get(LinguistDetectable).ToBool()
 }
 
-func (attrs Attributes) GetLinguistLanguage() optional.Option[string] {
+func (attrs *Attributes) GetLinguistLanguage() optional.Option[string] {
 	return attrs.Get(LinguistLanguage).ToString()
 }
 
-func (attrs Attributes) GetGitlabLanguage() optional.Option[string] {
+func (attrs *Attributes) GetGitlabLanguage() optional.Option[string] {
 	attrStr := attrs.Get(GitlabLanguage).ToString()
 	if attrStr.Has() {
 		raw := attrStr.Value()
@@ -95,7 +102,7 @@ func (attrs Attributes) GetGitlabLanguage() optional.Option[string] {
 	return attrStr
 }
 
-func (attrs Attributes) GetLanguage() optional.Option[string] {
+func (attrs *Attributes) GetLanguage() optional.Option[string] {
 	// prefer linguist-language over gitlab-language
 	// if linguist-language is not set, use gitlab-language
 	// if both are not set, return none

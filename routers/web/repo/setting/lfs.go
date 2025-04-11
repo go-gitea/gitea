@@ -152,7 +152,7 @@ func LFSLocks(ctx *context.Context) {
 			log.Error("Unable to check attributes in %s: %s (%v)", tmpBasePath, lock.Path, err)
 			continue
 		}
-		lockables[i] = attrs["lockable"].ToBool().Value()
+		lockables[i] = attrs.Get(attribute.Lockable).ToBool().Value()
 	}
 	ctx.Data["Lockables"] = lockables
 

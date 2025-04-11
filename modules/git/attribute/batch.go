@@ -94,7 +94,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 }
 
 // CheckPath check attr for given path
-func (c *BatchChecker) CheckPath(path string) (rs Attributes, err error) {
+func (c *BatchChecker) CheckPath(path string) (rs *Attributes, err error) {
 	defer func() {
 		if err != nil && err != c.ctx.Err() {
 			log.Error("Unexpected error when checking path %s in %s, error: %v", path, filepath.Base(c.repo.Path), err)
@@ -128,7 +128,7 @@ func (c *BatchChecker) CheckPath(path string) (rs Attributes, err error) {
 		return fmt.Errorf("CheckPath timeout: %s", debugMsg)
 	}
 
-	rs = make(map[string]Attribute)
+	rs = NewAttributes()
 	for i := 0; i < c.attributesNum; i++ {
 		select {
 		case <-time.After(5 * time.Second):
@@ -138,7 +138,7 @@ func (c *BatchChecker) CheckPath(path string) (rs Attributes, err error) {
 			if !ok {
 				return nil, c.ctx.Err()
 			}
-			rs[attr.Attribute] = Attribute(attr.Value)
+			rs.m[attr.Attribute] = Attribute(attr.Value)
 		case <-c.ctx.Done():
 			return nil, c.ctx.Err()
 		}

@@ -106,10 +106,10 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 	}
 
-	var attributesMap map[string]attribute.Attributes
+	var attributesMap map[string]*attribute.Attributes
 	if setting.LFS.StartServer {
 		attributesMap, err = attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
-			Attributes: []string{"filter"},
+			Attributes: []string{attribute.Filter},
 			Filenames:  names,
 		})
 		if err != nil {
@@ -176,7 +176,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	return repo_model.DeleteUploads(ctx, uploads...)
 }
 
-func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, attributesMap map[string]attribute.Attributes, t *TemporaryUploadRepository, treePath string) error {
+func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, attributesMap map[string]*attribute.Attributes, t *TemporaryUploadRepository, treePath string) error {
 	file, err := os.Open(info.upload.LocalPath())
 	if err != nil {
 		return err
@@ -184,7 +184,7 @@ func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, at
 	defer file.Close()
 
 	var objectHash string
-	if setting.LFS.StartServer && attributesMap[info.upload.Name] != nil && attributesMap[info.upload.Name]["filter"] == "lfs" {
+	if setting.LFS.StartServer && attributesMap[info.upload.Name] != nil && attributesMap[info.upload.Name].Get(attribute.Filter).ToString().Value() == "lfs" {
 		// Handle LFS
 		// FIXME: Inefficient! this should probably happen in models.Upload
 		pointer, err := lfs.GeneratePointer(file)

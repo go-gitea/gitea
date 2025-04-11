@@ -55,7 +55,7 @@ type CheckAttributeOpts struct {
 
 // CheckAttributes return the attributes of the given filenames and attributes in the given treeish.
 // If treeish is empty, then it will use current working directory, otherwise it will use the provided treeish on the bare repo
-func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish string, opts CheckAttributeOpts) (map[string]Attributes, error) {
+func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish string, opts CheckAttributeOpts) (map[string]*Attributes, error) {
 	cmd, envs, cancel, err := checkAttrCommand(gitRepo, treeish, opts.Filenames, opts.Attributes)
 	if err != nil {
 		return nil, err
@@ -79,17 +79,17 @@ func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish strin
 		return nil, errors.New("wrong number of fields in return from check-attr")
 	}
 
-	attributesMap := make(map[string]Attributes)
+	attributesMap := make(map[string]*Attributes)
 	for i := 0; i < (len(fields) / 3); i++ {
 		filename := string(fields[3*i])
 		attribute := string(fields[3*i+1])
 		info := string(fields[3*i+2])
-		attribute2info := attributesMap[filename]
-		if attribute2info == nil {
-			attribute2info = make(Attributes)
+		attribute2info, ok := attributesMap[filename]
+		if !ok {
+			attribute2info = NewAttributes()
+			attributesMap[filename] = attribute2info
 		}
-		attribute2info[attribute] = Attribute(info)
-		attributesMap[filename] = attribute2info
+		attribute2info.m[attribute] = Attribute(info)
 	}
 
 	return attributesMap, nil
