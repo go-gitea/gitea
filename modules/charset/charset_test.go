@@ -252,7 +252,7 @@ func TestToUTF8WithFallbackReader(t *testing.T) {
 		input += "// Выключаем"
 		rd := ToUTF8WithFallbackReader(bytes.NewReader([]byte(input)), ConvertOpts{})
 		r, _ := io.ReadAll(rd)
-		assert.EqualValuesf(t, input, string(r), "testing string len=%d", testLen)
+		assert.Equalf(t, input, string(r), "testing string len=%d", testLen)
 	}
 
 	truncatedOneByteExtension := failFastBytes

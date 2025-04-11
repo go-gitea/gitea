@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -117,7 +118,7 @@ func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ct
 			attachmentUUID, ok = strings.CutPrefix(parsedSrc.RepoSubPath, "/attachments/")
 		}
 		if !ok {
-			return "", fmt.Errorf("not an attachment")
+			return "", errors.New("not an attachment")
 		}
 	}
 	attachment, err := repo_model.GetAttachmentByUUID(ctx, attachmentUUID)
@@ -126,10 +127,10 @@ func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ct
 	}
 
 	if attachment.RepoID != b64embedder.repo.ID {
-		return "", fmt.Errorf("attachment does not belong to the repository")
+		return "", errors.New("attachment does not belong to the repository")
 	}
 	if attachment.Size+b64embedder.estimateSize > b64embedder.maxSize {
-		return "", fmt.Errorf("total embedded images exceed max limit")
+		return "", errors.New("total embedded images exceed max limit")
 	}
 
 	fr, err := storage.Attachments.Open(attachment.RelativePath())
@@ -146,7 +147,7 @@ func (b64embedder *mailAttachmentBase64Embedder) AttachmentSrcToBase64DataURI(ct
 
 	mimeType := typesniffer.DetectContentType(content)
 	if !mimeType.IsImage() {
-		return "", fmt.Errorf("not an image")
+		return "", errors.New("not an image")
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(content)

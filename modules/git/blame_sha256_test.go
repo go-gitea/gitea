@@ -7,10 +7,13 @@ import (
 	"context"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReadingBlameOutputSha256(t *testing.T) {
+	setting.AppDataPath = t.TempDir()
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 

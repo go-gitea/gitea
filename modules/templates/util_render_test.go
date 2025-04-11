@@ -51,12 +51,12 @@ var testMetas = map[string]string{
 	"user":                         "user13",
 	"repo":                         "repo11",
 	"repoPath":                     "../../tests/gitea-repositories-meta/user13/repo11.git/",
-	"markdownLineBreakStyle":       "comment",
+	"markdownNewLineHardBreak":     "true",
 	"markupAllowShortIssuePattern": "true",
 }
 
 func TestMain(m *testing.M) {
-	unittest.InitSettings()
+	unittest.InitSettingsForTesting()
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
@@ -123,16 +123,16 @@ func TestRenderCommitBody(t *testing.T) {
 ![remote image](<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>)
 [[local image|image.jpg]]
 [[remote link|<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>]]
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code class="nohighlight">88fc37a3c0...12fc37a3c0 (hash)</code></a>
+<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code class="nohighlight">88fc37a3c0</code></a>
+<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code>88fc37a3c0</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
 <a href="mailto:mail@domain.com">mail@domain.com</a>
 <a href="/mention-user">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
   space`
-	assert.EqualValues(t, expected, string(newTestRenderUtils(t).RenderCommitBody(testInput(), testMetas)))
+	assert.Equal(t, expected, string(newTestRenderUtils(t).RenderCommitBody(testInput(), testMetas)))
 }
 
 func TestRenderCommitMessage(t *testing.T) {
@@ -169,7 +169,7 @@ mail@domain.com
   space<SPACE><SPACE>
 `
 	expected = strings.ReplaceAll(expected, "<SPACE>", " ")
-	assert.EqualValues(t, expected, string(newTestRenderUtils(t).RenderIssueTitle(testInput(), testMetas)))
+	assert.Equal(t, expected, string(newTestRenderUtils(t).RenderIssueTitle(testInput(), testMetas)))
 }
 
 func TestRenderMarkdownToHtml(t *testing.T) {
@@ -214,5 +214,5 @@ func TestRenderLabels(t *testing.T) {
 func TestUserMention(t *testing.T) {
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user @mention-user")
-	assert.EqualValues(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
+	assert.Equal(t, `<p>@no-such-user <a href="/mention-user" rel="nofollow">@mention-user</a> <a href="/mention-user" rel="nofollow">@mention-user</a></p>`, strings.TrimSpace(string(rendered)))
 }

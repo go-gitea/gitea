@@ -5,6 +5,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -12,7 +13,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -72,10 +72,10 @@ func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoN
 			if ok, err := organization.CanCreateOrgRepo(ctx, owner.ID, authUser.ID); err != nil {
 				return nil, err
 			} else if !ok {
-				return nil, fmt.Errorf("cannot push-create repository for org")
+				return nil, errors.New("cannot push-create repository for org")
 			}
 		} else if authUser.ID != owner.ID {
-			return nil, fmt.Errorf("cannot push-create repository for another user")
+			return nil, errors.New("cannot push-create repository for another user")
 		}
 	}
 
@@ -94,15 +94,13 @@ func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoN
 func Init(ctx context.Context) error {
 	licenseUpdaterQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "repo_license_updater", repoLicenseUpdater)
 	if licenseUpdaterQueue == nil {
-		return fmt.Errorf("unable to create repo_license_updater queue")
+		return errors.New("unable to create repo_license_updater queue")
 	}
 	go graceful.GetManager().RunWithCancel(licenseUpdaterQueue)
 
 	if err := repo_module.LoadRepoConfig(); err != nil {
 		return err
 	}
-	system_model.RemoveAllWithNotice(ctx, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
-	system_model.RemoveAllWithNotice(ctx, "Clean up temporary repositories", repo_module.LocalCopyPath())
 	if err := initPushQueue(); err != nil {
 		return err
 	}

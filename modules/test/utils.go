@@ -4,7 +4,6 @@
 package test
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -57,7 +56,7 @@ func SetupGiteaRoot() string {
 	giteaRoot = filepath.Dir(filepath.Dir(filepath.Dir(filename)))
 	fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
 	if exist, _ := util.IsDir(fixturesDir); !exist {
-		panic(fmt.Sprintf("fixtures directory not found: %s", fixturesDir))
+		panic("fixtures directory not found: " + fixturesDir)
 	}
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)
 	return giteaRoot

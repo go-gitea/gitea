@@ -128,18 +128,18 @@ func TestRepoSettingPushMirrorUpdate(t *testing.T) {
 	pushMirrors, cnt, err := repo_model.GetPushMirrorsByRepoID(db.DefaultContext, repo2.ID, db.ListOptions{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
-	assert.EqualValues(t, 24*time.Hour, pushMirrors[0].Interval)
+	assert.Equal(t, 24*time.Hour, pushMirrors[0].Interval)
 	repo2PushMirrorID := pushMirrors[0].ID
 
 	// update repo2 push mirror
 	assert.True(t, doUpdatePushMirror(t, session, "user2", "repo2", repo2PushMirrorID, "10m0s"))
 	pushMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-	assert.EqualValues(t, 10*time.Minute, pushMirror.Interval)
+	assert.Equal(t, 10*time.Minute, pushMirror.Interval)
 
 	// avoid updating repo2 push mirror from repo1
 	assert.False(t, doUpdatePushMirror(t, session, "user2", "repo1", repo2PushMirrorID, "20m0s"))
 	pushMirror = unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
-	assert.EqualValues(t, 10*time.Minute, pushMirror.Interval) // not changed
+	assert.Equal(t, 10*time.Minute, pushMirror.Interval) // not changed
 
 	// avoid deleting repo2 push mirror from repo1
 	assert.False(t, doRemovePushMirror(t, session, "user2", "repo1", repo2PushMirrorID))

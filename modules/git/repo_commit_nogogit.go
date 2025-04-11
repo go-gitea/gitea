@@ -81,10 +81,10 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 
 	_, _ = wr.Write([]byte(id.String() + "\n"))
 
-	return repo.getCommitFromBatchReader(rd, id)
+	return repo.getCommitFromBatchReader(wr, rd, id)
 }
 
-func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) (*Commit, error) {
+func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.Reader, id ObjectID) (*Commit, error) {
 	_, typ, size, err := ReadBatchLine(rd)
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
@@ -112,7 +112,11 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 			return nil, err
 		}
 
-		commit, err := tag.Commit(repo)
+		if _, err := wr.Write([]byte(tag.Object.String() + "\n")); err != nil {
+			return nil, err
+		}
+
+		commit, err := repo.getCommitFromBatchReader(wr, rd, tag.Object)
 		if err != nil {
 			return nil, err
 		}

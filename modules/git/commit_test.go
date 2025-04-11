@@ -93,7 +93,7 @@ empty commit`
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
-	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
+	assert.Equal(t, `-----BEGIN PGP SIGNATURE-----
 
 iQIzBAABCAAdFiEEWPb2jX6FS2mqyJRQLmK0HJOGlEMFAl00zmEACgkQLmK0HJOG
 lEMDFBAAhQKKqLD1VICygJMEB8t1gBmNLgvziOLfpX4KPWdPtBk3v/QJ7OrfMrVK
@@ -110,19 +110,19 @@ mfeFhT57UbE4qukTDIQ0Y0WM40UYRTakRaDY7ubhXgLgx09Cnp9XTVMsHgT6j9/i
 =FRsO
 -----END PGP SIGNATURE-----
 `, commitFromReader.Signature.Signature)
-	assert.EqualValues(t, `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
+	assert.Equal(t, `tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
 parent 37991dec2c8e592043f47155ce4808d4580f9123
 author silverwind <me@silverwind.io> 1563741793 +0200
 committer silverwind <me@silverwind.io> 1563741793 +0200
 
 empty commit`, commitFromReader.Signature.Payload)
-	assert.EqualValues(t, "silverwind <me@silverwind.io>", commitFromReader.Author.String())
+	assert.Equal(t, "silverwind <me@silverwind.io>", commitFromReader.Author.String())
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
-	assert.EqualValues(t, commitFromReader, commitFromReader2)
+	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
 func TestCommitWithEncodingFromReader(t *testing.T) {
@@ -159,7 +159,7 @@ ISO-8859-1`
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
-	assert.EqualValues(t, `-----BEGIN PGP SIGNATURE-----
+	assert.Equal(t, `-----BEGIN PGP SIGNATURE-----
 
 iQGzBAABCgAdFiEE9HRrbqvYxPT8PXbefPSEkrowAa8FAmYGg7IACgkQfPSEkrow
 Aa9olwv+P0HhtCM6CRvlUmPaqswRsDPNR4i66xyXGiSxdI9V5oJL7HLiQIM7KrFR
@@ -174,20 +174,20 @@ jw4YcO5u
 =r3UU
 -----END PGP SIGNATURE-----
 `, commitFromReader.Signature.Signature)
-	assert.EqualValues(t, `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
+	assert.Equal(t, `tree ca3fad42080dd1a6d291b75acdfc46e5b9b307e5
 parent 47b24e7ab977ed31c5a39989d570847d6d0052af
 author KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 committer KN4CK3R <admin@oldschoolhack.me> 1711702962 +0100
 encoding ISO-8859-1
 
 ISO-8859-1`, commitFromReader.Signature.Payload)
-	assert.EqualValues(t, "KN4CK3R <admin@oldschoolhack.me>", commitFromReader.Author.String())
+	assert.Equal(t, "KN4CK3R <admin@oldschoolhack.me>", commitFromReader.Author.String())
 
 	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
-	assert.EqualValues(t, commitFromReader, commitFromReader2)
+	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
 func TestHasPreviousCommit(t *testing.T) {
@@ -351,10 +351,10 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	defer repo.Close()
 	commit, err := repo.GetBranchCommit("branch1")
 	assert.NoError(t, err)
-	assert.EqualValues(t, "2839944139e0de9737a044f78b0e4b40d989a9e3", commit.ID.String())
+	assert.Equal(t, "2839944139e0de9737a044f78b0e4b40d989a9e3", commit.ID.String())
 
 	startCommitID, err := repo.GetCommitBranchStart(os.Environ(), "branch1", commit.ID.String())
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
-	assert.EqualValues(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
+	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
 }
