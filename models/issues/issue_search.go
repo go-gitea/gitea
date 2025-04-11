@@ -21,6 +21,8 @@ import (
 	"xorm.io/xorm"
 )
 
+const ScopeSortPrefix = "scope-"
+
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint
 	Paginator          *db.ListOptions
@@ -70,6 +72,17 @@ func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOption
 // applySorts sort an issues-related session based on the provided
 // sortType string
 func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
+	// Since this sortType is dynamically created, it has to be treated specially.
+	if strings.HasPrefix(sortType, ScopeSortPrefix) {
+		scope := strings.TrimPrefix(sortType, ScopeSortPrefix)
+		sess.Join("LEFT", "issue_label", "issue.id = issue_label.issue_id")
+		// "exclusive_order=0" means "no order is set", so exclude it from the JOIN criteria and then "LEFT JOIN" result is also null
+		sess.Join("LEFT", "label", "label.id = issue_label.label_id AND label.exclusive_order <> 0 AND label.name LIKE ?", scope+"/%")
+		// Use COALESCE to make sure we sort NULL last regardless of backend DB (2147483647 == max int)
+		sess.OrderBy("COALESCE(label.exclusive_order, 2147483647) ASC").Desc("issue.id")
+		return
+	}
+
 	switch sortType {
 	case "oldest":
 		sess.Asc("issue.created_unix").Asc("issue.id")
