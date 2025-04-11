@@ -436,7 +436,7 @@ func TestAPIRunnerAdminApi(t *testing.T) {
 		assert.Equal(t, expectedRunner.Name, runner.Name)
 		assert.Equal(t, expectedRunner.ID, runner.ID)
 		assert.Equal(t, expectedRunner.Ephemeral, runner.Ephemeral)
-		assert.EqualValues(t, expectedRunner.Labels, runner.Labels)
+		assert.ElementsMatch(t, expectedRunner.Labels, runner.Labels)
 
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/admin/actions/runners/%d", expectedRunner.ID)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
