@@ -291,5 +291,5 @@ func loadQosSetting(rootCfg ConfigProvider) {
 	Service.QoS.Enabled = sec.Key("ENABLED").MustBool(false)
 	Service.QoS.MaxInFlightRequests = sec.Key("MAX_INFLIGHT").MustInt(4 * runtime.NumCPU())
 	Service.QoS.MaxWaitingRequests = sec.Key("MAX_WAITING").MustInt(100)
-	Service.QoS.TargetWaitTime = sec.Key("TARGET_WAIT_TIME").MustDuration(50 * time.Millisecond)
+	Service.QoS.TargetWaitTime = sec.Key("TARGET_WAIT_TIME").MustDuration(250 * time.Millisecond)
 }
