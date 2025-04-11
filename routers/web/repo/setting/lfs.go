@@ -135,13 +135,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	defer gitRepo.Close()
 
-	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
-		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("unable to read the default branch to the index: %s (%w)", ctx.Repo.Repository.DefaultBranch, err))
-		return
-	}
-
-	checker, err := attribute.NewBatchChecker(gitRepo, "", "lockable")
+	checker, err := attribute.NewBatchChecker(gitRepo, ctx.Repo.Repository.DefaultBranch, "lockable")
 	if err != nil {
 		log.Error("Unable to check attributes in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
