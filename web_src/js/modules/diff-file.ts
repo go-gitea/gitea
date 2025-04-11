@@ -13,7 +13,6 @@ export type DiffTreeEntry = {
   EntryMode: string,
   IsViewed: boolean,
   Children: DiffTreeEntry[],
-  ViewedChildrenCount: number,
 
   ParentEntry?: DiffTreeEntry,
 }

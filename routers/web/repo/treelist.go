@@ -60,14 +60,13 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 
 // WebDiffFileItem is used by frontend, check the field names in frontend before changing
 type WebDiffFileItem struct {
-	FullName            string
-	DisplayName         string
-	NameHash            string
-	DiffStatus          string
-	EntryMode           string
-	IsViewed            bool
-	Children            []*WebDiffFileItem
-	ViewedChildrenCount int
+	FullName    string
+	DisplayName string
+	NameHash    string
+	DiffStatus  string
+	EntryMode   string
+	IsViewed    bool
+	Children    []*WebDiffFileItem
 }
 
 // WebDiffFileTree is used by frontend, check the field names in frontend before changing
@@ -77,24 +76,9 @@ type WebDiffFileTree struct {
 
 // transformDiffTreeForWeb transforms a gitdiff.DiffTree into a WebDiffFileTree for Web UI rendering
 // it also takes a map of file names to their viewed state, which is used to mark files as viewed
-// TODO: add some tests
 func transformDiffTreeForWeb(diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) (dft WebDiffFileTree) {
 	dirNodes := map[string]*WebDiffFileItem{"": &dft.TreeRoot}
-	for _, file := range diffTree.Files {
-		item := &WebDiffFileItem{FullName: file.HeadPath, DiffStatus: file.Status}
-		// FIXME: filesViewedState is always nil?
-		item.IsViewed = filesViewedState[item.FullName] == pull_model.Viewed
-		item.NameHash = git.HashFilePathForWebUI(item.FullName)
-
-		switch file.HeadMode {
-		case git.EntryModeTree:
-			item.EntryMode = "tree"
-		case git.EntryModeCommit:
-			item.EntryMode = "commit" // submodule
-		default:
-			// default to empty, and will be treated as "blob" file because there is no "symlink" support yet
-		}
-
+	addItem := func(item *WebDiffFileItem) {
 		var parentPath string
 		pos := strings.LastIndexByte(item.FullName, '/')
 		if pos == -1 {
@@ -121,8 +105,37 @@ func transformDiffTreeForWeb(diffTree *gitdiff.DiffTree, filesViewedState map[st
 		parentNode.Children = append(parentNode.Children, item)
 	}
 
-	// TODO: merge into one level if there is only one sub directory
+	for _, file := range diffTree.Files {
+		item := &WebDiffFileItem{FullName: file.HeadPath, DiffStatus: file.Status}
+		// FIXME: filesViewedState is always nil?
+		item.IsViewed = filesViewedState[item.FullName] == pull_model.Viewed
+		item.NameHash = git.HashFilePathForWebUI(item.FullName)
 
+		switch file.HeadMode {
+		case git.EntryModeTree:
+			item.EntryMode = "tree"
+		case git.EntryModeCommit:
+			item.EntryMode = "commit" // submodule
+		default:
+			// default to empty, and will be treated as "blob" file because there is no "symlink" support yet
+		}
+		addItem(item)
+	}
+
+	var mergeSingleDir func(node *WebDiffFileItem)
+	mergeSingleDir = func(node *WebDiffFileItem) {
+		if len(node.Children) == 1 {
+			if child := node.Children[0]; child.EntryMode == "tree" {
+				node.FullName = child.FullName
+				node.DisplayName = node.DisplayName + "/" + child.DisplayName
+				node.Children = child.Children
+				mergeSingleDir(node)
+			}
+		}
+	}
+	for _, node := range dft.TreeRoot.Children {
+		mergeSingleDir(node)
+	}
 	return dft
 }
 
