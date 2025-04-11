@@ -135,7 +135,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	defer gitRepo.Close()
 
-	checker, err := attribute.NewBatchChecker(gitRepo, ctx.Repo.Repository.DefaultBranch, "lockable")
+	checker, err := attribute.NewBatchChecker(gitRepo, ctx.Repo.Repository.DefaultBranch, []string{attribute.Lockable})
 	if err != nil {
 		log.Error("Unable to check attributes in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)

@@ -122,7 +122,7 @@ func Test_BatchChecker(t *testing.T) {
 
 	t.Run("Create index file to run git check-attr", func(t *testing.T) {
 		defer test.MockVariableValue(&git.DefaultFeatures().SupportCheckAttrOnBare, false)()
-		checker, err := NewBatchChecker(gitRepo, commitID, LinguistAttributes...)
+		checker, err := NewBatchChecker(gitRepo, commitID, LinguistAttributes)
 		assert.NoError(t, err)
 		defer checker.Close()
 		attributes, err := checker.CheckPath("i-am-a-python.p")
@@ -143,7 +143,7 @@ func Test_BatchChecker(t *testing.T) {
 		assert.NoError(t, err)
 		defer tempRepo.Close()
 
-		checker, err := NewBatchChecker(tempRepo, "", LinguistAttributes...)
+		checker, err := NewBatchChecker(tempRepo, "", LinguistAttributes)
 		assert.NoError(t, err)
 		defer checker.Close()
 		attributes, err := checker.CheckPath("i-am-a-python.p")
@@ -157,7 +157,7 @@ func Test_BatchChecker(t *testing.T) {
 	}
 
 	t.Run("Run git check-attr in bare repository", func(t *testing.T) {
-		checker, err := NewBatchChecker(gitRepo, commitID, LinguistAttributes...)
+		checker, err := NewBatchChecker(gitRepo, commitID, LinguistAttributes)
 		assert.NoError(t, err)
 		defer checker.Close()
 

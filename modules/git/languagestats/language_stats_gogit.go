@@ -42,7 +42,7 @@ func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(repo, commitID)
+	checker, err := attribute.NewBatchChecker(repo, commitID, attribute.LinguistAttributes)
 	if err != nil {
 		return nil, err
 	}
@@ -69,27 +69,27 @@ func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]
 
 		attrs, err := checker.CheckPath(f.Name)
 		if err == nil {
-			isVendored = attrs.HasVendored()
+			isVendored = attrs.GetVendored()
 			if isVendored.ValueOrDefault(false) {
 				return nil
 			}
 
-			isGenerated = attrs.HasGenerated()
+			isGenerated = attrs.GetGenerated()
 			if isGenerated.ValueOrDefault(false) {
 				return nil
 			}
 
-			isDocumentation = attrs.HasDocumentation()
+			isDocumentation = attrs.GetDocumentation()
 			if isDocumentation.ValueOrDefault(false) {
 				return nil
 			}
 
-			isDetectable = attrs.HasDetectable()
+			isDetectable = attrs.GetDetectable()
 			if !isDetectable.ValueOrDefault(true) {
 				return nil
 			}
 
-			hasLanguage := attrs.Language()
+			hasLanguage := attrs.GetLanguage()
 			if hasLanguage.Value() != "" {
 				language := hasLanguage.Value()
 
