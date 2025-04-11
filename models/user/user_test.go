@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -615,4 +616,38 @@ func TestGetInactiveUsers(t *testing.T) {
 	users, err = user_model.GetInactiveUsers(db.DefaultContext, time.Duration(interval*int64(time.Second)))
 	assert.NoError(t, err)
 	assert.Empty(t, users)
+}
+
+func TestCanCreateRepo(t *testing.T) {
+	defer test.MockVariableValue(&setting.Repository.MaxCreationLimit)()
+	const noLimit = -1
+	doerNormal := &user_model.User{}
+	doerAdmin := &user_model.User{IsAdmin: true}
+	t.Run("NoGlobalLimit", func(t *testing.T) {
+		setting.Repository.MaxCreationLimit = noLimit
+
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
+
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
+	})
+
+	t.Run("GlobalLimit50", func(t *testing.T) {
+		setting.Repository.MaxCreationLimit = 50
+
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: noLimit})) // limited by global limit
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: 100}))
+
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: noLimit}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: 100}))
+	})
 }
