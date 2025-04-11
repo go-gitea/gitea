@@ -1526,7 +1526,7 @@ func Routes() *web.Router {
 							m.Combo("").
 								Put(bind(api.LockIssueOption{}), repo.LockIssue).
 								Delete(repo.UnlockIssue)
-						}, reqToken())
+						}, reqToken(), reqAdmin())
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
