@@ -32,6 +32,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/codecommit v1.28.1
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.4.2
+	github.com/bohde/codel v0.2.0
 	github.com/buildkite/terminal-to-html/v3 v3.16.8
 	github.com/caddyserver/certmagic v0.22.0
 	github.com/charmbracelet/git-lfs-transfer v0.2.0

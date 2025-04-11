@@ -179,6 +179,9 @@ github.com/blevesearch/zapx/v16 v16.1.5 h1:b0sMcarqNFxuXvjoXsF8WtwVahnxyhEvBSRJi
 github.com/blevesearch/zapx/v16 v16.1.5/go.mod h1:J4mSF39w1QELc11EWRSBFkPeZuO7r/NPKkHzDCoiaI8=
 github.com/bmatcuk/doublestar/v4 v4.8.1 h1:54Bopc5c2cAvhLRAzqOGCYHYyhcDHsFF4wWIR5wKP38=
 github.com/bmatcuk/doublestar/v4 v4.8.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
+github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b/go.mod h1:ac9efd0D1fsDb3EJvhqgXRbFx7bs2wqZ10HQPeU8U/Q=
+github.com/bohde/codel v0.2.0 h1:fzF7ibgKmCfQbOzQCblmQcwzDRmV7WO7VMLm/hDvD3E=
+github.com/bohde/codel v0.2.0/go.mod h1:Idb1IRvTdwkRjIjguLIo+FXhIBhcpGl94o7xra6ggWk=
 github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/boombuler/barcode v1.0.2 h1:79yrbttoZrLGkL/oOI8hBrUKucwOL0oOjUgEguGMcJ4=
 github.com/boombuler/barcode v1.0.2/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
@@ -881,6 +884,7 @@ golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.0.0-20201207232520-09787c993a3a/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.1.0/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.3.0/go.mod h1:FU7BRWz2tNW+3quACPkgCx/L+uEAv1htQ0V83Z9Rj+Y=
@@ -1025,6 +1029,8 @@ modernc.org/token v1.0.1 h1:A3qvTqOwexpfZZeyI0FeGPDlSWX5pjZu9hF4lU+EKWg=
 modernc.org/token v1.0.1/go.mod h1:UGzOrNV1mAFSEB63lOFHIpNRUVMvYTc6yu1SMY/XTDM=
 mvdan.cc/xurls/v2 v2.6.0 h1:3NTZpeTxYVWNSokW3MKeyVkz/j7uYXYiMtXRUfmjbgI=
 mvdan.cc/xurls/v2 v2.6.0/go.mod h1:bCvEZ1XvdA6wDnxY7jPPjEmigDtvtvPXAD/Exa9IMSk=
+pgregory.net/rapid v0.4.2 h1:lsi9jhvZTYvzVpeG93WWgimPRmiJQfGFRNTEZh1dtY0=
+pgregory.net/rapid v0.4.2/go.mod h1:UYpPVyjFHzYBGHIxLFoupi8vwk6rXNzRY9OMvVxFIOU=
 strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251 h1:mUcz5b3FJbP5Cvdq7Khzn6J9OCUQJaBwgBkCR+MOwSs=
 strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251/go.mod h1:FJGmPh3vz9jSos1L/F91iAgnC/aejc0wIIrF2ZwJxdY=
 xorm.io/builder v0.3.13 h1:a3jmiVVL19psGeXx8GIurTp7p0IIgqeDmwhcR6BAOAo=
