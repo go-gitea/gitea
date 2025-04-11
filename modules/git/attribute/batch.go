@@ -27,13 +27,23 @@ type BatchChecker struct {
 }
 
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
-func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string) (checker *BatchChecker, returnedErr error) {
+func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) (checker *BatchChecker, returnedErr error) {
 	ctx, cancel := context.WithCancel(repo.Ctx)
+	defer func() {
+		if returnedErr != nil {
+			cancel()
+		}
+	}()
+
 	cmd, envs, cleanup, err := checkAttrCommand(repo, treeish, nil, attributes)
 	if err != nil {
-		cancel()
 		return nil, err
 	}
+	defer func() {
+		if returnedErr != nil {
+			cleanup()
+		}
+	}()
 
 	cmd.AddArguments("--stdin")
 
@@ -47,11 +57,6 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string)
 			cleanup()
 		},
 	}
-	defer func() {
-		if returnedErr != nil {
-			checker.cancel()
-		}
-	}()
 
 	stdinReader, stdinWriter, err := os.Pipe()
 	if err != nil {

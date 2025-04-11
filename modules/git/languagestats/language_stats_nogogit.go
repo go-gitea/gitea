@@ -64,7 +64,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(repo, commitID, attribute.LinguistAttributes...)
+	checker, err := attribute.NewBatchChecker(repo, commitID, attribute.LinguistAttributes)
 	if err != nil {
 		return nil, err
 	}

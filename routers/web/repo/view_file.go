@@ -285,7 +285,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	}
 
 	if ctx.Repo.GitRepo != nil {
-		checker, err := attribute.NewBatchChecker(ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.LinguistGenerated, attribute.LinguistVendored)
+		checker, err := attribute.NewBatchChecker(ctx.Repo.GitRepo, ctx.Repo.CommitID, []string{attribute.LinguistGenerated, attribute.LinguistVendored})
 		if err != nil {
 			ctx.ServerError("NewAttributeChecker", err)
 			return

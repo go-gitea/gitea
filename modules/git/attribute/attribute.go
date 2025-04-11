@@ -18,6 +18,7 @@ const (
 	LinguistDetectable    = "linguist-detectable"
 	LinguistLanguage      = "linguist-language"
 	GitlabLanguage        = "gitlab-language"
+	Lockable              = "lockable"
 )
 
 var LinguistAttributes = []string{
