@@ -173,6 +173,12 @@ func (s slackConvertor) Status(p *api.CommitStatusPayload) (SlackPayload, error)
 	return s.createPayload(text, nil), nil
 }
 
+func (s slackConvertor) WorkflowRun(p *api.WorkflowRunPayload) (SlackPayload, error) {
+	text, _ := getWorkflowRunPayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 func (s slackConvertor) WorkflowJob(p *api.WorkflowJobPayload) (SlackPayload, error) {
 	text, _ := getWorkflowJobPayloadInfo(p, SlackLinkFormatter, true)
 
