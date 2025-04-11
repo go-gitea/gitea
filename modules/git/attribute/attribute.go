@@ -29,8 +29,12 @@ var LinguistAttributes = []string{
 	GitlabLanguage,
 }
 
+func (a Attribute) IsUnspecified() bool {
+	return a == "" || a == "unspecified"
+}
+
 func (a Attribute) ToString() optional.Option[string] {
-	if a != "" && a != "unspecified" {
+	if !a.IsUnspecified() {
 		return optional.Some(string(a))
 	}
 	return optional.None[string]()

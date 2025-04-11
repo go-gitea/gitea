@@ -489,7 +489,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	var lfsMetaObject *git_model.LFSMetaObject
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
-		attributesMap, err := attribute.CheckAttribute(ctx, t.gitRepo, "", attribute.CheckAttributeOpts{
+		attributesMap, err := attribute.CheckAttributes(ctx, t.gitRepo, "", attribute.CheckAttributeOpts{
 			Attributes: []string{"filter"},
 			Filenames:  []string{file.Options.treePath},
 		})

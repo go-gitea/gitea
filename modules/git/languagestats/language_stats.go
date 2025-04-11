@@ -53,7 +53,7 @@ func mergeLanguageStats(stats map[string]int64) map[string]int64 {
 
 // GetFileLanguage tries to get the (linguist) language of the file content
 func GetFileLanguage(ctx context.Context, gitRepo *git.Repository, treeish, treePath string) (string, error) {
-	attributesMap, err := attribute.CheckAttribute(ctx, gitRepo, treeish, attribute.CheckAttributeOpts{
+	attributesMap, err := attribute.CheckAttributes(ctx, gitRepo, treeish, attribute.CheckAttributeOpts{
 		Attributes: []string{attribute.LinguistLanguage, attribute.GitlabLanguage},
 		Filenames:  []string{treePath},
 	})

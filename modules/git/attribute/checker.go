@@ -67,8 +67,8 @@ type CheckAttributeOpts struct {
 	Attributes []string
 }
 
-// CheckAttribute return the Blame object of file
-func CheckAttribute(ctx context.Context, gitRepo *git.Repository, treeish string, opts CheckAttributeOpts) (map[string]Attributes, error) {
+// CheckAttributes return the attributes of the given filenames and attributes in the given treeish.
+func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish string, opts CheckAttributeOpts) (map[string]Attributes, error) {
 	cmd, envs, cancel, err := checkAttrCommand(gitRepo, treeish, opts.Filenames, opts.Attributes)
 	if err != nil {
 		return nil, err
@@ -88,13 +88,11 @@ func CheckAttribute(ctx context.Context, gitRepo *git.Repository, treeish string
 	}
 
 	fields := bytes.Split(stdOut.Bytes(), []byte{'\000'})
-
 	if len(fields)%3 != 1 {
 		return nil, errors.New("wrong number of fields in return from check-attr")
 	}
 
 	attributesMap := make(map[string]Attributes)
-
 	for i := 0; i < (len(fields) / 3); i++ {
 		filename := string(fields[3*i])
 		attribute := string(fields[3*i+1])

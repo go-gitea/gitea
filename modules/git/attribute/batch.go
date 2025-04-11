@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -19,15 +18,11 @@ import (
 // BatchChecker provides a reader for check-attribute content that can be long running
 type BatchChecker struct {
 	// params
-	Attributes []string
-	Repo       *git.Repository
-	Treeish    string
+	attributesNum int
+	repo          *git.Repository
 
-	stdinReader io.ReadCloser
 	stdinWriter *os.File
 	stdOut      *nulSeparatedAttributeWriter
-	cmd         *git.Command
-	env         []string
 	ctx         context.Context
 	cancel      context.CancelFunc
 }
@@ -46,23 +41,21 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string)
 	cmd.AddArguments("--stdin")
 
 	checker := &BatchChecker{
-		Attributes: attributes,
-		Repo:       repo,
-		Treeish:    treeish,
-		ctx:        ctx,
+		attributesNum: len(attributes),
+		repo:          repo,
+		ctx:           ctx,
 		cancel: func() {
 			cancel()
 			cleanup()
 		},
-		cmd: cmd,
-		env: envs,
 	}
 
-	checker.stdinReader, checker.stdinWriter, err = os.Pipe()
+	stdinReader, stdinWriter, err := os.Pipe()
 	if err != nil {
 		checker.cancel()
 		return nil, err
 	}
+	checker.stdinWriter = stdinWriter
 
 	lw := new(nulSeparatedAttributeWriter)
 	lw.attributes = make(chan attributeTriple, 5)
@@ -70,7 +63,19 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string)
 	checker.stdOut = lw
 
 	go func() {
-		err := checker.run(ctx)
+		defer func() {
+			_ = stdinReader.Close()
+			_ = lw.Close()
+		}()
+		stdErr := new(bytes.Buffer)
+		err := cmd.Run(ctx, &git.RunOpts{
+			Env:    envs,
+			Dir:    repo.Path,
+			Stdin:  stdinReader,
+			Stdout: lw,
+			Stderr: stdErr,
+		})
+
 		if err != nil && !git.IsErrCanceledOrKilled(err) {
 			log.Error("Attribute checker for commit %s exits with error: %v", treeish, err)
 		}
@@ -80,30 +85,11 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string)
 	return checker, nil
 }
 
-func (c *BatchChecker) run(ctx context.Context) error {
-	defer func() {
-		_ = c.stdinReader.Close()
-		_ = c.stdOut.Close()
-	}()
-	stdErr := new(bytes.Buffer)
-	err := c.cmd.Run(ctx, &git.RunOpts{
-		Env:    c.env,
-		Dir:    c.Repo.Path,
-		Stdin:  c.stdinReader,
-		Stdout: c.stdOut,
-		Stderr: stdErr,
-	})
-	if err != nil && !git.IsErrCanceledOrKilled(err) {
-		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
-	}
-	return nil
-}
-
 // CheckPath check attr for given path
 func (c *BatchChecker) CheckPath(path string) (rs Attributes, err error) {
 	defer func() {
 		if err != nil && err != c.ctx.Err() {
-			log.Error("Unexpected error when checking path %s in %s, error: %v", path, filepath.Base(c.Repo.Path), err)
+			log.Error("Unexpected error when checking path %s in %s, error: %v", path, filepath.Base(c.repo.Path), err)
 		}
 	}()
 
@@ -125,7 +111,7 @@ func (c *BatchChecker) CheckPath(path string) (rs Attributes, err error) {
 			stdOutClosed = true
 		default:
 		}
-		debugMsg := fmt.Sprintf("check path %q in repo %q", path, filepath.Base(c.Repo.Path))
+		debugMsg := fmt.Sprintf("check path %q in repo %q", path, filepath.Base(c.repo.Path))
 		debugMsg += fmt.Sprintf(", stdOut: tmp=%q, pos=%d, closed=%v", string(c.stdOut.tmp), c.stdOut.pos, stdOutClosed)
 		// FIXME:
 		//if c.cmd.cmd != nil {
@@ -136,7 +122,7 @@ func (c *BatchChecker) CheckPath(path string) (rs Attributes, err error) {
 	}
 
 	rs = make(map[string]Attribute)
-	for range c.Attributes {
+	for i := 0; i < c.attributesNum; i++ {
 		select {
 		case <-time.After(5 * time.Second):
 			// There is a strange "hang" problem in gitdiff.GetDiff -> CheckPath

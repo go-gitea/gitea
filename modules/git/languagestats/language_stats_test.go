@@ -20,7 +20,6 @@ func TestRepository_GetLanguageStats(t *testing.T) {
 	repoPath := "../tests/repos/language_stats_repo"
 	gitRepo, err := git.OpenRepository(t.Context(), repoPath)
 	require.NoError(t, err)
-
 	defer gitRepo.Close()
 
 	stats, err := GetLanguageStats(gitRepo, "8fee858da5796dfb37704761701bb8e800ad9ef3")
