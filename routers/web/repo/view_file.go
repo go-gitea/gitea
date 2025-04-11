@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
-	"code.gitea.io/gitea/modules/git/languagestats"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -148,6 +147,9 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
+	var attrs attribute.Attributes
+	attributes := []string{attribute.LinguistGenerated, attribute.LinguistVendored}
+
 	switch {
 	case isRepresentableAsText:
 		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
@@ -210,9 +212,17 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
 			}
 
-			language, err := languagestats.GetFileLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+			var language string
+			attributes = append(attributes, attribute.LinguistLanguage, attribute.GitlabLanguage)
+			attrsMap, err := attribute.CheckAttributes(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.CheckAttributeOpts{
+				Filenames:  []string{ctx.Repo.TreePath},
+				Attributes: attributes,
+			})
 			if err != nil {
 				log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
+			} else {
+				attrs = attrsMap[ctx.Repo.TreePath] // then it will be reused out of the switch block
+				language = attrs.GetLanguage().Value()
 			}
 
 			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
@@ -284,20 +294,19 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		}
 	}
 
-	if ctx.Repo.GitRepo != nil {
-		checker, err := attribute.NewBatchChecker(ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.LinguistGenerated, attribute.LinguistVendored)
+	if attrs == nil {
+		attrsMap, err := attribute.CheckAttributes(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.CheckAttributeOpts{
+			Filenames:  []string{ctx.Repo.TreePath},
+			Attributes: attributes,
+		})
 		if err != nil {
-			ctx.ServerError("NewAttributeChecker", err)
+			ctx.ServerError("attribute.CheckAttributes", err)
 			return
 		}
-		defer checker.Close()
-
-		attrs, err := checker.CheckPath(ctx.Repo.TreePath)
-		if err == nil {
-			ctx.Data["IsVendored"] = attrs.GetVendored().Value()
-			ctx.Data["IsGenerated"] = attrs.GetGenerated().Value()
-		}
+		attrs = attrsMap[ctx.Repo.TreePath]
 	}
+
+	ctx.Data["IsVendored"], ctx.Data["IsGenerated"] = attrs.GetVendored().Value(), attrs.GetGenerated().Value()
 
 	if fInfo.st.IsImage() && !fInfo.st.IsSvgImage() {
 		img, _, err := image.DecodeConfig(bytes.NewReader(buf))
