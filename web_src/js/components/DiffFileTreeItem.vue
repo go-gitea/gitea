@@ -12,6 +12,7 @@ const collapsed = ref(false);
 
 function getIconForDiffStatus(pType: DiffStatus) {
   const diffTypes: Record<DiffStatus, { name: SvgName, classes: Array<string> }> = {
+    '': {name: 'octicon-blocked', classes: ['text', 'red']}, // unknown case
     'added': {name: 'octicon-diff-added', classes: ['text', 'green']},
     'modified': {name: 'octicon-diff-modified', classes: ['text', 'yellow']},
     'deleted': {name: 'octicon-diff-removed', classes: ['text', 'red']},
@@ -19,7 +20,7 @@ function getIconForDiffStatus(pType: DiffStatus) {
     'copied': {name: 'octicon-diff-renamed', classes: ['text', 'green']},
     'typechange': {name: 'octicon-diff-modified', classes: ['text', 'green']}, // there is no octicon for copied, so renamed should be ok
   };
-  return diffTypes[pType] ?? {name: 'octicon-blocked', classes: ['text', 'red']};
+  return diffTypes[pType] ?? diffTypes[''];
 }
 
 function entryIcon(entry: DiffTreeEntry) {
