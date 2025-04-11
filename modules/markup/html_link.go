@@ -125,7 +125,6 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		}
 		if image {
-			link = ctx.RenderHelper.ResolveLink(link, LinkTypeMedia)
 			title := props["title"]
 			if title == "" {
 				title = props["alt"]
@@ -151,7 +150,6 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 				childNode.Attr = childNode.Attr[:2]
 			}
 		} else {
-			link = ctx.RenderHelper.ResolveLink(link, LinkTypeDefault)
 			childNode.Type = html.TextNode
 			childNode.Data = name
 		}

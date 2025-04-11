@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -47,28 +47,30 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	}
 }
 
-func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string) *api.FileResponse {
+func getExpectedFileResponseForUpdate(info apiFileResponseInfo) *api.FileResponse {
 	sha := "08bd14b2e2852529157324de9c226b3364e76136"
 	encoding := "base64"
 	content := "VGhpcyBpcyB1cGRhdGVkIHRleHQ="
-	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
-	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + info.treePath + "?ref=master"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + info.treePath
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
-	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
-	return &api.FileResponse{
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + info.treePath
+	ret := &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:          filepath.Base(treePath),
-			Path:          treePath,
-			SHA:           sha,
-			LastCommitSHA: lastCommitSHA,
-			Type:          "file",
-			Size:          20,
-			Encoding:      &encoding,
-			Content:       &content,
-			URL:           &selfURL,
-			HTMLURL:       &htmlURL,
-			GitURL:        &gitURL,
-			DownloadURL:   &downloadURL,
+			Name:              path.Base(info.treePath),
+			Path:              info.treePath,
+			SHA:               sha,
+			LastCommitSHA:     info.lastCommitSHA,
+			LastCommitterDate: info.lastCommitterWhen,
+			LastAuthorDate:    info.lastAuthorWhen,
+			Type:              "file",
+			Size:              20,
+			Encoding:          &encoding,
+			Content:           &content,
+			URL:               &selfURL,
+			HTMLURL:           &htmlURL,
+			GitURL:            &gitURL,
+			DownloadURL:       &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -77,10 +79,10 @@ func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string) 
 		},
 		Commit: &api.FileCommitResponse{
 			CommitMeta: api.CommitMeta{
-				URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/" + commitID,
-				SHA: commitID,
+				URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/" + info.commitID,
+				SHA: info.commitID,
 			},
-			HTMLURL: setting.AppURL + "user2/repo1/commit/" + commitID,
+			HTMLURL: setting.AppURL + "user2/repo1/commit/" + info.commitID,
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "John Doe",
@@ -102,6 +104,8 @@ func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string) 
 			Payload:   "",
 		},
 	}
+	normalizeFileContentResponseCommitTime(ret.Content)
+	return ret
 }
 
 func TestAPIUpdateFile(t *testing.T) {
@@ -135,17 +139,24 @@ func TestAPIUpdateFile(t *testing.T) {
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
 			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+			defer gitRepo.Close()
 			commitID, _ := gitRepo.GetBranchCommitID(updateFileOptions.NewBranchName)
 			lasCommit, _ := gitRepo.GetCommitByPath(treePath)
-			expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath, lasCommit.ID.String())
+			expectedFileResponse := getExpectedFileResponseForUpdate(apiFileResponseInfo{
+				commitID:          commitID,
+				treePath:          treePath,
+				lastCommitSHA:     lasCommit.ID.String(),
+				lastCommitterWhen: lasCommit.Committer.When,
+				lastAuthorWhen:    lasCommit.Author.When,
+			})
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
+			normalizeFileContentResponseCommitTime(fileResponse.Content)
 			assert.Equal(t, expectedFileResponse.Content, fileResponse.Content)
 			assert.Equal(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
 			assert.Equal(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
 			assert.Equal(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
 			assert.Equal(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
-			gitRepo.Close()
 		}
 
 		// Test updating a file in a new branch

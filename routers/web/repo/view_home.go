@@ -20,6 +20,8 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	giturl "code.gitea.io/gitea/modules/git/url"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -302,8 +304,33 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 	ctx.Redirect(link)
 }
 
+func handleRepoViewSubmodule(ctx *context.Context, submodule *git.SubModule) {
+	submoduleRepoURL, err := giturl.ParseRepositoryURL(ctx, submodule.URL)
+	if err != nil {
+		HandleGitError(ctx, "prepareToRenderDirOrFile: ParseRepositoryURL", err)
+		return
+	}
+	submoduleURL := giturl.MakeRepositoryWebLink(submoduleRepoURL)
+	if httplib.IsCurrentGiteaSiteURL(ctx, submoduleURL) {
+		ctx.RedirectToCurrentSite(submoduleURL)
+	} else {
+		// don't auto-redirect to external URL, to avoid open redirect or phishing
+		ctx.Data["NotFoundPrompt"] = submoduleURL
+		ctx.NotFound(nil)
+	}
+}
+
 func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
+		if entry.IsSubModule() {
+			submodule, err := ctx.Repo.Commit.GetSubModule(entry.Name())
+			if err != nil {
+				HandleGitError(ctx, "prepareToRenderDirOrFile: GetSubModule", err)
+				return
+			}
+			handleRepoViewSubmodule(ctx, submodule)
+			return
+		}
 		if entry.IsDir() {
 			prepareToRenderDirectory(ctx)
 		} else {

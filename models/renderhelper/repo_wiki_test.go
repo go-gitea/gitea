@@ -45,8 +45,8 @@ func TestRepoWiki(t *testing.T) {
 		assert.Equal(t,
 			`<p><a href="/user2/repo1/wiki/test" rel="nofollow">/test</a>
 <a href="/user2/repo1/wiki/test" rel="nofollow">./test</a>
-<a href="/user2/repo1/wiki/raw/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="/image"/></a>
-<a href="/user2/repo1/wiki/raw/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="./image"/></a></p>
+<a href="/user2/repo1/wiki/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="/image"/></a>
+<a href="/user2/repo1/wiki/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="./image"/></a></p>
 `, rendered)
 	})
 
@@ -57,7 +57,7 @@ func TestRepoWiki(t *testing.T) {
 <video src="LINK">
 `)
 		assert.NoError(t, err)
-		assert.Equal(t, `<a href="/user2/repo1/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/LINK"/></a>
+		assert.Equal(t, `<a href="/user2/repo1/wiki/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/LINK"/></a>
 <video src="/user2/repo1/wiki/raw/LINK">
 </video>`, rendered)
 	})
