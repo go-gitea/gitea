@@ -30,7 +30,7 @@
 											<span><a href="{{$repo.BaseRepo.Link}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
 										{{end}}
 									{{else}}
-										<span class="icon tw-inline-block tw-pt-2">{{svg "octicon-file-directory-fill"}}</span>
+										<span class="icon tw-inline-block tw-pt-2">{{folderIconHTMLByOpenStatus false}}</span>
 										<span class="name tw-inline-block tw-pt-2">{{$.ContextUser.Name}}/{{$dir}}</span>
 										<div class="tw-float-right">
 											{{if $.allowAdopt}}
