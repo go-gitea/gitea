@@ -62,12 +62,10 @@ func Projects(ctx *context.Context) {
 	keyword := ctx.FormTrim("q")
 	repo := ctx.Repo.Repository
 	page := ctx.FormInt("page")
+	ownerID := repo.OwnerID
 	if page <= 1 {
 		page = 1
 	}
-
-	ctx.Data["OpenCount"] = repo.NumOpenProjects
-	ctx.Data["ClosedCount"] = repo.NumClosedProjects
 
 	var total int
 	if !isShowClosed {
@@ -76,7 +74,9 @@ func Projects(ctx *context.Context) {
 		total = repo.NumClosedProjects
 	}
 
-	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
+	projects := make([]*project_model.Project, 0, total)
+
+	repoProjects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
@@ -88,9 +88,58 @@ func Projects(ctx *context.Context) {
 		Title:    keyword,
 	})
 	if err != nil {
-		ctx.ServerError("GetProjects", err)
+		ctx.ServerError("GetRepoProjects", err)
 		return
 	}
+
+	projects = append(projects, repoProjects...)
+
+	openOrgProjects, openCountForOrgProjects, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.IssuePagingNum,
+			Page:     page,
+		},
+		OwnerID:  ownerID,
+		IsClosed: optional.Some(false),
+		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
+		Type:     project_model.TypeOrganization,
+		Title:    keyword,
+	})
+	if err != nil {
+		ctx.ServerError("GetOrgProjects", err)
+		return
+	}
+
+	closeOrgProjects, closeCountForOrgProjects, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.IssuePagingNum,
+			Page:     page,
+		},
+		OwnerID:  ownerID,
+		IsClosed: optional.Some(true),
+		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),
+		Type:     project_model.TypeOrganization,
+		Title:    keyword,
+	})
+	if err != nil {
+		ctx.ServerError("GetOrgProjects", err)
+		return
+	}
+
+	if isShowClosed {
+		count += closeCountForOrgProjects
+		total += int(closeCountForOrgProjects)
+		projects = append(projects, closeOrgProjects...)
+	} else {
+		count += openCountForOrgProjects
+		total += int(openCountForOrgProjects)
+		projects = append(projects, openOrgProjects...)
+	}
+
+	totalOpenCount := repo.NumOpenProjects + int(openCountForOrgProjects)
+	totalCloseCount := repo.NumClosedProjects + int(closeCountForOrgProjects)
+	ctx.Data["OpenCount"] = totalOpenCount
+	ctx.Data["ClosedCount"] = totalCloseCount
 
 	if err := project_service.LoadIssueNumbersForProjects(ctx, projects, ctx.Doer); err != nil {
 		ctx.ServerError("LoadIssueNumbersForProjects", err)
