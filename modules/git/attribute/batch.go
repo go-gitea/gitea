@@ -17,14 +17,13 @@ import (
 
 // BatchChecker provides a reader for check-attribute content that can be long running
 type BatchChecker struct {
-	// params
 	attributesNum int
 	repo          *git.Repository
-
-	stdinWriter *os.File
-	stdOut      *nulSeparatedAttributeWriter
-	ctx         context.Context
-	cancel      context.CancelFunc
+	stdinWriter   *os.File
+	stdOut        *nulSeparatedAttributeWriter
+	ctx           context.Context
+	cancel        context.CancelFunc
+	cmd           *git.Command
 }
 
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
@@ -44,6 +43,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes ...string)
 		attributesNum: len(attributes),
 		repo:          repo,
 		ctx:           ctx,
+		cmd:           cmd,
 		cancel: func() {
 			cancel()
 			cleanup()
@@ -113,10 +113,9 @@ func (c *BatchChecker) CheckPath(path string) (rs Attributes, err error) {
 		}
 		debugMsg := fmt.Sprintf("check path %q in repo %q", path, filepath.Base(c.repo.Path))
 		debugMsg += fmt.Sprintf(", stdOut: tmp=%q, pos=%d, closed=%v", string(c.stdOut.tmp), c.stdOut.pos, stdOutClosed)
-		// FIXME:
-		//if c.cmd.cmd != nil {
-		//	debugMsg += fmt.Sprintf(", process state: %q", c.cmd.cmd.ProcessState.String())
-		//}
+		if c.cmd != nil {
+			debugMsg += fmt.Sprintf(", process state: %q", c.cmd.ProcessState())
+		}
 		_ = c.Close()
 		return fmt.Errorf("CheckPath timeout: %s", debugMsg)
 	}
