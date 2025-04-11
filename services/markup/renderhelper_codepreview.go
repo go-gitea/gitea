@@ -14,13 +14,13 @@ import (
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/git/languagestats"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	gitea_context "code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/repository/files"
 )
 
 func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePreviewOptions) (template.HTML, error) {
@@ -61,7 +61,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", err
 	}
 
-	language, _ := files.TryGetContentLanguage(gitRepo, opts.CommitID, opts.FilePath)
+	language, _ := languagestats.GetFileLanguage(ctx, gitRepo, opts.CommitID, opts.FilePath)
 	blob, err := commit.GetBlobByPath(opts.FilePath)
 	if err != nil {
 		return "", err
