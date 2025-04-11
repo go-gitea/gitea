@@ -3,7 +3,7 @@ import type {Reactive} from 'vue';
 
 const {pageData} = window.config;
 
-export type DiffStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'typechange';
+export type DiffStatus = '' | 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'typechange';
 
 export type DiffTreeEntry = {
   FullName: string,
@@ -36,10 +36,8 @@ export function diffTreeStore() {
   return diffTreeStoreReactive;
 }
 
-// TODO: add some tests
-
-export function diffTreeStoreSetViewed(fullName: string, viewed: boolean) {
-  const entry = diffTreeStore().fullNameMap[fullName];
+export function diffTreeStoreSetViewed(store: Reactive<DiffFileTree>, fullName: string, viewed: boolean) {
+  const entry = store.fullNameMap[fullName];
   if (!entry) return;
   entry.IsViewed = viewed;
   for (let parent = entry.ParentEntry; parent; parent = parent.ParentEntry) {
@@ -57,7 +55,7 @@ function fillFullNameMap(map: Record<string, DiffTreeEntry>, entry: DiffTreeEntr
   }
 }
 
-function reactiveDiffTreeStore(data: DiffFileTreeData): Reactive<DiffFileTree> {
+export function reactiveDiffTreeStore(data: DiffFileTreeData): Reactive<DiffFileTree> {
   const store = reactive({
     diffFileTree: data,
     fileTreeIsVisible: false,
