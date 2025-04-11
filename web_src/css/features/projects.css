@@ -98,3 +98,26 @@
 .card-ghost * {
   opacity: 0;
 }
+
+.is-fullscreen.projects-view-top,
+.is-fullscreen.projects-view-bottom .ui.container {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  background-color: var(--color-body);
+}
+
+.is-fullscreen.projects-view-bottom .ui.container {
+  top: 36px;
+}
+
+.is-fullscreen #project-board {
+  position: absolute;
+  top: 120px;
+  left: 0;
+}
