@@ -82,6 +82,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	actions_router "code.gitea.io/gitea/routers/api/v1/actions"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
@@ -1125,6 +1126,8 @@ func Routes() *web.Router {
 				}, context.UserAssignmentAPI(), checkTokenPublicOnly())
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
+
+		m.Get("/actions/id-token/request", actions_router.GenerateOIDCToken)
 
 		// Repositories (requires repo scope, org scope)
 		m.Post("/org/{org}/repos",
