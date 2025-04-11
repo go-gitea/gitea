@@ -109,7 +109,7 @@ func TestAPIRunnerGetAdminRunnerNotFoundOrgApi(t *testing.T) {
 	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadOrganization)
 	// Verify get a runner by id of different entity is not found
 	// runner.Editable(ownerID, repoID) false
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34344)).AddTokenAuth(token)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34349)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -119,7 +119,7 @@ func TestAPIRunnerDeleteAdminRunnerNotFoundOrgApi(t *testing.T) {
 	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteOrganization)
 	// Verify delete a runner by id of different entity is not found
 	// runner.Editable(ownerID, repoID) false
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34344)).AddTokenAuth(token)
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34349)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
