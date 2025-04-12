@@ -1169,6 +1169,7 @@ func Routes() *web.Router {
 				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
 
 				m.Group("/actions/jobs", func() {
+					m.Get("/{job_id}", repo.GetWorkflowJob)
 					m.Get("/{job_id}/logs", repo.DownloadActionsRunJobLogs)
 				}, reqToken(), reqRepoReader(unit.TypeActions))
 
@@ -1247,11 +1248,14 @@ func Routes() *web.Router {
 				}, reqToken(), reqAdmin())
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
-					m.Get("/runs", repo.GetWorkflowRuns)
-					m.Get("/runs/{run}", repo.GetWorkflowRun)
-					m.Get("/runs/{run}/jobs", repo.GetWorkflowJobs)
-					m.Get("/runs/{run}/artifacts", repo.GetArtifactsOfRun)
-					m.Get("/jobs/{job_id}", repo.GetWorkflowJob)
+					m.Group("/runs", func() {
+						m.Get("", repo.GetWorkflowRuns)
+						m.Group("/{run}", func() {
+							m.Get("", repo.GetWorkflowRun)
+							m.Get("/jobs", repo.GetWorkflowJobs)
+							m.Get("/artifacts", repo.GetArtifactsOfRun)
+						})
+					})
 					m.Get("/artifacts", repo.GetArtifacts)
 					m.Group("/artifacts/{artifact_id}", func() {
 						m.Get("", repo.GetArtifact)
