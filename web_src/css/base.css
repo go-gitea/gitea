@@ -747,11 +747,11 @@ overflow-menu .overflow-menu-button {
   padding: 0;
 }
 
-overflow-menu .overflow-menu-button.active {
+/* match the styles of ".ui.secondary.pointing.menu .active.item" */
+overflow-menu.ui.secondary.pointing.menu .overflow-menu-button.active {
   padding: 2px 0 0;
-  border-bottom: 2px solid transparent;
+  border-bottom: 2px solid currentcolor;
   background-color: transparent;
-  border-color: currentcolor;
   font-weight: var(--font-weight-medium);
 }
 
