@@ -115,6 +115,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       const btn = this.querySelector('.overflow-menu-button');
       btn?._tippy?.destroy();
       btn?.remove();
+      this.button = null;
       return;
     }
 
@@ -139,15 +140,12 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     }
 
     // create button initially
-    const btn = document.createElement('button');
-    btn.classList.add('overflow-menu-button');
-    btn.setAttribute('aria-label', window.config.i18n.more_items);
-    btn.innerHTML = octiconKebabHorizontal;
-    this.append(btn);
-    this.button = btn;
-    this.updateButtonActivationState();
-
-    createTippy(btn, {
+    this.button = document.createElement('button');
+    this.button.classList.add('overflow-menu-button');
+    this.button.setAttribute('aria-label', window.config.i18n.more_items);
+    this.button.innerHTML = octiconKebabHorizontal;
+    this.append(this.button);
+    createTippy(this.button, {
       trigger: 'click',
       hideOnClick: true,
       interactive: true,
@@ -161,6 +159,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         }, 0);
       },
     });
+    this.updateButtonActivationState();
   });
 
   init() {
