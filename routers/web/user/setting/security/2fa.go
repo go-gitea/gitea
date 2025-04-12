@@ -6,6 +6,7 @@ package security
 
 import (
 	"bytes"
+	"code.gitea.io/gitea/modules/session"
 	"encoding/base64"
 	"html/template"
 	"image/png"
@@ -163,12 +164,21 @@ func EnrollTwoFactor(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 
 	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {
 		// already enrolled - we should redirect back!
 		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.Doer)
 		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
+
+		if ctx.Session.Get(session.KeyTwofaSatisfied) == nil {
+			// in case a 2FA user is using an old session (the session doesn't know 2FA authed),
+			// he will be navigated to this page, we should update the session status
+			_ = ctx.Session.Set(session.KeyTwofaSatisfied, true)
+			_ = ctx.Session.Release()
+		}
+
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
@@ -194,6 +204,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 
 	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {
@@ -246,6 +257,12 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
+	newTwoFactorErr := auth.NewTwoFactor(ctx, t)
+	if newTwoFactorErr == nil {
+		if err := ctx.Session.Set(session.KeyTwofaSatisfied, true); err != nil {
+			log.Error("Unable to set %s to session: Error: %v", session.KeyTwofaSatisfied, err)
+		}
+	}
 	// Now we have to delete the secrets - because if we fail to insert then it's highly likely that they have already been used
 	// If we can detect the unique constraint failure below we can move this to after the NewTwoFactor
 	if err := ctx.Session.Delete("twofaSecret"); err != nil {
@@ -261,10 +278,10 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		log.Error("Unable to save changes to the session: %v", err)
 	}
 
-	if err = auth.NewTwoFactor(ctx, t); err != nil {
+	if newTwoFactorErr != nil {
 		// FIXME: We need to handle a unique constraint fail here it's entirely possible that another request has beaten us.
 		// If there is a unique constraint fail we should just tolerate the error
-		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", err)
+		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", newTwoFactorErr)
 		return
 	}
 

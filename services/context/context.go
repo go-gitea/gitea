@@ -196,6 +196,10 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Data["SystemConfig"] = setting.Config()
 
+			ctx.Data["ShowTwoFactorRequiredMessage"] = setting.EnforceTwoFactorAuth &&
+				ctx.Session.Get("uid") != nil &&
+				ctx.Session.Get(session.KeyTwofaSatisfied) != true
+
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars

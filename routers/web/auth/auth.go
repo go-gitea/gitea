@@ -86,10 +86,13 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
+	twofa, _ := auth.GetTwoFactorByUID(ctx, u.ID)
 	if err := updateSession(ctx, nil, map[string]any{
 		// Set session IDs
 		"uid":   u.ID,
 		"uname": u.Name,
+
+		session.KeyTwofaSatisfied: twofa != nil,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}

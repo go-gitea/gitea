@@ -39,6 +39,7 @@ var (
 	CSRFCookieName                     = "_csrf"
 	CSRFCookieHTTPOnly                 = true
 	RecordUserSignupMetadata           = false
+	EnforceTwoFactorAuth               = false
 )
 
 // loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set
@@ -141,6 +142,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+	EnforceTwoFactorAuth = sec.Key("ENFORCE_TWO_FACTOR_AUTH").MustBool(false)
 
 	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
 	if InstallLock && InternalToken == "" {
