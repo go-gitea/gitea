@@ -14,6 +14,11 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   mutationObserver: MutationObserver;
   lastWidth: number;
 
+  updateButtonActivationState() {
+    if (!this.button || !this.tippyContent) return;
+    toggleClass(this.button, 'active', Boolean(this.tippyContent.querySelector('.item.active')));
+  }
+
   updateItems = throttle(100, () => {
     if (!this.tippyContent) {
       const div = document.createElement('div');
@@ -125,9 +130,18 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       this.tippyContent.append(item);
     }
 
+    // close tippy when clicking item of tippy
+    const items = this.tippyContent.querySelectorAll<HTMLElement>('.item');
+    for (const item of items) {
+      item.addEventListener('click', () => {
+        this.button?._tippy.hide();
+      });
+    }
+
     // update existing tippy
     if (this.button?._tippy) {
       this.button._tippy.setContent(this.tippyContent);
+      this.updateButtonActivationState();
       return;
     }
 
@@ -138,6 +152,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     btn.innerHTML = octiconKebabHorizontal;
     this.append(btn);
     this.button = btn;
+    this.updateButtonActivationState();
 
     createTippy(btn, {
       trigger: 'click',
@@ -152,10 +167,6 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           this.tippyContent.focus();
         }, 0);
       },
-    });
-
-    this.tippyContent.querySelector('.item').addEventListener('click', () => {
-      this.button._tippy.hide();
     });
   });
 
@@ -225,9 +236,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   }
 
   attributeChangedCallback() {
-    if (!this.button || !this.tippyContent) return;
-    const containActiveInTippy = this.tippyContent.querySelector('.item.active');
-    toggleClass(this.button, 'active', Boolean(containActiveInTippy));
+    this.updateButtonActivationState();
   }
 
   disconnectedCallback() {

@@ -748,7 +748,7 @@ overflow-menu .overflow-menu-button {
 }
 
 overflow-menu .overflow-menu-button.active {
-  margin: 0 0 -2px;
+  padding: 2px 0 0;
   border-bottom: 2px solid transparent;
   background-color: transparent;
   border-color: currentcolor;
