@@ -116,3 +116,13 @@ code.language-math.is-loading::after {
   animation-duration: 100ms;
   animation-timing-function: ease-in-out;
 }
+
+.circular-spin {
+  animation: circular-spin-keyframes 1s linear infinite;
+}
+
+@keyframes circular-spin-keyframes {
+  100% {
+    transform: rotate(-360deg);
+  }
+}

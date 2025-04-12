@@ -177,9 +177,9 @@ func TestOrgRestrictedUser(t *testing.T) {
 	resp := adminSession.MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, "CreateTeam_codereader", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, teamToCreate.Units, nil)
+		"none", teamToCreate.Units, nil)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, teamToCreate.Units, nil)
+		"none", teamToCreate.Units, nil)
 	// teamID := apiTeam.ID
 
 	// Now we need to add the restricted user to the team

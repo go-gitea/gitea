@@ -80,6 +80,13 @@ func (c *Command) LogString() string {
 	return strings.Join(a, " ")
 }
 
+func (c *Command) ProcessState() string {
+	if c.cmd == nil {
+		return ""
+	}
+	return c.cmd.ProcessState.String()
+}
+
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommand(args ...internal.CmdArg) *Command {
