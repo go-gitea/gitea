@@ -1,6 +1,6 @@
 import {throttle} from 'throttle-debounce';
 import {createTippy} from '../modules/tippy.ts';
-import {isDocumentFragmentOrElementNode, toggleClass} from '../utils/dom.ts';
+import {addDelegatedEventListener, isDocumentFragmentOrElementNode, toggleClass} from '../utils/dom.ts';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
@@ -20,7 +20,6 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
   updateItems = throttle(100, () => {
     if (!this.tippyContent) {
       const div = document.createElement('div');
-      div.classList.add('tippy-target');
       div.tabIndex = -1; // for initial focus, programmatic focus only
       div.addEventListener('keydown', (e) => {
         if (e.key === 'Tab') {
@@ -69,7 +68,8 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           }
         }
       });
-      this.append(div);
+      div.classList.add('tippy-target');
+      this.handleItemClick(div, '.tippy-target > .item');
       this.tippyContent = div;
     }
 
@@ -102,21 +102,6 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       const itemRight = item.offsetLeft + item.offsetWidth;
       if (menuRight - itemRight < 38) { // roughly the width of .overflow-menu-button with some extra space
         this.tippyItems.push(item);
-
-        // close tippy when clicking item of tippy
-        if (!item.hasAttribute('data-tippy-click-added')) {
-          item.addEventListener('click', () => {
-            this.button?._tippy.hide();
-          });
-          item.setAttribute('data-tippy-click-added', 'true');
-        }
-      }
-      // refresh overflow-button active state
-      if (!item.hasAttribute('data-button-update-click-added')) {
-        item.addEventListener('click', () => {
-          this.updateButtonActivationState();
-        });
-        item.setAttribute('data-button-update-click-added', 'true');
       }
     }
     itemFlexSpace?.style.removeProperty('display');
@@ -209,6 +194,14 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       }
     });
     this.resizeObserver.observe(this);
+    this.handleItemClick(this, '.overflow-menu-items > .item');
+  }
+
+  handleItemClick(el: Element, selector: string) {
+    addDelegatedEventListener(el, 'click', selector, () => {
+      this.button?._tippy.hide();
+      this.updateButtonActivationState();
+    });
   }
 
   connectedCallback() {
