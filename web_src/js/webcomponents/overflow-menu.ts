@@ -104,14 +104,20 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         this.tippyItems.push(item);
 
         // close tippy when clicking item of tippy
-        item.addEventListener('click', () => {
-          this.button?._tippy.hide();
-        });
+        if (!item.hasAttribute('data-tippy-click-added')) {
+          item.addEventListener('click', () => {
+            this.button?._tippy.hide();
+          });
+          item.setAttribute('data-tippy-click-added', 'true');
+        }
       }
       // refresh overflow-button active state
-      item.addEventListener('click', () => {
-        this.updateButtonActivationState();
-      });
+      if (!item.hasAttribute('data-button-update-click-added')) {
+        item.addEventListener('click', () => {
+          this.updateButtonActivationState();
+        });
+        item.setAttribute('data-button-update-click-added', 'true');
+      }
     }
     itemFlexSpace?.style.removeProperty('display');
     itemOverFlowMenuButton?.style.removeProperty('display');
