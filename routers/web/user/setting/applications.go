@@ -43,8 +43,9 @@ func ApplicationsPost(ctx *context.Context) {
 
 	_ = ctx.Req.ParseForm()
 	var scopeNames []string
+	const accessTokenScopePrefix = "scope-"
 	for k, v := range ctx.Req.Form {
-		if strings.HasPrefix(k, "scope-") {
+		if strings.HasPrefix(k, accessTokenScopePrefix) {
 			scopeNames = append(scopeNames, v...)
 		}
 	}

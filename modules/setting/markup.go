@@ -127,7 +127,7 @@ func loadMarkupFrom(rootCfg ConfigProvider) {
 		}
 	}
 
-	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
+	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(50000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)
 	ExternalSanitizerRules = make([]MarkupSanitizerRule, 0, 10)
 

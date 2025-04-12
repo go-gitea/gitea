@@ -182,7 +182,7 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 					return
 				}
 				for _, team := range teams {
-					if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
+					if team.IncludesAllRepositories && team.HasAdminAccess() {
 						shouldSeeAllTeams = true
 						break
 					}
@@ -228,7 +228,7 @@ func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
-			ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.AccessMode >= perm.AccessModeAdmin
+			ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()
 			ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 			if opts.RequireTeamAdmin && !ctx.Org.IsTeamAdmin {
 				ctx.NotFound(err)

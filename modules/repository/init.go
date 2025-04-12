@@ -11,11 +11,7 @@ import (
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -121,29 +117,6 @@ func LoadRepoConfig() error {
 	return nil
 }
 
-func CheckInitRepository(ctx context.Context, repo *repo_model.Repository) (err error) {
-	// Somehow the directory could exist.
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
-		return err
-	}
-	if isExist {
-		return repo_model.ErrRepoFilesAlreadyExist{
-			Uname: repo.OwnerName,
-			Name:  repo.Name,
-		}
-	}
-
-	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
-		return fmt.Errorf("git.InitRepository: %w", err)
-	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
-		return fmt.Errorf("createDelegateHooks: %w", err)
-	}
-	return nil
-}
-
 // InitializeLabels adds a label set to a repository using a template
 func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg bool) error {
 	list, err := LoadTemplateLabelsByDisplayName(labelTemplate)
@@ -154,10 +127,11 @@ func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg
 	labels := make([]*issues_model.Label, len(list))
 	for i := 0; i < len(list); i++ {
 		labels[i] = &issues_model.Label{
-			Name:        list[i].Name,
-			Exclusive:   list[i].Exclusive,
-			Description: list[i].Description,
-			Color:       list[i].Color,
+			Name:           list[i].Name,
+			Exclusive:      list[i].Exclusive,
+			ExclusiveOrder: list[i].ExclusiveOrder,
+			Description:    list[i].Description,
+			Color:          list[i].Color,
 		}
 		if isOrg {
 			labels[i].OrgID = id

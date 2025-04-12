@@ -91,12 +91,17 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	ctx.Data["CanForkToUser"] = canForkToUser
 	ctx.Data["Orgs"] = orgs
 
+	// TODO: this message should only be shown for the "current doer" when it is selected, just like the "new repo" page.
+	// msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", ctx.Doer.MaxCreationLimit())
+
 	if canForkToUser {
 		ctx.Data["ContextUser"] = ctx.Doer
+		ctx.Data["CanForkRepoInNewOwner"] = true
 	} else if len(orgs) > 0 {
 		ctx.Data["ContextUser"] = orgs[0]
+		ctx.Data["CanForkRepoInNewOwner"] = true
 	} else {
-		ctx.Data["CanForkRepo"] = false
+		ctx.Data["CanForkRepoInNewOwner"] = false
 		ctx.Flash.Error(ctx.Tr("repo.fork_no_valid_owners"), true)
 		return nil
 	}
@@ -120,15 +125,6 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 // Fork render repository fork page
 func Fork(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_fork")
-
-	if ctx.Doer.CanForkRepo() {
-		ctx.Data["CanForkRepo"] = true
-	} else {
-		maxCreationLimit := ctx.Doer.MaxCreationLimit()
-		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
-		ctx.Flash.Error(msg, true)
-	}
-
 	getForkRepository(ctx)
 	if ctx.Written() {
 		return
@@ -141,7 +137,6 @@ func Fork(ctx *context.Context) {
 func ForkPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
-	ctx.Data["CanForkRepo"] = true
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {

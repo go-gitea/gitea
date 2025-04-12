@@ -45,9 +45,8 @@ func Applications(ctx *context.Context) {
 	}
 	ctx.Data["Applications"] = apps
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
