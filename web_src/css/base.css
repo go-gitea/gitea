@@ -747,6 +747,14 @@ overflow-menu .overflow-menu-button {
   padding: 0;
 }
 
+overflow-menu .overflow-menu-button.active {
+  margin: 0 0 -2px;
+  border-bottom: 2px solid transparent;
+  background-color: transparent;
+  border-color: currentcolor;
+  font-weight: var(--font-weight-medium);
+}
+
 overflow-menu .overflow-menu-button:hover {
   color: var(--color-text-dark);
 }

@@ -1,9 +1,11 @@
 import {throttle} from 'throttle-debounce';
 import {createTippy} from '../modules/tippy.ts';
-import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
+import {isDocumentFragmentOrElementNode, toggleClass} from '../utils/dom.ts';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
+  static observedAttributes = ['active'];
+
   tippyContent: HTMLDivElement;
   tippyItems: Array<HTMLElement>;
   button: HTMLButtonElement;
@@ -151,6 +153,10 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         }, 0);
       },
     });
+
+    this.tippyContent.querySelector('.item').addEventListener('click', () => {
+      this.button._tippy.hide();
+    });
   });
 
   init() {
@@ -216,6 +222,12 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       });
       this.mutationObserver.observe(this, {childList: true});
     }
+  }
+
+  attributeChangedCallback() {
+    if (!this.button || !this.tippyContent) return;
+    const containActiveInTippy = this.tippyContent.querySelector('.item.active');
+    toggleClass(this.button, 'active', Boolean(containActiveInTippy));
   }
 
   disconnectedCallback() {
