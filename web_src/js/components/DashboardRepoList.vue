@@ -391,7 +391,7 @@ export default defineComponent({
             </div>
           </div>
         </div>
-        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter" :active="reposFilter">
+        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
           <div class="overflow-menu-items tw-justify-center">
             <a class="item" tabindex="0" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
               {{ textAll }}

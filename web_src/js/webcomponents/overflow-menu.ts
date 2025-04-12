@@ -4,8 +4,6 @@ import {isDocumentFragmentOrElementNode, toggleClass} from '../utils/dom.ts';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
-  static observedAttributes = ['active'];
-
   tippyContent: HTMLDivElement;
   tippyItems: Array<HTMLElement>;
   button: HTMLButtonElement;
@@ -104,7 +102,16 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       const itemRight = item.offsetLeft + item.offsetWidth;
       if (menuRight - itemRight < 38) { // roughly the width of .overflow-menu-button with some extra space
         this.tippyItems.push(item);
+
+        // close tippy when clicking item of tippy
+        item.addEventListener('click', () => {
+          this.button?._tippy.hide();
+        });
       }
+      // refresh overflow-button active state
+      item.addEventListener('click', () => {
+        this.updateButtonActivationState();
+      });
     }
     itemFlexSpace?.style.removeProperty('display');
     itemOverFlowMenuButton?.style.removeProperty('display');
@@ -128,14 +135,6 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     for (const item of this.tippyItems) {
       item.setAttribute('role', 'menuitem');
       this.tippyContent.append(item);
-    }
-
-    // close tippy when clicking item of tippy
-    const items = this.tippyContent.querySelectorAll<HTMLElement>('.item');
-    for (const item of items) {
-      item.addEventListener('click', () => {
-        this.button?._tippy.hide();
-      });
     }
 
     // update existing tippy
@@ -233,10 +232,6 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       });
       this.mutationObserver.observe(this, {childList: true});
     }
-  }
-
-  attributeChangedCallback() {
-    this.updateButtonActivationState();
   }
 
   disconnectedCallback() {
