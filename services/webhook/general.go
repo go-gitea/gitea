@@ -352,7 +352,7 @@ func getWorkflowRunPayloadInfo(p *api.WorkflowRunPayload, linkFormatter linkForm
 		color = greyColor
 	}
 	if withSender {
-		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	}
 
 	return text, color
