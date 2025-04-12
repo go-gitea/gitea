@@ -30,6 +30,7 @@ type Features struct {
 	SupportProcReceive     bool           // >= 2.29
 	SupportHashSha256      bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
 	SupportedObjectFormats []ObjectFormat // sha1, sha256
+	SupportCheckAttrOnBare bool           // >= 2.40
 }
 
 var (
@@ -77,6 +78,7 @@ func loadGitVersionFeatures() (*Features, error) {
 	if features.SupportHashSha256 {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
 	}
+	features.SupportCheckAttrOnBare = features.CheckVersionAtLeast("2.40")
 	return features, nil
 }
 
