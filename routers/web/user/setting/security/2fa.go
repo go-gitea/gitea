@@ -6,7 +6,6 @@ package security
 
 import (
 	"bytes"
-	"code.gitea.io/gitea/modules/session"
 	"encoding/base64"
 	"html/template"
 	"image/png"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -171,14 +171,6 @@ func EnrollTwoFactor(ctx *context.Context) {
 		// already enrolled - we should redirect back!
 		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.Doer)
 		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
-
-		if ctx.Session.Get(session.KeyTwofaSatisfied) == nil {
-			// in case a 2FA user is using an old session (the session doesn't know 2FA authed),
-			// he will be navigated to this page, we should update the session status
-			_ = ctx.Session.Set(session.KeyTwofaSatisfied, true)
-			_ = ctx.Session.Release()
-		}
-
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
@@ -259,9 +251,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 
 	newTwoFactorErr := auth.NewTwoFactor(ctx, t)
 	if newTwoFactorErr == nil {
-		if err := ctx.Session.Set(session.KeyTwofaSatisfied, true); err != nil {
-			log.Error("Unable to set %s to session: Error: %v", session.KeyTwofaSatisfied, err)
-		}
+		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
 	}
 	// Now we have to delete the secrets - because if we fail to insert then it's highly likely that they have already been used
 	// If we can detect the unique constraint failure below we can move this to after the NewTwoFactor
