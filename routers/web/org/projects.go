@@ -43,7 +43,10 @@ func MustEnableProjects(ctx *context.Context) {
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	ctx.Data["Title"] = ctx.Tr("repo.projects")
 
 	sortType := ctx.FormTrim("sort")
@@ -101,7 +104,6 @@ func Projects(ctx *context.Context) {
 	}
 
 	ctx.Data["Projects"] = projects
-	shared_user.RenderUserHeader(ctx)
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -111,12 +113,6 @@ func Projects(ctx *context.Context) {
 	renderUtils := templates.NewRenderUtils(ctx)
 	for _, project := range projects {
 		project.RenderedContent = renderUtils.MarkdownToHtml(project.Description)
-	}
-
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
 	}
 
 	numPages := 0
@@ -152,11 +148,8 @@ func RenderNewProject(ctx *context.Context) {
 	ctx.Data["PageIsViewProjects"] = true
 	ctx.Data["HomeLink"] = ctx.ContextUser.HomeLink()
 	ctx.Data["CancelLink"] = ctx.ContextUser.HomeLink() + "/-/projects"
-	shared_user.RenderUserHeader(ctx)
-
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -167,7 +160,10 @@ func RenderNewProject(ctx *context.Context) {
 func NewProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	shared_user.RenderUserHeader(ctx)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	if ctx.HasError() {
 		RenderNewProject(ctx)
@@ -248,7 +244,10 @@ func RenderEditProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 
-	shared_user.RenderUserHeader(ctx)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	p, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -282,11 +281,8 @@ func EditProjectPost(ctx *context.Context) {
 	ctx.Data["CardTypes"] = project_model.GetCardConfig()
 	ctx.Data["CancelLink"] = project_model.ProjectLinkForOrg(ctx.ContextUser, projectID)
 
-	shared_user.RenderUserHeader(ctx)
-
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -343,14 +339,14 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	labelIDs := issue.PrepareFilterIssueLabels(ctx, project.RepoID, project.Owner)
+	preparedLabelFilter := issue.PrepareFilterIssueLabels(ctx, project.RepoID, project.Owner)
 	if ctx.Written() {
 		return
 	}
 	assigneeID := ctx.FormString("assignee")
 
 	opts := issues_model.IssuesOptions{
-		LabelIDs:   labelIDs,
+		LabelIDs:   preparedLabelFilter.SelectedLabelIDs,
 		AssigneeID: assigneeID,
 		Owner:      project.Owner,
 		Doer:       ctx.Doer,
@@ -406,8 +402,8 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	// Get the exclusive scope for every label ID
-	labelExclusiveScopes := make([]string, 0, len(labelIDs))
-	for _, labelID := range labelIDs {
+	labelExclusiveScopes := make([]string, 0, len(preparedLabelFilter.SelectedLabelIDs))
+	for _, labelID := range preparedLabelFilter.SelectedLabelIDs {
 		foundExclusiveScope := false
 		for _, label := range labels {
 			if label.ID == labelID || label.ID == -labelID {
@@ -422,7 +418,7 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	for _, l := range labels {
-		l.LoadSelectedLabelsAfterClick(labelIDs, labelExclusiveScopes)
+		l.LoadSelectedLabelsAfterClick(preparedLabelFilter.SelectedLabelIDs, labelExclusiveScopes)
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
@@ -443,11 +439,9 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Columns"] = columns
-	shared_user.RenderUserHeader(ctx)
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 

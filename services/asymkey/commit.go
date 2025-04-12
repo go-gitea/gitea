@@ -11,6 +11,8 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cachegroup"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -115,7 +117,7 @@ func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, commi
 			}
 		}
 
-		committerEmailAddresses, _ := user_model.GetEmailAddresses(ctx, committer.ID)
+		committerEmailAddresses, _ := cache.GetWithContextCache(ctx, cachegroup.UserEmailAddresses, committer.ID, user_model.GetEmailAddresses)
 		activated := false
 		for _, e := range committerEmailAddresses {
 			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
@@ -209,10 +211,9 @@ func checkKeyEmails(ctx context.Context, email string, keys ...*asymkey_model.GP
 		}
 		if key.Verified && key.OwnerID != 0 {
 			if uid != key.OwnerID {
-				userEmails, _ = user_model.GetEmailAddresses(ctx, key.OwnerID)
+				userEmails, _ = cache.GetWithContextCache(ctx, cachegroup.UserEmailAddresses, key.OwnerID, user_model.GetEmailAddresses)
 				uid = key.OwnerID
-				user = &user_model.User{ID: uid}
-				_, _ = user_model.GetUser(ctx, user)
+				user, _ = cache.GetWithContextCache(ctx, cachegroup.User, uid, user_model.GetUserByID)
 			}
 			for _, e := range userEmails {
 				if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
@@ -231,10 +232,7 @@ func HashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 	if keyID == "" {
 		return nil
 	}
-	keys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-		KeyID:          keyID,
-		IncludeSubKeys: true,
-	})
+	keys, err := cache.GetWithContextCache(ctx, cachegroup.GPGKeyWithSubKeys, keyID, asymkey_model.FindGPGKeyWithSubKeys)
 	if err != nil {
 		log.Error("GetGPGKeysByKeyID: %v", err)
 		return &asymkey_model.CommitVerification{
@@ -249,10 +247,7 @@ func HashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 	for _, key := range keys {
 		var primaryKeys []*asymkey_model.GPGKey
 		if key.PrimaryKeyID != "" {
-			primaryKeys, err = db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
-				KeyID:          key.PrimaryKeyID,
-				IncludeSubKeys: true,
-			})
+			primaryKeys, err = cache.GetWithContextCache(ctx, cachegroup.GPGKeyWithSubKeys, key.PrimaryKeyID, asymkey_model.FindGPGKeyWithSubKeys)
 			if err != nil {
 				log.Error("GetGPGKeysByKeyID: %v", err)
 				return &asymkey_model.CommitVerification{
@@ -272,8 +267,8 @@ func HashAndVerifyForKeyID(ctx context.Context, sig *packet.Signature, payload s
 			Name:  name,
 			Email: email,
 		}
-		if key.OwnerID != 0 {
-			owner, err := user_model.GetUserByID(ctx, key.OwnerID)
+		if key.OwnerID > 0 {
+			owner, err := cache.GetWithContextCache(ctx, cachegroup.User, key.OwnerID, user_model.GetUserByID)
 			if err == nil {
 				signer = owner
 			} else if !user_model.IsErrUserNotExist(err) {
@@ -381,7 +376,7 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 			}
 		}
 
-		committerEmailAddresses, err := user_model.GetEmailAddresses(ctx, committer.ID)
+		committerEmailAddresses, err := cache.GetWithContextCache(ctx, cachegroup.UserEmailAddresses, committer.ID, user_model.GetEmailAddresses)
 		if err != nil {
 			log.Error("GetEmailAddresses: %v", err)
 		}
