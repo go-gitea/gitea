@@ -747,6 +747,14 @@ overflow-menu .overflow-menu-button {
   padding: 0;
 }
 
+/* match the styles of ".ui.secondary.pointing.menu .active.item" */
+overflow-menu.ui.secondary.pointing.menu .overflow-menu-button.active {
+  padding: 2px 0 0;
+  border-bottom: 2px solid currentcolor;
+  background-color: transparent;
+  font-weight: var(--font-weight-medium);
+}
+
 overflow-menu .overflow-menu-button:hover {
   color: var(--color-text-dark);
 }
