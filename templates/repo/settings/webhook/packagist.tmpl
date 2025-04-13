@@ -1,5 +1,5 @@
 {{if eq .HookType "packagist"}}
-	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://packagist.org" (ctx.Locale.Tr "repo.settings.web_hook_name_packagist") | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://packagist.org" (ctx.Locale.Tr "repo.settings.web_hook_name_packagist")}}</p>
 	<form class="ui form" action="{{.BaseLink}}/packagist/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_Username}}error{{end}}">

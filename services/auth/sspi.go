@@ -13,19 +13,18 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/auth/source/sspi"
+	gitea_context "code.gitea.io/gitea/services/context"
 
 	gouuid "github.com/google/uuid"
 )
 
 const (
-	tplSignIn base.TplName = "user/auth/signin"
+	tplSignIn templates.TplName = "user/auth/signin"
 )
 
 type SSPIAuth interface {
@@ -89,7 +88,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		store.GetData()["EnableSSPI"] = true
 		// in this case, the Verify function is called in Gitea's web context
 		// FIXME: it doesn't look good to render the page here, why not redirect?
-		gitea_context.GetWebContext(req).HTML(http.StatusUnauthorized, tplSignIn)
+		gitea_context.GetWebContext(req.Context()).HTML(http.StatusUnauthorized, tplSignIn)
 		return nil, err
 	}
 	if outToken != "" {
@@ -120,7 +119,8 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 
 	// Make sure requests to API paths and PWA resources do not create a new session
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isAttachmentDownload() {
 		handleSignIn(w, req, sess, user)
 	}
 
@@ -131,7 +131,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 // getConfig retrieves the SSPI configuration from login sources
 func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
-		IsActive:  util.OptionalBoolTrue,
+		IsActive:  optional.Some(true),
 		LoginType: auth.SSPI,
 	})
 	if err != nil {
@@ -155,8 +155,9 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 		} else if req.FormValue("auth_with_sspi") == "1" {
 			shouldAuth = true
 		}
-	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
-		shouldAuth = true
+	} else {
+		detector := newAuthPathDetector(req)
+		shouldAuth = detector.isAPIPath() || detector.isAttachmentDownload()
 	}
 	return shouldAuth
 }
@@ -172,11 +173,11 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 	}
 	emailNotificationPreference := user_model.EmailNotificationsDisabled
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive:                     util.OptionalBoolOf(cfg.AutoActivateUsers),
-		KeepEmailPrivate:             util.OptionalBoolTrue,
+		IsActive:                     optional.Some(cfg.AutoActivateUsers),
+		KeepEmailPrivate:             optional.Some(true),
 		EmailNotificationsPreference: &emailNotificationPreference,
 	}
-	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return nil, err
 	}
 

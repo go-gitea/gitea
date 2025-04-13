@@ -1,0 +1,26 @@
+-
+  id: 1
+  project_id: 1
+  title: Done
+  creator_id: 2
+  default: false
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 2
+  project_id: 2
+  title: Backlog
+  creator_id: 2
+  default: true
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 3
+  project_id: 2
+  title: Uncategorized
+  creator_id: 2
+  default: true
+  created_unix: 1588117528
+  updated_unix: 1588117528

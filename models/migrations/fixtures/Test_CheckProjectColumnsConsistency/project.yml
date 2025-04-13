@@ -1,0 +1,23 @@
+-
+  id: 1
+  title: project without default column
+  owner_id: 2
+  repo_id: 0
+  is_closed: false
+  creator_id: 2
+  board_type: 1
+  type: 2
+  created_unix: 1688973000
+  updated_unix: 1688973000
+
+-
+  id: 2
+  title: project with multiple default columns
+  owner_id: 2
+  repo_id: 0
+  is_closed: false
+  creator_id: 2
+  board_type: 1
+  type: 2
+  created_unix: 1688973000
+  updated_unix: 1688973000

@@ -5,11 +5,12 @@ package files
 
 import (
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/contexttest"
 	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/contexttest"
 
 	_ "code.gitea.io/gitea/models/actions"
 
@@ -30,18 +31,20 @@ func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 	gitURL := "https://try.gitea.io/api/v1/repos/user2/repo1/git/blobs/" + sha
 	downloadURL := "https://try.gitea.io/user2/repo1/raw/branch/master/" + treePath
 	return &api.ContentsResponse{
-		Name:          treePath,
-		Path:          treePath,
-		SHA:           "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		LastCommitSHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		Type:          "file",
-		Size:          30,
-		Encoding:      &encoding,
-		Content:       &content,
-		URL:           &selfURL,
-		HTMLURL:       &htmlURL,
-		GitURL:        &gitURL,
-		DownloadURL:   &downloadURL,
+		Name:              treePath,
+		Path:              treePath,
+		SHA:               "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
+		LastCommitSHA:     "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+		LastCommitterDate: time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+		LastAuthorDate:    time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400)),
+		Type:              "file",
+		Size:              30,
+		Encoding:          &encoding,
+		Content:           &content,
+		URL:               &selfURL,
+		HTMLURL:           &htmlURL,
+		GitURL:            &gitURL,
+		DownloadURL:       &downloadURL,
 		Links: &api.FileLinksResponse{
 			Self:    &selfURL,
 			GitURL:  &gitURL,
@@ -53,7 +56,7 @@ func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 func TestGetContents(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
@@ -67,13 +70,13 @@ func TestGetContents(t *testing.T) {
 
 	t.Run("Get README.md contents with GetContents(ctx, )", func(t *testing.T) {
 		fileContentResponse, err := GetContents(ctx, ctx.Repo.Repository, treePath, ref, false)
-		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
+		assert.Equal(t, expectedContentsResponse, fileContentResponse)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Get README.md contents with ref as empty string (should then use the repo's default branch) with GetContents(ctx, )", func(t *testing.T) {
 		fileContentResponse, err := GetContents(ctx, ctx.Repo.Repository, treePath, "", false)
-		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
+		assert.Equal(t, expectedContentsResponse, fileContentResponse)
 		assert.NoError(t, err)
 	})
 }
@@ -81,7 +84,7 @@ func TestGetContents(t *testing.T) {
 func TestGetContentsOrListForDir(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
@@ -116,7 +119,7 @@ func TestGetContentsOrListForDir(t *testing.T) {
 func TestGetContentsOrListForFile(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
@@ -144,7 +147,7 @@ func TestGetContentsOrListForFile(t *testing.T) {
 func TestGetContentsErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
@@ -175,7 +178,7 @@ func TestGetContentsErrors(t *testing.T) {
 func TestGetContentsOrListErrors(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
-	ctx.SetParams(":id", "1")
+	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
 	contexttest.LoadRepoCommit(t, ctx)
 	contexttest.LoadUser(t, ctx, 2)
@@ -206,7 +209,7 @@ func TestGetContentsOrListErrors(t *testing.T) {
 func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user30/empty")
-	ctx.SetParams(":id", "52")
+	ctx.SetPathParam("id", "52")
 	contexttest.LoadRepo(t, ctx, 52)
 	contexttest.LoadUser(t, ctx, 30)
 	contexttest.LoadGitRepo(t, ctx)
@@ -231,15 +234,15 @@ func TestGetBlobBySHA(t *testing.T) {
 	defer ctx.Repo.GitRepo.Close()
 
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-	ctx.SetParams(":id", "1")
-	ctx.SetParams(":sha", sha)
+	ctx.SetPathParam("id", "1")
+	ctx.SetPathParam("sha", sha)
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository)
 	if err != nil {
 		t.Fail()
 	}
 
-	gbr, err := GetBlobBySHA(ctx, ctx.Repo.Repository, gitRepo, ctx.Params(":sha"))
+	gbr, err := GetBlobBySHA(ctx, ctx.Repo.Repository, gitRepo, ctx.PathParam("sha"))
 	expectedGBR := &api.GitBlobResponse{
 		Content:  "dHJlZSAyYTJmMWQ0NjcwNzI4YTJlMTAwNDllMzQ1YmQ3YTI3NjQ2OGJlYWI2CmF1dGhvciB1c2VyMSA8YWRkcmVzczFAZXhhbXBsZS5jb20+IDE0ODk5NTY0NzkgLTA0MDAKY29tbWl0dGVyIEV0aGFuIEtvZW5pZyA8ZXRoYW50a29lbmlnQGdtYWlsLmNvbT4gMTQ4OTk1NjQ3OSAtMDQwMAoKSW5pdGlhbCBjb21taXQK",
 		Encoding: "base64",

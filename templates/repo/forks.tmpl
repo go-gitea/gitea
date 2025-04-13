@@ -5,12 +5,14 @@
 		<h2 class="ui dividing header">
 			{{ctx.Locale.Tr "repo.forks"}}
 		</h2>
+		<div class="flex-list">
 		{{range .Forks}}
-			<div class="gt-df gt-ac gt-py-3">
-				<span class="gt-mr-2">{{ctx.AvatarUtils.Avatar .Owner}}</span>
-				<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a>
+			<div class="flex-item tw-border-0 repo-fork-item">
+				<span>{{ctx.AvatarUtils.Avatar .Owner}}</span>
+				<span><a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a></span>
 			</div>
 		{{end}}
+		</div>
 	</div>
 
 	{{template "base/paginate" .}}

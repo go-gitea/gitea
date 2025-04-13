@@ -5,6 +5,7 @@ package meilisearch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/meilisearch/meilisearch-go"
@@ -12,7 +13,7 @@ import (
 
 // Indexer represents a basic meilisearch indexer implementation
 type Indexer struct {
-	Client *meilisearch.Client
+	Client meilisearch.ServiceManager
 
 	url, apiKey string
 	indexName   string
@@ -33,18 +34,14 @@ func NewIndexer(url, apiKey, indexName string, version int, settings *meilisearc
 // Init initializes the indexer
 func (i *Indexer) Init(_ context.Context) (bool, error) {
 	if i == nil {
-		return false, fmt.Errorf("cannot init nil indexer")
+		return false, errors.New("cannot init nil indexer")
 	}
 
 	if i.Client != nil {
-		return false, fmt.Errorf("indexer is already initialized")
+		return false, errors.New("indexer is already initialized")
 	}
 
-	i.Client = meilisearch.NewClient(meilisearch.ClientConfig{
-		Host:   i.url,
-		APIKey: i.apiKey,
-	})
-
+	i.Client = meilisearch.New(i.url, meilisearch.WithAPIKey(i.apiKey))
 	_, err := i.Client.GetIndex(i.VersionedIndexName())
 	if err == nil {
 		return true, nil
@@ -66,10 +63,10 @@ func (i *Indexer) Init(_ context.Context) (bool, error) {
 // Ping checks if the indexer is available
 func (i *Indexer) Ping(ctx context.Context) error {
 	if i == nil {
-		return fmt.Errorf("cannot ping nil indexer")
+		return errors.New("cannot ping nil indexer")
 	}
 	if i.Client == nil {
-		return fmt.Errorf("indexer is not initialized")
+		return errors.New("indexer is not initialized")
 	}
 	resp, err := i.Client.Health()
 	if err != nil {
@@ -85,9 +82,6 @@ func (i *Indexer) Ping(ctx context.Context) error {
 // Close closes the indexer
 func (i *Indexer) Close() {
 	if i == nil {
-		return
-	}
-	if i.Client == nil {
 		return
 	}
 	i.Client = nil

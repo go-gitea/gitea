@@ -4,7 +4,7 @@
 <div class="ui attached segment">
 	<p>{{ctx.Locale.Tr "settings.twofa_desc"}}</p>
 	{{if .TOTPEnrolled}}
-	<p>{{ctx.Locale.Tr "settings.twofa_is_enrolled" | Str2html}}</p>
+	<p>{{ctx.Locale.Tr "settings.twofa_is_enrolled"}}</p>
 	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/regenerate_scratch" method="post" enctype="multipart/form-data">
 		{{.CsrfTokenHtml}}
 		<p>{{ctx.Locale.Tr "settings.regenerate_scratch_token_desc"}}</p>

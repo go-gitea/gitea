@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 const tplCommentPrefix = `# gitea public key`
@@ -33,7 +35,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 			return fmt.Errorf("Unable to open authorized_keys file. ERROR: %w", err)
 		}
 		logger.Warn("Unable to open authorized_keys. (ERROR: %v). Attempting to rewrite...", err)
-		if err = asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+		if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
 			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %w", err)
 		}
@@ -50,7 +52,11 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		}
 		linesInAuthorizedKeys.Add(line)
 	}
-	f.Close()
+	if err = scanner.Err(); err != nil {
+		return fmt.Errorf("scan: %w", err)
+	}
+	// although there is a "defer close" above, here close explicitly before the generating, because it needs to open the file for writing again
+	_ = f.Close()
 
 	// now we regenerate and check if there are any lines missing
 	regenerated := &bytes.Buffer{}
@@ -73,10 +79,10 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 				fPath,
 				"gitea admin regenerate keys",
 				"gitea doctor --run authorized-keys --fix")
-			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized-keys --fix"`)
+			return errors.New(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized-keys --fix"`)
 		}
 		logger.Warn("authorized_keys is out of date. Attempting rewrite...")
-		err = asymkey_model.RewriteAllPublicKeys(ctx)
+		err = asymkey_service.RewriteAllPublicKeys(ctx)
 		if err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
 			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %w", err)

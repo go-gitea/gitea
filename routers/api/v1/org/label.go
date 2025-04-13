@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/label"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
@@ -46,13 +46,13 @@ func ListLabels(ctx *context.APIContext) {
 
 	labels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLabelsByOrgID", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	count, err := issues_model.CountLabelsByOrgID(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func CreateLabel(ctx *context.APIContext) {
 	form.Color = strings.Trim(form.Color, " ")
 	color, err := label.NormalizeColor(form.Color)
 	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, "Color", err)
+		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	}
 	form.Color = color
@@ -103,7 +103,7 @@ func CreateLabel(ctx *context.APIContext) {
 		Description: form.Description,
 	}
 	if err := issues_model.NewLabel(ctx, label); err != nil {
-		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -139,7 +139,7 @@ func GetLabel(ctx *context.APIContext) {
 		label *issues_model.Label
 		err   error
 	)
-	strID := ctx.Params(":id")
+	strID := ctx.PathParam("id")
 	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
 		label, err = issues_model.GetLabelInOrgByName(ctx, ctx.Org.Organization.ID, strID)
 	} else {
@@ -147,9 +147,9 @@ func GetLabel(ctx *context.APIContext) {
 	}
 	if err != nil {
 		if issues_model.IsErrOrgLabelNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLabelByOrgID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -190,12 +190,12 @@ func EditLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.EditLabelOption)
-	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
+	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrOrgLabelNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLabelByRepoID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -209,7 +209,7 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Color != nil {
 		color, err := label.NormalizeColor(*form.Color)
 		if err != nil {
-			ctx.Error(http.StatusUnprocessableEntity, "Color", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
 		l.Color = color
@@ -219,7 +219,7 @@ func EditLabel(ctx *context.APIContext) {
 	}
 	l.SetArchived(form.IsArchived != nil && *form.IsArchived)
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -249,8 +249,8 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
+	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id")); err != nil {
+		ctx.APIErrorInternal(err)
 		return
 	}
 

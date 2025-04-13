@@ -24,6 +24,12 @@ func TestAPIRepoSecrets(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
+	t.Run("List", func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/secrets", repo.FullName())).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+	})
+
 	t.Run("Create", func(t *testing.T) {
 		cases := []struct {
 			Name           string
@@ -31,7 +37,7 @@ func TestAPIRepoSecrets(t *testing.T) {
 		}{
 			{
 				Name:           "",
-				ExpectedStatus: http.StatusNotFound,
+				ExpectedStatus: http.StatusMethodNotAllowed,
 			},
 			{
 				Name:           "-",
@@ -62,6 +68,33 @@ func TestAPIRepoSecrets(t *testing.T) {
 		for _, c := range cases {
 			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), c.Name), api.CreateOrUpdateSecretOption{
 				Data: "data",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, c.ExpectedStatus)
+		}
+	})
+
+	t.Run("CreateWithDescription", func(t *testing.T) {
+		cases := []struct {
+			Name           string
+			Description    string
+			ExpectedStatus int
+		}{
+			{
+				Name:           "no_description",
+				Description:    "",
+				ExpectedStatus: http.StatusCreated,
+			},
+			{
+				Name:           "description",
+				Description:    "some description",
+				ExpectedStatus: http.StatusCreated,
+			},
+		}
+
+		for _, c := range cases {
+			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/%s", repo.FullName(), c.Name), api.CreateOrUpdateSecretOption{
+				Data:        "data",
+				Description: c.Description,
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, c.ExpectedStatus)
 		}

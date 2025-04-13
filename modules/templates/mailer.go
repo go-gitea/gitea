@@ -5,14 +5,15 @@ package templates
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"regexp"
 	"strings"
 	texttmpl "text/template"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
@@ -21,9 +22,9 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
 func mailSubjectTextFuncMap() texttmpl.FuncMap {
 	return texttmpl.FuncMap{
 		"dict": dict,
-		"Eval": Eval,
+		"Eval": evalTokens,
 
-		"EllipsisString": base.EllipsisString,
+		"EllipsisString": util.EllipsisDisplayString,
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -33,7 +34,7 @@ func mailSubjectTextFuncMap() texttmpl.FuncMap {
 	}
 }
 
-func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) {
+func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) error {
 	// Split template into subject and body
 	var subjectContent []byte
 	bodyContent := content
@@ -42,14 +43,13 @@ func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, 
 		subjectContent = content[0:loc[0]]
 		bodyContent = content[loc[1]:]
 	}
-	if _, err := stpl.New(name).
-		Parse(string(subjectContent)); err != nil {
-		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
+	if _, err := stpl.New(name).Parse(string(subjectContent)); err != nil {
+		return fmt.Errorf("failed to parse template [%s/subject]: %w", name, err)
 	}
-	if _, err := btpl.New(name).
-		Parse(string(bodyContent)); err != nil {
-		log.Warn("Failed to parse template [%s/body]: %v", name, err)
+	if _, err := btpl.New(name).Parse(string(bodyContent)); err != nil {
+		return fmt.Errorf("failed to parse template [%s/body]: %w", name, err)
 	}
+	return nil
 }
 
 // Mailer provides the templates required for sending notification mails.
@@ -81,7 +81,12 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 			if firstRun {
 				log.Trace("Adding mail template %s: %s by %s", tmplName, assetPath, layerName)
 			}
-			buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content)
+			if err = buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content); err != nil {
+				if firstRun {
+					log.Fatal("Failed to parse mail template, err: %v", err)
+				}
+				log.Error("Failed to parse mail template, err: %v", err)
+			}
 		}
 	}
 

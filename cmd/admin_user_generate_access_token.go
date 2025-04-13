@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -33,8 +34,8 @@ var microcmdUserGenerateAccessToken = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "scopes",
-			Value: "",
-			Usage: "Comma separated list of scopes to apply to access token",
+			Value: "all",
+			Usage: `Comma separated list of scopes to apply to access token, examples: "all", "public-only,read:issue", "write:repository,write:user"`,
 		},
 	},
 	Action: runGenerateAccessToken,
@@ -42,7 +43,7 @@ var microcmdUserGenerateAccessToken = &cli.Command{
 
 func runGenerateAccessToken(c *cli.Context) error {
 	if !c.IsSet("username") {
-		return fmt.Errorf("You must provide a username to generate a token for")
+		return errors.New("you must provide a username to generate a token for")
 	}
 
 	ctx, cancel := installSignals()
@@ -68,13 +69,16 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 	if exist {
-		return fmt.Errorf("access token name has been used already")
+		return errors.New("access token name has been used already")
 	}
 
 	// make sure the scopes are valid
 	accessTokenScope, err := auth_model.AccessTokenScope(c.String("scopes")).Normalize()
 	if err != nil {
 		return fmt.Errorf("invalid access token scope provided: %w", err)
+	}
+	if !accessTokenScope.HasPermissionScope() {
+		return errors.New("access token does not have any permission")
 	}
 	t.Scope = accessTokenScope
 

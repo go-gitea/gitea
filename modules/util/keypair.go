@@ -7,19 +7,15 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
-
-	"github.com/minio/sha256-simd"
 )
 
 // GenerateKeyPair generates a public and private keypair
 func GenerateKeyPair(bits int) (string, string, error) {
 	priv, _ := rsa.GenerateKey(rand.Reader, bits)
-	privPem, err := pemBlockForPriv(priv)
-	if err != nil {
-		return "", "", err
-	}
+	privPem := pemBlockForPriv(priv)
 	pubPem, err := pemBlockForPub(&priv.PublicKey)
 	if err != nil {
 		return "", "", err
@@ -27,12 +23,12 @@ func GenerateKeyPair(bits int) (string, string, error) {
 	return privPem, pubPem, nil
 }
 
-func pemBlockForPriv(priv *rsa.PrivateKey) (string, error) {
+func pemBlockForPriv(priv *rsa.PrivateKey) string {
 	privBytes := pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(priv),
 	})
-	return string(privBytes), nil
+	return string(privBytes)
 }
 
 func pemBlockForPub(pub *rsa.PublicKey) (string, error) {

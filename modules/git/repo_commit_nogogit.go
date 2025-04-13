@@ -16,7 +16,7 @@ import (
 
 // ResolveReference resolves a name to a reference
 func (repo *Repository) ResolveReference(name string) (string, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "show-ref", "--hash").AddDynamicArguments(name).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := NewCommand("show-ref", "--hash").AddDynamicArguments(name).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
@@ -33,9 +33,12 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	if err != nil {
+		return "", err
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(name + "\n"))
+	_, err = wr.Write([]byte(name + "\n"))
 	if err != nil {
 		return "", err
 	}
@@ -49,32 +52,39 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 
 // SetReference sets the commit ID string of given reference (e.g. branch or tag).
 func (repo *Repository) SetReference(name, commitID string) error {
-	_, _, err := NewCommand(repo.Ctx, "update-ref").AddDynamicArguments(name, commitID).RunStdString(&RunOpts{Dir: repo.Path})
+	_, _, err := NewCommand("update-ref").AddDynamicArguments(name, commitID).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	return err
 }
 
 // RemoveReference removes the given reference (e.g. branch or tag).
 func (repo *Repository) RemoveReference(name string) error {
-	_, _, err := NewCommand(repo.Ctx, "update-ref", "--no-deref", "-d").AddDynamicArguments(name).RunStdString(&RunOpts{Dir: repo.Path})
+	_, _, err := NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(name).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	return err
 }
 
 // IsCommitExist returns true if given commit exists in current repository.
 func (repo *Repository) IsCommitExist(name string) bool {
-	_, _, err := NewCommand(repo.Ctx, "cat-file", "-e").AddDynamicArguments(name).RunStdString(&RunOpts{Dir: repo.Path})
+	if err := ensureValidGitRepository(repo.Ctx, repo.Path); err != nil {
+		log.Error("IsCommitExist: %v", err)
+		return false
+	}
+	_, _, err := NewCommand("cat-file", "-e").AddDynamicArguments(name).RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	return err == nil
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 
 	_, _ = wr.Write([]byte(id.String() + "\n"))
 
-	return repo.getCommitFromBatchReader(rd, id)
+	return repo.getCommitFromBatchReader(wr, rd, id)
 }
 
-func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) (*Commit, error) {
+func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.Reader, id ObjectID) (*Commit, error) {
 	_, typ, size, err := ReadBatchLine(rd)
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
@@ -102,7 +112,11 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 			return nil, err
 		}
 
-		commit, err := tag.Commit(repo)
+		if _, err := wr.Write([]byte(tag.Object.String() + "\n")); err != nil {
+			return nil, err
+		}
+
+		commit, err := repo.getCommitFromBatchReader(wr, rd, tag.Object)
 		if err != nil {
 			return nil, err
 		}
@@ -121,8 +135,7 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 		return commit, nil
 	default:
 		log.Debug("Unknown typ: %s", typ)
-		_, err = rd.Discard(int(size) + 1)
-		if err != nil {
+		if err := DiscardFull(rd, size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{
@@ -133,17 +146,23 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id ObjectID) 
 
 // ConvertToGitID returns a GitHash object from a potential ID string
 func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
-	IDType := repo.objectFormat
-	if len(commitID) == IDType.FullLength() && IDType.IsValid(commitID) {
+	objectFormat, err := repo.GetObjectFormat()
+	if err != nil {
+		return nil, err
+	}
+	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
 		ID, err := NewIDFromString(commitID)
 		if err == nil {
 			return ID, nil
 		}
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(commitID + "\n"))
+	_, err = wr.Write([]byte(commitID + "\n"))
 	if err != nil {
 		return nil, err
 	}

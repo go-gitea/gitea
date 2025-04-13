@@ -17,6 +17,9 @@
 			{{ctx.Locale.Tr "settings.applications"}}
 		</a>
 		{{end}}
+		<a class="{{if .PageIsSettingsBlockedUsers}}active {{end}}item" href="{{.OrgLink}}/settings/blocked_users">
+			{{ctx.Locale.Tr "user.block.list"}}
+		</a>
 		{{if .EnablePackages}}
 		<a class="{{if .PageIsSettingsPackages}}active {{end}}item" href="{{.OrgLink}}/settings/packages">
 			{{ctx.Locale.Tr "packages.title"}}

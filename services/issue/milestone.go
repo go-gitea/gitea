@@ -5,6 +5,7 @@ package issue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -21,7 +22,7 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *is
 			return fmt.Errorf("HasMilestoneByRepoID: %w", err)
 		}
 		if !has {
-			return fmt.Errorf("HasMilestoneByRepoID: issue doesn't exist")
+			return errors.New("HasMilestoneByRepoID: issue doesn't exist")
 		}
 	}
 
@@ -57,6 +58,10 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *is
 		if _, err := issues_model.CreateComment(ctx, opts); err != nil {
 			return err
 		}
+	}
+
+	if issue.MilestoneID == 0 {
+		issue.Milestone = nil
 	}
 
 	return nil

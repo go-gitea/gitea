@@ -3,11 +3,18 @@
 
 package middleware
 
-import "net/url"
+import (
+	"fmt"
+	"html/template"
+	"net/http"
+	"net/url"
+
+	"code.gitea.io/gitea/modules/reqctx"
+)
 
 // Flash represents a one time data transfer between two requests.
 type Flash struct {
-	DataStore ContextDataStore
+	DataStore reqctx.RequestDataStore
 	url.Values
 	ErrorMsg, WarningMsg, InfoMsg, SuccessMsg string
 }
@@ -26,26 +33,60 @@ func (f *Flash) set(name, msg string, current ...bool) {
 	}
 }
 
+func flashMsgStringOrHTML(msg any) string {
+	switch v := msg.(type) {
+	case string:
+		return v
+	case template.HTML:
+		return string(v)
+	}
+	panic(fmt.Sprintf("unknown type: %T", msg))
+}
+
 // Error sets error message
-func (f *Flash) Error(msg string, current ...bool) {
-	f.ErrorMsg = msg
-	f.set("error", msg, current...)
+func (f *Flash) Error(msg any, current ...bool) {
+	f.ErrorMsg = flashMsgStringOrHTML(msg)
+	f.set("error", f.ErrorMsg, current...)
 }
 
 // Warning sets warning message
-func (f *Flash) Warning(msg string, current ...bool) {
-	f.WarningMsg = msg
-	f.set("warning", msg, current...)
+func (f *Flash) Warning(msg any, current ...bool) {
+	f.WarningMsg = flashMsgStringOrHTML(msg)
+	f.set("warning", f.WarningMsg, current...)
 }
 
 // Info sets info message
-func (f *Flash) Info(msg string, current ...bool) {
-	f.InfoMsg = msg
-	f.set("info", msg, current...)
+func (f *Flash) Info(msg any, current ...bool) {
+	f.InfoMsg = flashMsgStringOrHTML(msg)
+	f.set("info", f.InfoMsg, current...)
 }
 
 // Success sets success message
-func (f *Flash) Success(msg string, current ...bool) {
-	f.SuccessMsg = msg
-	f.set("success", msg, current...)
+func (f *Flash) Success(msg any, current ...bool) {
+	f.SuccessMsg = flashMsgStringOrHTML(msg)
+	f.set("success", f.SuccessMsg, current...)
+}
+
+func ParseCookieFlashMessage(val string) *Flash {
+	if vals, _ := url.ParseQuery(val); len(vals) > 0 {
+		return &Flash{
+			Values:     vals,
+			ErrorMsg:   vals.Get("error"),
+			SuccessMsg: vals.Get("success"),
+			InfoMsg:    vals.Get("info"),
+			WarningMsg: vals.Get("warning"),
+		}
+	}
+	return nil
+}
+
+func GetSiteCookieFlashMessage(dataStore reqctx.RequestDataStore, req *http.Request, cookieName string) (string, *Flash) {
+	// Get the last flash message from cookie
+	lastFlashCookie := GetSiteCookie(req, cookieName)
+	lastFlashMsg := ParseCookieFlashMessage(lastFlashCookie)
+	if lastFlashMsg != nil {
+		lastFlashMsg.DataStore = dataStore
+		return lastFlashCookie, lastFlashMsg
+	}
+	return lastFlashCookie, nil
 }

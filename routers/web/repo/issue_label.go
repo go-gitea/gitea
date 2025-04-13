@@ -9,19 +9,18 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 const (
-	tplLabels base.TplName = "repo/issue/labels"
+	tplLabels templates.TplName = "repo/issue/labels"
 )
 
 // Labels render issue's labels page
@@ -54,11 +53,11 @@ func InitializeLabels(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 }
 
-// RetrieveLabels find all the labels of a repository and organization
-func RetrieveLabels(ctx *context.Context) {
+// RetrieveLabelsForList find all the labels of a repository and organization, it is only used by "/labels" page to list all labels
+func RetrieveLabelsForList(ctx *context.Context) {
 	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("RetrieveLabels.GetLabels", err)
+		ctx.ServerError("RetrieveLabelsForList.GetLabels", err)
 		return
 	}
 
@@ -112,12 +111,12 @@ func NewLabel(ctx *context.Context) {
 	}
 
 	l := &issues_model.Label{
-		RepoID:       ctx.Repo.Repository.ID,
-		Name:         form.Title,
-		Exclusive:    form.Exclusive,
-		Description:  form.Description,
-		Color:        form.Color,
-		ArchivedUnix: timeutil.TimeStamp(0),
+		RepoID:         ctx.Repo.Repository.ID,
+		Name:           form.Title,
+		Exclusive:      form.Exclusive,
+		ExclusiveOrder: form.ExclusiveOrder,
+		Description:    form.Description,
+		Color:          form.Color,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
@@ -133,7 +132,7 @@ func UpdateLabel(ctx *context.Context) {
 	if err != nil {
 		switch {
 		case issues_model.IsErrRepoLabelNotExist(err):
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
 		}
@@ -141,6 +140,7 @@ func UpdateLabel(ctx *context.Context) {
 	}
 	l.Name = form.Title
 	l.Exclusive = form.Exclusive
+	l.ExclusiveOrder = form.ExclusiveOrder
 	l.Description = form.Description
 	l.Color = form.Color
 
@@ -182,7 +182,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 		label, err := issues_model.GetLabelByID(ctx, ctx.FormInt64("id"))
 		if err != nil {
 			if issues_model.IsErrRepoLabelNotExist(err) {
-				ctx.Error(http.StatusNotFound, "GetLabelByID")
+				ctx.HTTPError(http.StatusNotFound, "GetLabelByID")
 			} else {
 				ctx.ServerError("GetLabelByID", err)
 			}
@@ -223,7 +223,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 		}
 	default:
 		log.Warn("Unrecognized action: %s", action)
-		ctx.Error(http.StatusInternalServerError)
+		ctx.HTTPError(http.StatusInternalServerError)
 		return
 	}
 

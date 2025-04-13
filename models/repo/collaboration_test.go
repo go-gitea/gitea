@@ -19,14 +19,14 @@ func TestRepository_GetCollaborators(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-		collaborators, err := repo_model.GetCollaborators(db.DefaultContext, repo.ID, db.ListOptions{})
+		collaborators, _, err := repo_model.GetCollaborators(db.DefaultContext, &repo_model.FindCollaborationOptions{RepoID: repo.ID})
 		assert.NoError(t, err)
 		expectedLen, err := db.GetEngine(db.DefaultContext).Count(&repo_model.Collaboration{RepoID: repoID})
 		assert.NoError(t, err)
 		assert.Len(t, collaborators, int(expectedLen))
 		for _, collaborator := range collaborators {
-			assert.EqualValues(t, collaborator.User.ID, collaborator.Collaboration.UserID)
-			assert.EqualValues(t, repoID, collaborator.Collaboration.RepoID)
+			assert.Equal(t, collaborator.User.ID, collaborator.Collaboration.UserID)
+			assert.Equal(t, repoID, collaborator.Collaboration.RepoID)
 		}
 	}
 	test(1)
@@ -37,15 +37,21 @@ func TestRepository_GetCollaborators(t *testing.T) {
 	// Test db.ListOptions
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
 
-	collaborators1, err := repo_model.GetCollaborators(db.DefaultContext, repo.ID, db.ListOptions{PageSize: 1, Page: 1})
+	collaborators1, _, err := repo_model.GetCollaborators(db.DefaultContext, &repo_model.FindCollaborationOptions{
+		ListOptions: db.ListOptions{PageSize: 1, Page: 1},
+		RepoID:      repo.ID,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, collaborators1, 1)
 
-	collaborators2, err := repo_model.GetCollaborators(db.DefaultContext, repo.ID, db.ListOptions{PageSize: 1, Page: 2})
+	collaborators2, _, err := repo_model.GetCollaborators(db.DefaultContext, &repo_model.FindCollaborationOptions{
+		ListOptions: db.ListOptions{PageSize: 1, Page: 2},
+		RepoID:      repo.ID,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, collaborators2, 1)
 
-	assert.NotEqualValues(t, collaborators1[0].ID, collaborators2[0].ID)
+	assert.NotEqual(t, collaborators1[0].ID, collaborators2[0].ID)
 }
 
 func TestRepository_IsCollaborator(t *testing.T) {
@@ -70,10 +76,10 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, 4, perm.AccessModeAdmin))
 
 	collaboration := unittest.AssertExistsAndLoadBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
-	assert.EqualValues(t, perm.AccessModeAdmin, collaboration.Mode)
+	assert.Equal(t, perm.AccessModeAdmin, collaboration.Mode)
 
 	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: repo.ID})
-	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
+	assert.Equal(t, perm.AccessModeAdmin, access.Mode)
 
 	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, 4, perm.AccessModeAdmin))
 
@@ -83,31 +89,6 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(db.DefaultContext, repo, 4, perm.AccessMode(unittest.NonexistentID)))
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
-}
-
-func TestRepository_CountCollaborators(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	count, err := db.Count[repo_model.Collaboration](db.DefaultContext, repo_model.FindCollaborationOptions{
-		RepoID: repo1.ID,
-	})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 2, count)
-
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
-	count, err = db.Count[repo_model.Collaboration](db.DefaultContext, repo_model.FindCollaborationOptions{
-		RepoID: repo2.ID,
-	})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 2, count)
-
-	// Non-existent repository.
-	count, err = db.Count[repo_model.Collaboration](db.DefaultContext, repo_model.FindCollaborationOptions{
-		RepoID: unittest.NonexistentID,
-	})
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, count)
 }
 
 func TestRepository_IsOwnerMemberCollaborator(t *testing.T) {

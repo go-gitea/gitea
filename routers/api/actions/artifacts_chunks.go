@@ -5,11 +5,16 @@ package actions
 
 import (
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/actions"
@@ -17,6 +22,52 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
+
+func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
+	artifact *actions.ActionArtifact,
+	contentSize, runID, start, end, length int64, checkMd5 bool,
+) (int64, error) {
+	// build chunk store path
+	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d-%d.chunk", runID, runID, artifact.ID, start, end)
+	var r io.Reader = ctx.Req.Body
+	var hasher hash.Hash
+	if checkMd5 {
+		// use io.TeeReader to avoid reading all body to md5 sum.
+		// it writes data to hasher after reading end
+		// if hash is not matched, delete the read-end result
+		hasher = md5.New()
+		r = io.TeeReader(r, hasher)
+	}
+	// save chunk to storage
+	writtenSize, err := st.Save(storagePath, r, contentSize)
+	if err != nil {
+		return -1, fmt.Errorf("save chunk to storage error: %v", err)
+	}
+	var checkErr error
+	if checkMd5 {
+		// check md5
+		reqMd5String := ctx.Req.Header.Get(artifactXActionsResultsMD5Header)
+		chunkMd5String := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+		log.Info("[artifact] check chunk md5, sum: %s, header: %s", chunkMd5String, reqMd5String)
+		// if md5 not match, delete the chunk
+		if reqMd5String != chunkMd5String {
+			checkErr = errors.New("md5 not match")
+		}
+	}
+	if writtenSize != contentSize {
+		checkErr = errors.Join(checkErr, fmt.Errorf("writtenSize %d not match contentSize %d", writtenSize, contentSize))
+	}
+	if checkErr != nil {
+		if err := st.Delete(storagePath); err != nil {
+			log.Error("Error deleting chunk: %s, %v", storagePath, err)
+		}
+		return -1, checkErr
+	}
+	log.Info("[artifact] save chunk %s, size: %d, artifact id: %d, start: %d, end: %d",
+		storagePath, contentSize, artifact.ID, start, end)
+	// return chunk total size
+	return length, nil
+}
 
 func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 	artifact *actions.ActionArtifact,
@@ -29,33 +80,15 @@ func saveUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
 		log.Warn("parse content range error: %v, content-range: %s", err, contentRange)
 		return -1, fmt.Errorf("parse content range error: %v", err)
 	}
-	// build chunk store path
-	storagePath := fmt.Sprintf("tmp%d/%d-%d-%d-%d.chunk", runID, runID, artifact.ID, start, end)
-	// use io.TeeReader to avoid reading all body to md5 sum.
-	// it writes data to hasher after reading end
-	// if hash is not matched, delete the read-end result
-	hasher := md5.New()
-	r := io.TeeReader(ctx.Req.Body, hasher)
-	// save chunk to storage
-	writtenSize, err := st.Save(storagePath, r, -1)
-	if err != nil {
-		return -1, fmt.Errorf("save chunk to storage error: %v", err)
-	}
-	// check md5
-	reqMd5String := ctx.Req.Header.Get(artifactXActionsResultsMD5Header)
-	chunkMd5String := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
-	log.Info("[artifact] check chunk md5, sum: %s, header: %s", chunkMd5String, reqMd5String)
-	// if md5 not match, delete the chunk
-	if reqMd5String != chunkMd5String || writtenSize != contentSize {
-		if err := st.Delete(storagePath); err != nil {
-			log.Error("Error deleting chunk: %s, %v", storagePath, err)
-		}
-		return -1, fmt.Errorf("md5 not match")
-	}
-	log.Info("[artifact] save chunk %s, size: %d, artifact id: %d, start: %d, end: %d",
-		storagePath, contentSize, artifact.ID, start, end)
-	// return chunk total size
-	return length, nil
+	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, length, true)
+}
+
+func appendUploadChunk(st storage.ObjectStorage, ctx *ArtifactContext,
+	artifact *actions.ActionArtifact,
+	start, contentSize, runID int64,
+) (int64, error) {
+	end := start + contentSize - 1
+	return saveUploadChunkBase(st, ctx, artifact, contentSize, runID, start, end, contentSize, false)
 }
 
 type chunkFileItem struct {
@@ -90,6 +123,54 @@ func listChunksByRunID(st storage.ObjectStorage, runID int64) (map[int64][]*chun
 	return chunksMap, nil
 }
 
+func listChunksByRunIDV4(st storage.ObjectStorage, runID, artifactID int64, blist *BlockList) ([]*chunkFileItem, error) {
+	storageDir := fmt.Sprintf("tmpv4%d", runID)
+	var chunks []*chunkFileItem
+	chunkMap := map[string]*chunkFileItem{}
+	dummy := &chunkFileItem{}
+	for _, name := range blist.Latest {
+		chunkMap[name] = dummy
+	}
+	if err := st.IterateObjects(storageDir, func(fpath string, obj storage.Object) error {
+		baseName := filepath.Base(fpath)
+		if !strings.HasPrefix(baseName, "block-") {
+			return nil
+		}
+		// when read chunks from storage, it only contains storage dir and basename,
+		// no matter the subdirectory setting in storage config
+		item := chunkFileItem{Path: storageDir + "/" + baseName, ArtifactID: artifactID}
+		var size int64
+		var b64chunkName string
+		if _, err := fmt.Sscanf(baseName, "block-%d-%d-%s", &item.RunID, &size, &b64chunkName); err != nil {
+			return fmt.Errorf("parse content range error: %v", err)
+		}
+		rchunkName, err := base64.URLEncoding.DecodeString(b64chunkName)
+		if err != nil {
+			return fmt.Errorf("failed to parse chunkName: %v", err)
+		}
+		chunkName := string(rchunkName)
+		item.End = item.Start + size - 1
+		if _, ok := chunkMap[chunkName]; ok {
+			chunkMap[chunkName] = &item
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	for i, name := range blist.Latest {
+		chunk, ok := chunkMap[name]
+		if !ok || chunk.Path == "" {
+			return nil, fmt.Errorf("missing Chunk (%d/%d): %s", i, len(blist.Latest), name)
+		}
+		chunks = append(chunks, chunk)
+		if i > 0 {
+			chunk.Start = chunkMap[blist.Latest[i-1]].End + 1
+			chunk.End += chunk.Start
+		}
+	}
+	return chunks, nil
+}
+
 func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int64, artifactName string) error {
 	// read all db artifacts by name
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
@@ -111,14 +192,14 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID int
 			log.Debug("artifact %d chunks not found", art.ID)
 			continue
 		}
-		if err := mergeChunksForArtifact(ctx, chunks, st, art); err != nil {
+		if err := mergeChunksForArtifact(ctx, chunks, st, art, ""); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st storage.ObjectStorage, artifact *actions.ActionArtifact) error {
+func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st storage.ObjectStorage, artifact *actions.ActionArtifact, checksum string) error {
 	sort.Slice(chunks, func(i, j int) bool {
 		return chunks[i].Start < chunks[j].Start
 	})
@@ -157,6 +238,14 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		readers = append(readers, readCloser)
 	}
 	mergedReader := io.MultiReader(readers...)
+	shaPrefix := "sha256:"
+	var hash hash.Hash
+	if strings.HasPrefix(checksum, shaPrefix) {
+		hash = sha256.New()
+	}
+	if hash != nil {
+		mergedReader = io.TeeReader(mergedReader, hash)
+	}
 
 	// if chunk is gzip, use gz as extension
 	// download-artifact action will use content-encoding header to decide if it should decompress the file
@@ -167,12 +256,12 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 
 	// save merged file
 	storagePath := fmt.Sprintf("%d/%d/%d.%s", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano(), extension)
-	written, err := st.Save(storagePath, mergedReader, -1)
+	written, err := st.Save(storagePath, mergedReader, artifact.FileCompressedSize)
 	if err != nil {
 		return fmt.Errorf("save merged file error: %v", err)
 	}
 	if written != artifact.FileCompressedSize {
-		return fmt.Errorf("merged file size is not equal to chunk length")
+		return errors.New("merged file size is not equal to chunk length")
 	}
 
 	defer func() {
@@ -185,6 +274,14 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		}
 	}()
 
+	if hash != nil {
+		rawChecksum := hash.Sum(nil)
+		actualChecksum := hex.EncodeToString(rawChecksum)
+		if !strings.HasSuffix(checksum, actualChecksum) {
+			return fmt.Errorf("update artifact error checksum is invalid %v vs %v", checksum, actualChecksum)
+		}
+	}
+
 	// save storage path to artifact
 	log.Debug("[artifact] merge chunks to artifact: %d, %s, old:%s", artifact.ID, storagePath, artifact.StoragePath)
 	// if artifact is already uploaded, delete the old file
@@ -195,7 +292,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	}
 
 	artifact.StoragePath = storagePath
-	artifact.Status = int64(actions.ArtifactStatusUploadConfirmed)
+	artifact.Status = actions.ArtifactStatusUploadConfirmed
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		return fmt.Errorf("update artifact error: %v", err)
 	}

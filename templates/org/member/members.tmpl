@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content organization">
+<div role="main" aria-label="{{.Title}}" class="page-content organization members">
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -7,7 +7,7 @@
 		<div class="flex-list">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
-				<div class="flex-item {{if $.PublicOnly}}gt-ac{{end}}">
+				<div class="flex-item {{if $.PublicOnly}}tw-items-center{{end}}">
 					<div class="flex-item-leading">
 						<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 					</div>
@@ -73,7 +73,7 @@
 		{{ctx.Locale.Tr "org.members.leave"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "org.members.leave.detail" `<span class="dataOrganizationName"></span>` | Safe}}</p>
+		<p>{{ctx.Locale.Tr "org.members.leave.detail" (`<span class="dataOrganizationName"></span>`|SafeHTML)}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
@@ -82,7 +82,7 @@
 		{{ctx.Locale.Tr "org.members.remove"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "org.members.remove.detail" `<span class="name"></span>` `<span class="dataOrganizationName"></span>` | Safe}}</p>
+		<p>{{ctx.Locale.Tr "org.members.remove.detail" (`<span class="name"></span>`|SafeHTML) (`<span class="dataOrganizationName"></span>`|SafeHTML)}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

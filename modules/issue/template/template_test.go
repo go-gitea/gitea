@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -216,6 +217,20 @@ body:
 			wantErr: "body[0](dropdown): 'multiple' should be a bool",
 		},
 		{
+			name: "dropdown invalid list",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: "dropdown"
+    id: "1"
+    attributes:
+      label: "a"
+      list: "on"
+`,
+			wantErr: "body[0](dropdown): 'list' should be a bool",
+		},
+		{
 			name: "checkboxes invalid description",
 			content: `
 name: "test"
@@ -319,12 +334,139 @@ body:
 			wantErr: "body[0](checkboxes), option[0]: 'required' should be a bool",
 		},
 		{
+			name: "field is required but hidden",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: "input"
+    id: "1"
+    attributes:
+      label: "a"
+    validations:
+      required: true
+    visible: [content]
+`,
+			wantErr: "body[0](input): can not require a hidden field",
+		},
+		{
+			name: "checkboxes is required but hidden",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: checkboxes
+    id: "1"
+    attributes:
+      label: Label of checkboxes
+      description: Description of checkboxes
+      options:
+        - label: Option 1
+          required: false
+        - label: Required and hidden
+          required: true
+          visible: [content]
+`,
+			wantErr: "body[0](checkboxes), option[1]: can not require a hidden checkbox",
+		},
+		{
+			name: "dropdown default is not an integer",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: dropdown
+    id: "1"
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+      default: "def"
+    validations:
+      required: true
+`,
+			wantErr: "body[0](dropdown): 'default' should be an int",
+		},
+		{
+			name: "dropdown default is out of range",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: dropdown
+    id: "1"
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+      default: 3
+    validations:
+      required: true
+`,
+			wantErr: "body[0](dropdown): the value of 'default' is out of range",
+		},
+		{
+			name: "dropdown without default is valid",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: dropdown
+    id: "1"
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+    validations:
+      required: true
+`,
+			want: &api.IssueTemplate{
+				Name:  "test",
+				About: "this is about",
+				Fields: []*api.IssueFormField{
+					{
+						Type: "dropdown",
+						ID:   "1",
+						Attributes: map[string]any{
+							"label":       "Label of dropdown",
+							"description": "Description of dropdown",
+							"multiple":    true,
+							"options": []any{
+								"Option 1 of dropdown",
+								"Option 2 of dropdown",
+								"Option 3 of dropdown",
+							},
+						},
+						Validations: map[string]any{
+							"required": true,
+						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
+					},
+				},
+				FileName: "test.yaml",
+			},
+			wantErr: "",
+		},
+		{
 			name: "valid",
 			content: `
 name: Name
 title: Title
 about: About
 labels: ["label1", "label2"]
+assignees: ["user1", "user2"]
 ref: Ref
 body:
   - type: markdown
@@ -362,6 +504,7 @@ body:
         - Option 1 of dropdown
         - Option 2 of dropdown
         - Option 3 of dropdown
+      default: 1
     validations:
       required: true
   - type: checkboxes
@@ -374,15 +517,19 @@ body:
           required: true
         - label: Option 2 of checkboxes
           required: false
-        - label: Option 3 of checkboxes
+        - label: Hidden Option 3 of checkboxes
+          visible: [content]
+        - label: Required but not submitted
           required: true
+          visible: [form]
 `,
 			want: &api.IssueTemplate{
-				Name:   "Name",
-				Title:  "Title",
-				About:  "About",
-				Labels: []string{"label1", "label2"},
-				Ref:    "Ref",
+				Name:      "Name",
+				Title:     "Title",
+				About:     "About",
+				Labels:    []string{"label1", "label2"},
+				Assignees: []string{"user1", "user2"},
+				Ref:       "Ref",
 				Fields: []*api.IssueFormField{
 					{
 						Type: "markdown",
@@ -390,6 +537,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm},
 					},
 					{
 						Type: "textarea",
@@ -404,6 +552,7 @@ body:
 						Validations: map[string]any{
 							"required": true,
 						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
 					},
 					{
 						Type: "input",
@@ -419,6 +568,7 @@ body:
 							"is_number": true,
 							"regex":     "[a-zA-Z0-9]+",
 						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
 					},
 					{
 						Type: "dropdown",
@@ -432,10 +582,12 @@ body:
 								"Option 2 of dropdown",
 								"Option 3 of dropdown",
 							},
+							"default": 1,
 						},
 						Validations: map[string]any{
 							"required": true,
 						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
 					},
 					{
 						Type: "checkboxes",
@@ -446,9 +598,11 @@ body:
 							"options": []any{
 								map[string]any{"label": "Option 1 of checkboxes", "required": true},
 								map[string]any{"label": "Option 2 of checkboxes", "required": false},
-								map[string]any{"label": "Option 3 of checkboxes", "required": true},
+								map[string]any{"label": "Hidden Option 3 of checkboxes", "visible": []string{"content"}},
+								map[string]any{"label": "Required but not submitted", "required": true, "visible": []string{"form"}},
 							},
 						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm, api.IssueFormFieldVisibleContent},
 					},
 				},
 				FileName: "test.yaml",
@@ -467,7 +621,12 @@ body:
   - type: markdown
     id: id1
     attributes:
-      value: Value of the markdown
+      value: Value of the markdown shown in form
+  - type: markdown
+    id: id2
+    attributes:
+      value: Value of the markdown shown in created issue
+    visible: [content]
 `,
 			want: &api.IssueTemplate{
 				Name:   "Name",
@@ -480,8 +639,17 @@ body:
 						Type: "markdown",
 						ID:   "id1",
 						Attributes: map[string]any{
-							"value": "Value of the markdown",
+							"value": "Value of the markdown shown in form",
 						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm},
+					},
+					{
+						Type: "markdown",
+						ID:   "id2",
+						Attributes: map[string]any{
+							"value": "Value of the markdown shown in created issue",
+						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleContent},
 					},
 				},
 				FileName: "test.yaml",
@@ -515,6 +683,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm},
 					},
 				},
 				FileName: "test.yaml",
@@ -548,6 +717,7 @@ body:
 						Attributes: map[string]any{
 							"value": "Value of the markdown",
 						},
+						Visible: []api.IssueFormFieldVisible{api.IssueFormFieldVisibleForm},
 					},
 				},
 				FileName: "test.yaml",
@@ -622,9 +792,14 @@ body:
   - type: markdown
     id: id1
     attributes:
-      value: Value of the markdown
-  - type: textarea
+      value: Value of the markdown shown in form
+  - type: markdown
     id: id2
+    attributes:
+      value: Value of the markdown shown in created issue
+    visible: [content]
+  - type: textarea
+    id: id3
     attributes:
       label: Label of textarea
       description: Description of textarea
@@ -634,7 +809,7 @@ body:
     validations:
       required: true
   - type: input
-    id: id3
+    id: id4
     attributes:
       label: Label of input
       description: Description of input
@@ -646,9 +821,9 @@ body:
       is_number: true
       regex: "[a-zA-Z0-9]+"
   - type: dropdown
-    id: id4
+    id: id5
     attributes:
-      label: Label of dropdown
+      label: Label of dropdown (one line)
       description: Description of dropdown
       multiple: true
       options:
@@ -657,8 +832,21 @@ body:
         - Option 3 of dropdown
     validations:
       required: true
+  - type: dropdown
+    id: id6
+    attributes:
+      label: Label of dropdown (list)
+      description: Description of dropdown
+      multiple: true
+      list: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+    validations:
+      required: true
   - type: checkboxes
-    id: id5
+    id: id7
     attributes:
       label: Label of checkboxes
       description: Description of checkboxes
@@ -669,30 +857,42 @@ body:
           required: false
         - label: Option 3 of checkboxes
           required: true
+          visible: [form]
+        - label: Hidden Option of checkboxes
+          visible: [content]
 `,
 				values: map[string][]string{
-					"form-field-id2":   {"Value of id2"},
 					"form-field-id3":   {"Value of id3"},
-					"form-field-id4":   {"0,1"},
-					"form-field-id5-0": {"on"},
-					"form-field-id5-2": {"on"},
+					"form-field-id4":   {"Value of id4"},
+					"form-field-id5":   {"0,1"},
+					"form-field-id6":   {"1,2"},
+					"form-field-id7-0": {"on"},
+					"form-field-id7-2": {"on"},
 				},
 			},
-			want: `### Label of textarea
 
-` + "```bash\nValue of id2\n```" + `
+			want: `Value of the markdown shown in created issue
 
-Value of id3
+### Label of textarea
 
-### Label of dropdown
+` + "```bash\nValue of id3\n```" + `
+
+Value of id4
+
+### Label of dropdown (one line)
 
 Option 1 of dropdown, Option 2 of dropdown
+
+### Label of dropdown (list)
+
+- Option 2 of dropdown
+- Option 3 of dropdown
 
 ### Label of checkboxes
 
 - [x] Option 1 of checkboxes
 - [ ] Option 2 of checkboxes
-- [x] Option 3 of checkboxes
+- [ ] Hidden Option of checkboxes
 
 `,
 		},
@@ -704,7 +904,7 @@ Option 1 of dropdown, Option 2 of dropdown
 				t.Fatal(err)
 			}
 			if got := RenderToMarkdown(template, tt.args.values); got != tt.want {
-				t.Errorf("RenderToMarkdown() = %v, want %v", got, tt.want)
+				assert.Equal(t, tt.want, got)
 			}
 		})
 	}
@@ -757,9 +957,8 @@ func Test_minQuotes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := minQuotes(tt.args.value); got != tt.want {
-				t.Errorf("minQuotes() = %v, want %v", got, tt.want)
-			}
+			got := minQuotes(tt.args.value)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

@@ -28,6 +28,7 @@ var UI = struct {
 	DefaultShowFullName     bool
 	DefaultTheme            string
 	Themes                  []string
+	FileIconTheme           string
 	Reactions               []string
 	ReactionsLookup         container.Set[string] `ini:"-"`
 	CustomEmojis            []string
@@ -52,6 +53,7 @@ var UI = struct {
 
 	CSV struct {
 		MaxFileSize int64
+		MaxRows     int
 	} `ini:"ui.csv"`
 
 	Admin struct {
@@ -62,6 +64,7 @@ var UI = struct {
 	} `ini:"ui.admin"`
 	User struct {
 		RepoPagingNum int
+		OrgPagingNum  int
 	} `ini:"ui.user"`
 	Meta struct {
 		Author      string
@@ -82,10 +85,11 @@ var UI = struct {
 	ReactionMaxUserNum:      10,
 	MaxDisplayFileSize:      8388608,
 	DefaultTheme:            `gitea-auto`,
-	Themes:                  []string{`gitea-auto`, `gitea-light`, `gitea-dark`},
+	FileIconTheme:           `material`,
 	Reactions:               []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
+	ExploreDefaultSort:      "recentupdate",
 	PreferredTimestampTense: "mixed",
 
 	AmbiguousUnicodeDetection: true,
@@ -108,8 +112,10 @@ var UI = struct {
 	},
 	CSV: struct {
 		MaxFileSize int64
+		MaxRows     int
 	}{
 		MaxFileSize: 524288,
+		MaxRows:     2500,
 	},
 	Admin: struct {
 		UserPagingNum   int
@@ -124,8 +130,10 @@ var UI = struct {
 	},
 	User: struct {
 		RepoPagingNum int
+		OrgPagingNum  int
 	}{
 		RepoPagingNum: 15,
+		OrgPagingNum:  15,
 	},
 	Meta: struct {
 		Author      string

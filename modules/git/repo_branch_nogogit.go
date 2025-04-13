@@ -16,15 +16,19 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// IsObjectExist returns true if given reference exists in the repository.
+// IsObjectExist returns true if the given object exists in the repository.
 func (repo *Repository) IsObjectExist(name string) bool {
 	if name == "" {
 		return false
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	if err != nil {
+		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		return false
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(name + "\n"))
+	_, err = wr.Write([]byte(name + "\n"))
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
@@ -39,9 +43,13 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	if err != nil {
+		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		return false
+	}
 	defer cancel()
-	_, err := wr.Write([]byte(name + "\n"))
+	_, err = wr.Write([]byte(name + "\n"))
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
@@ -101,7 +109,7 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs TrustedCmdArgs,
 		stderrBuilder := &strings.Builder{}
 		args := TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
 		args = append(args, extraArgs...)
-		err := NewCommand(ctx, args...).Run(&RunOpts{
+		err := NewCommand(args...).Run(ctx, &RunOpts{
 			Dir:    repoPath,
 			Stdout: stdoutWriter,
 			Stderr: stderrBuilder,

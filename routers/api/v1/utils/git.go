@@ -5,19 +5,20 @@ package utils
 
 import (
 	gocontext "context"
+	"errors"
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
 )
 
 // ResolveRefOrSha resolve ref to sha if exist
 func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 	if len(ref) == 0 {
-		ctx.Error(http.StatusBadRequest, "ref not given", nil)
+		ctx.APIError(http.StatusBadRequest, nil)
 		return ""
 	}
 
@@ -26,7 +27,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 	for _, refType := range []string{"heads", "tags"} {
 		refSHA, lastMethodName, err := searchRefCommitByType(ctx, refType, ref)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, lastMethodName, err)
+			ctx.APIErrorInternal(fmt.Errorf("%s: %w", lastMethodName, err))
 			return ""
 		}
 		if refSHA != "" {
@@ -50,7 +51,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 // GetGitRefs return git references based on filter
 func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
 	if ctx.Repo.GitRepo == nil {
-		return nil, "", fmt.Errorf("no open git repo found in context")
+		return nil, "", errors.New("no open git repo found in context")
 	}
 	if len(filter) > 0 {
 		filter = "refs/" + filter
@@ -72,7 +73,7 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 
 // ConvertToObjectID returns a full-length SHA1 from a potential ID string
 func ConvertToObjectID(ctx gocontext.Context, repo *context.Repository, commitID string) (git.ObjectID, error) {
-	objectFormat, _ := repo.GitRepo.GetObjectFormat()
+	objectFormat := repo.GetObjectFormat()
 	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
 		sha, err := git.NewIDFromString(commitID)
 		if err == nil {

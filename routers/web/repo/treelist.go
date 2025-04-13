@@ -6,9 +6,13 @@ package repo
 import (
 	"net/http"
 
+	pull_model "code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/gitdiff"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -51,4 +55,44 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 	}
 
 	return false
+}
+
+type FileDiffFile struct {
+	Name        string
+	NameHash    string
+	IsSubmodule bool
+	IsViewed    bool
+	Status      string
+}
+
+// transformDiffTreeForUI transforms a DiffTree into a slice of FileDiffFile for UI rendering
+// it also takes a map of file names to their viewed state, which is used to mark files as viewed
+func transformDiffTreeForUI(diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) []FileDiffFile {
+	files := make([]FileDiffFile, 0, len(diffTree.Files))
+
+	for _, file := range diffTree.Files {
+		nameHash := git.HashFilePathForWebUI(file.HeadPath)
+		isSubmodule := file.HeadMode == git.EntryModeCommit
+		isViewed := filesViewedState[file.HeadPath] == pull_model.Viewed
+
+		files = append(files, FileDiffFile{
+			Name:        file.HeadPath,
+			NameHash:    nameHash,
+			IsSubmodule: isSubmodule,
+			IsViewed:    isViewed,
+			Status:      file.Status,
+		})
+	}
+
+	return files
+}
+
+func TreeViewNodes(ctx *context.Context) {
+	renderedIconPool := fileicon.NewRenderedIconPool()
+	results, err := files_service.GetTreeViewNodes(ctx, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
+	if err != nil {
+		ctx.ServerError("GetTreeViewNodes", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]any{"fileTreeNodes": results, "renderedIconPool": renderedIconPool.IconSVGs})
 }

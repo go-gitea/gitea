@@ -216,6 +216,12 @@ func fixBrokenRepoUnit16961(repoUnit *repo_model.RepoUnit, bs []byte) (fixed boo
 		return false, nil
 	}
 
+	var cfg any
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
+	if err == nil {
+		return false, nil
+	}
+
 	switch repoUnit.Type {
 	case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
 		cfg := &repo_model.UnitConfig{}

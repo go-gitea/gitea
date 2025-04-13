@@ -5,11 +5,15 @@ const data = {
 	isMirrorsEnabled: {{.MirrorsEnabled}},
 	isStarsEnabled: {{not .IsDisableStars}},
 
+	canCreateMigrations: {{not .DisableMigrations}},
+
+	textNoOrg: {{ctx.Locale.Tr "home.empty_org"}},
+	textNoRepo: {{ctx.Locale.Tr "home.empty_repo"}},
 	textRepository: {{ctx.Locale.Tr "repository"}},
 	textOrganization: {{ctx.Locale.Tr "organization"}},
 	textMyRepos: {{ctx.Locale.Tr "home.my_repos"}},
 	textNewRepo: {{ctx.Locale.Tr "new_repo"}},
-	textSearchRepos: {{ctx.Locale.Tr "home.search_repos"}},
+	textSearchRepos: {{ctx.Locale.Tr "search.repo_kind"}},
 	textFilter: {{ctx.Locale.Tr "home.filter"}},
 	textShowArchived: {{ctx.Locale.Tr "home.show_archived"}},
 	textShowPrivate: {{ctx.Locale.Tr "home.show_private"}},
@@ -45,7 +49,7 @@ data.teamId = {{.Team.ID}};
 {{end}}
 
 {{if not .ContextUser.IsOrganization}}
-data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
+data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'full_name': {{.FullName}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
 data.isOrganization = false;
 data.organizationsTotalCount = {{.UserOrgsCount}};
 data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}};
@@ -56,4 +60,4 @@ data.organizationId = {{.ContextUser.ID}};
 window.config.pageData.dashboardRepoList = data;
 </script>
 
-<div id="dashboard-repo-list" class="six wide column"></div>
+<div id="dashboard-repo-list" class="flex-container-sidebar"></div>

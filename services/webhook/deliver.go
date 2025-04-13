@@ -7,8 +7,10 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
@@ -29,10 +32,124 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/gobwas/glob"
-	"github.com/minio/sha256-simd"
 )
 
-// Deliver deliver hook task
+func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (req *http.Request, body []byte, err error) {
+	switch w.HTTPMethod {
+	case "":
+		log.Info("HTTP Method for %s webhook %s [ID: %d] is not set, defaulting to POST", w.Type, w.URL, w.ID)
+		fallthrough
+	case http.MethodPost:
+		switch w.ContentType {
+		case webhook_model.ContentTypeJSON:
+			req, err = http.NewRequest(http.MethodPost, w.URL, strings.NewReader(t.PayloadContent))
+			if err != nil {
+				return nil, nil, err
+			}
+
+			req.Header.Set("Content-Type", "application/json")
+		case webhook_model.ContentTypeForm:
+			forms := url.Values{
+				"payload": []string{t.PayloadContent},
+			}
+
+			req, err = http.NewRequest(http.MethodPost, w.URL, strings.NewReader(forms.Encode()))
+			if err != nil {
+				return nil, nil, err
+			}
+
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		default:
+			return nil, nil, fmt.Errorf("invalid content type: %v", w.ContentType)
+		}
+	case http.MethodGet:
+		u, err := url.Parse(w.URL)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid URL: %w", err)
+		}
+		vals := u.Query()
+		vals["payload"] = []string{t.PayloadContent}
+		u.RawQuery = vals.Encode()
+		req, err = http.NewRequest(http.MethodGet, u.String(), nil)
+		if err != nil {
+			return nil, nil, err
+		}
+	case http.MethodPut:
+		switch w.Type {
+		case webhook_module.MATRIX: // used when t.Version == 1
+			txnID, err := getMatrixTxnID([]byte(t.PayloadContent))
+			if err != nil {
+				return nil, nil, err
+			}
+			url := fmt.Sprintf("%s/%s", w.URL, url.PathEscape(txnID))
+			req, err = http.NewRequest(http.MethodPut, url, strings.NewReader(t.PayloadContent))
+			if err != nil {
+				return nil, nil, err
+			}
+		default:
+			return nil, nil, fmt.Errorf("invalid http method: %v", w.HTTPMethod)
+		}
+	default:
+		return nil, nil, fmt.Errorf("invalid http method: %v", w.HTTPMethod)
+	}
+
+	body = []byte(t.PayloadContent)
+	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body)
+}
+
+func addDefaultHeaders(req *http.Request, secret []byte, w *webhook_model.Webhook, t *webhook_model.HookTask, payloadContent []byte) error {
+	var signatureSHA1 string
+	var signatureSHA256 string
+	if len(secret) > 0 {
+		sig1 := hmac.New(sha1.New, secret)
+		sig256 := hmac.New(sha256.New, secret)
+		_, err := io.MultiWriter(sig1, sig256).Write(payloadContent)
+		if err != nil {
+			// this error should never happen, since the hashes are writing to []byte and always return a nil error.
+			return fmt.Errorf("prepareWebhooks.sigWrite: %w", err)
+		}
+		signatureSHA1 = hex.EncodeToString(sig1.Sum(nil))
+		signatureSHA256 = hex.EncodeToString(sig256.Sum(nil))
+	}
+
+	event := t.EventType.Event()
+	eventType := string(t.EventType)
+	targetType := "default"
+	if w.IsSystemWebhook {
+		targetType = "system"
+	} else if w.RepoID != 0 {
+		targetType = "repository"
+	} else if w.OwnerID != 0 {
+		owner, err := user_model.GetUserByID(req.Context(), w.OwnerID)
+		if owner != nil && err == nil {
+			if owner.IsOrganization() {
+				targetType = "organization"
+			} else {
+				targetType = "user"
+			}
+		}
+	}
+
+	req.Header.Add("X-Gitea-Delivery", t.UUID)
+	req.Header.Add("X-Gitea-Event", event)
+	req.Header.Add("X-Gitea-Event-Type", eventType)
+	req.Header.Add("X-Gitea-Signature", signatureSHA256)
+	req.Header.Add("X-Gitea-Hook-Installation-Target-Type", targetType)
+	req.Header.Add("X-Gogs-Delivery", t.UUID)
+	req.Header.Add("X-Gogs-Event", event)
+	req.Header.Add("X-Gogs-Event-Type", eventType)
+	req.Header.Add("X-Gogs-Signature", signatureSHA256)
+	req.Header.Add("X-Hub-Signature", "sha1="+signatureSHA1)
+	req.Header.Add("X-Hub-Signature-256", "sha256="+signatureSHA256)
+	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
+	req.Header["X-GitHub-Event"] = []string{event}
+	req.Header["X-GitHub-Event-Type"] = []string{eventType}
+	req.Header["X-GitHub-Hook-Installation-Target-Type"] = []string{targetType}
+	return nil
+}
+
+// Deliver creates the [http.Request] (depending on the webhook type), sends it
+// and records the status and response.
 func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	w, err := webhook_model.GetWebhookByID(ctx, t.HookID)
 	if err != nil {
@@ -50,101 +167,14 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	t.IsDelivered = true
 
-	var req *http.Request
-
-	switch w.HTTPMethod {
-	case "":
-		log.Info("HTTP Method for webhook %s empty, setting to POST as default", w.URL)
-		fallthrough
-	case http.MethodPost:
-		switch w.ContentType {
-		case webhook_model.ContentTypeJSON:
-			req, err = http.NewRequest("POST", w.URL, strings.NewReader(t.PayloadContent))
-			if err != nil {
-				return err
-			}
-
-			req.Header.Set("Content-Type", "application/json")
-		case webhook_model.ContentTypeForm:
-			forms := url.Values{
-				"payload": []string{t.PayloadContent},
-			}
-
-			req, err = http.NewRequest("POST", w.URL, strings.NewReader(forms.Encode()))
-			if err != nil {
-				return err
-			}
-
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		}
-	case http.MethodGet:
-		u, err := url.Parse(w.URL)
-		if err != nil {
-			return fmt.Errorf("unable to deliver webhook task[%d] as cannot parse webhook url %s: %w", t.ID, w.URL, err)
-		}
-		vals := u.Query()
-		vals["payload"] = []string{t.PayloadContent}
-		u.RawQuery = vals.Encode()
-		req, err = http.NewRequest("GET", u.String(), nil)
-		if err != nil {
-			return fmt.Errorf("unable to deliver webhook task[%d] as unable to create HTTP request for webhook url %s: %w", t.ID, w.URL, err)
-		}
-	case http.MethodPut:
-		switch w.Type {
-		case webhook_module.MATRIX:
-			txnID, err := getMatrixTxnID([]byte(t.PayloadContent))
-			if err != nil {
-				return err
-			}
-			url := fmt.Sprintf("%s/%s", w.URL, url.PathEscape(txnID))
-			req, err = http.NewRequest("PUT", url, strings.NewReader(t.PayloadContent))
-			if err != nil {
-				return fmt.Errorf("unable to deliver webhook task[%d] as cannot create matrix request for webhook url %s: %w", t.ID, w.URL, err)
-			}
-		default:
-			return fmt.Errorf("invalid http method for webhook task[%d] in webhook %s: %v", t.ID, w.URL, w.HTTPMethod)
-		}
-	default:
-		return fmt.Errorf("invalid http method for webhook task[%d] in webhook %s: %v", t.ID, w.URL, w.HTTPMethod)
+	newRequest := webhookRequesters[w.Type]
+	if t.PayloadVersion == 1 || newRequest == nil {
+		newRequest = newDefaultRequest
 	}
 
-	var signatureSHA1 string
-	var signatureSHA256 string
-	if len(w.Secret) > 0 {
-		sig1 := hmac.New(sha1.New, []byte(w.Secret))
-		sig256 := hmac.New(sha256.New, []byte(w.Secret))
-		_, err = io.MultiWriter(sig1, sig256).Write([]byte(t.PayloadContent))
-		if err != nil {
-			log.Error("prepareWebhooks.sigWrite: %v", err)
-		}
-		signatureSHA1 = hex.EncodeToString(sig1.Sum(nil))
-		signatureSHA256 = hex.EncodeToString(sig256.Sum(nil))
-	}
-
-	event := t.EventType.Event()
-	eventType := string(t.EventType)
-	req.Header.Add("X-Gitea-Delivery", t.UUID)
-	req.Header.Add("X-Gitea-Event", event)
-	req.Header.Add("X-Gitea-Event-Type", eventType)
-	req.Header.Add("X-Gitea-Signature", signatureSHA256)
-	req.Header.Add("X-Gogs-Delivery", t.UUID)
-	req.Header.Add("X-Gogs-Event", event)
-	req.Header.Add("X-Gogs-Event-Type", eventType)
-	req.Header.Add("X-Gogs-Signature", signatureSHA256)
-	req.Header.Add("X-Hub-Signature", "sha1="+signatureSHA1)
-	req.Header.Add("X-Hub-Signature-256", "sha256="+signatureSHA256)
-	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
-	req.Header["X-GitHub-Event"] = []string{event}
-	req.Header["X-GitHub-Event-Type"] = []string{eventType}
-
-	// Add Authorization Header
-	authorization, err := w.HeaderAuthorization()
+	req, body, err := newRequest(ctx, w, t)
 	if err != nil {
-		log.Error("Webhook could not get Authorization header [%d]: %v", w.ID, err)
-		return err
-	}
-	if authorization != "" {
-		req.Header["Authorization"] = []string{authorization}
+		return fmt.Errorf("cannot create http request for webhook %s[%d %s]: %w", w.Type, w.ID, w.URL, err)
 	}
 
 	// Record delivery information.
@@ -152,9 +182,20 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		URL:        req.URL.String(),
 		HTTPMethod: req.Method,
 		Headers:    map[string]string{},
+		Body:       string(body),
 	}
 	for k, vals := range req.Header {
 		t.RequestInfo.Headers[k] = strings.Join(vals, ",")
+	}
+
+	// Add Authorization Header
+	authorization, err := w.HeaderAuthorization()
+	if err != nil {
+		return fmt.Errorf("cannot get Authorization header for webhook %s[%d %s]: %w", w.Type, w.ID, w.URL, err)
+	}
+	if authorization != "" {
+		req.Header.Set("Authorization", authorization)
+		t.RequestInfo.Headers["Authorization"] = "******"
 	}
 
 	t.ResponseInfo = &webhook_model.HookResponse{
@@ -282,13 +323,13 @@ func Init() error {
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
 			Proxy:           webhookProxy(allowedHostMatcher),
-			DialContext:     hostmatcher.NewDialContextWithProxy("webhook", allowedHostMatcher, nil, setting.Webhook.ProxyURLFixed),
+			DialContext:     hostmatcher.NewDialContext("webhook", allowedHostMatcher, nil, setting.Webhook.ProxyURLFixed),
 		},
 	}
 
 	hookQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "webhook_sender", handler)
 	if hookQueue == nil {
-		return fmt.Errorf("unable to create webhook_sender queue")
+		return errors.New("unable to create webhook_sender queue")
 	}
 	go graceful.GetManager().RunWithCancel(hookQueue)
 

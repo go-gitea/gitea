@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -31,6 +33,12 @@ func TestAPIWatch(t *testing.T) {
 		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/subscription", repo)).
 			AddTokenAuth(tokenWithRepoScope)
 		MakeRequest(t, req, http.StatusOK)
+
+		// blocked user can't watch a repo
+		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
+		req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/subscription", repo)).
+			AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteRepository))
+		MakeRequest(t, req, http.StatusForbidden)
 	})
 
 	t.Run("GetWatchedRepos", func(t *testing.T) {

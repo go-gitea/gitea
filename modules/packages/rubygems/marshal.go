@@ -147,35 +147,35 @@ func (e *MarshalEncoder) marshalIntInternal(i int64) error {
 		return e.w.WriteByte(byte(i - 5))
 	}
 
-	var len int
+	var length int
 	if 122 < i && i <= 0xff {
-		len = 1
+		length = 1
 	} else if 0xff < i && i <= 0xffff {
-		len = 2
+		length = 2
 	} else if 0xffff < i && i <= 0xffffff {
-		len = 3
+		length = 3
 	} else if 0xffffff < i && i <= 0x3fffffff {
-		len = 4
+		length = 4
 	} else if -0x100 <= i && i < -123 {
-		len = -1
+		length = -1
 	} else if -0x10000 <= i && i < -0x100 {
-		len = -2
+		length = -2
 	} else if -0x1000000 <= i && i < -0x100000 {
-		len = -3
+		length = -3
 	} else if -0x40000000 <= i && i < -0x1000000 {
-		len = -4
+		length = -4
 	} else {
 		return ErrInvalidIntRange
 	}
 
-	if err := e.w.WriteByte(byte(len)); err != nil {
+	if err := e.w.WriteByte(byte(length)); err != nil {
 		return err
 	}
-	if len < 0 {
-		len = -len
+	if length < 0 {
+		length = -length
 	}
 
-	for c := 0; c < len; c++ {
+	for c := 0; c < length; c++ {
 		if err := e.w.WriteByte(byte(i >> uint(8*c) & 0xff)); err != nil {
 			return err
 		}
@@ -244,13 +244,13 @@ func (e *MarshalEncoder) marshalArray(arr reflect.Value) error {
 		return err
 	}
 
-	len := arr.Len()
+	length := arr.Len()
 
-	if err := e.marshalIntInternal(int64(len)); err != nil {
+	if err := e.marshalIntInternal(int64(length)); err != nil {
 		return err
 	}
 
-	for i := 0; i < len; i++ {
+	for i := 0; i < length; i++ {
 		if err := e.marshal(arr.Index(i).Interface()); err != nil {
 			return err
 		}

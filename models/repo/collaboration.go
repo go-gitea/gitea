@@ -36,14 +36,44 @@ type Collaborator struct {
 	Collaboration *Collaboration
 }
 
+type FindCollaborationOptions struct {
+	db.ListOptions
+	RepoID         int64
+	RepoOwnerID    int64
+	CollaboratorID int64
+}
+
+func (opts *FindCollaborationOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"collaboration.repo_id": opts.RepoID})
+	}
+	if opts.RepoOwnerID != 0 {
+		cond = cond.And(builder.Eq{"repository.owner_id": opts.RepoOwnerID})
+	}
+	if opts.CollaboratorID != 0 {
+		cond = cond.And(builder.Eq{"collaboration.user_id": opts.CollaboratorID})
+	}
+	return cond
+}
+
+func (opts *FindCollaborationOptions) ToJoins() []db.JoinFunc {
+	if opts.RepoOwnerID != 0 {
+		return []db.JoinFunc{
+			func(e db.Engine) error {
+				e.Join("INNER", "repository", "repository.id = collaboration.repo_id")
+				return nil
+			},
+		}
+	}
+	return nil
+}
+
 // GetCollaborators returns the collaborators for a repository
-func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*Collaborator, error) {
-	collaborations, err := db.Find[Collaboration](ctx, FindCollaborationOptions{
-		ListOptions: listOptions,
-		RepoID:      repoID,
-	})
+func GetCollaborators(ctx context.Context, opts *FindCollaborationOptions) ([]*Collaborator, int64, error) {
+	collaborations, total, err := db.FindAndCount[Collaboration](ctx, opts)
 	if err != nil {
-		return nil, fmt.Errorf("db.Find[Collaboration]: %w", err)
+		return nil, 0, fmt.Errorf("db.FindAndCount[Collaboration]: %w", err)
 	}
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
@@ -54,7 +84,7 @@ func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOpti
 
 	usersMap := make(map[int64]*user_model.User)
 	if err := db.GetEngine(ctx).In("id", userIDs).Find(&usersMap); err != nil {
-		return nil, fmt.Errorf("Find users map by user ids: %w", err)
+		return nil, 0, fmt.Errorf("Find users map by user ids: %w", err)
 	}
 
 	for _, c := range collaborations {
@@ -67,7 +97,7 @@ func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOpti
 			Collaboration: c,
 		})
 	}
-	return collaborators, nil
+	return collaborators, total, nil
 }
 
 // GetCollaboration get collaboration for a repository id with a user id
@@ -86,15 +116,6 @@ func GetCollaboration(ctx context.Context, repoID, uid int64) (*Collaboration, e
 // IsCollaborator check if a user is a collaborator of a repository
 func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
 	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repoID, UserID: userID})
-}
-
-type FindCollaborationOptions struct {
-	db.ListOptions
-	RepoID int64
-}
-
-func (opts FindCollaborationOptions) ToConds() builder.Cond {
-	return builder.And(builder.Eq{"repo_id": opts.RepoID})
 }
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -84,7 +85,7 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("InvalidParameter", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, "invalid+package name", packageVersion, filename), bytes.NewReader(content)).
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, "invalid package name", packageVersion, filename), bytes.NewReader(content)).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
@@ -92,7 +93,7 @@ func TestPackageGeneric(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, "inval+id.na me"), bytes.NewReader(content)).
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, "inva|id.name"), bytes.NewReader(content)).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 		})
@@ -131,11 +132,7 @@ func TestPackageGeneric(t *testing.T) {
 
 		t.Run("RequireSignInView", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-
-			setting.Service.RequireSignInView = true
-			defer func() {
-				setting.Service.RequireSignInView = false
-			}()
+			defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 
 			req = NewRequest(t, "GET", url+"/dummy.bin")
 			MakeRequest(t, req, http.StatusUnauthorized)
@@ -144,18 +141,29 @@ func TestPackageGeneric(t *testing.T) {
 		t.Run("ServeDirect", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			if setting.Packages.Storage.Type != setting.MinioStorageType {
-				t.Skip("Test skipped for non-Minio-storage.")
+			if setting.Packages.Storage.Type != setting.MinioStorageType && setting.Packages.Storage.Type != setting.AzureBlobStorageType {
+				t.Skip("Test skipped for non-Minio-storage and non-AzureBlob-storage.")
 				return
 			}
 
-			if !setting.Packages.Storage.MinioConfig.ServeDirect {
-				old := setting.Packages.Storage.MinioConfig.ServeDirect
-				defer func() {
-					setting.Packages.Storage.MinioConfig.ServeDirect = old
-				}()
+			if setting.Packages.Storage.Type == setting.MinioStorageType {
+				if !setting.Packages.Storage.MinioConfig.ServeDirect {
+					old := setting.Packages.Storage.MinioConfig.ServeDirect
+					defer func() {
+						setting.Packages.Storage.MinioConfig.ServeDirect = old
+					}()
 
-				setting.Packages.Storage.MinioConfig.ServeDirect = true
+					setting.Packages.Storage.MinioConfig.ServeDirect = true
+				}
+			} else if setting.Packages.Storage.Type == setting.AzureBlobStorageType {
+				if !setting.Packages.Storage.AzureBlobConfig.ServeDirect {
+					old := setting.Packages.Storage.AzureBlobConfig.ServeDirect
+					defer func() {
+						setting.Packages.Storage.AzureBlobConfig.ServeDirect = old
+					}()
+
+					setting.Packages.Storage.AzureBlobConfig.ServeDirect = true
+				}
 			}
 
 			req := NewRequest(t, "GET", url+"/"+filename)
@@ -168,7 +176,7 @@ func TestPackageGeneric(t *testing.T) {
 
 			resp2, err := (&http.Client{}).Get(location)
 			assert.NoError(t, err)
-			assert.Equal(t, http.StatusOK, resp2.StatusCode)
+			assert.Equal(t, http.StatusOK, resp2.StatusCode, location)
 
 			body, err := io.ReadAll(resp2.Body)
 			assert.NoError(t, err)

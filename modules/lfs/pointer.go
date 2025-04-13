@@ -4,6 +4,7 @@
 package lfs
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,8 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/minio/sha256-simd"
 )
 
 const (

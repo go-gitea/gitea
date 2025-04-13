@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"net"
 	"net/url"
-	"path"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -41,16 +41,16 @@ const (
 	LandingPageLogin         LandingPage = "/user/login"
 )
 
+// Server settings
 var (
-	// AppName is the Application name, used in the page title.
-	// It maps to ini:"APP_NAME"
-	AppName string
 	// AppURL is the Application ROOT_URL. It always has a '/' suffix
 	// It maps to ini:"ROOT_URL"
 	AppURL string
 	// AppSubURL represents the sub-url mounting point for gitea. It is either "" or starts with '/' and ends without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL string
+	// UseSubURLPath makes Gitea handle requests with sub-path like "/sub-path/owner/repo/...", to make it easier to debug sub-path related problems without a reverse proxy.
+	UseSubURLPath bool
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
 	AppDataPath string
@@ -60,7 +60,7 @@ var (
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
 
-	// Server settings
+	appTempPathInternal string // the temporary path for the app, it is only an internal variable, do not use it, always use AppDataTempDir
 
 	Protocol                   Scheme
 	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
@@ -172,20 +172,24 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+	// if these are removed, the warning will not be shown
+	if sec.HasKey("ENABLE_ACME") {
+		EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
+	} else {
+		deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
+		EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	}
+
 	Protocol = HTTP
 	protocolCfg := sec.Key("PROTOCOL").String()
+	if protocolCfg != "https" && EnableAcme {
+		log.Fatal("ACME could only be used with HTTPS protocol")
+	}
+
 	switch protocolCfg {
 	case "https":
 		Protocol = HTTPS
-
-		// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
-		// if these are removed, the warning will not be shown
-		if sec.HasKey("ENABLE_ACME") {
-			EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
-		} else {
-			deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
-			EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
-		}
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
@@ -212,6 +216,9 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			} else {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
 				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
+			}
+			if AcmeEmail == "" {
+				log.Fatal("ACME Email is not set (ACME_EMAIL).")
 			}
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()
@@ -276,9 +283,10 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
 	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
 
-	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
+	// AppSubURL should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	UseSubURLPath = sec.Key("USE_SUB_URL_PATH").MustBool(false)
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
@@ -321,17 +329,31 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	}
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
 	if !filepath.IsAbs(AppDataPath) {
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
+	}
+	if IsInTesting && HasInstallLock(rootCfg) {
+		// FIXME: in testing, the "app data" directory is not correctly initialized before loading settings
+		if _, err := os.Stat(AppDataPath); err != nil {
+			_ = os.MkdirAll(AppDataPath, os.ModePerm)
+		}
+	}
+
+	appTempPathInternal = sec.Key("APP_TEMP_PATH").String()
+	if appTempPathInternal != "" {
+		if _, err := os.Stat(appTempPathInternal); err != nil {
+			log.Fatal("APP_TEMP_PATH %q is not accessible: %v", appTempPathInternal, err)
+		}
 	}
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
-	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(path.Join(AppWorkPath, "data/tmp/pprof"))
+	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data/tmp/pprof"))
 	if !filepath.IsAbs(PprofDataPath) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
 	}
+	checkOverlappedPath("[server].PPROF_DATA_PATH", PprofDataPath)
 
 	landingPage := sec.Key("LANDING_PAGE").MustString("home")
 	switch landingPage {

@@ -8,9 +8,11 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"hash"
 	"math/big"
@@ -26,8 +28,6 @@ import (
 	chef_module "code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth"
-
-	"github.com/minio/sha256-simd"
 )
 
 const (
@@ -122,7 +122,7 @@ func verifyTimestamp(req *http.Request) error {
 	}
 
 	if diff > maxTimeDifference {
-		return fmt.Errorf("time difference")
+		return errors.New("time difference")
 	}
 
 	return nil
@@ -191,7 +191,7 @@ func getAuthorizationData(req *http.Request) ([]byte, error) {
 	tmp := make([]string, len(valueList))
 	for k, v := range valueList {
 		if k > len(tmp) {
-			return nil, fmt.Errorf("invalid X-Ops-Authorization headers")
+			return nil, errors.New("invalid X-Ops-Authorization headers")
 		}
 		tmp[k-1] = v
 	}
@@ -268,7 +268,7 @@ func verifyDataOld(signature, data []byte, pub *rsa.PublicKey) error {
 	}
 
 	if !slices.Equal(out[skip:], data) {
-		return fmt.Errorf("could not verify signature")
+		return errors.New("could not verify signature")
 	}
 
 	return nil

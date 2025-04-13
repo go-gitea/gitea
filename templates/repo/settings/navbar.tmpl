@@ -4,6 +4,11 @@
 		<a class="{{if .PageIsSettingsOptions}}active {{end}}item" href="{{.RepoLink}}/settings">
 			{{ctx.Locale.Tr "repo.settings.options"}}
 		</a>
+		{{if or .Repository.IsPrivate .Permission.HasAnyUnitPublicAccess}}
+		<a class="{{if .PageIsSettingsPublicAccess}}active {{end}}item" href="{{.RepoLink}}/settings/public_access">
+			{{ctx.Locale.Tr "repo.settings.public_access"}}
+		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsCollaboration}}active {{end}}item" href="{{.RepoLink}}/settings/collaboration">
 			{{ctx.Locale.Tr "repo.settings.collaboration"}}
 		</a>
@@ -12,7 +17,7 @@
 				{{ctx.Locale.Tr "repo.settings.hooks"}}
 			</a>
 		{{end}}
-		{{if and (.Repository.UnitEnabled $.Context $.UnitTypeCode) (not .Repository.IsEmpty)}}
+		{{if .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeCode}}
 			<a class="{{if .PageIsSettingsBranches}}active {{end}}item" href="{{.RepoLink}}/settings/branches">
 				{{ctx.Locale.Tr "repo.settings.branches"}}
 			</a>
@@ -33,7 +38,7 @@
 				</a>
 			{{end}}
 		{{end}}
-		{{if and .EnableActions (not .UnitActionsGlobalDisabled) (.Permission.CanRead $.UnitTypeActions)}}
+		{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsSecrets .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
