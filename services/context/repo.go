@@ -927,13 +927,27 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
 
-		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
-		if err != nil {
-			ctx.ServerError("GetCommitsCount", err)
-			return
+		// if it's a tag, we just get the commits count from database
+		if ctx.Repo.RefFullName.IsTag() {
+			rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.TagName())
+			if err != nil {
+				if repo_model.IsErrReleaseNotExist(err) {
+					ctx.NotFound(err)
+					return
+				}
+				ctx.ServerError("GetRelease", err)
+				return
+			}
+			ctx.Repo.CommitsCount = rel.NumCommits
+		} else {
+			ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+			if err != nil {
+				ctx.ServerError("GetCommitsCount", err)
+				return
+			}
+			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+			ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 		}
-		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 	}
 }
 
