@@ -114,12 +114,9 @@ func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*P
 	if err != nil {
 		return nil, err
 	}
-	repository, err := c.QueryRepository(ctx, p.RepoID)
-	if err != nil {
-		return nil, err
 	var repository *repo_model.Repository
 	if p.RepoID > 0 {
-		repository, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
+		repository, err = c.QueryRepository(ctx, p.RepoID)
 		if err != nil && !repo_model.IsErrRepoNotExist(err) {
 			return nil, err
 		}
