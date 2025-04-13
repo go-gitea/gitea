@@ -196,7 +196,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
-	if err = repo_module.UpdateRepository(ctx, repo, false); err != nil {
+	if err = updateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
 	}
 
