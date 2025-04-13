@@ -464,7 +464,7 @@ func cleanupRepository(doer *user_model.User, repoID int64) {
 }
 
 func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) error {
-	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
+	if err := checkDaemonExportOK(ctx, repo); err != nil {
 		return fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 

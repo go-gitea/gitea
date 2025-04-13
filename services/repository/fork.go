@@ -227,7 +227,7 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 		repo.IsFork = false
 		repo.ForkID = 0
 
-		if err := repo_module.UpdateRepository(ctx, repo, false); err != nil {
+		if err := updateRepository(ctx, repo, false); err != nil {
 			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
 			return err
 		}
