@@ -11,6 +11,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/alpine"
 	"code.gitea.io/gitea/modules/packages/arch"
@@ -102,26 +103,26 @@ func (pd *PackageDescriptor) CalculateBlobSize() int64 {
 
 // GetPackageDescriptor gets the package description for a version
 func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDescriptor, error) {
-	return getPackageDescriptor(ctx, pv, newQueryCache())
+	return getPackageDescriptor(ctx, pv, cache.NewEphemeralCache())
 }
 
-func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*PackageDescriptor, error) {
-	p, err := c.QueryPackage(ctx, pv.PackageID)
+func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache.EphemeralCache) (*PackageDescriptor, error) {
+	p, err := cache.GetWithEphemeralCache(ctx, c, "package", pv.PackageID, GetPackageByID)
 	if err != nil {
 		return nil, err
 	}
-	o, err := c.QueryUser(ctx, p.OwnerID)
+	o, err := cache.GetWithEphemeralCache(ctx, c, "user", p.OwnerID, user_model.GetUserByID)
 	if err != nil {
 		return nil, err
 	}
 	var repository *repo_model.Repository
 	if p.RepoID > 0 {
-		repository, err = c.QueryRepository(ctx, p.RepoID)
+		repository, err = cache.GetWithEphemeralCache(ctx, c, "repo", p.RepoID, repo_model.GetRepositoryByID)
 		if err != nil && !repo_model.IsErrRepoNotExist(err) {
 			return nil, err
 		}
 	}
-	creator, err := c.QueryUser(ctx, pv.CreatorID)
+	creator, err := cache.GetWithEphemeralCache(ctx, c, "user", pv.CreatorID, user_model.GetUserByID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			creator = user_model.NewGhostUser()
@@ -229,11 +230,11 @@ func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*P
 
 // GetPackageFileDescriptor gets a package file descriptor for a package file
 func GetPackageFileDescriptor(ctx context.Context, pf *PackageFile) (*PackageFileDescriptor, error) {
-	return getPackageFileDescriptor(ctx, pf, newQueryCache())
+	return getPackageFileDescriptor(ctx, pf, cache.NewEphemeralCache())
 }
 
-func getPackageFileDescriptor(ctx context.Context, pf *PackageFile, c *cache) (*PackageFileDescriptor, error) {
-	pb, err := c.QueryBlob(ctx, pf.BlobID)
+func getPackageFileDescriptor(ctx context.Context, pf *PackageFile, c *cache.EphemeralCache) (*PackageFileDescriptor, error) {
+	pb, err := cache.GetWithEphemeralCache(ctx, c, "package_file_blob", pf.BlobID, GetBlobByID)
 	if err != nil {
 		return nil, err
 	}
@@ -263,10 +264,10 @@ func GetPackageFileDescriptors(ctx context.Context, pfs []*PackageFile) ([]*Pack
 
 // GetPackageDescriptors gets the package descriptions for the versions
 func GetPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*PackageDescriptor, error) {
-	return getPackageDescriptors(ctx, pvs, newQueryCache())
+	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
 }
 
-func getPackageDescriptors(ctx context.Context, pvs []*PackageVersion, c *cache) ([]*PackageDescriptor, error) {
+func getPackageDescriptors(ctx context.Context, pvs []*PackageVersion, c *cache.EphemeralCache) ([]*PackageDescriptor, error) {
 	pds := make([]*PackageDescriptor, 0, len(pvs))
 	for _, pv := range pvs {
 		pd, err := getPackageDescriptor(ctx, pv, c)
@@ -276,63 +277,4 @@ func getPackageDescriptors(ctx context.Context, pvs []*PackageVersion, c *cache)
 		pds = append(pds, pd)
 	}
 	return pds, nil
-}
-
-type cache struct {
-	Packages     map[int64]*Package
-	Users        map[int64]*user_model.User
-	Repositories map[int64]*repo_model.Repository
-	Blobs        map[int64]*PackageBlob
-}
-
-func newQueryCache() *cache {
-	return &cache{
-		Packages:     make(map[int64]*Package),
-		Users:        make(map[int64]*user_model.User),
-		Repositories: map[int64]*repo_model.Repository{0: nil}, // 0 is an expected value
-		Blobs:        make(map[int64]*PackageBlob),
-	}
-}
-
-func (c *cache) QueryPackage(ctx context.Context, id int64) (*Package, error) {
-	if p, found := c.Packages[id]; found {
-		return p, nil
-	}
-
-	p, err := GetPackageByID(ctx, id)
-	c.Packages[id] = p
-	return p, err
-}
-
-func (c *cache) QueryUser(ctx context.Context, id int64) (*user_model.User, error) {
-	if u, found := c.Users[id]; found {
-		return u, nil
-	}
-
-	u, err := user_model.GetUserByID(ctx, id)
-	c.Users[id] = u
-	return u, err
-}
-
-func (c *cache) QueryRepository(ctx context.Context, id int64) (*repo_model.Repository, error) {
-	if r, found := c.Repositories[id]; found {
-		return r, nil
-	}
-
-	r, err := repo_model.GetRepositoryByID(ctx, id)
-	if err != nil && !repo_model.IsErrRepoNotExist(err) {
-		err = nil
-	}
-	c.Repositories[id] = r
-	return r, err
-}
-
-func (c *cache) QueryBlob(ctx context.Context, id int64) (*PackageBlob, error) {
-	if b, found := c.Blobs[id]; found {
-		return b, nil
-	}
-
-	b, err := GetBlobByID(ctx, id)
-	c.Blobs[id] = b
-	return b, err
 }

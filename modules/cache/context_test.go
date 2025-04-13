@@ -8,27 +8,29 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWithCacheContext(t *testing.T) {
 	ctx := WithCacheContext(t.Context())
 
-	v := GetContextData(ctx, "empty_field", "my_config1")
+	v, _ := getContextData(ctx, "empty_field", "my_config1")
 	assert.Nil(t, v)
 
 	const field = "system_setting"
-	v = GetContextData(ctx, field, "my_config1")
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
-	SetContextData(ctx, field, "my_config1", 1)
-	v = GetContextData(ctx, field, "my_config1")
+	setContextData(ctx, field, "my_config1", 1)
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.NotNil(t, v)
 	assert.Equal(t, 1, v.(int))
 
-	RemoveContextData(ctx, field, "my_config1")
-	RemoveContextData(ctx, field, "my_config2") // remove a non-exist key
+	removeContextData(ctx, field, "my_config1")
+	removeContextData(ctx, field, "my_config2") // remove a non-exist key
 
-	v = GetContextData(ctx, field, "my_config1")
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
 
 	vInt, err := GetWithContextCache(ctx, field, "my_config1", func(context.Context, string) (int, error) {
@@ -37,17 +39,13 @@ func TestWithCacheContext(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, vInt)
 
-	v = GetContextData(ctx, field, "my_config1")
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.EqualValues(t, 1, v)
 
-	now := timeNow
-	defer func() {
-		timeNow = now
-	}()
-	timeNow = func() time.Time {
-		return now().Add(5 * time.Minute)
-	}
-	v = GetContextData(ctx, field, "my_config1")
+	defer test.MockVariableValue(&timeNow, func() time.Time {
+		return time.Now().Add(5 * time.Minute)
+	})()
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
 }
 
@@ -56,23 +54,23 @@ func TestWithNoCacheContext(t *testing.T) {
 
 	const field = "system_setting"
 
-	v := GetContextData(ctx, field, "my_config1")
+	v, _ := getContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
-	SetContextData(ctx, field, "my_config1", 1)
-	v = GetContextData(ctx, field, "my_config1")
+	setContextData(ctx, field, "my_config1", 1)
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.Nil(t, v) // still no cache
 
 	ctx = WithCacheContext(ctx)
-	v = GetContextData(ctx, field, "my_config1")
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
-	SetContextData(ctx, field, "my_config1", 1)
-	v = GetContextData(ctx, field, "my_config1")
+	setContextData(ctx, field, "my_config1", 1)
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.NotNil(t, v)
 
-	ctx = WithNoCacheContext(ctx)
-	v = GetContextData(ctx, field, "my_config1")
+	ctx = withNoCacheContext(ctx)
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
-	SetContextData(ctx, field, "my_config1", 1)
-	v = GetContextData(ctx, field, "my_config1")
+	setContextData(ctx, field, "my_config1", 1)
+	v, _ = getContextData(ctx, field, "my_config1")
 	assert.Nil(t, v) // still no cache
 }

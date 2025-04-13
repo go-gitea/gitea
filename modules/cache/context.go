@@ -5,75 +5,17 @@ package cache
 
 import (
 	"context"
-	"sync"
 	"time"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
-// cacheContext is a context that can be used to cache data in a request level context
-// This is useful for caching data that is expensive to calculate and is likely to be
-// used multiple times in a request.
-type cacheContext struct {
-	data    map[any]map[any]any
-	lock    sync.RWMutex
-	created time.Time
-	discard bool
-}
+type cacheContextKeyType struct{}
 
-func (cc *cacheContext) Get(tp, key any) any {
-	cc.lock.RLock()
-	defer cc.lock.RUnlock()
-	return cc.data[tp][key]
-}
+var cacheContextKey = cacheContextKeyType{}
 
-func (cc *cacheContext) Put(tp, key, value any) {
-	cc.lock.Lock()
-	defer cc.lock.Unlock()
-
-	if cc.discard {
-		return
-	}
-
-	d := cc.data[tp]
-	if d == nil {
-		d = make(map[any]any)
-		cc.data[tp] = d
-	}
-	d[key] = value
-}
-
-func (cc *cacheContext) Delete(tp, key any) {
-	cc.lock.Lock()
-	defer cc.lock.Unlock()
-	delete(cc.data[tp], key)
-}
-
-func (cc *cacheContext) Discard() {
-	cc.lock.Lock()
-	defer cc.lock.Unlock()
-	cc.data = nil
-	cc.discard = true
-}
-
-func (cc *cacheContext) isDiscard() bool {
-	cc.lock.RLock()
-	defer cc.lock.RUnlock()
-	return cc.discard
-}
-
-// cacheContextLifetime is the max lifetime of cacheContext.
-// Since cacheContext is used to cache data in a request level context, 5 minutes is enough.
-// If a cacheContext is used more than 5 minutes, it's probably misuse.
-const cacheContextLifetime = 5 * time.Minute
-
-var timeNow = time.Now
-
-func (cc *cacheContext) Expired() bool {
-	return timeNow().Sub(cc.created) > cacheContextLifetime
-}
-
-var cacheContextKey = struct{}{}
+// contextCacheLifetime is the max lifetime of context cache.
+// Since context cache is used to cache data in a request level context, 5 minutes is enough.
+// If a context cache is used more than 5 minutes, it's probably abused.
+const contextCacheLifetime = 5 * time.Minute
 
 /*
 Since there are both WithCacheContext and WithNoCacheContext,
@@ -103,78 +45,52 @@ So:
 */
 
 func WithCacheContext(ctx context.Context) context.Context {
-	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
+	if c, ok := ctx.Value(cacheContextKey).(*EphemeralCache); ok {
 		if !c.isDiscard() {
-			// reuse parent context
-			return ctx
+			return ctx // reuse parent context
 		}
 	}
-	// FIXME: review the use of this nolint directive
-	return context.WithValue(ctx, cacheContextKey, &cacheContext{ //nolint:staticcheck
-		data:    make(map[any]map[any]any),
-		created: timeNow(),
-	})
+	return context.WithValue(ctx, cacheContextKey, NewEphemeralCache(contextCacheLifetime))
 }
 
-func WithNoCacheContext(ctx context.Context) context.Context {
-	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
+func withNoCacheContext(ctx context.Context) context.Context {
+	if c, ok := ctx.Value(cacheContextKey).(*EphemeralCache); ok {
 		// The caller want to run long-life tasks, but the parent context is a cache context.
 		// So we should disable and clean the cache data, or it will be kept in memory for a long time.
-		c.Discard()
+		c.discard()
 		return ctx
 	}
-
 	return ctx
 }
 
-func GetContextData(ctx context.Context, tp, key any) any {
-	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
-		if c.Expired() {
-			// The warning means that the cache context is misused for long-life task,
-			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired, is highly likely to be misused for long-life tasks: %v", c)
-			return nil
-		}
+func getContextData(ctx context.Context, tp, key any) (any, bool) {
+	if c, ok := ctx.Value(cacheContextKey).(*EphemeralCache); ok {
 		return c.Get(tp, key)
 	}
-	return nil
+	return nil, false
 }
 
-func SetContextData(ctx context.Context, tp, key, value any) {
-	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
-		if c.Expired() {
-			// The warning means that the cache context is misused for long-life task,
-			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired, is highly likely to be misused for long-life tasks: %v", c)
-			return
-		}
+func setContextData(ctx context.Context, tp, key, value any) {
+	if c, ok := ctx.Value(cacheContextKey).(*EphemeralCache); ok {
 		c.Put(tp, key, value)
-		return
 	}
 }
 
-func RemoveContextData(ctx context.Context, tp, key any) {
-	if c, ok := ctx.Value(cacheContextKey).(*cacheContext); ok {
-		if c.Expired() {
-			// The warning means that the cache context is misused for long-life task,
-			// it can be resolved with WithNoCacheContext(ctx).
-			log.Warn("cache context is expired, is highly likely to be misused for long-life tasks: %v", c)
-			return
-		}
+func removeContextData(ctx context.Context, tp, key any) {
+	if c, ok := ctx.Value(cacheContextKey).(*EphemeralCache); ok {
 		c.Delete(tp, key)
 	}
 }
 
 // GetWithContextCache returns the cache value of the given key in the given context.
+// FIXME: in most cases, the "context cache" should not be used, because it has uncontrollable behaviors
+// For example, these calls:
+// * GetWithContextCache(TargetID) -> OtherCodeCreateModel(TargetID) -> GetWithContextCache(TargetID)
+// Will cause the second call is not able to get the correct created target.
+// UNLESS it is certain that the target won't be changed during the request, DO NOT use it.
 func GetWithContextCache[T, K any](ctx context.Context, groupKey string, targetKey K, f func(context.Context, K) (T, error)) (T, error) {
-	v := GetContextData(ctx, groupKey, targetKey)
-	if vv, ok := v.(T); ok {
-		return vv, nil
+	if c, ok := ctx.Value(cacheContextKey).(*EphemeralCache); ok {
+		return GetWithEphemeralCache(ctx, c, groupKey, targetKey, f)
 	}
-	t, err := f(ctx, targetKey)
-	if err != nil {
-		return t, err
-	}
-	SetContextData(ctx, groupKey, targetKey, t)
-	return t, nil
+	return f(ctx, targetKey)
 }
