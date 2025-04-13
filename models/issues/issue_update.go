@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -612,7 +611,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
-				if team.AccessMode >= perm.AccessModeAdmin {
+				if team.HasAdminAccess() {
 					checked = append(checked, team.ID)
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
@@ -846,6 +845,7 @@ func DeleteOrphanedIssues(ctx context.Context) error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
+		// FIXME: it's not right, because the attachment might not be on local filesystem
 		system_model.RemoveAllWithNotice(ctx, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil

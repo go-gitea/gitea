@@ -574,7 +574,7 @@ export default defineComponent({
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
-              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 circular-spin"/>
               <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"/>
               <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
 
@@ -896,16 +896,6 @@ export default defineComponent({
 
 <style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
 /* some elements are not managed by vue, so we need to use global style */
-.job-status-rotate {
-  animation: job-status-rotate-keyframes 1s linear infinite;
-}
-
-@keyframes job-status-rotate-keyframes {
-  100% {
-    transform: rotate(-360deg);
-  }
-}
-
 .job-step-section {
   margin: 10px;
 }

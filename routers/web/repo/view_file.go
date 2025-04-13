@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -25,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
-	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/nektos/act/pkg/model"
 )
@@ -52,7 +52,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 
 	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefFullName.ShortName())
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
-	ctx.Data["FileName"] = blob.Name()
+	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	if ctx.Repo.TreePath == ".editorconfig" {
@@ -147,6 +147,23 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
+	// read all needed attributes which will be used later
+	// there should be no performance different between reading 2 or 4 here
+	attrsMap, err := attribute.CheckAttributes(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.CheckAttributeOpts{
+		Filenames:  []string{ctx.Repo.TreePath},
+		Attributes: []string{attribute.LinguistGenerated, attribute.LinguistVendored, attribute.LinguistLanguage, attribute.GitlabLanguage},
+	})
+	if err != nil {
+		ctx.ServerError("attribute.CheckAttributes", err)
+		return
+	}
+	attrs := attrsMap[ctx.Repo.TreePath]
+	if attrs == nil {
+		// this case shouldn't happen, just in case.
+		setting.PanicInDevOrTesting("no attributes found for %s", ctx.Repo.TreePath)
+		attrs = attribute.NewAttributes()
+	}
+
 	switch {
 	case isRepresentableAsText:
 		if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
@@ -209,11 +226,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
 			}
 
-			language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
-			if err != nil {
-				log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
-			}
-
+			language := attrs.GetLanguage().Value()
 			fileContent, lexerName, err := highlight.File(blob.Name(), language, buf)
 			ctx.Data["LexerName"] = lexerName
 			if err != nil {
@@ -283,17 +296,7 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		}
 	}
 
-	if ctx.Repo.GitRepo != nil {
-		checker, deferable := ctx.Repo.GitRepo.CheckAttributeReader(ctx.Repo.CommitID)
-		if checker != nil {
-			defer deferable()
-			attrs, err := checker.CheckPath(ctx.Repo.TreePath)
-			if err == nil {
-				ctx.Data["IsVendored"] = git.AttributeToBool(attrs, git.AttributeLinguistVendored).Value()
-				ctx.Data["IsGenerated"] = git.AttributeToBool(attrs, git.AttributeLinguistGenerated).Value()
-			}
-		}
-	}
+	ctx.Data["IsVendored"], ctx.Data["IsGenerated"] = attrs.GetVendored().Value(), attrs.GetGenerated().Value()
 
 	if fInfo.st.IsImage() && !fInfo.st.IsSvgImage() {
 		img, _, err := image.DecodeConfig(bytes.NewReader(buf))
