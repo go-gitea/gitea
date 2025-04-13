@@ -4,18 +4,16 @@ import {parseIssueHref} from '../utils.ts';
 import {createTippy} from '../modules/tippy.ts';
 
 export function initContextPopups() {
-  const refIssues = document.querySelectorAll('.ref-issue');
+  const refIssues = document.querySelectorAll<HTMLElement>('.ref-issue');
   attachRefIssueContextPopup(refIssues);
 }
 
-export function attachRefIssueContextPopup(refIssues) {
+export function attachRefIssueContextPopup(refIssues: NodeListOf<HTMLElement>) {
   for (const refIssue of refIssues) {
-    if (refIssue.classList.contains('ref-external-issue')) {
-      return;
-    }
+    if (refIssue.classList.contains('ref-external-issue')) continue;
 
-    const {owner, repo, index} = parseIssueHref(refIssue.getAttribute('href'));
-    if (!owner) return;
+    const issuePathInfo = parseIssueHref(refIssue.getAttribute('href'));
+    if (!issuePathInfo.ownerName) continue;
 
     const el = document.createElement('div');
     el.classList.add('tw-p-3');
@@ -38,7 +36,7 @@ export function attachRefIssueContextPopup(refIssues) {
       role: 'dialog',
       interactiveBorder: 5,
       onShow: () => {
-        el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: {owner, repo, index}}));
+        el.firstChild.dispatchEvent(new CustomEvent('ce-load-context-popup', {detail: issuePathInfo}));
       },
     });
   }

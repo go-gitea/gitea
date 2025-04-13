@@ -6,6 +6,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issue_model "code.gitea.io/gitea/models/issues"
@@ -34,7 +35,11 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 	case internal.SortByDeadlineAsc:
 		sortType = "nearduedate"
 	default:
-		sortType = "newest"
+		if strings.HasPrefix(string(options.SortBy), issue_model.ScopeSortPrefix) {
+			sortType = string(options.SortBy)
+		} else {
+			sortType = "newest"
+		}
 	}
 
 	// See the comment of issues_model.SearchOptions for the reason why we need to convert
@@ -54,8 +59,8 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		RepoIDs:            options.RepoIDs,
 		AllPublic:          options.AllPublic,
 		RepoCond:           nil,
-		AssigneeID:         convertID(options.AssigneeID),
-		PosterID:           convertID(options.PosterID),
+		AssigneeID:         options.AssigneeID,
+		PosterID:           options.PosterID,
 		MentionedID:        convertID(options.MentionID),
 		ReviewRequestedID:  convertID(options.ReviewRequestedID),
 		ReviewedID:         convertID(options.ReviewedID),
@@ -68,14 +73,13 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		ExcludedLabelNames: nil,
 		IncludeMilestones:  nil,
 		SortType:           sortType,
-		IssueIDs:           nil,
 		UpdatedAfterUnix:   options.UpdatedAfterUnix.Value(),
 		UpdatedBeforeUnix:  options.UpdatedBeforeUnix.Value(),
 		PriorityRepoID:     0,
-		IsArchived:         optional.None[bool](),
-		Org:                nil,
+		IsArchived:         options.IsArchived,
+		Owner:              nil,
 		Team:               nil,
-		User:               nil,
+		Doer:               nil,
 	}
 
 	if len(options.MilestoneIDs) == 1 && options.MilestoneIDs[0] == 0 {

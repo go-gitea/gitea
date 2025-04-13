@@ -63,9 +63,9 @@
 						<b>{{ctx.Locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
 					</div>
 					<div class="flex-item-body">
-						<i>{{ctx.Locale.Tr "settings.added_on" (DateTime "short" .AddedUnix)}}</i>
+						<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .AddedUnix)}}</i>
 						-
-						<i>{{if not .ExpiredUnix.IsZero}}{{ctx.Locale.Tr "settings.valid_until_date" (DateTime "short" .ExpiredUnix)}}{{else}}{{ctx.Locale.Tr "settings.valid_forever"}}{{end}}</i>
+						<i>{{if not .ExpiredUnix.IsZero}}{{ctx.Locale.Tr "settings.valid_until_date" (DateUtils.AbsoluteShort .ExpiredUnix)}}{{else}}{{ctx.Locale.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
 				<div class="flex-item-trailing">

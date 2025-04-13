@@ -143,7 +143,7 @@ func TestCreateUserKey(t *testing.T) {
 	})
 
 	// Search by fingerprint
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/keys?fingerprint=%s", newPublicKey.Fingerprint)).
+	req = NewRequest(t, "GET", "/api/v1/user/keys?fingerprint="+newPublicKey.Fingerprint).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
@@ -168,7 +168,7 @@ func TestCreateUserKey(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
-	assert.Len(t, fingerprintPublicKeys, 0)
+	assert.Empty(t, fingerprintPublicKeys)
 
 	// Fail searching for wrong users key
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/keys?fingerprint=%s", "user2", newPublicKey.Fingerprint)).
@@ -176,14 +176,14 @@ func TestCreateUserKey(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
-	assert.Len(t, fingerprintPublicKeys, 0)
+	assert.Empty(t, fingerprintPublicKeys)
 
 	// Now login as user 2
 	session2 := loginUser(t, "user2")
 	token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteUser)
 
 	// Should find key even though not ours, but we shouldn't know whose it is
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/keys?fingerprint=%s", newPublicKey.Fingerprint)).
+	req = NewRequest(t, "GET", "/api/v1/user/keys?fingerprint="+newPublicKey.Fingerprint).
 		AddTokenAuth(token2)
 	resp = MakeRequest(t, req, http.StatusOK)
 
@@ -208,5 +208,5 @@ func TestCreateUserKey(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &fingerprintPublicKeys)
-	assert.Len(t, fingerprintPublicKeys, 0)
+	assert.Empty(t, fingerprintPublicKeys)
 }

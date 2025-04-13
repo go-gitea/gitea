@@ -10,13 +10,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/tailmsg"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
 func MonitorDiagnosis(ctx *context.Context) {
 	seconds := ctx.FormInt64("seconds")
-	if seconds <= 5 {
-		seconds = 5
+	if seconds <= 1 {
+		seconds = 1
 	}
 	if seconds > 300 {
 		seconds = 300
@@ -65,4 +67,16 @@ func MonitorDiagnosis(ctx *context.Context) {
 		return
 	}
 	_ = pprof.Lookup("heap").WriteTo(f, 0)
+
+	f, err = zipWriter.CreateHeader(&zip.FileHeader{Name: "perftrace.txt", Method: zip.Deflate, Modified: time.Now()})
+	if err != nil {
+		ctx.ServerError("Failed to create zip file", err)
+		return
+	}
+	for _, record := range tailmsg.GetManager().GetTraceRecorder().GetRecords() {
+		_, _ = f.Write(util.UnsafeStringToBytes(record.Time.Format(time.RFC3339)))
+		_, _ = f.Write([]byte(" "))
+		_, _ = f.Write(util.UnsafeStringToBytes((record.Content)))
+		_, _ = f.Write([]byte("\n\n"))
+	}
 }

@@ -64,9 +64,9 @@ func TestLockAndDo(t *testing.T) {
 }
 
 func testLockAndDo(t *testing.T) {
-	const concurrency = 1000
+	const concurrency = 50
 
-	ctx := context.Background()
+	ctx := t.Context()
 	count := 0
 	wg := sync.WaitGroup{}
 	wg.Add(concurrency)

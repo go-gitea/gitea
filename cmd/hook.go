@@ -316,7 +316,7 @@ func runHookPostReceive(c *cli.Context) error {
 	setup(ctx, c.Bool("debug"))
 
 	// First of all run update-server-info no matter what
-	if _, _, err := git.NewCommand(ctx, "update-server-info").RunStdString(nil); err != nil {
+	if _, _, err := git.NewCommand("update-server-info").RunStdString(ctx, nil); err != nil {
 		return fmt.Errorf("Failed to call 'git update-server-info': %w", err)
 	}
 
@@ -591,8 +591,9 @@ Gitea or set your environment appropriately.`, "")
 	// S: ... ...
 	// S: flush-pkt
 	hookOptions := private.HookOptions{
-		UserName: pusherName,
-		UserID:   pusherID,
+		UserName:       pusherName,
+		UserID:         pusherID,
+		GitPushOptions: make(map[string]string),
 	}
 	hookOptions.OldCommitIDs = make([]string, 0, hookBatchSize)
 	hookOptions.NewCommitIDs = make([]string, 0, hookBatchSize)
@@ -617,8 +618,6 @@ Gitea or set your environment appropriately.`, "")
 		hookOptions.RefFullNames = append(hookOptions.RefFullNames, git.RefName(t[2]))
 	}
 
-	hookOptions.GitPushOptions = make(map[string]string)
-
 	if hasPushOptions {
 		for {
 			rs, err = readPktLine(ctx, reader, pktLineTypeUnknow)
@@ -629,11 +628,7 @@ Gitea or set your environment appropriately.`, "")
 			if rs.Type == pktLineTypeFlush {
 				break
 			}
-
-			kv := strings.SplitN(string(rs.Data), "=", 2)
-			if len(kv) == 2 {
-				hookOptions.GitPushOptions[kv[0]] = kv[1]
-			}
+			hookOptions.GitPushOptions.AddFromKeyValue(string(rs.Data))
 		}
 	}
 

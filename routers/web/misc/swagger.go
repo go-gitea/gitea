@@ -6,12 +6,12 @@ package misc
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 // tplSwagger swagger page template
-const tplSwagger base.TplName = "swagger/ui"
+const tplSwagger templates.TplName = "swagger/ui"
 
 // Swagger render swagger-ui page with v1 json
 func Swagger(ctx *context.Context) {

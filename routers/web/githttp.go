@@ -4,29 +4,13 @@
 package web
 
 import (
-	"net/http"
-
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/context"
 )
 
-func requireSignIn(ctx *context.Context) {
-	if !setting.Service.RequireSignInView {
-		return
-	}
-
-	// rely on the results of Contexter
-	if !ctx.IsSigned {
-		// TODO: support digit auth - which would be Authorization header with digit
-		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea"`)
-		ctx.Error(http.StatusUnauthorized)
-	}
-}
-
-func gitHTTPRouters(m *web.Router) {
-	m.Group("", func() {
+func addOwnerRepoGitHTTPRouters(m *web.Router) {
+	m.Group("/{username}/{reponame}", func() {
 		m.Methods("POST,OPTIONS", "/git-upload-pack", repo.ServiceUploadPack)
 		m.Methods("POST,OPTIONS", "/git-receive-pack", repo.ServiceReceivePack)
 		m.Methods("GET,OPTIONS", "/info/refs", repo.GetInfoRefs)
@@ -38,5 +22,5 @@ func gitHTTPRouters(m *web.Router) {
 		m.Methods("GET,OPTIONS", "/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38,62}}", repo.GetLooseObject)
 		m.Methods("GET,OPTIONS", "/objects/pack/pack-{file:[0-9a-f]{40,64}}.pack", repo.GetPackFile)
 		m.Methods("GET,OPTIONS", "/objects/pack/pack-{file:[0-9a-f]{40,64}}.idx", repo.GetIdxFile)
-	}, ignSignInAndCsrf, requireSignIn, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context.UserAssignmentWeb())
+	}, optSignInIgnoreCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context.UserAssignmentWeb())
 }

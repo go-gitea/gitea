@@ -5,6 +5,9 @@ import Toastify from 'toastify-js'; // don't use "async import", because when ne
 import type {Intent} from '../types.ts';
 import type {SvgName} from '../svg.ts';
 import type {Options} from 'toastify-js';
+import type StartToastifyInstance from 'toastify-js';
+
+export type Toast = ReturnType<typeof StartToastifyInstance>;
 
 type ToastLevels = {
   [intent in Intent]: {
@@ -38,7 +41,7 @@ type ToastOpts = {
 } & Options;
 
 // See https://github.com/apvarun/toastify-js#api for options
-function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}) {
+function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast {
   const body = useHtmlBody ? String(message) : htmlEscape(message);
   const key = `${level}-${body}`;
 
@@ -75,14 +78,14 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
   return toast;
 }
 
-export function showInfoToast(message: string, opts?: ToastOpts) {
+export function showInfoToast(message: string, opts?: ToastOpts): Toast {
   return showToast(message, 'info', opts);
 }
 
-export function showWarningToast(message: string, opts?: ToastOpts) {
+export function showWarningToast(message: string, opts?: ToastOpts): Toast {
   return showToast(message, 'warning', opts);
 }
 
-export function showErrorToast(message: string, opts?: ToastOpts) {
+export function showErrorToast(message: string, opts?: ToastOpts): Toast {
   return showToast(message, 'error', opts);
 }

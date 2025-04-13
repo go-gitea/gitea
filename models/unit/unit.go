@@ -20,17 +20,21 @@ type Type int
 
 // Enumerate all the unit types
 const (
-	TypeInvalid         Type = iota // 0 invalid
-	TypeCode                        // 1 code
-	TypeIssues                      // 2 issues
-	TypePullRequests                // 3 PRs
-	TypeReleases                    // 4 Releases
-	TypeWiki                        // 5 Wiki
-	TypeExternalWiki                // 6 ExternalWiki
-	TypeExternalTracker             // 7 ExternalTracker
-	TypeProjects                    // 8 Projects
-	TypePackages                    // 9 Packages
-	TypeActions                     // 10 Actions
+	TypeInvalid Type = iota // 0 invalid
+
+	TypeCode            // 1 code
+	TypeIssues          // 2 issues
+	TypePullRequests    // 3 PRs
+	TypeReleases        // 4 Releases
+	TypeWiki            // 5 Wiki
+	TypeExternalWiki    // 6 ExternalWiki
+	TypeExternalTracker // 7 ExternalTracker
+	TypeProjects        // 8 Projects
+	TypePackages        // 9 Packages
+	TypeActions         // 10 Actions
+
+	// FIXME: TEAM-UNIT-PERMISSION: the team unit "admin" permission's design is not right, when a new unit is added in the future,
+	// admin team won't inherit the correct admin permission for the new unit, need to have a complete fix before adding any new unit.
 )
 
 // Value returns integer value for unit type (used by template)
@@ -78,6 +82,27 @@ var (
 	DefaultForkRepoUnits = []Type{
 		TypeCode,
 		TypePullRequests,
+	}
+
+	// DefaultMirrorRepoUnits contains the default unit types for mirrors
+	DefaultMirrorRepoUnits = []Type{
+		TypeCode,
+		TypeIssues,
+		TypeReleases,
+		TypeWiki,
+		TypeProjects,
+		TypePackages,
+	}
+
+	// DefaultTemplateRepoUnits contains the default unit types for templates
+	DefaultTemplateRepoUnits = []Type{
+		TypeCode,
+		TypeIssues,
+		TypePullRequests,
+		TypeReleases,
+		TypeWiki,
+		TypeProjects,
+		TypePackages,
 	}
 
 	// NotAllowedDefaultRepoUnits contains units that can't be default
@@ -147,6 +172,7 @@ func LoadUnitConfig() error {
 	if len(DefaultRepoUnits) == 0 {
 		return errors.New("no default repository units found")
 	}
+	// default fork repo units
 	setDefaultForkRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultForkRepoUnits...)
 	if len(invalidKeys) > 0 {
 		log.Warn("Invalid keys in default fork repo units: %s", strings.Join(invalidKeys, ", "))
@@ -154,6 +180,24 @@ func LoadUnitConfig() error {
 	DefaultForkRepoUnits = validateDefaultRepoUnits(DefaultForkRepoUnits, setDefaultForkRepoUnits)
 	if len(DefaultForkRepoUnits) == 0 {
 		return errors.New("no default fork repository units found")
+	}
+	// default mirror repo units
+	setDefaultMirrorRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultMirrorRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default mirror repo units: %s", strings.Join(invalidKeys, ", "))
+	}
+	DefaultMirrorRepoUnits = validateDefaultRepoUnits(DefaultMirrorRepoUnits, setDefaultMirrorRepoUnits)
+	if len(DefaultMirrorRepoUnits) == 0 {
+		return errors.New("no default mirror repository units found")
+	}
+	// default template repo units
+	setDefaultTemplateRepoUnits, invalidKeys := FindUnitTypes(setting.Repository.DefaultTemplateRepoUnits...)
+	if len(invalidKeys) > 0 {
+		log.Warn("Invalid keys in default template repo units: %s", strings.Join(invalidKeys, ", "))
+	}
+	DefaultTemplateRepoUnits = validateDefaultRepoUnits(DefaultTemplateRepoUnits, setDefaultTemplateRepoUnits)
+	if len(DefaultTemplateRepoUnits) == 0 {
+		return errors.New("no default template repository units found")
 	}
 	return nil
 }
@@ -337,23 +381,6 @@ func AllUnitKeyNames() []string {
 	res := make([]string, 0, len(Units))
 	for _, u := range Units {
 		res = append(res, u.NameKey)
-	}
-	return res
-}
-
-// MinUnitAccessMode returns the minial permission of the permission map
-func MinUnitAccessMode(unitsMap map[Type]perm.AccessMode) perm.AccessMode {
-	res := perm.AccessModeNone
-	for t, mode := range unitsMap {
-		// Don't allow `TypeExternal{Tracker,Wiki}` to influence this as they can only be set to READ perms.
-		if t == TypeExternalTracker || t == TypeExternalWiki {
-			continue
-		}
-
-		// get the minial permission great than AccessModeNone except all are AccessModeNone
-		if mode > perm.AccessModeNone && (res == perm.AccessModeNone || mode < res) {
-			res = mode
-		}
 	}
 	return res
 }

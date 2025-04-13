@@ -32,7 +32,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand(repo.Ctx, "rev-list", "--all").Run(&git.RunOpts{
+		err := git.NewCommand("rev-list", "--all").Run(repo.Ctx, &git.RunOpts{
 			Dir:    repo.Path,
 			Stdout: revListWriter,
 			Stderr: &stderr,
@@ -114,7 +114,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 			case "tree":
 				var n int64
 				for n < size {
-					mode, fname, binObjectID, count, err := git.ParseTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
+					mode, fname, binObjectID, count, err := git.ParseCatFileTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
 						return nil, err
 					}

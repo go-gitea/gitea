@@ -48,6 +48,7 @@ type Metadata struct {
 	Homepage    string            `json:"homepage,omitempty"`
 	License     Licenses          `json:"license,omitempty"`
 	Authors     []Author          `json:"authors,omitempty"`
+	Bin         []string          `json:"bin,omitempty"`
 	Autoload    map[string]any    `json:"autoload,omitempty"`
 	AutoloadDev map[string]any    `json:"autoload-dev,omitempty"`
 	Extra       map[string]any    `json:"extra,omitempty"`

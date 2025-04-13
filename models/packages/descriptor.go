@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/alpine"
+	"code.gitea.io/gitea/modules/packages/arch"
 	"code.gitea.io/gitea/modules/packages/cargo"
 	"code.gitea.io/gitea/modules/packages/chef"
 	"code.gitea.io/gitea/modules/packages/composer"
@@ -116,6 +117,12 @@ func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*P
 	repository, err := c.QueryRepository(ctx, p.RepoID)
 	if err != nil {
 		return nil, err
+	var repository *repo_model.Repository
+	if p.RepoID > 0 {
+		repository, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
+		if err != nil && !repo_model.IsErrRepoNotExist(err) {
+			return nil, err
+		}
 	}
 	creator, err := c.QueryUser(ctx, pv.CreatorID)
 	if err != nil {
@@ -158,6 +165,8 @@ func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*P
 	switch p.Type {
 	case TypeAlpine:
 		metadata = &alpine.VersionMetadata{}
+	case TypeArch:
+		metadata = &arch.VersionMetadata{}
 	case TypeCargo:
 		metadata = &cargo.Metadata{}
 	case TypeChef:
@@ -199,7 +208,7 @@ func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache) (*P
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:
-		panic(fmt.Sprintf("unknown package type: %s", string(p.Type)))
+		panic("unknown package type: " + string(p.Type))
 	}
 	if metadata != nil {
 		if err := json.Unmarshal([]byte(pv.MetadataJSON), &metadata); err != nil {

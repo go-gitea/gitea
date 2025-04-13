@@ -359,6 +359,13 @@ type swaggerLanguageStatistics struct {
 	Body map[string]int64 `json:"body"`
 }
 
+// LicensesList
+// swagger:response LicensesList
+type swaggerLicensesList struct {
+	// in: body
+	Body []string `json:"body"`
+}
+
 // CombinedStatus
 // swagger:response CombinedStatus
 type swaggerCombinedStatus struct {
@@ -436,8 +443,34 @@ type swaggerRepoTasksList struct {
 	Body api.ActionTaskResponse `json:"body"`
 }
 
+// ArtifactsList
+// swagger:response ArtifactsList
+type swaggerRepoArtifactsList struct {
+	// in:body
+	Body api.ActionArtifactsResponse `json:"body"`
+}
+
+// Artifact
+// swagger:response Artifact
+type swaggerRepoArtifact struct {
+	// in:body
+	Body api.ActionArtifact `json:"body"`
+}
+
 // swagger:response Compare
 type swaggerCompare struct {
 	// in:body
 	Body api.Compare `json:"body"`
+}
+
+// swagger:response MergeUpstreamRequest
+type swaggerMergeUpstreamRequest struct {
+	// in:body
+	Body api.MergeUpstreamRequest `json:"body"`
+}
+
+// swagger:response MergeUpstreamResponse
+type swaggerMergeUpstreamResponse struct {
+	// in:body
+	Body api.MergeUpstreamResponse `json:"body"`
 }

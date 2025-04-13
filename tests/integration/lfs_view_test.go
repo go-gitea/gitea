@@ -4,12 +4,13 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -94,13 +95,18 @@ func TestLFSRender(t *testing.T) {
 	t.Run("Invalid", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", "/user2/lfs/src/branch/master/invalid")
+		// the LFS exists
+		req := NewRequest(t, "GET", "/user2/lfs/src/branch/master/CONTRIBUTING.md")
 		resp := session.MakeRequest(t, req, http.StatusOK)
+		content := NewHTMLParser(t, resp.Body).Find("div.file-view").Text()
+		assert.Contains(t, content, "Testing documents in LFS")
 
-		doc := NewHTMLParser(t, resp.Body).doc
-
-		content := doc.Find("div.file-view").Text()
-		assert.Contains(t, content, "oid sha256:9d178b5f15046343fd32f451df93acc2bdd9e6373be478b968e4cad6b6647351")
+		// then make it disappear
+		assert.NoError(t, db.TruncateBeans(db.DefaultContext, &git.LFSMetaObject{}))
+		req = NewRequest(t, "GET", "/user2/lfs/src/branch/master/CONTRIBUTING.md")
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		content = NewHTMLParser(t, resp.Body).Find("div.file-view").Text()
+		assert.Contains(t, content, "oid sha256:7b6b2c88dba9f760a1a58469b67fee2b698ef7e9399c4ca4f34a14ccbe39f623")
 	})
 }
 
@@ -136,7 +142,7 @@ func TestLFSLockView(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		// make sure the display names are different, or the test is meaningless
-		require.NoError(t, repo3.LoadOwner(context.Background()))
+		require.NoError(t, repo3.LoadOwner(t.Context()))
 		require.NotEqual(t, user2.DisplayName(), repo3.Owner.DisplayName())
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/settings/lfs/locks", repo3.FullName()))

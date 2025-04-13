@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -247,7 +248,7 @@ func (r *Review) TooltipContent() string {
 		}
 		return "repo.issues.review.official"
 	case ReviewTypeComment:
-		return "repo.issues.review.comment"
+		return "repo.issues.review.commented"
 	case ReviewTypeReject:
 		return "repo.issues.review.rejected"
 	case ReviewTypeRequest:
@@ -374,7 +375,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 		review.Type = ReviewTypeRequest
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
 	} else {
-		return nil, fmt.Errorf("provide either reviewer or reviewer team")
+		return nil, errors.New("provide either reviewer or reviewer team")
 	}
 
 	if _, err := sess.Insert(review); err != nil {
@@ -389,7 +390,7 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 		return nil, nil
 	}
 	reviews, err := FindReviews(ctx, FindReviewOptions{
-		Type:       ReviewTypePending,
+		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,
 		ReviewerID: reviewer.ID,
 	})
@@ -638,6 +639,10 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 			if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
 				return err
 			}
+		}
+
+		if err := UpdateIssueNumComments(ctx, review.IssueID); err != nil {
+			return err
 		}
 	}
 
@@ -926,17 +931,19 @@ func MarkConversation(ctx context.Context, comment *Comment, doer *user_model.Us
 }
 
 // CanMarkConversation  Add or remove Conversation mark for a code comment permission check
-// the PR writer , offfcial reviewer and poster can do it
+// the PR writer , official reviewer and poster can do it
 func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.User) (permResult bool, err error) {
 	if doer == nil || issue == nil {
-		return false, fmt.Errorf("issue or doer is nil")
+		return false, errors.New("issue or doer is nil")
 	}
 
+	if err = issue.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+	if issue.Repo.IsArchived {
+		return false, nil
+	}
 	if doer.ID != issue.PosterID {
-		if err = issue.LoadRepo(ctx); err != nil {
-			return false, err
-		}
-
 		p, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return false, err
@@ -966,11 +973,11 @@ func DeleteReview(ctx context.Context, r *Review) error {
 	defer committer.Close()
 
 	if r.ID == 0 {
-		return fmt.Errorf("review is not allowed to be 0")
+		return errors.New("review is not allowed to be 0")
 	}
 
 	if r.Type == ReviewTypeRequest {
-		return fmt.Errorf("review request can not be deleted using this method")
+		return errors.New("review request can not be deleted using this method")
 	}
 
 	opts := FindCommentsOptions{

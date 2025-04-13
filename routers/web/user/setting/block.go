@@ -7,14 +7,14 @@ import (
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsBlockedUsers base.TplName = "user/settings/blocked_users"
+	tplSettingsBlockedUsers templates.TplName = "user/settings/blocked_users"
 )
 
 func BlockedUsers(ctx *context.Context) {

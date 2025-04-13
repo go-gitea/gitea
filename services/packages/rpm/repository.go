@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"strings"
 	"time"
 
@@ -409,7 +408,6 @@ func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []
 				files = append(files, f)
 			}
 		}
-		packageVersion := fmt.Sprintf("%s-%s", pd.FileMetadata.Version, pd.FileMetadata.Release)
 		packages = append(packages, &Package{
 			Type:         "rpm",
 			Name:         pd.Package.Name,
@@ -438,7 +436,7 @@ func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []
 				Archive:   pd.FileMetadata.ArchiveSize,
 			},
 			Location: Location{
-				Href: fmt.Sprintf("package/%s/%s/%s/%s", url.PathEscape(pd.Package.Name), url.PathEscape(packageVersion), url.PathEscape(pd.FileMetadata.Architecture), url.PathEscape(fmt.Sprintf("%s-%s.%s.rpm", pd.Package.Name, packageVersion, pd.FileMetadata.Architecture))),
+				Href: fmt.Sprintf("package/%s/%s/%s/%s-%s.%s.rpm", pd.Package.Name, pd.Version.Version, pd.FileMetadata.Architecture, pd.Package.Name, pd.Version.Version, pd.FileMetadata.Architecture),
 			},
 			Format: Format{
 				License:   pd.VersionMetadata.License,

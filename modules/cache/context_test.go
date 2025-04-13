@@ -12,7 +12,7 @@ import (
 )
 
 func TestWithCacheContext(t *testing.T) {
-	ctx := WithCacheContext(context.Background())
+	ctx := WithCacheContext(t.Context())
 
 	v := GetContextData(ctx, "empty_field", "my_config1")
 	assert.Nil(t, v)
@@ -23,7 +23,7 @@ func TestWithCacheContext(t *testing.T) {
 	SetContextData(ctx, field, "my_config1", 1)
 	v = GetContextData(ctx, field, "my_config1")
 	assert.NotNil(t, v)
-	assert.EqualValues(t, 1, v.(int))
+	assert.Equal(t, 1, v.(int))
 
 	RemoveContextData(ctx, field, "my_config1")
 	RemoveContextData(ctx, field, "my_config2") // remove a non-exist key
@@ -31,11 +31,11 @@ func TestWithCacheContext(t *testing.T) {
 	v = GetContextData(ctx, field, "my_config1")
 	assert.Nil(t, v)
 
-	vInt, err := GetWithContextCache(ctx, field, "my_config1", func() (int, error) {
+	vInt, err := GetWithContextCache(ctx, field, "my_config1", func(context.Context, string) (int, error) {
 		return 1, nil
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, vInt)
+	assert.Equal(t, 1, vInt)
 
 	v = GetContextData(ctx, field, "my_config1")
 	assert.EqualValues(t, 1, v)
@@ -52,7 +52,7 @@ func TestWithCacheContext(t *testing.T) {
 }
 
 func TestWithNoCacheContext(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	const field = "system_setting"
 

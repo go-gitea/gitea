@@ -6,7 +6,7 @@
 		<div class="tw-flex">
 			<h1 class="tw-mb-2">{{.Milestone.Name}}</h1>
 			{{if not .Repository.IsArchived}}
-				<div class="text right tw-flex-1">
+				<div class="tw-text-right tw-flex-1">
 					{{if or .CanWriteIssues .CanWritePulls}}
 						{{if .Milestone.IsClosed}}
 							<a class="ui primary basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{ctx.Locale.Tr "repo.milestones.open"}}
@@ -22,7 +22,7 @@
 			{{end}}
 		</div>
 		{{if .Milestone.RenderedContent}}
-		<div class="markup content tw-mb-4">
+		<div class="render-content markup tw-mb-4">
 				{{.Milestone.RenderedContent}}
 		</div>
 		{{end}}
@@ -30,7 +30,7 @@
 			<progress class="milestone-progress-big" value="{{.Milestone.Completeness}}" max="100"></progress>
 			<div class="tw-flex tw-gap-4">
 				<div classs="tw-flex tw-items-center">
-					{{$closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix ctx.Locale}}
+					{{$closedDate:= DateUtils.TimeSince .Milestone.ClosedDateUnix}}
 					{{if .IsClosed}}
 						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 					{{else}}
@@ -38,7 +38,7 @@
 						{{if .Milestone.DeadlineString}}
 							<span{{if .IsOverdue}} class="text red"{{end}}>
 								{{svg "octicon-calendar"}}
-								{{DateTime "short" .Milestone.DeadlineString}}
+								{{DateUtils.AbsoluteShort (.Milestone.DeadlineString|DateUtils.ParseLegacy)}}
 							</span>
 						{{else}}
 							{{svg "octicon-calendar"}}
@@ -50,7 +50,7 @@
 				{{if .TotalTrackedTime}}
 					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
 						{{svg "octicon-clock"}}
-						{{.TotalTrackedTime | Sec2Time}}
+						{{.TotalTrackedTime | Sec2Hour}}
 					</div>
 				{{end}}
 			</div>

@@ -5,7 +5,7 @@
 		<div class="issue-navbar">
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) .PageIsEditMilestone}}
-				<div class="ui right floated secondary menu">
+				<div class="ui right">
 					<a class="ui primary button" href="{{$.RepoLink}}/milestones/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
 				</div>
 			{{end}}
@@ -30,15 +30,20 @@
 				<div class="field {{if .Err_Deadline}}error{{end}}">
 					<label>
 						{{ctx.Locale.Tr "repo.milestones.due_date"}}
-						<a id="clear-date">{{ctx.Locale.Tr "repo.milestones.clear"}}</a>
+						<a id="milestone-clear-deadline">{{ctx.Locale.Tr "repo.milestones.clear"}}</a>
 					</label>
-					<input type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}">
+					<input type="date" name="deadline" class="tw-w-auto" value="{{.deadline}}" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}">
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.milestones.desc"}}</label>
-					<textarea name="content">{{.content}}</textarea>
+					{{template "shared/combomarkdowneditor" (dict
+						"MarkdownPreviewInRepo" $.Repository
+						"MarkdownPreviewMode" "comment"
+						"TextareaName" "content"
+						"TextareaContent" .content
+						"TextareaPlaceholder" (ctx.Locale.Tr "repo.milestones.desc")
+					)}}
 				</div>
-				<div class="divider"></div>
 				<div class="tw-text-right">
 					{{if .PageIsEditMilestone}}
 						<a class="ui primary basic button" href="{{.RepoLink}}/milestones">

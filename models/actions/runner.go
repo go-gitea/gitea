@@ -57,6 +57,8 @@ type ActionRunner struct {
 
 	// Store labels defined in state file (default: .runner file) of `act_runner`
 	AgentLabels []string `xorm:"TEXT"`
+	// Store if this is a runner that only ever get one single job assigned
+	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -84,9 +86,10 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 		return types.OwnerTypeRepository
 	}
 	if r.OwnerID != 0 {
-		if r.Owner.Type == user_model.UserTypeOrganization {
+		switch r.Owner.Type {
+		case user_model.UserTypeOrganization:
 			return types.OwnerTypeOrganization
-		} else if r.Owner.Type == user_model.UserTypeIndividual {
+		case user_model.UserTypeIndividual:
 			return types.OwnerTypeIndividual
 		}
 	}
@@ -167,6 +170,7 @@ func init() {
 
 type FindRunnerOptions struct {
 	db.ListOptions
+	IDs           []int64
 	RepoID        int64
 	OwnerID       int64 // it will be ignored if RepoID is set
 	Sort          string
@@ -177,6 +181,14 @@ type FindRunnerOptions struct {
 
 func (opts FindRunnerOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
+
+	if len(opts.IDs) > 0 {
+		if len(opts.IDs) == 1 {
+			cond = cond.And(builder.Eq{"id": opts.IDs[0]})
+		} else {
+			cond = cond.And(builder.In("id", opts.IDs))
+		}
+	}
 
 	if opts.RepoID > 0 {
 		c := builder.NewCond().And(builder.Eq{"repo_id": opts.RepoID})
@@ -252,6 +264,7 @@ func GetRunnerByID(ctx context.Context, id int64) (*ActionRunner, error) {
 // UpdateRunner updates runner's information.
 func UpdateRunner(ctx context.Context, r *ActionRunner, cols ...string) error {
 	e := db.GetEngine(ctx)
+	r.Name = util.EllipsisDisplayString(r.Name, 255)
 	var err error
 	if len(cols) == 0 {
 		_, err = e.ID(r.ID).AllCols().Update(r)
@@ -278,6 +291,7 @@ func CreateRunner(ctx context.Context, t *ActionRunner) error {
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
 		t.OwnerID = 0
 	}
+	t.Name = util.EllipsisDisplayString(t.Name, 255)
 	return db.Insert(ctx, t)
 }
 
@@ -325,4 +339,18 @@ func FixRunnersWithoutBelongingRepo(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+func CountWrongRepoLevelRunners(ctx context.Context) (int64, error) {
+	var result int64
+	_, err := db.GetEngine(ctx).SQL("SELECT count(`id`) FROM `action_runner` WHERE `repo_id` > 0 AND `owner_id` > 0").Get(&result)
+	return result, err
+}
+
+func UpdateWrongRepoLevelRunners(ctx context.Context) (int64, error) {
+	result, err := db.GetEngine(ctx).Exec("UPDATE `action_runner` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0")
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

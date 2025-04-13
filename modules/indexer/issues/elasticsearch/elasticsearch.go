@@ -5,20 +5,21 @@ package elasticsearch
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/issues/internal"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/olivere/elastic/v7"
 )
 
 const (
-	issueIndexerLatestVersion = 1
+	issueIndexerLatestVersion = 2
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
@@ -31,6 +32,11 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_elasticsearch.Indexer
 	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	// TODO: es supports fuzzy search, but our code doesn't at the moment, and actually the default fuzziness is already "AUTO"
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new elasticsearch indexer
@@ -58,6 +64,7 @@ const (
 
 			"is_pull": { "type": "boolean", "index": true },
 			"is_closed": { "type": "boolean", "index": true },
+			"is_archived": { "type": "boolean", "index": true },
 			"label_ids": { "type": "integer", "index": true },
 			"no_label": { "type": "boolean", "index": true },
 			"milestone_id": { "type": "integer", "index": true },
@@ -88,7 +95,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 		issue := issues[0]
 		_, err := b.inner.Client.Index().
 			Index(b.inner.VersionedIndexName()).
-			Id(fmt.Sprintf("%d", issue.ID)).
+			Id(strconv.FormatInt(issue.ID, 10)).
 			BodyJson(issue).
 			Do(ctx)
 		return err
@@ -99,7 +106,7 @@ func (b *Indexer) Index(ctx context.Context, issues ...*internal.IndexerData) er
 		reqs = append(reqs,
 			elastic.NewBulkIndexRequest().
 				Index(b.inner.VersionedIndexName()).
-				Id(fmt.Sprintf("%d", issue.ID)).
+				Id(strconv.FormatInt(issue.ID, 10)).
 				Doc(issue),
 		)
 	}
@@ -118,7 +125,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 	} else if len(ids) == 1 {
 		_, err := b.inner.Client.Delete().
 			Index(b.inner.VersionedIndexName()).
-			Id(fmt.Sprintf("%d", ids[0])).
+			Id(strconv.FormatInt(ids[0], 10)).
 			Do(ctx)
 		return err
 	}
@@ -128,7 +135,7 @@ func (b *Indexer) Delete(ctx context.Context, ids ...int64) error {
 		reqs = append(reqs,
 			elastic.NewBulkDeleteRequest().
 				Index(b.inner.VersionedIndexName()).
-				Id(fmt.Sprintf("%d", id)),
+				Id(strconv.FormatInt(id, 10)),
 		)
 	}
 
@@ -145,12 +152,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	query := elastic.NewBoolQuery()
 
 	if options.Keyword != "" {
-		searchType := esMultiMatchTypePhrasePrefix
-		if options.IsFuzzyKeyword {
-			searchType = esMultiMatchTypeBestFields
+		searchMode := util.IfZero(options.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+		if searchMode == indexer.SearchModeExact {
+			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypePhrasePrefix))
+		} else /* words */ {
+			query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(esMultiMatchTypeBestFields).Operator("and"))
 		}
-
-		query.Must(elastic.NewMultiMatchQuery(options.Keyword, "title", "content", "comments").Type(searchType))
 	}
 
 	if len(options.RepoIDs) > 0 {
@@ -167,6 +174,9 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsClosed.Has() {
 		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.Value()))
+	}
+	if options.IsArchived.Has() {
+		query.Must(elastic.NewTermQuery("is_archived", options.IsArchived.Value()))
 	}
 
 	if options.NoLabelOnly {
@@ -201,12 +211,22 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(elastic.NewTermQuery("project_board_id", options.ProjectColumnID.Value()))
 	}
 
-	if options.PosterID.Has() {
-		query.Must(elastic.NewTermQuery("poster_id", options.PosterID.Value()))
+	if options.PosterID != "" {
+		// "(none)" becomes 0, it means no poster
+		posterIDInt64, _ := strconv.ParseInt(options.PosterID, 10, 64)
+		query.Must(elastic.NewTermQuery("poster_id", posterIDInt64))
 	}
 
-	if options.AssigneeID.Has() {
-		query.Must(elastic.NewTermQuery("assignee_id", options.AssigneeID.Value()))
+	if options.AssigneeID != "" {
+		if options.AssigneeID == "(any)" {
+			q := elastic.NewRangeQuery("assignee_id")
+			q.Gte(1)
+			query.Must(q)
+		} else {
+			// "(none)" becomes 0, it means no assignee
+			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+			query.Must(elastic.NewTermQuery("assignee_id", assigneeIDInt64))
+		}
 	}
 
 	if options.MentionID.Has() {

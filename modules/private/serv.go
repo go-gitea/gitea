@@ -23,7 +23,7 @@ type KeyAndOwner struct {
 // ServNoCommand returns information about the provided key
 func ServNoCommand(ctx context.Context, keyID int64) (*asymkey_model.PublicKey, *user_model.User, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/none/%d", keyID)
-	req := newInternalRequest(ctx, reqURL, "GET")
+	req := newInternalRequestAPI(ctx, reqURL, "GET")
 	keyAndOwner, extra := requestJSONResp(req, &KeyAndOwner{})
 	if extra.HasError() {
 		return nil, nil, extra.Error
@@ -55,9 +55,9 @@ func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, m
 	)
 	for _, verb := range verbs {
 		if verb != "" {
-			reqURL += fmt.Sprintf("&verb=%s", url.QueryEscape(verb))
+			reqURL += "&verb=" + url.QueryEscape(verb)
 		}
 	}
-	req := newInternalRequest(ctx, reqURL, "GET")
+	req := newInternalRequestAPI(ctx, reqURL, "GET")
 	return requestJSONResp(req, &ServCommandResults{})
 }

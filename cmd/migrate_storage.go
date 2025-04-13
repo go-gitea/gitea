@@ -13,7 +13,6 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/migrations"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -21,6 +20,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/services/versioned_migration"
 
 	"github.com/urfave/cli/v2"
 )
@@ -196,7 +196,7 @@ func migrateActionsLog(ctx context.Context, dstStorage storage.ObjectStorage) er
 
 func migrateActionsArtifacts(ctx context.Context, dstStorage storage.ObjectStorage) error {
 	return db.Iterate(ctx, nil, func(ctx context.Context, artifact *actions_model.ActionArtifact) error {
-		if artifact.Status == int64(actions_model.ArtifactStatusExpired) {
+		if artifact.Status == actions_model.ArtifactStatusExpired {
 			return nil
 		}
 
@@ -227,7 +227,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 	log.Info("Log path: %s", setting.Log.RootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
 
-	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {
+	if err := db.InitEngineWithMigration(context.Background(), versioned_migration.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}
