@@ -144,7 +144,7 @@ func TestRepositoryTransferRejection(t *testing.T) {
 	require.NotNil(t, transfer)
 	require.NoError(t, transfer.LoadRecipient(db.DefaultContext))
 
-	require.True(t, transfer.Recipient.CanCreateRepo()) // admin is not subject to limits
+	require.True(t, doerAdmin.CanCreateRepoIn(transfer.Recipient)) // admin is not subject to limits
 
 	// Administrator should not be affected by the limits so transfer should be successful
 	assert.NoError(t, AcceptTransferOwnership(db.DefaultContext, repo, doerAdmin))
@@ -158,7 +158,7 @@ func TestRepositoryTransferRejection(t *testing.T) {
 	require.NotNil(t, transfer)
 	require.NoError(t, transfer.LoadRecipient(db.DefaultContext))
 
-	require.False(t, transfer.Recipient.CanCreateRepo()) // regular user is subject to limits
+	require.False(t, doer.CanCreateRepoIn(transfer.Recipient)) // regular user is subject to limits
 
 	// Cannot accept because of the limit
 	err = AcceptTransferOwnership(db.DefaultContext, repo, doer)

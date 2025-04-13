@@ -7,21 +7,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -102,8 +108,6 @@ func Init(ctx context.Context) error {
 	if err := repo_module.LoadRepoConfig(); err != nil {
 		return err
 	}
-	system_model.RemoveAllWithNotice(ctx, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
-	system_model.RemoveAllWithNotice(ctx, "Clean up temporary repositories", repo_module.LocalCopyPath())
 	if err := initPushQueue(); err != nil {
 		return err
 	}
@@ -112,42 +116,32 @@ func Init(ctx context.Context) error {
 
 // UpdateRepository updates a repository
 func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = repo_module.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
-		return fmt.Errorf("updateRepository: %w", err)
-	}
-
-	return committer.Commit()
-}
-
-func UpdateRepositoryVisibility(ctx context.Context, repo *repo_model.Repository, isPrivate bool) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer committer.Close()
-
-	repo.IsPrivate = isPrivate
-
-	if err = repo_module.UpdateRepository(ctx, repo, true); err != nil {
-		return fmt.Errorf("UpdateRepositoryVisibility: %w", err)
-	}
-
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err = updateRepository(ctx, repo, visibilityChanged); err != nil {
+			return fmt.Errorf("updateRepository: %w", err)
+		}
+		return nil
+	})
 }
 
 func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error) {
-	return UpdateRepositoryVisibility(ctx, repo, false)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		repo.IsPrivate = false
+		if err = updateRepository(ctx, repo, true); err != nil {
+			return fmt.Errorf("MakeRepoPublic: %w", err)
+		}
+		return nil
+	})
 }
 
 func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err error) {
-	return UpdateRepositoryVisibility(ctx, repo, true)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		repo.IsPrivate = true
+		if err = updateRepository(ctx, repo, true); err != nil {
+			return fmt.Errorf("MakeRepoPrivate: %w", err)
+		}
+		return nil
+	})
 }
 
 // LinkedRepository returns the linked repo if any
@@ -172,4 +166,98 @@ func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_mode
 		return repo, unit.TypeReleases, err
 	}
 	return nil, -1, nil
+}
+
+// checkDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
+func checkDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error {
+	if err := repo.LoadOwner(ctx); err != nil {
+		return err
+	}
+
+	// Create/Remove git-daemon-export-ok for git-daemon...
+	daemonExportFile := filepath.Join(repo.RepoPath(), `git-daemon-export-ok`)
+
+	isExist, err := util.IsExist(daemonExportFile)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+		return err
+	}
+
+	isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
+	if !isPublic && isExist {
+		if err = util.Remove(daemonExportFile); err != nil {
+			log.Error("Failed to remove %s: %v", daemonExportFile, err)
+		}
+	} else if isPublic && !isExist {
+		if f, err := os.Create(daemonExportFile); err != nil {
+			log.Error("Failed to create %s: %v", daemonExportFile, err)
+		} else {
+			f.Close()
+		}
+	}
+
+	return nil
+}
+
+// updateRepository updates a repository with db context
+func updateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
+	repo.LowerName = strings.ToLower(repo.Name)
+
+	e := db.GetEngine(ctx)
+
+	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
+		return fmt.Errorf("update: %w", err)
+	}
+
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
+	}
+
+	if visibilityChanged {
+		if err = repo.LoadOwner(ctx); err != nil {
+			return fmt.Errorf("LoadOwner: %w", err)
+		}
+		if repo.Owner.IsOrganization() {
+			// Organization repository need to recalculate access table when visibility is changed.
+			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
+				return fmt.Errorf("recalculateTeamAccesses: %w", err)
+			}
+		}
+
+		// If repo has become private, we need to set its actions to private.
+		if repo.IsPrivate {
+			_, err = e.Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{
+				IsPrivate: true,
+			})
+			if err != nil {
+				return err
+			}
+
+			if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
+				return err
+			}
+		}
+
+		// Create/Remove git-daemon-export-ok for git-daemon...
+		if err := checkDaemonExportOK(ctx, repo); err != nil {
+			return err
+		}
+
+		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("getRepositoriesByForkID: %w", err)
+		}
+		for i := range forkRepos {
+			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == structs.VisibleTypePrivate
+			if err = updateRepository(ctx, forkRepos[i], true); err != nil {
+				return fmt.Errorf("updateRepository[%d]: %w", forkRepos[i].ID, err)
+			}
+		}
+
+		// If visibility is changed, we need to update the issue indexer.
+		// Since the data in the issue indexer have field to indicate if the repo is public or not.
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+	}
+
+	return nil
 }
