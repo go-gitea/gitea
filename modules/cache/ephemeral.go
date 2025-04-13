@@ -20,7 +20,6 @@ type EphemeralCache struct {
 	lock          sync.RWMutex
 	created       time.Time
 	checkLifeTime time.Duration
-	discarded     bool
 }
 
 var timeNow = time.Now
@@ -59,10 +58,6 @@ func (cc *EphemeralCache) Put(tp, key, value any) {
 	cc.lock.Lock()
 	defer cc.lock.Unlock()
 
-	if cc.discarded {
-		return
-	}
-
 	d := cc.data[tp]
 	if d == nil {
 		d = make(map[any]any)
@@ -79,19 +74,6 @@ func (cc *EphemeralCache) Delete(tp, key any) {
 	cc.lock.Lock()
 	defer cc.lock.Unlock()
 	delete(cc.data[tp], key)
-}
-
-func (cc *EphemeralCache) discard() {
-	cc.lock.Lock()
-	defer cc.lock.Unlock()
-	cc.data = nil
-	cc.discarded = true
-}
-
-func (cc *EphemeralCache) isDiscard() bool {
-	cc.lock.RLock()
-	defer cc.lock.RUnlock()
-	return cc.discarded
 }
 
 func GetWithEphemeralCache[T, K any](ctx context.Context, c *EphemeralCache, groupKey string, targetKey K, f func(context.Context, K) (T, error)) (T, error) {
