@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -210,6 +211,20 @@ func IsPublicMember(ctx *context.APIContext) {
 	}
 }
 
+func checkCanChangeOrgUserStatus(ctx *context.APIContext, targetUser *user_model.User) {
+	// allow user themselves to change their status, and allow admins to change any user
+	if targetUser.ID == ctx.Doer.ID || ctx.Doer.IsAdmin {
+		return
+	}
+	// allow org owners to change status of members
+	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIError(http.StatusInternalServerError, err)
+	} else if !isOwner {
+		ctx.APIError(http.StatusForbidden, "Cannot change member visibility")
+	}
+}
+
 // PublicizeMember make a member's membership public
 func PublicizeMember(ctx *context.APIContext) {
 	// swagger:operation PUT /orgs/{org}/public_members/{username} organization orgPublicizeMember
@@ -240,16 +255,9 @@ func PublicizeMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if userToPublicize.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
-		isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
-			return
-		}
-		if !isOwner {
-			ctx.Error(http.StatusForbidden, "", "Cannot publicize another member")
-			return
-		}
+	checkCanChangeOrgUserStatus(ctx, userToPublicize)
+	if ctx.Written() {
+		return
 	}
 	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToPublicize.ID, true)
 	if err != nil {
@@ -289,16 +297,9 @@ func ConcealMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if userToConceal.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
-		isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
-			return
-		}
-		if !isOwner {
-			ctx.Error(http.StatusForbidden, "", "Cannot conceal another member")
-			return
-		}
+	checkCanChangeOrgUserStatus(ctx, userToConceal)
+	if ctx.Written() {
+		return
 	}
 	err := organization.ChangeOrgUserStatus(ctx, ctx.Org.Organization.ID, userToConceal.ID, false)
 	if err != nil {
