@@ -920,11 +920,8 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
 		ctx.Data["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
 		ctx.Data["TreePath"] = ctx.Repo.TreePath
-
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
-
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
-
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
 
 		// if it's a tag, we just get the commits count from database
@@ -957,9 +954,9 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				ctx.ServerError("GetCommitsCount", err)
 				return
 			}
-			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-			ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 		}
+		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 	}
 }
 
