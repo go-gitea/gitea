@@ -38,19 +38,6 @@ func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository
 	return filesResponse, nil
 }
 
-// GetFileResponseFromCommit Constructs a FileResponse from a Commit object
-func GetFileResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
-	fileContents, _ := GetContents(ctx, repo, treeName, branch, false) // ok if fails, then will be nil
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit)       // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
-	fileResponse := &api.FileResponse{
-		Content:      fileContents,
-		Commit:       fileCommitResponse,
-		Verification: verification,
-	}
-	return fileResponse, nil
-}
-
 // constructs a FileResponse with the file at the index from FilesResponse
 func GetFileResponseFromFilesResponse(filesResponse *api.FilesResponse, index int) *api.FileResponse {
 	content := &api.ContentsResponse{}
