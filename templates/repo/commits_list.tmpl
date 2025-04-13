@@ -70,15 +70,15 @@
 						{{/* at the moment, wiki doesn't support these "view" links like "view at history point" */}}
 						{{if not $.PageIsWiki}}
 							{{/* view single file diff */}}
-							{{if $.FileName}}
+							{{if $.FileTreePath}}
 							<a class="btn interact-bg tw-p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
-								href="{{$commitRepoLink}}/commit/{{.ID.String}}?files={{$.FileName}}"
+								href="{{$commitRepoLink}}/commit/{{.ID.String}}?files={{$.FileTreePath}}"
 							>{{svg "octicon-file-diff"}}</a>
 							{{end}}
 
 							{{/* view at history point */}}
 							{{$viewCommitLink := printf "%s/src/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-							{{if $.FileName}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileName)}}{{end}}
+							{{if $.FileTreePath}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileTreePath)}}{{end}}
 							<a class="btn interact-bg tw-p-2 view-commit-path" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
 						{{end}}
 					</td>

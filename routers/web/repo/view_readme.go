@@ -162,7 +162,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	defer dataRc.Close()
 
 	ctx.Data["FileIsText"] = fInfo.isTextFile
-	ctx.Data["FileName"] = path.Join(subfolder, readmeFile.Name())
+	ctx.Data["FileTreePath"] = path.Join(subfolder, readmeFile.Name())
 	ctx.Data["FileSize"] = fInfo.fileSize
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile
 
