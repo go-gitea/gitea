@@ -938,6 +938,18 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				ctx.ServerError("GetRelease", err)
 				return
 			}
+			// for mirror tags, the number of commist may not be set
+			if rel.NumCommits <= 0 {
+				rel.NumCommits, err = ctx.Repo.GetCommitsCount()
+				if err != nil {
+					ctx.ServerError("GetCommitsCount", err)
+					return
+				}
+				if err := repo_model.UpdateReleaseNumCommits(ctx, rel); err != nil {
+					ctx.ServerError("UpdateReleaseNumCommits", err)
+					return
+				}
+			}
 			ctx.Repo.CommitsCount = rel.NumCommits
 		} else {
 			ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
