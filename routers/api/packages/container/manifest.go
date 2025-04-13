@@ -406,7 +406,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 
 	if ref.Name == "" {
-		ref.Name = strings.ToLower(fmt.Sprintf("sha256_%s", ref.File.Blob.HashSHA256))
+		ref.Name = strings.ToLower("sha256_" + ref.File.Blob.HashSHA256)
 	}
 
 	pf := &packages_model.PackageFile{

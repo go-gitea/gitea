@@ -6,8 +6,6 @@ package setting
 import (
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 
 	"github.com/dustin/go-humanize"
 )
@@ -67,14 +65,10 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 		return err
 	}
 
-	Packages.ChunkedUploadPath = filepath.ToSlash(sec.Key("CHUNKED_UPLOAD_PATH").MustString("tmp/package-upload"))
-	if !filepath.IsAbs(Packages.ChunkedUploadPath) {
-		Packages.ChunkedUploadPath = filepath.ToSlash(filepath.Join(AppDataPath, Packages.ChunkedUploadPath))
-	}
-
 	if HasInstallLock(rootCfg) {
-		if err := os.MkdirAll(Packages.ChunkedUploadPath, os.ModePerm); err != nil {
-			return fmt.Errorf("unable to create chunked upload directory: %s (%v)", Packages.ChunkedUploadPath, err)
+		Packages.ChunkedUploadPath, err = AppDataTempDir("package-upload").MkdirAllSub("")
+		if err != nil {
+			return fmt.Errorf("unable to create chunked upload directory: %w", err)
 		}
 	}
 

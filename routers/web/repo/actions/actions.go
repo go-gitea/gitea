@@ -6,6 +6,7 @@ package actions
 import (
 	"bytes"
 	stdCtx "context"
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -67,7 +68,11 @@ func List(ctx *context.Context) {
 	ctx.Data["PageIsActions"] = true
 
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
+		ctx.NotFound(nil)
+		return
+	} else if err != nil {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}

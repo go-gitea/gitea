@@ -5,7 +5,7 @@ package project
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/util"
@@ -48,7 +48,7 @@ func MoveIssueToAnotherColumn(ctx context.Context, issueID int64, newColumn *Col
 
 func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
 	if c.ProjectID != newColumn.ProjectID {
-		return fmt.Errorf("columns have to be in the same project")
+		return errors.New("columns have to be in the same project")
 	}
 
 	if c.ID == newColumn.ID {

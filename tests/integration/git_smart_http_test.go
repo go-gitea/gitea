@@ -72,7 +72,7 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			assert.EqualValues(t, kase.code, resp.StatusCode)
+			assert.Equal(t, kase.code, resp.StatusCode)
 			_, err = io.ReadAll(resp.Body)
 			require.NoError(t, err)
 		})
@@ -80,7 +80,7 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 }
 
 func testRenamedRepoRedirect(t *testing.T) {
-	defer test.MockVariableValue(&setting.Service.RequireSignInView, true)()
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 
 	// git client requires to get a 301 redirect response before 401 unauthorized response
 	req := NewRequest(t, "GET", "/user2/oldrepo1/info/refs")

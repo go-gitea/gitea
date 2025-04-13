@@ -5,7 +5,6 @@ package repo
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
 
@@ -33,7 +32,7 @@ func IsErrUnitTypeNotExist(err error) bool {
 }
 
 func (err ErrUnitTypeNotExist) Error() string {
-	return fmt.Sprintf("Unit type does not exist: %s", err.UT.LogString())
+	return "Unit type does not exist: " + err.UT.LogString()
 }
 
 func (err ErrUnitTypeNotExist) Unwrap() error {
@@ -340,5 +339,11 @@ func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err
 // UpdateRepoUnit updates the provided repo unit
 func UpdateRepoUnit(ctx context.Context, unit *RepoUnit) error {
 	_, err := db.GetEngine(ctx).ID(unit.ID).Update(unit)
+	return err
+}
+
+func UpdateRepoUnitPublicAccess(ctx context.Context, unit *RepoUnit) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=? AND `type`=?", unit.RepoID, unit.Type).
+		Cols("anonymous_access_mode", "everyone_access_mode").Update(unit)
 	return err
 }
