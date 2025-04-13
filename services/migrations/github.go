@@ -880,6 +880,9 @@ func (g *GithubDownloaderV3) FormatCloneURL(opts MigrateOptions, remoteAddr stri
 		return "", err
 	}
 	if len(opts.AuthToken) > 0 {
+		// "multiple tokens" are used to benefit more "API rate limit quota"
+		// git clone doesn't count for rate limits, so only use the first token.
+		// source: https://github.com/orgs/community/discussions/44515
 		u.User = url.UserPassword("oauth2", strings.Split(opts.AuthToken, ",")[0])
 	}
 	return u.String(), nil
