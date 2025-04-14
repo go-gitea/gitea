@@ -14,17 +14,6 @@
   }
 }
 
-#repo-files-table .svg.octicon-file-directory-fill,
-#repo-files-table .svg.octicon-file-submodule {
-  color: var(--color-primary);
-}
-
-#repo-files-table .svg.octicon-file,
-#repo-files-table .svg.octicon-file-symlink-file,
-#repo-files-table .svg.octicon-file-directory-symlink {
-  color: var(--color-secondary-dark-7);
-}
-
 #repo-files-table .repo-file-item {
   display: contents;
 }

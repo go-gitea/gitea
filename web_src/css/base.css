@@ -747,6 +747,14 @@ overflow-menu .overflow-menu-button {
   padding: 0;
 }
 
+/* match the styles of ".ui.secondary.pointing.menu .active.item" */
+overflow-menu.ui.secondary.pointing.menu .overflow-menu-button.active {
+  padding: 2px 0 0;
+  border-bottom: 2px solid currentcolor;
+  background-color: transparent;
+  font-weight: var(--font-weight-medium);
+}
+
 overflow-menu .overflow-menu-button:hover {
   color: var(--color-text-dark);
 }
@@ -1127,6 +1135,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.list.flex-items-block > .item,
+.ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
@@ -1180,4 +1189,16 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   display: flex;
   flex-grow: 1;
   justify-content: space-between;
+}
+
+.svg.octicon-file-directory-fill,
+.svg.octicon-file-directory-open-fill,
+.svg.octicon-file-submodule {
+  color: var(--color-primary);
+}
+
+.svg.octicon-file,
+.svg.octicon-file-symlink-file,
+.svg.octicon-file-directory-symlink {
+  color: var(--color-secondary-dark-7);
 }
