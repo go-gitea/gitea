@@ -52,7 +52,7 @@ dependencies:
 	zw := gzip.NewWriter(&buf)
 	archive := tar.NewWriter(zw)
 	archive.WriteHeader(&tar.Header{
-		Name: fmt.Sprintf("%s/Chart.yaml", packageName),
+		Name: packageName + "/Chart.yaml",
 		Mode: 0o600,
 		Size: int64(len(chartContent)),
 	})
@@ -122,7 +122,7 @@ dependencies:
 	t.Run("Index", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/index.yaml", url)).
+		req := NewRequest(t, "GET", url+"/index.yaml").
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 

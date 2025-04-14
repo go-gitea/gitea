@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cachegroup"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -131,7 +132,7 @@ func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repo *repo_model
 func (pc *PushCommits) AvatarLink(ctx context.Context, email string) string {
 	size := avatars.DefaultAvatarPixelSize * setting.Avatar.RenderedSizeFactor
 
-	v, _ := cache.GetWithContextCache(ctx, "push_commits", email, func() (string, error) {
+	v, _ := cache.GetWithContextCache(ctx, cachegroup.EmailAvatarLink, email, func(ctx context.Context, email string) (string, error) {
 		u, err := user_model.GetUserByEmail(ctx, email)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {

@@ -9,6 +9,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,7 +74,7 @@ func NewFuncMap() template.FuncMap {
 		"TimeEstimateString": timeEstimateString,
 
 		"LoadTimes": func(startTime time.Time) string {
-			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
 		// -----------------------------------------------------------------

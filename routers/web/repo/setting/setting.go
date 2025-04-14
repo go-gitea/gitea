@@ -6,14 +6,12 @@ package setting
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -37,6 +35,8 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
+
+	"xorm.io/xorm/convert"
 )
 
 const (
@@ -47,15 +47,6 @@ const (
 	tplGithookEdit     templates.TplName = "repo/settings/githook_edit"
 	tplDeployKeys      templates.TplName = "repo/settings/deploy_keys"
 )
-
-func parseEveryoneAccessMode(permission string, allowed ...perm.AccessMode) perm.AccessMode {
-	// if site admin forces repositories to be private, then do not allow any other access mode,
-	// otherwise the "force private" setting would be bypassed
-	if setting.Repository.ForcePrivate {
-		return perm.AccessModeNone
-	}
-	return perm.ParseAccessMode(permission, allowed...)
-}
 
 // SettingsCtxData is a middleware that sets all the general context data for the
 // settings template.
@@ -68,6 +59,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
+	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
@@ -482,7 +474,7 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 	m := &repo_model.PushMirror{
 		RepoID:        repo.ID,
 		Repo:          repo,
-		RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+		RemoteName:    "remote_mirror_" + remoteSuffix,
 		SyncOnCommit:  form.PushMirrorSyncOnCommit,
 		Interval:      interval,
 		RemoteAddress: remoteAddress,
@@ -504,6 +496,17 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 	ctx.Redirect(repo.Link() + "/settings")
 }
 
+func newRepoUnit(repo *repo_model.Repository, unitType unit_model.Type, config convert.Conversion) repo_model.RepoUnit {
+	repoUnit := repo_model.RepoUnit{RepoID: repo.ID, Type: unitType, Config: config}
+	for _, u := range repo.Units {
+		if u.Type == unitType {
+			repoUnit.EveryoneAccessMode = u.EveryoneAccessMode
+			repoUnit.AnonymousAccessMode = u.AnonymousAccessMode
+		}
+	}
+	return repoUnit
+}
+
 func handleSettingsPostAdvanced(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
@@ -521,11 +524,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnableCode && !unit_model.TypeCode.UnitGlobalDisabled() {
-		units = append(units, repo_model.RepoUnit{
-			RepoID:             repo.ID,
-			Type:               unit_model.TypeCode,
-			EveryoneAccessMode: parseEveryoneAccessMode(form.DefaultCodeEveryoneAccess, perm.AccessModeNone, perm.AccessModeRead),
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypeCode, nil))
 	} else if !unit_model.TypeCode.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
 	}
@@ -537,21 +536,12 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			return
 		}
 
-		units = append(units, repo_model.RepoUnit{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeExternalWiki,
-			Config: &repo_model.ExternalWikiConfig{
-				ExternalWikiURL: form.ExternalWikiURL,
-			},
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypeExternalWiki, &repo_model.ExternalWikiConfig{
+			ExternalWikiURL: form.ExternalWikiURL,
+		}))
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
 	} else if form.EnableWiki && !form.EnableExternalWiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
-		units = append(units, repo_model.RepoUnit{
-			RepoID:             repo.ID,
-			Type:               unit_model.TypeWiki,
-			Config:             new(repo_model.UnitConfig),
-			EveryoneAccessMode: parseEveryoneAccessMode(form.DefaultWikiEveryoneAccess, perm.AccessModeNone, perm.AccessModeRead, perm.AccessModeWrite),
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypeWiki, new(repo_model.UnitConfig)))
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 	} else {
 		if !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
@@ -580,28 +570,19 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			ctx.Redirect(repo.Link() + "/settings")
 			return
 		}
-		units = append(units, repo_model.RepoUnit{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeExternalTracker,
-			Config: &repo_model.ExternalTrackerConfig{
-				ExternalTrackerURL:           form.ExternalTrackerURL,
-				ExternalTrackerFormat:        form.TrackerURLFormat,
-				ExternalTrackerStyle:         form.TrackerIssueStyle,
-				ExternalTrackerRegexpPattern: form.ExternalTrackerRegexpPattern,
-			},
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypeExternalTracker, &repo_model.ExternalTrackerConfig{
+			ExternalTrackerURL:           form.ExternalTrackerURL,
+			ExternalTrackerFormat:        form.TrackerURLFormat,
+			ExternalTrackerStyle:         form.TrackerIssueStyle,
+			ExternalTrackerRegexpPattern: form.ExternalTrackerRegexpPattern,
+		}))
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 	} else if form.EnableIssues && !form.EnableExternalTracker && !unit_model.TypeIssues.UnitGlobalDisabled() {
-		units = append(units, repo_model.RepoUnit{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeIssues,
-			Config: &repo_model.IssuesConfig{
-				EnableTimetracker:                form.EnableTimetracker,
-				AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
-				EnableDependencies:               form.EnableIssueDependencies,
-			},
-			EveryoneAccessMode: parseEveryoneAccessMode(form.DefaultIssuesEveryoneAccess, perm.AccessModeNone, perm.AccessModeRead),
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypeIssues, &repo_model.IssuesConfig{
+			EnableTimetracker:                form.EnableTimetracker,
+			AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
+			EnableDependencies:               form.EnableIssueDependencies,
+		}))
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 	} else {
 		if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
@@ -613,63 +594,46 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnableProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
-		units = append(units, repo_model.RepoUnit{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeProjects,
-			Config: &repo_model.ProjectsConfig{
-				ProjectsMode: repo_model.ProjectsMode(form.ProjectsMode),
-			},
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypeProjects, &repo_model.ProjectsConfig{
+			ProjectsMode: repo_model.ProjectsMode(form.ProjectsMode),
+		}))
 	} else if !unit_model.TypeProjects.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 	}
 
 	if form.EnableReleases && !unit_model.TypeReleases.UnitGlobalDisabled() {
-		units = append(units, repo_model.RepoUnit{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeReleases,
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypeReleases, nil))
 	} else if !unit_model.TypeReleases.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
 	}
 
 	if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
-		units = append(units, repo_model.RepoUnit{
-			RepoID: repo.ID,
-			Type:   unit_model.TypePackages,
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypePackages, nil))
 	} else if !unit_model.TypePackages.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}
 
 	if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
-		units = append(units, repo_model.RepoUnit{
-			RepoID: repo.ID,
-			Type:   unit_model.TypeActions,
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypeActions, nil))
 	} else if !unit_model.TypeActions.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
 	}
 
 	if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
-		units = append(units, repo_model.RepoUnit{
-			RepoID: repo.ID,
-			Type:   unit_model.TypePullRequests,
-			Config: &repo_model.PullRequestsConfig{
-				IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
-				AllowMerge:                    form.PullsAllowMerge,
-				AllowRebase:                   form.PullsAllowRebase,
-				AllowRebaseMerge:              form.PullsAllowRebaseMerge,
-				AllowSquash:                   form.PullsAllowSquash,
-				AllowFastForwardOnly:          form.PullsAllowFastForwardOnly,
-				AllowManualMerge:              form.PullsAllowManualMerge,
-				AutodetectManualMerge:         form.EnableAutodetectManualMerge,
-				AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
-				DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
-				DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
-				DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
-			},
-		})
+		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, &repo_model.PullRequestsConfig{
+			IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
+			AllowMerge:                    form.PullsAllowMerge,
+			AllowRebase:                   form.PullsAllowRebase,
+			AllowRebaseMerge:              form.PullsAllowRebaseMerge,
+			AllowSquash:                   form.PullsAllowSquash,
+			AllowFastForwardOnly:          form.PullsAllowFastForwardOnly,
+			AllowManualMerge:              form.PullsAllowManualMerge,
+			AutodetectManualMerge:         form.EnableAutodetectManualMerge,
+			AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
+			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
+			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
+			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
+		}))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 	}
@@ -823,7 +787,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Owner.CanCreateRepo() {
+	if !ctx.Doer.CanForkRepoIn(ctx.Repo.Owner) {
 		maxCreationLimit := ctx.Repo.Owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
 		ctx.Flash.Error(msg)
@@ -884,6 +848,9 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 		} else if repo_model.IsErrRepoTransferInProgress(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
+		} else if repo_service.IsRepositoryLimitReached(err) {
+			limit := err.(repo_service.LimitReachedError).Limit
+			ctx.RenderWithErr(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit), tplSettingsOptions, nil)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
 		} else {

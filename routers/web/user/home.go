@@ -617,9 +617,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			return 0
 		}
 		reviewTyp := issues_model.ReviewTypeApprove
-		if typ == "reject" {
+		switch typ {
+		case "reject":
 			reviewTyp = issues_model.ReviewTypeReject
-		} else if typ == "waiting" {
+		case "waiting":
 			reviewTyp = issues_model.ReviewTypeRequest
 		}
 		for _, count := range counts {
@@ -698,7 +699,7 @@ func ShowGPGKeys(ctx *context.Context) {
 
 	headers := make(map[string]string)
 	if len(failedEntitiesID) > 0 { // If some key need re-import to be exported
-		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
+		headers["Note"] = "The keys with the following IDs couldn't be exported and need to be reuploaded " + strings.Join(failedEntitiesID, ", ")
 	} else if len(entities) == 0 {
 		headers["Note"] = "This user hasn't uploaded any GPG keys."
 	}

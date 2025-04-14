@@ -14,6 +14,8 @@ concurrency:
 jobs:
   binary:
     runs-on: namespace-profile-gitea-release-binary
+    permissions:
+      packages: write # to publish to ghcr.io
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -71,6 +73,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
   docker-rootful:
     runs-on: namespace-profile-gitea-release-docker
+    permissions:
+      packages: write # to publish to ghcr.io
     steps:
       - uses: actions/checkout@v4
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
@@ -81,7 +85,9 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: gitea/gitea
+          images: |-
+            gitea/gitea
+            ghcr.io/go-gitea/gitea
           # this will generate tags in the following format:
           # latest
           # 1
@@ -96,6 +102,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to GHCR using PAT
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: build rootful docker image
         uses: docker/build-push-action@v5
         with:
@@ -116,7 +128,9 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: gitea/gitea
+          images: |-
+            gitea/gitea
+            ghcr.io/go-gitea/gitea
           # each tag below will have the suffix of -rootless
           flavor: |
             suffix=-rootless,onlatest=true
@@ -134,6 +148,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to GHCR using PAT
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: build rootless docker image
         uses: docker/build-push-action@v5
         with:

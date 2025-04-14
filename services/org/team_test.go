@@ -88,7 +88,7 @@ func TestUpdateTeam(t *testing.T) {
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
 
 	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: 3})
-	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
+	assert.Equal(t, perm.AccessModeAdmin, access.Mode)
 
 	unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
 }
@@ -164,24 +164,6 @@ func TestRemoveTeamMember(t *testing.T) {
 
 	err := RemoveTeamMember(db.DefaultContext, team1, user2)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
-}
-
-func TestRepository_RecalculateAccesses3(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	team5 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5})
-	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
-
-	has, err := db.GetEngine(db.DefaultContext).Get(&access_model.Access{UserID: user29.ID, RepoID: 23})
-	assert.NoError(t, err)
-	assert.False(t, has)
-
-	// adding user29 to team5 should add an explicit access row for repo 23
-	// even though repo 23 is public
-	assert.NoError(t, AddTeamMember(db.DefaultContext, team5, user29))
-
-	has, err = db.GetEngine(db.DefaultContext).Get(&access_model.Access{UserID: user29.ID, RepoID: 23})
-	assert.NoError(t, err)
-	assert.True(t, has)
 }
 
 func TestIncludesAllRepositoriesTeams(t *testing.T) {

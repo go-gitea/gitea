@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -44,7 +45,7 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 	assert.True(t, exists, "Generate owner '%s' is not present in select box", generateOwnerName)
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf":         htmlDoc.GetCSRF(),
-		"uid":           fmt.Sprintf("%d", generateOwner.ID),
+		"uid":           strconv.FormatInt(generateOwner.ID, 10),
 		"repo_name":     generateRepoName,
 		"repo_template": templateID,
 		"git_content":   "true",

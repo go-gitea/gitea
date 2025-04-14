@@ -32,7 +32,6 @@ type globalVarsType struct {
 	comparePattern          *regexp.Regexp
 	fullURLPattern          *regexp.Regexp
 	emailRegex              *regexp.Regexp
-	blackfridayExtRegex     *regexp.Regexp
 	emojiShortCodeRegex     *regexp.Regexp
 	issueFullPattern        *regexp.Regexp
 	filesChangedFullPattern *regexp.Regexp
@@ -74,9 +73,6 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
 	v.emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|;|,|\\?|!|\\.(\\s|$))")
 
-	// blackfridayExtRegex is for blackfriday extensions create IDs like fn:user-content-footnote
-	v.blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
-
 	// emojiShortCodeRegex find emoji by alias like :smile:
 	v.emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
 
@@ -89,22 +85,18 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
 	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
 
-	v.tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
+	// cleans: "<foo/bar", "<any words/", ("<html", "<head", "<script", "<style")
+	v.tagCleaner = regexp.MustCompile(`(?i)<(/?\w+/\w+|/[\w ]+/|/?(html|head|script|style\b))`)
 	v.nulCleaner = strings.NewReplacer("\000", "")
 	return v
 })
-
-// IsFullURLBytes reports whether link fits valid format.
-func IsFullURLBytes(link []byte) bool {
-	return globalVars().fullURLPattern.Match(link)
-}
 
 func IsFullURLString(link string) bool {
 	return globalVars().fullURLPattern.MatchString(link)
 }
 
 func IsNonEmptyRelativePath(link string) bool {
-	return link != "" && !IsFullURLString(link) && link[0] != '/' && link[0] != '?' && link[0] != '#'
+	return link != "" && !IsFullURLString(link) && link[0] != '?' && link[0] != '#'
 }
 
 // CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
@@ -316,44 +308,38 @@ func isEmojiNode(node *html.Node) bool {
 }
 
 func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Node {
-	// Add user-content- to IDs and "#" links if they don't already have them
-	for idx, attr := range node.Attr {
-		val := strings.TrimPrefix(attr.Val, "#")
-		notHasPrefix := !(strings.HasPrefix(val, "user-content-") || globalVars().blackfridayExtRegex.MatchString(val))
-
-		if attr.Key == "id" && notHasPrefix {
-			node.Attr[idx].Val = "user-content-" + attr.Val
-		}
-
-		if attr.Key == "href" && strings.HasPrefix(attr.Val, "#") && notHasPrefix {
-			node.Attr[idx].Val = "#user-content-" + val
-		}
-	}
-
-	switch node.Type {
-	case html.TextNode:
+	if node.Type == html.TextNode {
 		for _, proc := range procs {
 			proc(ctx, node) // it might add siblings
 		}
+		return node.NextSibling
+	}
+	if node.Type != html.ElementNode {
+		return node.NextSibling
+	}
 
-	case html.ElementNode:
-		if isEmojiNode(node) {
-			// TextNode emoji will be converted to `<span class="emoji">`, then the next iteration will visit the "span"
-			// if we don't stop it, it will go into the TextNode again and create an infinite recursion
-			return node.NextSibling
-		} else if node.Data == "code" || node.Data == "pre" {
-			return node.NextSibling // ignore code and pre nodes
-		} else if node.Data == "img" {
-			return visitNodeImg(ctx, node)
-		} else if node.Data == "video" {
-			return visitNodeVideo(ctx, node)
-		} else if node.Data == "a" {
-			procs = emojiProcessors // Restrict text in links to emojis
-		}
-		for n := node.FirstChild; n != nil; {
-			n = visitNode(ctx, procs, n)
-		}
-	default:
+	processNodeAttrID(node)
+
+	if isEmojiNode(node) {
+		// TextNode emoji will be converted to `<span class="emoji">`, then the next iteration will visit the "span"
+		// if we don't stop it, it will go into the TextNode again and create an infinite recursion
+		return node.NextSibling
+	} else if node.Data == "code" || node.Data == "pre" {
+		return node.NextSibling // ignore code and pre nodes
+	} else if node.Data == "img" {
+		return visitNodeImg(ctx, node)
+	} else if node.Data == "video" {
+		return visitNodeVideo(ctx, node)
+	}
+
+	if node.Data == "a" {
+		processNodeA(ctx, node)
+		// only use emoji processors for the content in the "A" tag,
+		// because the content there is not processable, for example: the content is a commit id or a full URL.
+		procs = emojiProcessors
+	}
+	for n := node.FirstChild; n != nil; {
+		n = visitNode(ctx, procs, n)
 	}
 	return node.NextSibling
 }
