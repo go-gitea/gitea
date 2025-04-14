@@ -360,7 +360,7 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
 export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => Promisable<void>, options?: boolean | AddEventListenerOptions) {
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
-    if (!elem) return;
+    if (!elem || !parent.contains(elem)) return;
     listener(elem as T, e as E);
   }, options);
 }

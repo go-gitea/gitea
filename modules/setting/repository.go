@@ -62,15 +62,9 @@ var (
 		// Repository upload settings
 		Upload struct {
 			Enabled      bool
-			TempPath     string
 			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
-		} `ini:"-"`
-
-		// Repository local settings
-		Local struct {
-			LocalCopyPath string
 		} `ini:"-"`
 
 		// Pull request settings
@@ -181,23 +175,14 @@ var (
 		// Repository upload settings
 		Upload: struct {
 			Enabled      bool
-			TempPath     string
 			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
 		}{
 			Enabled:      true,
-			TempPath:     "data/tmp/uploads",
 			AllowedTypes: "",
 			FileMaxSize:  50,
 			MaxFiles:     5,
-		},
-
-		// Repository local settings
-		Local: struct {
-			LocalCopyPath string
-		}{
-			LocalCopyPath: "tmp/local-repo",
 		},
 
 		// Pull request settings
@@ -308,8 +293,6 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.Editor settings: %v", err)
 	} else if err = rootCfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
 		log.Fatal("Failed to map Repository.Upload settings: %v", err)
-	} else if err = rootCfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
-		log.Fatal("Failed to map Repository.Local settings: %v", err)
 	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
@@ -359,10 +342,6 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 			Repository.DetectedCharsetScore[charset] = i
 			i++
 		}
-	}
-
-	if !filepath.IsAbs(Repository.Upload.TempPath) {
-		Repository.Upload.TempPath = filepath.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
 	if err := loadRepoArchiveFrom(rootCfg); err != nil {

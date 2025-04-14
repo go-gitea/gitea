@@ -447,8 +447,7 @@
   margin: 0;
   font-size: 100%;
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   background: transparent;
   border: 0;
 }
@@ -509,6 +508,18 @@
 .markup ol.ui.list ol,
 .markup ul.ui.list ul {
   padding-left: 2em;
+}
+
+.markup details.frontmatter-content summary {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-bottom: 0.25em;
+}
+
+.markup details.frontmatter-content svg {
+  vertical-align: middle;
+  margin: 0 0.25em;
 }
 
 .file-revisions-btn {

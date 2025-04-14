@@ -8,6 +8,7 @@ import (
 	gotemplate "html/template"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 
@@ -15,13 +16,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/languagestats"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
-	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 type blameRow struct {
@@ -69,7 +70,7 @@ func RefBlame(ctx *context.Context) {
 	blob := entry.Blob()
 	fileSize := blob.Size()
 	ctx.Data["FileSize"] = fileSize
-	ctx.Data["FileName"] = blob.Name()
+	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 
 	tplName := tplRepoViewContent
 	if !ctx.FormBool("only_content") {
@@ -234,7 +235,7 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames map[string]*user_model.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
-	language, err := files_service.TryGetContentLanguage(ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
+	language, err := languagestats.GetFileLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 	if err != nil {
 		log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 	}
@@ -285,8 +286,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 			if i != len(lines)-1 {
 				line += "\n"
 			}
-			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
-			line, lexerNameForLine := highlight.Code(fileName, language, line)
+			line, lexerNameForLine := highlight.Code(path.Base(ctx.Repo.TreePath), language, line)
 
 			// set lexer name to the first detected lexer. this is certainly suboptimal and
 			// we should instead highlight the whole file at once
