@@ -100,7 +100,6 @@
 }
 
 .fullscreen.org-projects-view .ui.container,
-.fullscreen.repo-projects-view-top,
 .fullscreen.repo-projects-view .ui.container {
   position: fixed;
   z-index: 1000;
@@ -112,14 +111,6 @@
   width: 100%;
   max-width: 100%;
   background-color: var(--color-body);
-}
-
-.fullscreen.repo-projects-view-top>div:first-child {
-  margin: 0 !important;
-}
-
-.fullscreen.repo-projects-view .ui.container {
-  top: 40px;
 }
 
 .fullscreen #project-board {
