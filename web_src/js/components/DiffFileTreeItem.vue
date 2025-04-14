@@ -3,12 +3,12 @@ import {SvgIcon, type SvgName} from '../svg.ts';
 import {ref} from 'vue';
 import {type DiffStatus, type DiffTreeEntry, diffTreeStore} from '../modules/diff-file.ts';
 
-defineProps<{
+const props = defineProps<{
   item: DiffTreeEntry,
 }>();
 
 const store = diffTreeStore();
-const collapsed = ref(false);
+const collapsed = ref(props.item.IsViewed);
 
 function getIconForDiffStatus(pType: DiffStatus) {
   const diffTypes: Record<DiffStatus, { name: SvgName, classes: Array<string> }> = {

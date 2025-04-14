@@ -67,6 +67,7 @@ type WebDiffFileItem struct {
 	EntryMode   string
 	IsViewed    bool
 	Children    []*WebDiffFileItem
+	// TODO: add icon support in the future
 }
 
 // WebDiffFileTree is used by frontend, check the field names in frontend before changing
@@ -107,7 +108,6 @@ func transformDiffTreeForWeb(diffTree *gitdiff.DiffTree, filesViewedState map[st
 
 	for _, file := range diffTree.Files {
 		item := &WebDiffFileItem{FullName: file.HeadPath, DiffStatus: file.Status}
-		// FIXME: filesViewedState is always nil?
 		item.IsViewed = filesViewedState[item.FullName] == pull_model.Viewed
 		item.NameHash = git.HashFilePathForWebUI(item.FullName)
 
