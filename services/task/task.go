@@ -111,7 +111,7 @@ func CreateMigrateTask(ctx context.Context, doer, u *user_model.User, opts base.
 		IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 		IsMirror:       opts.Mirror,
 		Status:         repo_model.RepositoryBeingMigrated,
-	})
+	}, false)
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()
 		task.Status = structs.TaskStatusFailed
