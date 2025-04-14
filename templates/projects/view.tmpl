@@ -19,6 +19,14 @@
 		</div>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
+				<a class="item screen-full" data-fullscreen-elements-selector="{{.FullscreenElementsSelector}}">
+					{{svg "octicon-screen-full"}}
+					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
+				</a>
+				<a class="item screen-normal tw-hidden">
+					{{svg "octicon-screen-normal"}}
+					{{ctx.Locale.Tr "projects.exit_fullscreen"}}
+				</a>
 				<a class="item" href="{{.Link}}/edit?redirect=project">
 					{{svg "octicon-pencil"}}
 					{{ctx.Locale.Tr "repo.issues.label_edit"}}

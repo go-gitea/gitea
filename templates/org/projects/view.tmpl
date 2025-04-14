@@ -8,8 +8,8 @@
 			{{template "user/overview/header" .}}
 		</div>
 	{{end}}
-	<div class="ui container fluid padded">
-		{{template "projects/view" .}}
+	<div class="ui container fluid padded org-projects-view">
+		{{template "projects/view" dict "." . "FullscreenElementsSelector" ".org-projects-view"}}
 	</div>
 </div>
 {{template "base/footer" .}}

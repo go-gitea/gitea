@@ -99,25 +99,31 @@
   opacity: 0;
 }
 
-.is-fullscreen.projects-view-top,
-.is-fullscreen.projects-view-bottom .ui.container {
+.fullscreen.org-projects-view .ui.container,
+.fullscreen.repo-projects-view-top,
+.fullscreen.repo-projects-view .ui.container {
   position: fixed;
   z-index: 1000;
   top: 0;
   left: 0;
   right: 0;
   margin: 0 !important;
+  padding: .25rem;
   width: 100%;
   max-width: 100%;
   background-color: var(--color-body);
 }
 
-.is-fullscreen.projects-view-bottom .ui.container {
-  top: 36px;
+.fullscreen.repo-projects-view-top>div:first-child {
+  margin: 0 !important;
 }
 
-.is-fullscreen #project-board {
+.fullscreen.repo-projects-view .ui.container {
+  top: 40px;
+}
+
+.fullscreen #project-board {
   position: absolute;
-  top: 120px;
+  top: 115px;
   left: 0;
 }

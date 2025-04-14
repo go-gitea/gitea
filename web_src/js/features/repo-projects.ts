@@ -140,36 +140,40 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   });
 }
 
+function toggleProjectViewFullScreen(fullscreenElementsSelector: string, isFullScreen: boolean): void {
+  // hide other elements
+  const headerEl = document.querySelector('#navbar');
+  const contentEl = document.querySelector('.page-content');
+  const footerEl = document.querySelector('.page-footer');
+  toggleElem(headerEl, isFullScreen);
+  toggleElem(contentEl, isFullScreen);
+  toggleElem(footerEl, isFullScreen);
+
+  const fullScreenEls = document.querySelectorAll(fullscreenElementsSelector);
+  const outerEl = document.querySelector('.full.height');
+  toggleClass(fullscreenElementsSelector, 'fullscreen');
+  if (isFullScreen) {
+    for (const e of fullScreenEls) contentEl.append(e);
+  } else {
+    for (const e of fullScreenEls) outerEl.append(e);
+  }
+}
+
 function initRepoProjectToggleFullScreen(): void {
-  const el = document.querySelector('.toggle-fullscreen');
-  el.addEventListener('click', () => {
-    const isFullScreen = el.getAttribute('data-fullscreen') === 'true';
+  const enterFullscreenBtn = document.querySelector('.screen-full');
+  const exitFullscreenBtn = document.querySelector('.screen-normal');
+  if (!enterFullscreenBtn || !exitFullscreenBtn) return;
 
-    // hide other elements
-    const headerEl = document.querySelector('#navbar');
-    const contentEl = document.querySelector('.page-content');
-    const footerEl = document.querySelector('.page-footer');
-    toggleElem(headerEl, isFullScreen);
-    toggleElem(contentEl, isFullScreen);
-    toggleElem(footerEl, isFullScreen);
+  const fullscreenElementsSelector = enterFullscreenBtn.getAttribute('data-fullscreen-elements-selector');
 
-    el.innerHTML = isFullScreen ? 'Fullscreen' : 'Exit';
-    el.setAttribute('data-fullscreen', String(!isFullScreen));
-    toggleClass(el, 'is-fullscreen');
+  const toggleFullscreenState = (isExiting: boolean) => {
+    toggleProjectViewFullScreen(fullscreenElementsSelector, isExiting);
+    toggleElem(enterFullscreenBtn);
+    toggleElem(exitFullscreenBtn);
+  };
 
-    const fullScreenEl1 = document.querySelector('.projects-view-top');
-    const fullScreenEl2 = document.querySelector('.projects-view-bottom');
-    const outerEl = document.querySelector('.full.height');
-    toggleClass(fullScreenEl1, 'is-fullscreen');
-    toggleClass(fullScreenEl2, 'is-fullscreen');
-    if (isFullScreen) {
-      contentEl.append(fullScreenEl1);
-      contentEl.append(fullScreenEl2);
-    } else {
-      outerEl.append(fullScreenEl1);
-      outerEl.append(fullScreenEl2);
-    }
-  });
+  enterFullscreenBtn.addEventListener('click', () => toggleFullscreenState(false));
+  exitFullscreenBtn.addEventListener('click', () => toggleFullscreenState(true));
 }
 
 export function initRepoProject(): void {
