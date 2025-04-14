@@ -13,9 +13,8 @@ import (
 // Package registry settings
 var (
 	Packages = struct {
-		Storage           *Storage
-		Enabled           bool
-		ChunkedUploadPath string
+		Storage *Storage
+		Enabled bool
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
@@ -63,13 +62,6 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 	Packages.Storage, err = getStorage(rootCfg, "packages", "", sec)
 	if err != nil {
 		return err
-	}
-
-	if HasInstallLock(rootCfg) {
-		Packages.ChunkedUploadPath, err = AppDataTempDir("package-upload").MkdirAllSub("")
-		if err != nil {
-			return fmt.Errorf("unable to create chunked upload directory: %w", err)
-		}
 	}
 
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")
