@@ -358,7 +358,7 @@ export default defineComponent({
             <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
             <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
-          <div class="menu">
+          <div class="right menu">
             <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
               {{ locale.contributionType.commits }}
             </div>
@@ -442,11 +442,6 @@ export default defineComponent({
 
 .contributor-grid > * {
   min-width: 0;
-}
-
-#repo-contributors.dropdown .menu {
-  left: auto;
-  right: 0;
 }
 
 @media (max-width: 991.98px) {
