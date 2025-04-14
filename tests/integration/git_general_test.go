@@ -483,7 +483,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelistPush, userToWhit
 
 		// Check if master branch has been locked successfully
 		flashMsg := ctx.Session.GetCookieFlashMessage()
-		assert.EqualValues(t, `Branch protection for rule "`+branch+`" has been updated.`, flashMsg.SuccessMsg)
+		assert.Equal(t, `Branch protection for rule "`+branch+`" has been updated.`, flashMsg.SuccessMsg)
 	}
 }
 
@@ -592,7 +592,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		// create a context for a currently non-existent repository
-		ctx.Reponame = fmt.Sprintf("repo-tmp-push-create-%s", u.Scheme)
+		ctx.Reponame = "repo-tmp-push-create-" + u.Scheme
 		u.Path = ctx.GitPath()
 
 		// Create a temporary directory
@@ -623,7 +623,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 
 		// Now add a remote that is invalid to "Push To Create"
 		invalidCtx := ctx
-		invalidCtx.Reponame = fmt.Sprintf("invalid/repo-tmp-push-create-%s", u.Scheme)
+		invalidCtx.Reponame = "invalid/repo-tmp-push-create-" + u.Scheme
 		u.Path = invalidCtx.GitPath()
 		t.Run("AddInvalidRemote", doGitAddRemote(tmpDir, "invalid", u))
 

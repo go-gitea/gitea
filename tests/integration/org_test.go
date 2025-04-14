@@ -41,7 +41,7 @@ func TestOrgRepos(t *testing.T) {
 				sel := htmlDoc.doc.Find("a.name")
 				assert.Len(t, repos, len(sel.Nodes))
 				for i := 0; i < len(repos); i++ {
-					assert.EqualValues(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
+					assert.Equal(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
 				}
 			}
 		})
@@ -151,7 +151,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	// assert restrictedUser cannot see the org or the public repo
 	restrictedSession := loginUser(t, restrictedUser)
-	req := NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
+	req := NewRequest(t, "GET", "/"+orgName)
 	restrictedSession.MakeRequest(t, req, http.StatusNotFound)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
@@ -177,9 +177,9 @@ func TestOrgRestrictedUser(t *testing.T) {
 	resp := adminSession.MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, "CreateTeam_codereader", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, teamToCreate.Units, nil)
+		"none", teamToCreate.Units, nil)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, teamToCreate.Units, nil)
+		"none", teamToCreate.Units, nil)
 	// teamID := apiTeam.ID
 
 	// Now we need to add the restricted user to the team
@@ -188,7 +188,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 	_ = adminSession.MakeRequest(t, req, http.StatusNoContent)
 
 	// Now we need to check if the restrictedUser can access the repo
-	req = NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
+	req = NewRequest(t, "GET", "/"+orgName)
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))

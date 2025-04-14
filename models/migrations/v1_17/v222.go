@@ -5,6 +5,7 @@ package v1_17 //nolint
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/migrations/base"
@@ -29,7 +30,7 @@ func DropOldCredentialIDColumn(x *xorm.Engine) error {
 	}
 	if !credentialIDBytesExists {
 		// looks like 221 hasn't properly run
-		return fmt.Errorf("webauthn_credential does not have a credential_id_bytes column... it is not safe to run this migration")
+		return errors.New("webauthn_credential does not have a credential_id_bytes column... it is not safe to run this migration")
 	}
 
 	// Create webauthnCredential table

@@ -4,7 +4,7 @@
 package user
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -135,7 +135,7 @@ func GetGPGKey(ctx *context.APIContext) {
 // CreateUserGPGKey creates new GPG key to given user by ID.
 func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
-		ctx.APIErrorNotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("Not Found", errors.New("gpg keys setting is not allowed to be visited"))
 		return
 	}
 
@@ -205,7 +205,7 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 
 	if err != nil {
 		if asymkey_model.IsErrGPGInvalidTokenSignature(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: %s", token))
+			ctx.APIError(http.StatusUnprocessableEntity, "The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: "+token)
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -276,7 +276,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
-		ctx.APIErrorNotFound("Not Found", fmt.Errorf("gpg keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("Not Found", errors.New("gpg keys setting is not allowed to be visited"))
 		return
 	}
 
@@ -302,9 +302,9 @@ func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 	case asymkey_model.IsErrGPGKeyParsing(err):
 		ctx.APIError(http.StatusUnprocessableEntity, err)
 	case asymkey_model.IsErrGPGNoEmailFound(err):
-		ctx.APIError(http.StatusNotFound, fmt.Sprintf("None of the emails attached to the GPG key could be found. It may still be added if you provide a valid signature for the token: %s", token))
+		ctx.APIError(http.StatusNotFound, "None of the emails attached to the GPG key could be found. It may still be added if you provide a valid signature for the token: "+token)
 	case asymkey_model.IsErrGPGInvalidTokenSignature(err):
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: %s", token))
+		ctx.APIError(http.StatusUnprocessableEntity, "The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: "+token)
 	default:
 		ctx.APIErrorInternal(err)
 	}

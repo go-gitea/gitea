@@ -23,6 +23,6 @@ func TestRelease_ToRelease(t *testing.T) {
 	apiRelease := ToAPIRelease(db.DefaultContext, repo1, release1)
 	assert.NotNil(t, apiRelease)
 	assert.EqualValues(t, 1, apiRelease.ID)
-	assert.EqualValues(t, "https://try.gitea.io/api/v1/repos/user2/repo1/releases/1", apiRelease.URL)
-	assert.EqualValues(t, "https://try.gitea.io/api/v1/repos/user2/repo1/releases/1/assets", apiRelease.UploadURL)
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/releases/1", apiRelease.URL)
+	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/releases/1/assets", apiRelease.UploadURL)
 }

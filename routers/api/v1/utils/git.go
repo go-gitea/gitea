@@ -5,6 +5,7 @@ package utils
 
 import (
 	gocontext "context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -50,7 +51,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 // GetGitRefs return git references based on filter
 func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
 	if ctx.Repo.GitRepo == nil {
-		return nil, "", fmt.Errorf("no open git repo found in context")
+		return nil, "", errors.New("no open git repo found in context")
 	}
 	if len(filter) > 0 {
 		filter = "refs/" + filter
