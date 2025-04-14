@@ -45,7 +45,7 @@ func IsErrWikiReservedName(err error) bool {
 }
 
 func (err ErrWikiReservedName) Error() string {
-	return fmt.Sprintf("wiki title is reserved: %s", err.Title)
+	return "wiki title is reserved: " + err.Title
 }
 
 func (err ErrWikiReservedName) Unwrap() error {
@@ -64,7 +64,7 @@ func IsErrWikiInvalidFileName(err error) bool {
 }
 
 func (err ErrWikiInvalidFileName) Error() string {
-	return fmt.Sprintf("Invalid wiki filename: %s", err.FileName)
+	return "Invalid wiki filename: " + err.FileName
 }
 
 func (err ErrWikiInvalidFileName) Unwrap() error {

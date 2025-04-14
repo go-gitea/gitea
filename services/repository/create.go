@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -28,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // CreateRepoOptions contains the create repository options
@@ -140,21 +140,20 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
-	if err = repo_module.CheckInitRepository(ctx, repo); err != nil {
-		return err
+	// Init git bare new repository.
+	if err = git.InitRepository(ctx, repo.RepoPath(), true, repo.ObjectFormatName); err != nil {
+		return fmt.Errorf("git.InitRepository: %w", err)
+	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
+		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
+		tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("repos-" + repo.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to create temp dir for repository %s: %w", repo.FullName(), err)
+			return fmt.Errorf("failed to create temp dir for repository %s: %w", repo.FullName(), err)
 		}
-		defer func() {
-			if err := util.RemoveAll(tmpDir); err != nil {
-				log.Warn("Unable to remove temporary directory: %s: Error: %v", tmpDir, err)
-			}
-		}()
+		defer cleanup()
 
 		if err = prepareRepoCommit(ctx, repo, tmpDir, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %w", err)
@@ -200,10 +199,10 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 }
 
 // CreateRepositoryDirectly creates a repository for the user/organization.
-func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
-	if !doer.IsAdmin && !u.CanCreateRepo() {
+func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
+	if !doer.CanCreateRepoIn(owner) {
 		return nil, repo_model.ErrReachLimitOfRepo{
-			Limit: u.MaxRepoCreation,
+			Limit: owner.MaxRepoCreation,
 		}
 	}
 
@@ -223,9 +222,9 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 	}
 
 	repo := &repo_model.Repository{
-		OwnerID:                         u.ID,
-		Owner:                           u,
-		OwnerName:                       u.Name,
+		OwnerID:                         owner.ID,
+		Owner:                           owner,
+		OwnerName:                       owner.Name,
 		Name:                            opts.Name,
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
@@ -244,100 +243,93 @@ func CreateRepositoryDirectly(ctx context.Context, doer, u *user_model.User, opt
 		ObjectFormatName:                opts.ObjectFormatName,
 	}
 
-	var rollbackRepo *repo_model.Repository
+	needsUpdateStatus := opts.Status != repo_model.RepositoryReady
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := CreateRepositoryByExample(ctx, doer, u, repo, false, false); err != nil {
-			return err
-		}
-
-		// No need for init mirror.
-		if opts.IsMirror {
-			return nil
-		}
-
-		isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
-		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
-			return err
-		}
-		if isExist {
-			// repo already exists - We have two or three options.
-			// 1. We fail stating that the directory exists
-			// 2. We create the db repository to go with this data and adopt the git repo
-			// 3. We delete it and start afresh
-			//
-			// Previously Gitea would just delete and start afresh - this was naughty.
-			// So we will now fail and delegate to other functionality to adopt or delete
-			log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
-			return repo_model.ErrRepoFilesAlreadyExist{
-				Uname: u.Name,
-				Name:  repo.Name,
-			}
-		}
-
-		if err = initRepository(ctx, doer, repo, opts); err != nil {
-			if err2 := gitrepo.DeleteRepository(ctx, repo); err2 != nil {
-				log.Error("initRepository: %v", err)
-				return fmt.Errorf(
-					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
-			}
-			return fmt.Errorf("initRepository: %w", err)
-		}
-
-		// Initialize Issue Labels if selected
-		if len(opts.IssueLabels) > 0 {
-			if err = repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
-				return fmt.Errorf("InitializeLabels: %w", err)
-			}
-		}
-
-		if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-			return fmt.Errorf("checkDaemonExportOK: %w", err)
-		}
-
-		if stdout, _, err := git.NewCommand("update-server-info").
-			RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
-			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			rollbackRepo = repo
-			rollbackRepo.OwnerID = u.ID
-			return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
-		}
-
-		// update licenses
-		var licenses []string
-		if len(opts.License) > 0 {
-			licenses = append(licenses, opts.License)
-
-			stdout, _, err := git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
-			if err != nil {
-				log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-				rollbackRepo = repo
-				rollbackRepo.OwnerID = u.ID
-				return fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
-			}
-			if err := repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
-				return err
-			}
-		}
-		return nil
-	}); err != nil {
-		if rollbackRepo != nil {
-			if errDelete := DeleteRepositoryDirectly(ctx, doer, rollbackRepo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
-
+	// 1 - create the repository database operations first
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		return createRepositoryInDB(ctx, doer, owner, repo, false)
+	})
+	if err != nil {
 		return nil, err
+	}
+
+	// last - clean up if something goes wrong
+	// WARNING: Don't override all later err with local variables
+	defer func() {
+		if err != nil {
+			// we can not use the ctx because it maybe canceled or timeout
+			cleanupRepository(doer, repo.ID)
+		}
+	}()
+
+	// No need for init mirror.
+	if opts.IsMirror {
+		return repo, nil
+	}
+
+	// 2 - check whether the repository with the same storage exists
+	var isExist bool
+	isExist, err = gitrepo.IsRepositoryExist(ctx, repo)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
+		return nil, err
+	}
+	if isExist {
+		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
+		// Don't return directly, we need err in defer to cleanupRepository
+		err = repo_model.ErrRepoFilesAlreadyExist{
+			Uname: repo.OwnerName,
+			Name:  repo.Name,
+		}
+		return nil, err
+	}
+
+	// 3 - init git repository in storage
+	if err = initRepository(ctx, doer, repo, opts); err != nil {
+		return nil, fmt.Errorf("initRepository: %w", err)
+	}
+
+	// 4 - Initialize Issue Labels if selected
+	if len(opts.IssueLabels) > 0 {
+		if err = repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
+			return nil, fmt.Errorf("InitializeLabels: %w", err)
+		}
+	}
+
+	// 5 - Update the git repository
+	if err = updateGitRepoAfterCreate(ctx, repo); err != nil {
+		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
+	}
+
+	// 6 - update licenses
+	var licenses []string
+	if len(opts.License) > 0 {
+		licenses = append(licenses, opts.License)
+
+		var stdout string
+		stdout, _, err = git.NewCommand("rev-parse", "HEAD").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+		if err != nil {
+			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
+		}
+		if err = repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
+			return nil, err
+		}
+	}
+
+	// 7 - update repository status to be ready
+	if needsUpdateStatus {
+		repo.Status = repo_model.RepositoryReady
+		if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
+		}
 	}
 
 	return repo, nil
 }
 
-// CreateRepositoryByExample creates a repository for the user/organization.
-func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt, isFork bool) (err error) {
+// createRepositoryInDB creates a repository for the user/organization.
+func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -347,19 +339,6 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
-			Uname: u.Name,
-			Name:  repo.Name,
-		}
-	}
-
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
-		return err
-	}
-	if !overwriteOrAdopt && isExist {
-		log.Error("Files already exist in %s and we are not going to adopt or delete.", repo.FullName())
-		return repo_model.ErrRepoFilesAlreadyExist{
 			Uname: u.Name,
 			Name:  repo.Name,
 		}
@@ -471,5 +450,28 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 		return fmt.Errorf("CopyDefaultWebhooksToRepo: %w", err)
 	}
 
+	return nil
+}
+
+func cleanupRepository(doer *user_model.User, repoID int64) {
+	if errDelete := DeleteRepositoryDirectly(db.DefaultContext, doer, repoID); errDelete != nil {
+		log.Error("cleanupRepository failed: %v", errDelete)
+		// add system notice
+		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository: %v", errDelete); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+	}
+}
+
+func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) error {
+	if err := checkDaemonExportOK(ctx, repo); err != nil {
+		return fmt.Errorf("checkDaemonExportOK: %w", err)
+	}
+
+	if stdout, _, err := git.NewCommand("update-server-info").
+		RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()}); err != nil {
+		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+		return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
+	}
 	return nil
 }

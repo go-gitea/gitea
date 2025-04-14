@@ -5,7 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"fmt"
 	"image/png"
 	"io"
 	"mime/multipart"
@@ -84,9 +83,9 @@ func TestUserAvatar(t *testing.T) {
 }
 
 func testGetAvatarRedirect(t *testing.T, user *user_model.User) {
-	t.Run(fmt.Sprintf("getAvatarRedirect_%s", user.Name), func(t *testing.T) {
+	t.Run("getAvatarRedirect_"+user.Name, func(t *testing.T) {
 		req := NewRequestf(t, "GET", "/%s.png", user.Name)
 		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, fmt.Sprintf("/avatars/%s", user.Avatar), resp.Header().Get("location"))
+		assert.Equal(t, "/avatars/"+user.Avatar, resp.Header().Get("location"))
 	})
 }

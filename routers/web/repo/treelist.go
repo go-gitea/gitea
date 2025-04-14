@@ -8,6 +8,7 @@ import (
 
 	pull_model "code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -87,10 +88,11 @@ func transformDiffTreeForUI(diffTree *gitdiff.DiffTree, filesViewedState map[str
 }
 
 func TreeViewNodes(ctx *context.Context) {
-	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
+	renderedIconPool := fileicon.NewRenderedIconPool()
+	results, err := files_service.GetTreeViewNodes(ctx, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
 	if err != nil {
 		ctx.ServerError("GetTreeViewNodes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, map[string]any{"fileTreeNodes": results})
+	ctx.JSON(http.StatusOK, map[string]any{"fileTreeNodes": results, "renderedIconPool": renderedIconPool.IconSVGs})
 }

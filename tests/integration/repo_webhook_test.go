@@ -660,7 +660,7 @@ jobs:
       - run: echo 'cmd 1'
       - run: echo 'cmd 2'
 `
-		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, fmt.Sprintf("create %s", wfTreePath), wfFileContent)
+		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
 		createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
 
 		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)

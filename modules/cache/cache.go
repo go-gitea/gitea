@@ -4,6 +4,8 @@
 package cache
 
 import (
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -48,10 +50,10 @@ const (
 // returns
 func Test() (time.Duration, error) {
 	if defaultCache == nil {
-		return 0, fmt.Errorf("default cache not initialized")
+		return 0, errors.New("default cache not initialized")
 	}
 
-	testData := fmt.Sprintf("%x", make([]byte, 500))
+	testData := hex.EncodeToString(make([]byte, 500))
 
 	start := time.Now()
 
@@ -63,10 +65,10 @@ func Test() (time.Duration, error) {
 	}
 	testVal, hit := defaultCache.Get(testCacheKey)
 	if !hit {
-		return 0, fmt.Errorf("expect cache hit but got none")
+		return 0, errors.New("expect cache hit but got none")
 	}
 	if testVal != testData {
-		return 0, fmt.Errorf("expect cache to return same value as stored but got other")
+		return 0, errors.New("expect cache to return same value as stored but got other")
 	}
 
 	return time.Since(start), nil

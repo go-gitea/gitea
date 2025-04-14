@@ -5,7 +5,7 @@ package project
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -29,7 +29,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			return err
 		}
 		if int(count) != len(sortedIssueIDs) {
-			return fmt.Errorf("all issues have to be added to a project first")
+			return errors.New("all issues have to be added to a project first")
 		}
 
 		issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)

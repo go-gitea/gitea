@@ -6,7 +6,6 @@ package setting
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -60,6 +59,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
+	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
@@ -474,7 +474,7 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 	m := &repo_model.PushMirror{
 		RepoID:        repo.ID,
 		Repo:          repo,
-		RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+		RemoteName:    "remote_mirror_" + remoteSuffix,
 		SyncOnCommit:  form.PushMirrorSyncOnCommit,
 		Interval:      interval,
 		RemoteAddress: remoteAddress,
@@ -787,7 +787,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Owner.CanCreateRepo() {
+	if !ctx.Doer.CanForkRepoIn(ctx.Repo.Owner) {
 		maxCreationLimit := ctx.Repo.Owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
 		ctx.Flash.Error(msg)
@@ -848,6 +848,9 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 		} else if repo_model.IsErrRepoTransferInProgress(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
+		} else if repo_service.IsRepositoryLimitReached(err) {
+			limit := err.(repo_service.LimitReachedError).Limit
+			ctx.RenderWithErr(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit), tplSettingsOptions, nil)
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.transfer.blocked_user"), tplSettingsOptions, nil)
 		} else {

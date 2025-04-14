@@ -5,6 +5,7 @@ package util
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -100,7 +101,7 @@ func TestEllipsisString(t *testing.T) {
 			{limit: 7, left: "\xef\x03\xfe\xef\x03\xfe", right: ""},
 		}
 		for _, c := range invalidCases {
-			t.Run(fmt.Sprintf("%d", c.limit), func(t *testing.T) {
+			t.Run(strconv.Itoa(c.limit), func(t *testing.T) {
 				left, right := EllipsisDisplayStringX("\xef\x03\xfe\xef\x03\xfe", c.limit)
 				assert.Equal(t, c.left, left, "left")
 				assert.Equal(t, c.right, right, "right")
