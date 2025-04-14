@@ -285,7 +285,7 @@ func Routes() *web.Router {
 
 	webRoutes := web.NewRouter()
 	webRoutes.Use(mid...)
-	webRoutes.Group("", func() { registerWebRoutes(webRoutes) }, common.BlockExpensive())
+	webRoutes.Group("", func() { registerWebRoutes(webRoutes) }, common.BlockExpensive(), common.QoS())
 	routes.Mount("", webRoutes)
 	return routes
 }

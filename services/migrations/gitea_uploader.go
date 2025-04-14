@@ -107,7 +107,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 			IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 			IsMirror:       opts.Mirror,
 			Status:         repo_model.RepositoryBeingMigrated,
-		})
+		}, false)
 	} else {
 		r, err = repo_model.GetRepositoryByID(ctx, opts.MigrateToRepoID)
 	}

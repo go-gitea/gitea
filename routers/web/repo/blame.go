@@ -8,6 +8,7 @@ import (
 	gotemplate "html/template"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 
@@ -69,7 +70,7 @@ func RefBlame(ctx *context.Context) {
 	blob := entry.Blob()
 	fileSize := blob.Size()
 	ctx.Data["FileSize"] = fileSize
-	ctx.Data["FileName"] = blob.Name()
+	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 
 	tplName := tplRepoViewContent
 	if !ctx.FormBool("only_content") {
@@ -285,8 +286,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 			if i != len(lines)-1 {
 				line += "\n"
 			}
-			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
-			line, lexerNameForLine := highlight.Code(fileName, language, line)
+			line, lexerNameForLine := highlight.Code(path.Base(ctx.Repo.TreePath), language, line)
 
 			// set lexer name to the first detected lexer. this is certainly suboptimal and
 			// we should instead highlight the whole file at once
