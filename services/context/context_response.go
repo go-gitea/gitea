@@ -150,7 +150,7 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 
 	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
-	ctx.HTML(http.StatusNotFound, templates.TplName("status/404"))
+	ctx.HTML(http.StatusNotFound, "status/404")
 }
 
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.

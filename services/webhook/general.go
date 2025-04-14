@@ -43,16 +43,16 @@ func getPullRequestInfo(p *api.PullRequestPayload) (title, link, by, operator, o
 	case api.HookIssueAssigned:
 		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
 	case api.HookIssueUnassigned:
-		operateResult = fmt.Sprintf("%s unassigned this for someone", p.Sender.UserName)
+		operateResult = p.Sender.UserName + " unassigned this for someone"
 	case api.HookIssueMilestoned:
 		operateResult = fmt.Sprintf("%s/milestone/%d", p.Repository.HTMLURL, p.PullRequest.Milestone.ID)
 	}
 	link = p.PullRequest.HTMLURL
-	by = fmt.Sprintf("PullRequest by %s", p.PullRequest.Poster.UserName)
+	by = "PullRequest by " + p.PullRequest.Poster.UserName
 	if len(assignStringList) > 0 {
-		assignees = fmt.Sprintf("Assignees: %s", strings.Join(assignStringList, ", "))
+		assignees = "Assignees: " + strings.Join(assignStringList, ", ")
 	}
-	operator = fmt.Sprintf("Operator: %s", p.Sender.UserName)
+	operator = "Operator: " + p.Sender.UserName
 	return title, link, by, operator, operateResult, assignees
 }
 
@@ -69,16 +69,16 @@ func getIssuesInfo(p *api.IssuePayload) (issueTitle, link, by, operator, operate
 	case api.HookIssueAssigned:
 		operateResult = fmt.Sprintf("%s assign this to %s", p.Sender.UserName, assignList[len(assignList)-1].UserName)
 	case api.HookIssueUnassigned:
-		operateResult = fmt.Sprintf("%s unassigned this for someone", p.Sender.UserName)
+		operateResult = p.Sender.UserName + " unassigned this for someone"
 	case api.HookIssueMilestoned:
 		operateResult = fmt.Sprintf("%s/milestone/%d", p.Repository.HTMLURL, p.Issue.Milestone.ID)
 	}
 	link = p.Issue.HTMLURL
-	by = fmt.Sprintf("Issue by %s", p.Issue.Poster.UserName)
+	by = "Issue by " + p.Issue.Poster.UserName
 	if len(assignStringList) > 0 {
-		assignees = fmt.Sprintf("Assignees: %s", strings.Join(assignStringList, ", "))
+		assignees = "Assignees: " + strings.Join(assignStringList, ", ")
 	}
-	operator = fmt.Sprintf("Operator: %s", p.Sender.UserName)
+	operator = "Operator: " + p.Sender.UserName
 	return issueTitle, link, by, operator, operateResult, assignees
 }
 
@@ -87,11 +87,11 @@ func getIssuesCommentInfo(p *api.IssueCommentPayload) (title, link, by, operator
 	title = fmt.Sprintf("[Comment-%s #%d]: %s\n%s", p.Repository.FullName, p.Issue.Index, p.Action, p.Issue.Title)
 	link = p.Issue.HTMLURL
 	if p.IsPull {
-		by = fmt.Sprintf("PullRequest by %s", p.Issue.Poster.UserName)
+		by = "PullRequest by " + p.Issue.Poster.UserName
 	} else {
-		by = fmt.Sprintf("Issue by %s", p.Issue.Poster.UserName)
+		by = "Issue by " + p.Issue.Poster.UserName
 	}
-	operator = fmt.Sprintf("Operator: %s", p.Sender.UserName)
+	operator = "Operator: " + p.Sender.UserName
 	return title, link, by, operator
 }
 
@@ -135,7 +135,7 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, with
 		text = fmt.Sprintf("[%s] Issue milestone cleared: %s", repoLink, titleLink)
 	}
 	if withSender {
-		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	}
 
 	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
@@ -200,7 +200,7 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 		text = fmt.Sprintf("[%s] Pull request review request removed: %s", repoLink, titleLink)
 	}
 	if withSender {
-		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName))
+		text += " by " + linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	}
 
 	return text, issueTitle, extraMarkdown, color
@@ -222,7 +222,7 @@ func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, w
 		color = redColor
 	}
 	if withSender {
-		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	}
 
 	return text, color
@@ -251,7 +251,7 @@ func getWikiPayloadInfo(p *api.WikiPayload, linkFormatter linkFormatter, withSen
 	}
 
 	if withSender {
-		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	}
 
 	return text, color, pageLink
@@ -287,7 +287,7 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 		color = redColor
 	}
 	if withSender {
-		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	}
 
 	return text, issueTitle, color
@@ -298,14 +298,14 @@ func getPackagePayloadInfo(p *api.PackagePayload, linkFormatter linkFormatter, w
 
 	switch p.Action {
 	case api.HookPackageCreated:
-		text = fmt.Sprintf("Package created: %s", refLink)
+		text = "Package created: " + refLink
 		color = greenColor
 	case api.HookPackageDeleted:
-		text = fmt.Sprintf("Package deleted: %s", refLink)
+		text = "Package deleted: " + refLink
 		color = redColor
 	}
 	if withSender {
-		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	}
 
 	return text, color
@@ -318,9 +318,9 @@ func getStatusPayloadInfo(p *api.CommitStatusPayload, linkFormatter linkFormatte
 	color = greenColor
 	if withSender {
 		if user_model.IsGiteaActionsUserName(p.Sender.UserName) {
-			text += fmt.Sprintf(" by %s", p.Sender.FullName)
+			text += " by " + p.Sender.FullName
 		} else {
-			text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+			text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 		}
 	}
 
@@ -352,7 +352,7 @@ func getWorkflowJobPayloadInfo(p *api.WorkflowJobPayload, linkFormatter linkForm
 		color = greyColor
 	}
 	if withSender {
-		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+		text += " by " + linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	}
 
 	return text, color

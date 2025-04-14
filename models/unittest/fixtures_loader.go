@@ -120,7 +120,7 @@ func (f *fixturesLoaderInternal) loadFixtures(tx *sql.Tx, fixture *FixtureItem) 
 		}
 	}
 
-	_, err = tx.Exec(fmt.Sprintf("DELETE FROM %s", fixture.tableNameQuoted)) // sqlite3 doesn't support truncate
+	_, err = tx.Exec("DELETE FROM " + fixture.tableNameQuoted) // sqlite3 doesn't support truncate
 	if err != nil {
 		return err
 	}

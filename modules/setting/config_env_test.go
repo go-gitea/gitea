@@ -28,8 +28,8 @@ func TestDecodeEnvSectionKey(t *testing.T) {
 
 	ok, section, key = decodeEnvSectionKey("SEC")
 	assert.False(t, ok)
-	assert.Equal(t, "", section)
-	assert.Equal(t, "", key)
+	assert.Empty(t, section)
+	assert.Empty(t, key)
 }
 
 func TestDecodeEnvironmentKey(t *testing.T) {
@@ -38,19 +38,19 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 
 	ok, section, key, file := decodeEnvironmentKey(prefix, suffix, "SEC__KEY")
 	assert.False(t, ok)
-	assert.Equal(t, "", section)
-	assert.Equal(t, "", key)
+	assert.Empty(t, section)
+	assert.Empty(t, key)
 	assert.False(t, file)
 
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC")
 	assert.False(t, ok)
-	assert.Equal(t, "", section)
-	assert.Equal(t, "", key)
+	assert.Empty(t, section)
+	assert.Empty(t, key)
 	assert.False(t, file)
 
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA____KEY")
 	assert.True(t, ok)
-	assert.Equal(t, "", section)
+	assert.Empty(t, section)
 	assert.Equal(t, "KEY", key)
 	assert.False(t, file)
 
@@ -64,8 +64,8 @@ func TestDecodeEnvironmentKey(t *testing.T) {
 	// but it could be fixed in the future by adding a new suffix like "__VALUE" (no such key VALUE is used in Gitea either)
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC__FILE")
 	assert.False(t, ok)
-	assert.Equal(t, "", section)
-	assert.Equal(t, "", key)
+	assert.Empty(t, section)
+	assert.Empty(t, key)
 	assert.True(t, file)
 
 	ok, section, key, file = decodeEnvironmentKey(prefix, suffix, "GITEA__SEC__KEY__FILE")

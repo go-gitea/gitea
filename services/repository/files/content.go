@@ -188,6 +188,14 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		},
 	}
 
+	// GitHub doesn't have these fields in the response, but we could follow other similar APIs to name them
+	// https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#list-commits
+	if lastCommit.Committer != nil {
+		contentsResponse.LastCommitterDate = lastCommit.Committer.When
+	}
+	if lastCommit.Author != nil {
+		contentsResponse.LastAuthorDate = lastCommit.Author.When
+	}
 	// Now populate the rest of the ContentsResponse based on entry type
 	if entry.IsRegular() || entry.IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)
@@ -268,29 +276,4 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		Encoding: "base64",
 		Content:  content,
 	}, nil
-}
-
-// TryGetContentLanguage tries to get the (linguist) language of the file content
-func TryGetContentLanguage(gitRepo *git.Repository, commitID, treePath string) (string, error) {
-	indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(commitID)
-	if err != nil {
-		return "", err
-	}
-
-	defer deleteTemporaryFile()
-
-	filename2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
-		CachedOnly: true,
-		Attributes: []string{git.AttributeLinguistLanguage, git.AttributeGitlabLanguage},
-		Filenames:  []string{treePath},
-		IndexFile:  indexFilename,
-		WorkTree:   worktree,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	language := git.TryReadLanguageAttribute(filename2attribute2info[treePath])
-
-	return language.Value(), nil
 }

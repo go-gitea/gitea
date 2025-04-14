@@ -40,7 +40,7 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 		LFS:         true,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, NoExpectedStatus)
-	assert.EqualValues(t, http.StatusCreated, resp.Code)
+	assert.Equal(t, http.StatusCreated, resp.Code)
 
 	store := lfs.NewContentStore()
 	ok, _ := store.Verify(lfs.Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab041", Size: 6})
