@@ -145,17 +145,17 @@ function toggleProjectViewFullScreen(fullscreenElementsSelector: string, isFullS
   const headerEl = document.querySelector('#navbar');
   const contentEl = document.querySelector('.page-content');
   const footerEl = document.querySelector('.page-footer');
-  toggleElem(headerEl, isFullScreen);
-  toggleElem(contentEl, isFullScreen);
-  toggleElem(footerEl, isFullScreen);
+  toggleElem(headerEl, !isFullScreen);
+  toggleElem(contentEl, !isFullScreen);
+  toggleElem(footerEl, !isFullScreen);
 
   const fullScreenEls = document.querySelectorAll(fullscreenElementsSelector);
   const outerEl = document.querySelector('.full.height');
-  toggleClass(fullscreenElementsSelector, 'fullscreen');
+  toggleClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
   if (isFullScreen) {
-    for (const e of fullScreenEls) contentEl.append(e);
-  } else {
     for (const e of fullScreenEls) outerEl.append(e);
+  } else {
+    for (const e of fullScreenEls) contentEl.append(e);
   }
 }
 
@@ -166,14 +166,14 @@ function initRepoProjectToggleFullScreen(): void {
 
   const fullscreenElementsSelector = enterFullscreenBtn.getAttribute('data-fullscreen-elements-selector');
 
-  const toggleFullscreenState = (isExiting: boolean) => {
-    toggleProjectViewFullScreen(fullscreenElementsSelector, isExiting);
+  const toggleFullscreenState = (isFullScreen: boolean) => {
+    toggleProjectViewFullScreen(fullscreenElementsSelector, isFullScreen);
     toggleElem(enterFullscreenBtn);
     toggleElem(exitFullscreenBtn);
   };
 
-  enterFullscreenBtn.addEventListener('click', () => toggleFullscreenState(false));
-  exitFullscreenBtn.addEventListener('click', () => toggleFullscreenState(true));
+  enterFullscreenBtn.addEventListener('click', () => toggleFullscreenState(true));
+  exitFullscreenBtn.addEventListener('click', () => toggleFullscreenState(false));
 }
 
 export function initRepoProject(): void {
