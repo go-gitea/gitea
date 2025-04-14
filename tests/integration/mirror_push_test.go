@@ -40,7 +40,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	mirrorRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
 		Name: "test-push-mirror",
-	})
+	}, true)
 	assert.NoError(t, err)
 
 	session := loginUser(t, user.Name)

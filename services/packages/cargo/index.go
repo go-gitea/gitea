@@ -213,7 +213,7 @@ func getOrCreateIndexRepository(ctx context.Context, doer, owner *user_model.Use
 		if errors.Is(err, util.ErrNotExist) {
 			repo, err = repo_service.CreateRepositoryDirectly(ctx, doer, owner, repo_service.CreateRepoOptions{
 				Name: IndexRepositoryName,
-			})
+			}, true)
 			if err != nil {
 				return nil, fmt.Errorf("CreateRepository: %w", err)
 			}
