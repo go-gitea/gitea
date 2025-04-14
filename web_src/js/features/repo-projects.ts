@@ -1,10 +1,10 @@
 import {contrastColor} from '../utils/color.ts';
-import {toggleClass, toggleElem} from '../utils/dom.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {POST, request} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {queryElemChildren, queryElems} from '../utils/dom.ts';
+import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import type {SortableEvent} from 'sortablejs';
+import {toggleFullScreen} from '../utils.ts';
 
 function updateIssueCount(card: HTMLElement): void {
   const parent = card.parentElement;
@@ -140,25 +140,6 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   });
 }
 
-function toggleProjectViewFullScreen(fullscreenElementsSelector: string, isFullScreen: boolean): void {
-  // hide other elements
-  const headerEl = document.querySelector('#navbar');
-  const contentEl = document.querySelector('.page-content');
-  const footerEl = document.querySelector('.page-footer');
-  toggleElem(headerEl, !isFullScreen);
-  toggleElem(contentEl, !isFullScreen);
-  toggleElem(footerEl, !isFullScreen);
-
-  const fullScreenEls = document.querySelectorAll(fullscreenElementsSelector);
-  const outerEl = document.querySelector('.full.height');
-  toggleClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
-  if (isFullScreen) {
-    for (const e of fullScreenEls) outerEl.append(e);
-  } else {
-    for (const e of fullScreenEls) contentEl.append(e);
-  }
-}
-
 function initRepoProjectToggleFullScreen(): void {
   const enterFullscreenBtn = document.querySelector('.screen-full');
   const exitFullscreenBtn = document.querySelector('.screen-normal');
@@ -167,7 +148,7 @@ function initRepoProjectToggleFullScreen(): void {
   const fullscreenElementsSelector = enterFullscreenBtn.getAttribute('data-fullscreen-elements-selector');
 
   const toggleFullscreenState = (isFullScreen: boolean) => {
-    toggleProjectViewFullScreen(fullscreenElementsSelector, isFullScreen);
+    toggleFullScreen(fullscreenElementsSelector, isFullScreen);
     toggleElem(enterFullscreenBtn);
     toggleElem(exitFullscreenBtn);
   };
