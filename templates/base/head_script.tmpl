@@ -1,5 +1,4 @@
-{{/*
-==== DO NOT EDIT ====
+{{/* ==== DO NOT EDIT ====
 If you are customizing Gitea, please do not change this file.
 If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 */}}
@@ -21,10 +20,10 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		{{if or .Participants .Assignees .MentionableTeams}}
 		mentionValues: Array.from(new Map([
 			{{- range .Participants -}}
-				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}', name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink $.Context}}'}],
+				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}', name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink ctx}}'}],
 			{{- end -}}
 			{{- range .Assignees -}}
-				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}', name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink $.Context}}'}],
+				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}', name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink ctx}}'}],
 			{{- end -}}
 			{{- range .MentionableTeams -}}
 				['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}', name: '{{$.MentionableTeamsOrg}}/{{.Name}}', avatar: '{{$.MentionableTeamsOrgAvatar}}'}],

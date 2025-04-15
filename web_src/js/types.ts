@@ -22,19 +22,33 @@ export type Config = {
   i18n: Record<string, string>,
 }
 
+export type IntervalId = ReturnType<typeof setInterval>;
+
 export type Intent = 'error' | 'warning' | 'info';
 
-export type RequestData = string | FormData | URLSearchParams;
+export type RequestData = string | FormData | URLSearchParams | Record<string, any>;
 
 export type RequestOpts = {
   data?: RequestData,
 } & RequestInit;
+
+export type RepoOwnerPathInfo = {
+  ownerName: string,
+  repoName: string,
+}
 
 export type IssuePathInfo = {
   ownerName: string,
   repoName: string,
   pathType: string,
   indexString?: string,
+}
+
+export type IssuePageInfo = {
+  repoLink: string,
+  repoId: number,
+  issueNumber: number,
+  issueDependencySearchType: string,
 }
 
 export type Issue = {
@@ -47,3 +61,10 @@ export type Issue = {
     merged: boolean;
   };
 };
+
+export type FomanticInitFunction = {
+  settings?: Record<string, any>,
+  (...args: any[]): any,
+}
+
+export type GitRefType = 'branch' | 'tag';

@@ -9,6 +9,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_isGitRawOrLFSPath(t *testing.T) {
@@ -90,6 +93,19 @@ func Test_isGitRawOrLFSPath(t *testing.T) {
 			true,
 		},
 	}
+
+	defer test.MockVariableValue(&setting.LFS.StartServer)()
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodPost, "http://localhost"+tt.path, nil)
+			setting.LFS.StartServer = false
+			assert.Equal(t, tt.want, newAuthPathDetector(req).isGitRawOrAttachOrLFSPath())
+
+			setting.LFS.StartServer = true
+			assert.Equal(t, tt.want, newAuthPathDetector(req).isGitRawOrAttachOrLFSPath())
+		})
+	}
+
 	lfsTests := []string{
 		"/owner/repo/info/lfs/",
 		"/owner/repo/info/lfs/objects/batch",
@@ -101,34 +117,39 @@ func Test_isGitRawOrLFSPath(t *testing.T) {
 		"/owner/repo/info/lfs/locks/verify",
 		"/owner/repo/info/lfs/locks/123/unlock",
 	}
-
-	origLFSStartServer := setting.LFS.StartServer
-
-	for _, tt := range tests {
-		t.Run(tt.path, func(t *testing.T) {
-			req, _ := http.NewRequest("POST", "http://localhost"+tt.path, nil)
-			setting.LFS.StartServer = false
-			if got := isGitRawOrAttachOrLFSPath(req); got != tt.want {
-				t.Errorf("isGitOrLFSPath() = %v, want %v", got, tt.want)
-			}
-			setting.LFS.StartServer = true
-			if got := isGitRawOrAttachOrLFSPath(req); got != tt.want {
-				t.Errorf("isGitOrLFSPath() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 	for _, tt := range lfsTests {
 		t.Run(tt, func(t *testing.T) {
-			req, _ := http.NewRequest("POST", tt, nil)
+			req, _ := http.NewRequest(http.MethodPost, tt, nil)
 			setting.LFS.StartServer = false
-			if got := isGitRawOrAttachOrLFSPath(req); got != setting.LFS.StartServer {
-				t.Errorf("isGitOrLFSPath(%q) = %v, want %v, %v", tt, got, setting.LFS.StartServer, gitRawOrAttachPathRe.MatchString(tt))
-			}
+			got := newAuthPathDetector(req).isGitRawOrAttachOrLFSPath()
+			assert.Equalf(t, setting.LFS.StartServer, got, "isGitOrLFSPath(%q) = %v, want %v, %v", tt, got, setting.LFS.StartServer, globalVars().gitRawOrAttachPathRe.MatchString(tt))
+
 			setting.LFS.StartServer = true
-			if got := isGitRawOrAttachOrLFSPath(req); got != setting.LFS.StartServer {
-				t.Errorf("isGitOrLFSPath(%q) = %v, want %v", tt, got, setting.LFS.StartServer)
-			}
+			got = newAuthPathDetector(req).isGitRawOrAttachOrLFSPath()
+			assert.Equalf(t, setting.LFS.StartServer, got, "isGitOrLFSPath(%q) = %v, want %v", tt, got, setting.LFS.StartServer)
 		})
 	}
-	setting.LFS.StartServer = origLFSStartServer
+}
+
+func Test_isFeedRequest(t *testing.T) {
+	tests := []struct {
+		want bool
+		path string
+	}{
+		{true, "/user.rss"},
+		{true, "/user/repo.atom"},
+		{false, "/user/repo"},
+		{false, "/use/repo/file.rss"},
+
+		{true, "/org/repo/rss/branch/xxx"},
+		{true, "/org/repo/atom/tag/xxx"},
+		{false, "/org/repo/branch/main/rss/any"},
+		{false, "/org/atom/any"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodGet, "http://localhost"+tt.path, nil)
+			assert.Equal(t, tt.want, newAuthPathDetector(req).isFeedRequest(req))
+		})
+	}
 }

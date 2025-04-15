@@ -1,0 +1,41 @@
+{{if eq .PackageDescriptor.Package.Type "arch"}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-gear"}} {{ctx.Locale.Tr "packages.arch.registry"}}</label>
+				<div class="markup"><pre class="code-block"><code>[{{.PackageDescriptor.Owner.LowerName}}.{{.PackageRegistryHost}}]
+SigLevel = Optional TrustAll
+Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/$repo/$arch"></origin-url></code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-sync"}} {{ctx.Locale.Tr "packages.arch.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>pacman -Sy {{.PackageDescriptor.Package.LowerName}}</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Arch" "https://docs.gitea.com/usage/packages/arch/"}}</label>
+			</div>
+		</div>
+	</div>
+
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.arch.repository"}}</h4>
+	<div class="ui attached segment">
+		<table class="ui single line very basic table">
+			<tbody>
+				<tr>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.arch.repository.repositories"}}</h5></td>
+					<td>{{StringUtils.Join .Repositories ", "}}</td>
+				</tr>
+				<tr>
+					<td class="collapsing"><h5>{{ctx.Locale.Tr "packages.arch.repository.architectures"}}</h5></td>
+					<td>{{StringUtils.Join .Architectures ", "}}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	{{if .PackageDescriptor.Metadata.Description}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>
+	{{end}}
+{{end}}

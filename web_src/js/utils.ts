@@ -1,5 +1,11 @@
-import {encode, decode} from 'uint8-to-base64';
-import type {IssuePathInfo} from './types.ts';
+import {decode, encode} from 'uint8-to-base64';
+import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
+
+// transform /path/to/file.ext to /path/to
+export function dirname(path: string): string {
+  const lastSlashIndex = path.lastIndexOf('/');
+  return lastSlashIndex < 0 ? '' : path.substring(0, lastSlashIndex);
+}
 
 // transform /path/to/file.ext to file.ext
 export function basename(path: string): string {
@@ -32,15 +38,27 @@ export function stripTags(text: string): string {
 }
 
 export function parseIssueHref(href: string): IssuePathInfo {
+  // FIXME: it should use pathname and trim the appSubUrl ahead
   const path = (href || '').replace(/[#?].*$/, '');
   const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
   return {ownerName, repoName, pathType, indexString};
 }
 
-export function parseIssueNewHref(href: string): IssuePathInfo {
-  const path = (href || '').replace(/[#?].*$/, '');
-  const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/new/.exec(path) || [];
-  return {ownerName, repoName, pathType, indexString};
+export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo {
+  const appSubUrl = window.config.appSubUrl;
+  if (appSubUrl && pathname.startsWith(appSubUrl)) pathname = pathname.substring(appSubUrl.length);
+  const [_, ownerName, repoName] = /([^/]+)\/([^/]+)/.exec(pathname) || [];
+  return {ownerName, repoName};
+}
+
+export function parseIssuePageInfo(): IssuePageInfo {
+  const el = document.querySelector('#issue-page-info');
+  return {
+    issueNumber: parseInt(el?.getAttribute('data-issue-index')),
+    issueDependencySearchType: el?.getAttribute('data-issue-dependency-search-type') || '',
+    repoId: parseInt(el?.getAttribute('data-issue-repo-id')),
+    repoLink: el?.getAttribute('data-issue-repo-link') || '',
+  };
 }
 
 // parse a URL, either relative '/path' or absolute 'https://localhost/path'
@@ -124,16 +142,16 @@ export function toAbsoluteUrl(url: string): string {
   return `${window.location.origin}${url}`;
 }
 
-// Encode an ArrayBuffer into a URLEncoded base64 string.
-export function encodeURLEncodedBase64(arrayBuffer: ArrayBuffer): string {
-  return encode(arrayBuffer)
+// Encode an Uint8Array into a URLEncoded base64 string.
+export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
+  return encode(uint8Array)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
 }
 
-// Decode a URLEncoded base64 to an ArrayBuffer.
-export function decodeURLEncodedBase64(base64url: string): ArrayBuffer {
+// Decode a URLEncoded base64 to an Uint8Array.
+export function decodeURLEncodedBase64(base64url: string): Uint8Array {
   return decode(base64url
     .replace(/_/g, '/')
     .replace(/-/g, '+'));
@@ -154,10 +172,10 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function isImageFile({name, type}: {name: string, type?: string}): boolean {
-  return /\.(jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
+export function isImageFile({name, type}: {name?: string, type?: string}): boolean {
+  return /\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
 }
 
-export function isVideoFile({name, type}: {name: string, type?: string}): boolean {
+export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
   return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
 }

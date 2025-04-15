@@ -104,19 +104,20 @@ func fail(ctx context.Context, userMessage, logMsgFmt string, args ...any) error
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
 	// if nothing is outputted on stdout.
 	_, _ = fmt.Fprintln(os.Stdout, "")
-	_, _ = fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
+	// add extra empty lines to separate our message from other git errors to get more attention
+	_, _ = fmt.Fprintln(os.Stderr, "error:")
+	_, _ = fmt.Fprintln(os.Stderr, "error:", userMessage)
+	_, _ = fmt.Fprintln(os.Stderr, "error:")
 
 	if logMsgFmt != "" {
 		logMsg := fmt.Sprintf(logMsgFmt, args...)
 		if !setting.IsProd {
 			_, _ = fmt.Fprintln(os.Stderr, "Gitea:", logMsg)
 		}
-		if userMessage != "" {
-			if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
-				logMsg = userMessage + " " + logMsg
-			} else {
-				logMsg = userMessage + ". " + logMsg
-			}
+		if unicode.IsPunct(rune(userMessage[len(userMessage)-1])) {
+			logMsg = userMessage + " " + logMsg
+		} else {
+			logMsg = userMessage + ". " + logMsg
 		}
 		_ = private.SSHLog(ctx, true, logMsg)
 	}
@@ -172,7 +173,7 @@ func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServC
 	if err != nil {
 		return "", fail(ctx, "Failed to sign JWT Token", "Failed to sign JWT token: %v", err)
 	}
-	return fmt.Sprintf("Bearer %s", tokenString), nil
+	return "Bearer " + tokenString, nil
 }
 
 func runServ(c *cli.Context) error {
@@ -288,10 +289,10 @@ func runServ(c *cli.Context) error {
 	if allowedCommands.Contains(verb) {
 		if allowedCommandsLfs.Contains(verb) {
 			if !setting.LFS.StartServer {
-				return fail(ctx, "Unknown git command", "LFS authentication request over SSH denied, LFS support is disabled")
+				return fail(ctx, "LFS Server is not enabled", "")
 			}
 			if verb == verbLfsTransfer && !setting.LFS.AllowPureSSH {
-				return fail(ctx, "Unknown git command", "LFS SSH transfer connection denied, pure SSH protocol is disabled")
+				return fail(ctx, "LFS SSH transfer is not enabled", "")
 			}
 			if len(words) > 2 {
 				lfsVerb = words[2]
@@ -371,9 +372,9 @@ func runServ(c *cli.Context) error {
 		repo_module.EnvPusherEmail+"="+results.UserEmail,
 		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
 		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
-		repo_module.EnvPRID+"="+fmt.Sprintf("%d", 0),
-		repo_module.EnvDeployKeyID+"="+fmt.Sprintf("%d", results.DeployKeyID),
-		repo_module.EnvKeyID+"="+fmt.Sprintf("%d", results.KeyID),
+		repo_module.EnvPRID+"="+strconv.Itoa(0),
+		repo_module.EnvDeployKeyID+"="+strconv.FormatInt(results.DeployKeyID, 10),
+		repo_module.EnvKeyID+"="+strconv.FormatInt(results.KeyID, 10),
 		repo_module.EnvAppURL+"="+setting.AppURL,
 	)
 	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.

@@ -317,7 +317,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					var result Metadata
 					decodeGzipXML(t, resp, &result)
 
-					assert.EqualValues(t, 1, result.PackageCount)
+					assert.Equal(t, 1, result.PackageCount)
 					assert.Len(t, result.Packages, 1)
 					p := result.Packages[0]
 					assert.Equal(t, "rpm", p.Type)
@@ -366,7 +366,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					var result Filelists
 					decodeGzipXML(t, resp, &result)
 
-					assert.EqualValues(t, 1, result.PackageCount)
+					assert.Equal(t, 1, result.PackageCount)
 					assert.Len(t, result.Packages, 1)
 					p := result.Packages[0]
 					assert.NotEmpty(t, p.Pkgid)
@@ -403,7 +403,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					var result Other
 					decodeGzipXML(t, resp, &result)
 
-					assert.EqualValues(t, 1, result.PackageCount)
+					assert.Equal(t, 1, result.PackageCount)
 					assert.Len(t, result.Packages, 1)
 					p := result.Packages[0]
 					assert.NotEmpty(t, p.Pkgid)

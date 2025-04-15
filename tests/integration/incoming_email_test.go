@@ -19,11 +19,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/mailer/incoming"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
+	sender_service "code.gitea.io/gitea/services/mailer/sender"
 	token_service "code.gitea.io/gitea/services/mailer/token"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/gomail.v2"
 )
 
 func TestIncomingEmail(t *testing.T) {
@@ -50,12 +50,12 @@ func TestIncomingEmail(t *testing.T) {
 			ref, err := incoming_payload.GetReferenceFromPayload(db.DefaultContext, issuePayload)
 			assert.NoError(t, err)
 			assert.IsType(t, ref, new(issues_model.Issue))
-			assert.EqualValues(t, issue.ID, ref.(*issues_model.Issue).ID)
+			assert.Equal(t, issue.ID, ref.(*issues_model.Issue).ID)
 
 			ref, err = incoming_payload.GetReferenceFromPayload(db.DefaultContext, commentPayload)
 			assert.NoError(t, err)
 			assert.IsType(t, ref, new(issues_model.Comment))
-			assert.EqualValues(t, comment.ID, ref.(*issues_model.Comment).ID)
+			assert.Equal(t, comment.ID, ref.(*issues_model.Comment).ID)
 		})
 
 		t.Run("Token", func(t *testing.T) {
@@ -189,11 +189,15 @@ func TestIncomingEmail(t *testing.T) {
 				token, err := token_service.CreateToken(token_service.ReplyHandlerType, user, payload)
 				assert.NoError(t, err)
 
-				msg := gomail.NewMessage()
-				msg.SetHeader("To", strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1))
-				msg.SetHeader("From", user.Email)
-				msg.SetBody("text/plain", token)
-				err = gomail.Send(&smtpTestSender{}, msg)
+				msg := sender_service.NewMessageFrom(
+					strings.Replace(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmail.TokenPlaceholder, token, 1),
+					"",
+					user.Email,
+					"",
+					token,
+				)
+
+				err = sender_service.Send(&smtpTestSender{}, msg)
 				assert.NoError(t, err)
 
 				assert.Eventually(t, func() bool {

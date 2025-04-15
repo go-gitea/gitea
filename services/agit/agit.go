@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
@@ -56,10 +57,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 		baseBranchName := opts.RefFullNames[i].ForBranchName()
 		currentTopicBranch := ""
-		if !gitRepo.IsBranchExist(baseBranchName) {
+		if !gitrepo.IsBranchExist(ctx, repo, baseBranchName) {
 			// try match refs/for/<target-branch>/<topic-branch>
 			for p, v := range baseBranchName {
-				if v == '/' && gitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
+				if v == '/' && gitrepo.IsBranchExist(ctx, repo, baseBranchName[:p]) && p != len(baseBranchName)-1 {
 					currentTopicBranch = baseBranchName[p+1:]
 					baseBranchName = baseBranchName[:p]
 					break
@@ -137,8 +138,12 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				Type:         issues_model.PullRequestGitea,
 				Flow:         issues_model.PullRequestFlowAGit,
 			}
-
-			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
+			prOpts := &pull_service.NewPullRequestOptions{
+				Repo:        repo,
+				Issue:       prIssue,
+				PullRequest: pr,
+			}
+			if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 				return nil, err
 			}
 
@@ -149,7 +154,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				OriginalRef:       opts.RefFullNames[i],
 				OldOID:            objectFormat.EmptyObjectID().String(),
 				NewOID:            opts.NewCommitIDs[i],
-				IsCreatePR:        true,
+				IsCreatePR:        false, // AGit always creates a pull request so there is no point in prompting user to create one
 				URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
 				ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 				HeadBranch:        headBranch,
@@ -178,9 +183,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		if !forcePush.Value() {
-			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
+			output, _, err := git.NewCommand("rev-list", "--max-count=1").
 				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
-				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
+				RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
 			if err != nil {
 				return nil, fmt.Errorf("failed to detect force push: %w", err)
 			} else if len(output) > 0 {

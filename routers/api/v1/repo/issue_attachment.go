@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/attachment"
+	attachment_service "code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/convert"
@@ -104,7 +104,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 	}
 
 	if err := issue.LoadAttributes(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -171,7 +171,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	// Get uploaded file from request
 	file, header, err := ctx.Req.FormFile("attachment")
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FormFile", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	defer file.Close()
@@ -181,7 +181,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attachment, err := attachment.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
+	attachment, err := attachment_service.UploadAttachment(ctx, file, setting.Attachment.AllowedTypes, header.Size, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
@@ -189,9 +189,9 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "UploadAttachment", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -199,7 +199,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	issue.Attachments = append(issue.Attachments, attachment)
 
 	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, issue.Content, issue.ContentVersion); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -247,6 +247,8 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Attachment"
 	//   "404":
 	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
@@ -261,8 +263,13 @@ func EditIssueAttachment(ctx *context.APIContext) {
 		attachment.Name = form.Name
 	}
 
-	if err := repo_model.UpdateAttachment(ctx, attachment); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", err)
+	if err := attachment_service.UpdateAttachment(ctx, setting.Attachment.AllowedTypes, attachment); err != nil {
+		if upload.IsErrFileTypeForbidden(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+			return
+		}
+		ctx.APIErrorInternal(err)
+		return
 	}
 
 	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
@@ -312,7 +319,7 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	}
 
 	if err := repo_model.DeleteAttachment(ctx, attachment, true); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -322,7 +329,7 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 func getIssueFromContext(ctx *context.APIContext) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
+		ctx.NotFoundOrServerError(err)
 		return nil
 	}
 
@@ -347,7 +354,7 @@ func getIssueAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Attachment
 func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Issue) *repo_model.Attachment {
 	attachment, err := repo_model.GetAttachmentByID(ctx, ctx.PathParamInt64("attachment_id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetAttachmentByID", repo_model.IsErrAttachmentNotExist, err)
+		ctx.NotFoundOrServerError(err)
 		return nil
 	}
 	if !attachmentBelongsToRepoOrIssue(ctx, attachment, issue) {
@@ -359,7 +366,7 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *issues_model.Iss
 func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Issue) bool {
 	canEditIssue := ctx.IsSigned && (ctx.Doer.ID == issue.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin() || ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull))
 	if !canEditIssue {
-		ctx.Error(http.StatusForbidden, "", "user should have permission to write issue")
+		ctx.APIError(http.StatusForbidden, "user should have permission to write issue")
 		return false
 	}
 
@@ -369,16 +376,16 @@ func canUserWriteIssueAttachment(ctx *context.APIContext, issue *issues_model.Is
 func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, attachment *repo_model.Attachment, issue *issues_model.Issue) bool {
 	if attachment.RepoID != ctx.Repo.Repository.ID {
 		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", attachment.ID, ctx.Repo.Repository)
-		ctx.NotFound("no such attachment in repo")
+		ctx.APIErrorNotFound("no such attachment in repo")
 		return false
 	}
 	if attachment.IssueID == 0 {
 		log.Debug("Requested attachment[%d] is not in an issue.", attachment.ID)
-		ctx.NotFound("no such attachment in issue")
+		ctx.APIErrorNotFound("no such attachment in issue")
 		return false
 	} else if issue != nil && attachment.IssueID != issue.ID {
 		log.Debug("Requested attachment[%d] does not belong to issue[%d, #%d].", attachment.ID, issue.ID, issue.Index)
-		ctx.NotFound("no such attachment in issue")
+		ctx.APIErrorNotFound("no such attachment in issue")
 		return false
 	}
 	return true

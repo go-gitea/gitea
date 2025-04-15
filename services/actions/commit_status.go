@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 
@@ -51,10 +52,16 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 			return fmt.Errorf("GetPushEventPayload: %w", err)
 		}
 		if payload.HeadCommit == nil {
-			return fmt.Errorf("head commit is missing in event payload")
+			return errors.New("head commit is missing in event payload")
 		}
 		sha = payload.HeadCommit.ID
-	case webhook_module.HookEventPullRequest, webhook_module.HookEventPullRequestSync:
+	case // pull_request
+		webhook_module.HookEventPullRequest,
+		webhook_module.HookEventPullRequestSync,
+		webhook_module.HookEventPullRequestAssign,
+		webhook_module.HookEventPullRequestLabel,
+		webhook_module.HookEventPullRequestReviewRequest,
+		webhook_module.HookEventPullRequestMilestone:
 		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
 			event = "pull_request_target"
 		} else {
@@ -65,9 +72,9 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 			return fmt.Errorf("GetPullRequestEventPayload: %w", err)
 		}
 		if payload.PullRequest == nil {
-			return fmt.Errorf("pull request is missing in event payload")
+			return errors.New("pull request is missing in event payload")
 		} else if payload.PullRequest.Head == nil {
-			return fmt.Errorf("head of pull request is missing in event payload")
+			return errors.New("head of pull request is missing in event payload")
 		}
 		sha = payload.PullRequest.Head.Sha
 	case webhook_module.HookEventRelease:
@@ -128,18 +135,16 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 	if err != nil {
 		return fmt.Errorf("HashTypeInterfaceFromHashString: %w", err)
 	}
-	if err := commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID.String(), &git_model.CommitStatus{
+	status := git_model.CommitStatus{
 		SHA:         sha,
 		TargetURL:   fmt.Sprintf("%s/jobs/%d", run.Link(), index),
 		Description: description,
 		Context:     ctxname,
 		CreatorID:   creator.ID,
 		State:       state,
-	}); err != nil {
-		return fmt.Errorf("NewCommitStatus: %w", err)
 	}
 
-	return nil
+	return commitstatus_service.CreateCommitStatus(ctx, repo, creator, commitID.String(), &status)
 }
 
 func toCommitStatus(status actions_model.Status) api.CommitStatusState {

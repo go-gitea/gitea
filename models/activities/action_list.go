@@ -5,6 +5,7 @@ package activities
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -200,4 +201,90 @@ func (actions ActionList) LoadIssues(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// GetFeeds returns actions according to the provided options
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, int64, error) {
+	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
+		return nil, 0, errors.New("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
+	}
+
+	var err error
+	var cond builder.Cond
+	// if the actor is the requested user or is an administrator, we can skip the ActivityQueryCondition
+	if opts.Actor != nil && opts.RequestedUser != nil && (opts.Actor.IsAdmin || opts.Actor.ID == opts.RequestedUser.ID) {
+		cond = builder.Eq{
+			"user_id": opts.RequestedUser.ID,
+		}.And(
+			FeedDateCond(opts),
+		)
+
+		if !opts.IncludeDeleted {
+			cond = cond.And(builder.Eq{"is_deleted": false})
+		}
+
+		if !opts.IncludePrivate {
+			cond = cond.And(builder.Eq{"is_private": false})
+		}
+		if opts.OnlyPerformedBy {
+			cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		}
+	} else {
+		cond, err = ActivityQueryCondition(ctx, opts)
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+
+	actions := make([]*Action, 0, opts.PageSize)
+	var count int64
+	opts.SetDefaultValues()
+
+	if opts.Page < 10 { // TODO: why it's 10 but other values? It's an experience value.
+		sess := db.GetEngine(ctx).Where(cond)
+		sess = db.SetSessionPagination(sess, &opts)
+
+		if opts.DontCount {
+			err = sess.Desc("`action`.created_unix").Find(&actions)
+		} else {
+			count, err = sess.Desc("`action`.created_unix").FindAndCount(&actions)
+		}
+		if err != nil {
+			return nil, 0, fmt.Errorf("FindAndCount: %w", err)
+		}
+	} else {
+		// First, only query which IDs are necessary, and only then query all actions to speed up the overall query
+		sess := db.GetEngine(ctx).Where(cond).Select("`action`.id")
+		sess = db.SetSessionPagination(sess, &opts)
+
+		actionIDs := make([]int64, 0, opts.PageSize)
+		if err := sess.Table("action").Desc("`action`.created_unix").Find(&actionIDs); err != nil {
+			return nil, 0, fmt.Errorf("Find(actionsIDs): %w", err)
+		}
+
+		if !opts.DontCount {
+			count, err = db.GetEngine(ctx).Where(cond).
+				Table("action").
+				Cols("`action`.id").Count()
+			if err != nil {
+				return nil, 0, fmt.Errorf("Count: %w", err)
+			}
+		}
+
+		if err := db.GetEngine(ctx).In("`action`.id", actionIDs).Desc("`action`.created_unix").Find(&actions); err != nil {
+			return nil, 0, fmt.Errorf("Find: %w", err)
+		}
+	}
+
+	if err := ActionList(actions).LoadAttributes(ctx); err != nil {
+		return nil, 0, fmt.Errorf("LoadAttributes: %w", err)
+	}
+
+	return actions, count, nil
+}
+
+func CountUserFeeds(ctx context.Context, userID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("user_id = ?", userID).
+		And("is_deleted = ?", false).
+		Count(&Action{})
 }

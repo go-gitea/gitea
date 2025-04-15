@@ -5,7 +5,6 @@ package markdown
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/markup"
@@ -40,7 +39,7 @@ func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Nod
 					r.Writer.RawWrite(w, value)
 				}
 			case *ColorPreview:
-				_, _ = w.WriteString(fmt.Sprintf(`<span class="color-preview" style="background-color: %v"></span>`, string(v.Color)))
+				_ = r.renderInternal.FormatWithSafeAttrs(w, `<span class="color-preview" style="background-color: %s"></span>`, string(v.Color))
 			}
 		}
 		return ast.WalkSkipChildren, nil

@@ -8,6 +8,16 @@ declare module '*.css' {
   export default value;
 }
 
+declare module '*.vue' {
+  import type {DefineComponent} from 'vue';
+  const component: DefineComponent<unknown, unknown, any>;
+  export default component;
+  // List of named exports from vue components, used to make `tsc` output clean.
+  // To actually lint .vue files, `vue-tsc` is used because `tsc` can not parse them.
+  export function initDashboardRepoList(): void;
+  export function initRepositoryActionView(): void;
+}
+
 declare let __webpack_public_path__: string;
 
 declare module 'htmx.org/dist/htmx.esm.js' {
@@ -16,8 +26,8 @@ declare module 'htmx.org/dist/htmx.esm.js' {
 }
 
 declare module 'uint8-to-base64' {
-  export function encode(arrayBuffer: ArrayBuffer): string;
-  export function decode(base64str: string): ArrayBuffer;
+  export function encode(arrayBuffer: Uint8Array): string;
+  export function decode(base64str: string): Uint8Array;
 }
 
 declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
@@ -26,13 +36,15 @@ declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
 }
 
 interface JQuery {
-  api: any, // fomantic
   areYouSure: any, // jquery.are-you-sure
+  fomanticExt: any; // fomantic extension
+  api: any, // fomantic
   dimmer: any, // fomantic
   dropdown: any; // fomantic
   modal: any; // fomantic
   tab: any; // fomantic
   transition: any, // fomantic
+  search: any, // fomantic
 }
 
 interface JQueryStatic {
@@ -46,16 +58,24 @@ interface Element {
 type Writable<T> = { -readonly [K in keyof T]: T[K] };
 
 interface Window {
+  __webpack_public_path__: string;
   config: import('./web_src/js/types.ts').Config;
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),
   htmx: Omit<typeof import('htmx.org/dist/htmx.esm.js').default, 'config'> & {
     config?: Writable<typeof import('htmx.org').default.config>,
+    process?: (elt: Element | string) => void,
   },
-  ui?: any,
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
-  __webpack_public_path__: string;
+  codeEditors: any[], // export editor for customization
+
+  // various captcha plugins
+  grecaptcha: any,
+  turnstile: any,
+  hcaptcha: any,
+
+  // do not add more properties here unless it is a must
 }

@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"net"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -58,6 +59,8 @@ var (
 	LocalURL string
 	// AssetVersion holds a opaque value that is used for cache-busting assets
 	AssetVersion string
+
+	appTempPathInternal string // the temporary path for the app, it is only an internal variable, do not use it, always use AppDataTempDir
 
 	Protocol                   Scheme
 	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
@@ -169,20 +172,24 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 
+	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
+	// if these are removed, the warning will not be shown
+	if sec.HasKey("ENABLE_ACME") {
+		EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
+	} else {
+		deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
+		EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	}
+
 	Protocol = HTTP
 	protocolCfg := sec.Key("PROTOCOL").String()
+	if protocolCfg != "https" && EnableAcme {
+		log.Fatal("ACME could only be used with HTTPS protocol")
+	}
+
 	switch protocolCfg {
 	case "https":
 		Protocol = HTTPS
-
-		// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
-		// if these are removed, the warning will not be shown
-		if sec.HasKey("ENABLE_ACME") {
-			EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
-		} else {
-			deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
-			EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
-		}
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
@@ -209,6 +216,9 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			} else {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
 				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
+			}
+			if AcmeEmail == "" {
+				log.Fatal("ACME Email is not set (ACME_EMAIL).")
 			}
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()
@@ -322,6 +332,19 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
 	if !filepath.IsAbs(AppDataPath) {
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
+	}
+	if IsInTesting && HasInstallLock(rootCfg) {
+		// FIXME: in testing, the "app data" directory is not correctly initialized before loading settings
+		if _, err := os.Stat(AppDataPath); err != nil {
+			_ = os.MkdirAll(AppDataPath, os.ModePerm)
+		}
+	}
+
+	appTempPathInternal = sec.Key("APP_TEMP_PATH").String()
+	if appTempPathInternal != "" {
+		if _, err := os.Stat(appTempPathInternal); err != nil {
+			log.Fatal("APP_TEMP_PATH %q is not accessible: %v", appTempPathInternal, err)
+		}
 	}
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()

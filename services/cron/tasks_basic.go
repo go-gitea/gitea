@@ -54,7 +54,7 @@ func registerRepoHealthCheck() {
 			RunAtStart: false,
 			Schedule:   "@midnight",
 		},
-		Timeout: 60 * time.Second,
+		Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
 		Args:    []string{},
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)

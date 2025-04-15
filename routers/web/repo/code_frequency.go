@@ -7,13 +7,13 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	contributors_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplCodeFrequency base.TplName = "repo/activity"
+	tplCodeFrequency templates.TplName = "repo/activity"
 )
 
 // CodeFrequency renders the page to show repository code frequency
@@ -29,12 +29,12 @@ func CodeFrequency(ctx *context.Context) {
 
 // CodeFrequencyData returns JSON of code frequency data
 func CodeFrequencyData(ctx *context.Context) {
-	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.CommitID); err != nil {
+	if contributorStats, err := contributors_service.GetContributorStats(ctx, ctx.Cache, ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch); err != nil {
 		if errors.Is(err, contributors_service.ErrAwaitGeneration) {
 			ctx.Status(http.StatusAccepted)
 			return
 		}
-		ctx.ServerError("GetCodeFrequencyData", err)
+		ctx.ServerError("GetContributorStats", err)
 	} else {
 		ctx.JSON(http.StatusOK, contributorStats["total"].Weeks)
 	}

@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"context"
 	"testing"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -177,7 +176,7 @@ func TestFeishuJSONPayload(t *testing.T) {
 		PayloadVersion: 2,
 	}
 
-	req, reqBody, err := newFeishuRequest(context.Background(), hook, task)
+	req, reqBody, err := newFeishuRequest(t.Context(), hook, task)
 	require.NotNil(t, req)
 	require.NotNil(t, reqBody)
 	require.NoError(t, err)

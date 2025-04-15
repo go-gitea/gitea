@@ -1,9 +1,12 @@
-import {hideElem, showElem} from '../utils/dom.ts';
+import {hideElem, queryElems, showElem} from '../utils/dom.ts';
+import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 
 export function initUserSettings() {
-  if (!document.querySelectorAll('.user.settings.profile').length) return;
+  if (!document.querySelector('.user.settings.profile')) return;
 
-  const usernameInput = document.querySelector('#username');
+  queryElems(document, '.avatar-file-with-cropper', initAvatarUploaderWithCropper);
+
+  const usernameInput = document.querySelector<HTMLInputElement>('#username');
   if (!usernameInput) return;
   usernameInput.addEventListener('input', function () {
     const prompt = document.querySelector('#name-change-prompt');

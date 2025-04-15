@@ -10,16 +10,16 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/user"
 )
 
 const (
-	tplEmails base.TplName = "admin/emails/list"
+	tplEmails templates.TplName = "admin/emails/list"
 )
 
 // Emails show all emails
@@ -94,7 +94,7 @@ func Emails(ctx *context.Context) {
 	ctx.Data["Emails"] = emails
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplEmails)
@@ -116,7 +116,7 @@ func ActivateEmail(ctx *context.Context) {
 	activate, oka := truefalse[ctx.FormString("activate")]
 
 	if uid == 0 || len(email) == 0 || !okp || !oka {
-		ctx.Error(http.StatusBadRequest)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
@@ -154,7 +154,7 @@ func ActivateEmail(ctx *context.Context) {
 
 // DeleteEmail serves a POST request for delete a user's email
 func DeleteEmail(ctx *context.Context) {
-	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("Uid"))
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
 	if err != nil || u == nil {
 		ctx.ServerError("GetUserByID", err)
 		return

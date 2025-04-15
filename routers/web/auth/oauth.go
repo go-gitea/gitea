@@ -15,11 +15,11 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -34,7 +34,7 @@ import (
 
 // SignInOAuth handles the OAuth2 login buttons
 func SignInOAuth(ctx *context.Context) {
-	provider := ctx.PathParam(":provider")
+	provider := ctx.PathParam("provider")
 
 	authSource, err := auth.GetActiveOAuth2SourceByName(ctx, provider)
 	if err != nil {
@@ -73,7 +73,7 @@ func SignInOAuth(ctx *context.Context) {
 
 // SignInOAuthCallback handles the callback from the given provider
 func SignInOAuthCallback(ctx *context.Context) {
-	provider := ctx.PathParam(":provider")
+	provider := ctx.PathParam("provider")
 
 	if ctx.Req.FormValue("error") != "" {
 		var errorKeyValues []string
@@ -115,13 +115,15 @@ func SignInOAuthCallback(ctx *context.Context) {
 			case "temporarily_unavailable":
 				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.temporarily_unavailable"))
 			default:
-				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error"))
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.general", callbackErr.Description))
 			}
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}
 		if err, ok := err.(*go_oauth2.RetrieveError); ok {
 			ctx.Flash.Error("OAuth2 RetrieveError: "+err.Error(), true)
+			ctx.Redirect(setting.AppSubURL + "/user/login")
+			return
 		}
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -153,9 +155,10 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 			if uname == "" {
-				if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname {
+				switch setting.OAuth2Client.Username {
+				case setting.OAuth2UsernameNickname:
 					missingFields = append(missingFields, "nickname")
-				} else if setting.OAuth2Client.Username == setting.OAuth2UsernamePreferredUsername {
+				case setting.OAuth2UsernamePreferredUsername:
 					missingFields = append(missingFields, "preferred_username")
 				} // else: "UserID" and "Email" have been handled above separately
 			}
@@ -192,7 +195,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			u.IsAdmin = isAdmin.ValueOrDefault(false)
 			u.IsRestricted = isRestricted.ValueOrDefault(false)
 
-			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
+			if !createAndHandleCreatedUser(ctx, templates.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
 				return
 			}
@@ -429,8 +432,10 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 	gothUser, err := oauth2Source.Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
-			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
+			log.Error("oauth2Source.Callback failed: %v", err)
+		} else {
+			err = errCallback{Code: "internal", Description: err.Error()}
 		}
 		return nil, goth.User{}, err
 	}

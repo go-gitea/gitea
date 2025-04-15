@@ -49,8 +49,12 @@ export type DayData = {
   commits: number,
 }
 
-export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayData[]): DayData[] {
-  const result = {};
+export type DayDataObject = {
+  [timestamp: string]: DayData,
+}
+
+export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayDataObject): DayData[] {
+  const result: Record<string, any> = {};
 
   for (const startDay of startDays) {
     result[startDay] = data[startDay] || {'week': startDay, 'additions': 0, 'deletions': 0, 'commits': 0};

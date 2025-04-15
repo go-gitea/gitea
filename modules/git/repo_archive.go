@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -17,37 +16,35 @@ import (
 type ArchiveType int
 
 const (
-	// ZIP zip archive type
-	ZIP ArchiveType = iota + 1
-	// TARGZ tar gz archive type
-	TARGZ
-	// BUNDLE bundle archive type
-	BUNDLE
+	ArchiveUnknown ArchiveType = iota
+	ArchiveZip                 // 1
+	ArchiveTarGz               // 2
+	ArchiveBundle              // 3
 )
 
-// String converts an ArchiveType to string
+// String converts an ArchiveType to string: the extension of the archive file without prefix dot
 func (a ArchiveType) String() string {
 	switch a {
-	case ZIP:
+	case ArchiveZip:
 		return "zip"
-	case TARGZ:
+	case ArchiveTarGz:
 		return "tar.gz"
-	case BUNDLE:
+	case ArchiveBundle:
 		return "bundle"
 	}
 	return "unknown"
 }
 
-func ToArchiveType(s string) ArchiveType {
-	switch s {
-	case "zip":
-		return ZIP
-	case "tar.gz":
-		return TARGZ
-	case "bundle":
-		return BUNDLE
+func SplitArchiveNameType(s string) (string, ArchiveType) {
+	switch {
+	case strings.HasSuffix(s, ".zip"):
+		return strings.TrimSuffix(s, ".zip"), ArchiveZip
+	case strings.HasSuffix(s, ".tar.gz"):
+		return strings.TrimSuffix(s, ".tar.gz"), ArchiveTarGz
+	case strings.HasSuffix(s, ".bundle"):
+		return strings.TrimSuffix(s, ".bundle"), ArchiveBundle
 	}
-	return 0
+	return s, ArchiveUnknown
 }
 
 // CreateArchive create archive content to the target path
@@ -56,22 +53,18 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 		return fmt.Errorf("unknown format: %v", format)
 	}
 
-	cmd := NewCommand(ctx, "archive")
+	cmd := NewCommand("archive")
 	if usePrefix {
 		cmd.AddOptionFormat("--prefix=%s", filepath.Base(strings.TrimSuffix(repo.Path, ".git"))+"/")
 	}
 	cmd.AddOptionFormat("--format=%s", format.String())
 	cmd.AddDynamicArguments(commitID)
 
-	// Avoid LFS hooks getting installed because of /etc/gitconfig, which can break pull requests.
-	env := append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1")
-
 	var stderr strings.Builder
-	err := cmd.Run(&RunOpts{
+	err := cmd.Run(ctx, &RunOpts{
 		Dir:    repo.Path,
 		Stdout: target,
 		Stderr: &stderr,
-		Env:    env,
 	})
 	if err != nil {
 		return ConcatenateError(err, stderr.String())

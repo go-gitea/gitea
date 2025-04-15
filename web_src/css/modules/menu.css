@@ -633,18 +633,6 @@
   }
 }
 
-.ui.floated.menu {
-  float: left;
-  margin: 0 0.5rem 0 0;
-}
-.ui.floated.menu .item:last-child::before {
-  display: none;
-}
-.ui.right.floated.menu {
-  float: right;
-  margin: 0 0 0 0.5rem;
-}
-
 .ui.borderless.menu .item::before,
 .ui.borderless.menu .item .menu .item::before,
 .ui.menu .borderless.item::before {

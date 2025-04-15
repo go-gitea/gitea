@@ -3,3 +3,5 @@ self-hosted-runner:
     - actuated-4cpu-8gb
     - actuated-4cpu-16gb
     - nscloud
+    - namespace-profile-gitea-release-docker
+    - namespace-profile-gitea-release-binary
