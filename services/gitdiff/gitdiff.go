@@ -1339,7 +1339,7 @@ func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID str
 // Additionally, the database is updated asynchronously if files have changed since the last review
 func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions) (*pull_model.ReviewState, error) {
 	review, err := pull_model.GetNewestReviewState(ctx, userID, pull.ID)
-	if err != nil {
+	if err != nil || review == nil || review.UpdatedFiles == nil {
 		return nil, err
 	}
 	if len(review.UpdatedFiles) == 0 {
