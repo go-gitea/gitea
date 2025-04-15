@@ -421,3 +421,15 @@ It needs some tricks to tweak the left/right borders with active state */
   padding-top: 0.58928571em;
   padding-bottom: 0.58928571em;
 }
+
+.gitea-buttons {
+  align-items: center;
+  display: flex;
+  flex-flow: row wrap;
+  word-break: keep-all;
+  gap: 0.5em;
+}
+
+.gitea-buttons .ui.button {
+  margin: 0 !important;
+}

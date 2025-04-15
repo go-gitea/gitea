@@ -28,14 +28,6 @@
   flex-wrap: nowrap;
 }
 
-.repo-buttons {
-  align-items: center;
-  display: flex;
-  flex-flow: row wrap;
-  word-break: keep-all;
-  gap: 0.25em;
-}
-
 .repo-buttons button[disabled] ~ .label {
   opacity: var(--opacity-disabled);
   color: var(--color-text-dark);

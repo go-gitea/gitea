@@ -38,7 +38,7 @@
 				</div>
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
-				<div class="repo-buttons">
+				<div class="repo-buttons gitea-buttons">
 					{{if $.RepoTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
