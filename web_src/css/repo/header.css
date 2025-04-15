@@ -29,11 +29,13 @@
 }
 
 .repo-buttons {
-  align-items: center;
-  display: flex;
   flex-flow: row wrap;
   word-break: keep-all;
-  gap: 0.25em;
+}
+
+.repo-buttons button {
+  /* ensure that text-btn and svg-text-btn have consistent height. */
+  line-height: 16px !important;
 }
 
 .repo-buttons button[disabled] ~ .label {
