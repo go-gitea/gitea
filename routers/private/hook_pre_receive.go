@@ -4,9 +4,12 @@
 package private
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
@@ -22,6 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	gitea_context "code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
+	"github.com/gitleaks/go-gitdiff/gitdiff"
+	"github.com/zricethezav/gitleaks/v8/cmd/scm"
+	gitleaks "github.com/zricethezav/gitleaks/v8/detect"
 )
 
 type preReceiveContext struct {
@@ -104,19 +110,18 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.HookOptions)
-
 	ourCtx := &preReceiveContext{
 		PrivateContext: ctx,
 		env:            generateGitEnv(opts), // Generate git environment for checking commits
 		opts:           opts,
 	}
-
 	// Iterate across the provided old commit IDs
 	for i := range opts.OldCommitIDs {
 		oldCommitID := opts.OldCommitIDs[i]
 		newCommitID := opts.NewCommitIDs[i]
 		refFullName := opts.RefFullNames[i]
 
+		preReceiveSecrets(ourCtx, oldCommitID, newCommitID, refFullName)
 		switch {
 		case refFullName.IsBranch():
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
@@ -131,7 +136,6 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 	}
-
 	ctx.PlainText(http.StatusOK, "ok")
 }
 
@@ -535,4 +539,80 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 
 	ctx.loadedPusher = true
 	return true
+}
+
+// checks commits for secrets
+func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, refFullName git.RefName) {
+	detector, err := gitleaks.NewDetectorDefaultConfig()
+	if err != nil {
+		ctx.Status(http.StatusTeapot)
+		return
+	}
+
+	repo := ctx.Repo.Repository
+	out, _, err := git.NewCommand("diff", "-U0").AddDynamicArguments(oldCommitID, newCommitID).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
+	// r, w, err := os.Pipe()
+	if err != nil {
+		ctx.Status(http.StatusTeapot)
+		return
+	}
+	log.Info("done with diff")
+	giteaCmd, err := newPreRecieveDiff(bytes.NewReader(out))
+	log.Info("crerated cmd!")
+	if err != nil {
+		log.Info("look! a wild error! %v", err)
+		ctx.Status(http.StatusTeapot)
+		return
+	}
+	log.Info("running the detector!")
+	findings, err := detector.DetectGit(giteaCmd, gitleaks.NewRemoteInfo(scm.GitHubPlatform, repo.Website))
+	log.Info("done!")
+	if len(findings) != 0 {
+		msg := strings.Builder{}
+		msg.WriteString("This repository has secret detection enabled! Following secrets were detected:\n\n")
+
+		for _, finding := range findings {
+			msg.WriteString(fmt.Sprintf("Commit %s contains a secret in %v:%v\n", newCommitID, finding.File, finding.StartLine))
+			msg.WriteString(fmt.Sprintf("RuleID: %v", finding.RuleID))
+			msg.WriteString("\n---------------\n")
+		}
+
+		ctx.JSON(http.StatusForbidden, private.Response{UserMsg: msg.String()})
+
+	}
+	return
+
+}
+
+type giteacmd struct {
+	diffCh <-chan *gitdiff.File
+	errCh  <-chan error
+}
+
+func newPreRecieveDiff(r io.Reader) (*giteacmd, error) {
+	diffCh, err := gitdiff.Parse(r)
+	if err != nil {
+		return nil, err
+	}
+	return &giteacmd{
+		diffCh: diffCh,
+	}, nil
+
+}
+
+// DiffFilesCh implements sources.Git.
+func (g *giteacmd) DiffFilesCh() <-chan *gitdiff.File {
+	log.Info("asking for channel for files")
+	return g.diffCh
+}
+
+// ErrCh implements sources.Git.
+func (g *giteacmd) ErrCh() <-chan error {
+	return nil
+}
+
+// Wait implements sources.Git.
+func (g *giteacmd) Wait() (err error) {
+	log.Info("asking for wait")
+	return nil
 }
