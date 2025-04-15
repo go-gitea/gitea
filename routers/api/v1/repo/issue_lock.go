@@ -60,9 +60,9 @@ func LockIssue(ctx *context.APIContext) {
 	caser := cases.Title(language.English)
 	reason := web.GetForm(ctx).(*api.LockIssueOption).Reason
 	reason = strings.ToLower(reason)
-	reason_parts := strings.Split(reason, " ")
-	reason_parts[0] = caser.String(reason_parts[0])
-	reason = strings.Join(reason_parts, " ")
+	reasonParts := strings.Split(reason, " ")
+	reasonParts[0] = caser.String(reasonParts[0])
+	reason = strings.Join(reasonParts, " ")
 
 	if !issues_model.IsValidReason(reason) {
 		ctx.APIError(http.StatusBadRequest, errors.New("reason not valid"))
