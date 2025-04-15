@@ -7,12 +7,14 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-	"unicode"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // LockIssue lock an issue
@@ -55,15 +57,12 @@ func LockIssue(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	caser := cases.Title(language.English)
 	reason := web.GetForm(ctx).(*api.LockIssueOption).Reason
 	reason = strings.ToLower(reason)
-
-	if reason != "" {
-		// make the first character uppercase
-		runes := []rune(reason)
-		runes[0] = unicode.ToUpper(runes[0])
-		reason = string(runes)
-	}
+	reason_parts := strings.Split(reason, " ")
+	reason_parts[0] = caser.String(reason_parts[0])
+	reason = strings.Join(reason_parts, " ")
 
 	if !issues_model.IsValidReason(reason) {
 		ctx.APIError(http.StatusBadRequest, errors.New("reason not valid"))
