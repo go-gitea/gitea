@@ -354,11 +354,11 @@ export default defineComponent({
       <div>
         <!-- Contribution type -->
         <div class="ui dropdown jump" id="repo-contributors">
-          <div class="ui basic compact button">
+          <div class="ui basic compact button tw-mr-0">
             <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
             <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
-          <div class="menu">
+          <div class="right menu">
             <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
               {{ locale.contributionType.commits }}
             </div>
