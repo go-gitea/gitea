@@ -38,7 +38,7 @@
 				</div>
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
-				<div class="flex-text-block repo-buttons">
+				<div class="flex-text-block tw-flex-wrap">
 					{{if $.RepoTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
