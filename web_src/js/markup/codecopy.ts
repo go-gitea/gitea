@@ -15,6 +15,7 @@ export function initMarkupCodeCopy(elMarkup: HTMLElement): void {
     const btn = makeCodeCopyButton();
     // remove final trailing newline introduced during HTML rendering
     btn.setAttribute('data-clipboard-text', el.textContent.replace(/\r?\n$/, ''));
-    el.after(btn);
+    const btnContainer = el.closest('.code-block-container') ?? el.closest('.code-block');
+    btnContainer.append(btn);
   });
 }

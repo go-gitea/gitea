@@ -86,7 +86,7 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 			preClasses += " is-loading"
 		}
 
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-wrapper"><pre class="%s">`, preClasses)
+		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre class="%s">`, preClasses)
 		if err != nil {
 			return
 		}
