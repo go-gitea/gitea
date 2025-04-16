@@ -460,7 +460,7 @@
 }
 
 .markup .code-block-container.code-overflow-scroll pre > code {
-  white-space: pre-wrap;
+  white-space: pre;
   overflow-wrap: normal;
 }
 
