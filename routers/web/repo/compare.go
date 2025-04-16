@@ -641,7 +641,7 @@ func PrepareCompareDiff(
 		}
 
 		renderedIconPool := fileicon.NewRenderedIconPool()
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(renderedIconPool, diffTree, nil)
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
 		ctx.PageData["FolderIcon"] = templates.FolderIconHTMLByOpenStatus(false)
 		ctx.PageData["FolderOpenIcon"] = templates.FolderIconHTMLByOpenStatus(true)
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()

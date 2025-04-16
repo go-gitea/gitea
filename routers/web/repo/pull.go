@@ -760,12 +760,9 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	// have to load only the diff and not get the viewed information
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
-	shouldGetUserSpecificDiff := false
-	if !ctx.IsSigned || willShowSpecifiedCommit || willShowSpecifiedCommitRange {
-		// do nothing
-	} else {
-		shouldGetUserSpecificDiff = true
-		err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions, files...)
+	var reviewState *pull_model.ReviewState
+	if ctx.IsSigned && !willShowSpecifiedCommit && !willShowSpecifiedCommitRange {
+		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
 			return
@@ -824,19 +821,13 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 			ctx.ServerError("GetDiffTree", err)
 			return
 		}
-
-		filesViewedState := make(map[string]pull_model.ViewedState)
-		if shouldGetUserSpecificDiff {
-			// This sort of sucks because we already fetch this when getting the diff
-			review, err := pull_model.GetNewestReviewState(ctx, ctx.Doer.ID, issue.ID)
-			if err == nil && review != nil && review.UpdatedFiles != nil {
-				// If there wasn't an error and we have a review with updated files, use that
-				filesViewedState = review.UpdatedFiles
-			}
+		var filesViewedState map[string]pull_model.ViewedState
+		if reviewState != nil {
+			filesViewedState = reviewState.UpdatedFiles
 		}
 
 		renderedIconPool := fileicon.NewRenderedIconPool()
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(renderedIconPool, diffTree, filesViewedState)
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, filesViewedState)
 		ctx.PageData["FolderIcon"] = templates.FolderIconHTMLByOpenStatus(false)
 		ctx.PageData["FolderOpenIcon"] = templates.FolderIconHTMLByOpenStatus(true)
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()

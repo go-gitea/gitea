@@ -160,7 +160,6 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		defer dataRc.Close()
 
 		ctx.Data["FileSize"] = blob.Size()
-		ctx.Data["FileName"] = blob.Name()
 
 		buf := make([]byte, 1024)
 		n, _ := util.ReadAtMost(dataRc, buf)

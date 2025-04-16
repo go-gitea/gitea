@@ -216,13 +216,12 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	fileName := ctx.Repo.TreePath
-	if len(fileName) == 0 {
+	if ctx.Repo.TreePath == "" {
 		Commits(ctx)
 		return
 	}
 
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefFullName.ShortName(), fileName) // FIXME: legacy code used ShortName
+	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return
@@ -239,7 +238,7 @@ func FileHistory(ctx *context.Context) {
 	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
-			File:     fileName,
+			File:     ctx.Repo.TreePath,
 			Page:     page,
 		})
 	if err != nil {
@@ -254,7 +253,7 @@ func FileHistory(ctx *context.Context) {
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["FileName"] = fileName
+	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 	ctx.Data["CommitCount"] = commitsCount
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
@@ -372,7 +371,7 @@ func Diff(ctx *context.Context) {
 		}
 
 		renderedIconPool := fileicon.NewRenderedIconPool()
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(renderedIconPool, diffTree, nil)
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
 		ctx.PageData["FolderIcon"] = templates.FolderIconHTMLByOpenStatus(false)
 		ctx.PageData["FolderOpenIcon"] = templates.FolderIconHTMLByOpenStatus(true)
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
