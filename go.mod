@@ -348,4 +348,4 @@ exclude github.com/goccy/go-json v0.4.11
 
 exclude github.com/satori/go.uuid v1.2.0
 
-replace github.com/zricethezav/gitleaks/v8 => github.com/TheFox0x7/gitleaks/v8 v8.0.0-20250416161107-ce27b3ebd696
+replace github.com/zricethezav/gitleaks/v8 => github.com/TheFox0x7/gitleaks/v8 v8.24.4-patch-gitea
