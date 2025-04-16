@@ -143,7 +143,6 @@
 .ui.small.buttons .button,
 .ui.ui.ui.ui.small.button {
   font-size: 13px;
-  padding: 0.42em /* around 8px */ 1.07em /* around 15px */;
   min-height: 34px;
 }
 .ui.ui.ui.ui.small.button.compact {
