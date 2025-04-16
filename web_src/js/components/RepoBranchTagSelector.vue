@@ -217,13 +217,13 @@ export default defineComponent({
 </script>
 <template>
   <div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
-    <div tabindex="0" class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible">
+    <div tabindex="0" class="ui compact button branch-dropdown-button" @click="menuVisible = !menuVisible">
       <span class="flex-text-block gt-ellipsis">
         <template v-if="dropdownFixedText">{{ dropdownFixedText }}</template>
         <template v-else>
           <svg-icon v-if="currentRefType === 'tag'" name="octicon-tag"/>
           <svg-icon v-else name="octicon-git-branch"/>
-          <strong ref="dropdownRefName" class="tw-ml-2 tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
+          <strong ref="dropdownRefName" class="tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class="dropdown icon"/>

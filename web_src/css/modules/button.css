@@ -1,20 +1,15 @@
-/* based on Fomantic UI checkbox module, with just the parts extracted that we use. If you find any
-   unused rules here after refactoring, please remove them. */
-
 .ui.button {
   cursor: pointer;
-  display: inline-block;
-  min-height: 1em;
+  display: inline-flex;
   outline: none;
-  vertical-align: baseline;
   font-family: var(--fonts-regular);
   margin: 0 0.25em 0 0;
-  padding: 0.78571429em 1.5em;
   font-weight: var(--font-weight-normal);
+  font-size: 1rem;
   text-align: center;
   text-decoration: none;
   line-height: 1;
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   justify-content: center;
@@ -58,12 +53,13 @@
   pointer-events: none !important;
 }
 
+/* there is no "ui labeled icon button" support" because it is not used */
 .ui.labeled.button:not(.icon) {
-  display: inline-flex;
   flex-direction: row;
   background: none;
-  padding: 0 !important;
+  padding: 0;
   border: none;
+  min-height: unset;
 }
 .ui.labeled.button > .button {
   margin: 0;
@@ -102,47 +98,60 @@
   margin: 0 -0.21428571em 0 0.42857143em;
 }
 
+/* reference sizes (not exactly at the moment): normal: padding-x=21, height=38 ; compact: padding-x=15, height=32 */
+.ui.button { /* stylelint-disable-line no-duplicate-selectors */
+  min-height: 38px;
+  padding: 0.57em /* around 8px */ 1.43em /* around 20px */;
+}
 .ui.compact.buttons .button,
 .ui.compact.button {
-  padding: 0.58928571em 1.125em;
+  padding: 0.42em /* around 8px */ 1.07em /* around 15px */;
+  min-height: 32px;
 }
 .ui.compact.icon.buttons .button,
 .ui.compact.icon.button {
-  padding: 0.58928571em;
-}
-.ui.compact.labeled.icon.button {
-  padding: 0.58928571em 3.69642857em;
-}
-.ui.compact.labeled.icon.button > .icon {
-  padding: 0.58928571em 0;
+  padding: 0.57em /* around 8px */;
 }
 
-.ui.buttons .button,
-.ui.button {
-  font-size: 1rem;
-}
+/* reference size: mini: padding-x=16, height=30 ; compact: padding-x=12, height=26 */
 .ui.mini.buttons .dropdown,
 .ui.mini.buttons .dropdown .menu > .item,
 .ui.mini.buttons .button,
 .ui.ui.ui.ui.mini.button {
-  font-size: 0.78571429rem;
+  font-size: 11px;
+  min-height: 30px;
 }
+.ui.ui.ui.ui.mini.button.compact {
+  min-height: 26px;
+}
+
+/* reference size: tiny: padding-x=18, height=32 ; compact: padding-x=13, height=28 */
 .ui.tiny.buttons .dropdown,
 .ui.tiny.buttons .dropdown .menu > .item,
 .ui.tiny.buttons .button,
 .ui.ui.ui.ui.tiny.button {
-  font-size: 0.85714286rem;
+  font-size: 12px;
+  min-height: 32px;
 }
+.ui.ui.ui.ui.tiny.button.compact {
+  min-height: 28px;
+}
+
+/* reference size: small: padding-x=19, height=34 ; compact: padding-x=14, height=30 */
 .ui.small.buttons .dropdown,
 .ui.small.buttons .dropdown .menu > .item,
 .ui.small.buttons .button,
 .ui.ui.ui.ui.small.button {
-  font-size: 0.92857143rem;
+  font-size: 13px;
+  min-height: 34px;
+}
+.ui.ui.ui.ui.small.button.compact {
+  min-height: 30px;
 }
 
 .ui.icon.buttons .button,
 .ui.icon.button:not(.compact) {
-  padding: 0.78571429em;
+  padding: 0.57em;
 }
 .ui.icon.buttons .button > .icon,
 .ui.icon.button > .icon {
@@ -152,12 +161,12 @@
 
 .ui.basic.buttons .button,
 .ui.basic.button {
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   background: none;
 }
 .ui.basic.buttons {
   border: 1px solid var(--color-secondary);
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
 }
 .ui.basic.buttons .button {
   border-radius: 0;
@@ -186,29 +195,6 @@
 .ui.basic.active.button:hover {
   color: var(--color-text);
   background: var(--color-active);
-}
-
-.ui.labeled.icon.button {
-  position: relative;
-  padding-left: 4.07142857em !important;
-  padding-right: 1.5em !important;
-}
-
-.ui.labeled.icon.button > .icon {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  line-height: 1;
-  border-radius: 0;
-  border-top-left-radius: inherit;
-  border-bottom-left-radius: inherit;
-  text-align: center;
-  animation: none;
-  padding: 0.78571429em 0;
-  margin: 0;
-  width: 2.57142857em;
-  background: var(--color-hover);
 }
 
 .ui.button.toggle.active {
@@ -379,12 +365,12 @@ It needs some tricks to tweak the left/right borders with active state */
 .ui.buttons .button:first-child {
   border-left: none;
   margin-left: 0;
-  border-top-left-radius: 0.28571429rem;
-  border-bottom-left-radius: 0.28571429rem;
+  border-top-left-radius: var(--border-radius);
+  border-bottom-left-radius: var(--border-radius);
 }
 .ui.buttons .button:last-child {
-  border-top-right-radius: 0.28571429rem;
-  border-bottom-right-radius: 0.28571429rem;
+  border-top-right-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
 }
 
 .ui.buttons .button:hover {
@@ -413,11 +399,4 @@ It needs some tricks to tweak the left/right borders with active state */
 
 .ui.buttons .button.active + .button {
   border-left: none;
-}
-
-/* apply the vertical padding of .compact to non-compact buttons when they contain a svg as they
-   would otherwise appear too large. Seen on "RSS Feed" button on repo releases tab. */
-.ui.small.button:not(.compact):has(.svg) {
-  padding-top: 0.58928571em;
-  padding-bottom: 0.58928571em;
 }
