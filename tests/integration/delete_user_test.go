@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -34,7 +33,7 @@ func TestUserDeleteAccount(t *testing.T) {
 
 	session := loginUser(t, "user8")
 	csrf := GetUserCSRFToken(t, session)
-	urlStr := fmt.Sprintf("/user/settings/account/delete?password=%s", userPassword)
+	urlStr := "/user/settings/account/delete?password=" + userPassword
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"_csrf": csrf,
 	})
@@ -49,7 +48,7 @@ func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	csrf := GetUserCSRFToken(t, session)
-	urlStr := fmt.Sprintf("/user/settings/account/delete?password=%s", userPassword)
+	urlStr := "/user/settings/account/delete?password=" + userPassword
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"_csrf": csrf,
 	})

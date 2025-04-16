@@ -5,7 +5,7 @@ import {svg} from '../svg.ts';
 // The fold arrow is the icon displayed on the upper left of the file box, especially intended for components having the 'fold-file' class.
 // The file content box is the box that should be hidden or shown, especially intended for components having the 'file-content' class.
 //
-export function setFileFolding(fileContentBox: HTMLElement, foldArrow: HTMLElement, newFold: boolean) {
+export function setFileFolding(fileContentBox: Element, foldArrow: HTMLElement, newFold: boolean) {
   foldArrow.innerHTML = svg(`octicon-chevron-${newFold ? 'right' : 'down'}`, 18);
   fileContentBox.setAttribute('data-folded', String(newFold));
   if (newFold && fileContentBox.getBoundingClientRect().top < 0) {

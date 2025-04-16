@@ -17,7 +17,7 @@ import (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) ([]*asymkey_model.SignCommit, error) {
+func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType) ([]*asymkey_model.SignCommit, error) {
 	newCommits := make([]*asymkey_model.SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
@@ -47,6 +47,10 @@ func ParseCommitsWithSignature(ctx context.Context, oldCommits []*user_model.Use
 			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committer),
 		}
 
+		isOwnerMemberCollaborator := func(user *user_model.User) (bool, error) {
+			return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
+		}
+
 		_ = asymkey_model.CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)
 
 		newCommits = append(newCommits, signCommit)
@@ -62,11 +66,9 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 	}
 	signedCommits, err := ParseCommitsWithSignature(
 		ctx,
+		repo,
 		validatedCommits,
 		repo.GetTrustModel(),
-		func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
-		},
 	)
 	if err != nil {
 		return nil, err

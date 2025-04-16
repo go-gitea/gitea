@@ -15,8 +15,6 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -172,20 +170,28 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 	itemColor := "#" + hex.EncodeToString(itemBytes)
 	scopeColor := "#" + hex.EncodeToString(scopeBytes)
 
+	if label.ExclusiveOrder > 0 {
+		// <scope> | <label> | <order>
+		return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
+			`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
+			`<div class="ui label scope-middle" style="color: %s !important; background-color: %s !important">%s</div>`+
+			`<div class="ui label scope-right">%d</div>`+
+			`</span>`,
+			extraCSSClasses, descriptionText,
+			textColor, scopeColor, scopeHTML,
+			textColor, itemColor, itemHTML,
+			label.ExclusiveOrder)
+	}
+
+	// <scope> | <label>
 	return htmlutil.HTMLFormat(`<span class="ui label %s scope-parent" data-tooltip-content title="%s">`+
 		`<div class="ui label scope-left" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`<div class="ui label scope-right" style="color: %s !important; background-color: %s !important">%s</div>`+
 		`</span>`,
 		extraCSSClasses, descriptionText,
 		textColor, scopeColor, scopeHTML,
-		textColor, itemColor, itemHTML)
-}
-
-func (ut *RenderUtils) RenderFileIcon(entry *git.TreeEntry) template.HTML {
-	if setting.UI.FileIconTheme == "material" {
-		return fileicon.DefaultMaterialIconProvider().FileIcon(ut.ctx, entry)
-	}
-	return fileicon.BasicThemeIcon(entry)
+		textColor, itemColor, itemHTML,
+	)
 }
 
 // RenderEmoji renders html text with emoji post processors

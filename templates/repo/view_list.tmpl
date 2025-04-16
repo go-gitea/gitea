@@ -9,13 +9,14 @@
 		{{svg "octicon-file-directory-fill"}} ..
 	</a>
 	{{end}}
+	{{$.FileIconPoolHTML}}
 	{{range $item := .Files}}
 		<div class="repo-file-item">
 			{{$entry := $item.Entry}}
 			{{$commit := $item.Commit}}
 			{{$submoduleFile := $item.SubmoduleFile}}
 			<div class="repo-file-cell name muted-links {{if not $commit}}notready{{end}}">
-				{{ctx.RenderUtils.RenderFileIcon $entry}}
+				{{index $.FileIcons $entry.Name}}
 				{{if $entry.IsSubModule}}
 					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
 					{{if $submoduleLink}}
@@ -46,7 +47,7 @@
 			<div class="repo-file-cell message loading-icon-2px">
 				{{if $commit}}
 					{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
-					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
+					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink ($.Repository.ComposeCommentMetas ctx)}}
 				{{else}}
 					… {{/* will be loaded again by LastCommitLoaderURL */}}
 				{{end}}

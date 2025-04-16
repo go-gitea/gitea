@@ -3339,6 +3339,104 @@
         }
       }
     },
+    "/packages/{owner}/{type}/{name}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "package"
+        ],
+        "summary": "Gets all versions of a package",
+        "operationId": "listPackageVersions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the package",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PackageList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/packages/{owner}/{type}/{name}/-/latest": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "package"
+        ],
+        "summary": "Gets the latest version of a package",
+        "operationId": "getLatestPackageVersion",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the package",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Package"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/packages/{owner}/{type}/{name}/-/link/{repo_name}": {
       "post": {
         "tags": [
@@ -4177,6 +4275,52 @@
         "responses": {
           "302": {
             "description": "redirect to the blob download"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/jobs/{job_id}/logs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Downloads the job logs for a workflow run",
+        "operationId": "downloadActionsRunJobLogs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "id of the job",
+            "name": "job_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "output blob content"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -20365,9 +20509,19 @@
           "type": "string",
           "x-go-name": "HTMLURL"
         },
+        "last_author_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastAuthorDate"
+        },
         "last_commit_sha": {
           "type": "string",
           "x-go-name": "LastCommitSHA"
+        },
+        "last_committer_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastCommitterDate"
         },
         "name": {
           "type": "string",
@@ -24330,10 +24484,6 @@
       "description": "PackageFile represents a package file",
       "type": "object",
       "properties": {
-        "Size": {
-          "type": "integer",
-          "format": "int64"
-        },
         "id": {
           "type": "integer",
           "format": "int64",
@@ -24358,6 +24508,11 @@
         "sha512": {
           "type": "string",
           "x-go-name": "HashSHA512"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

@@ -1,4 +1,4 @@
-<div {{if .ReadmeInList}}id="readme" {{end}}class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
+<div {{if .ReadmeInList}}id="readme" {{end}}class="{{TabSizeClass .Editorconfig .FileTreePath}} non-diff-file-content">
 	{{- if .FileError}}
 		<div class="ui error message">
 			<div class="text left tw-whitespace-pre">{{.FileError}}</div>
@@ -27,7 +27,7 @@
 		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{if .ReadmeInList}}
 				{{svg "octicon-book" 16 "tw-mr-2"}}
-				<strong><a class="muted" href="#readme">{{.FileName}}</a></strong>
+				<strong><a class="muted" href="#readme">{{.FileTreePath}}</a></strong>
 			{{else}}
 				{{template "repo/file_info" .}}
 			{{end}}
@@ -78,7 +78,7 @@
 				<button class="ui mini basic button escape-button tw-mr-1">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			{{end}}
 			{{if and .ReadmeInList .CanEditReadmeFile}}
-				<a class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.edit_this_file"}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}/{{PathEscapeSegments .FileName}}">{{svg "octicon-pencil"}}</a>
+				<a class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.edit_this_file"}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .FileTreePath}}">{{svg "octicon-pencil"}}</a>
 			{{end}}
 		</div>
 	</h4>

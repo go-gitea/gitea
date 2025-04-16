@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/templates"
+	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -55,13 +56,14 @@ func Worktime(ctx *context.Context) {
 
 	var worktimeSumResult any
 	var err error
-	if worktimeBy == "milestones" {
+	switch worktimeBy {
+	case "milestones":
 		worktimeSumResult, err = organization.GetWorktimeByMilestones(ctx.Org.Organization, unixFrom, unixTo)
 		ctx.Data["WorktimeByMilestones"] = true
-	} else if worktimeBy == "members" {
+	case "members":
 		worktimeSumResult, err = organization.GetWorktimeByMembers(ctx.Org.Organization, unixFrom, unixTo)
 		ctx.Data["WorktimeByMembers"] = true
-	} else /* by repos */ {
+	default: /* by repos */
 		worktimeSumResult, err = organization.GetWorktimeByRepos(ctx.Org.Organization, unixFrom, unixTo)
 		ctx.Data["WorktimeByRepos"] = true
 	}
@@ -69,6 +71,12 @@ func Worktime(ctx *context.Context) {
 		ctx.ServerError("GetWorktime", err)
 		return
 	}
+
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+
 	ctx.Data["WorktimeSumResult"] = worktimeSumResult
 	ctx.HTML(http.StatusOK, tplByRepos)
 }

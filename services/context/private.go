@@ -5,7 +5,6 @@ package context
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -82,7 +81,7 @@ func OverrideContext() func(http.Handler) http.Handler {
 			// We now need to override the request context as the base for our work because even if the request is cancelled we have to continue this work
 			ctx := GetPrivateContext(req)
 			var finished func()
-			ctx.Override, _, finished = process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PrivateContext: %s", ctx.Req.RequestURI), process.RequestProcessType, true)
+			ctx.Override, _, finished = process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "PrivateContext: "+ctx.Req.RequestURI, process.RequestProcessType, true)
 			defer finished()
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})

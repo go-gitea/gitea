@@ -639,7 +639,7 @@ func PrepareCompareDiff(
 			return false
 		}
 
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(diffTree, nil)
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(diffTree, nil)
 	}
 
 	headCommit, err := ci.HeadGitRepo.GetCommit(headCommitID)
@@ -938,9 +938,10 @@ func ExcerptBlob(ctx *context.Context) {
 				RightHunkSize: rightHunkSize,
 			},
 		}
-		if direction == "up" {
+		switch direction {
+		case "up":
 			section.Lines = append([]*gitdiff.DiffLine{lineSection}, section.Lines...)
-		} else if direction == "down" {
+		case "down":
 			section.Lines = append(section.Lines, lineSection)
 		}
 	}

@@ -298,7 +298,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 				}
 
 				// FIXME: for a private download?
-				req, err := http.NewRequest("GET", assetDownloadURL, nil)
+				req, err := http.NewRequest(http.MethodGet, assetDownloadURL, nil)
 				if err != nil {
 					return nil, err
 				}

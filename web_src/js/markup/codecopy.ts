@@ -1,4 +1,5 @@
 import {svg} from '../svg.ts';
+import {queryElems} from '../utils/dom.ts';
 
 export function makeCodeCopyButton(): HTMLButtonElement {
   const button = document.createElement('button');
@@ -8,13 +9,12 @@ export function makeCodeCopyButton(): HTMLButtonElement {
 }
 
 export function initMarkupCodeCopy(elMarkup: HTMLElement): void {
-  const els = elMarkup.querySelectorAll('.code-wrapper'); // .markup .code-block code
-
-  for (const el of els) {
-    if (!el || !el.textContent) return;
+  // .markup .code-block code
+  queryElems(elMarkup, '.code-block code', (el) => {
+    if (!el.textContent) return;
     const btn = makeCodeCopyButton();
     // remove final trailing newline introduced during HTML rendering
     btn.setAttribute('data-clipboard-text', el.textContent.replace(/\r?\n$/, ''));
-    el.append(btn);
-  }
+    el.after(btn);
+  });
 }
