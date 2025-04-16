@@ -152,7 +152,7 @@
 
 .ui.icon.buttons .button,
 .ui.icon.button:not(.compact) {
-  padding: 0.57em 1.07em 0.57em 0.57em;
+  padding: 0.57em;
 }
 .ui.icon.buttons .button > .icon,
 .ui.icon.button > .icon {
