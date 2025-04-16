@@ -369,7 +369,7 @@ func Diff(ctx *context.Context) {
 			return
 		}
 
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(diffTree, nil)
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(diffTree, nil)
 	}
 
 	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
