@@ -10,6 +10,7 @@
   padding: 2px;
   position: absolute;
   margin-left: -22px;
+  min-height: 0;
   z-index: 5;
   opacity: 0;
   transition: transform 0.1s ease-in-out;
