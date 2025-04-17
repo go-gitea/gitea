@@ -641,7 +641,7 @@ func PrepareCompareDiff(
 			return false
 		}
 
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(diffTree, nil)
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(diffTree, nil)
 	}
 
 	headCommit, err := ci.HeadGitRepo.GetCommit(headCommitID)

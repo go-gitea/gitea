@@ -22,3 +22,8 @@ manifests:
       architecture: arm64
       os: linux
       variant: v8
+  -
+    image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}{{#if (hasPrefix "refs/heads/release/v" build.ref)}}{{trimPrefix "refs/heads/release/v" build.ref}}-{{/if}}nightly{{/if}}-linux-riscv64-rootless
+    platform:
+      architecture: riscv64
+      os: linux

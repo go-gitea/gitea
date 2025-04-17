@@ -58,7 +58,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			AutoInit:         true,
 			ObjectFormatName: git.Sha1ObjectFormat.Name(),
 			DefaultBranch:    "master",
-		})
+		}, true)
 		assert.NoError(t, err)
 
 		// add CODEOWNERS to default branch

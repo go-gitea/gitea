@@ -32,6 +32,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/codecommit v1.28.1
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.4.2
+	github.com/bohde/codel v0.2.0
 	github.com/buildkite/terminal-to-html/v3 v3.16.8
 	github.com/caddyserver/certmagic v0.22.0
 	github.com/charmbracelet/git-lfs-transfer v0.2.0
@@ -119,7 +120,7 @@ require (
 	gitlab.com/gitlab-org/api/client-go v0.126.0
 	golang.org/x/crypto v0.36.0
 	golang.org/x/image v0.25.0
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 	golang.org/x/oauth2 v0.28.0
 	golang.org/x/sync v0.12.0
 	golang.org/x/sys v0.31.0
