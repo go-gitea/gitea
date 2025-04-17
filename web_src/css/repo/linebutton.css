@@ -2,17 +2,15 @@
   color: var(--color-text-dark) !important;
 }
 
-.code-line-button {
+.ui.button.code-line-button {
   border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-  padding: 1px 4px !important;
+  padding: 1px 4px;
+  margin: 0;
+  min-height: 0;
   position: absolute;
-  font-family: var(--fonts-regular);
-  left: 0;
-  transform: translateX(calc(-50% + 6px));
-  cursor: pointer;
+  left: 6px;
 }
 
-.code-line-button:hover {
-  background: var(--color-secondary) !important;
+.ui.button.code-line-button:hover {
+  background: var(--color-secondary);
 }
