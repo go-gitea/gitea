@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -34,6 +35,8 @@ func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activ
 	return activities_model.GetFeeds(ctx, opts)
 }
 
+const maxActionContentLength = 65535 // this is the max length of mysql text column, sqlite, postgres and mssql have a higher limit
+
 // notifyWatchers creates batch of actions for every watcher.
 // It could insert duplicate actions for a repository action, like this:
 // * Original action: UserID=1 (the real actor), ActUserID=1
@@ -42,6 +45,10 @@ func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activ
 func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers []*repo_model.Watch, permCode, permIssue, permPR []bool) error {
 	// Add feed for actioner.
 	act.UserID = act.ActUserID
+	if len(act.Content) > maxActionContentLength {
+		act.Content = util.EllipsisDisplayString(act.Content, maxActionContentLength)
+		log.Warn("Action [%d, %s]'s content is too long, truncated to %d bytes", act.RepoID, act.OpType, maxActionContentLength)
+	}
 	if err := db.Insert(ctx, act); err != nil {
 		return fmt.Errorf("insert new actioner: %w", err)
 	}
