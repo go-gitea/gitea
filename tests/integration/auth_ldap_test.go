@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"strings"
@@ -238,7 +237,7 @@ func TestLDAPUserSync(t *testing.T) {
 
 	defer tests.PrepareTestEnv(t)()
 	te.addAuthSource(t)
-	err := auth.SyncExternalUsers(context.Background(), true)
+	err := auth.SyncExternalUsers(t.Context(), true)
 	assert.NoError(t, err)
 
 	// Check if users exists
@@ -279,7 +278,7 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		tr := htmlDoc.doc.Find("table.table tbody tr")
+		tr := htmlDoc.doc.Find("table.table tbody tr:not(.no-results-row)")
 		assert.Equal(t, 0, tr.Length())
 	}
 
@@ -292,7 +291,7 @@ func TestLDAPUserSyncWithEmptyUsernameAttribute(t *testing.T) {
 		MakeRequest(t, req, http.StatusSeeOther)
 	}
 
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
 	authSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
 		Name: payload["name"],
@@ -328,7 +327,7 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	u := te.otherLDAPUsers[0]
 	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").TrString("form.username_password_incorrect"))
 
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
 	// Assert members of LDAP group "cn=git" are added
 	for _, gitLDAPUser := range te.gitLDAPUsers {
@@ -351,7 +350,7 @@ func TestLDAPUserSyncWithGroupFilter(t *testing.T) {
 	ldapConfig.GroupFilter = "(cn=ship_crew)"
 	require.NoError(t, auth_model.UpdateSource(db.DefaultContext, ldapSource))
 
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
 	for _, gitLDAPUser := range te.gitLDAPUsers {
 		if gitLDAPUser.UserName == "fry" || gitLDAPUser.UserName == "leela" || gitLDAPUser.UserName == "bender" {
@@ -392,7 +391,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	te.addAuthSource(t, ldapAuthOptions{attributeSSHPublicKey: "sshPublicKey"})
 
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 
 	// Check if users has SSH keys synced
 	for _, u := range te.gitLDAPUsers {
@@ -432,7 +431,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 	assert.NoError(t, err)
 	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
 	assert.NoError(t, err)
-	require.NoError(t, auth.SyncExternalUsers(context.Background(), true))
+	require.NoError(t, auth.SyncExternalUsers(t.Context(), true))
 	for _, gitLDAPUser := range te.gitLDAPUsers {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: gitLDAPUser.UserName,

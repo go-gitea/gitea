@@ -50,6 +50,7 @@
 							data-label-id="{{.ID}}" data-label-name="{{.Name}}" data-label-color="{{.Color}}"
 							data-label-exclusive="{{.Exclusive}}" data-label-is-archived="{{gt .ArchivedUnix 0}}"
 							data-label-num-issues="{{.NumIssues}}" data-label-description="{{.Description}}"
+							data-label-exclusive-order="{{.ExclusiveOrder}}"
 						>{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 						<a class="link-action" href="#" data-url="{{$.Link}}/delete?id={{.ID}}"
 							data-modal-confirm-header="{{ctx.Locale.Tr "repo.issues.label_deletion"}}"
@@ -63,13 +64,11 @@
 
 		{{if and (not .PageIsOrgSettingsLabels) (.OrgLabels)}}
 			<li class="item">
-				<div class="ui grid middle aligned">
-					<div class="ten wide column">
-						{{ctx.Locale.Tr "repo.org_labels_desc"}}
-						{{if .IsOrganizationOwner}}
-							<a href="{{.OrganizationLink}}/settings/labels">({{ctx.Locale.Tr "repo.org_labels_desc_manage"}})</a>:
-						{{end}}
-					</div>
+				<div>{{/* parent is flex, so use block here to keep sentence spaces */}}
+					{{ctx.Locale.Tr "repo.org_labels_desc"}}
+					{{if .IsOrganizationOwner}}
+						<a href="{{.OrganizationLink}}/settings/labels">({{ctx.Locale.Tr "repo.org_labels_desc_manage"}})</a>:
+					{{end}}
 				</div>
 			</li>
 

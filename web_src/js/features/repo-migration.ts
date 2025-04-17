@@ -1,4 +1,5 @@
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {sanitizeRepoName} from './repo-common.ts';
 
 const service = document.querySelector<HTMLInputElement>('#service_type');
 const user = document.querySelector<HTMLInputElement>('#auth_username');
@@ -25,13 +26,19 @@ export function initRepoMigration() {
   });
   lfs?.addEventListener('change', setLFSSettingsVisibility);
 
-  const cloneAddr = document.querySelector<HTMLInputElement>('#clone_addr');
-  cloneAddr?.addEventListener('change', () => {
-    const repoName = document.querySelector<HTMLInputElement>('#repo_name');
-    if (cloneAddr.value && !repoName?.value) { // Only modify if repo_name input is blank
-      repoName.value = /^(.*\/)?((.+?)(\.git)?)$/.exec(cloneAddr.value)[3];
-    }
-  });
+  const elCloneAddr = document.querySelector<HTMLInputElement>('#clone_addr');
+  const elRepoName = document.querySelector<HTMLInputElement>('#repo_name');
+  if (elCloneAddr && elRepoName) {
+    let repoNameChanged = false;
+    elRepoName.addEventListener('input', () => {repoNameChanged = true});
+    elCloneAddr.addEventListener('input', () => {
+      if (repoNameChanged) return;
+      let repoNameFromUrl = elCloneAddr.value.split(/[?#]/)[0];
+      repoNameFromUrl = /^(.*\/)?((.+?)\/?)$/.exec(repoNameFromUrl)[3];
+      repoNameFromUrl = repoNameFromUrl.split(/[?#]/)[0];
+      elRepoName.value = sanitizeRepoName(repoNameFromUrl);
+    });
+  }
 }
 
 function checkAuth() {

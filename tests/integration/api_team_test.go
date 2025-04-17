@@ -40,9 +40,9 @@ func TestAPITeam(t *testing.T) {
 
 	var apiTeam api.Team
 	DecodeJSON(t, resp, &apiTeam)
-	assert.EqualValues(t, team.ID, apiTeam.ID)
+	assert.Equal(t, team.ID, apiTeam.ID)
 	assert.Equal(t, team.Name, apiTeam.Name)
-	assert.EqualValues(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
+	assert.Equal(t, convert.ToOrganization(db.DefaultContext, org), apiTeam.Organization)
 
 	// non team member user will not access the teams details
 	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
@@ -78,9 +78,9 @@ func TestAPITeam(t *testing.T) {
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, "CreateTeam1", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, teamToCreate.Units, nil)
+		"none", teamToCreate.Units, nil)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, teamToCreate.Units, nil)
+		"none", teamToCreate.Units, nil)
 	teamID := apiTeam.ID
 
 	// Edit team.
@@ -149,9 +149,9 @@ func TestAPITeam(t *testing.T) {
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, "CreateTeam2", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"read", nil, teamToCreate.UnitsMap)
+		"none", nil, teamToCreate.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"read", nil, teamToCreate.UnitsMap)
+		"none", nil, teamToCreate.UnitsMap)
 	teamID = apiTeam.ID
 
 	// Edit team.
@@ -171,9 +171,9 @@ func TestAPITeam(t *testing.T) {
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, "EditTeam2", &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		"read", nil, teamToEdit.UnitsMap)
+		"none", nil, teamToEdit.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		"read", nil, teamToEdit.UnitsMap)
+		"none", nil, teamToEdit.UnitsMap)
 
 	// Edit team Description only
 	editDescription = "second team"
@@ -184,9 +184,9 @@ func TestAPITeam(t *testing.T) {
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, "EditTeam2_DescOnly", &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		"read", nil, teamToEdit.UnitsMap)
+		"none", nil, teamToEdit.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		"read", nil, teamToEdit.UnitsMap)
+		"none", nil, teamToEdit.UnitsMap)
 
 	// Read team.
 	teamRead = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
@@ -247,10 +247,10 @@ func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, d
 		if units != nil {
 			sort.StringSlice(units).Sort()
 			sort.StringSlice(apiTeam.Units).Sort()
-			assert.EqualValues(t, units, apiTeam.Units, "units")
+			assert.Equal(t, units, apiTeam.Units, "units")
 		}
 		if unitsMap != nil {
-			assert.EqualValues(t, unitsMap, apiTeam.UnitsMap, "unitsMap")
+			assert.Equal(t, unitsMap, apiTeam.UnitsMap, "unitsMap")
 		}
 	})
 }

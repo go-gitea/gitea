@@ -61,23 +61,35 @@ func TestUserLogin(t *testing.T) {
 	assert.Equal(t, "/", test.RedirectURL(resp))
 }
 
-func TestSignUpOAuth2ButMissingFields(t *testing.T) {
+func TestSignUpOAuth2Login(t *testing.T) {
 	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
-	defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
-		return goth.User{Provider: "dummy-auth-source", UserID: "dummy-user"}, nil
-	})()
 
 	addOAuth2Source(t, "dummy-auth-source", oauth2.Source{})
 
-	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockStore("dummy-sid")}
-	ctx, resp := contexttest.MockContext(t, "/user/oauth2/dummy-auth-source/callback?code=dummy-code", mockOpt)
-	ctx.SetPathParam("provider", "dummy-auth-source")
-	SignInOAuthCallback(ctx)
-	assert.Equal(t, http.StatusSeeOther, resp.Code)
-	assert.Equal(t, "/user/link_account", test.RedirectURL(resp))
+	t.Run("OAuth2MissingField", func(t *testing.T) {
+		defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
+			return goth.User{Provider: "dummy-auth-source", UserID: "dummy-user"}, nil
+		})()
+		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockStore("dummy-sid")}
+		ctx, resp := contexttest.MockContext(t, "/user/oauth2/dummy-auth-source/callback?code=dummy-code", mockOpt)
+		ctx.SetPathParam("provider", "dummy-auth-source")
+		SignInOAuthCallback(ctx)
+		assert.Equal(t, http.StatusSeeOther, resp.Code)
+		assert.Equal(t, "/user/link_account", test.RedirectURL(resp))
 
-	// then the user will be redirected to the link account page, and see a message about the missing fields
-	ctx, _ = contexttest.MockContext(t, "/user/link_account", mockOpt)
-	LinkAccount(ctx)
-	assert.EqualValues(t, "auth.oauth_callback_unable_auto_reg:dummy-auth-source,email", ctx.Data["AutoRegistrationFailedPrompt"])
+		// then the user will be redirected to the link account page, and see a message about the missing fields
+		ctx, _ = contexttest.MockContext(t, "/user/link_account", mockOpt)
+		LinkAccount(ctx)
+		assert.EqualValues(t, "auth.oauth_callback_unable_auto_reg:dummy-auth-source,email", ctx.Data["AutoRegistrationFailedPrompt"])
+	})
+
+	t.Run("OAuth2CallbackError", func(t *testing.T) {
+		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockStore("dummy-sid")}
+		ctx, resp := contexttest.MockContext(t, "/user/oauth2/dummy-auth-source/callback", mockOpt)
+		ctx.SetPathParam("provider", "dummy-auth-source")
+		SignInOAuthCallback(ctx)
+		assert.Equal(t, http.StatusSeeOther, resp.Code)
+		assert.Equal(t, "/user/login", test.RedirectURL(resp))
+		assert.Contains(t, ctx.Flash.ErrorMsg, "auth.oauth.signin.error.general")
+	})
 }

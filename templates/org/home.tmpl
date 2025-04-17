@@ -6,7 +6,7 @@
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
 				{{if .ProfileReadmeContent}}
-					<div id="readme_profile" class="markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
+					<div id="readme_profile" class="render-content markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
 				{{end}}
 				{{template "shared/repo_search" .}}
 				{{template "explore/repo_list" .}}
@@ -16,10 +16,10 @@
 			{{if .ShowMemberAndTeamTab}}
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
-					<div class="center aligned tw-mb-4">
-						<a class="ui primary button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
+					<div class="tw-flex tw-flex-wrap tw-justify-center tw-gap-x-1 tw-gap-y-2 tw-mb-4">
+						<a class="ui primary button tw-grow" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
 						{{if not .DisableNewPullMirrors}}
-							<a class="ui primary button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
+							<a class="ui primary button tw-grow" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
 						{{end}}
 					</div>
 					<div class="divider"></div>
@@ -32,7 +32,6 @@
 						<span class="text">{{svg "octicon-eye"}} {{ctx.Locale.Tr "org.view_as_role" $viewAsRole}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							{{/* TODO: does it really need to use CurrentURL with query parameters? Why not construct a new link with clear parameters */}}
 							<a href="?view_as=public" class="item {{if not .IsViewingOrgAsMember}}selected{{end}}">
 								{{svg "octicon-check" 14 (Iif (not .IsViewingOrgAsMember) "" "tw-invisible")}} {{ctx.Locale.Tr "settings.visibility.public"}}
 							</a>

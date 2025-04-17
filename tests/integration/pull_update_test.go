@@ -33,8 +33,8 @@ func TestAPIPullUpdate(t *testing.T) {
 		// Test GetDiverging
 		diffCount, err := pull_service.GetDiverging(git.DefaultContext, pr)
 		assert.NoError(t, err)
-		assert.EqualValues(t, 1, diffCount.Behind)
-		assert.EqualValues(t, 1, diffCount.Ahead)
+		assert.Equal(t, 1, diffCount.Behind)
+		assert.Equal(t, 1, diffCount.Ahead)
 		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
 		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
@@ -47,8 +47,8 @@ func TestAPIPullUpdate(t *testing.T) {
 		// Test GetDiverging after update
 		diffCount, err = pull_service.GetDiverging(git.DefaultContext, pr)
 		assert.NoError(t, err)
-		assert.EqualValues(t, 0, diffCount.Behind)
-		assert.EqualValues(t, 2, diffCount.Ahead)
+		assert.Equal(t, 0, diffCount.Behind)
+		assert.Equal(t, 2, diffCount.Ahead)
 	})
 }
 
@@ -62,8 +62,8 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		// Test GetDiverging
 		diffCount, err := pull_service.GetDiverging(git.DefaultContext, pr)
 		assert.NoError(t, err)
-		assert.EqualValues(t, 1, diffCount.Behind)
-		assert.EqualValues(t, 1, diffCount.Ahead)
+		assert.Equal(t, 1, diffCount.Behind)
+		assert.Equal(t, 1, diffCount.Ahead)
 		assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
 		assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
@@ -76,8 +76,8 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		// Test GetDiverging after update
 		diffCount, err = pull_service.GetDiverging(git.DefaultContext, pr)
 		assert.NoError(t, err)
-		assert.EqualValues(t, 0, diffCount.Behind)
-		assert.EqualValues(t, 1, diffCount.Ahead)
+		assert.Equal(t, 0, diffCount.Behind)
+		assert.Equal(t, 1, diffCount.Ahead)
 	})
 }
 
@@ -115,12 +115,12 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		OldBranch: "master",
 		NewBranch: "master",
 		Author: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Committer: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    time.Now(),
@@ -142,12 +142,12 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 		OldBranch: "master",
 		NewBranch: "newBranch",
 		Author: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Committer: &files_service.IdentityOptions{
-			Name:  actor.Name,
-			Email: actor.Email,
+			GitUserName:  actor.Name,
+			GitUserEmail: actor.Email,
 		},
 		Dates: &files_service.CommitDateOptions{
 			Author:    time.Now(),

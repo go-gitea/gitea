@@ -6,7 +6,7 @@
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/assignee?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input class="combo-value" name="assignee_ids" type="hidden" value="{{$data.SelectedAssigneeIDs}}">
-	<div class="ui dropdown {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
+	<div class="ui dropdown text-flex-grow {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
 		<a class="text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.assignees"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
 		</a>
@@ -15,8 +15,9 @@
 				<i class="icon">{{svg "octicon-search" 16}}</i>
 				<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_assignees"}}">
 			</div>
-			<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
 			<div class="scrolling menu flex-items-block">
+				<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
+				<div class="divider"></div>
 				{{range $data.CandidateAssignees}}
 					<a class="item" href="#" data-value="{{.ID}}">
 						<span class="item-check-mark">{{svg "octicon-check"}}</span>

@@ -6,6 +6,7 @@ package actions
 import (
 	"bytes"
 	stdCtx "context"
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -45,18 +46,18 @@ type Workflow struct {
 // MustEnableActions check if actions are enabled in settings
 func MustEnableActions(ctx *context.Context) {
 	if !setting.Actions.Enabled {
-		ctx.NotFound("MustEnableActions", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
 	if unit.TypeActions.UnitGlobalDisabled() {
-		ctx.NotFound("MustEnableActions", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
 	if ctx.Repo.Repository != nil {
 		if !ctx.Repo.CanRead(unit.TypeActions) {
-			ctx.NotFound("MustEnableActions", nil)
+			ctx.NotFound(nil)
 			return
 		}
 	}
@@ -67,7 +68,11 @@ func List(ctx *context.Context) {
 	ctx.Data["PageIsActions"] = true
 
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
+		ctx.NotFound(nil)
+		return
+	} else if err != nil {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}
@@ -88,7 +93,7 @@ func List(ctx *context.Context) {
 func WorkflowDispatchInputs(ctx *context.Context) {
 	ref := ctx.FormString("ref")
 	if ref == "" {
-		ctx.NotFound("WorkflowDispatchInputs: no ref", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	// get target commit of run from specified ref
@@ -306,7 +311,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 	}
 	ctx.Data["Actors"] = shared_user.MakeSelfOnTop(ctx.Doer, actors)
 
-	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx)
+	ctx.Data["StatusInfoList"] = actions_model.GetStatusInfoList(ctx, ctx.Locale)
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)

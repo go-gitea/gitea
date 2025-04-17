@@ -1085,10 +1085,6 @@ td .commit-summary {
   height: 30px;
 }
 
-.repository .diff-box .resolved-placeholder .button {
-  padding: 8px 12px;
-}
-
 .repository .diff-file-box .header {
   background-color: var(--color-box-header);
 }
@@ -1480,16 +1476,12 @@ td .commit-summary {
 }
 
 .comment-header {
-  border: none !important;
   background: var(--color-box-header);
-  border-bottom: 1px solid var(--color-secondary) !important;
-  font-weight: var(--font-weight-normal) !important;
-  padding: 0.5rem 1rem;
-  margin: 0 !important;
+  border-bottom: 1px solid var(--color-secondary);
+  padding: 0 1rem;
   position: relative;
   color: var(--color-text);
   min-height: 41px;
-  background-color: var(--color-box-header);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1612,6 +1604,12 @@ td .commit-summary {
   margin-right: 0;
 }
 
+.ui.label.scope-middle {
+  border-radius: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .ui.label.scope-right {
   border-bottom-left-radius: 0;
   border-top-left-radius: 0;
@@ -1631,21 +1629,17 @@ td .commit-summary {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .repo-button-row-left {
-  flex: 1;
+  flex-grow: 1;
 }
 
-.repo-button-row .button {
-  padding: 6px 10px !important;
-  height: 30px;
+.repo-button-row .ui.button {
   flex-shrink: 0;
   margin: 0;
-}
-
-.repo-button-row .button.dropdown:not(.icon) {
-  padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
+  min-height: 30px;
 }
 
 tbody.commit-list {
@@ -1732,8 +1726,7 @@ tbody.commit-list {
   line-height: 18px;
   margin: 1em;
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .content-history-detail-dialog .header .avatar {
@@ -2224,10 +2217,11 @@ tbody.commit-list {
   max-width: min(400px, 90vw);
 }
 
-.branch-selector-dropdown .branch-dropdown-button {
+.branch-selector-dropdown .ui.button.branch-dropdown-button {
   margin: 0;
   max-width: 340px;
   line-height: var(--line-height-default);
+  padding: 0 0.5em 0 0.75em;
 }
 
 /* FIXME: These media selectors are not ideal (just keep them from old code).

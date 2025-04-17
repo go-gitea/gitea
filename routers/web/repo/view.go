@@ -29,6 +29,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -38,6 +39,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -46,12 +48,14 @@ import (
 )
 
 const (
-	tplRepoEMPTY    templates.TplName = "repo/empty"
-	tplRepoHome     templates.TplName = "repo/home"
-	tplRepoViewList templates.TplName = "repo/view_list"
-	tplWatchers     templates.TplName = "repo/watchers"
-	tplForks        templates.TplName = "repo/forks"
-	tplMigrating    templates.TplName = "repo/migrate/migrating"
+	tplRepoEMPTY       templates.TplName = "repo/empty"
+	tplRepoHome        templates.TplName = "repo/home"
+	tplRepoView        templates.TplName = "repo/view"
+	tplRepoViewContent templates.TplName = "repo/view_content"
+	tplRepoViewList    templates.TplName = "repo/view_list"
+	tplWatchers        templates.TplName = "repo/watchers"
+	tplForks           templates.TplName = "repo/forks"
+	tplMigrating       templates.TplName = "repo/migrate/migrating"
 )
 
 type fileInfo struct {
@@ -116,7 +120,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	// or of directory if not in root directory.
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
-		verification := asymkey_model.ParseCommitWithSignature(ctx, latestCommit)
+		verification := asymkey_service.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
@@ -215,7 +219,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 	}
 
-	ctx.NotFound("Home", errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
+	ctx.NotFound(errors.New(ctx.Locale.TrString("units.error.no_unit_allowed_repo")))
 }
 
 // LastCommit returns lastCommit data for the provided branch/tag/commit and directory (in url) and filenames in body
@@ -247,6 +251,16 @@ func LastCommit(ctx *context.Context) {
 	ctx.Data["BranchLink"] = branchLink
 
 	ctx.HTML(http.StatusOK, tplRepoViewList)
+}
+
+func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
+	renderedIconPool := fileicon.NewRenderedIconPool()
+	fileIcons := map[string]template.HTML{}
+	for _, f := range files {
+		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIcon(renderedIconPool, f.Entry)
+	}
+	ctx.Data["FileIcons"] = fileIcons
+	ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 }
 
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
@@ -290,6 +304,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 	ctx.Data["Files"] = files
+	prepareDirectoryFileIcons(ctx, files)
 	for _, f := range files {
 		if f.Commit == nil {
 			ctx.Data["HasFilesWithoutLatestCommit"] = true

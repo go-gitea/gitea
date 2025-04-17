@@ -7,14 +7,12 @@ package repo
 import (
 	"bytes"
 	gocontext "context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -33,6 +31,7 @@ import (
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -58,7 +57,7 @@ func MustEnableWiki(ctx *context.Context) {
 				ctx.Repo.Repository,
 				ctx.Repo.Permission)
 		}
-		ctx.NotFound("MustEnableWiki", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -96,7 +95,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiGitRepo, errGitRepo := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
+	wikiGitRepo, errGitRepo := gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if errGitRepo != nil {
 		ctx.ServerError("OpenRepository", errGitRepo)
 		return nil, nil, errGitRepo
@@ -105,7 +104,7 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 	commit, errCommit := wikiGitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
 	if git.IsErrNotExist(errCommit) {
 		// if the default branch recorded in database is out of sync, then re-sync it
-		gitRepoDefaultBranch, errBranch := gitrepo.GetWikiDefaultBranch(ctx, ctx.Repo.Repository)
+		gitRepoDefaultBranch, errBranch := gitrepo.GetDefaultBranch(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if errBranch != nil {
 			return wikiGitRepo, nil, errBranch
 		}
@@ -437,7 +436,14 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return nil, nil
 	}
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
+	ctx.Data["Commits"], err = git_service.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
+	if err != nil {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
+		ctx.ServerError("ConvertFromGitCommit", err)
+		return nil, nil
+	}
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
@@ -478,7 +484,7 @@ func renderEditPage(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
 	if isRaw {
-		ctx.Error(http.StatusForbidden, "Editing of raw wiki files is not allowed")
+		ctx.HTTPError(http.StatusForbidden, "Editing of raw wiki files is not allowed")
 	}
 	if entry == nil || ctx.Written() {
 		return
@@ -502,14 +508,14 @@ func WikiPost(ctx *context.Context) {
 	switch ctx.FormString("action") {
 	case "_new":
 		if !ctx.Repo.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			ctx.NotFound(nil)
 			return
 		}
 		NewWikiPost(ctx)
 		return
 	case "_delete":
 		if !ctx.Repo.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			ctx.NotFound(nil)
 			return
 		}
 		DeleteWikiPagePost(ctx)
@@ -517,7 +523,7 @@ func WikiPost(ctx *context.Context) {
 	}
 
 	if !ctx.Repo.CanWrite(unit.TypeWiki) {
-		ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+		ctx.NotFound(nil)
 		return
 	}
 	EditWikiPost(ctx)
@@ -536,14 +542,14 @@ func Wiki(ctx *context.Context) {
 		return
 	case "_edit":
 		if !ctx.Repo.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			ctx.NotFound(nil)
 			return
 		}
 		EditWiki(ctx)
 		return
 	case "_new":
 		if !ctx.Repo.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			ctx.NotFound(nil)
 			return
 		}
 		NewWiki(ctx)
@@ -574,7 +580,7 @@ func Wiki(ctx *context.Context) {
 	wikiPath := entry.Name()
 	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(wikiPath))
-		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
+		ctx.Data["FormatWarning"] = ext + " rendering is not supported at the moment. Rendered as Markdown."
 	}
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)
@@ -703,7 +709,7 @@ func WikiRaw(ctx *context.Context) {
 
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("findEntryForFile", nil)
+			ctx.NotFound(nil)
 			return
 		}
 		ctx.ServerError("findEntryForfile", err)
@@ -733,13 +739,13 @@ func WikiRaw(ctx *context.Context) {
 	}
 
 	if entry != nil {
-		if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, entry.Blob(), nil); err != nil {
+		if err = common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, entry.Blob(), nil); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return
 	}
 
-	ctx.NotFound("findEntryForFile", nil)
+	ctx.NotFound(nil)
 }
 
 // NewWiki render wiki create page

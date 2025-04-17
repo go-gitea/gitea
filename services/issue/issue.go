@@ -92,8 +92,12 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 
 	var reviewNotifiers []*ReviewRequestNotifier
 	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issues_model.HasWorkInProgressPrefix(title) {
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			return err
+		}
+
 		var err error
-		reviewNotifiers, err = PullRequestCodeOwnersReview(ctx, issue, issue.PullRequest)
+		reviewNotifiers, err = PullRequestCodeOwnersReview(ctx, issue.PullRequest)
 		if err != nil {
 			log.Error("PullRequestCodeOwnersReview: %v", err)
 		}
@@ -193,13 +197,6 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 	// delete pull request related git data
 	if issue.IsPull && gitRepo != nil {
 		if err := gitRepo.RemoveReference(fmt.Sprintf("%s%d/head", git.PullPrefix, issue.PullRequest.Index)); err != nil {
-			return err
-		}
-	}
-
-	// If the Issue is pinned, we should unpin it before deletion to avoid problems with other pinned Issues
-	if issue.IsPinned() {
-		if err := issue.Unpin(ctx, doer); err != nil {
 			return err
 		}
 	}
@@ -319,6 +316,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) error {
 		&issues_model.Comment{RefIssueID: issue.ID},
 		&issues_model.IssueDependency{DependencyID: issue.ID},
 		&issues_model.Comment{DependentIssueID: issue.ID},
+		&issues_model.IssuePin{IssueID: issue.ID},
 	); err != nil {
 		return err
 	}

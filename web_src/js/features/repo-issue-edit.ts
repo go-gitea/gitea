@@ -4,7 +4,6 @@ import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {hideElem, querySingleVisibleElem, showElem, type DOMEvent} from '../utils/dom.ts';
 import {attachRefIssueContextPopup} from './contextpopup.ts';
-import {initCommentContent, initMarkupContent} from '../markup/content.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
@@ -14,7 +13,7 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
   if (!clickTarget) return;
 
   e.preventDefault();
-  const segment = clickTarget.closest('.header').nextElementSibling;
+  const segment = clickTarget.closest('.comment-header').nextElementSibling;
   const editContentZone = segment.querySelector('.edit-content-zone');
   const renderContent = segment.querySelector('.render-content');
   const rawContent = segment.querySelector('.raw-content');
@@ -74,8 +73,6 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
         content.querySelector('.dropzone-attachments').outerHTML = data.attachments;
       }
       comboMarkdownEditor.dropzoneSubmitReload();
-      initMarkupContent();
-      initCommentContent();
     } catch (error) {
       showErrorToast(`Failed to save the content: ${error}`);
       console.error(error);
@@ -135,7 +132,7 @@ async function tryOnQuoteReply(e: Event) {
   const targetMarkupToQuote = targetRawToQuote.parentElement.querySelector<HTMLElement>('.render-content.markup');
   let contentToQuote = extractSelectedMarkdown(targetMarkupToQuote);
   if (!contentToQuote) contentToQuote = targetRawToQuote.textContent;
-  const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n`;
+  const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n\n`;
 
   let editor;
   if (clickTarget.classList.contains('quote-reply-diff')) {

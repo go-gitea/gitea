@@ -4,7 +4,6 @@
 package renderhelper
 
 import (
-	"context"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -22,7 +21,7 @@ func TestRepoFile(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	t.Run("AutoLink", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoFile(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
@@ -37,7 +36,7 @@ func TestRepoFile(t *testing.T) {
 	})
 
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{CurrentRefPath: "branch/main"}).
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefPath: "branch/main"}).
 			WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 [/test](/test)
@@ -49,13 +48,13 @@ func TestRepoFile(t *testing.T) {
 		assert.Equal(t,
 			`<p><a href="/user2/repo1/src/branch/main/test" rel="nofollow">/test</a>
 <a href="/user2/repo1/src/branch/main/test" rel="nofollow">./test</a>
-<a href="/user2/repo1/media/branch/main/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/image" alt="/image"/></a>
-<a href="/user2/repo1/media/branch/main/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/image" alt="./image"/></a></p>
+<a href="/user2/repo1/src/branch/main/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/image" alt="/image"/></a>
+<a href="/user2/repo1/src/branch/main/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/branch/main/image" alt="./image"/></a></p>
 `, rendered)
 	})
 
 	t.Run("WithCurrentRefPath", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{CurrentRefPath: "/commit/1234"}).
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefPath: "/commit/1234"}).
 			WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 [/test](/test)
@@ -63,12 +62,12 @@ func TestRepoFile(t *testing.T) {
 `)
 		assert.NoError(t, err)
 		assert.Equal(t, `<p><a href="/user2/repo1/src/commit/1234/test" rel="nofollow">/test</a>
-<a href="/user2/repo1/media/commit/1234/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/image" alt="/image"/></a></p>
+<a href="/user2/repo1/src/commit/1234/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/image" alt="/image"/></a></p>
 `, rendered)
 	})
 
 	t.Run("WithCurrentRefPathByTag", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
 			CurrentRefPath:  "/commit/1234",
 			CurrentTreePath: "my-dir",
 		}).
@@ -78,7 +77,7 @@ func TestRepoFile(t *testing.T) {
 <video src="LINK">
 `)
 		assert.NoError(t, err)
-		assert.Equal(t, `<a href="/user2/repo1/media/commit/1234/my-dir/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/my-dir/LINK"/></a>
+		assert.Equal(t, `<a href="/user2/repo1/src/commit/1234/my-dir/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/media/commit/1234/my-dir/LINK"/></a>
 <video src="/user2/repo1/media/commit/1234/my-dir/LINK">
 </video>`, rendered)
 	})
@@ -89,7 +88,7 @@ func TestRepoFileOrgMode(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	t.Run("Links", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
 			CurrentRefPath:  "/commit/1234",
 			CurrentTreePath: "my-dir",
 		}).WithRelativePath("my-dir/a.org")
@@ -101,12 +100,12 @@ func TestRepoFileOrgMode(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, `<p>
 <a href="https://google.com/" rel="nofollow">https://google.com/</a>
-<a href="/user2/repo1/media/commit/1234/my-dir/ImageLink.svg" rel="nofollow">The Image Desc</a></p>
+<a href="/user2/repo1/src/commit/1234/my-dir/ImageLink.svg" rel="nofollow">The Image Desc</a></p>
 `, rendered)
 	})
 
 	t.Run("CodeHighlight", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(context.Background(), repo1, RepoFileOptions{}).WithRelativePath("my-dir/a.org")
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{}).WithRelativePath("my-dir/a.org")
 
 		rendered, err := markup.RenderString(rctx, `
 #+begin_src c

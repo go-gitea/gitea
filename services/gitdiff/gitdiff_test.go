@@ -17,26 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
-	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestDiffToHTML(t *testing.T) {
-	assert.Equal(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "foo "},
-		{Type: dmp.DiffInsert, Text: "bar"},
-		{Type: dmp.DiffDelete, Text: " baz"},
-		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineAdd))
-
-	assert.Equal(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "foo "},
-		{Type: dmp.DiffDelete, Text: "bar"},
-		{Type: dmp.DiffInsert, Text: " baz"},
-		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineDel))
-}
 
 func TestParsePatch_skipTo(t *testing.T) {
 	type testcase struct {
@@ -182,15 +165,9 @@ diff --git "\\a/README.md" "\\b/README.md"
 			}
 
 			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
-			if got.NumFiles != 1 {
+			if len(got.Files) != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return
-			}
-			if got.TotalAddition != testcase.addition {
-				t.Errorf("ParsePath(%q) does not have correct totalAddition %d, wanted %d", testcase.name, got.TotalAddition, testcase.addition)
-			}
-			if got.TotalDeletion != testcase.deletion {
-				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
 			}
 			file := got.Files[0]
 			if file.Addition != testcase.addition {
@@ -407,15 +384,9 @@ index 6961180..9ba1a00 100644
 			}
 
 			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
-			if got.NumFiles != 1 {
+			if len(got.Files) != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return
-			}
-			if got.TotalAddition != testcase.addition {
-				t.Errorf("ParsePath(%q) does not have correct totalAddition %d, wanted %d", testcase.name, got.TotalAddition, testcase.addition)
-			}
-			if got.TotalDeletion != testcase.deletion {
-				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
 			}
 			file := got.Files[0]
 			if file.Addition != testcase.addition {
@@ -628,23 +599,25 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepository(git.DefaultContext, "./testdata/academic-module")
+	gitRepo, err := git.OpenRepository(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
 	for _, behavior := range []git.TrustedCmdArgs{{"-w"}, {"--ignore-space-at-eol"}, {"-b"}, nil} {
-		diffs, err := GetDiff(db.DefaultContext, gitRepo,
+		diffs, err := GetDiffForAPI(t.Context(), gitRepo,
 			&DiffOptions{
-				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",
-				BeforeCommitID:     "559c156f8e0178b71cb44355428f24001b08fc68",
+				AfterCommitID:      "d8e0bbb45f200e67d9a784ce55bd90821af45ebd",
+				BeforeCommitID:     "72866af952e98d02a73003501836074b286a78f6",
 				MaxLines:           setting.Git.MaxGitDiffLines,
 				MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-				MaxFiles:           setting.Git.MaxGitDiffFiles,
+				MaxFiles:           1,
 				WhitespaceBehavior: behavior,
 			})
-		assert.NoError(t, err, "Error when diff with %s", behavior)
+		require.NoError(t, err, "Error when diff with WhitespaceBehavior=%s", behavior)
+		assert.True(t, diffs.IsIncomplete)
+		assert.Len(t, diffs.Files, 1)
 		for _, f := range diffs.Files {
-			assert.NotEmpty(t, f.Sections, "%s should have sections", f.Name)
+			assert.NotEmpty(t, f.Sections, "Diff file %q should have sections", f.Name)
 		}
 	}
 }

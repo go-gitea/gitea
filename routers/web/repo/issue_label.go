@@ -111,11 +111,12 @@ func NewLabel(ctx *context.Context) {
 	}
 
 	l := &issues_model.Label{
-		RepoID:      ctx.Repo.Repository.ID,
-		Name:        form.Title,
-		Exclusive:   form.Exclusive,
-		Description: form.Description,
-		Color:       form.Color,
+		RepoID:         ctx.Repo.Repository.ID,
+		Name:           form.Title,
+		Exclusive:      form.Exclusive,
+		ExclusiveOrder: form.ExclusiveOrder,
+		Description:    form.Description,
+		Color:          form.Color,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
@@ -131,7 +132,7 @@ func UpdateLabel(ctx *context.Context) {
 	if err != nil {
 		switch {
 		case issues_model.IsErrRepoLabelNotExist(err):
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
 		}
@@ -139,6 +140,7 @@ func UpdateLabel(ctx *context.Context) {
 	}
 	l.Name = form.Title
 	l.Exclusive = form.Exclusive
+	l.ExclusiveOrder = form.ExclusiveOrder
 	l.Description = form.Description
 	l.Color = form.Color
 
@@ -180,7 +182,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 		label, err := issues_model.GetLabelByID(ctx, ctx.FormInt64("id"))
 		if err != nil {
 			if issues_model.IsErrRepoLabelNotExist(err) {
-				ctx.Error(http.StatusNotFound, "GetLabelByID")
+				ctx.HTTPError(http.StatusNotFound, "GetLabelByID")
 			} else {
 				ctx.ServerError("GetLabelByID", err)
 			}
@@ -221,7 +223,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 		}
 	default:
 		log.Warn("Unrecognized action: %s", action)
-		ctx.Error(http.StatusInternalServerError)
+		ctx.HTTPError(http.StatusInternalServerError)
 		return
 	}
 

@@ -105,7 +105,6 @@ export default defineComponent({
       intervalID: null as IntervalId | null,
       currentJobStepsStates: [] as Array<Record<string, any>>,
       artifacts: [] as Array<Record<string, any>>,
-      onHoverRerunIndex: -1,
       menuVisible: false,
       isFullScreen: false,
       timeVisible: {
@@ -120,7 +119,7 @@ export default defineComponent({
         link: '',
         title: '',
         titleHTML: '',
-        status: 'unknown' as RunStatus,
+        status: '' as RunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
         canCancel: false,
         canApprove: false,
         canRerun: false,
@@ -492,13 +491,13 @@ export default defineComponent({
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
               </div>
               <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </a>
@@ -575,7 +574,7 @@ export default defineComponent({
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
-              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 circular-spin"/>
               <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"/>
               <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
 
@@ -721,11 +720,6 @@ export default defineComponent({
 
 .job-brief-item .job-brief-rerun {
   cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.job-brief-item .job-brief-rerun:hover {
-  transform: scale(130%);
 }
 
 .job-brief-item .job-brief-item-left {
@@ -902,16 +896,6 @@ export default defineComponent({
 
 <style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
 /* some elements are not managed by vue, so we need to use global style */
-.job-status-rotate {
-  animation: job-status-rotate-keyframes 1s linear infinite;
-}
-
-@keyframes job-status-rotate-keyframes {
-  100% {
-    transform: rotate(-360deg);
-  }
-}
-
 .job-step-section {
   margin: 10px;
 }
@@ -961,7 +945,6 @@ export default defineComponent({
 
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
-  word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
   overflow-wrap: anywhere;

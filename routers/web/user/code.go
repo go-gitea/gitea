@@ -26,11 +26,8 @@ func CodeSearch(ctx *context.Context) {
 		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	shared_user.RenderUserHeader(ctx)
-
-	if err := shared_user.LoadHeaderCount(ctx); err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -68,10 +65,10 @@ func CodeSearch(ctx *context.Context) {
 
 	if len(repoIDs) > 0 {
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, &code_indexer.SearchOptions{
-			RepoIDs:        repoIDs,
-			Keyword:        prepareSearch.Keyword,
-			IsKeywordFuzzy: prepareSearch.IsFuzzy,
-			Language:       prepareSearch.Language,
+			RepoIDs:    repoIDs,
+			Keyword:    prepareSearch.Keyword,
+			SearchMode: prepareSearch.SearchMode,
+			Language:   prepareSearch.Language,
 			Paginator: &db.ListOptions{
 				Page:     page,
 				PageSize: setting.UI.RepoSearchPagingNum,

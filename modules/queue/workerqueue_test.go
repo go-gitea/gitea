@@ -4,7 +4,6 @@
 package queue
 
 import (
-	"context"
 	"slices"
 	"strconv"
 	"sync"
@@ -58,15 +57,15 @@ func TestWorkerPoolQueueUnhandled(t *testing.T) {
 			testRecorder.Record("push:%v", i)
 			assert.NoError(t, q.Push(i))
 		}
-		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
+		assert.NoError(t, q.FlushWithContext(t.Context(), 0))
 		stop()
 
 		ok := true
 		for i := 0; i < queueSetting.Length; i++ {
 			if i%2 == 0 {
-				ok = ok && assert.EqualValues(t, 2, m[i], "test %s: item %d", t.Name(), i)
+				ok = ok && assert.Equal(t, 2, m[i], "test %s: item %d", t.Name(), i)
 			} else {
-				ok = ok && assert.EqualValues(t, 1, m[i], "test %s: item %d", t.Name(), i)
+				ok = ok && assert.Equal(t, 1, m[i], "test %s: item %d", t.Name(), i)
 			}
 		}
 		if !ok {
@@ -166,7 +165,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 
 		q, _ := newWorkerPoolQueueForTest("pr_patch_checker_test", queueSetting, testHandler, true)
 		stop := runWorkerPoolQueue(q)
-		assert.NoError(t, q.FlushWithContext(context.Background(), 0))
+		assert.NoError(t, q.FlushWithContext(t.Context(), 0))
 		stop()
 	}
 
@@ -174,7 +173,7 @@ func testWorkerPoolQueuePersistence(t *testing.T, queueSetting setting.QueueSett
 
 	assert.NotEmpty(t, tasksQ1)
 	assert.NotEmpty(t, tasksQ2)
-	assert.EqualValues(t, testCount, len(tasksQ1)+len(tasksQ2))
+	assert.Equal(t, testCount, len(tasksQ1)+len(tasksQ2))
 }
 
 func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
@@ -192,13 +191,13 @@ func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
 	}
 
 	time.Sleep(50 * time.Millisecond)
-	assert.EqualValues(t, 1, q.GetWorkerNumber())
-	assert.EqualValues(t, 1, q.GetWorkerActiveNumber())
+	assert.Equal(t, 1, q.GetWorkerNumber())
+	assert.Equal(t, 1, q.GetWorkerActiveNumber())
 	time.Sleep(500 * time.Millisecond)
-	assert.EqualValues(t, 1, q.GetWorkerNumber())
-	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
+	assert.Equal(t, 1, q.GetWorkerNumber())
+	assert.Equal(t, 0, q.GetWorkerActiveNumber())
 	time.Sleep(workerIdleDuration)
-	assert.EqualValues(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
+	assert.Equal(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
 	stop()
 
 	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", setting.QueueSettings{Type: "channel", BatchLength: 1, MaxWorkers: 3, Length: 100}, handler, false)
@@ -208,13 +207,13 @@ func TestWorkerPoolQueueActiveWorkers(t *testing.T) {
 	}
 
 	time.Sleep(50 * time.Millisecond)
-	assert.EqualValues(t, 3, q.GetWorkerNumber())
-	assert.EqualValues(t, 3, q.GetWorkerActiveNumber())
+	assert.Equal(t, 3, q.GetWorkerNumber())
+	assert.Equal(t, 3, q.GetWorkerActiveNumber())
 	time.Sleep(500 * time.Millisecond)
-	assert.EqualValues(t, 3, q.GetWorkerNumber())
-	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
+	assert.Equal(t, 3, q.GetWorkerNumber())
+	assert.Equal(t, 0, q.GetWorkerActiveNumber())
 	time.Sleep(workerIdleDuration)
-	assert.EqualValues(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
+	assert.Equal(t, 1, q.GetWorkerNumber()) // there is at least one worker after the queue begins working
 	stop()
 }
 
@@ -241,13 +240,13 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 	}
 	<-handlerCalled
 	time.Sleep(200 * time.Millisecond) // wait for a while to make sure all workers are active
-	assert.EqualValues(t, 4, q.GetWorkerActiveNumber())
+	assert.Equal(t, 4, q.GetWorkerActiveNumber())
 	stop() // stop triggers shutdown
-	assert.EqualValues(t, 0, q.GetWorkerActiveNumber())
+	assert.Equal(t, 0, q.GetWorkerActiveNumber())
 
 	// no item was ever handled, so we still get all of them again
 	q, _ = newWorkerPoolQueueForTest("test-workpoolqueue", qs, handler, false)
-	assert.EqualValues(t, 20, q.GetQueueItemNumber())
+	assert.Equal(t, 20, q.GetQueueItemNumber())
 }
 
 func TestWorkerPoolQueueWorkerIdleReset(t *testing.T) {

@@ -116,14 +116,7 @@ var (
 	_ Payloader = &PackagePayload{}
 )
 
-// _________                        __
-// \_   ___ \_______   ____ _____ _/  |_  ____
-// /    \  \/\_  __ \_/ __ \\__  \\   __\/ __ \
-// \     \____|  | \/\  ___/ / __ \|  | \  ___/
-//  \______  /|__|    \___  >____  /__|  \___  >
-//         \/             \/     \/          \/
-
-// CreatePayload FIXME
+// CreatePayload represents a payload information of create event.
 type CreatePayload struct {
 	Sha     string      `json:"sha"`
 	Ref     string      `json:"ref"`
@@ -157,13 +150,6 @@ func ParseCreateHook(raw []byte) (*CreatePayload, error) {
 	return hook, nil
 }
 
-// ________         .__          __
-// \______ \   ____ |  |   _____/  |_  ____
-//  |    |  \_/ __ \|  | _/ __ \   __\/ __ \
-//  |    `   \  ___/|  |_\  ___/|  | \  ___/
-// /_______  /\___  >____/\___  >__|  \___  >
-//         \/     \/          \/          \/
-
 // PusherType define the type to push
 type PusherType string
 
@@ -185,13 +171,6 @@ type DeletePayload struct {
 func (p *DeletePayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
-
-// ___________           __
-// \_   _____/__________|  | __
-//  |    __)/  _ \_  __ \  |/ /
-//  |     \(  <_> )  | \/    <
-//  \___  / \____/|__|  |__|_ \
-//      \/                   \/
 
 // ForkPayload represents fork payload
 type ForkPayload struct {
@@ -231,13 +210,6 @@ type IssueCommentPayload struct {
 func (p *IssueCommentPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
-
-// __________       .__
-// \______   \ ____ |  |   ____ _____    ______ ____
-//  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \
-//  |    |   \  ___/|  |_\  ___/ / __ \_\___ \\  ___/
-//  |____|_  /\___  >____/\___  >____  /____  >\___  >
-//         \/     \/          \/     \/     \/     \/
 
 // HookReleaseAction defines hook release action type
 type HookReleaseAction string
@@ -302,13 +274,6 @@ func (p *PushPayload) Branch() string {
 	return strings.ReplaceAll(p.Ref, "refs/heads/", "")
 }
 
-// .___
-// |   | ______ ________ __   ____
-// |   |/  ___//  ___/  |  \_/ __ \
-// |   |\___ \ \___ \|  |  /\  ___/
-// |___/____  >____  >____/  \___  >
-//          \/     \/            \/
-
 // HookIssueAction FIXME
 type HookIssueAction string
 
@@ -371,13 +336,6 @@ type ChangesPayload struct {
 	Ref   *ChangesFromPayload `json:"ref,omitempty"`
 }
 
-// __________      .__  .__    __________                                     __
-// \______   \__ __|  | |  |   \______   \ ____  ________ __   ____   _______/  |_
-//  |     ___/  |  \  | |  |    |       _// __ \/ ____/  |  \_/ __ \ /  ___/\   __\
-//  |    |   |  |  /  |_|  |__  |    |   \  ___< <_|  |  |  /\  ___/ \___ \  |  |
-//  |____|   |____/|____/____/  |____|_  /\___  >__   |____/  \___  >____  > |__|
-//                                     \/     \/   |__|           \/     \/
-
 // PullRequestPayload represents a payload information of pull request event.
 type PullRequestPayload struct {
 	Action            HookIssueAction `json:"action"`
@@ -401,13 +359,6 @@ type ReviewPayload struct {
 	Type    string `json:"type"`
 	Content string `json:"content"`
 }
-
-//  __      __.__ __   .__
-// /  \    /  \__|  | _|__|
-// \   \/\/   /  |  |/ /  |
-//  \        /|  |    <|  |
-//   \__/\  / |__|__|_ \__|
-//        \/          \/
 
 // HookWikiAction an action that happens to a wiki page
 type HookWikiAction string
@@ -434,13 +385,6 @@ type WikiPayload struct {
 func (p *WikiPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", " ")
 }
-
-//__________                           .__  __
-//\______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
-// |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
-// |    |   \  ___/|  |_> >  <_> )___ \|  ||  | (  <_> )  | \/\___  |
-// |____|_  /\___  >   __/ \____/____  >__||__|  \____/|__|   / ____|
-//        \/     \/|__|              \/                       \/
 
 // HookRepoAction an action that happens to a repo
 type HookRepoAction string
@@ -480,7 +424,7 @@ type PackagePayload struct {
 	Action       HookPackageAction `json:"action"`
 	Repository   *Repository       `json:"repository"`
 	Package      *Package          `json:"package"`
-	Organization *User             `json:"organization"`
+	Organization *Organization     `json:"organization"`
 	Sender       *User             `json:"sender"`
 }
 
@@ -523,5 +467,20 @@ type CommitStatusPayload struct {
 
 // JSONPayload implements Payload
 func (p *CommitStatusPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// WorkflowJobPayload represents a payload information of workflow job event.
+type WorkflowJobPayload struct {
+	Action       string             `json:"action"`
+	WorkflowJob  *ActionWorkflowJob `json:"workflow_job"`
+	PullRequest  *PullRequest       `json:"pull_request,omitempty"`
+	Organization *Organization      `json:"organization,omitempty"`
+	Repo         *Repository        `json:"repository"`
+	Sender       *User              `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *WorkflowJobPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }

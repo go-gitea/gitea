@@ -6,6 +6,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -22,15 +23,29 @@ func IssuePinOrUnpin(ctx *context.Context) {
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err := issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("LoadRepo", err)
 		return
 	}
 
-	err = issue.PinOrUnpin(ctx, ctx.Doer)
+	// PinOrUnpin pins or unpins a Issue
+	_, err = issues_model.GetIssuePin(ctx, issue)
+	if err != nil && !db.IsErrNotExist(err) {
+		ctx.ServerError("GetIssuePin", err)
+		return
+	}
+
+	if db.IsErrNotExist(err) {
+		err = issues_model.PinIssue(ctx, issue, ctx.Doer)
+	} else {
+		err = issues_model.UnpinIssue(ctx, issue, ctx.Doer)
+	}
+
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		if issues_model.IsErrIssueMaxPinReached(err) {
+			ctx.JSONError(ctx.Tr("repo.issues.max_pinned"))
+		} else {
+			ctx.ServerError("Pin/Unpin failed", err)
+		}
 		return
 	}
 
@@ -41,23 +56,20 @@ func IssuePinOrUnpin(ctx *context.Context) {
 func IssueUnpin(ctx *context.Context) {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
 
 	// If we don't do this, it will crash when trying to add the pin event to the comment history
 	err = issue.LoadRepo(ctx)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("LoadRepo", err)
 		return
 	}
 
-	err = issue.Unpin(ctx, ctx.Doer)
+	err = issues_model.UnpinIssue(ctx, issue, ctx.Doer)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("UnpinIssue", err)
 		return
 	}
 
@@ -78,15 +90,13 @@ func IssuePinMove(ctx *context.Context) {
 
 	form := &movePinIssueForm{}
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("Decode", err)
 		return
 	}
 
 	issue, err := issues_model.GetIssueByID(ctx, form.ID)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("GetIssueByID", err)
 		return
 	}
 
@@ -96,10 +106,9 @@ func IssuePinMove(ctx *context.Context) {
 		return
 	}
 
-	err = issue.MovePin(ctx, form.Position)
+	err = issues_model.MovePin(ctx, issue, form.Position)
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Error(err.Error())
+		ctx.ServerError("MovePin", err)
 		return
 	}
 

@@ -51,6 +51,13 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--attributes-in-bind",
 				"--synchronize-users",
 				"--page-size", "99",
+				"--enable-groups",
+				"--group-search-base-dn", "ou=group,dc=full-domain-bind,dc=org",
+				"--group-member-attribute", "memberUid",
+				"--group-user-attribute", "uid",
+				"--group-filter", "(|(cn=gitea_users)(cn=admins))",
+				"--group-team-map", `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
+				"--group-team-map-removal",
 			},
 			source: &auth.Source{
 				Type:          auth.LDAP,
@@ -78,6 +85,13 @@ func TestAddLdapBindDn(t *testing.T) {
 					AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
 					RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-bind,dc=org)",
 					Enabled:               true,
+					GroupsEnabled:         true,
+					GroupDN:               "ou=group,dc=full-domain-bind,dc=org",
+					GroupMemberUID:        "memberUid",
+					UserUID:               "uid",
+					GroupFilter:           "(|(cn=gitea_users)(cn=admins))",
+					GroupTeamMap:          `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
+					GroupTeamMapRemoval:   true,
 				},
 			},
 		},
@@ -215,11 +229,11 @@ func TestAddLdapBindDn(t *testing.T) {
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call updateAuthSource", n)
+				assert.FailNow(t, "updateAuthSource called", "case %d: should not call updateAuthSource", n)
 				return nil
 			},
 			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
-				assert.FailNow(t, "case %d: should not call getAuthSourceByID", n)
+				assert.FailNow(t, "getAuthSourceByID called", "case %d: should not call getAuthSourceByID", n)
 				return nil, nil
 			},
 		}
@@ -446,11 +460,11 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call updateAuthSource", n)
+				assert.FailNow(t, "updateAuthSource called", "case %d: should not call updateAuthSource", n)
 				return nil
 			},
 			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
-				assert.FailNow(t, "case %d: should not call getAuthSourceByID", n)
+				assert.FailNow(t, "getAuthSourceById called", "case %d: should not call getAuthSourceByID", n)
 				return nil, nil
 			},
 		}
@@ -510,6 +524,13 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--bind-password", "secret-bind-full",
 				"--synchronize-users",
 				"--page-size", "99",
+				"--enable-groups",
+				"--group-search-base-dn", "ou=group,dc=full-domain-bind,dc=org",
+				"--group-member-attribute", "memberUid",
+				"--group-user-attribute", "uid",
+				"--group-filter", "(|(cn=gitea_users)(cn=admins))",
+				"--group-team-map", `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
+				"--group-team-map-removal",
 			},
 			id: 23,
 			existingAuthSource: &auth.Source{
@@ -545,6 +566,13 @@ func TestUpdateLdapBindDn(t *testing.T) {
 					AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
 					RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-bind,dc=org)",
 					Enabled:               true,
+					GroupsEnabled:         true,
+					GroupDN:               "ou=group,dc=full-domain-bind,dc=org",
+					GroupMemberUID:        "memberUid",
+					UserUID:               "uid",
+					GroupFilter:           "(|(cn=gitea_users)(cn=admins))",
+					GroupTeamMap:          `{"cn=my-group,cn=groups,dc=example,dc=org": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}`,
+					GroupTeamMapRemoval:   true,
 				},
 			},
 		},
@@ -897,7 +925,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				return nil
 			},
 			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call createAuthSource", n)
+				assert.FailNow(t, "createAuthSource called", "case %d: should not call createAuthSource", n)
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
@@ -1287,7 +1315,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				return nil
 			},
 			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call createAuthSource", n)
+				assert.FailNow(t, "createAuthSource called", "case %d: should not call createAuthSource", n)
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {

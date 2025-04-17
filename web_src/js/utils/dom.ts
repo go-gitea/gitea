@@ -25,32 +25,34 @@ function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: a
   }
 }
 
+export function toggleClass(el: ElementArg, className: string, force?: boolean) {
+  elementsCall(el, (e: Element) => {
+    if (force === true) {
+      e.classList.add(className);
+    } else if (force === false) {
+      e.classList.remove(className);
+    } else if (force === undefined) {
+      e.classList.toggle(className);
+    } else {
+      throw new Error('invalid force argument');
+    }
+  });
+}
+
 /**
- * @param el Element
+ * @param el ElementArg
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
-function toggleShown(el: Element, force: boolean) {
-  if (force === true) {
-    el.classList.remove('tw-hidden');
-  } else if (force === false) {
-    el.classList.add('tw-hidden');
-  } else if (force === undefined) {
-    el.classList.toggle('tw-hidden');
-  } else {
-    throw new Error('invalid force argument');
-  }
+export function toggleElem(el: ElementArg, force?: boolean) {
+  toggleClass(el, 'tw-hidden', force === undefined ? force : !force);
 }
 
 export function showElem(el: ElementArg) {
-  elementsCall(el, toggleShown, true);
+  toggleElem(el, true);
 }
 
 export function hideElem(el: ElementArg) {
-  elementsCall(el, toggleShown, false);
-}
-
-export function toggleElem(el: ElementArg, force?: boolean) {
-  elementsCall(el, toggleShown, force);
+  toggleElem(el, false);
 }
 
 export function isElemHidden(el: ElementArg) {
@@ -355,10 +357,10 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
   return candidates.length ? candidates[0] as T : null;
 }
 
-export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => void | Promise<any>, options?: boolean | AddEventListenerOptions) {
+export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => Promisable<void>, options?: boolean | AddEventListenerOptions) {
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
-    if (!elem) return;
+    if (!elem || !parent.contains(elem)) return;
     listener(elem as T, e as E);
   }, options);
 }

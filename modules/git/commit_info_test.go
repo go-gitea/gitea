@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 	"time"
@@ -83,7 +82,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		}
 
 		// FIXME: Context.TODO() - if graceful has started we should use its Shutdown context otherwise use install signals in TestMain.
-		commitsInfo, treeCommit, err := entries.GetCommitsInfo(context.TODO(), commit, testCase.Path)
+		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), commit, testCase.Path)
 		assert.NoError(t, err, "Unable to get commit information for entries of subtree: %s in commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 		if err != nil {
 			t.FailNow()
@@ -159,8 +158,8 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		entries.Sort()
 		b.ResetTimer()
 		b.Run(benchmark.name, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				_, _, err := entries.GetCommitsInfo(context.Background(), commit, "")
+			for b.Loop() {
+				_, _, err := entries.GetCommitsInfo(b.Context(), commit, "")
 				if err != nil {
 					b.Fatal(err)
 				}

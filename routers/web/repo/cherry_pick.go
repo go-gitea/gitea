@@ -6,6 +6,7 @@ package repo
 import (
 	"bytes"
 	"errors"
+	"net/http"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -28,7 +29,7 @@ func CherryPick(ctx *context.Context) {
 	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("Missing Commit", err)
+			ctx.NotFound(err)
 			return
 		}
 		ctx.ServerError("GetCommit", err)
@@ -59,7 +60,7 @@ func CherryPick(ctx *context.Context) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
-	ctx.HTML(200, tplCherryPick)
+	ctx.HTML(http.StatusOK, tplCherryPick)
 }
 
 // CherryPickPost handles cherrypick POSTs
@@ -88,7 +89,7 @@ func CherryPickPost(ctx *context.Context) {
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplCherryPick)
+		ctx.HTML(http.StatusOK, tplCherryPick)
 		return
 	}
 
@@ -114,11 +115,19 @@ func CherryPickPost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
+	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
+	if !valid {
+		ctx.Data["Err_CommitEmail"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplCherryPick, &form)
+		return
+	}
 	opts := &files.ApplyDiffPatchOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
 		Message:      message,
+		Author:       gitCommitter,
+		Committer:    gitCommitter,
 	}
 
 	// First lets try the simple plain read-tree -m approach
@@ -140,7 +149,7 @@ func CherryPickPost(ctx *context.Context) {
 		if form.Revert {
 			if err := git.GetReverseRawDiff(ctx, ctx.Repo.Repository.RepoPath(), sha, buf); err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.PathParam("sha")+" does not exist."))
+					ctx.NotFound(errors.New("commit " + ctx.PathParam("sha") + " does not exist."))
 					return
 				}
 				ctx.ServerError("GetRawDiff", err)
@@ -149,7 +158,7 @@ func CherryPickPost(ctx *context.Context) {
 		} else {
 			if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, git.RawDiffType("patch"), buf); err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.PathParam("sha")+" does not exist."))
+					ctx.NotFound(errors.New("commit " + ctx.PathParam("sha") + " does not exist."))
 					return
 				}
 				ctx.ServerError("GetRawDiff", err)

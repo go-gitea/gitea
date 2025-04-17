@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
 	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
 	inner_elasticsearch "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/olivere/elastic/v7"
@@ -43,6 +44,10 @@ var _ internal.Indexer = &Indexer{}
 type Indexer struct {
 	inner                    *inner_elasticsearch.Indexer
 	indexer_internal.Indexer // do not composite inner_elasticsearch.Indexer directly to avoid exposing too much
+}
+
+func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
+	return indexer.SearchModesExactWords()
 }
 
 // NewIndexer creates a new elasticsearch indexer
@@ -142,7 +147,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+		stdout, _, err = git.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return nil, err
 		}
@@ -203,12 +208,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
-		r, err := gitrepo.OpenRepository(ctx, repo)
-		if err != nil {
-			return err
-		}
-		defer r.Close()
-		batch, err := r.NewBatch(ctx)
+		batch, err := git.NewBatch(ctx, repo.RepoPath())
 		if err != nil {
 			return err
 		}
@@ -359,13 +359,16 @@ func extractAggs(searchResult *elastic.SearchResult) []*internal.SearchResultLan
 
 // Search searches for codes and language stats by given conditions.
 func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
-	searchType := esMultiMatchTypePhrasePrefix
-	if opts.IsKeywordFuzzy {
-		searchType = esMultiMatchTypeBestFields
+	var contentQuery elastic.Query
+	searchMode := util.IfZero(opts.SearchMode, b.SupportedSearchModes()[0].ModeValue)
+	if searchMode == indexer.SearchModeExact {
+		// 1.21 used NewMultiMatchQuery().Type(esMultiMatchTypePhrasePrefix), but later releases changed to NewMatchPhraseQuery
+		contentQuery = elastic.NewMatchPhraseQuery("content", opts.Keyword)
+	} else /* words */ {
+		contentQuery = elastic.NewMultiMatchQuery("content", opts.Keyword).Type(esMultiMatchTypeBestFields).Operator("and")
 	}
-
 	kwQuery := elastic.NewBoolQuery().Should(
-		elastic.NewMultiMatchQuery(opts.Keyword, "content").Type(searchType),
+		contentQuery,
 		elastic.NewMultiMatchQuery(opts.Keyword, "filename^10").Type(esMultiMatchTypePhrasePrefix),
 	)
 	query := elastic.NewBoolQuery()

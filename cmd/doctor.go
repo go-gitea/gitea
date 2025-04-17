@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	golog "log"
 	"os"
@@ -130,8 +131,8 @@ func runRecreateTable(ctx *cli.Context) error {
 	}
 	recreateTables := migrate_base.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(stdCtx, func(x *xorm.Engine) error {
-		if err := migrations.EnsureUpToDate(x); err != nil {
+	return db.InitEngineWithMigration(stdCtx, func(ctx context.Context, x *xorm.Engine) error {
+		if err := migrations.EnsureUpToDate(ctx, x); err != nil {
 			return err
 		}
 		return recreateTables(x)
@@ -143,11 +144,12 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 	setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 
 	logFile := ctx.String("log-file")
-	if logFile == "" {
+	switch logFile {
+	case "":
 		return // if no doctor log-file is set, do not show any log from default logger
-	} else if logFile == "-" {
+	case "-":
 		setupConsoleLogger(log.TRACE, colorize, os.Stdout)
-	} else {
+	default:
 		logFile, _ = filepath.Abs(logFile)
 		writeMode := log.WriterMode{Level: log.TRACE, WriterOption: log.WriterFileOption{FileName: logFile}}
 		writer, err := log.NewEventWriter("console-to-file", "file", writeMode)

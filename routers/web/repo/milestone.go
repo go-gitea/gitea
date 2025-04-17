@@ -148,7 +148,7 @@ func EditMilestone(ctx *context.Context) {
 	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound("", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetMilestoneByRepoID", err)
 		}
@@ -184,7 +184,7 @@ func EditMilestonePost(ctx *context.Context) {
 	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound("", nil)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetMilestoneByRepoID", err)
 		}
@@ -218,7 +218,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 
 	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx, ctx.Repo.Repository.ID, id, toClose); err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound("", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("ChangeMilestoneStatusByIDAndRepoID", err)
 		}
@@ -245,7 +245,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
 		if issues_model.IsErrMilestoneNotExist(err) {
-			ctx.NotFound("GetMilestoneByID", err)
+			ctx.NotFound(err)
 			return
 		}
 
@@ -263,7 +263,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	issues(ctx, milestoneID, projectID, optional.None[bool]())
+	prepareIssueFilterAndList(ctx, milestoneID, projectID, optional.None[bool]())
 
 	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0

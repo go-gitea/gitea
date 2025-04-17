@@ -75,7 +75,7 @@ func TestDatabaseCollation(t *testing.T) {
 		defer test.MockVariableValue(&setting.Database.CharsetCollation, "utf8mb4_bin")()
 		r, err := db.CheckCollations(x)
 		assert.NoError(t, err)
-		assert.EqualValues(t, "utf8mb4_bin", r.ExpectedCollation)
+		assert.Equal(t, "utf8mb4_bin", r.ExpectedCollation)
 		assert.NoError(t, db.ConvertDatabaseTable())
 		r, err = db.CheckCollations(x)
 		assert.NoError(t, err)

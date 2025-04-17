@@ -4,12 +4,19 @@
 package issues
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOptions {
+	if opts.IssueIDs != nil {
+		setting.PanicInDevOrTesting("Indexer SearchOptions doesn't support IssueIDs")
+	}
 	searchOpt := &SearchOptions{
 		Keyword:    keyword,
 		RepoIDs:    opts.RepoIDs,
@@ -45,11 +52,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.ProjectID = optional.Some[int64](0) // Those issues with no project(projectid==0)
 	}
 
-	if opts.AssigneeID.Value() == db.NoConditionID {
-		searchOpt.AssigneeID = optional.Some[int64](0) // FIXME: this is inconsistent from other places, 0 means "no assignee"
-	} else if opts.AssigneeID.Value() != 0 {
-		searchOpt.AssigneeID = opts.AssigneeID
-	}
+	searchOpt.AssigneeID = opts.AssigneeID
 
 	// See the comment of issues_model.SearchOptions for the reason why we need to convert
 	convertID := func(id int64) optional.Option[int64] {
@@ -99,7 +102,11 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		// Unsupported sort type for search
 		fallthrough
 	default:
-		searchOpt.SortBy = SortByUpdatedDesc
+		if strings.HasPrefix(opts.SortType, issues_model.ScopeSortPrefix) {
+			searchOpt.SortBy = internal.SortBy(opts.SortType)
+		} else {
+			searchOpt.SortBy = SortByUpdatedDesc
+		}
 	}
 
 	return searchOpt

@@ -30,9 +30,11 @@ class IssueSidebarComboList {
   elList: HTMLElement;
   elComboValue: HTMLInputElement;
   initialValues: string[];
+  container: HTMLElement;
 
-  constructor(private container: HTMLElement) {
-    this.updateUrl = this.container.getAttribute('data-update-url');
+  constructor(container: HTMLElement) {
+    this.container = container;
+    this.updateUrl = container.getAttribute('data-update-url');
     this.updateAlgo = container.getAttribute('data-update-algo');
     this.selectionMode = container.getAttribute('data-selection-mode');
     if (!['single', 'multiple'].includes(this.selectionMode)) throw new Error(`Invalid data-update-on: ${this.selectionMode}`);

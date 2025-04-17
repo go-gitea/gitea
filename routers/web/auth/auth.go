@@ -169,6 +169,7 @@ func prepareSignInPageData(ctx *context.Context) {
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = auth.IsSSPIEnabled(ctx)
 	ctx.Data["EnablePasswordSignInForm"] = setting.Service.EnablePasswordSignInForm
+	ctx.Data["EnablePasskeyAuth"] = setting.Service.EnablePasskeyAuth
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
 		context.SetCaptchaData(ctx)
@@ -191,7 +192,7 @@ func SignIn(ctx *context.Context) {
 // SignInPost response for sign in request
 func SignInPost(ctx *context.Context) {
 	if !setting.Service.EnablePasswordSignInForm {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -455,7 +456,7 @@ func SignUpPost(ctx *context.Context) {
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -533,7 +534,8 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 	}
 	if err := user_model.CreateUser(ctx, u, meta, overwrites); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
-			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
+			switch setting.OAuth2Client.AccountLinking {
+			case setting.OAuth2AccountLinkingAuto:
 				var user *user_model.User
 				user = &user_model.User{Name: u.Name}
 				hasUser, err := user_model.GetUser(ctx, user)
@@ -549,7 +551,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 				// TODO: probably we should respect 'remember' user's choice...
 				linkAccount(ctx, user, *gothUser, true)
 				return false // user is already created here, all redirects are handled
-			} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingLogin {
+			case setting.OAuth2AccountLinkingLogin:
 				showLinkingLogin(ctx, *gothUser)
 				return false // user will be created only after linking login
 			}
@@ -766,7 +768,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 	if err := user_model.UpdateUserCols(ctx, user, "is_active", "rands"); err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.NotFound("UpdateUserCols", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("UpdateUser", err)
 		}

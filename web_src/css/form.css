@@ -243,7 +243,7 @@ textarea:focus,
     height: 76px !important;
   }
   .m-captcha-style {
-    width: 50%;
+    max-width: 450px;
   }
 }
 
@@ -271,6 +271,10 @@ textarea:focus,
 .ui.form.left-right-form .inline.field .ui.dropdown,
 .ui.form.left-right-form .inline.field textarea {
   width: 50%;
+}
+
+.ui.form.left-right-form .inline.field .ui.dropdown input.search {
+  width: 100%;
 }
 
 .ui.form.left-right-form .inline.field .inline-right {

@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"net/http"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -39,7 +40,7 @@ func NewDiffPatch(ctx *context.Context) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
-	ctx.HTML(200, tplPatchFile)
+	ctx.HTML(http.StatusOK, tplPatchFile)
 }
 
 // NewDiffPatchPost response for sending patch page
@@ -62,11 +63,11 @@ func NewDiffPatchPost(ctx *context.Context) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplPatchFile)
+		ctx.HTML(http.StatusOK, tplPatchFile)
 		return
 	}
 
-	// Cannot commit to a an existing branch if user doesn't have rights
+	// Cannot commit to an existing branch if user doesn't have rights
 	if branchName == ctx.Repo.BranchName && !canCommit {
 		ctx.Data["Err_NewBranchName"] = true
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
@@ -86,12 +87,21 @@ func NewDiffPatchPost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
+	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
+	if !valid {
+		ctx.Data["Err_CommitEmail"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplPatchFile, &form)
+		return
+	}
+
 	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, &files.ApplyDiffPatchOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
 		Message:      message,
 		Content:      strings.ReplaceAll(form.Content, "\r", ""),
+		Author:       gitCommitter,
+		Committer:    gitCommitter,
 	})
 	if err != nil {
 		if git_model.IsErrBranchAlreadyExists(err) {

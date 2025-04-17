@@ -24,7 +24,7 @@ func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
 		token, err = actions_model.NewRunnerToken(ctx, ownerID, repoID)
 	}
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

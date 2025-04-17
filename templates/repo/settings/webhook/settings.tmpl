@@ -31,7 +31,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="create" type="checkbox" {{if .Webhook.Create}}checked{{end}}>
+					<input name="create" type="checkbox" {{if .Webhook.HookEvents.Get "create"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_create"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_create_desc"}}</span>
 				</div>
@@ -41,7 +41,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="delete" type="checkbox" {{if .Webhook.Delete}}checked{{end}}>
+					<input name="delete" type="checkbox" {{if .Webhook.HookEvents.Get "delete"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_delete"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_delete_desc"}}</span>
 				</div>
@@ -51,7 +51,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="fork" type="checkbox" {{if .Webhook.Fork}}checked{{end}}>
+					<input name="fork" type="checkbox" {{if .Webhook.HookEvents.Get "fork"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_fork"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_fork_desc"}}</span>
 				</div>
@@ -61,7 +61,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="push" type="checkbox" {{if .Webhook.Push}}checked{{end}}>
+					<input name="push" type="checkbox" {{if .Webhook.HookEvents.Get "push"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_push"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_push_desc"}}</span>
 				</div>
@@ -71,7 +71,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="repository" type="checkbox" {{if .Webhook.Repository}}checked{{end}}>
+					<input name="repository" type="checkbox" {{if .Webhook.HookEvents.Get "repository"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_repository"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_repository_desc"}}</span>
 				</div>
@@ -81,7 +81,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="release" type="checkbox" {{if .Webhook.Release}}checked{{end}}>
+					<input name="release" type="checkbox" {{if .Webhook.HookEvents.Get "release"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_release"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_release_desc"}}</span>
 				</div>
@@ -91,7 +91,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="package" type="checkbox" {{if .Webhook.Package}}checked{{end}}>
+					<input name="package" type="checkbox" {{if .Webhook.HookEvents.Get "package"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_package"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_package_desc"}}</span>
 				</div>
@@ -102,9 +102,20 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="wiki" type="checkbox" {{if .Webhook.Wiki}}checked{{end}}>
+					<input name="wiki" type="checkbox" {{if .Webhook.HookEvents.Get "wiki"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_wiki"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_wiki_desc"}}</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Status -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="status" type="checkbox" {{if .Webhook.HookEvents.Get "status"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_statuses"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_statuses_desc"}}</span>
 				</div>
 			</div>
 		</div>
@@ -117,7 +128,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issues" type="checkbox" {{if .Webhook.Issues}}checked{{end}}>
+					<input name="issues" type="checkbox" {{if .Webhook.HookEvents.Get "issues"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_issues"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issues_desc"}}</span>
 				</div>
@@ -127,7 +138,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issue_assign" type="checkbox" {{if .Webhook.IssueAssign}}checked{{end}}>
+					<input name="issue_assign" type="checkbox" {{if .Webhook.HookEvents.Get "issue_assign"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_issue_assign"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issue_assign_desc"}}</span>
 				</div>
@@ -137,7 +148,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issue_label" type="checkbox" {{if .Webhook.IssueLabel}}checked{{end}}>
+					<input name="issue_label" type="checkbox" {{if .Webhook.HookEvents.Get "issue_label"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_issue_label"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issue_label_desc"}}</span>
 				</div>
@@ -147,7 +158,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issue_milestone" type="checkbox" {{if .Webhook.IssueMilestone}}checked{{end}}>
+					<input name="issue_milestone" type="checkbox" {{if .Webhook.HookEvents.Get "issue_milestone"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_issue_milestone"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issue_milestone_desc"}}</span>
 				</div>
@@ -157,7 +168,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="issue_comment" type="checkbox" {{if .Webhook.IssueComment}}checked{{end}}>
+					<input name="issue_comment" type="checkbox" {{if .Webhook.HookEvents.Get "issue_comment"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_issue_comment"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_issue_comment_desc"}}</span>
 				</div>
@@ -172,7 +183,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request" type="checkbox" {{if .Webhook.PullRequest}}checked{{end}}>
+					<input name="pull_request" type="checkbox" {{if .Webhook.HookEvents.Get "pull_request"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_desc"}}</span>
 				</div>
@@ -182,7 +193,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_assign" type="checkbox" {{if .Webhook.PullRequestAssign}}checked{{end}}>
+					<input name="pull_request_assign" type="checkbox" {{if .Webhook.HookEvents.Get "pull_request_assign"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_assign"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_assign_desc"}}</span>
 				</div>
@@ -192,7 +203,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_label" type="checkbox" {{if .Webhook.PullRequestLabel}}checked{{end}}>
+					<input name="pull_request_label" type="checkbox" {{if .Webhook.HookEvents.Get "pull_request_label"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_label"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_label_desc"}}</span>
 				</div>
@@ -202,7 +213,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_milestone" type="checkbox" {{if .Webhook.PullRequestMilestone}}checked{{end}}>
+					<input name="pull_request_milestone" type="checkbox" {{if .Webhook.HookEvents.Get "pull_request_milestone"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_milestone"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_milestone_desc"}}</span>
 				</div>
@@ -212,7 +223,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_comment" type="checkbox" {{if .Webhook.PullRequestComment}}checked{{end}}>
+					<input name="pull_request_comment" type="checkbox" {{if .Webhook.HookEvents.Get "pull_request_comment"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_comment"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_comment_desc"}}</span>
 				</div>
@@ -222,7 +233,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_review" type="checkbox" {{if .Webhook.PullRequestReview}}checked{{end}}>
+					<input name="pull_request_review" type="checkbox" {{if .Webhook.HookEvents.Get "pull_request_review"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_review"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_review_desc"}}</span>
 				</div>
@@ -232,7 +243,7 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_sync" type="checkbox" {{if .Webhook.PullRequestSync}}checked{{end}}>
+					<input name="pull_request_sync" type="checkbox" {{if .Webhook.HookEvents.Get "pull_request_sync"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_sync"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_sync_desc"}}</span>
 				</div>
@@ -242,9 +253,23 @@
 		<div class="seven wide column">
 			<div class="field">
 				<div class="ui checkbox">
-					<input name="pull_request_review_request" type="checkbox" {{if .Webhook.PullRequestReviewRequest}}checked{{end}}>
+					<input name="pull_request_review_request" type="checkbox" {{if .Webhook.HookEvents.Get "pull_request_review_request"}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.event_pull_request_review_request"}}</label>
 					<span class="help">{{ctx.Locale.Tr "repo.settings.event_pull_request_review_request_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Workflow Events -->
+		<div class="fourteen wide column">
+			<label>{{ctx.Locale.Tr "repo.settings.event_header_workflow"}}</label>
+		</div>
+		<!-- Workflow Job Event -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="workflow_job" type="checkbox" {{if .Webhook.HookEvents.Get "workflow_job"}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.event_workflow_job"}}</label>
+					<span class="help">{{ctx.Locale.Tr "repo.settings.event_workflow_job_desc"}}</span>
 				</div>
 			</div>
 		</div>

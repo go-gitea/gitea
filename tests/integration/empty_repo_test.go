@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -60,12 +61,20 @@ func TestEmptyRepoAddFile(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user30")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	// test web page
 	req := NewRequest(t, "GET", "/user30/empty")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	bodyString := resp.Body.String()
 	assert.Contains(t, bodyString, "empty-repo-guide")
 	assert.True(t, test.IsNormalPageCompleted(bodyString))
 
+	// test api
+	req = NewRequest(t, "GET", "/api/v1/repos/user30/empty/raw/main/README.md").AddTokenAuth(token)
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// create a new file
 	req = NewRequest(t, "GET", "/user30/empty/_new/"+setting.Repository.DefaultBranch)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body).Find(`input[name="commit_choice"]`)
@@ -122,7 +131,7 @@ func TestEmptyRepoUploadFile(t *testing.T) {
 	mpForm := multipart.NewWriter(body)
 	_ = mpForm.WriteField("_csrf", GetUserCSRFToken(t, session))
 	file, _ := mpForm.CreateFormFile("file", "uploaded-file.txt")
-	_, _ = io.Copy(file, bytes.NewBufferString("newly-uploaded-test-file"))
+	_, _ = io.Copy(file, strings.NewReader("newly-uploaded-test-file"))
 	_ = mpForm.Close()
 
 	req = NewRequestWithBody(t, "POST", "/user30/empty/upload-file", body)
@@ -164,7 +173,7 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	var fileResponse api.FileResponse
 	DecodeJSON(t, resp, &fileResponse)
 	expectedHTMLURL := setting.AppURL + "user30/empty/src/branch/new_branch/new-file.txt"
-	assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+	assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 
 	req = NewRequest(t, "GET", "/user30/empty/src/branch/new_branch/new-file.txt")
 	resp = session.MakeRequest(t, req, http.StatusOK)

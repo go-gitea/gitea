@@ -11,20 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/optional"
-
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-// OptionalBoolParse get the corresponding optional.Option[bool] of a string using strconv.ParseBool
-func OptionalBoolParse(s string) optional.Option[bool] {
-	v, e := strconv.ParseBool(s)
-	if e != nil {
-		return optional.None[bool]()
-	}
-	return optional.Some(v)
-}
 
 // IsEmptyString checks if the provided string is empty
 func IsEmptyString(s string) bool {
@@ -225,6 +214,13 @@ func Iif[T any](condition bool, trueVal, falseVal T) T {
 func IfZero[T comparable](v, def T) T {
 	var zero T
 	if v == zero {
+		return def
+	}
+	return v
+}
+
+func IfEmpty[T any](v, def []T) []T {
+	if len(v) == 0 {
 		return def
 	}
 	return v

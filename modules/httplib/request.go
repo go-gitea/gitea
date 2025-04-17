@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -99,18 +100,27 @@ func (r *Request) Param(key, value string) *Request {
 	return r
 }
 
-// Body adds request raw body.
-// it supports string and []byte.
+// Body adds request raw body. It supports string, []byte and io.Reader as body.
 func (r *Request) Body(data any) *Request {
+	if r == nil {
+		return nil
+	}
 	switch t := data.(type) {
+	case nil: // do nothing
 	case string:
-		bf := bytes.NewBufferString(t)
+		bf := strings.NewReader(t)
 		r.req.Body = io.NopCloser(bf)
 		r.req.ContentLength = int64(len(t))
 	case []byte:
 		bf := bytes.NewBuffer(t)
 		r.req.Body = io.NopCloser(bf)
 		r.req.ContentLength = int64(len(t))
+	case io.ReadCloser:
+		r.req.Body = t
+	case io.Reader:
+		r.req.Body = io.NopCloser(t)
+	default:
+		panic(fmt.Sprintf("unsupported request body type %T", t))
 	}
 	return r
 }
@@ -133,15 +143,15 @@ func (r *Request) getResponse() (*http.Response, error) {
 		paramBody = paramBody[0 : len(paramBody)-1]
 	}
 
-	if r.req.Method == "GET" && len(paramBody) > 0 {
+	if r.req.Method == http.MethodGet && len(paramBody) > 0 {
 		if strings.Contains(r.url, "?") {
 			r.url += "&" + paramBody
 		} else {
 			r.url = r.url + "?" + paramBody
 		}
-	} else if r.req.Method == "POST" && r.req.Body == nil && len(paramBody) > 0 {
+	} else if r.req.Method == http.MethodPost && r.req.Body == nil && len(paramBody) > 0 {
 		r.Header("Content-Type", "application/x-www-form-urlencoded")
-		r.Body(paramBody)
+		r.Body(paramBody) // string
 	}
 
 	var err error
@@ -185,7 +195,11 @@ func (r *Request) getResponse() (*http.Response, error) {
 }
 
 // Response executes request client gets response manually.
+// Caller MUST close the response body if no error occurs
 func (r *Request) Response() (*http.Response, error) {
+	if r == nil {
+		return nil, errors.New("invalid request")
+	}
 	return r.getResponse()
 }
 

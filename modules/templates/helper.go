@@ -9,6 +9,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -59,7 +60,6 @@ func NewFuncMap() template.FuncMap {
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
 		"svg":           svg.RenderHTML,
-		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": migrationIcon,
 		"ActionIcon":    actionIcon,
 		"SortArrow":     sortArrow,
@@ -69,12 +69,12 @@ func NewFuncMap() template.FuncMap {
 		// time / number / format
 		"FileSize": base.FileSize,
 		"CountFmt": countFmt,
-		"Sec2Time": util.SecToHours,
+		"Sec2Hour": util.SecToHours,
 
 		"TimeEstimateString": timeEstimateString,
 
 		"LoadTimes": func(startTime time.Time) string {
-			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
 		// -----------------------------------------------------------------
