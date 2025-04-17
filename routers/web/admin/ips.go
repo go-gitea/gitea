@@ -96,7 +96,9 @@ func IPs(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 
 	// Setup pagination
-	ctx.Data["Page"] = context.NewPagination(int(count), setting.UI.Admin.UserPagingNum, page, 5)
+	pager := context.NewPagination(int(count), setting.UI.Admin.UserPagingNum, page, 5)
+	pager.AddParamFromRequest(ctx.Req)
+	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIPs)
 }
