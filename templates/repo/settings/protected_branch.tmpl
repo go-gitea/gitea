@@ -2,13 +2,17 @@
 	<div class="repo-setting-content">
 		<form class="ui form" action="{{.Link}}" method="post">
 			<h4 class="ui top attached header">
-				{{ctx.Locale.Tr "repo.settings.branch_protection" .Rule.RuleName}}
+				{{if .Rule.RuleName}}
+					{{ctx.Locale.Tr "repo.settings.branch_protection" .Rule.RuleName}}
+				{{else}}
+					{{ctx.Locale.Tr "repo.settings.branches.add_new_rule"}}
+				{{end}}
 			</h4>
 			<div class="ui attached segment branch-protection">
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.protect_patterns"}}</h5>
-				<div class="field">
+				<div class="field required">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern"}}</label>
-					<input name="rule_name" type="text" value="{{.Rule.RuleName}}">
+					<input name="rule_name" type="text" value="{{.Rule.RuleName}}" required>
 					<input name="rule_id" type="hidden" value="{{.Rule.ID}}">
 					<p class="help tw-ml-0">{{ctx.Locale.Tr "repo.settings.protect_branch_name_pattern_desc" "https://github.com/gobwas/glob"}}</p>
 				</div>

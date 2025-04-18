@@ -36,21 +36,21 @@
 		{{end}}
 		<div id="code-comments-{{$comment.ID}}" class="field comment-code-cloud {{if $resolved}}tw-hidden{{end}}">
 			<div class="comment-list">
-				<ui class="ui comments">
+				<div class="ui comments">
 					{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
-				</ui>
+				</div>
 			</div>
-			<div class="tw-flex tw-justify-end tw-items-center tw-gap-2 tw-mt-2 tw-flex-wrap">
+			<div class="flex-text-block tw-mt-2 tw-flex-wrap tw-justify-end">
 				<div class="ui buttons">
 					<button class="ui icon tiny basic button previous-conversation">
-						{{svg "octicon-arrow-up" 12 "icon"}} {{ctx.Locale.Tr "repo.issues.previous"}}
+						{{svg "octicon-arrow-up" 12}} {{ctx.Locale.Tr "repo.issues.previous"}}
 					</button>
 					<button class="ui icon tiny basic button next-conversation">
-						{{svg "octicon-arrow-down" 12 "icon"}} {{ctx.Locale.Tr "repo.issues.next"}}
+						{{svg "octicon-arrow-down" 12}} {{ctx.Locale.Tr "repo.issues.next"}}
 					</button>
 				</div>
 				{{if and $.CanMarkConversation $hasReview (not $isReviewPending)}}
-					<button class="ui icon tiny basic button resolve-conversation tw-mr-0" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+					<button class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
 						{{else}}
@@ -59,8 +59,8 @@
 					</button>
 				{{end}}
 				{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-					<button class="comment-form-reply ui primary tiny labeled icon button tw-mr-0">
-						{{svg "octicon-reply" 16 "reply icon tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+					<button class="comment-form-reply ui primary icon tiny button">
+						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 					</button>
 				{{end}}
 			</div>
