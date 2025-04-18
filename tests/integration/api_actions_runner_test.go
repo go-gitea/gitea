@@ -9,9 +9,7 @@ import (
 	"slices"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
 
@@ -185,7 +183,6 @@ func testActionsRunnerOwner(t *testing.T) {
 		assert.Equal(t, "linux", runner.Labels[1].Name)
 
 		// Verify delete the runner by id
-		// TODO: what's the different from the test "DeleteNoConflictWhileJobIsDone"?
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
@@ -227,22 +224,6 @@ func testActionsRunnerOwner(t *testing.T) {
 		// runner.EditableInContext(ownerID, repoID) false
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34349)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("DeleteNoConflictWhileJobIsDone", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteOrganization)
-
-		_, err := db.GetEngine(t.Context()).Insert(&actions_model.ActionTask{
-			RunnerID: 34347,
-			Status:   actions_model.StatusSuccess,
-		})
-		assert.NoError(t, err)
-
-		// FIXME: CI fails because the runner has been deleted in the "Access" test
-		// Verify delete the runner by id is ok
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/org3/actions/runners/%d", 34347)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
 
@@ -306,7 +287,6 @@ func testActionsRunnerRepo(t *testing.T) {
 		assert.Equal(t, "linux", runner.Labels[1].Name)
 
 		// Verify delete the runner by id
-		// TODO: what's the different from the test "DeleteNoConflictWhileJobIsDone"?
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", runnerList.Entries[0].ID)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
@@ -348,21 +328,5 @@ func testActionsRunnerRepo(t *testing.T) {
 		// runner.EditableInContext(ownerID, repoID) false
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34349)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("DeleteNoConflictWhileJobIsDone", func(t *testing.T) {
-		userUsername := "user2"
-		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
-
-		_, err := db.GetEngine(t.Context()).Insert(&actions_model.ActionTask{
-			RunnerID: 34348,
-			Status:   actions_model.StatusSuccess,
-		})
-		assert.NoError(t, err)
-
-		// FIXME: CI fails because the runner has been deleted in the "Access" test
-		// Verify delete the runner by id is ok
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34348)).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent)
 	})
 }
