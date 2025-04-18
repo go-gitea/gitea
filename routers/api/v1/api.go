@@ -1650,10 +1650,10 @@ func Routes() *web.Router {
 
 		m.Group("/admin", func() {
 			m.Group("/identity-auth", func() {
-				m.Group("oauth", func() {
+				m.Group("/oauth", func() {
 					m.Get("", admin.SearchOauthAuth)
+					m.Put("/new", bind(api.CreateAuthOauth2Option{}), admin.CreateOauthAuth)
 					m.Delete("/{id}", admin.DeleteOauthAuth)
-					m.Post("/new", admin.CreateOauthAuth)
 				})
 			})
 

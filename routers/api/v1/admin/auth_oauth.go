@@ -26,6 +26,7 @@ import (
 func CreateOauthAuth(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateAuthOauth2Option)
 
+	// ??? todo: what should I do here?
 	var scopes []string
 	// for _, s := range strings.Split(form.Oauth2Scopes, ",") {
 	// 	s = strings.TrimSpace(s)
