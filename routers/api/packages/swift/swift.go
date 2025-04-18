@@ -292,8 +292,7 @@ func DownloadManifest(ctx *context.Context) {
 
 // formFileOptionalReadCloser returns (nil, nil) if the formKey is not present.
 func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCloser, error) {
-	var file io.ReadCloser
-	multipartFile, _, err := ctx.Req.FormFile(formKey) // it calls ParseMultipartForm automatically
+	multipartFile, _, err := ctx.Req.FormFile(formKey)
 	if err != nil && !errors.Is(err, http.ErrMissingFile) {
 		return nil, err
 	}
@@ -301,12 +300,11 @@ func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCl
 		return multipartFile, nil
 	}
 
-	_ = ctx.Req.ParseForm() // although ParseForm should have been called by FormFile->ParseMultipartForm, it's safe to call it again
-	if !ctx.Req.Form.Has(formKey) {
+	content := ctx.Req.FormValue(formKey)
+	if content == "" {
 		return nil, nil
 	}
-	file = io.NopCloser(strings.NewReader(ctx.Req.FormValue(formKey)))
-	return file, nil
+	return io.NopCloser(strings.NewReader(ctx.Req.FormValue(formKey))), nil
 }
 
 // UploadPackageFile refers to https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6
