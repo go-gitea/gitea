@@ -45,6 +45,11 @@ func canCreateBasePullRequest(ctx *context.Context) bool {
 	return baseRepo != nil && baseRepo.UnitEnabled(ctx, unit.TypePullRequests)
 }
 
+func defaultCreateNewBranch(ctx *context.Context) bool {
+	baseRepo := ctx.Repo.Repository.BaseRepo
+	return canCreateBasePullRequest(ctx) && baseRepo != nil && ctx.Repo.BranchName == baseRepo.DefaultBranch
+}
+
 func renderCommitRights(ctx *context.Context) bool {
 	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx, ctx.Doer)
 	if err != nil {
@@ -64,13 +69,13 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 		repo := ctx.Repo.Repository
 		baseBranch := ctx.Repo.BranchName
 		headBranch := newBranchName
-		if repo.UnitEnabled(ctx, unit.TypePullRequests) {
-			redirectToPullRequest = true
-		} else if canCreateBasePullRequest(ctx) {
+		if canCreateBasePullRequest(ctx) {
 			redirectToPullRequest = true
 			baseBranch = repo.BaseRepo.DefaultBranch
 			headBranch = repo.Owner.Name + "/" + repo.Name + ":" + headBranch
 			repo = repo.BaseRepo
+		} else if repo.UnitEnabled(ctx, unit.TypePullRequests) {
+			redirectToPullRequest = true
 		}
 
 		if redirectToPullRequest {
@@ -189,7 +194,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["TreePaths"] = treePaths
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	ctx.Data["commit_choice"] = util.Iif(canCommit, frmCommitChoiceDirect, frmCommitChoiceNewBranch)
+	ctx.Data["commit_choice"] = util.Iif(canCommit && !defaultCreateNewBranch(ctx), frmCommitChoiceDirect, frmCommitChoiceNewBranch)
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 
@@ -446,11 +451,7 @@ func DeleteFile(ctx *context.Context) {
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
-	if canCommit {
-		ctx.Data["commit_choice"] = frmCommitChoiceDirect
-	} else {
-		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
-	}
+	ctx.Data["commit_choice"] = util.Iif(canCommit && !defaultCreateNewBranch(ctx), frmCommitChoiceDirect, frmCommitChoiceNewBranch)
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 
 	ctx.HTML(http.StatusOK, tplDeleteFile)
@@ -620,11 +621,7 @@ func UploadFile(ctx *context.Context) {
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
-	if canCommit {
-		ctx.Data["commit_choice"] = frmCommitChoiceDirect
-	} else {
-		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
-	}
+	ctx.Data["commit_choice"] = util.Iif(canCommit && !defaultCreateNewBranch(ctx), frmCommitChoiceDirect, frmCommitChoiceNewBranch)
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 
 	ctx.HTML(http.StatusOK, tplUploadFile)
