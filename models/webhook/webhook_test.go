@@ -90,7 +90,7 @@ func TestWebhook_EventsArray(t *testing.T) {
 func TestCreateWebhook(t *testing.T) {
 	hook := &Webhook{
 		RepoID:      3,
-		URL:         "www.example.com/unit_test",
+		URL:         "https://www.example.com/unit_test",
 		ContentType: ContentTypeJSON,
 		Events:      `{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}`,
 	}
