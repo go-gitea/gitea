@@ -117,4 +117,31 @@ func TestAdminUserCreate(t *testing.T) {
 		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{}))
 		assert.ErrorContains(t, err, "access token does not have any permission")
 	})
+
+	createUserN := func(name string, args []string) error {
+		cmd := []string{"./gitea", "admin", "user", "create", "--username", name, "--email", name + "@gitea.local"}
+		cmd = append(cmd, args...)
+		return app.Run(cmd)
+	}
+	t.Run("UserFields", func(t *testing.T) {
+		reset()
+		assert.NoError(t, createUserN("uA", []string{"--random-password", "--fullname", "First Last"}))
+		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "ua"})
+		assert.Equal(t, "First Last", u.FullName)
+		assert.Equal(t, "uA", u.Name)
+		assert.Equal(t, "ua", u.LowerName)
+		assert.Equal(t, "uA@gitea.local", u.Email)
+
+		assert.NoError(t, createUserN("uB", []string{"--random-password", "--fullname", "First O'Last"}))
+		u = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "ub"})
+		assert.Equal(t, "First O'Last", u.FullName)
+
+		assert.NoError(t, createUserN("uC", []string{"--random-password", "--fullname", "First Middle Last"}))
+		u = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "uc"})
+		assert.Equal(t, "First Middle Last", u.FullName)
+
+		assert.NoError(t, createUserN("uD", []string{"--random-password", "--fullname", ""}))
+		u = unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "ud"})
+		assert.Empty(t, u.FullName)
+	})
 }
