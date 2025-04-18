@@ -35,9 +35,8 @@ func CreateOauthAuth(ctx *context.APIContext) {
 
 	discoveryURL, err := url.Parse(form.ProviderAutoDiscoveryURL)
 	if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
-		fmt.Errorf("invalid Auto Discovery URL: %s (this must be a valid URL starting with http:// or https://)", form.ProviderAutoDiscoveryURL)
-
-		// todo: implement handling
+		_ = fmt.Errorf("invalid Auto Discovery URL: %s (this must be a valid URL starting with http:// or https://)", form.ProviderAutoDiscoveryURL)
+		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("invalid Auto Discovery URL: %s (this must be a valid URL starting with http:// or https://)", form.ProviderAutoDiscoveryURL))
 	}
 
 	config := &oauth2.Source{
@@ -67,8 +66,6 @@ func CreateOauthAuth(ctx *context.APIContext) {
 	})
 
 	ctx.Status(http.StatusCreated)
-
-	// ctx.JSON(http.StatusCreated, convert.ToUser(ctx, u, ctx.Doer))
 }
 
 // EditOauthAuth api for modifying a authentication method

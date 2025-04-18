@@ -5,9 +5,13 @@
 package structs
 
 type AuthOauth2Option struct {
-	SourceID           int64  `json:"source_id"`
+	ID                 int64  `json:"id"`
 	AuthenticationName string `json:"authentication_name" binding:"Required"`
-	ProviderIconURL    string `json:"provider_icon_url"`
+	Type               int    `json:"type"`
+	TypeName           string `json:"type_name"`
+
+	IsActive      bool `json:"is_active"`
+	IsSyncEnabled bool `json:"is_sync_enabled"`
 }
 
 // CreateUserOption create user options

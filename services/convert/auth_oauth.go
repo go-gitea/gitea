@@ -31,7 +31,12 @@ func ToOauthProviders(ctx context.Context, provider []*auth_model.Source) []*api
 
 func toOauthProvider(ctx context.Context, provider *auth_model.Source) *api.AuthOauth2Option {
 	return &api.AuthOauth2Option{
-		SourceID:           provider.ID,
+		ID:                 provider.ID,
 		AuthenticationName: provider.Name,
+		Type:               provider.Type.Int(),
+		TypeName:           provider.Type.String(),
+
+		IsActive:      provider.IsActive,
+		IsSyncEnabled: provider.IsSyncEnabled,
 	}
 }
