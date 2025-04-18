@@ -112,6 +112,7 @@ func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	err = actions_model.DeleteRunner(ctx, runner.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
 	}
 	ctx.Status(http.StatusNoContent)
 }

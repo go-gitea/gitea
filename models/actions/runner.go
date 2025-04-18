@@ -127,7 +127,7 @@ func (r *ActionRunner) IsOnline() bool {
 // EditableInContext checks if the runner is editable by the "context" owner/repo
 // ownerID == 0 and repoID == 0 means "admin" context, any runner including global runners could be edited
 // ownerID == 0 and repoID != 0 means "repo" context, any runner belonging to the given repo could be edited
-// ownerID != 0 and repoID == 0 means "org" context, any runner belonging to the given user/org could be edited
+// ownerID != 0 and repoID == 0 means "owner(org/user)" context, any runner belonging to the given user/org could be edited
 // ownerID != 0 and repoID != 0 means "owner" OR "repo" context, legacy behavior, but we should forbid using it
 func (r *ActionRunner) EditableInContext(ownerID, repoID int64) bool {
 	if ownerID != 0 && repoID != 0 {
