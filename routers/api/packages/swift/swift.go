@@ -304,7 +304,7 @@ func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCl
 	if content == "" {
 		return nil, nil
 	}
-	return io.NopCloser(strings.NewReader(ctx.Req.FormValue(formKey))), nil
+	return io.NopCloser(strings.NewReader(content)), nil
 }
 
 // UploadPackageFile refers to https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6
