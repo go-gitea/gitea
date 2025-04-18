@@ -205,7 +205,8 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Create repos.
 	repoIDs := make([]int64, 0)
 	for i := 0; i < 3; i++ {
-		r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
+		r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(),
+			repo_service.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)}, true)
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
 			repoIDs = append(repoIDs, r.ID)
@@ -267,7 +268,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Create repo and check teams repositories.
-	r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: "repo-last"})
+	r, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user, org.AsUser(), repo_service.CreateRepoOptions{Name: "repo-last"}, true)
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIDs = append(repoIDs, r.ID)

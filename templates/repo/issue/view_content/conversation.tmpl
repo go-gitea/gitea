@@ -109,7 +109,7 @@
 					</div>
 				{{end}}
 			</div>
-			<div class="code-comment-buttons tw-flex tw-items-center tw-flex-wrap tw-mt-2 tw-mb-1 tw-mx-2">
+			<div class="flex-text-block tw-flex-wrap tw-my-2">
 				<div class="tw-flex-1">
 					{{if $resolved}}
 						<div class="ui grey text">
@@ -118,7 +118,7 @@
 						</div>
 					{{end}}
 				</div>
-				<div class="code-comment-buttons-buttons">
+				<div class="flex-text-block">
 					{{if and $.CanMarkConversation $hasReview (not $isReviewPending)}}
 						<button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 							{{if $resolved}}
@@ -129,8 +129,8 @@
 						</button>
 					{{end}}
 					{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-						<button class="comment-form-reply ui primary tiny labeled icon button tw-ml-1 tw-mr-0">
-							{{svg "octicon-reply" 16 "reply icon tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+						<button class="comment-form-reply ui primary icon tiny button">
+							{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 						</button>
 					{{end}}
 				</div>
