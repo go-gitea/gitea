@@ -1650,8 +1650,11 @@ func Routes() *web.Router {
 
 		m.Group("/admin", func() {
 			m.Group("/identity-auth", func() {
-				m.Get("", admin.SearchOauthAuth)
-				m.Post("/new", admin.CreateOauthAuth)
+				m.Group("oauth", func() {
+					m.Get("", admin.SearchOauthAuth)
+					m.Delete("/{id}", admin.DeleteOauthAuth)
+					m.Post("/new", admin.CreateOauthAuth)
+				})
 			})
 
 			m.Group("/cron", func() {

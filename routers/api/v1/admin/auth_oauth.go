@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
@@ -74,6 +75,20 @@ func EditOauthAuth(ctx *context.APIContext) {
 
 // DeleteOauthAuth api for deleting a authentication method
 func DeleteOauthAuth(ctx *context.APIContext) {
+	oauthIdString := ctx.PathParam("id")
+	oauthID, oauthIdErr := strconv.Atoi(oauthIdString)
+	if oauthIdErr != nil {
+		ctx.APIErrorInternal(oauthIdErr)
+	}
+
+	err := auth_model.DeleteSource(ctx, int64(oauthID))
+
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 // // SearchOauthAuth API for getting information of the configured authentication methods according the filter conditions
