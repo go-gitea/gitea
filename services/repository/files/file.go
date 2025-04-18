@@ -27,7 +27,7 @@ func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, 
 			size += fileContents.Size // if content isn't empty (e. g. due to the single blob being too large), add file size to response size
 		}
 		if size > setting.API.DefaultMaxResponseSize {
-			return nil, fmt.Errorf("the combined size of the requested blobs exceeds the per-request limit set by the server administrator")
+			return nil, errors.New("the combined size of the requested blobs exceeds the per-request limit set by the server administrator")
 		}
 		files = append(files, fileContents)
 	}
