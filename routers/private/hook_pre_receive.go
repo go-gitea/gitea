@@ -122,7 +122,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		newCommitID := opts.NewCommitIDs[i]
 		refFullName := opts.RefFullNames[i]
 
-		preReceiveSecrets(ourCtx, oldCommitID, newCommitID)
+		preReceiveSecrets(ourCtx, oldCommitID, newCommitID, refFullName)
 		switch {
 		case refFullName.IsBranch():
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
@@ -543,17 +543,36 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 }
 
 // checks commits for secrets
-func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string) {
+func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, _ git.RefName) {
+	if ctx.opts.GitPushOptions.Bool("skip.secret-detection").Has() {
+		return
+	}
+	repo := ctx.Repo.Repository
+
+	// New commit is empty so there's nothing to check for
+	if newCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
+		return
+	}
+
 	detector, err := gitleaks.NewDetectorDefaultConfig()
 	if err != nil {
 		ctx.Status(http.StatusTeapot)
 		return
 	}
+	if oldCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
 
-	repo := ctx.Repo.Repository
-	out, _, err := git.NewCommand("diff", "-U0").AddDynamicArguments(oldCommitID, newCommitID).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
+		base, _, err := git.NewCommand("merge-base").AddDynamicArguments(newCommitID).RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
+		if err != nil {
+			ctx.Status(http.StatusTeapot)
+			return
+		}
+		oldCommitID = base
+	}
+	// out, _, err = git.NewCommand("format-patch", "--stdout", "-U0").AddDynamicArguments(oldCommitID, newCommitID).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
+	out, _, err := git.NewCommand("show", "-U0").AddDynamicArguments(oldCommitID+".."+newCommitID).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
+
 	if err != nil {
-		ctx.Status(http.StatusTeapot)
+		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
 		return
 	}
 	giteaCmd, err := newPreReceiveDiff(bytes.NewReader(out))
@@ -568,12 +587,12 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string) 
 	}
 	if len(findings) != 0 {
 		msg := strings.Builder{}
-		msg.WriteString("This repository has secret detection enabled! Following secrets were detected:\n\n")
+		msg.WriteString("This repository has secret detection enabled! Following secrets were detected:\n")
 
 		for _, finding := range findings {
-			msg.WriteString(fmt.Sprintf("Commit %s contains a secret in %v:%v\n", newCommitID, finding.File, finding.StartLine))
+			msg.WriteString(fmt.Sprintf("\n-- Commit %s contains a secret in %v:%v\n", finding.Commit, finding.File, finding.StartLine))
 			msg.WriteString(fmt.Sprintf("RuleID: %v", finding.RuleID))
-			msg.WriteString("\n---------------\n")
+
 		}
 
 		ctx.JSON(http.StatusForbidden, private.Response{UserMsg: msg.String()})
@@ -596,7 +615,6 @@ func newPreReceiveDiff(r io.Reader) (*giteacmd, error) {
 
 // DiffFilesCh implements sources.Git.
 func (g *giteacmd) DiffFilesCh() <-chan *gitdiff.File {
-	log.Info("asking for channel for files")
 	return g.diffCh
 }
 
@@ -607,6 +625,5 @@ func (g *giteacmd) ErrCh() <-chan error {
 
 // Wait implements sources.Git.
 func (g *giteacmd) Wait() (err error) {
-	log.Info("asking for wait")
 	return nil
 }
