@@ -290,7 +290,26 @@ func DownloadManifest(ctx *context.Context) {
 	})
 }
 
-// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6
+// formFileOptionalReadCloser returns (nil, nil) if the formKey is not present.
+func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCloser, error) {
+	var file io.ReadCloser
+	multipartFile, _, err := ctx.Req.FormFile(formKey) // it calls ParseMultipartForm automatically
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
+		return nil, err
+	}
+	if multipartFile != nil {
+		return multipartFile, nil
+	}
+
+	_ = ctx.Req.ParseForm() // although ParseForm should have been called by FormFile->ParseMultipartForm, it's safe to call it again
+	if !ctx.Req.Form.Has(formKey) {
+		return nil, nil
+	}
+	file = io.NopCloser(strings.NewReader(ctx.Req.FormValue(formKey)))
+	return file, nil
+}
+
+// UploadPackageFile refers to https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6
 func UploadPackageFile(ctx *context.Context) {
 	packageScope := ctx.PathParam("scope")
 	packageName := ctx.PathParam("name")
@@ -304,22 +323,10 @@ func UploadPackageFile(ctx *context.Context) {
 
 	packageVersion := v.Core().String()
 
-	var file io.ReadCloser
-	multipartFile, _, err := ctx.Req.FormFile("source-archive")
-	if err != nil && !errors.Is(err, http.ErrMissingFile) {
-		apiError(ctx, http.StatusBadRequest, err)
+	file, err := formFileOptionalReadCloser(ctx, "source-archive")
+	if file == nil || err != nil {
+		apiError(ctx, http.StatusBadRequest, "unable to read source-archive file")
 		return
-	}
-
-	if multipartFile != nil {
-		file = multipartFile
-	} else {
-		content := ctx.Req.FormValue("source-archive")
-		if content == "" {
-			apiError(ctx, http.StatusBadRequest, "source-archive is required either as file or form value")
-			return
-		}
-		file = io.NopCloser(strings.NewReader(content))
 	}
 	defer file.Close()
 
@@ -330,15 +337,10 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	var mr io.ReadCloser
-	metadataFile, _, err := ctx.Req.FormFile("metadata")
+	mr, err := formFileOptionalReadCloser(ctx, "metadata")
 	if err != nil {
-		metadata := ctx.Req.FormValue("metadata")
-		if metadata != "" {
-			mr = io.NopCloser(strings.NewReader(metadata))
-		}
-	} else {
-		mr = metadataFile
+		apiError(ctx, http.StatusBadRequest, "unable to read metadata file")
+		return
 	}
 	if mr != nil {
 		defer mr.Close()
