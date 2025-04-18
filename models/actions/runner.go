@@ -124,6 +124,10 @@ func (r *ActionRunner) IsOnline() bool {
 }
 
 // Editable checks if the runner is editable by the user
+// ownerID == 0 and repoID == 0 means any runner including global runners
+// ownerID == 0 and repoID != 0 means any runner for the given repo
+// ownerID != 0 and repoID == 0 means any runner for the given user/org
+// ownerID != 0 and repoID != 0 means any runner for the given user/org or repo
 func (r *ActionRunner) Editable(ownerID, repoID int64) bool {
 	if ownerID == 0 && repoID == 0 {
 		return true
@@ -168,6 +172,10 @@ func init() {
 	db.RegisterModel(&ActionRunner{})
 }
 
+// FindRunnerOptions
+// ownerID == 0 and repoID == 0 means any runner including global runners
+// repoID != 0 means any runner for the given repo
+// ownerID != 0 and repoID == 0 means any runner for the given user/org
 type FindRunnerOptions struct {
 	db.ListOptions
 	IDs           []int64

@@ -35,6 +35,12 @@ func GetRegistrationToken(ctx *context.APIContext, ownerID, repoID int64) {
 	ctx.JSON(http.StatusOK, RegistrationToken{Token: token.Token})
 }
 
+// List Runners for api route validated ownerID and repoID
+// ownerID == 0 and repoID == 0 means all runners including global runners, does not appear in sql where clause
+// ownerID == 0 and repoID != 0 means all runners for the given repo
+// ownerID != 0 and repoID == 0 means all runners for the given user/org
+// ownerID != 0 and repoID != 0 undefined behavior
+// Access rights are checked at the API route level
 func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 	runners, total, err := db.FindAndCount[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{
 		OwnerID:     ownerID,
@@ -57,6 +63,12 @@ func ListRunners(ctx *context.APIContext, ownerID, repoID int64) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
+// Get Runners for api route validated ownerID and repoID
+// ownerID == 0 and repoID == 0 means any runner including global runners
+// ownerID == 0 and repoID != 0 means any runner for the given repo
+// ownerID != 0 and repoID == 0 means any runner for the given user/org
+// ownerID != 0 and repoID != 0 undefined behavior
+// Access rights are checked at the API route level
 func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
@@ -70,6 +82,12 @@ func GetRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	ctx.JSON(http.StatusOK, convert.ToActionRunner(ctx, runner))
 }
 
+// Delete Runner for api route validated ownerID and repoID
+// ownerID == 0 and repoID == 0 means any runner including global runners
+// ownerID == 0 and repoID != 0 means any runner for the given repo
+// ownerID != 0 and repoID == 0 means any runner for the given user/org
+// ownerID != 0 and repoID != 0 undefined behavior
+// Access rights are checked at the API route level
 func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
