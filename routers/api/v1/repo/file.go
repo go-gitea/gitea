@@ -1049,12 +1049,7 @@ func GetFiles(ctx *context.APIContext) {
 
 	filesResponse, err := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
 	if err != nil {
-		if err.Error() == "the combined size of the requested blobs exceeds the per-request limit set by the server administrator" {
-			ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
-		} else {
-			ctx.APIErrorNotFound("GetFiles")
-		}
-		return
+		ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
 	}
 
 	ctx.SetTotalCountHeader(int64(count))

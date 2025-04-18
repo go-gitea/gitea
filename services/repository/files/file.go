@@ -22,10 +22,7 @@ func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, 
 	files := []*api.ContentsResponse{}
 	var size int64
 	for _, file := range treeNames {
-		fileContents, err := GetContents(ctx, repo, file, branch, false)
-		if err != nil {
-			return nil, err
-		}
+		fileContents, _ := GetContents(ctx, repo, file, branch, false) // ok if fails, then will be nil
 		if *fileContents.Content != "" {
 			size += fileContents.Size // if content isn't empty (e. g. due to the single blob being too large), add file size to response size
 		}
