@@ -20,7 +20,7 @@ import (
 
 func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, branch string, treeNames []string) ([]*api.ContentsResponse, error) {
 	files := []*api.ContentsResponse{}
-	var size int64 = 0
+	var size int64
 	for _, file := range treeNames {
 		fileContents, err := GetContents(ctx, repo, file, branch, false)
 		if err != nil {
