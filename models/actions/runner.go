@@ -174,8 +174,10 @@ func init() {
 
 // FindRunnerOptions
 // ownerID == 0 and repoID == 0 means any runner including global runners
-// repoID != 0 means any runner for the given repo
-// ownerID != 0 and repoID == 0 means any runner for the given user/org
+// repoID != 0 and WithAvailable == false means any runner for the given repo
+// repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners
+// ownerID != 0 and repoID == 0 and WithAvailable == false means any runner for the given user/org
+// ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners
 type FindRunnerOptions struct {
 	db.ListOptions
 	IDs           []int64
