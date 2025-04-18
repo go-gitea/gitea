@@ -1041,11 +1041,11 @@ func GetFiles(ctx *context.APIContext) {
 
 	files := apiOpts.Files
 
-	filesResponse := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
-	count := len(filesResponse)
-
+	count := len(files)
 	listOpts := utils.GetListOptions(ctx)
-	filesResponse = util.PaginateSlice(filesResponse, listOpts.Page, listOpts.PageSize).([]*api.ContentsResponse)
+	files = util.PaginateSlice(files, listOpts.Page, listOpts.PageSize).([]string)
+
+	filesResponse := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
 
 	ctx.SetTotalCountHeader(int64(count))
 	ctx.JSON(http.StatusOK, filesResponse)
