@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -123,12 +124,15 @@ func (r *ActionRunner) IsOnline() bool {
 	return false
 }
 
-// Editable checks if the runner is editable by the user
-// ownerID == 0 and repoID == 0 means any runner including global runners
-// ownerID == 0 and repoID != 0 means any runner for the given repo
-// ownerID != 0 and repoID == 0 means any runner for the given user/org
-// ownerID != 0 and repoID != 0 means any runner for the given user/org or repo
-func (r *ActionRunner) Editable(ownerID, repoID int64) bool {
+// EditableInContext checks if the runner is editable by the "context" owner/repo
+// ownerID == 0 and repoID == 0 means "admin" context, any runner including global runners could be edited
+// ownerID == 0 and repoID != 0 means "repo" context, any runner belonging to the given repo could be edited
+// ownerID != 0 and repoID == 0 means "org" context, any runner belonging to the given user/org could be edited
+// ownerID != 0 and repoID != 0 means "owner" OR "repo" context, legacy behavior, but we should forbid using it
+func (r *ActionRunner) EditableInContext(ownerID, repoID int64) bool {
+	if ownerID != 0 && repoID != 0 {
+		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
+	}
 	if ownerID == 0 && repoID == 0 {
 		return true
 	}

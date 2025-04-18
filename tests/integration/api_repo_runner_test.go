@@ -108,7 +108,7 @@ func TestAPIRunnerGetAdminRunnerNotFoundRepoApi(t *testing.T) {
 	userUsername := "user2"
 	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeReadRepository)
 	// Verify get a runner by id of different entity is not found
-	// runner.Editable(ownerID, repoID) false
+	// runner.EditableInContext(ownerID, repoID) false
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34349)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
@@ -118,7 +118,7 @@ func TestAPIRunnerDeleteAdminRunnerNotFoundRepoApi(t *testing.T) {
 	userUsername := "user2"
 	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
 	// Verify delete a runner by id of different entity is not found
-	// runner.Editable(ownerID, repoID) false
+	// runner.EditableInContext(ownerID, repoID) false
 	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34349)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
