@@ -912,7 +912,11 @@ func Routes() *web.Router {
 			})
 
 			m.Group("/runners", func() {
+				m.Get("", reqToken(), reqChecker, act.ListRunners)
 				m.Get("/registration-token", reqToken(), reqChecker, act.GetRegistrationToken)
+				m.Post("/registration-token", reqToken(), reqChecker, act.CreateRegistrationToken)
+				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
+				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
 			})
 		})
 	}
@@ -1043,7 +1047,11 @@ func Routes() *web.Router {
 				})
 
 				m.Group("/runners", func() {
+					m.Get("", reqToken(), user.ListRunners)
 					m.Get("/registration-token", reqToken(), user.GetRegistrationToken)
+					m.Post("/registration-token", reqToken(), user.CreateRegistrationToken)
+					m.Get("/{runner_id}", reqToken(), user.GetRunner)
+					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
 				})
 			})
 
@@ -1545,14 +1553,19 @@ func Routes() *web.Router {
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
 			m.Group("/{type}/{name}", func() {
+				m.Get("/", packages.ListPackageVersions)
+
 				m.Group("/{version}", func() {
 					m.Get("", packages.GetPackage)
 					m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
 					m.Get("/files", packages.ListPackageFiles)
 				})
 
-				m.Post("/-/link/{repo_name}", reqPackageAccess(perm.AccessModeWrite), packages.LinkPackage)
-				m.Post("/-/unlink", reqPackageAccess(perm.AccessModeWrite), packages.UnlinkPackage)
+				m.Group("/-", func() {
+					m.Get("/latest", packages.GetLatestPackageVersion)
+					m.Post("/link/{repo_name}", reqPackageAccess(perm.AccessModeWrite), packages.LinkPackage)
+					m.Post("/unlink", reqPackageAccess(perm.AccessModeWrite), packages.UnlinkPackage)
+				})
 			})
 
 			m.Get("/", packages.ListPackages)
@@ -1684,6 +1697,12 @@ func Routes() *web.Router {
 				m.Combo("/{id}").Get(admin.GetHook).
 					Patch(bind(api.EditHookOption{}), admin.EditHook).
 					Delete(admin.DeleteHook)
+			})
+			m.Group("/actions/runners", func() {
+				m.Get("", admin.ListRunners)
+				m.Post("/registration-token", admin.CreateRegistrationToken)
+				m.Get("/{runner_id}", admin.GetRunner)
+				m.Delete("/{runner_id}", admin.DeleteRunner)
 			})
 			m.Group("/runners", func() {
 				m.Get("/registration-token", admin.GetRegistrationToken)
