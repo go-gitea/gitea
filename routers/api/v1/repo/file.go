@@ -1026,6 +1026,8 @@ func GetFiles(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ContentsListResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "413":
+	//		 "$ref": "#/responses/contentTooLarge"
 
 	apiOpts := web.GetForm(ctx).(*api.GetFilesOptions)
 
@@ -1045,7 +1047,10 @@ func GetFiles(ctx *context.APIContext) {
 	listOpts := utils.GetListOptions(ctx)
 	files = util.PaginateSlice(files, listOpts.Page, listOpts.PageSize).([]string)
 
-	filesResponse := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
+	filesResponse, err := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
+	if err != nil {
+		ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
+	}
 
 	ctx.SetTotalCountHeader(int64(count))
 	ctx.JSON(http.StatusOK, filesResponse)

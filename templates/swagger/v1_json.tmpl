@@ -6829,6 +6829,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "413": {
+            "$ref": "#/responses/contentTooLarge"
           }
         }
       }
@@ -22914,6 +22917,11 @@
           "format": "int64",
           "x-go-name": "DefaultMaxBlobSize"
         },
+        "default_max_response_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DefaultMaxResponseSize"
+        },
         "default_paging_num": {
           "type": "integer",
           "format": "int64",
@@ -27598,6 +27606,17 @@
     },
     "conflict": {
       "description": "APIConflict is a conflict empty response"
+    },
+    "contentTooLarge": {
+      "description": "APIContentTooLarge is a content too large error response",
+      "headers": {
+        "message": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
     },
     "empty": {
       "description": "APIEmpty is an empty response"

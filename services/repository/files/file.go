@@ -13,21 +13,32 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 )
 
-func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, branch string, treeNames []string) []*api.ContentsResponse {
+func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, branch string, treeNames []string) ([]*api.ContentsResponse, error) {
 	files := []*api.ContentsResponse{}
+	var size int64 = 0
 	for _, file := range treeNames {
 		fileContents, _ := GetContents(ctx, repo, file, branch, false) // ok if fails, then will be nil
+		if *fileContents.Content != "" {
+			size += fileContents.Size // if content isn't empty (e. g. due to the single blob being too large), add file size to response size
+		}
+		if size > setting.API.DefaultMaxResponseSize {
+			return nil, fmt.Errorf("the combined size of the requested blobs exceeds the per-request limit set by the server administrator")
+		}
 		files = append(files, fileContents)
 	}
-	return files
+	return files, nil
 }
 
 func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch string, treeNames []string) (*api.FilesResponse, error) {
-	files := GetContentsListFromTrees(ctx, repo, branch, treeNames)
+	files, err := GetContentsListFromTrees(ctx, repo, branch, treeNames)
+	if err != nil {
+		return nil, err
+	}
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(ctx, commit)
 	filesResponse := &api.FilesResponse{

@@ -91,6 +91,12 @@ type APIForbiddenError struct {
 // swagger:response notFound
 type APINotFound struct{}
 
+// APIContentTooLarge is a content too large error response
+// swagger:response contentTooLarge
+type APIContentTooLarge struct {
+	APIError
+}
+
 // APIConflict is a conflict empty response
 // swagger:response conflict
 type APIConflict struct{}
