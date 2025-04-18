@@ -11,10 +11,14 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 
+	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/convert"
 )
 
 // CreateOauthAuth create a new external authentication for oauth2
@@ -77,5 +81,22 @@ func DeleteOauthAuth(ctx *context.APIContext) {
 
 // // SearchOauthAuth API for getting information of the configured authentication methods according the filter conditions
 func SearchOauthAuth(ctx *context.APIContext) {
+	listOptions := utils.GetListOptions(ctx)
 
+	authSources, maxResults, err := db.FindAndCount[auth.Source](ctx, auth.FindSourcesOptions{})
+	// fmt.Printf("Count: %d, models: %v, err: %v", count, models[0].Name, err)
+
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	results := make([]*api.AuthOauth2Option, len(authSources))
+	for i := range authSources {
+		results[i] = convert.ToOauthProvider(ctx, authSources[i])
+	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.SetTotalCountHeader(maxResults)
+	ctx.JSON(http.StatusOK, &results)
 }
