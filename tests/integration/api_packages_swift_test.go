@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageSwift(t *testing.T) {
@@ -239,9 +240,9 @@ func TestPackageSwift(t *testing.T) {
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeSwift)
 		assert.NoError(t, err)
-		assert.Len(t, pvs, 2)
-
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[1])
+		require.Len(t, pvs, 2) // ATTENTION: many subtests are unable to run separately, they depend on the results of previous tests
+		thisPackageVersion := pvs[0]
+		pd, err := packages.GetPackageDescriptor(db.DefaultContext, thisPackageVersion)
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.Equal(t, packageID, pd.Package.Name)
@@ -255,7 +256,7 @@ func TestPackageSwift(t *testing.T) {
 		assert.Len(t, pd.VersionProperties, 1)
 		assert.Equal(t, packageRepositoryURL, pd.VersionProperties.GetByName(swift_module.PropertyRepositoryURL))
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[1].ID)
+		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, thisPackageVersion.ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, fmt.Sprintf("%s-%s.zip", packageName, packageVersion2), pfs[0].Name)
