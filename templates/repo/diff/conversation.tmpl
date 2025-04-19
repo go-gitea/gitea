@@ -8,9 +8,9 @@
 	{{$referenceUrl := printf "%s#%s" $.Issue.Link $comment.HashTag}}
 	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if lt $comment.Line 0}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
 		{{if $resolved}}
-			<div class="ui attached header resolved-placeholder tw-flex tw-items-center tw-justify-between">
-				<div class="ui grey text tw-flex tw-items-center tw-flex-wrap tw-gap-1">
-					{{svg "octicon-check" 16 "icon tw-mr-1"}}
+			<div class="resolved-placeholder">
+				<div class="flex-text-block tw-flex-wrap grey text">
+					{{svg "octicon-check"}}
 					<b>{{$resolveDoer.Name}}</b> {{ctx.Locale.Tr "repo.issues.review.resolved_by"}}
 					{{if $invalid}}
 						<!--
@@ -22,14 +22,12 @@
 						</a>
 					{{end}}
 				</div>
-				<div class="tw-flex tw-items-center tw-gap-2">
-					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button show-outdated tw-flex tw-items-center">
-						{{svg "octicon-unfold" 16 "tw-mr-2"}}
-						{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
+				<div class="flex-text-block">
+					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="btn tiny show-outdated">
+						{{svg "octicon-unfold" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="ui tiny labeled button hide-outdated tw-flex tw-items-center tw-hidden">
-						{{svg "octicon-fold" 16 "tw-mr-2"}}
-						{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
+					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="btn tiny hide-outdated tw-hidden">
+						{{svg "octicon-fold" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
 					</button>
 				</div>
 			</div>
