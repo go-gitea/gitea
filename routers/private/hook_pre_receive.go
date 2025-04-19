@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	gitea_context "code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -544,12 +545,18 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 
 // checks commits for secrets
 func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, _ git.RefName) {
-	if ctx.opts.GitPushOptions.Bool("skip.secret-detection").Has() {
+	// Skip check if disabled globally
+	if !setting.Repository.EnablePushSecretDetection {
+		return
+	}
+
+	// Bypass allowed only if user is repository admin
+	if ctx.opts.GitPushOptions.Bool("skip.secret-detection").Value() && ctx.Repo.IsAdmin() {
 		return
 	}
 	repo := ctx.Repo.Repository
 
-	// New commit is empty so there's nothing to check for
+	// We're deleting a reference so that's not a concern
 	if newCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
 		return
 	}
@@ -559,8 +566,9 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 		ctx.Status(http.StatusTeapot)
 		return
 	}
-	if oldCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
 
+	// if this reference is new we need a base to compare to
+	if oldCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
 		base, _, err := git.NewCommand("merge-base").AddDynamicArguments(newCommitID).RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
 		if err != nil {
 			ctx.Status(http.StatusTeapot)
@@ -570,7 +578,6 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 	}
 	// out, _, err = git.NewCommand("format-patch", "--stdout", "-U0").AddDynamicArguments(oldCommitID, newCommitID).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
 	out, _, err := git.NewCommand("show", "-U0").AddDynamicArguments(oldCommitID+".."+newCommitID).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
-
 	if err != nil {
 		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
 		return
@@ -585,6 +592,7 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 		ctx.Status(http.StatusTeapot)
 		return
 	}
+
 	if len(findings) != 0 {
 		msg := strings.Builder{}
 		msg.WriteString("This repository has secret detection enabled! Following secrets were detected:\n")
@@ -592,7 +600,6 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 		for _, finding := range findings {
 			msg.WriteString(fmt.Sprintf("\n-- Commit %s contains a secret in %v:%v\n", finding.Commit, finding.File, finding.StartLine))
 			msg.WriteString(fmt.Sprintf("RuleID: %v", finding.RuleID))
-
 		}
 
 		ctx.JSON(http.StatusForbidden, private.Response{UserMsg: msg.String()})
