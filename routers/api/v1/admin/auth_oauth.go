@@ -58,12 +58,17 @@ func CreateOauthAuth(ctx *context.APIContext) {
 		GroupTeamMapRemoval: form.RemoveUsersFromSyncronizedTeams,
 	}
 
-	auth_model.CreateSource(ctx, &auth_model.Source{
+	createErr := auth_model.CreateSource(ctx, &auth_model.Source{
 		Type:     auth_model.OAuth2,
 		Name:     form.AuthenticationName,
 		IsActive: true,
 		Cfg:      config,
 	})
+
+	if createErr != nil {
+		ctx.APIErrorInternal(createErr)
+		return
+	}
 
 	ctx.Status(http.StatusCreated)
 }
@@ -74,14 +79,13 @@ func EditOauthAuth(ctx *context.APIContext) {
 
 // DeleteOauthAuth api for deleting a authentication method
 func DeleteOauthAuth(ctx *context.APIContext) {
-	oauthIdString := ctx.PathParam("id")
-	oauthID, oauthIdErr := strconv.Atoi(oauthIdString)
-	if oauthIdErr != nil {
-		ctx.APIErrorInternal(oauthIdErr)
+	oauthIDString := ctx.PathParam("id")
+	oauthID, oauthIDErr := strconv.Atoi(oauthIDString)
+	if oauthIDErr != nil {
+		ctx.APIErrorInternal(oauthIDErr)
 	}
 
 	err := auth_model.DeleteSource(ctx, int64(oauthID))
-
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -95,8 +99,6 @@ func SearchOauthAuth(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	authSources, maxResults, err := db.FindAndCount[auth_model.Source](ctx, auth_model.FindSourcesOptions{})
-	// fmt.Printf("Count: %d, models: %v, err: %v", count, models[0].Name, err)
-
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

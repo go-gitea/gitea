@@ -17,7 +17,7 @@ func ToOauthProvider(ctx context.Context, provider *auth_model.Source) *api.Auth
 		return nil
 	}
 
-	return toOauthProvider(ctx, provider)
+	return toOauthProvider(provider)
 }
 
 // ToUsers convert list of user_model.User to list of api.User
@@ -29,7 +29,7 @@ func ToOauthProviders(ctx context.Context, provider []*auth_model.Source) []*api
 	return result
 }
 
-func toOauthProvider(ctx context.Context, provider *auth_model.Source) *api.AuthOauth2Option {
+func toOauthProvider(provider *auth_model.Source) *api.AuthOauth2Option {
 	return &api.AuthOauth2Option{
 		ID:                 provider.ID,
 		AuthenticationName: provider.Name,
