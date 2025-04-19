@@ -11,12 +11,10 @@ import (
 	"strconv"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-
-	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -96,7 +94,7 @@ func DeleteOauthAuth(ctx *context.APIContext) {
 func SearchOauthAuth(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
-	authSources, maxResults, err := db.FindAndCount[auth.Source](ctx, auth.FindSourcesOptions{})
+	authSources, maxResults, err := db.FindAndCount[auth_model.Source](ctx, auth_model.FindSourcesOptions{})
 	// fmt.Printf("Count: %d, models: %v, err: %v", count, models[0].Name, err)
 
 	if err != nil {
