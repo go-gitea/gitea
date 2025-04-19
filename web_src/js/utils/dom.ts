@@ -89,7 +89,7 @@ export function queryElemChildren<T extends Element>(parent: Element | ParentNod
 }
 
 // it works like parent.querySelectorAll: all descendants are selected
-// in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent
+// in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent if the targets are not for page-level components.
 export function queryElems<T extends HTMLElement>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
 }
