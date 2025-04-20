@@ -39,9 +39,6 @@ type CreateAuthOauth2Option struct {
 
 // EditUserOption edit user options
 type EditAuthOauth2Option struct {
-	// // required: true
-	SourceID int64 `json:"source_id"`
-
 	AuthenticationName       string `json:"authentication_name" binding:"Required"`
 	ProviderIconURL          string `json:"provider_icon_url"`
 	ProviderClientID         string `json:"provider_client_id" binding:"Required"`
