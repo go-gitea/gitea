@@ -290,9 +290,14 @@ func TestRender_email(t *testing.T) {
 		input, expected string
 	}{
 		// match GitHub behavior
-		{"?a@example.com", `<p>?<a href="mailto:a@example.com" rel="nofollow">a@example.com</a></p>`},
-		{"*a@example.com", `<p>*<a href="mailto:a@example.com" rel="nofollow">a@example.com</a></p>`},
-		{"~a@example.com", `<p>~<a href="mailto:a@example.com" rel="nofollow">a@example.com</a></p>`},
+		{"?a@d.zz", `<p>?<a href="mailto:a@d.zz" rel="nofollow">a@d.zz</a></p>`},
+		{"*a@d.zz", `<p>*<a href="mailto:a@d.zz" rel="nofollow">a@d.zz</a></p>`},
+		{"~a@d.zz", `<p>~<a href="mailto:a@d.zz" rel="nofollow">a@d.zz</a></p>`},
+
+		// the following cases don't match GitHub behavior, but they are valid email addresses ...
+		// maybe we should reduce the candidate characters for the "name" part in the future
+		{"a*a@d.zz", `<p><a href="mailto:a*a@d.zz" rel="nofollow">a*a@d.zz</a></p>`},
+		{"a~a@d.zz", `<p><a href="mailto:a~a@d.zz" rel="nofollow">a~a@d.zz</a></p>`},
 	}
 	for _, c := range cases {
 		test(c.input, c.expected)
