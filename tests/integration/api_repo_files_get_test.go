@@ -155,7 +155,7 @@ func testAPIGetRequestedFiles(t *testing.T, u *url.URL) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
-	assert.Equal(t, setting.API.DefaultPagingNum, len(contentsListResponse))
+	assert.Len(t, contentsListResponse, setting.API.DefaultPagingNum)
 
 	// create new repo for large file tests
 	baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
@@ -202,7 +202,7 @@ func testAPIGetRequestedFiles(t *testing.T, u *url.URL) {
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
 	assert.Equal(t, int64(15728640), contentsListResponse[0].Size)
-	assert.Equal(t, "", *contentsListResponse[0].Content)
+	assert.Empty(t, *contentsListResponse[0].Content)
 
 	// Test response size limit
 	smallFile := make([]byte, 5242880) // 5 MiB -> under max blob size
@@ -235,5 +235,5 @@ func testAPIGetRequestedFiles(t *testing.T, u *url.URL) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
-	assert.Equal(t, 20, len(contentsListResponse))
+	assert.Len(t, contentsListResponse, 20)
 }
