@@ -28,8 +28,10 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/gitleaks/go-gitdiff/gitdiff"
+	"github.com/rs/zerolog"
 	"github.com/zricethezav/gitleaks/v8/cmd/scm"
 	gitleaks "github.com/zricethezav/gitleaks/v8/detect"
+	gitleaks_log "github.com/zricethezav/gitleaks/v8/logging"
 )
 
 type preReceiveContext struct {
@@ -633,4 +635,8 @@ func (g *giteacmd) ErrCh() <-chan error {
 // Wait implements sources.Git.
 func (g *giteacmd) Wait() (err error) {
 	return nil
+}
+
+func init() {
+	gitleaks_log.Logger = zerolog.Nop()
 }
