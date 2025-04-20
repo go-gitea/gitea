@@ -76,6 +76,7 @@ func TestShadowPassword(t *testing.T) {
 func TestSelfCheckPost(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://config/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	defer test.MockVariableValue(&setting.UseHostHeader, false)()
 
 	ctx, resp := contexttest.MockContext(t, "GET http://host/sub/admin/self_check?location_origin=http://frontend")
 	SelfCheckPost(ctx)
