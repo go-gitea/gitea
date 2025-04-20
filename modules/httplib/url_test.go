@@ -42,6 +42,8 @@ func TestIsRelativeURL(t *testing.T) {
 
 func TestGuessCurrentHostURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	defer test.MockVariableValue(&setting.UseHostHeader, false)()
 
 	ctx := t.Context()
 	assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))

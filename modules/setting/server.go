@@ -199,7 +199,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	}
 
 	switch protocolCfg {
-	case "http":
+	case "", "http":
 		Protocol = HTTP
 	case "https":
 		Protocol = HTTPS
