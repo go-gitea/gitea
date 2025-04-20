@@ -29,7 +29,9 @@ import (
 
 	"github.com/gitleaks/go-gitdiff/gitdiff"
 	"github.com/rs/zerolog"
+	"github.com/spf13/viper"
 	"github.com/zricethezav/gitleaks/v8/cmd/scm"
+	gitleaks_config "github.com/zricethezav/gitleaks/v8/config"
 	gitleaks "github.com/zricethezav/gitleaks/v8/detect"
 	gitleaks_log "github.com/zricethezav/gitleaks/v8/logging"
 )
@@ -562,10 +564,10 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 	if newCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
 		return
 	}
-
-	detector, err := gitleaks.NewDetectorDefaultConfig()
+	config, _, _ := git.NewCommand("show").AddDynamicArguments(repo.DefaultBranch+":.gitleaks.toml").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
+	detector, err := newDetector(config)
 	if err != nil {
-		ctx.Status(http.StatusTeapot)
+		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
 		return
 	}
 
@@ -639,4 +641,27 @@ func (g *giteacmd) Wait() (err error) {
 
 func init() {
 	gitleaks_log.Logger = zerolog.Nop()
+}
+
+func newDetector(config string) (*gitleaks.Detector, error) {
+	viper.SetConfigType("toml")
+	var err error
+	if len(config) > 0 {
+		err = viper.ReadConfig(strings.NewReader(config))
+	} else {
+		err = viper.ReadConfig(strings.NewReader(gitleaks_config.DefaultConfig))
+	}
+	if err != nil {
+		return nil, err
+	}
+	var vc gitleaks_config.ViperConfig
+	err = viper.Unmarshal(&vc)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := vc.Translate()
+	if err != nil {
+		return nil, err
+	}
+	return gitleaks.NewDetector(cfg), nil
 }
