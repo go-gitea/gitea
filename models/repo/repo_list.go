@@ -13,17 +13,13 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
-
-// FindReposMapByIDs find repos as map
-func FindReposMapByIDs(ctx context.Context, repoIDs []int64, res map[int64]*Repository) error {
-	return db.GetEngine(ctx).In("id", repoIDs).Find(&res)
-}
 
 // RepositoryListDefaultPageSize is the default number of repositories
 // to load in memory when running administrative tasks on all (or almost
@@ -62,36 +58,74 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(ValuesRepository(repoMap))
 }
 
-// LoadAttributes loads the attributes for the given RepositoryList
-func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
+func (repos RepositoryList) LoadUnits(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
 	}
 
-	set := make(container.Set[int64])
-	repoIDs := make([]int64, len(repos))
-	for i := range repos {
-		set.Add(repos[i].OwnerID)
-		repoIDs[i] = repos[i].ID
+	// Load units.
+	units := make([]*RepoUnit, 0, len(repos)*6)
+	if err := db.GetEngine(ctx).
+		In("repo_id", repos.IDs()).
+		Find(&units); err != nil {
+		return fmt.Errorf("find units: %w", err)
 	}
 
+	unitsMap := make(map[int64][]*RepoUnit, len(repos))
+	for _, unit := range units {
+		if !unit.Type.UnitGlobalDisabled() {
+			unitsMap[unit.RepoID] = append(unitsMap[unit.RepoID], unit)
+		}
+	}
+
+	for _, repo := range repos {
+		repo.Units = unitsMap[repo.ID]
+	}
+
+	return nil
+}
+
+func (repos RepositoryList) IDs() []int64 {
+	repoIDs := make([]int64, len(repos))
+	for i := range repos {
+		repoIDs[i] = repos[i].ID
+	}
+	return repoIDs
+}
+
+func (repos RepositoryList) LoadOwners(ctx context.Context) error {
+	if len(repos) == 0 {
+		return nil
+	}
+
+	userIDs := container.FilterSlice(repos, func(repo *Repository) (int64, bool) {
+		return repo.OwnerID, true
+	})
+
 	// Load owners.
-	users := make(map[int64]*user_model.User, len(set))
+	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
-		In("id", set.Values()).
+		In("id", userIDs).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %w", err)
 	}
 	for i := range repos {
 		repos[i].Owner = users[repos[i].OwnerID]
 	}
+	return nil
+}
+
+func (repos RepositoryList) LoadLanguageStats(ctx context.Context) error {
+	if len(repos) == 0 {
+		return nil
+	}
 
 	// Load primary language.
 	stats := make(LanguageStatList, 0, len(repos))
 	if err := db.GetEngine(ctx).
 		Where("`is_primary` = ? AND `language` != ?", true, "other").
-		In("`repo_id`", repoIDs).
+		In("`repo_id`", repos.IDs()).
 		Find(&stats); err != nil {
 		return fmt.Errorf("find primary languages: %w", err)
 	}
@@ -104,8 +138,16 @@ func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 			}
 		}
 	}
-
 	return nil
+}
+
+// LoadAttributes loads the attributes for the given RepositoryList
+func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
+	if err := repos.LoadOwners(ctx); err != nil {
+		return err
+	}
+
+	return repos.LoadLanguageStats(ctx)
 }
 
 // SearchRepoOptions holds the search options
@@ -125,11 +167,11 @@ type SearchRepoOptions struct {
 	// None -> include public and private
 	// True -> include just private
 	// False -> include just public
-	IsPrivate util.OptionalBool
+	IsPrivate optional.Option[bool]
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> include just non-collaborative
-	Collaborate util.OptionalBool
+	Collaborate optional.Option[bool]
 	// What type of unit the user can be collaborative in,
 	// it is ignored if Collaborate is False.
 	// TypeInvalid means any unit type.
@@ -137,19 +179,21 @@ type SearchRepoOptions struct {
 	// None -> include forks AND non-forks
 	// True -> include just forks
 	// False -> include just non-forks
-	Fork util.OptionalBool
+	Fork optional.Option[bool]
+	// If Fork option is True, you can use this option to limit the forks of a special repo by repo id.
+	ForkFrom int64
 	// None -> include templates AND non-templates
 	// True -> include just templates
 	// False -> include just non-templates
-	Template util.OptionalBool
+	Template optional.Option[bool]
 	// None -> include mirrors AND non-mirrors
 	// True -> include just mirrors
 	// False -> include just non-mirrors
-	Mirror util.OptionalBool
+	Mirror optional.Option[bool]
 	// None -> include archived AND non-archived
 	// True -> include just archived
 	// False -> include just non-archived
-	Archived util.OptionalBool
+	Archived optional.Option[bool]
 	// only search topic name
 	TopicOnly bool
 	// only search repositories with specified primary language
@@ -159,7 +203,7 @@ type SearchRepoOptions struct {
 	// None -> include has milestones AND has no milestone
 	// True -> include just has milestones
 	// False -> include just has no milestone
-	HasMilestones util.OptionalBool
+	HasMilestones optional.Option[bool]
 	// LowerNames represents valid lower names to restrict to
 	LowerNames []string
 	// When specified true, apply some filters over the conditions:
@@ -167,31 +211,6 @@ type SearchRepoOptions struct {
 	// - Do not display repositories that don't have a description, an icon and topics.
 	OnlyShowRelevant bool
 }
-
-// SearchOrderBy is used to sort the result
-type SearchOrderBy string
-
-func (s SearchOrderBy) String() string {
-	return string(s)
-}
-
-// Strings for sorting result
-const (
-	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
-	SearchOrderByAlphabeticallyReverse SearchOrderBy = "name DESC"
-	SearchOrderByLeastUpdated          SearchOrderBy = "updated_unix ASC"
-	SearchOrderByRecentUpdated         SearchOrderBy = "updated_unix DESC"
-	SearchOrderByOldest                SearchOrderBy = "created_unix ASC"
-	SearchOrderByNewest                SearchOrderBy = "created_unix DESC"
-	SearchOrderBySize                  SearchOrderBy = "size ASC"
-	SearchOrderBySizeReverse           SearchOrderBy = "size DESC"
-	SearchOrderByID                    SearchOrderBy = "id ASC"
-	SearchOrderByIDReverse             SearchOrderBy = "id DESC"
-	SearchOrderByStars                 SearchOrderBy = "num_stars ASC"
-	SearchOrderByStarsReverse          SearchOrderBy = "num_stars DESC"
-	SearchOrderByForks                 SearchOrderBy = "num_forks ASC"
-	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
-)
 
 // UserOwnedRepoCond returns user ownered repositories
 func UserOwnedRepoCond(userID int64) builder.Cond {
@@ -359,12 +378,12 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			)))
 	}
 
-	if opts.IsPrivate != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_private": opts.IsPrivate.IsTrue()})
+	if opts.IsPrivate.Has() {
+		cond = cond.And(builder.Eq{"is_private": opts.IsPrivate.Value()})
 	}
 
-	if opts.Template != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_template": opts.Template == util.OptionalBoolTrue})
+	if opts.Template.Has() {
+		cond = cond.And(builder.Eq{"is_template": opts.Template.Value()})
 	}
 
 	// Restrict to starred repositories
@@ -380,11 +399,11 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	// Restrict repositories to those the OwnerID owns or contributes to as per opts.Collaborate
 	if opts.OwnerID > 0 {
 		accessCond := builder.NewCond()
-		if opts.Collaborate != util.OptionalBoolTrue {
+		if !opts.Collaborate.Value() {
 			accessCond = builder.Eq{"owner_id": opts.OwnerID}
 		}
 
-		if opts.Collaborate != util.OptionalBoolFalse {
+		if opts.Collaborate.ValueOrDefault(true) {
 			// A Collaboration is:
 
 			collaborateCond := builder.NewCond()
@@ -472,31 +491,36 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
 	}
 
-	if opts.Fork != util.OptionalBoolNone || opts.OnlyShowRelevant {
-		if opts.OnlyShowRelevant && opts.Fork == util.OptionalBoolNone {
+	if opts.Fork.Has() || opts.OnlyShowRelevant {
+		if opts.OnlyShowRelevant && !opts.Fork.Has() {
 			cond = cond.And(builder.Eq{"is_fork": false})
 		} else {
-			cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+			cond = cond.And(builder.Eq{"is_fork": opts.Fork.Value()})
+
+			if opts.ForkFrom > 0 && opts.Fork.Value() {
+				cond = cond.And(builder.Eq{"fork_id": opts.ForkFrom})
+			}
 		}
 	}
 
-	if opts.Mirror != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror == util.OptionalBoolTrue})
+	if opts.Mirror.Has() {
+		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror.Value()})
 	}
 
 	if opts.Actor != nil && opts.Actor.IsRestricted {
 		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 	}
 
-	if opts.Archived != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_archived": opts.Archived == util.OptionalBoolTrue})
+	if opts.Archived.Has() {
+		cond = cond.And(builder.Eq{"is_archived": opts.Archived.Value()})
 	}
 
-	switch opts.HasMilestones {
-	case util.OptionalBoolTrue:
-		cond = cond.And(builder.Gt{"num_milestones": 0})
-	case util.OptionalBoolFalse:
-		cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+	if opts.HasMilestones.Has() {
+		if opts.HasMilestones.Value() {
+			cond = cond.And(builder.Gt{"num_milestones": 0})
+		} else {
+			cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+		}
 	}
 
 	if opts.OnlyShowRelevant {
@@ -730,7 +754,7 @@ func GetUserRepositories(ctx context.Context, opts *SearchRepoOptions) (Reposito
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	if opts.LowerNames != nil && len(opts.LowerNames) > 0 {
+	if len(opts.LowerNames) > 0 {
 		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 

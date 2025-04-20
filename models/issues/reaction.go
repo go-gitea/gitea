@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -163,7 +164,7 @@ func FindReactions(ctx context.Context, opts FindReactionsOptions) (ReactionList
 		Where(opts.toConds()).
 		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
-	if opts.Page != 0 {
+	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 
 		reactions := make([]*Reaction, 0, opts.PageSize)
@@ -240,25 +241,6 @@ func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 	return reaction, nil
 }
 
-// CreateIssueReaction creates a reaction on issue.
-func CreateIssueReaction(ctx context.Context, doerID, issueID int64, content string) (*Reaction, error) {
-	return CreateReaction(ctx, &ReactionOptions{
-		Type:    content,
-		DoerID:  doerID,
-		IssueID: issueID,
-	})
-}
-
-// CreateCommentReaction creates a reaction on comment.
-func CreateCommentReaction(ctx context.Context, doerID, issueID, commentID int64, content string) (*Reaction, error) {
-	return CreateReaction(ctx, &ReactionOptions{
-		Type:      content,
-		DoerID:    doerID,
-		IssueID:   issueID,
-		CommentID: commentID,
-	})
-}
-
 // DeleteReaction deletes reaction for issue or comment.
 func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
 	reaction := &Reaction{
@@ -324,14 +306,12 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 }
 
 func (list ReactionList) getUserIDs() []int64 {
-	userIDs := make(container.Set[int64], len(list))
-	for _, reaction := range list {
+	return container.FilterSlice(list, func(reaction *Reaction) (int64, bool) {
 		if reaction.OriginalAuthor != "" {
-			continue
+			return 0, false
 		}
-		userIDs.Add(reaction.UserID)
-	}
-	return userIDs.Values()
+		return reaction.UserID, true
+	})
 }
 
 func valuesUser(m map[int64]*user_model.User) []*user_model.User {
@@ -340,6 +320,11 @@ func valuesUser(m map[int64]*user_model.User) []*user_model.User {
 		values = append(values, v)
 	}
 	return values
+}
+
+// newMigrationOriginalUser creates and returns a fake user for external user
+func newMigrationOriginalUser(name string) *user_model.User {
+	return &user_model.User{ID: 0, Name: name, LowerName: strings.ToLower(name)}
 }
 
 // LoadUsers loads reactions' all users
@@ -359,7 +344,7 @@ func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Reposit
 
 	for _, reaction := range list {
 		if reaction.OriginalAuthor != "" {
-			reaction.User = user_model.NewReplaceUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
+			reaction.User = newMigrationOriginalUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
 		} else if user, ok := userMaps[reaction.UserID]; ok {
 			reaction.User = user
 		} else {

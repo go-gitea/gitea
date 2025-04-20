@@ -2,10 +2,14 @@
   margin: 10px 0;
   height: 0;
   font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
   color: var(--color-text);
   font-size: 1rem;
   width: 100%;
+}
+
+h4.divider {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
 }
 
 .divider:not(.divider-text) {

@@ -7,14 +7,13 @@ package git
 
 import (
 	"io"
-	"math"
 	"strings"
 )
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	ID         SHA1
-	ResolvedID SHA1
+	ID         ObjectID
+	ResolvedID ObjectID
 	repo       *Repository
 
 	// parent tree
@@ -34,7 +33,10 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		wr, rd, cancel := t.repo.CatFileBatch(t.repo.Ctx)
+		wr, rd, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
+		if err != nil {
+			return nil, err
+		}
 		defer cancel()
 
 		_, _ = wr.Write([]byte(t.ID.String() + "\n"))
@@ -54,7 +56,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 			}
 		}
 		if typ == "tree" {
-			t.entries, err = catBatchParseTreeEntries(t, rd, sz)
+			t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, sz)
 			if err != nil {
 				return nil, err
 			}
@@ -63,23 +65,12 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 
 		// Not a tree just use ls-tree instead
-		for sz > math.MaxInt32 {
-			discarded, err := rd.Discard(math.MaxInt32)
-			sz -= int64(discarded)
-			if err != nil {
-				return nil, err
-			}
-		}
-		for sz > 0 {
-			discarded, err := rd.Discard(int(sz))
-			sz -= int64(discarded)
-			if err != nil {
-				return nil, err
-			}
+		if err := DiscardFull(rd, sz+1); err != nil {
+			return nil, err
 		}
 	}
 
-	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-l").AddDynamicArguments(t.ID.String()).RunStdBytes(&RunOpts{Dir: t.repo.Path})
+	stdout, _, runErr := NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).RunStdBytes(t.repo.Ctx, &RunOpts{Dir: t.repo.Path})
 	if runErr != nil {
 		if strings.Contains(runErr.Error(), "fatal: Not a valid object name") || strings.Contains(runErr.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{
@@ -105,10 +96,10 @@ func (t *Tree) listEntriesRecursive(extraArgs TrustedCmdArgs) (Entries, error) {
 		return t.entriesRecursive, nil
 	}
 
-	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-r").
+	stdout, _, runErr := NewCommand("ls-tree", "-t", "-r").
 		AddArguments(extraArgs...).
 		AddDynamicArguments(t.ID.String()).
-		RunStdBytes(&RunOpts{Dir: t.repo.Path})
+		RunStdBytes(t.repo.Ctx, &RunOpts{Dir: t.repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}

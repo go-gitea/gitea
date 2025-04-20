@@ -10,6 +10,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/translation"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"xorm.io/builder"
 )
@@ -18,19 +20,15 @@ type RunList []*ActionRun
 
 // GetUserIDs returns a slice of user's id
 func (runs RunList) GetUserIDs() []int64 {
-	ids := make(container.Set[int64], len(runs))
-	for _, run := range runs {
-		ids.Add(run.TriggerUserID)
-	}
-	return ids.Values()
+	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.TriggerUserID, true
+	})
 }
 
 func (runs RunList) GetRepoIDs() []int64 {
-	ids := make(container.Set[int64], len(runs))
-	for _, run := range runs {
-		ids.Add(run.RepoID)
-	}
-	return ids.Values()
+	return container.FilterSlice(runs, func(run *ActionRun) (int64, bool) {
+		return run.RepoID, true
+	})
 }
 
 func (runs RunList) LoadTriggerUser(ctx context.Context) error {
@@ -71,6 +69,7 @@ type FindRunOptions struct {
 	WorkflowID    string
 	Ref           string // the commit/tag/… that caused this workflow
 	TriggerUserID int64
+	TriggerEvent  webhook_module.HookEventType
 	Approved      bool // not util.OptionalBool, it works only when it's true
 	Status        []Status
 }
@@ -98,6 +97,9 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	if opts.Ref != "" {
 		cond = cond.And(builder.Eq{"ref": opts.Ref})
 	}
+	if opts.TriggerEvent != "" {
+		cond = cond.And(builder.Eq{"trigger_event": opts.TriggerEvent})
+	}
 	return cond
 }
 
@@ -111,14 +113,14 @@ type StatusInfo struct {
 }
 
 // GetStatusInfoList returns a slice of StatusInfo
-func GetStatusInfoList(ctx context.Context) []StatusInfo {
+func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInfo {
 	// same as those in aggregateJobStatus
 	allStatus := []Status{StatusSuccess, StatusFailure, StatusWaiting, StatusRunning}
 	statusInfoList := make([]StatusInfo, 0, 4)
 	for _, s := range allStatus {
 		statusInfoList = append(statusInfoList, StatusInfo{
 			Status:          int(s),
-			DisplayedStatus: s.String(),
+			DisplayedStatus: s.LocaleString(lang),
 		})
 	}
 	return statusInfoList

@@ -4,11 +4,10 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/context"
 )
 
 type nodeInfoLinks struct {
@@ -24,7 +23,7 @@ type nodeInfoLink struct {
 func NodeInfoLinks(ctx *context.Context) {
 	nodeinfolinks := &nodeInfoLinks{
 		Links: []nodeInfoLink{{
-			fmt.Sprintf("%sapi/v1/nodeinfo", setting.AppURL),
+			setting.AppURL + "api/v1/nodeinfo",
 			"http://nodeinfo.diaspora.software/ns/schema/2.1",
 		}},
 	}

@@ -15,7 +15,7 @@ import (
 )
 
 func SSHInfo(rw http.ResponseWriter, req *http.Request) {
-	if !git.SupportProcReceive {
+	if !git.DefaultFeatures().SupportProcReceive {
 		rw.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -33,16 +33,12 @@ func DummyOK(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func DummyBadRequest(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusBadRequest)
-}
-
 func RobotsTxt(w http.ResponseWriter, req *http.Request) {
 	robotsTxt := util.FilePathJoinAbs(setting.CustomPath, "public/robots.txt")
 	if ok, _ := util.IsExist(robotsTxt); !ok {
 		robotsTxt = util.FilePathJoinAbs(setting.CustomPath, "robots.txt") // the legacy "robots.txt"
 	}
-	httpcache.SetCacheControlInHeader(w.Header(), setting.StaticCacheTime)
+	httpcache.SetCacheControlInHeader(w.Header(), httpcache.CacheControlForPublicStatic())
 	http.ServeFile(w, req, robotsTxt)
 }
 

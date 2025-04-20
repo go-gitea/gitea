@@ -6,14 +6,13 @@ package token
 import (
 	"context"
 	crypto_hmac "crypto/hmac"
+	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/minio/sha256-simd"
 )
 
 // A token is a verifiable container describing an action.

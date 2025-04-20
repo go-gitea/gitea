@@ -18,7 +18,9 @@ func TestSet(t *testing.T) {
 
 	assert.True(t, s.Contains("key1"))
 	assert.True(t, s.Contains("key2"))
+	assert.True(t, s.Contains("key1", "key2"))
 	assert.False(t, s.Contains("key3"))
+	assert.False(t, s.Contains("key1", "key3"))
 
 	assert.True(t, s.Remove("key2"))
 	assert.False(t, s.Contains("key2"))

@@ -7,19 +7,19 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"os"
-	"regexp"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // BlamePart represents block of blame - continuous lines with one sha
 type BlamePart struct {
-	Sha   string
-	Lines []string
+	Sha          string
+	Lines        []string
+	PreviousSha  string
+	PreviousPath string
 }
 
 // BlameReader returns part of file blame one by one
@@ -29,48 +29,58 @@ type BlameReader struct {
 	bufferedReader *bufio.Reader
 	done           chan error
 	lastSha        *string
-	ignoreRevsFile *string
+	ignoreRevsFile string
+	objectFormat   ObjectFormat
+	cleanupFuncs   []func()
 }
 
 func (r *BlameReader) UsesIgnoreRevs() bool {
-	return r.ignoreRevsFile != nil
+	return r.ignoreRevsFile != ""
 }
-
-var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
 
 // NextPart returns next part of blame (sequential code lines with the same commit)
 func (r *BlameReader) NextPart() (*BlamePart, error) {
 	var blamePart *BlamePart
 
 	if r.lastSha != nil {
-		blamePart = &BlamePart{*r.lastSha, make([]string, 0)}
+		blamePart = &BlamePart{
+			Sha:   *r.lastSha,
+			Lines: make([]string, 0),
+		}
 	}
 
-	var line []byte
+	const previousHeader = "previous "
+	var lineBytes []byte
 	var isPrefix bool
 	var err error
 
 	for err != io.EOF {
-		line, isPrefix, err = r.bufferedReader.ReadLine()
+		lineBytes, isPrefix, err = r.bufferedReader.ReadLine()
 		if err != nil && err != io.EOF {
 			return blamePart, err
 		}
 
-		if len(line) == 0 {
+		if len(lineBytes) == 0 {
 			// isPrefix will be false
 			continue
 		}
 
-		lines := shaLineRegex.FindSubmatch(line)
-		if lines != nil {
-			sha1 := string(lines[1])
+		var objectID string
+		objectFormatLength := r.objectFormat.FullLength()
 
+		if len(lineBytes) > objectFormatLength && lineBytes[objectFormatLength] == ' ' && r.objectFormat.IsValid(string(lineBytes[0:objectFormatLength])) {
+			objectID = string(lineBytes[0:objectFormatLength])
+		}
+		if len(objectID) > 0 {
 			if blamePart == nil {
-				blamePart = &BlamePart{sha1, make([]string, 0)}
+				blamePart = &BlamePart{
+					Sha:   objectID,
+					Lines: make([]string, 0),
+				}
 			}
 
-			if blamePart.Sha != sha1 {
-				r.lastSha = &sha1
+			if blamePart.Sha != objectID {
+				r.lastSha = &objectID
 				// need to munch to end of line...
 				for isPrefix {
 					_, isPrefix, err = r.bufferedReader.ReadLine()
@@ -80,10 +90,13 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 				}
 				return blamePart, nil
 			}
-		} else if line[0] == '\t' {
-			code := line[1:]
-
-			blamePart.Lines = append(blamePart.Lines, string(code))
+		} else if lineBytes[0] == '\t' {
+			blamePart.Lines = append(blamePart.Lines, string(lineBytes[1:]))
+		} else if bytes.HasPrefix(lineBytes, []byte(previousHeader)) {
+			offset := len(previousHeader) // already includes a space
+			blamePart.PreviousSha = string(lineBytes[offset : offset+objectFormatLength])
+			offset += objectFormatLength + 1 // +1 for space
+			blamePart.PreviousPath = string(lineBytes[offset:])
 		}
 
 		// need to munch to end of line...
@@ -102,46 +115,49 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
+	if r.bufferedReader == nil {
+		return nil
+	}
+
 	err := <-r.done
 	r.bufferedReader = nil
 	_ = r.reader.Close()
 	_ = r.output.Close()
-	if r.ignoreRevsFile != nil {
-		_ = util.Remove(*r.ignoreRevsFile)
+	for _, cleanup := range r.cleanupFuncs {
+		if cleanup != nil {
+			cleanup()
+		}
 	}
 	return err
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
-	var ignoreRevsFile *string
-	if CheckGitVersionAtLeast("2.23") == nil && !bypassBlameIgnore {
-		ignoreRevsFile = tryCreateBlameIgnoreRevsFile(commit)
-	}
-
-	cmd := NewCommandContextNoGlobals(ctx, "blame", "--porcelain")
-	if ignoreRevsFile != nil {
-		// Possible improvement: use --ignore-revs-file /dev/stdin on unix
-		// There is no equivalent on Windows. May be implemented if Gitea uses an external git backend.
-		cmd.AddOptionValues("--ignore-revs-file", *ignoreRevsFile)
-	}
-	cmd.AddDynamicArguments(commit.ID.String()).
-		AddDashesAndList(file).
-		SetDescription(fmt.Sprintf("GetBlame [repo_path: %s]", repoPath))
+func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
 	reader, stdout, err := os.Pipe()
 	if err != nil {
-		if ignoreRevsFile != nil {
-			_ = util.Remove(*ignoreRevsFile)
-		}
 		return nil, err
 	}
 
-	done := make(chan error, 1)
+	cmd := NewCommandNoGlobals("blame", "--porcelain")
 
+	var ignoreRevsFileName string
+	var ignoreRevsFileCleanup func() // TODO: maybe it should check the returned err in a defer func to make sure the cleanup could always be executed correctly
+	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
+		ignoreRevsFileName, ignoreRevsFileCleanup = tryCreateBlameIgnoreRevsFile(commit)
+		if ignoreRevsFileName != "" {
+			// Possible improvement: use --ignore-revs-file /dev/stdin on unix
+			// There is no equivalent on Windows. May be implemented if Gitea uses an external git backend.
+			cmd.AddOptionValues("--ignore-revs-file", ignoreRevsFileName)
+		}
+	}
+
+	cmd.AddDynamicArguments(commit.ID.String()).AddDashesAndList(file)
+
+	done := make(chan error, 1)
 	go func() {
 		stderr := bytes.Buffer{}
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		err := cmd.Run(&RunOpts{
+		err := cmd.Run(ctx, &RunOpts{
 			UseContextTimeout: true,
 			Dir:               repoPath,
 			Stdout:            stdout,
@@ -155,39 +171,44 @@ func CreateBlameReader(ctx context.Context, repoPath string, commit *Commit, fil
 	}()
 
 	bufferedReader := bufio.NewReader(reader)
-
 	return &BlameReader{
 		output:         stdout,
 		reader:         reader,
 		bufferedReader: bufferedReader,
 		done:           done,
-		ignoreRevsFile: ignoreRevsFile,
+		ignoreRevsFile: ignoreRevsFileName,
+		objectFormat:   objectFormat,
+		cleanupFuncs:   []func(){ignoreRevsFileCleanup},
 	}, nil
 }
 
-func tryCreateBlameIgnoreRevsFile(commit *Commit) *string {
+func tryCreateBlameIgnoreRevsFile(commit *Commit) (string, func()) {
 	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
 	if err != nil {
-		return nil
+		log.Error("Unable to get .git-blame-ignore-revs file: GetTreeEntryByPath: %v", err)
+		return "", nil
 	}
 
 	r, err := entry.Blob().DataAsync()
 	if err != nil {
-		return nil
+		log.Error("Unable to get .git-blame-ignore-revs file data: DataAsync: %v", err)
+		return "", nil
 	}
 	defer r.Close()
 
-	f, err := os.CreateTemp("", "gitea_git-blame-ignore-revs")
+	f, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("git-blame-ignore-revs")
 	if err != nil {
-		return nil
+		log.Error("Unable to get .git-blame-ignore-revs file data: CreateTempFileRandom: %v", err)
+		return "", nil
 	}
-
+	filename := f.Name()
 	_, err = io.Copy(f, r)
 	_ = f.Close()
 	if err != nil {
-		_ = util.Remove(f.Name())
-		return nil
+		cleanup()
+		log.Error("Unable to get .git-blame-ignore-revs file data: Copy: %v", err)
+		return "", nil
 	}
 
-	return util.ToPointer(f.Name())
+	return filename, cleanup
 }

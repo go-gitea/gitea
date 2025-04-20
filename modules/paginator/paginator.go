@@ -4,6 +4,8 @@
 
 package paginator
 
+import "code.gitea.io/gitea/modules/util"
+
 /*
 In template:
 
@@ -32,25 +34,43 @@ Output:
 
 // Paginator represents a set of results of pagination calculations.
 type Paginator struct {
-	total     int // total rows count
+	total      int // total rows count, -1 means unknown
+	totalPages int // total pages count, -1 means unknown
+	current    int // current page number
+	curRows    int // current page rows count
+
 	pagingNum int // how many rows in one page
-	current   int // current page number
 	numPages  int // how many pages to show on the UI
 }
 
 // New initialize a new pagination calculation and returns a Paginator as result.
 func New(total, pagingNum, current, numPages int) *Paginator {
-	if pagingNum <= 0 {
-		pagingNum = 1
+	pagingNum = max(pagingNum, 1)
+	totalPages := util.Iif(total == -1, -1, (total+pagingNum-1)/pagingNum)
+	if total >= 0 {
+		current = min(current, totalPages)
 	}
-	if current <= 0 {
-		current = 1
+	current = max(current, 1)
+	return &Paginator{
+		total:      total,
+		totalPages: totalPages,
+		current:    current,
+		pagingNum:  pagingNum,
+		numPages:   numPages,
 	}
-	p := &Paginator{total, pagingNum, current, numPages}
-	if p.current > p.TotalPages() {
-		p.current = p.TotalPages()
+}
+
+func (p *Paginator) SetCurRows(rows int) {
+	// For "unlimited paging", we need to know the rows of current page to determine if there is a next page.
+	// There is still an edge case: when curRows==pagingNum, then the "next page" will be an empty page.
+	// Ideally we should query one more row to determine if there is really a next page, but it's impossible in current framework.
+	p.curRows = rows
+	if p.total == -1 && p.current == 1 && !p.HasNext() {
+		// if there is only one page for the "unlimited paging", set total rows/pages count
+		// then the tmpl could decide to hide the nav bar.
+		p.total = rows
+		p.totalPages = util.Iif(p.total == 0, 0, 1)
 	}
-	return p
 }
 
 // IsFirst returns true if current page is the first page.
@@ -72,7 +92,10 @@ func (p *Paginator) Previous() int {
 
 // HasNext returns true if there is a next page relative to current page.
 func (p *Paginator) HasNext() bool {
-	return p.total > p.current*p.pagingNum
+	if p.total == -1 {
+		return p.curRows >= p.pagingNum
+	}
+	return p.current*p.pagingNum < p.total
 }
 
 func (p *Paginator) Next() int {
@@ -84,10 +107,7 @@ func (p *Paginator) Next() int {
 
 // IsLast returns true if current page is the last page.
 func (p *Paginator) IsLast() bool {
-	if p.total == 0 {
-		return true
-	}
-	return p.total > (p.current-1)*p.pagingNum && !p.HasNext()
+	return !p.HasNext()
 }
 
 // Total returns number of total rows.
@@ -97,10 +117,7 @@ func (p *Paginator) Total() int {
 
 // TotalPages returns number of total pages.
 func (p *Paginator) TotalPages() int {
-	if p.total == 0 {
-		return 1
-	}
-	return (p.total + p.pagingNum - 1) / p.pagingNum
+	return p.totalPages
 }
 
 // Current returns current page number.
@@ -135,10 +152,10 @@ func getMiddleIdx(numPages int) int {
 // If value is -1 means "..." that more pages are not showing.
 func (p *Paginator) Pages() []*Page {
 	if p.numPages == 0 {
-		return []*Page{}
-	} else if p.numPages == 1 && p.TotalPages() == 1 {
+		return nil
+	} else if p.total == -1 || (p.numPages == 1 && p.TotalPages() == 1) {
 		// Only show current page.
-		return []*Page{{1, true}}
+		return []*Page{{p.current, true}}
 	}
 
 	// Total page number is less or equal.

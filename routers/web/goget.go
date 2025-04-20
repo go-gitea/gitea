@@ -12,13 +12,13 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/context"
 )
 
 func goGet(ctx *context.Context) {
-	if ctx.Req.Method != "GET" || len(ctx.Req.URL.RawQuery) < 8 || ctx.FormString("go-get") != "1" {
+	if ctx.Req.Method != http.MethodGet || len(ctx.Req.URL.RawQuery) < 8 || ctx.FormString("go-get") != "1" {
 		return
 	}
 
@@ -65,13 +65,13 @@ func goGet(ctx *context.Context) {
 		insecure = "--insecure "
 	}
 
-	goGetImport := context.ComposeGoGetImport(ownerName, trimmedRepoName)
+	goGetImport := context.ComposeGoGetImport(ctx, ownerName, trimmedRepoName)
 
 	var cloneURL string
 	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ownerName, repoName)
+		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, ownerName, repoName)
 	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ownerName, repoName)
+		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, ownerName, repoName)
 	}
 	goImportContent := fmt.Sprintf("%s git %s", goGetImport, cloneURL /*CloneLink*/)
 	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)

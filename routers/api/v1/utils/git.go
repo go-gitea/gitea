@@ -5,18 +5,20 @@ package utils
 
 import (
 	gocontext "context"
+	"errors"
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/context"
 )
 
 // ResolveRefOrSha resolve ref to sha if exist
 func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 	if len(ref) == 0 {
-		ctx.Error(http.StatusBadRequest, "ref not given", nil)
+		ctx.APIError(http.StatusBadRequest, nil)
 		return ""
 	}
 
@@ -25,7 +27,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 	for _, refType := range []string{"heads", "tags"} {
 		refSHA, lastMethodName, err := searchRefCommitByType(ctx, refType, ref)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, lastMethodName, err)
+			ctx.APIErrorInternal(fmt.Errorf("%s: %w", lastMethodName, err))
 			return ""
 		}
 		if refSHA != "" {
@@ -49,7 +51,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 // GetGitRefs return git references based on filter
 func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
 	if ctx.Repo.GitRepo == nil {
-		return nil, "", fmt.Errorf("no open git repo found in context")
+		return nil, "", errors.New("no open git repo found in context")
 	}
 	if len(filter) > 0 {
 		filter = "refs/" + filter
@@ -69,27 +71,28 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 	return "", "", nil
 }
 
-// ConvertToSHA1 returns a full-length SHA1 from a potential ID string
-func ConvertToSHA1(ctx gocontext.Context, repo *context.Repository, commitID string) (git.SHA1, error) {
-	if len(commitID) == git.SHAFullLength && git.IsValidSHAPattern(commitID) {
-		sha1, err := git.NewIDFromString(commitID)
+// ConvertToObjectID returns a full-length SHA1 from a potential ID string
+func ConvertToObjectID(ctx gocontext.Context, repo *context.Repository, commitID string) (git.ObjectID, error) {
+	objectFormat := repo.GetObjectFormat()
+	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
+		sha, err := git.NewIDFromString(commitID)
 		if err == nil {
-			return sha1, nil
+			return sha, nil
 		}
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.Repository.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.Repository)
 	if err != nil {
-		return git.SHA1{}, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
+		return objectFormat.EmptyObjectID(), fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
 	defer closer.Close()
 
-	return gitRepo.ConvertToSHA1(commitID)
+	return gitRepo.ConvertToGitID(commitID)
 }
 
 // MustConvertToSHA1 returns a full-length SHA1 string from a potential ID string, or returns origin input if it can't convert to SHA1
 func MustConvertToSHA1(ctx gocontext.Context, repo *context.Repository, commitID string) string {
-	sha, err := ConvertToSHA1(ctx, repo, commitID)
+	sha, err := ConvertToObjectID(ctx, repo, commitID)
 	if err != nil {
 		return commitID
 	}

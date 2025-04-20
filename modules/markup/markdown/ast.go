@@ -4,6 +4,7 @@
 package markdown
 
 import (
+	"html/template"
 	"strconv"
 
 	"github.com/yuin/goldmark/ast"
@@ -29,16 +30,7 @@ func (n *Details) Kind() ast.NodeKind {
 
 // NewDetails returns a new Paragraph node.
 func NewDetails() *Details {
-	return &Details{
-		BaseBlock: ast.BaseBlock{},
-	}
-}
-
-// IsDetails returns true if the given node implements the Details interface,
-// otherwise false.
-func IsDetails(node ast.Node) bool {
-	_, ok := node.(*Details)
-	return ok
+	return &Details{}
 }
 
 // Summary is a block that contains the summary of details block
@@ -61,16 +53,7 @@ func (n *Summary) Kind() ast.NodeKind {
 
 // NewSummary returns a new Summary node.
 func NewSummary() *Summary {
-	return &Summary{
-		BaseBlock: ast.BaseBlock{},
-	}
-}
-
-// IsSummary returns true if the given node implements the Summary interface,
-// otherwise false.
-func IsSummary(node ast.Node) bool {
-	_, ok := node.(*Summary)
-	return ok
+	return &Summary{}
 }
 
 // TaskCheckBoxListItem is a block that represents a list item of a markdown block with a checkbox
@@ -103,47 +86,10 @@ func NewTaskCheckBoxListItem(listItem *ast.ListItem) *TaskCheckBoxListItem {
 	}
 }
 
-// IsTaskCheckBoxListItem returns true if the given node implements the TaskCheckBoxListItem interface,
-// otherwise false.
-func IsTaskCheckBoxListItem(node ast.Node) bool {
-	_, ok := node.(*TaskCheckBoxListItem)
-	return ok
-}
-
-// Icon is an inline for a fomantic icon
+// Icon is an inline for a Fomantic UI icon
 type Icon struct {
 	ast.BaseInline
 	Name []byte
-}
-
-// Dump implements Node.Dump .
-func (n *Icon) Dump(source []byte, level int) {
-	m := map[string]string{}
-	m["Name"] = string(n.Name)
-	ast.DumpHelper(n, source, level, m, nil)
-}
-
-// KindIcon is the NodeKind for Icon
-var KindIcon = ast.NewNodeKind("Icon")
-
-// Kind implements Node.Kind.
-func (n *Icon) Kind() ast.NodeKind {
-	return KindIcon
-}
-
-// NewIcon returns a new Paragraph node.
-func NewIcon(name string) *Icon {
-	return &Icon{
-		BaseInline: ast.BaseInline{},
-		Name:       []byte(name),
-	}
-}
-
-// IsIcon returns true if the given node implements the Icon interface,
-// otherwise false.
-func IsIcon(node ast.Node) bool {
-	_, ok := node.(*Icon)
-	return ok
 }
 
 // ColorPreview is an inline for a color preview
@@ -175,19 +121,7 @@ func NewColorPreview(color []byte) *ColorPreview {
 	}
 }
 
-// IsColorPreview returns true if the given node implements the ColorPreview interface,
-// otherwise false.
-func IsColorPreview(node ast.Node) bool {
-	_, ok := node.(*ColorPreview)
-	return ok
-}
-
-const (
-	AttentionNote    string = "Note"
-	AttentionWarning string = "Warning"
-)
-
-// Attention is an inline for a color preview
+// Attention is an inline for an attention
 type Attention struct {
 	ast.BaseInline
 	AttentionType string
@@ -214,4 +148,25 @@ func NewAttention(attentionType string) *Attention {
 		BaseInline:    ast.BaseInline{},
 		AttentionType: attentionType,
 	}
+}
+
+var KindRawHTML = ast.NewNodeKind("RawHTML")
+
+type RawHTML struct {
+	ast.BaseBlock
+	rawHTML template.HTML
+}
+
+func (n *RawHTML) Dump(source []byte, level int) {
+	m := map[string]string{}
+	m["RawHTML"] = string(n.rawHTML)
+	ast.DumpHelper(n, source, level, m, nil)
+}
+
+func (n *RawHTML) Kind() ast.NodeKind {
+	return KindRawHTML
+}
+
+func NewRawHTML(rawHTML template.HTML) *RawHTML {
+	return &RawHTML{rawHTML: rawHTML}
 }

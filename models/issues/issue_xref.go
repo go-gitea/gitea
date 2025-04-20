@@ -46,10 +46,10 @@ func neuterCrossReferences(ctx context.Context, issueID, commentID int64) error 
 	for i, c := range active {
 		ids[i] = c.ID
 	}
-	return neuterCrossReferencesIds(ctx, ids)
+	return neuterCrossReferencesIDs(ctx, ids)
 }
 
-func neuterCrossReferencesIds(ctx context.Context, ids []int64) error {
+func neuterCrossReferencesIDs(ctx context.Context, ids []int64) error {
 	_, err := db.GetEngine(ctx).In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: references.XRefActionNeutered})
 	return err
 }
@@ -100,7 +100,7 @@ func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossRefe
 			}
 		}
 		if len(ids) > 0 {
-			if err = neuterCrossReferencesIds(stdCtx, ids); err != nil {
+			if err = neuterCrossReferencesIDs(stdCtx, ids); err != nil {
 				return err
 			}
 		}
@@ -214,6 +214,10 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 		if !perm.CanReadIssuesOrPulls(refIssue.IsPull) {
 			return nil, references.XRefActionNone, nil
 		}
+		if user_model.IsUserBlockedBy(stdCtx, ctx.Doer, refIssue.PosterID, refIssue.Repo.OwnerID) {
+			return nil, references.XRefActionNone, nil
+		}
+
 		// Accept close/reopening actions only if the poster is able to close the
 		// referenced issue manually at this moment. The only exception is
 		// the poster of a new PR referencing an issue on the same repo: then the merger

@@ -61,9 +61,7 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 	)
 	{
 		reviews, err := issue_model.FindReviews(ctx, issue_model.FindReviewOptions{
-			ListOptions: db.ListOptions{
-				ListAll: true,
-			},
+			ListOptions:  db.ListOptionsAll,
 			IssueID:      issueID,
 			OfficialOnly: false,
 		})
@@ -94,6 +92,11 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		projectID = issue.Project.ID
 	}
 
+	projectColumnID, err := issue.ProjectColumnID(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+
 	return &internal.IndexerData{
 		ID:                 issue.ID,
 		RepoID:             issue.RepoID,
@@ -103,11 +106,12 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		Comments:           comments,
 		IsPull:             issue.IsPull,
 		IsClosed:           issue.IsClosed,
+		IsArchived:         issue.Repo.IsArchived,
 		LabelIDs:           labels,
 		NoLabel:            len(labels) == 0,
 		MilestoneID:        issue.MilestoneID,
 		ProjectID:          projectID,
-		ProjectBoardID:     issue.ProjectBoardID(ctx),
+		ProjectColumnID:    projectColumnID,
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,
 		MentionIDs:         mentionIDs,

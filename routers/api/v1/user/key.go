@@ -5,27 +5,29 @@ package user
 
 import (
 	std_ctx "context"
+	"errors"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
 func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *asymkey_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
-	if key.Type == asymkey_model.KeyTypeDeploy {
+	switch key.Type {
+	case asymkey_model.KeyTypeDeploy:
 		apiKey.KeyType = "deploy"
-	} else if key.Type == asymkey_model.KeyTypeUser {
+	case asymkey_model.KeyTypeUser:
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
@@ -37,7 +39,7 @@ func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *a
 			}
 			apiKey.Owner = convert.ToUser(ctx, user, user)
 		}
-	} else {
+	default:
 		apiKey.KeyType = "unknown"
 	}
 	apiKey.ReadOnly = key.Mode == perm.AccessModeRead
@@ -54,7 +56,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	var count int
 
 	fingerprint := ctx.FormString("fingerprint")
-	username := ctx.Params("username")
+	username := ctx.PathParam("username")
 
 	if fingerprint != "" {
 		var userID int64 // Unrestricted
@@ -80,7 +82,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	}
 
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListPublicKeys", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -178,12 +180,12 @@ func GetPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPublicKeyByID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -198,6 +200,11 @@ func GetPublicKey(ctx *context.APIContext) {
 
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
+		ctx.APIErrorNotFound("Not Found", errors.New("ssh keys setting is not allowed to be visited"))
+		return
+	}
+
 	content, err := asymkey_model.CheckPublicKeyString(form.Key)
 	if err != nil {
 		repo.HandleCheckKeyStringError(ctx, err)
@@ -263,27 +270,32 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	id := ctx.ParamsInt64(":id")
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
+		ctx.APIErrorNotFound("Not Found", errors.New("ssh keys setting is not allowed to be visited"))
+		return
+	}
+
+	id := ctx.PathParamInt64("id")
 	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if externallyManaged {
-		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
+		ctx.APIError(http.StatusForbidden, "SSH Key is externally managed for this user")
 		return
 	}
 
 	if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, id); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
-			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
+			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeletePublicKey", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

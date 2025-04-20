@@ -71,7 +71,7 @@ import (
 
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -79,6 +79,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	web_types "code.gitea.io/gitea/modules/web/types"
+	actions_service "code.gitea.io/gitea/services/actions"
+	"code.gitea.io/gitea/services/context"
 )
 
 const artifactRouteBase = "/_apis/pipelines/workflows/{run_id}/artifacts"
@@ -99,8 +101,8 @@ func init() {
 	})
 }
 
-func ArtifactsRoutes(prefix string) *web.Route {
-	m := web.NewRoute()
+func ArtifactsRoutes(prefix string) *web.Router {
+	m := web.NewRouter()
 	m.Use(ArtifactContexter())
 
 	r := artifactRoutes{
@@ -124,31 +126,50 @@ func ArtifactsRoutes(prefix string) *web.Route {
 func ArtifactContexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base, baseCleanUp := context.NewBaseContext(resp, req)
-			defer baseCleanUp()
+			base := context.NewBaseContext(resp, req)
 
 			ctx := &ArtifactContext{Base: base}
-			ctx.AppendContextValue(artifactContextKey, ctx)
+			ctx.SetContextValue(artifactContextKey, ctx)
 
 			// action task call server api with Bearer ACTIONS_RUNTIME_TOKEN
 			// we should verify the ACTIONS_RUNTIME_TOKEN
 			authHeader := req.Header.Get("Authorization")
 			if len(authHeader) == 0 || !strings.HasPrefix(authHeader, "Bearer ") {
-				ctx.Error(http.StatusUnauthorized, "Bad authorization header")
+				ctx.HTTPError(http.StatusUnauthorized, "Bad authorization header")
 				return
 			}
 
-			authToken := strings.TrimPrefix(authHeader, "Bearer ")
-			task, err := actions.GetRunningTaskByToken(req.Context(), authToken)
-			if err != nil {
-				log.Error("Error runner api getting task: %v", err)
-				ctx.Error(http.StatusInternalServerError, "Error runner api getting task")
-				return
+			// New act_runner uses jwt to authenticate
+			tID, err := actions_service.ParseAuthorizationToken(req)
+
+			var task *actions.ActionTask
+			if err == nil {
+				task, err = actions.GetTaskByID(req.Context(), tID)
+				if err != nil {
+					log.Error("Error runner api getting task by ID: %v", err)
+					ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task by ID")
+					return
+				}
+				if task.Status != actions.StatusRunning {
+					log.Error("Error runner api getting task: task is not running")
+					ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task: task is not running")
+					return
+				}
+			} else {
+				// Old act_runner uses GITEA_TOKEN to authenticate
+				authToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+				task, err = actions.GetRunningTaskByToken(req.Context(), authToken)
+				if err != nil {
+					log.Error("Error runner api getting task: %v", err)
+					ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting task")
+					return
+				}
 			}
 
 			if err := task.LoadJob(req.Context()); err != nil {
 				log.Error("Error runner api getting job: %v", err)
-				ctx.Error(http.StatusInternalServerError, "Error runner api getting job")
+				ctx.HTTPError(http.StatusInternalServerError, "Error runner api getting job")
 				return
 			}
 
@@ -163,8 +184,8 @@ type artifactRoutes struct {
 	fs     storage.ObjectStorage
 }
 
-func (ar artifactRoutes) buildArtifactURL(runID int64, artifactHash, suffix string) string {
-	uploadURL := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ar.prefix, "/") +
+func (ar artifactRoutes) buildArtifactURL(ctx *ArtifactContext, runID int64, artifactHash, suffix string) string {
+	uploadURL := strings.TrimSuffix(httplib.GuessCurrentAppURL(ctx), "/") + strings.TrimSuffix(ar.prefix, "/") +
 		strings.ReplaceAll(artifactRouteBase, "{run_id}", strconv.FormatInt(runID, 10)) +
 		"/" + artifactHash + "/" + suffix
 	return uploadURL
@@ -190,7 +211,7 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 	var req getUploadArtifactRequest
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&req); err != nil {
 		log.Error("Error decode request body: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error decode request body")
+		ctx.HTTPError(http.StatusInternalServerError, "Error decode request body")
 		return
 	}
 
@@ -203,7 +224,7 @@ func (ar artifactRoutes) getUploadArtifactURL(ctx *ArtifactContext) {
 	// use md5(artifact_name) to create upload url
 	artifactHash := fmt.Sprintf("%x", md5.Sum([]byte(req.Name)))
 	resp := getUploadArtifactResponse{
-		FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "upload"+retentionQuery),
+		FileContainerResourceURL: ar.buildArtifactURL(ctx, runID, artifactHash, "upload"+retentionQuery),
 	}
 	log.Debug("[artifact] get upload url: %s", resp.FileContainerResourceURL)
 	ctx.JSON(http.StatusOK, resp)
@@ -220,20 +241,16 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	}
 
 	// get upload file size
-	fileRealTotalSize, contentLength, err := getUploadFileSize(ctx)
-	if err != nil {
-		log.Error("Error get upload file size: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error get upload file size")
-		return
-	}
+	fileRealTotalSize, contentLength := getUploadFileSize(ctx)
 
 	// get artifact retention days
 	expiredDays := setting.Actions.ArtifactRetentionDays
 	if queryRetentionDays := ctx.Req.URL.Query().Get("retentionDays"); queryRetentionDays != "" {
+		var err error
 		expiredDays, err = strconv.ParseInt(queryRetentionDays, 10, 64)
 		if err != nil {
 			log.Error("Error parse retention days: %v", err)
-			ctx.Error(http.StatusBadRequest, "Error parse retention days")
+			ctx.HTTPError(http.StatusBadRequest, "Error parse retention days")
 			return
 		}
 	}
@@ -244,7 +261,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, expiredDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error create or get artifact")
+		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")
 		return
 	}
 
@@ -254,20 +271,25 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	chunksTotalSize, err := saveUploadChunk(ar.fs, ctx, artifact, contentLength, runID)
 	if err != nil {
 		log.Error("Error save upload chunk: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error save upload chunk")
+		ctx.HTTPError(http.StatusInternalServerError, "Error save upload chunk")
 		return
 	}
 
-	// update artifact size if zero
-	if artifact.FileSize == 0 || artifact.FileCompressedSize == 0 {
+	// update artifact size if zero or not match, over write artifact size
+	if artifact.FileSize == 0 ||
+		artifact.FileCompressedSize == 0 ||
+		artifact.FileSize != fileRealTotalSize ||
+		artifact.FileCompressedSize != chunksTotalSize {
 		artifact.FileSize = fileRealTotalSize
 		artifact.FileCompressedSize = chunksTotalSize
 		artifact.ContentEncoding = ctx.Req.Header.Get("Content-Encoding")
 		if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 			log.Error("Error update artifact: %v", err)
-			ctx.Error(http.StatusInternalServerError, "Error update artifact")
+			ctx.HTTPError(http.StatusInternalServerError, "Error update artifact")
 			return
 		}
+		log.Debug("[artifact] update artifact size, artifact_id: %d, size: %d, compressed size: %d",
+			artifact.ID, artifact.FileSize, artifact.FileCompressedSize)
 	}
 
 	ctx.JSON(http.StatusOK, map[string]string{
@@ -275,7 +297,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	})
 }
 
-// comfirmUploadArtifact comfirm upload artifact.
+// comfirmUploadArtifact confirm upload artifact.
 // if all chunks are uploaded, merge them to one file.
 func (ar artifactRoutes) comfirmUploadArtifact(ctx *ArtifactContext) {
 	_, runID, ok := validateRunID(ctx)
@@ -285,12 +307,12 @@ func (ar artifactRoutes) comfirmUploadArtifact(ctx *ArtifactContext) {
 	artifactName := ctx.Req.URL.Query().Get("artifactName")
 	if artifactName == "" {
 		log.Error("Error artifact name is empty")
-		ctx.Error(http.StatusBadRequest, "Error artifact name is empty")
+		ctx.HTTPError(http.StatusBadRequest, "Error artifact name is empty")
 		return
 	}
 	if err := mergeChunksForRun(ctx, ar.fs, runID, artifactName); err != nil {
 		log.Error("Error merge chunks: %v", err)
-		ctx.Error(http.StatusInternalServerError, "Error merge chunks")
+		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]string{
@@ -318,12 +340,12 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{RunID: runID})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
 	if len(artifacts) == 0 {
 		log.Debug("[artifact] handleListArtifacts, no artifacts")
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -339,7 +361,7 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 		artifactHash := fmt.Sprintf("%x", md5.Sum([]byte(art.ArtifactName)))
 		item := listArtifactsResponseItem{
 			Name:                     art.ArtifactName,
-			FileContainerResourceURL: ar.buildArtifactURL(runID, artifactHash, "download_url"),
+			FileContainerResourceURL: ar.buildArtifactURL(ctx, runID, artifactHash, "download_url"),
 		}
 		items = append(items, item)
 		values[art.ArtifactName] = true
@@ -383,24 +405,36 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
 	if len(artifacts) == 0 {
 		log.Debug("[artifact] getDownloadArtifactURL, no artifacts")
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
 	if itemPath != artifacts[0].ArtifactName {
 		log.Error("Error dismatch artifact name, itemPath: %v, artifact: %v", itemPath, artifacts[0].ArtifactName)
-		ctx.Error(http.StatusBadRequest, "Error dismatch artifact name")
+		ctx.HTTPError(http.StatusBadRequest, "Error dismatch artifact name")
 		return
 	}
 
 	var items []downloadArtifactResponseItem
 	for _, artifact := range artifacts {
-		downloadURL := ar.buildArtifactURL(runID, strconv.FormatInt(artifact.ID, 10), "download")
+		var downloadURL string
+		if setting.Actions.ArtifactStorage.ServeDirect() {
+			u, err := ar.fs.URL(artifact.StoragePath, artifact.ArtifactName, nil)
+			if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
+				log.Error("Error getting serve direct url: %v", err)
+			}
+			if u != nil {
+				downloadURL = u.String()
+			}
+		}
+		if downloadURL == "" {
+			downloadURL = ar.buildArtifactURL(ctx, runID, strconv.FormatInt(artifact.ID, 10), "download")
+		}
 		item := downloadArtifactResponseItem{
 			Path:            util.PathJoinRel(itemPath, artifact.ArtifactPath),
 			ItemType:        "file",
@@ -422,27 +456,28 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	artifactID := ctx.ParamsInt64("artifact_id")
-	artifact, err := actions.GetArtifactByID(ctx, artifactID)
-	if errors.Is(err, util.ErrNotExist) {
+	artifactID := ctx.PathParamInt64("artifact_id")
+	artifact, exist, err := db.GetByID[actions.ActionArtifact](ctx, artifactID)
+	if err != nil {
 		log.Error("Error getting artifact: %v", err)
-		ctx.Error(http.StatusNotFound, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
-	} else if err != nil {
-		log.Error("Error getting artifact: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
+	}
+	if !exist {
+		log.Error("artifact with ID %d does not exist", artifactID)
+		ctx.HTTPError(http.StatusNotFound, fmt.Sprintf("artifact with ID %d does not exist", artifactID))
 		return
 	}
 	if artifact.RunID != runID {
-		log.Error("Error dismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
-		ctx.Error(http.StatusBadRequest, err.Error())
+		log.Error("Error mismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
+		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
 
 	fd, err := ar.fs.Open(artifact.StoragePath)
 	if err != nil {
 		log.Error("Error opening file: %v", err)
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer fd.Close()

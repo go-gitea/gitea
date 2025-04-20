@@ -5,10 +5,10 @@ package files
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -17,24 +17,41 @@ import (
 	"code.gitea.io/gitea/services/pull"
 )
 
-// CherryPick cherrypicks or reverts a commit to the given repository
+// ErrCommitIDDoesNotMatch represents a "CommitIDDoesNotMatch" kind of error.
+type ErrCommitIDDoesNotMatch struct {
+	GivenCommitID   string
+	CurrentCommitID string
+}
+
+// IsErrCommitIDDoesNotMatch checks if an error is a ErrCommitIDDoesNotMatch.
+func IsErrCommitIDDoesNotMatch(err error) bool {
+	_, ok := err.(ErrCommitIDDoesNotMatch)
+	return ok
+}
+
+func (err ErrCommitIDDoesNotMatch) Error() string {
+	return fmt.Sprintf("file CommitID does not match [given: %s, expected: %s]", err.GivenCommitID, err.CurrentCommitID)
+}
+
+// CherryPick cherry-picks or reverts a commit to the given repository
 func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, revert bool, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
 	if err := opts.Validate(ctx, repo, doer); err != nil {
 		return nil, err
 	}
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
-
-	t, err := NewTemporaryUploadRepository(ctx, repo)
+	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("NewTemporaryUploadRepository failed: %v", err)
 	}
 	defer t.Close()
-	if err := t.Clone(opts.OldBranch); err != nil {
+	if err := t.Clone(ctx, opts.OldBranch, false); err != nil {
 		return nil, err
 	}
-	if err := t.SetDefaultIndex(); err != nil {
+	if err := t.SetDefaultIndex(ctx); err != nil {
+		return nil, err
+	}
+	if err := t.RefreshIndex(ctx); err != nil {
 		return nil, err
 	}
 
@@ -48,13 +65,13 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
 	} else {
-		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("CherryPick: Invalid last commit ID: %w", err)
 		}
 		opts.LastCommitID = lastCommitID.String()
 		if commit.ID.String() != opts.LastCommitID {
-			return nil, models.ErrCommitIDDoesNotMatch{
+			return nil, ErrCommitIDDoesNotMatch{
 				GivenCommitID:   opts.LastCommitID,
 				CurrentCommitID: opts.LastCommitID,
 			}
@@ -67,7 +84,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	}
 	parent, err := commit.ParentID(0)
 	if err != nil {
-		parent = git.MustIDFromString(git.EmptyTreeSHA)
+		parent = git.ObjectFormatFromName(repo.ObjectFormatName).EmptyTree()
 	}
 
 	base, right := parent.String(), commit.ID.String()
@@ -84,28 +101,37 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	}
 
 	if conflict {
-		return nil, fmt.Errorf("failed to merge due to conflicts")
+		return nil, errors.New("failed to merge due to conflicts")
 	}
 
-	treeHash, err := t.WriteTree()
+	treeHash, err := t.WriteTree(ctx)
 	if err != nil {
 		// likely non-sensical tree due to merge conflicts...
 		return nil, err
 	}
 
 	// Now commit the tree
-	var commitHash string
-	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate("HEAD", author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
-	} else {
-		commitHash, err = t.CommitTree("HEAD", author, committer, treeHash, message, opts.Signoff)
+	commitOpts := &CommitTreeUserOptions{
+		ParentCommitID:    "HEAD",
+		TreeHash:          treeHash,
+		CommitMessage:     message,
+		SignOff:           opts.Signoff,
+		DoerUser:          doer,
+		AuthorIdentity:    opts.Author,
+		AuthorTime:        nil,
+		CommitterIdentity: opts.Committer,
+		CommitterTime:     nil,
 	}
+	if opts.Dates != nil {
+		commitOpts.AuthorTime, commitOpts.CommitterTime = &opts.Dates.Author, &opts.Dates.Committer
+	}
+	commitHash, err := t.CommitTree(ctx, commitOpts)
 	if err != nil {
 		return nil, err
 	}
 
 	// Then push this tree to NewBranch
-	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
+	if err := t.Push(ctx, doer, commitHash, opts.NewBranch); err != nil {
 		return nil, err
 	}
 

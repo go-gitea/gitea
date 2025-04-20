@@ -13,6 +13,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -22,14 +24,25 @@ import (
 )
 
 // ActionRunner represents runner machines
+//
+// It can be:
+//  1. global runner, OwnerID is 0 and RepoID is 0
+//  2. org/user level runner, OwnerID is org/user ID and RepoID is 0
+//  3. repo level runner, OwnerID is 0 and RepoID is repo ID
+//
+// Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
+// or it will be complicated to find runners belonging to a specific owner.
+// For example, conditions like `OwnerID = 1` will also return runner {OwnerID: 1, RepoID: 1},
+// but it's a repo level runner, not an org/user level runner.
+// To avoid this, make it clear with {OwnerID: 0, RepoID: 1} for repo level runners.
 type ActionRunner struct {
 	ID          int64
 	UUID        string                 `xorm:"CHAR(36) UNIQUE"`
 	Name        string                 `xorm:"VARCHAR(255)"`
 	Version     string                 `xorm:"VARCHAR(64)"`
-	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
+	OwnerID     int64                  `xorm:"index"`
 	Owner       *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"index"` // repo level runner, if OwnerID also is zero, then it's a global
+	RepoID      int64                  `xorm:"index"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	Description string                 `xorm:"TEXT"`
 	Base        int                    // 0 native 1 docker 2 virtual machine
@@ -45,11 +58,18 @@ type ActionRunner struct {
 
 	// Store labels defined in state file (default: .runner file) of `act_runner`
 	AgentLabels []string `xorm:"TEXT"`
+	// Store if this is a runner that only ever get one single job assigned
+	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
 	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
+
+const (
+	RunnerOfflineTime = time.Minute
+	RunnerIdleTime    = 10 * time.Second
+)
 
 // BelongsToOwnerName before calling, should guarantee that all attributes are loaded
 func (r *ActionRunner) BelongsToOwnerName() string {
@@ -67,20 +87,22 @@ func (r *ActionRunner) BelongsToOwnerType() types.OwnerType {
 		return types.OwnerTypeRepository
 	}
 	if r.OwnerID != 0 {
-		if r.Owner.Type == user_model.UserTypeOrganization {
+		switch r.Owner.Type {
+		case user_model.UserTypeOrganization:
 			return types.OwnerTypeOrganization
-		} else if r.Owner.Type == user_model.UserTypeIndividual {
+		case user_model.UserTypeIndividual:
 			return types.OwnerTypeIndividual
 		}
 	}
 	return types.OwnerTypeSystemGlobal
 }
 
+// if the logic here changed, you should also modify FindRunnerOptions.ToCond
 func (r *ActionRunner) Status() runnerv1.RunnerStatus {
-	if time.Since(r.LastOnline.AsTime()) > time.Minute {
+	if time.Since(r.LastOnline.AsTime()) > RunnerOfflineTime {
 		return runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE
 	}
-	if time.Since(r.LastActive.AsTime()) > 10*time.Second {
+	if time.Since(r.LastActive.AsTime()) > RunnerIdleTime {
 		return runnerv1.RunnerStatus_RUNNER_STATUS_IDLE
 	}
 	return runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE
@@ -91,7 +113,7 @@ func (r *ActionRunner) StatusName() string {
 }
 
 func (r *ActionRunner) StatusLocaleName(lang translation.Locale) string {
-	return lang.Tr("actions.runners.status." + r.StatusName())
+	return lang.TrString("actions.runners.status." + r.StatusName())
 }
 
 func (r *ActionRunner) IsOnline() bool {
@@ -102,8 +124,15 @@ func (r *ActionRunner) IsOnline() bool {
 	return false
 }
 
-// Editable checks if the runner is editable by the user
-func (r *ActionRunner) Editable(ownerID, repoID int64) bool {
+// EditableInContext checks if the runner is editable by the "context" owner/repo
+// ownerID == 0 and repoID == 0 means "admin" context, any runner including global runners could be edited
+// ownerID == 0 and repoID != 0 means "repo" context, any runner belonging to the given repo could be edited
+// ownerID != 0 and repoID == 0 means "owner(org/user)" context, any runner belonging to the given user/org could be edited
+// ownerID != 0 and repoID != 0 means "owner" OR "repo" context, legacy behavior, but we should forbid using it
+func (r *ActionRunner) EditableInContext(ownerID, repoID int64) bool {
+	if ownerID != 0 && repoID != 0 {
+		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
+	}
 	if ownerID == 0 && repoID == 0 {
 		return true
 	}
@@ -147,17 +176,33 @@ func init() {
 	db.RegisterModel(&ActionRunner{})
 }
 
+// FindRunnerOptions
+// ownerID == 0 and repoID == 0 means any runner including global runners
+// repoID != 0 and WithAvailable == false means any runner for the given repo
+// repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners
+// ownerID != 0 and repoID == 0 and WithAvailable == false means any runner for the given user/org
+// ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners
 type FindRunnerOptions struct {
 	db.ListOptions
+	IDs           []int64
 	RepoID        int64
-	OwnerID       int64
+	OwnerID       int64 // it will be ignored if RepoID is set
 	Sort          string
 	Filter        string
+	IsOnline      optional.Option[bool]
 	WithAvailable bool // not only runners belong to, but also runners can be used
 }
 
 func (opts FindRunnerOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
+
+	if len(opts.IDs) > 0 {
+		if len(opts.IDs) == 1 {
+			cond = cond.And(builder.Eq{"id": opts.IDs[0]})
+		} else {
+			cond = cond.And(builder.In("id", opts.IDs))
+		}
+	}
 
 	if opts.RepoID > 0 {
 		c := builder.NewCond().And(builder.Eq{"repo_id": opts.RepoID})
@@ -166,8 +211,7 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
 		}
 		cond = cond.And(c)
-	}
-	if opts.OwnerID > 0 {
+	} else if opts.OwnerID > 0 { // OwnerID is ignored if RepoID is set
 		c := builder.NewCond().And(builder.Eq{"owner_id": opts.OwnerID})
 		if opts.WithAvailable {
 			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
@@ -177,6 +221,14 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 
 	if opts.Filter != "" {
 		cond = cond.And(builder.Like{"name", opts.Filter})
+	}
+
+	if opts.IsOnline.Has() {
+		if opts.IsOnline.Value() {
+			cond = cond.And(builder.Gt{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+		} else {
+			cond = cond.And(builder.Lte{"last_online": time.Now().Add(-RunnerOfflineTime).Unix()})
+		}
 	}
 	return cond
 }
@@ -226,6 +278,7 @@ func GetRunnerByID(ctx context.Context, id int64) (*ActionRunner, error) {
 // UpdateRunner updates runner's information.
 func UpdateRunner(ctx context.Context, r *ActionRunner, cols ...string) error {
 	e := db.GetEngine(ctx)
+	r.Name = util.EllipsisDisplayString(r.Name, 255)
 	var err error
 	if len(cols) == 0 {
 		_, err = e.ID(r.ID).AllCols().Update(r)
@@ -241,12 +294,18 @@ func DeleteRunner(ctx context.Context, id int64) error {
 		return err
 	}
 
-	_, err := db.GetEngine(ctx).Delete(&ActionRunner{ID: id})
+	_, err := db.DeleteByID[ActionRunner](ctx, id)
 	return err
 }
 
 // CreateRunner creates new runner.
 func CreateRunner(ctx context.Context, t *ActionRunner) error {
+	if t.OwnerID != 0 && t.RepoID != 0 {
+		// It's trying to create a runner that belongs to a repository, but OwnerID has been set accidentally.
+		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
+		t.OwnerID = 0
+	}
+	t.Name = util.EllipsisDisplayString(t.Name, 255)
 	return db.Insert(ctx, t)
 }
 
@@ -254,7 +313,7 @@ func CountRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 	// Only affect action runners were a owner ID is set, as actions runners
 	// could also be created on a repository.
 	return db.GetEngine(ctx).Table("action_runner").
-		Join("LEFT", "user", "`action_runner`.owner_id = `user`.id").
+		Join("LEFT", "`user`", "`action_runner`.owner_id = `user`.id").
 		Where("`action_runner`.owner_id != ?", 0).
 		And(builder.IsNull{"`user`.id"}).
 		Count(new(ActionRunner))
@@ -263,7 +322,7 @@ func CountRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 func FixRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 	subQuery := builder.Select("`action_runner`.id").
 		From("`action_runner`").
-		Join("LEFT", "user", "`action_runner`.owner_id = `user`.id").
+		Join("LEFT", "`user`", "`action_runner`.owner_id = `user`.id").
 		Where(builder.Neq{"`action_runner`.owner_id": 0}).
 		And(builder.IsNull{"`user`.id"})
 	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
@@ -272,4 +331,40 @@ func FixRunnersWithoutBelongingOwner(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+func CountRunnersWithoutBelongingRepo(ctx context.Context) (int64, error) {
+	return db.GetEngine(ctx).Table("action_runner").
+		Join("LEFT", "`repository`", "`action_runner`.repo_id = `repository`.id").
+		Where("`action_runner`.repo_id != ?", 0).
+		And(builder.IsNull{"`repository`.id"}).
+		Count(new(ActionRunner))
+}
+
+func FixRunnersWithoutBelongingRepo(ctx context.Context) (int64, error) {
+	subQuery := builder.Select("`action_runner`.id").
+		From("`action_runner`").
+		Join("LEFT", "`repository`", "`action_runner`.repo_id = `repository`.id").
+		Where(builder.Neq{"`action_runner`.repo_id": 0}).
+		And(builder.IsNull{"`repository`.id"})
+	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
+	res, err := db.GetEngine(ctx).Exec(b)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+func CountWrongRepoLevelRunners(ctx context.Context) (int64, error) {
+	var result int64
+	_, err := db.GetEngine(ctx).SQL("SELECT count(`id`) FROM `action_runner` WHERE `repo_id` > 0 AND `owner_id` > 0").Get(&result)
+	return result, err
+}
+
+func UpdateWrongRepoLevelRunners(ctx context.Context) (int64, error) {
+	result, err := db.GetEngine(ctx).Exec("UPDATE `action_runner` SET `owner_id` = 0 WHERE `repo_id` > 0 AND `owner_id` > 0")
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

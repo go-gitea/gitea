@@ -8,17 +8,17 @@ package git
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 
 	gitealog "code.gitea.io/gitea/modules/log"
 
-	"github.com/go-git/go-git/v5/plumbing/format/commitgraph"
+	commitgraph "github.com/go-git/go-git/v5/plumbing/format/commitgraph/v2"
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
 // CommitNodeIndex returns the index for walking commit graph
 func (r *Repository) CommitNodeIndex() (cgobject.CommitNodeIndex, *os.File) {
-	indexPath := path.Join(r.Path, "objects", "info", "commit-graph")
+	indexPath := filepath.Join(r.Path, "objects", "info", "commit-graph")
 
 	file, err := os.Open(indexPath)
 	if err == nil {

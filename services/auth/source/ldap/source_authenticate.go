@@ -5,14 +5,15 @@ package ldap
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -30,13 +31,18 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		return nil, user_model.ErrUserNotExist{Name: loginName}
 	}
 	// Fallback.
-	if len(sr.Username) == 0 {
+	// FIXME: this fallback would cause problems when the "Username" attribute is not set and a user inputs their email.
+	// In this case, the email would be used as the username, and will cause the "CreateUser" failure for the first login.
+	if sr.Username == "" {
+		if strings.Contains(userName, "@") {
+			log.Error("No username in search result (Username Attribute is not set properly?), using email as username might cause problems")
+		}
 		sr.Username = userName
 	}
-	if len(sr.Mail) == 0 {
-		sr.Mail = fmt.Sprintf("%s@localhost.local", sr.Username)
+	if sr.Mail == "" {
+		sr.Mail = sr.Username + "@localhost.local"
 	}
-	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 
 	// Update User admin flag if exist
 	if isExist, err := user_model.IsUserExist(ctx, 0, sr.Username); err != nil {
@@ -49,20 +55,17 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			}
 		}
 		if user != nil && !user.ProhibitLogin {
-			cols := make([]string, 0)
-			if len(source.AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
+			opts := &user_service.UpdateOptions{}
+			if source.AdminFilter != "" && user.IsAdmin != sr.IsAdmin {
 				// Change existing admin flag only if AdminFilter option is set
-				user.IsAdmin = sr.IsAdmin
-				cols = append(cols, "is_admin")
+				opts.IsAdmin = optional.Some(sr.IsAdmin)
 			}
-			if !user.IsAdmin && len(source.RestrictedFilter) > 0 && user.IsRestricted != sr.IsRestricted {
+			if !sr.IsAdmin && source.RestrictedFilter != "" && user.IsRestricted != sr.IsRestricted {
 				// Change existing restricted flag only if RestrictedFilter option is set
-				user.IsRestricted = sr.IsRestricted
-				cols = append(cols, "is_restricted")
+				opts.IsRestricted = optional.Some(sr.IsRestricted)
 			}
-			if len(cols) > 0 {
-				err = user_model.UpdateUserCols(ctx, user, cols...)
-				if err != nil {
+			if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
+				if err := user_service.UpdateUser(ctx, user, opts); err != nil {
 					return nil, err
 				}
 			}
@@ -71,7 +74,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 
 	if user != nil {
 		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}
@@ -87,21 +90,21 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			IsAdmin:     sr.IsAdmin,
 		}
 		overwriteDefault := &user_model.CreateUserOverwriteOptions{
-			IsRestricted: util.OptionalBoolOf(sr.IsRestricted),
-			IsActive:     util.OptionalBoolTrue,
+			IsRestricted: optional.Some(sr.IsRestricted),
+			IsActive:     optional.Some(true),
 		}
 
-		err := user_model.CreateUser(ctx, user, overwriteDefault)
+		err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault)
 		if err != nil {
 			return user, err
 		}
 
 		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey) {
-			if err := asymkey_model.RewriteAllPublicKeys(ctx); err != nil {
+			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
 		}
-		if len(source.AttributeAvatar) > 0 {
+		if source.AttributeAvatar != "" {
 			if err := user_service.UploadAvatar(ctx, user, sr.Avatar); err != nil {
 				return user, err
 			}

@@ -10,9 +10,9 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -52,13 +52,13 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 	// Check that the path given in opts.treePath is valid (not a git path)
 	cleanTreePath := CleanUploadFileName(treePath)
 	if cleanTreePath == "" && treePath != "" {
-		return nil, models.ErrFilenameInvalid{
+		return nil, ErrFilenameInvalid{
 			Path: treePath,
 		}
 	}
 	treePath = cleanTreePath
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -127,13 +127,13 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	// Check that the path given in opts.treePath is valid (not a git path)
 	cleanTreePath := CleanUploadFileName(treePath)
 	if cleanTreePath == "" && treePath != "" {
-		return nil, models.ErrFilenameInvalid{
+		return nil, ErrFilenameInvalid{
 			Path: treePath,
 		}
 	}
 	treePath = cleanTreePath
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -188,6 +188,14 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		},
 	}
 
+	// GitHub doesn't have these fields in the response, but we could follow other similar APIs to name them
+	// https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#list-commits
+	if lastCommit.Committer != nil {
+		contentsResponse.LastCommitterDate = lastCommit.Committer.When
+	}
+	if lastCommit.Author != nil {
+		contentsResponse.LastAuthorDate = lastCommit.Author.When
+	}
 	// Now populate the rest of the ContentsResponse based on entry type
 	if entry.IsRegular() || entry.IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)
@@ -219,7 +227,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 		}
 	}
 	// Handle links
-	if entry.IsRegular() || entry.IsLink() {
+	if entry.IsRegular() || entry.IsLink() || entry.IsExecutable() {
 		downloadURL, err := url.Parse(repo.HTMLURL() + "/raw/" + url.PathEscape(string(refType)) + "/" + util.PathEscapeSegments(ref) + "/" + util.PathEscapeSegments(treePath))
 		if err != nil {
 			return nil, err

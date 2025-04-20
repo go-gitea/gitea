@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -193,7 +194,7 @@ func runAddOauth(c *cli.Context) error {
 
 func runUpdateOauth(c *cli.Context) error {
 	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+		return errors.New("--id flag is missing")
 	}
 
 	ctx, cancel := installSignals()

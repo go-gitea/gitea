@@ -14,9 +14,9 @@ import (
 
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/modules/zstd"
 
 	"github.com/blakesmith/ar"
-	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
 

@@ -54,6 +54,11 @@ func DeleteAuthTokenByID(ctx context.Context, id string) error {
 	return err
 }
 
+func DeleteAuthTokensByUserID(ctx context.Context, uid int64) error {
+	_, err := db.GetEngine(ctx).Where(builder.Eq{"user_id": uid}).Delete(&AuthToken{})
+	return err
+}
+
 func DeleteExpiredAuthTokens(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).Where(builder.Lt{"expires_unix": timeutil.TimeStampNow()}).Delete(&AuthToken{})
 	return err

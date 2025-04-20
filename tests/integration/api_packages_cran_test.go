@@ -74,15 +74,13 @@ func TestPackageCran(t *testing.T) {
 			req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(
 				"dummy.txt",
 				[]byte{},
-			))
-			req = AddBasicAuthHeader(req, user.Name)
+			)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
 			req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(
 				"package/DESCRIPTION",
 				createDescription(packageName, packageVersion),
-			))
-			req = AddBasicAuthHeader(req, user.Name)
+			)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeCran)
@@ -105,34 +103,41 @@ func TestPackageCran(t *testing.T) {
 			req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(
 				"package/DESCRIPTION",
 				createDescription(packageName, packageVersion),
-			))
-			req = AddBasicAuthHeader(req, user.Name)
+			)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
 
 		t.Run("Download", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/src/contrib/%s_%s.tar.gz", url, packageName, packageVersion))
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/src/contrib/%s_%s.tar.gz", url, packageName, packageVersion)).
+				AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusOK)
+		})
+
+		t.Run("DownloadArchived", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/src/contrib/Archive/%s/%s_%s.tar.gz", url, packageName, packageName, packageVersion)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusOK)
 		})
 
 		t.Run("Enumerate", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", url+"/src/contrib/PACKAGES")
-			req = AddBasicAuthHeader(req, user.Name)
+			req := NewRequest(t, "GET", url+"/src/contrib/PACKAGES").
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			assert.Contains(t, resp.Header().Get("Content-Type"), "text/plain")
 
 			body := resp.Body.String()
-			assert.Contains(t, body, fmt.Sprintf("Package: %s", packageName))
-			assert.Contains(t, body, fmt.Sprintf("Version: %s", packageVersion))
+			assert.Contains(t, body, "Package: "+packageName)
+			assert.Contains(t, body, "Version: "+packageVersion)
 
-			req = NewRequest(t, "GET", url+"/src/contrib/PACKAGES.gz")
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "GET", url+"/src/contrib/PACKAGES.gz").
+				AddBasicAuth(user.Name)
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			assert.Contains(t, resp.Header().Get("Content-Type"), "application/x-gzip")
@@ -160,15 +165,13 @@ func TestPackageCran(t *testing.T) {
 			req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(
 				"dummy.txt",
 				[]byte{},
-			))
-			req = AddBasicAuthHeader(req, user.Name)
+			)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
 			req = NewRequestWithBody(t, "PUT", uploadURL+"?platform=&rversion=", createArchive(
 				"package/DESCRIPTION",
 				createDescription(packageName, packageVersion),
-			))
-			req = AddBasicAuthHeader(req, user.Name)
+			)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
 			uploadURL += "?platform=windows&rversion=4.2"
@@ -176,8 +179,7 @@ func TestPackageCran(t *testing.T) {
 			req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(
 				"package/DESCRIPTION",
 				createDescription(packageName, packageVersion),
-			))
-			req = AddBasicAuthHeader(req, user.Name)
+			)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeCran)
@@ -191,8 +193,7 @@ func TestPackageCran(t *testing.T) {
 			req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(
 				"package/DESCRIPTION",
 				createDescription(packageName, packageVersion),
-			))
-			req = AddBasicAuthHeader(req, user.Name)
+			)).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
 
@@ -210,8 +211,8 @@ func TestPackageCran(t *testing.T) {
 			}
 
 			for _, c := range cases {
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/bin/%s/contrib/%s/%s_%s.zip", url, c.Platform, c.RVersion, packageName, packageVersion))
-				req = AddBasicAuthHeader(req, user.Name)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/bin/%s/contrib/%s/%s_%s.zip", url, c.Platform, c.RVersion, packageName, packageVersion)).
+					AddBasicAuth(user.Name)
 				MakeRequest(t, req, c.ExpectedStatus)
 			}
 		})
@@ -222,18 +223,18 @@ func TestPackageCran(t *testing.T) {
 			req := NewRequest(t, "GET", url+"/bin/windows/contrib/4.1/PACKAGES")
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequest(t, "GET", url+"/bin/windows/contrib/4.2/PACKAGES")
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "GET", url+"/bin/windows/contrib/4.2/PACKAGES").
+				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			assert.Contains(t, resp.Header().Get("Content-Type"), "text/plain")
 
 			body := resp.Body.String()
-			assert.Contains(t, body, fmt.Sprintf("Package: %s", packageName))
-			assert.Contains(t, body, fmt.Sprintf("Version: %s", packageVersion))
+			assert.Contains(t, body, "Package: "+packageName)
+			assert.Contains(t, body, "Version: "+packageVersion)
 
-			req = NewRequest(t, "GET", url+"/bin/windows/contrib/4.2/PACKAGES.gz")
-			req = AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "GET", url+"/bin/windows/contrib/4.2/PACKAGES.gz").
+				AddBasicAuth(user.Name)
 			resp = MakeRequest(t, req, http.StatusOK)
 
 			assert.Contains(t, resp.Header().Get("Content-Type"), "application/x-gzip")

@@ -29,6 +29,8 @@ import (
 
 type TemplateExecutor scopedtmpl.TemplateExecutor
 
+type TplName string
+
 type HTMLRender struct {
 	templates atomic.Pointer[scopedtmpl.ScopedTemplate]
 }
@@ -40,7 +42,8 @@ var (
 
 var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
 
-func (h *HTMLRender) HTML(w io.Writer, status int, name string, data any, ctx context.Context) error { //nolint:revive
+func (h *HTMLRender) HTML(w io.Writer, status int, tplName TplName, data any, ctx context.Context) error { //nolint:revive
+	name := string(tplName)
 	if respWriter, ok := w.(http.ResponseWriter); ok {
 		if respWriter.Header().Get("Content-Type") == "" {
 			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -138,10 +141,9 @@ func wrapTmplErrMsg(msg string) {
 	if setting.IsProd {
 		// in prod mode, Gitea must have correct templates to run
 		log.Fatal("Gitea can't run with template errors: %s", msg)
-	} else {
-		// in dev mode, do not need to really exit, because the template errors could be fixed by developer soon and the templates get reloaded
-		log.Error("There are template errors but Gitea continues to run in dev mode: %s", msg)
 	}
+	// in dev mode, do not need to really exit, because the template errors could be fixed by developer soon and the templates get reloaded
+	log.Error("There are template errors but Gitea continues to run in dev mode: %s", msg)
 }
 
 type templateErrorPrettier struct {

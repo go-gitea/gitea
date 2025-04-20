@@ -197,10 +197,10 @@ func (opts FindPublicKeyOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"fingerprint": opts.Fingerprint})
 	}
 	if len(opts.KeyTypes) > 0 {
-		cond = cond.And(builder.In("type", opts.KeyTypes))
+		cond = cond.And(builder.In("`type`", opts.KeyTypes))
 	}
 	if opts.NotKeytype > 0 {
-		cond = cond.And(builder.Neq{"type": opts.NotKeytype})
+		cond = cond.And(builder.Neq{"`type`": opts.NotKeytype})
 	}
 	if opts.LoginSourceID > 0 {
 		cond = cond.And(builder.Eq{"login_source_id": opts.LoginSourceID})
@@ -227,47 +227,28 @@ func UpdatePublicKeyUpdated(ctx context.Context, id int64) error {
 	return nil
 }
 
-// DeletePublicKeys does the actual key deletion but does not update authorized_keys file.
-func DeletePublicKeys(ctx context.Context, keyIDs ...int64) error {
-	if len(keyIDs) == 0 {
-		return nil
-	}
-
-	_, err := db.GetEngine(ctx).In("id", keyIDs).Delete(new(PublicKey))
-	return err
-}
-
 // PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
 func PublicKeysAreExternallyManaged(ctx context.Context, keys []*PublicKey) ([]bool, error) {
-	sources := make([]*auth.Source, 0, 5)
+	sourceCache := make(map[int64]*auth.Source, len(keys))
 	externals := make([]bool, len(keys))
-keyloop:
+
 	for i, key := range keys {
 		if key.LoginSourceID == 0 {
 			externals[i] = false
-			continue keyloop
+			continue
 		}
 
-		var source *auth.Source
-
-	sourceloop:
-		for _, s := range sources {
-			if s.ID == key.LoginSourceID {
-				source = s
-				break sourceloop
-			}
-		}
-
-		if source == nil {
+		source, ok := sourceCache[key.LoginSourceID]
+		if !ok {
 			var err error
 			source, err = auth.GetSourceByID(ctx, key.LoginSourceID)
 			if err != nil {
 				if auth.IsErrSourceNotExist(err) {
 					externals[i] = false
-					sources[i] = &auth.Source{
+					sourceCache[key.LoginSourceID] = &auth.Source{
 						ID: key.LoginSourceID,
 					}
-					continue keyloop
+					continue
 				}
 				return nil, err
 			}
@@ -322,8 +303,8 @@ func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, erro
 			log.Error("SearchPublicKeyByContent: %v", err)
 			continue
 		}
-		if err = DeletePublicKeys(ctx, key.ID); err != nil {
-			log.Error("deletePublicKeys: %v", err)
+		if _, err = db.DeleteByID[PublicKey](ctx, key.ID); err != nil {
+			log.Error("DeleteByID[PublicKey]: %v", err)
 			continue
 		}
 		sshKeysNeedUpdate = true

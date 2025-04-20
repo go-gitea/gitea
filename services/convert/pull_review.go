@@ -21,15 +21,9 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		r.Reviewer = user_model.NewGhostUser()
 	}
 
-	apiTeam, err := ToTeam(ctx, r.ReviewerTeam)
-	if err != nil {
-		return nil, err
-	}
-
 	result := &api.PullReview{
 		ID:                r.ID,
 		Reviewer:          ToUser(ctx, r.Reviewer, doer),
-		ReviewerTeam:      apiTeam,
 		State:             api.ReviewStateUnknown,
 		Body:              r.Content,
 		CommitID:          r.CommitID,
@@ -41,6 +35,14 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		Updated:           r.UpdatedUnix.AsTime(),
 		HTMLURL:           r.HTMLURL(ctx),
 		HTMLPullURL:       r.Issue.HTMLURL(),
+	}
+
+	if r.ReviewerTeam != nil {
+		var err error
+		result.ReviewerTeam, err = ToTeam(ctx, r.ReviewerTeam)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	switch r.Type {
@@ -64,7 +66,7 @@ func ToPullReviewList(ctx context.Context, rl []*issues_model.Review, doer *user
 	result := make([]*api.PullReview, 0, len(rl))
 	for i := range rl {
 		// show pending reviews only for the user who created them
-		if rl[i].Type == issues_model.ReviewTypePending && !(doer.IsAdmin || doer.ID == rl[i].ReviewerID) {
+		if rl[i].Type == issues_model.ReviewTypePending && (doer == nil || (!doer.IsAdmin && doer.ID != rl[i].ReviewerID)) {
 			continue
 		}
 		r, err := ToPullReview(ctx, rl[i], doer)

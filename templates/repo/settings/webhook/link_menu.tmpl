@@ -1,0 +1,50 @@
+{{$size := 20}}
+{{if .Size}}
+	{{$size = .Size}}
+{{end}}
+<div class="menu">
+	<a class="item" href="{{.BaseLinkNew}}/gitea/new">
+		{{template "shared/webhook/icon" (dict "HookType" "gitea" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_gitea"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/gogs/new">
+		{{template "shared/webhook/icon" (dict "HookType" "gogs" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_gogs"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/slack/new">
+		{{template "shared/webhook/icon" (dict "HookType" "slack" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_slack"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/discord/new">
+		{{template "shared/webhook/icon" (dict "HookType" "discord" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_discord"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/dingtalk/new">
+		{{template "shared/webhook/icon" (dict "HookType" "dingtalk" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_dingtalk"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/telegram/new">
+		{{template "shared/webhook/icon" (dict "HookType" "telegram" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_telegram"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/msteams/new">
+		{{template "shared/webhook/icon" (dict "HookType" "msteams" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_msteams"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/feishu/new">
+		{{template "shared/webhook/icon" (dict "HookType" "feishu" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_feishu_or_larksuite"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/matrix/new">
+		{{template "shared/webhook/icon" (dict "HookType" "matrix" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_matrix"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/wechatwork/new">
+		{{template "shared/webhook/icon" (dict "HookType" "wechatwork" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_wechatwork"}}
+	</a>
+	<a class="item" href="{{.BaseLinkNew}}/packagist/new">
+		{{template "shared/webhook/icon" (dict "HookType" "packagist" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_packagist"}}
+	</a>
+</div>

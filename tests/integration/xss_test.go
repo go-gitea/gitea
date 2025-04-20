@@ -21,7 +21,7 @@ func TestXSSUserFullName(t *testing.T) {
 
 	session := loginUser(t, user.Name)
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
-		"_csrf":     GetCSRF(t, session, "/user/settings"),
+		"_csrf":     GetUserCSRFToken(t, session),
 		"name":      user.Name,
 		"full_name": fullName,
 		"email":     user.Email,
@@ -32,8 +32,8 @@ func TestXSSUserFullName(t *testing.T) {
 	req = NewRequestf(t, "GET", "/%s", user.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	assert.EqualValues(t, 0, htmlDoc.doc.Find("script.evil").Length())
-	assert.EqualValues(t, fullName,
+	assert.Equal(t, 0, htmlDoc.doc.Find("script.evil").Length())
+	assert.Equal(t, fullName,
 		htmlDoc.doc.Find("div.content").Find(".header.text.center").Text(),
 	)
 }

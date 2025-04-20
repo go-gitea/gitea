@@ -11,10 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-/*
-IssueTemplate is a legacy to keep the unit tests working.
-Copied from structs.IssueTemplate, the original type has been changed a lot to support yaml template.
-*/
+// IssueTemplate is a legacy to keep the unit tests working.
+// Copied from structs.IssueTemplate, the original type has been changed a lot to support yaml template.
 type IssueTemplate struct {
 	Name   string   `json:"name" yaml:"name"`
 	Title  string   `json:"title" yaml:"title"`
@@ -53,7 +51,7 @@ func TestExtractMetadata(t *testing.T) {
 		var meta IssueTemplate
 		body, err := ExtractMetadata(fmt.Sprintf("%s\n%s\n%s", sepTest, frontTest, sepTest), &meta)
 		assert.NoError(t, err)
-		assert.Equal(t, "", body)
+		assert.Empty(t, body)
 		assert.Equal(t, metaTest, meta)
 		assert.True(t, meta.Valid())
 	})
@@ -85,7 +83,7 @@ func TestExtractMetadataBytes(t *testing.T) {
 		var meta IssueTemplate
 		body, err := ExtractMetadataBytes([]byte(fmt.Sprintf("%s\n%s\n%s", sepTest, frontTest, sepTest)), &meta)
 		assert.NoError(t, err)
-		assert.Equal(t, "", string(body))
+		assert.Empty(t, string(body))
 		assert.Equal(t, metaTest, meta)
 		assert.True(t, meta.Valid())
 	})

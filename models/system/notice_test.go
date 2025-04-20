@@ -45,8 +45,6 @@ func TestCreateRepositoryNotice(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, noticeBean)
 }
 
-// TODO TestRemoveAllWithNotice
-
 func TestCountNotices(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.Equal(t, int64(3), system.CountNotices(db.DefaultContext))
@@ -67,14 +65,6 @@ func TestNotices(t *testing.T) {
 	if assert.Len(t, notices, 1) {
 		assert.Equal(t, int64(1), notices[0].ID)
 	}
-}
-
-func TestDeleteNotice(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	unittest.AssertExistsAndLoadBean(t, &system.Notice{ID: 3})
-	assert.NoError(t, system.DeleteNotice(db.DefaultContext, 3))
-	unittest.AssertNotExistsBean(t, &system.Notice{ID: 3})
 }
 
 func TestDeleteNotices(t *testing.T) {
@@ -109,7 +99,8 @@ func TestDeleteNoticesByIDs(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &system.Notice{ID: 1})
 	unittest.AssertExistsAndLoadBean(t, &system.Notice{ID: 2})
 	unittest.AssertExistsAndLoadBean(t, &system.Notice{ID: 3})
-	assert.NoError(t, system.DeleteNoticesByIDs(db.DefaultContext, []int64{1, 3}))
+	err := db.DeleteByIDs[system.Notice](db.DefaultContext, 1, 3)
+	assert.NoError(t, err)
 	unittest.AssertNotExistsBean(t, &system.Notice{ID: 1})
 	unittest.AssertExistsAndLoadBean(t, &system.Notice{ID: 2})
 	unittest.AssertNotExistsBean(t, &system.Notice{ID: 3})

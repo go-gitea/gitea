@@ -8,10 +8,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/label"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -44,11 +44,12 @@ func NewLabel(ctx *context.Context) {
 	}
 
 	l := &issues_model.Label{
-		OrgID:       ctx.Org.Organization.ID,
-		Name:        form.Title,
-		Exclusive:   form.Exclusive,
-		Description: form.Description,
-		Color:       form.Color,
+		OrgID:          ctx.Org.Organization.ID,
+		Name:           form.Title,
+		Exclusive:      form.Exclusive,
+		Description:    form.Description,
+		Color:          form.Color,
+		ExclusiveOrder: form.ExclusiveOrder,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
@@ -64,7 +65,7 @@ func UpdateLabel(ctx *context.Context) {
 	if err != nil {
 		switch {
 		case issues_model.IsErrOrgLabelNotExist(err):
-			ctx.Error(http.StatusNotFound)
+			ctx.HTTPError(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
 		}
@@ -73,6 +74,7 @@ func UpdateLabel(ctx *context.Context) {
 
 	l.Name = form.Title
 	l.Exclusive = form.Exclusive
+	l.ExclusiveOrder = form.ExclusiveOrder
 	l.Description = form.Description
 	l.Color = form.Color
 	l.SetArchived(form.IsArchived)

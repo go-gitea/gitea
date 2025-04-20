@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	golog "log"
 	"os"
@@ -14,13 +15,27 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	migrate_base "code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/doctor"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/doctor"
 
 	"github.com/urfave/cli/v2"
 	"xorm.io/xorm"
 )
+
+// CmdDoctor represents the available doctor sub-command.
+var CmdDoctor = &cli.Command{
+	Name:        "doctor",
+	Usage:       "Diagnose and optionally fix problems, convert or re-create database tables",
+	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
+
+	Subcommands: []*cli.Command{
+		cmdDoctorCheck,
+		cmdRecreateTable,
+		cmdDoctorConvert,
+	},
+}
 
 var cmdDoctorCheck = &cli.Command{
 	Name:        "check",
@@ -57,19 +72,6 @@ var cmdDoctorCheck = &cli.Command{
 			Aliases: []string{"H"},
 			Usage:   "Use color for outputted information",
 		},
-	},
-}
-
-// CmdDoctor represents the available doctor sub-command.
-var CmdDoctor = &cli.Command{
-	Name:        "doctor",
-	Usage:       "Diagnose and optionally fix problems",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
-
-	Subcommands: []*cli.Command{
-		cmdDoctorCheck,
-		cmdRecreateTable,
-		cmdDoctorConvert,
 	},
 }
 
@@ -129,8 +131,8 @@ func runRecreateTable(ctx *cli.Context) error {
 	}
 	recreateTables := migrate_base.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(stdCtx, func(x *xorm.Engine) error {
-		if err := migrations.EnsureUpToDate(x); err != nil {
+	return db.InitEngineWithMigration(stdCtx, func(ctx context.Context, x *xorm.Engine) error {
+		if err := migrations.EnsureUpToDate(ctx, x); err != nil {
 			return err
 		}
 		return recreateTables(x)
@@ -142,11 +144,12 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 	setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 
 	logFile := ctx.String("log-file")
-	if logFile == "" {
+	switch logFile {
+	case "":
 		return // if no doctor log-file is set, do not show any log from default logger
-	} else if logFile == "-" {
+	case "-":
 		setupConsoleLogger(log.TRACE, colorize, os.Stdout)
-	} else {
+	default:
 		logFile, _ = filepath.Abs(logFile)
 		writeMode := log.WriterMode{Level: log.TRACE, WriterOption: log.WriterFileOption{FileName: logFile}}
 		writer, err := log.NewEventWriter("console-to-file", "file", writeMode)
@@ -177,6 +180,7 @@ func runDoctorCheck(ctx *cli.Context) error {
 	if ctx.IsSet("list") {
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 		_, _ = w.Write([]byte("Default\tName\tTitle\n"))
+		doctor.SortChecks(doctor.Checks)
 		for _, check := range doctor.Checks {
 			if check.IsDefault {
 				_, _ = w.Write([]byte{'*'})
@@ -192,25 +196,19 @@ func runDoctorCheck(ctx *cli.Context) error {
 
 	var checks []*doctor.Check
 	if ctx.Bool("all") {
-		checks = doctor.Checks
+		checks = make([]*doctor.Check, len(doctor.Checks))
+		copy(checks, doctor.Checks)
 	} else if ctx.IsSet("run") {
 		addDefault := ctx.Bool("default")
-		names := ctx.StringSlice("run")
-		for i, name := range names {
-			names[i] = strings.ToLower(strings.TrimSpace(name))
-		}
-
+		runNamesSet := container.SetOf(ctx.StringSlice("run")...)
 		for _, check := range doctor.Checks {
-			if addDefault && check.IsDefault {
+			if (addDefault && check.IsDefault) || runNamesSet.Contains(check.Name) {
 				checks = append(checks, check)
-				continue
+				runNamesSet.Remove(check.Name)
 			}
-			for _, name := range names {
-				if name == check.Name {
-					checks = append(checks, check)
-					break
-				}
-			}
+		}
+		if len(runNamesSet) > 0 {
+			return fmt.Errorf("unknown checks: %q", strings.Join(runNamesSet.Values(), ","))
 		}
 	} else {
 		for _, check := range doctor.Checks {
@@ -219,6 +217,5 @@ func runDoctorCheck(ctx *cli.Context) error {
 			}
 		}
 	}
-
 	return doctor.RunChecks(stdCtx, colorize, ctx.Bool("fix"), checks)
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -16,17 +17,38 @@ import (
 type ActionJobList []*ActionRunJob
 
 func (jobs ActionJobList) GetRunIDs() []int64 {
-	ids := make(container.Set[int64], len(jobs))
-	for _, j := range jobs {
-		if j.RunID == 0 {
-			continue
-		}
-		ids.Add(j.RunID)
+	return container.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
+		return j.RunID, j.RunID != 0
+	})
+}
+
+func (jobs ActionJobList) LoadRepos(ctx context.Context) error {
+	repoIDs := container.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
+		return j.RepoID, j.RepoID != 0 && j.Repo == nil
+	})
+	if len(repoIDs) == 0 {
+		return nil
 	}
-	return ids.Values()
+
+	repos := make(map[int64]*repo_model.Repository, len(repoIDs))
+	if err := db.GetEngine(ctx).In("id", repoIDs).Find(&repos); err != nil {
+		return err
+	}
+	for _, j := range jobs {
+		if j.RepoID > 0 && j.Repo == nil {
+			j.Repo = repos[j.RepoID]
+		}
+	}
+	return nil
 }
 
 func (jobs ActionJobList) LoadRuns(ctx context.Context, withRepo bool) error {
+	if withRepo {
+		if err := jobs.LoadRepos(ctx); err != nil {
+			return err
+		}
+	}
+
 	runIDs := jobs.GetRunIDs()
 	runs := make(map[int64]*ActionRun, len(runIDs))
 	if err := db.GetEngine(ctx).In("id", runIDs).Find(&runs); err != nil {
@@ -35,14 +57,8 @@ func (jobs ActionJobList) LoadRuns(ctx context.Context, withRepo bool) error {
 	for _, j := range jobs {
 		if j.RunID > 0 && j.Run == nil {
 			j.Run = runs[j.RunID]
+			j.Run.Repo = j.Repo
 		}
-	}
-	if withRepo {
-		var runsList RunList = make([]*ActionRun, 0, len(runs))
-		for _, r := range runs {
-			runsList = append(runsList, r)
-		}
-		return runsList.LoadRepos(ctx)
 	}
 	return nil
 }

@@ -1,0 +1,24 @@
+<div id="oauth2-login-navigator" class="tw-py-1">
+	<div class="tw-flex tw-flex-col tw-justify-center">
+		<div id="oauth2-login-navigator-inner" class="tw-flex tw-flex-col tw-flex-wrap tw-items-center tw-gap-2">
+			{{range $provider := .OAuth2Providers}}
+				<a class="{{$provider.Name}} ui button tw-flex tw-items-center tw-justify-center tw-py-2 tw-w-full oauth-login-link" href="{{AppSubUrl}}/user/oauth2/{{$provider.DisplayName}}">
+					{{$provider.IconHTML 28}}
+					{{ctx.Locale.Tr "sign_in_with_provider" $provider.DisplayName}}
+				</a>
+			{{end}}
+			{{if .EnableOpenIDSignIn}}
+				<a class="openid ui button tw-flex tw-items-center tw-justify-center tw-py-2 tw-w-full" href="{{AppSubUrl}}/user/login/openid">
+				{{svg "fontawesome-openid" 28 "tw-mr-2"}}
+				{{ctx.Locale.Tr "sign_in_with_provider" "OpenID"}}
+				</a>
+			{{end}}
+			{{if .EnableSSPI}}
+				<a class="ui button tw-flex tw-items-center tw-justify-center tw-py-2 tw-w-full" rel="nofollow" href="{{AppSubUrl}}/user/login?auth_with_sspi=1">
+					{{svg "fontawesome-windows"}}
+					&nbsp;SSPI
+				</a>
+			{{end}}
+		</div>
+	</div>
+</div>

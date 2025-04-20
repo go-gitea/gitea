@@ -81,7 +81,6 @@ func HashAppToken(x *xorm.Engine) error {
 			if _, err := sess.ID(token.ID).Cols("token_hash, token_salt, token_last_eight, sha1").Update(token); err != nil {
 				return fmt.Errorf("couldn't add in sha1, token_hash, token_salt and token_last_eight: %w", err)
 			}
-
 		}
 	}
 

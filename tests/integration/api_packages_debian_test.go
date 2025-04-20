@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -19,6 +20,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
+	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/blakesmith/ar"
@@ -89,16 +91,16 @@ func TestPackageDebian(t *testing.T) {
 							req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
 							MakeRequest(t, req, http.StatusUnauthorized)
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
-							AddBasicAuthHeader(req, user.Name)
+							req = NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{})).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusBadRequest)
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive("", "", ""))
-							AddBasicAuthHeader(req, user.Name)
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive("", "", "")).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusBadRequest)
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture))
-							AddBasicAuthHeader(req, user.Name)
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture)).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusCreated)
 
 							pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages.TypeDebian, packageName, packageVersion)
@@ -145,8 +147,8 @@ func TestPackageDebian(t *testing.T) {
 								return seen
 							})
 
-							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture))
-							AddBasicAuthHeader(req, user.Name)
+							req = NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion, architecture)).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusConflict)
 						})
 
@@ -162,8 +164,8 @@ func TestPackageDebian(t *testing.T) {
 						t.Run("Packages", func(t *testing.T) {
 							defer tests.PrintCurrentTest(t)()
 
-							req := NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion2, architecture))
-							AddBasicAuthHeader(req, user.Name)
+							req := NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, packageVersion2, architecture)).
+								AddBasicAuth(user.Name)
 							MakeRequest(t, req, http.StatusCreated)
 
 							url := fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages", rootURL, distribution, component, architecture)
@@ -243,12 +245,12 @@ func TestPackageDebian(t *testing.T) {
 			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion, architecture))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion, architecture))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion, architecture)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion2, architecture))
-			AddBasicAuthHeader(req, user.Name)
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/pool/%s/%s/%s/%s/%s", rootURL, distribution, component, packageName, packageVersion2, architecture)).
+				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages", rootURL, distribution, component, architecture))
@@ -262,5 +264,38 @@ func TestPackageDebian(t *testing.T) {
 
 		assert.Contains(t, body, "Components: "+strings.Join(components, " ")+"\n")
 		assert.Contains(t, body, "Architectures: "+architectures[1]+"\n")
+	})
+
+	t.Run("Cleanup", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		rule := &packages.PackageCleanupRule{
+			Enabled:       true,
+			RemovePattern: `.*`,
+			MatchFullName: true,
+			OwnerID:       user.ID,
+			Type:          packages.TypeDebian,
+		}
+
+		_, err := packages.InsertCleanupRule(db.DefaultContext, rule)
+		assert.NoError(t, err)
+
+		// When there were a lot of packages (> 50 or 100) and the code used "Iterate" to get all packages, it ever caused bugs,
+		// because "Iterate" keeps a dangling SQL session but the callback function still uses the same session to execute statements.
+		// The "Iterate" problem has been checked by TestContextSafety now, so here we only need to check the cleanup logic with a small number
+		packagesCount := 2
+		for i := 0; i < packagesCount; i++ {
+			uploadURL := fmt.Sprintf("%s/pool/%s/%s/upload", rootURL, "test", "main")
+			req := NewRequestWithBody(t, "PUT", uploadURL, createArchive(packageName, "1.0."+strconv.Itoa(i), "all")).AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/dists/%s/Release", rootURL, "test"))
+		MakeRequest(t, req, http.StatusOK)
+
+		err = packages_cleanup_service.CleanupTask(db.DefaultContext, 0)
+		assert.NoError(t, err)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/dists/%s/Release", rootURL, "test"))
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 }

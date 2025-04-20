@@ -18,7 +18,10 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Fake issue with assignees
-	issue, err := issues_model.GetIssueWithAttrsByID(db.DefaultContext, 1)
+	issue, err := issues_model.GetIssueByID(db.DefaultContext, 1)
+	assert.NoError(t, err)
+
+	err = issue.LoadAttributes(db.DefaultContext)
 	assert.NoError(t, err)
 
 	// Assign multiple users

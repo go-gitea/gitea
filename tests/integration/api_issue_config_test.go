@@ -47,7 +47,7 @@ func TestAPIRepoGetIssueConfig(t *testing.T) {
 		issueConfig := getIssueConfig(t, owner.Name, repo.Name)
 
 		assert.True(t, issueConfig.BlankIssuesEnabled)
-		assert.Len(t, issueConfig.ContactLinks, 0)
+		assert.Empty(t, issueConfig.ContactLinks)
 	})
 
 	t.Run("DisableBlankIssues", func(t *testing.T) {
@@ -59,7 +59,7 @@ func TestAPIRepoGetIssueConfig(t *testing.T) {
 		issueConfig := getIssueConfig(t, owner.Name, repo.Name)
 
 		assert.False(t, issueConfig.BlankIssuesEnabled)
-		assert.Len(t, issueConfig.ContactLinks, 0)
+		assert.Empty(t, issueConfig.ContactLinks)
 	})
 
 	t.Run("ContactLinks", func(t *testing.T) {
@@ -119,9 +119,9 @@ func TestAPIRepoIssueConfigPaths(t *testing.T) {
 		".github/issue_template/config",
 	}
 
-	for _, canidate := range templateConfigCandidates {
+	for _, candidate := range templateConfigCandidates {
 		for _, extension := range []string{".yaml", ".yml"} {
-			fullPath := canidate + extension
+			fullPath := candidate + extension
 			t.Run(fullPath, func(t *testing.T) {
 				configMap := make(map[string]any)
 				configMap["blank_issues_enabled"] = false
@@ -135,7 +135,7 @@ func TestAPIRepoIssueConfigPaths(t *testing.T) {
 				issueConfig := getIssueConfig(t, owner.Name, repo.Name)
 
 				assert.False(t, issueConfig.BlankIssuesEnabled)
-				assert.Len(t, issueConfig.ContactLinks, 0)
+				assert.Empty(t, issueConfig.ContactLinks)
 
 				_, err = deleteFileInBranch(owner, repo, fullPath, repo.DefaultBranch)
 				assert.NoError(t, err)

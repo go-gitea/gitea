@@ -15,8 +15,8 @@ import (
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	ID         SHA1
-	ResolvedID SHA1
+	ID         ObjectID
+	ResolvedID ObjectID
 	repo       *Repository
 
 	gogitTree *object.Tree
@@ -26,7 +26,7 @@ type Tree struct {
 }
 
 func (t *Tree) loadTreeObject() error {
-	gogitTree, err := t.repo.gogitRepo.TreeObject(t.ID)
+	gogitTree, err := t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID.RawValue()))
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	entries := make([]*TreeEntry, len(t.gogitTree.Entries))
 	for i, entry := range t.gogitTree.Entries {
 		entries[i] = &TreeEntry{
-			ID:             entry.Hash,
+			ID:             ParseGogitHash(entry.Hash),
 			gogitTreeEntry: &t.gogitTree.Entries[i],
 			ptree:          t,
 		}
@@ -81,7 +81,7 @@ func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 		}
 
 		convertedEntry := &TreeEntry{
-			ID:             entry.Hash,
+			ID:             ParseGogitHash(entry.Hash),
 			gogitTreeEntry: &entry,
 			ptree:          t,
 			fullName:       fullName,

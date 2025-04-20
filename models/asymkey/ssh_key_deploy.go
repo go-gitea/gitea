@@ -131,24 +131,22 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, readO
 	}
 	defer committer.Close()
 
-	pkey := &PublicKey{
-		Fingerprint: fingerprint,
-	}
-	has, err := db.GetByBean(ctx, pkey)
+	pkey, exist, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
 	if err != nil {
 		return nil, err
-	}
-
-	if has {
+	} else if exist {
 		if pkey.Type != KeyTypeDeploy {
 			return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
 		}
 	} else {
 		// First time use this deploy key.
-		pkey.Mode = accessMode
-		pkey.Type = KeyTypeDeploy
-		pkey.Content = content
-		pkey.Name = name
+		pkey = &PublicKey{
+			Fingerprint: fingerprint,
+			Mode:        accessMode,
+			Type:        KeyTypeDeploy,
+			Content:     content,
+			Name:        name,
+		}
 		if err = addKey(ctx, pkey); err != nil {
 			return nil, fmt.Errorf("addKey: %w", err)
 		}
@@ -164,11 +162,10 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, readO
 
 // GetDeployKeyByID returns deploy key by given ID.
 func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
-	key := new(DeployKey)
-	has, err := db.GetEngine(ctx).ID(id).Get(key)
+	key, exist, err := db.GetByID[DeployKey](ctx, id)
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrDeployKeyNotExist{id, 0, 0}
 	}
 	return key, nil
@@ -176,14 +173,10 @@ func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
 
 // GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
 func GetDeployKeyByRepo(ctx context.Context, keyID, repoID int64) (*DeployKey, error) {
-	key := &DeployKey{
-		KeyID:  keyID,
-		RepoID: repoID,
-	}
-	has, err := db.GetByBean(ctx, key)
+	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"key_id": keyID, "repo_id": repoID})
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrDeployKeyNotExist{0, keyID, repoID}
 	}
 	return key, nil
