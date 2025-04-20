@@ -3,10 +3,10 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<div class="tw-flex">
-			<h1 class="tw-mb-2">{{.Milestone.Name}}</h1>
+		<div class="flex-text-block tw-flex-wrap tw-mb-2">
+			<h1 class="tw-flex-1 tw-m-0">{{.Milestone.Name}}</h1>
 			{{if not .Repository.IsArchived}}
-				<div class="tw-text-right tw-flex-1">
+				<div>
 					{{if or .CanWriteIssues .CanWritePulls}}
 						{{if .Milestone.IsClosed}}
 							<a class="ui primary basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{ctx.Locale.Tr "repo.milestones.open"}}

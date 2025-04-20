@@ -1,7 +1,7 @@
 /* only used by "repo/empty.tmpl" */
 .clone-buttons-combo {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex: 1;
 }
 
@@ -11,7 +11,6 @@
 
 .ui.action.input.clone-buttons-combo input {
   border-radius: 0; /* override fomantic border-radius for ".ui.input > input" */
-  height: 30px;
 }
 
 /* used by the clone-panel popup */

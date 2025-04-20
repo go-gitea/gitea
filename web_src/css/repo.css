@@ -1629,21 +1629,17 @@ td .commit-summary {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .repo-button-row-left {
   flex-grow: 1;
 }
 
-.repo-button-row .button {
-  padding: 6px 10px !important;
-  height: 30px;
+.repo-button-row .ui.button {
   flex-shrink: 0;
   margin: 0;
-}
-
-.repo-button-row .button.dropdown:not(.icon) {
-  padding-right: 22px !important; /* normal buttons have !important paddings, so we need to override it for dropdown (Add File) icons */
+  min-height: 30px;
 }
 
 tbody.commit-list {
@@ -1788,12 +1784,12 @@ tbody.commit-list {
 .resolved-placeholder {
   display: flex;
   align-items: center;
-  font-size: 14px !important;
-  padding: 8px !important;
-  font-weight: var(--font-weight-normal) !important;
-  border: 1px solid var(--color-secondary) !important;
-  border-radius: var(--border-radius) !important;
-  margin: 4px !important;
+  justify-content: space-between;
+  margin: 4px;
+  padding: 8px;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background: var(--color-box-header);
 }
 
 .resolved-placeholder + .comment-code-cloud {
@@ -2221,10 +2217,11 @@ tbody.commit-list {
   max-width: min(400px, 90vw);
 }
 
-.branch-selector-dropdown .branch-dropdown-button {
+.branch-selector-dropdown .ui.button.branch-dropdown-button {
   margin: 0;
   max-width: 340px;
   line-height: var(--line-height-default);
+  padding: 0 0.5em 0 0.75em;
 }
 
 /* FIXME: These media selectors are not ideal (just keep them from old code).
