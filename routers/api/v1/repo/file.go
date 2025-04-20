@@ -25,9 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -990,6 +988,11 @@ func GetFiles(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/files repository repoGetFiles
 	// ---
 	// summary: Get the metadata and contents of requested files
+	// description: Uses automatic pagination based on default page size and
+	// 							max response size and returns the maximum allowed number of files.
+	//							Files which could not be retrieved are null. Blobs which are too large
+	//							are being returned with `content = ""` and `size > 0`, they can be
+	// 							requested using the `download_url`.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1008,14 +1011,6 @@ func GetFiles(ctx *context.APIContext) {
 	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
 	//   type: string
 	//   required: false
-	// - name: page
-	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results
-	//   type: integer
 	// - name: body
 	//   in: body
 	//   required: true
@@ -1026,8 +1021,6 @@ func GetFiles(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ContentsListResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "413":
-	//		 "$ref": "#/responses/contentTooLarge"
 
 	apiOpts := web.GetForm(ctx).(*api.GetFilesOptions)
 
@@ -1042,16 +1035,7 @@ func GetFiles(ctx *context.APIContext) {
 	}
 
 	files := apiOpts.Files
+	filesResponse := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
 
-	count := len(files)
-	listOpts := utils.GetListOptions(ctx)
-	files = util.PaginateSlice(files, listOpts.Page, listOpts.PageSize).([]string)
-
-	filesResponse, err := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
-	if err != nil {
-		ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
-	}
-
-	ctx.SetTotalCountHeader(int64(count))
 	ctx.JSON(http.StatusOK, filesResponse)
 }

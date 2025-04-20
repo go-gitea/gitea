@@ -7265,6 +7265,7 @@
     },
     "/repos/{owner}/{repo}/files": {
       "post": {
+        "description": "Uses automatic pagination based on default page size and max response size and returns the maximum allowed number of files. Files which could not be retrieved are null. Blobs which are too large are being returned with `content = \"\"` and `size \u003e 0`, they can be requested using the `download_url`.",
         "produces": [
           "application/json"
         ],
@@ -7295,18 +7296,6 @@
             "in": "query"
           },
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "name": "body",
             "in": "body",
             "required": true,
@@ -7321,9 +7310,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "413": {
-            "$ref": "#/responses/contentTooLarge"
           }
         }
       }
@@ -28285,17 +28271,6 @@
     },
     "conflict": {
       "description": "APIConflict is a conflict empty response"
-    },
-    "contentTooLarge": {
-      "description": "APIContentTooLarge is a content too large error response",
-      "headers": {
-        "message": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
-      }
     },
     "empty": {
       "description": "APIEmpty is an empty response"

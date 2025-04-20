@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, branch string, treeNames []string) ([]*api.ContentsResponse, error) {
+func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, branch string, treeNames []string) []*api.ContentsResponse {
 	files := []*api.ContentsResponse{}
 	var size int64
 	for _, file := range treeNames {
@@ -27,18 +27,18 @@ func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, 
 			size += fileContents.Size // if content isn't empty (e. g. due to the single blob being too large), add file size to response size
 		}
 		if size > setting.API.DefaultMaxResponseSize {
-			return nil, errors.New("the combined size of the requested blobs exceeds the per-request limit set by the server administrator")
+			return files // return if max page size would be exceeded
 		}
 		files = append(files, fileContents)
+		if len(files) == setting.API.DefaultPagingNum {
+			return files // return if paging num or max size reached
+		}
 	}
-	return files, nil
+	return files
 }
 
 func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch string, treeNames []string) (*api.FilesResponse, error) {
-	files, err := GetContentsListFromTrees(ctx, repo, branch, treeNames)
-	if err != nil {
-		return nil, err
-	}
+	files := GetContentsListFromTrees(ctx, repo, branch, treeNames)
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(ctx, commit)
 	filesResponse := &api.FilesResponse{
