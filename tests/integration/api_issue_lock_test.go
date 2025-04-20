@@ -22,64 +22,53 @@ import (
 func TestAPILockIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	assert.False(t, issueBefore.IsLocked)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/lock", owner.Name, repo.Name, issueBefore.Index)
+	t.Run("Lock", func(t *testing.T) {
+		issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		assert.False(t, issueBefore.IsLocked)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/lock", owner.Name, repo.Name, issueBefore.Index)
 
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+		session := loginUser(t, owner.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	// check lock issue
-	req := NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	assert.True(t, issueAfter.IsLocked)
+		// check lock issue
+		req := NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		assert.True(t, issueAfter.IsLocked)
 
-	// check reason is case insensitive
-	unlockReq := NewRequest(t, "DELETE", urlStr).AddTokenAuth(token)
-	MakeRequest(t, unlockReq, http.StatusNoContent)
-	issueAfter = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	assert.False(t, issueAfter.IsLocked)
+		// check with other user
+		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
+		session34 := loginUser(t, user34.Name)
+		token34 := getTokenForLoggedInUser(t, session34, auth_model.AccessTokenScopeAll)
+		req = NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token34)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 
-	req = NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "too heated"}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	issueAfter = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	assert.True(t, issueAfter.IsLocked)
+	t.Run("Unlock", func(t *testing.T) {
+		issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/lock", owner.Name, repo.Name, issueBefore.Index)
 
-	// check with other user
-	user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
-	session34 := loginUser(t, user34.Name)
-	token34 := getTokenForLoggedInUser(t, session34, auth_model.AccessTokenScopeAll)
-	req = NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token34)
-	MakeRequest(t, req, http.StatusForbidden)
-}
+		session := loginUser(t, owner.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-func TestAPIUnlockIssue(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+		lockReq := NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
+		MakeRequest(t, lockReq, http.StatusNoContent)
 
-	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/lock", owner.Name, repo.Name, issueBefore.Index)
+		// check unlock issue
+		req := NewRequest(t, "DELETE", urlStr).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		assert.False(t, issueAfter.IsLocked)
 
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-
-	lockReq := NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
-	MakeRequest(t, lockReq, http.StatusNoContent)
-
-	// check unlock issue
-	req := NewRequest(t, "DELETE", urlStr).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	assert.False(t, issueAfter.IsLocked)
-
-	// check with other user
-	user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
-	session34 := loginUser(t, user34.Name)
-	token34 := getTokenForLoggedInUser(t, session34, auth_model.AccessTokenScopeAll)
-	req = NewRequest(t, "DELETE", urlStr).AddTokenAuth(token34)
-	MakeRequest(t, req, http.StatusForbidden)
+		// check with other user
+		user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
+		session34 := loginUser(t, user34.Name)
+		token34 := getTokenForLoggedInUser(t, session34, auth_model.AccessTokenScopeAll)
+		req = NewRequest(t, "DELETE", urlStr).AddTokenAuth(token34)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
 }

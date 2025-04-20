@@ -6,15 +6,11 @@ package repo
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
-
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // LockIssue lock an issue
@@ -55,13 +51,7 @@ func LockIssue(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	caser := cases.Title(language.English)
 	reason := web.GetForm(ctx).(*api.LockIssueOption).Reason
-	reason = strings.ToLower(reason)
-	reasonParts := strings.Split(reason, " ")
-	reasonParts[0] = caser.String(reasonParts[0])
-	reason = strings.Join(reasonParts, " ")
-
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
