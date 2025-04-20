@@ -224,6 +224,7 @@ progress::-moz-progress-bar {
 }
 
 .unselectable,
+.btn,
 .button,
 .lines-num,
 .lines-commit,
