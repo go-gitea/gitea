@@ -46,25 +46,37 @@ var (
 	// AppURL is the Application ROOT_URL. It always has a '/' suffix
 	// It maps to ini:"ROOT_URL"
 	AppURL string
-	// AppSubURL represents the sub-url mounting point for gitea. It is either "" or starts with '/' and ends without '/', such as '/{subpath}'.
+
+	// AppSubURL represents the sub-url mounting point for gitea, parsed from "ROOT_URL"
+	// It is either "" or starts with '/' and ends without '/', such as '/{sub-path}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL string
-	// UseSubURLPath makes Gitea handle requests with sub-path like "/sub-path/owner/repo/...", to make it easier to debug sub-path related problems without a reverse proxy.
+
+	// UseSubURLPath makes Gitea handle requests with sub-path like "/sub-path/owner/repo/...",
+	// to make it easier to debug sub-path related problems without a reverse proxy.
 	UseSubURLPath bool
+
+	// UseHostHeader makes Gitea prefer to use the "Host" request header for construction of absolute URLs.
+	UseHostHeader bool
+
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
 	AppDataPath string
+
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
 	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
-	// AssetVersion holds a opaque value that is used for cache-busting assets
+
+	// AssetVersion holds an opaque value that is used for cache-busting assets
 	AssetVersion string
 
-	appTempPathInternal string // the temporary path for the app, it is only an internal variable, do not use it, always use AppDataTempDir
+	// appTempPathInternal is the temporary path for the app, it is only an internal variable
+	// DO NOT use it directly, always use AppDataTempDir
+	appTempPathInternal string
 
 	Protocol                   Scheme
-	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
-	ProxyProtocolTLSBridging   bool //`ini:"PROXY_PROTOCOL_TLS_BRIDGING"`
+	UseProxyProtocol           bool
+	ProxyProtocolTLSBridging   bool
 	ProxyProtocolHeaderTimeout time.Duration
 	ProxyProtocolAcceptUnknown bool
 	Domain                     string
@@ -181,13 +193,14 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
 	}
 
-	Protocol = HTTP
 	protocolCfg := sec.Key("PROTOCOL").String()
 	if protocolCfg != "https" && EnableAcme {
 		log.Fatal("ACME could only be used with HTTPS protocol")
 	}
 
 	switch protocolCfg {
+	case "", "http":
+		Protocol = HTTP
 	case "https":
 		Protocol = HTTPS
 		if EnableAcme {
@@ -243,7 +256,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		case "unix":
 			log.Warn("unix PROTOCOL value is deprecated, please use http+unix")
 			fallthrough
-		case "http+unix":
+		default: // "http+unix"
 			Protocol = HTTPUnix
 		}
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
@@ -256,6 +269,8 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		if !filepath.IsAbs(HTTPAddr) {
 			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
 		}
+	default:
+		log.Fatal("Invalid PROTOCOL %q", Protocol)
 	}
 	UseProxyProtocol = sec.Key("USE_PROXY_PROTOCOL").MustBool(false)
 	ProxyProtocolTLSBridging = sec.Key("PROXY_PROTOCOL_TLS_BRIDGING").MustBool(false)
@@ -268,12 +283,16 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
-	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
+	AppURL = sec.Key("ROOT_URL").String()
+	if AppURL == "" {
+		UseHostHeader = true
+		AppURL = defaultAppURL
+	}
 
 	// Check validity of AppURL
 	appURL, err := url.Parse(AppURL)
 	if err != nil {
-		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
+		log.Fatal("Invalid ROOT_URL %q: %s", AppURL, err)
 	}
 	// Remove default ports from AppURL.
 	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
@@ -309,13 +328,15 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		defaultLocalURL = AppURL
 	case FCGIUnix:
 		defaultLocalURL = AppURL
-	default:
+	case HTTP, HTTPS:
 		defaultLocalURL = string(Protocol) + "://"
 		if HTTPAddr == "0.0.0.0" {
 			defaultLocalURL += net.JoinHostPort("localhost", HTTPPort) + "/"
 		} else {
 			defaultLocalURL += net.JoinHostPort(HTTPAddr, HTTPPort) + "/"
 		}
+	default:
+		log.Fatal("Invalid PROTOCOL %q", Protocol)
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	LocalURL = strings.TrimRight(LocalURL, "/") + "/"
