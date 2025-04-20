@@ -6,14 +6,14 @@ package repo
 
 import (
 	"bytes"
-	"fmt"
+	gocontext "context"
 	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
@@ -24,22 +24,24 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
 const (
-	tplWikiStart    base.TplName = "repo/wiki/start"
-	tplWikiView     base.TplName = "repo/wiki/view"
-	tplWikiRevision base.TplName = "repo/wiki/revision"
-	tplWikiNew      base.TplName = "repo/wiki/new"
-	tplWikiPages    base.TplName = "repo/wiki/pages"
+	tplWikiStart    templates.TplName = "repo/wiki/start"
+	tplWikiView     templates.TplName = "repo/wiki/view"
+	tplWikiRevision templates.TplName = "repo/wiki/revision"
+	tplWikiNew      templates.TplName = "repo/wiki/new"
+	tplWikiPages    templates.TplName = "repo/wiki/pages"
 )
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
@@ -55,7 +57,7 @@ func MustEnableWiki(ctx *context.Context) {
 				ctx.Repo.Repository,
 				ctx.Repo.Permission)
 		}
-		ctx.NotFound("MustEnableWiki", nil)
+		ctx.NotFound(nil)
 		return
 	}
 
@@ -93,7 +95,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiGitRepo, errGitRepo := gitrepo.OpenWikiRepository(ctx, ctx.Repo.Repository)
+	wikiGitRepo, errGitRepo := gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if errGitRepo != nil {
 		ctx.ServerError("OpenRepository", errGitRepo)
 		return nil, nil, errGitRepo
@@ -102,7 +104,7 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 	commit, errCommit := wikiGitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
 	if git.IsErrNotExist(errCommit) {
 		// if the default branch recorded in database is out of sync, then re-sync it
-		gitRepoDefaultBranch, errBranch := gitrepo.GetWikiDefaultBranch(ctx, ctx.Repo.Repository)
+		gitRepoDefaultBranch, errBranch := gitrepo.GetDefaultBranch(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if errBranch != nil {
 			return wikiGitRepo, nil, errBranch
 		}
@@ -288,15 +290,9 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		footerContent = data
 	}
 
-	rctx := &markup.RenderContext{
-		Ctx:   ctx,
-		Metas: ctx.Repo.Repository.ComposeWikiMetas(ctx),
-		Links: markup.Links{
-			Base: ctx.Repo.RepoLink,
-		},
-	}
-	buf := &strings.Builder{}
+	rctx := renderhelper.NewRenderContextRepoWiki(ctx, ctx.Repo.Repository)
 
+	buf := &strings.Builder{}
 	renderFn := func(data []byte) (escaped *charset.EscapeStatus, output string, err error) {
 		markupRd, markupWr := io.Pipe()
 		defer markupWr.Close()
@@ -440,11 +436,17 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return nil, nil
 	}
-	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
+	ctx.Data["Commits"], err = git_service.ConvertFromGitCommit(ctx, commitsHistory, ctx.Repo.Repository)
+	if err != nil {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
+		ctx.ServerError("ConvertFromGitCommit", err)
+		return nil, nil
+	}
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("action", "_revision")
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	return wikiRepo, entry
@@ -482,7 +484,7 @@ func renderEditPage(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
 	if isRaw {
-		ctx.Error(http.StatusForbidden, "Editing of raw wiki files is not allowed")
+		ctx.HTTPError(http.StatusForbidden, "Editing of raw wiki files is not allowed")
 	}
 	if entry == nil || ctx.Written() {
 		return
@@ -506,14 +508,14 @@ func WikiPost(ctx *context.Context) {
 	switch ctx.FormString("action") {
 	case "_new":
 		if !ctx.Repo.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			ctx.NotFound(nil)
 			return
 		}
 		NewWikiPost(ctx)
 		return
 	case "_delete":
 		if !ctx.Repo.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			ctx.NotFound(nil)
 			return
 		}
 		DeleteWikiPagePost(ctx)
@@ -521,7 +523,7 @@ func WikiPost(ctx *context.Context) {
 	}
 
 	if !ctx.Repo.CanWrite(unit.TypeWiki) {
-		ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+		ctx.NotFound(nil)
 		return
 	}
 	EditWikiPost(ctx)
@@ -540,14 +542,14 @@ func Wiki(ctx *context.Context) {
 		return
 	case "_edit":
 		if !ctx.Repo.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			ctx.NotFound(nil)
 			return
 		}
 		EditWiki(ctx)
 		return
 	case "_new":
 		if !ctx.Repo.CanWrite(unit.TypeWiki) {
-			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			ctx.NotFound(nil)
 			return
 		}
 		NewWiki(ctx)
@@ -578,7 +580,7 @@ func Wiki(ctx *context.Context) {
 	wikiPath := entry.Name()
 	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(wikiPath))
-		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
+		ctx.Data["FormatWarning"] = ext + " rendering is not supported at the moment. Rendered as Markdown."
 	}
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)
@@ -650,22 +652,32 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	entries, err := commit.ListEntries()
+	treePath := "" // To support list sub folders' pages in the future
+	tree, err := commit.SubTree(treePath)
+	if err != nil {
+		ctx.ServerError("SubTree", err)
+		return
+	}
+
+	allEntries, err := tree.ListEntries()
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
+	allEntries.CustomSort(base.NaturalSortLess)
+
+	entries, _, err := allEntries.GetCommitsInfo(gocontext.Context(ctx), commit, treePath)
+	if err != nil {
+		ctx.ServerError("GetCommitsInfo", err)
+		return
+	}
+
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
-		if !entry.IsRegular() {
+		if !entry.Entry.IsRegular() {
 			continue
 		}
-		c, err := wikiRepo.GetCommitByPath(entry.Name())
-		if err != nil {
-			ctx.ServerError("GetCommit", err)
-			return
-		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
+		wikiName, err := wiki_service.GitPathToWebPath(entry.Entry.Name())
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
@@ -677,8 +689,8 @@ func WikiPages(ctx *context.Context) {
 		pages = append(pages, PageMeta{
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Name(),
-			UpdatedUnix:  timeutil.TimeStamp(c.Author.When.Unix()),
+			GitEntryName: entry.Entry.Name(),
+			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
 		})
 	}
 	ctx.Data["Pages"] = pages
@@ -697,7 +709,7 @@ func WikiRaw(ctx *context.Context) {
 
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("findEntryForFile", nil)
+			ctx.NotFound(nil)
 			return
 		}
 		ctx.ServerError("findEntryForfile", err)
@@ -727,13 +739,13 @@ func WikiRaw(ctx *context.Context) {
 	}
 
 	if entry != nil {
-		if err = common.ServeBlob(ctx.Base, ctx.Repo.TreePath, entry.Blob(), nil); err != nil {
+		if err = common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, entry.Blob(), nil); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return
 	}
 
-	ctx.NotFound("findEntryForFile", nil)
+	ctx.NotFound(nil)
 }
 
 // NewWiki render wiki create page

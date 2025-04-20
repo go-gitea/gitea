@@ -72,7 +72,7 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 	return priv, pub, nil
 }
 
-// BuildAllRepositoryFiles (re)builds all repository files for every available distributions, components and architectures
+// BuildAllRepositoryFiles (re)builds all repository files for every available branches, repositories and architectures
 func BuildAllRepositoryFiles(ctx context.Context, ownerID int64) error {
 	pv, err := GetOrCreateRepositoryVersion(ctx, ownerID)
 	if err != nil {
@@ -290,7 +290,7 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 
 	privPem, _ := pem.Decode([]byte(priv))
 	if privPem == nil {
-		return fmt.Errorf("failed to decode private key pem")
+		return errors.New("failed to decode private key pem")
 	}
 
 	privKey, err := x509.ParsePKCS1PrivateKey(privPem.Bytes)

@@ -7,15 +7,14 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -24,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -31,6 +31,19 @@ import (
 
 	"xorm.io/builder"
 )
+
+func deleteDBRepository(ctx context.Context, repoID int64) error {
+	if cnt, err := db.GetEngine(ctx).ID(repoID).Delete(&repo_model.Repository{}); err != nil {
+		return err
+	} else if cnt != 1 {
+		return repo_model.ErrRepoNotExist{
+			ID:        repoID,
+			OwnerName: "",
+			Name:      "",
+		}
+	}
+	return nil
+}
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
@@ -76,25 +89,14 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: repoID})
+	deleted, err := asymkey_service.DeleteRepoDeployKeys(ctx, repoID)
 	if err != nil {
-		return fmt.Errorf("listDeployKeys: %w", err)
-	}
-	needRewriteKeysFile := len(deployKeys) > 0
-	for _, dKey := range deployKeys {
-		if err := models.DeleteDeployKey(ctx, doer, dKey.ID); err != nil {
-			return fmt.Errorf("deleteDeployKeys: %w", err)
-		}
-	}
-
-	if cnt, err := sess.ID(repoID).Delete(&repo_model.Repository{}); err != nil {
 		return err
-	} else if cnt != 1 {
-		return repo_model.ErrRepoNotExist{
-			ID:        repoID,
-			OwnerName: "",
-			Name:      "",
-		}
+	}
+	needRewriteKeysFile := deleted > 0
+
+	if err := deleteDBRepository(ctx, repoID); err != nil {
+		return err
 	}
 
 	if org != nil && org.IsOrganization() {
@@ -165,6 +167,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		&actions_model.ActionSchedule{RepoID: repoID},
 		&actions_model.ActionArtifact{RepoID: repoID},
 		&actions_model.ActionRunnerToken{RepoID: repoID},
+		&issues_model.IssuePin{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
@@ -273,6 +276,11 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		return err
 	}
 
+	// unlink packages linked to this repository
+	if err = packages_model.UnlinkRepositoryFromAllPackages(ctx, repoID); err != nil {
+		return err
+	}
+
 	if err = committer.Commit(); err != nil {
 		return err
 	}
@@ -289,8 +297,13 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	// we delete the file but the database rollback, the repository will be broken.
 
 	// Remove repository files.
-	repoPath := repo.RepoPath()
-	system_model.RemoveAllWithNotice(ctx, "Delete repository files", repoPath)
+	if err := gitrepo.DeleteRepository(ctx, repo); err != nil {
+		desc := fmt.Sprintf("Delete repository files [%s]: %v", repo.FullName(), err)
+		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
+		if err = system_model.CreateNotice(db.DefaultContext, system_model.NoticeRepository, desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+	}
 
 	// Remove wiki files
 	if repo.HasWiki() {
@@ -324,7 +337,8 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 
 	if len(repo.Avatar) > 0 {
 		if err := storage.RepoAvatars.Delete(repo.CustomAvatarRelativePath()); err != nil {
-			return fmt.Errorf("Failed to remove %s: %w", repo.Avatar, err)
+			log.Error("remove avatar file %q: %v", repo.CustomAvatarRelativePath(), err)
+			// go on
 		}
 	}
 
@@ -346,87 +360,6 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 
 	return nil
-}
-
-// removeRepositoryFromTeam removes a repository from a team and recalculates access
-// Note: Repository shall not be removed from team if it includes all repositories (unless the repository is deleted)
-func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *repo_model.Repository, recalculate bool) (err error) {
-	e := db.GetEngine(ctx)
-	if err = organization.RemoveTeamRepo(ctx, t.ID, repo.ID); err != nil {
-		return err
-	}
-
-	t.NumRepos--
-	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
-		return err
-	}
-
-	// Don't need to recalculate when delete a repository from organization.
-	if recalculate {
-		if err = access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
-			return err
-		}
-	}
-
-	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
-		TeamID: t.ID,
-	})
-	if err != nil {
-		return fmt.Errorf("GetTeamMembers: %w", err)
-	}
-	for _, member := range teamMembers {
-		has, err := access_model.HasAnyUnitAccess(ctx, member.ID, repo)
-		if err != nil {
-			return err
-		} else if has {
-			continue
-		}
-
-		if err = repo_model.WatchRepo(ctx, member, repo, false); err != nil {
-			return err
-		}
-
-		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, member.ID, repo.ID); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// HasRepository returns true if given repository belong to team.
-func HasRepository(ctx context.Context, t *organization.Team, repoID int64) bool {
-	return organization.HasTeamRepo(ctx, t.OrgID, t.ID, repoID)
-}
-
-// RemoveRepositoryFromTeam removes repository from team of organization.
-// If the team shall include all repositories the request is ignored.
-func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID int64) error {
-	if !HasRepository(ctx, t, repoID) {
-		return nil
-	}
-
-	if t.IncludesAllRepositories {
-		return nil
-	}
-
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		return err
-	}
-
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = removeRepositoryFromTeam(ctx, t, repo, true); err != nil {
-		return err
-	}
-
-	return committer.Commit()
 }
 
 // DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner

@@ -94,7 +94,7 @@ func GetEngine(ctx context.Context) Engine {
 	if e := getExistingEngine(ctx); e != nil {
 		return e
 	}
-	return x.Context(ctx)
+	return xormEngine.Context(ctx)
 }
 
 // getExistingEngine gets an existing db Engine/Statement from this context or returns nil
@@ -155,7 +155,7 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 		return newContext(parentCtx, sess), &halfCommitter{committer: sess}, nil
 	}
 
-	sess := x.NewSession()
+	sess := xormEngine.NewSession()
 	if err := sess.Begin(); err != nil {
 		_ = sess.Close()
 		return nil, nil, err
@@ -179,7 +179,7 @@ func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error 
 }
 
 func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error) error {
-	sess := x.NewSession()
+	sess := xormEngine.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -289,6 +289,9 @@ func FindIDs(ctx context.Context, tableName, idCol string, cond builder.Cond) ([
 // DecrByIDs decreases the given column for entities of the "bean" type with one of the given ids by one
 // Timestamps of the entities won't be updated
 func DecrByIDs(ctx context.Context, ids []int64, decrCol string, bean any) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	_, err := GetEngine(ctx).Decr(decrCol).In("id", ids).NoAutoCondition().NoAutoTime().Update(bean)
 	return err
 }
@@ -322,7 +325,7 @@ func CountByBean(ctx context.Context, bean any) (int64, error) {
 
 // TableName returns the table name according a bean object
 func TableName(bean any) string {
-	return x.TableName(bean)
+	return xormEngine.TableName(bean)
 }
 
 // InTransaction returns true if the engine is in a transaction otherwise return false

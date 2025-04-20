@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -39,7 +38,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-2", "second tag")
 		assert.Error(t, err)
-		assert.True(t, models.IsErrProtectedTagName(err))
+		assert.True(t, release.IsErrProtectedTagName(err))
 
 		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1.1", "third tag")
 		assert.NoError(t, err)
@@ -56,10 +55,10 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 			doGitClone(dstPath, u)(t)
 
-			_, _, err := git.NewCommand(git.DefaultContext, "tag", "v-2").RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err := git.NewCommand("tag", "v-2").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			assert.NoError(t, err)
 
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err = git.NewCommand("push", "--tags").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
 		})
@@ -76,20 +75,20 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 			doGitClone(dstPath, u)(t)
 
-			_, _, err := git.NewCommand(git.DefaultContext, "tag", "v-1.1", "-m", "force update", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err := git.NewCommand("tag", "v-1.1", "-m", "force update", "--force").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			require.NoError(t, err)
 
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err = git.NewCommand("push", "--tags").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			require.NoError(t, err)
 
-			_, _, err = git.NewCommand(git.DefaultContext, "tag", "v-1.1", "-m", "force update v2", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err = git.NewCommand("tag", "v-1.1", "-m", "force update v2", "--force").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			require.NoError(t, err)
 
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err = git.NewCommand("push", "--tags").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "the tag already exists in the remote")
 
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags", "--force").RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, err = git.NewCommand("push", "--tags", "--force").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 			require.NoError(t, err)
 			req := NewRequestf(t, "GET", "/%s/releases/tag/v-1.1", repo.FullName())
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -138,15 +137,15 @@ func TestRepushTag(t *testing.T) {
 		doGitClone(dstPath, u)(t)
 
 		// create and push a tag
-		_, _, err := git.NewCommand(git.DefaultContext, "tag", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err := git.NewCommand("tag", "v2.0").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
-		_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "--tags", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err = git.NewCommand("push", "origin", "--tags", "v2.0").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		// create a release for the tag
 		createdRelease := createNewReleaseUsingAPI(t, token, owner, repo, "v2.0", "", "Release of v2.0", "desc")
 		assert.False(t, createdRelease.IsDraft)
 		// delete the tag
-		_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "--delete", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err = git.NewCommand("push", "origin", "--delete", "v2.0").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		// query the release by API and it should be a draft
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))
@@ -155,7 +154,7 @@ func TestRepushTag(t *testing.T) {
 		DecodeJSON(t, resp, &respRelease)
 		assert.True(t, respRelease.IsDraft)
 		// re-push the tag
-		_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "--tags", "v2.0").RunStdString(&git.RunOpts{Dir: dstPath})
+		_, _, err = git.NewCommand("push", "origin", "--tags", "v2.0").RunStdString(git.DefaultContext, &git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		// query the release by API and it should not be a draft
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))

@@ -86,18 +86,19 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
 	var lookup minio.BucketLookupType
-	if config.BucketLookUpType == "auto" || config.BucketLookUpType == "" {
+	switch config.BucketLookUpType {
+	case "auto", "":
 		lookup = minio.BucketLookupAuto
-	} else if config.BucketLookUpType == "dns" {
+	case "dns":
 		lookup = minio.BucketLookupDNS
-	} else if config.BucketLookUpType == "path" {
+	case "path":
 		lookup = minio.BucketLookupPath
-	} else {
+	default:
 		return nil, fmt.Errorf("invalid minio bucket lookup type: %s", config.BucketLookUpType)
 	}
 
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:        buildMinioCredentials(config, credentials.DefaultIAMRoleEndpoint),
+		Creds:        buildMinioCredentials(config),
 		Secure:       config.UseSSL,
 		Transport:    &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
 		Region:       config.Location,
@@ -164,7 +165,7 @@ func (m *MinioStorage) buildMinioDirPrefix(p string) string {
 	return p
 }
 
-func buildMinioCredentials(config setting.MinioStorageConfig, iamEndpoint string) *credentials.Credentials {
+func buildMinioCredentials(config setting.MinioStorageConfig) *credentials.Credentials {
 	// If static credentials are provided, use those
 	if config.AccessKeyID != "" {
 		return credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, "")
@@ -184,7 +185,9 @@ func buildMinioCredentials(config setting.MinioStorageConfig, iamEndpoint string
 		&credentials.FileAWSCredentials{},
 		// read IAM role from EC2 metadata endpoint if available
 		&credentials.IAM{
-			Endpoint: iamEndpoint,
+			// passing in an empty Endpoint lets the IAM Provider
+			// decide which endpoint to resolve internally
+			Endpoint: config.IamEndpoint,
 			Client: &http.Client{
 				Transport: http.DefaultTransport,
 			},

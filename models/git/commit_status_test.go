@@ -34,7 +34,7 @@ func TestGetCommitStatuses(t *testing.T) {
 		SHA:         sha1,
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int(maxResults), 5)
+	assert.Equal(t, 5, int(maxResults))
 	assert.Len(t, statuses, 5)
 
 	assert.Equal(t, "ci/awesomeness", statuses[0].Context)
@@ -63,7 +63,7 @@ func TestGetCommitStatuses(t *testing.T) {
 		SHA:         sha1,
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int(maxResults), 5)
+	assert.Equal(t, 5, int(maxResults))
 	assert.Empty(t, statuses)
 }
 

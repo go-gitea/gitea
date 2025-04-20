@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
@@ -54,9 +55,9 @@ func openIndexer(path string, latestVersion int) (bleve.Index, int, error) {
 	return index, 0, nil
 }
 
-// This method test the GuessFuzzinessByKeyword method. The fuzziness is based on the levenshtein distance and determines how many chars
-// may be different on two string and they still be considered equivalent.
-// Given a phrasse, its shortest word determines its fuzziness. If a phrase uses CJK (eg: `갃갃갃` `啊啊啊`), the fuzziness is zero.
+// GuessFuzzinessByKeyword guesses fuzziness based on the levenshtein distance and determines how many chars
+// may be different on two string, and they still be considered equivalent.
+// Given a phrase, its shortest word determines its fuzziness. If a phrase uses CJK (eg: `갃갃갃` `啊啊啊`), the fuzziness is zero.
 func GuessFuzzinessByKeyword(s string) int {
 	tokenizer := unicode_tokenizer.NewUnicodeTokenizer()
 	tokens := tokenizer.Tokenize([]byte(s))
@@ -85,5 +86,5 @@ func guessFuzzinessByKeyword(s string) int {
 			return 0
 		}
 	}
-	return min(maxFuzziness, len(s)/4)
+	return min(min(setting.Indexer.TypeBleveMaxFuzzniess, maxFuzziness), len(s)/4)
 }

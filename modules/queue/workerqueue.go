@@ -6,6 +6,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -241,6 +242,9 @@ func NewWorkerPoolQueueWithContext[T any](ctx context.Context, name string, queu
 	w.origHandler = handler
 	w.safeHandler = func(t ...T) (unhandled []T) {
 		defer func() {
+			// FIXME: there is no ctx support in the handler, so process manager is unable to restore the labels
+			// so here we explicitly set the "queue ctx" labels again after the handler is done
+			pprof.SetGoroutineLabels(w.ctxRun)
 			err := recover()
 			if err != nil {
 				log.Error("Recovered from panic in queue %q handler: %v\n%s", name, err, log.Stack(2))

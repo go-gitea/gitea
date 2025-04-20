@@ -55,7 +55,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateStatusOption)
 	sha := ctx.PathParam("sha")
 	if len(sha) == 0 {
-		ctx.Error(http.StatusBadRequest, "sha not given", nil)
+		ctx.APIError(http.StatusBadRequest, nil)
 		return
 	}
 	status := &git_model.CommitStatus{
@@ -65,7 +65,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		Context:     form.Context,
 	}
 	if err := commitstatus_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateCommitStatus", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -187,7 +187,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 
 func getCommitStatuses(ctx *context.APIContext, sha string) {
 	if len(sha) == 0 {
-		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
+		ctx.APIError(http.StatusBadRequest, nil)
 		return
 	}
 	sha = utils.MustConvertToSHA1(ctx.Base, ctx.Repo, sha)
@@ -203,7 +203,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		State:       ctx.FormTrim("state"),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %w", repo.FullName(), sha, ctx.FormInt("page"), err))
+		ctx.APIErrorInternal(fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %w", repo.FullName(), sha, ctx.FormInt("page"), err))
 		return
 	}
 
@@ -266,7 +266,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	statuses, count, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), sha, err))
+		ctx.APIErrorInternal(fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), sha, err))
 		return
 	}
 

@@ -13,5 +13,5 @@ contact_links:
     url: https://docs.gitea.com/help/faq
     about: Please check if your question isn't mentioned here.
   - name: Crowdin Translations
-    url: https://crowdin.com/project/gitea
+    url: https://translate.gitea.com
     about: Translations are managed here.

@@ -5,6 +5,7 @@ package task
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	admin_model "code.gitea.io/gitea/models/admin"
@@ -41,7 +42,7 @@ func Run(ctx context.Context, t *admin_model.Task) error {
 func Init() error {
 	taskQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "task", handler)
 	if taskQueue == nil {
-		return fmt.Errorf("unable to create task queue")
+		return errors.New("unable to create task queue")
 	}
 	go graceful.GetManager().RunWithCancel(taskQueue)
 	return nil
@@ -110,7 +111,7 @@ func CreateMigrateTask(ctx context.Context, doer, u *user_model.User, opts base.
 		IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 		IsMirror:       opts.Mirror,
 		Status:         repo_model.RepositoryBeingMigrated,
-	})
+	}, false)
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()
 		task.Status = structs.TaskStatusFailed

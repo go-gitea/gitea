@@ -45,7 +45,7 @@
     display: flex;
     align-items: center;
   }
-  #release-list .js-branch-tag-selector {
+  #release-list .release-branch-tag-selector {
     margin-left: auto;
   }
   #release-list .branch-selector-dropdown .menu { /* open menu to left */

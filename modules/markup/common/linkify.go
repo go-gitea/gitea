@@ -24,7 +24,7 @@ type GlobalVarsType struct {
 	LinkRegex   *regexp.Regexp // fast matching a URL link, no any extra validation.
 }
 
-var GlobalVars = sync.OnceValue[*GlobalVarsType](func() *GlobalVarsType {
+var GlobalVars = sync.OnceValue(func() *GlobalVarsType {
 	v := &GlobalVarsType{}
 	v.wwwURLRegxp = regexp.MustCompile(`^www\.[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}((?:/|[#?])[-a-zA-Z0-9@:%_\+.~#!?&//=\(\);,'">\^{}\[\]` + "`" + `]*)?`)
 	v.LinkRegex, _ = xurls.StrictMatchingScheme("https?://")
@@ -85,9 +85,10 @@ func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Cont
 		} else if lastChar == ')' {
 			closing := 0
 			for i := m[1] - 1; i >= m[0]; i-- {
-				if line[i] == ')' {
+				switch line[i] {
+				case ')':
 					closing++
-				} else if line[i] == '(' {
+				case '(':
 					closing--
 				}
 			}

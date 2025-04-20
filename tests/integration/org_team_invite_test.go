@@ -58,7 +58,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	session = loginUser(t, user.Name)
 
 	// join the team
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
+	inviteURL := "/org/invite/" + invites[0].Token
 	csrf = GetUserCSRFToken(t, session)
 	req = NewRequestWithValues(t, "POST", inviteURL, map[string]string{
 		"_csrf": csrf,
@@ -108,8 +108,8 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	assert.Len(t, invites, 1)
 
 	// accept the invite
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/login?redirect_to=%s", url.QueryEscape(inviteURL)))
+	inviteURL := "/org/invite/" + invites[0].Token
+	req = NewRequest(t, "GET", "/user/login?redirect_to="+url.QueryEscape(inviteURL))
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -179,8 +179,8 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	assert.Len(t, invites, 1)
 
 	// accept the invite
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteURL)))
+	inviteURL := "/org/invite/" + invites[0].Token
+	req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
 	resp = MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
@@ -260,8 +260,8 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	// new user: accept the invite
 	session = emptyTestSession(t)
 
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteURL)))
+	inviteURL := "/org/invite/" + invites[0].Token
+	req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
 	session.MakeRequest(t, req, http.StatusOK)
 	req = NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
 		"user_name": "doesnotexist",
@@ -274,7 +274,8 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	user, err := user_model.GetUserByName(db.DefaultContext, "doesnotexist")
 	assert.NoError(t, err)
 
-	activateURL := fmt.Sprintf("/user/activate?code=%s", user.GenerateEmailActivateCode("doesnotexist@example.com"))
+	activationCode := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, user)
+	activateURL := "/user/activate?code=" + activationCode
 	req = NewRequestWithValues(t, "POST", activateURL, map[string]string{
 		"password": "examplePassword!1",
 	})
@@ -336,8 +337,8 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	session = loginUser(t, "user5")
 
 	// accept the invite (note: this uses the sign_up url)
-	inviteURL := fmt.Sprintf("/org/invite/%s", invites[0].Token)
-	req = NewRequest(t, "GET", fmt.Sprintf("/user/sign_up?redirect_to=%s", url.QueryEscape(inviteURL)))
+	inviteURL := "/org/invite/" + invites[0].Token
+	req = NewRequest(t, "GET", "/user/sign_up?redirect_to="+url.QueryEscape(inviteURL))
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, inviteURL, test.RedirectURL(resp))
 

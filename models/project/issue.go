@@ -5,10 +5,9 @@ package project
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -34,51 +33,9 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 	return err
 }
 
-// NumIssues return counter of all issues assigned to a project
-func (p *Project) NumIssues(ctx context.Context) int {
-	c, err := db.GetEngine(ctx).Table("project_issue").
-		Where("project_id=?", p.ID).
-		GroupBy("issue_id").
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumIssues: %v", err)
-		return 0
-	}
-	return int(c)
-}
-
-// NumClosedIssues return counter of closed issues assigned to a project
-func (p *Project) NumClosedIssues(ctx context.Context) int {
-	c, err := db.GetEngine(ctx).Table("project_issue").
-		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumClosedIssues: %v", err)
-		return 0
-	}
-	return int(c)
-}
-
-// NumOpenIssues return counter of open issues assigned to a project
-func (p *Project) NumOpenIssues(ctx context.Context) int {
-	c, err := db.GetEngine(ctx).Table("project_issue").
-		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
-		Cols("issue_id").
-		Count()
-	if err != nil {
-		log.Error("NumOpenIssues: %v", err)
-		return 0
-	}
-	return int(c)
-}
-
 func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
 	if c.ProjectID != newColumn.ProjectID {
-		return fmt.Errorf("columns have to be in the same project")
+		return errors.New("columns have to be in the same project")
 	}
 
 	if c.ID == newColumn.ID {

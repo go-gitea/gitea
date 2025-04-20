@@ -32,11 +32,6 @@ func Init() error {
 
 	builtinUnused()
 
-	// FIXME: why 0o644 for a directory .....
-	if err := os.MkdirAll(setting.SSH.KeyTestPath, 0o644); err != nil {
-		return fmt.Errorf("failed to create directory %q for ssh key test: %w", setting.SSH.KeyTestPath, err)
-	}
-
 	if len(setting.SSH.TrustedUserCAKeys) > 0 && setting.SSH.AuthorizedPrincipalsEnabled {
 		caKeysFileName := setting.SSH.TrustedUserCAKeysFile
 		caKeysFileDir := filepath.Dir(caKeysFileName)

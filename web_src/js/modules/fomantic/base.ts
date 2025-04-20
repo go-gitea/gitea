@@ -5,7 +5,7 @@ export function generateAriaId() {
   return `_aria_auto_id_${ariaIdCounter++}`;
 }
 
-export function linkLabelAndInput(label, input) {
+export function linkLabelAndInput(label: Element, input: Element) {
   const labelFor = label.getAttribute('for');
   const inputId = input.getAttribute('id');
 

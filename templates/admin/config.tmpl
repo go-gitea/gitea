@@ -69,10 +69,6 @@
 					{{if not .SSH.StartBuiltinServer}}
 						<dt>{{ctx.Locale.Tr "admin.config.ssh_root_path"}}</dt>
 						<dd>{{.SSH.RootPath}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.ssh_key_test_path"}}</dt>
-						<dd>{{.SSH.KeyTestPath}}</dd>
-						<dt>{{ctx.Locale.Tr "admin.config.ssh_keygen_path"}}</dt>
-						<dd>{{.SSH.KeygenPath}}</dd>
 						<dt>{{ctx.Locale.Tr "admin.config.ssh_minimum_key_size_check"}}</dt>
 						<dd>{{svg (Iif .SSH.MinimumKeySizeCheck "octicon-check" "octicon-x")}}</dd>
 						{{if .SSH.MinimumKeySizeCheck}}
@@ -148,7 +144,7 @@
 				<dt>{{ctx.Locale.Tr "admin.config.enable_openid_signin"}}</dt>
 				<dd>{{svg (Iif .Service.EnableOpenIDSignIn "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.require_sign_in_view"}}</dt>
-				<dd>{{svg (Iif .Service.RequireSignInView "octicon-check" "octicon-x")}}</dd>
+				<dd>{{svg (Iif .Service.RequireSignInViewStrict "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.mail_notify"}}</dt>
 				<dd>{{svg (Iif .Service.EnableNotifyMail "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.enable_captcha"}}</dt>

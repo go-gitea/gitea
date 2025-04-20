@@ -32,7 +32,6 @@ var _ base.Uploader = &RepositoryDumper{}
 
 // RepositoryDumper implements an Uploader to the local directory
 type RepositoryDumper struct {
-	ctx             context.Context
 	baseDir         string
 	repoOwner       string
 	repoName        string
@@ -56,7 +55,6 @@ func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName strin
 		return nil, err
 	}
 	return &RepositoryDumper{
-		ctx:          ctx,
 		opts:         opts,
 		baseDir:      baseDir,
 		repoOwner:    repoOwner,
@@ -105,7 +103,7 @@ func (g *RepositoryDumper) setURLToken(remoteAddr string) (string, error) {
 }
 
 // CreateRepo creates a repository
-func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
+func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository, opts base.MigrateOptions) error {
 	f, err := os.Create(filepath.Join(g.baseDir, "repo.yml"))
 	if err != nil {
 		return err
@@ -149,7 +147,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		return err
 	}
 
-	err = git.Clone(g.ctx, remoteAddr, repoPath, git.CloneRepoOptions{
+	err = git.Clone(ctx, remoteAddr, repoPath, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
@@ -158,19 +156,19 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 	if err != nil {
 		return fmt.Errorf("Clone: %w", err)
 	}
-	if err := git.WriteCommitGraph(g.ctx, repoPath); err != nil {
+	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
 		return err
 	}
 
 	if opts.Wiki {
 		wikiPath := g.wikiPath()
-		wikiRemotePath := repository.WikiRemoteURL(g.ctx, remoteAddr)
+		wikiRemotePath := repository.WikiRemoteURL(ctx, remoteAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.MkdirAll(wikiPath, os.ModePerm); err != nil {
 				return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 			}
 
-			if err := git.Clone(g.ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:        true,
 				Quiet:         true,
 				Timeout:       migrateTimeout,
@@ -181,13 +179,13 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 				if err := os.RemoveAll(wikiPath); err != nil {
 					return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 				}
-			} else if err := git.WriteCommitGraph(g.ctx, wikiPath); err != nil {
+			} else if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
 				return err
 			}
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(g.ctx, g.gitPath())
+	g.gitRepo, err = git.OpenRepository(ctx, g.gitPath())
 	return err
 }
 
@@ -220,7 +218,7 @@ func (g *RepositoryDumper) Close() {
 }
 
 // CreateTopics creates topics
-func (g *RepositoryDumper) CreateTopics(topics ...string) error {
+func (g *RepositoryDumper) CreateTopics(_ context.Context, topics ...string) error {
 	f, err := os.Create(filepath.Join(g.baseDir, "topic.yml"))
 	if err != nil {
 		return err
@@ -242,7 +240,7 @@ func (g *RepositoryDumper) CreateTopics(topics ...string) error {
 }
 
 // CreateMilestones creates milestones
-func (g *RepositoryDumper) CreateMilestones(milestones ...*base.Milestone) error {
+func (g *RepositoryDumper) CreateMilestones(_ context.Context, milestones ...*base.Milestone) error {
 	var err error
 	if g.milestoneFile == nil {
 		g.milestoneFile, err = os.Create(filepath.Join(g.baseDir, "milestone.yml"))
@@ -264,7 +262,7 @@ func (g *RepositoryDumper) CreateMilestones(milestones ...*base.Milestone) error
 }
 
 // CreateLabels creates labels
-func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
+func (g *RepositoryDumper) CreateLabels(_ context.Context, labels ...*base.Label) error {
 	var err error
 	if g.labelFile == nil {
 		g.labelFile, err = os.Create(filepath.Join(g.baseDir, "label.yml"))
@@ -286,7 +284,7 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 }
 
 // CreateReleases creates releases
-func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
+func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
 		for _, release := range releases {
 			attachDir := filepath.Join("release_assets", release.TagName)
@@ -354,12 +352,12 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 }
 
 // SyncTags syncs releases with tags in the database
-func (g *RepositoryDumper) SyncTags() error {
+func (g *RepositoryDumper) SyncTags(ctx context.Context) error {
 	return nil
 }
 
 // CreateIssues creates issues
-func (g *RepositoryDumper) CreateIssues(issues ...*base.Issue) error {
+func (g *RepositoryDumper) CreateIssues(_ context.Context, issues ...*base.Issue) error {
 	var err error
 	if g.issueFile == nil {
 		g.issueFile, err = os.Create(filepath.Join(g.baseDir, "issue.yml"))
@@ -412,7 +410,7 @@ func (g *RepositoryDumper) encodeItems(number int64, items []any, dir string, it
 }
 
 // CreateComments creates comments of issues
-func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
+func (g *RepositoryDumper) CreateComments(_ context.Context, comments ...*base.Comment) error {
 	commentsMap := make(map[int64][]any, len(comments))
 	for _, comment := range comments {
 		commentsMap[comment.IssueIndex] = append(commentsMap[comment.IssueIndex], comment)
@@ -421,7 +419,7 @@ func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
 	return g.createItems(g.commentDir(), g.commentFiles, commentsMap)
 }
 
-func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
+func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullRequest) error {
 	// SECURITY: this pr must have been ensured safe
 	if !pr.EnsuredSafe {
 		log.Error("PR #%d in %s/%s has not been checked for safety ... We will ignore this.", pr.Number, g.repoOwner, g.repoName)
@@ -490,7 +488,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 	if pr.Head.CloneURL == "" || pr.Head.Ref == "" {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -520,7 +518,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 	if !ok {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -555,7 +553,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 			fetchArg = git.BranchPrefix + fetchArg
 		}
 
-		_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+		_, _, err = git.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
 		if err != nil {
 			log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 			// We need to continue here so that the Head.Ref is reset and we attempt to set the gitref for the PR
@@ -579,7 +577,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		pr.Head.SHA = headSha
 	}
 	if pr.Head.SHA != "" {
-		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+		_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.gitPath()})
 		if err != nil {
 			log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 		}
@@ -589,7 +587,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 }
 
 // CreatePullRequests creates pull requests
-func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
+func (g *RepositoryDumper) CreatePullRequests(ctx context.Context, prs ...*base.PullRequest) error {
 	var err error
 	if g.pullrequestFile == nil {
 		if err := os.MkdirAll(g.baseDir, os.ModePerm); err != nil {
@@ -607,7 +605,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 	count := 0
 	for i := 0; i < len(prs); i++ {
 		pr := prs[i]
-		if err := g.handlePullRequest(pr); err != nil {
+		if err := g.handlePullRequest(ctx, pr); err != nil {
 			log.Error("PR #%d in %s/%s failed - skipping", pr.Number, g.repoOwner, g.repoName, err)
 			continue
 		}
@@ -620,7 +618,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 }
 
 // CreateReviews create pull request reviews
-func (g *RepositoryDumper) CreateReviews(reviews ...*base.Review) error {
+func (g *RepositoryDumper) CreateReviews(_ context.Context, reviews ...*base.Review) error {
 	reviewsMap := make(map[int64][]any, len(reviews))
 	for _, review := range reviews {
 		reviewsMap[review.IssueIndex] = append(reviewsMap[review.IssueIndex], review)
@@ -636,7 +634,7 @@ func (g *RepositoryDumper) Rollback() error {
 }
 
 // Finish when migrating succeed, this will update something.
-func (g *RepositoryDumper) Finish() error {
+func (g *RepositoryDumper) Finish(_ context.Context) error {
 	return nil
 }
 

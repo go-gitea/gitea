@@ -11,6 +11,7 @@ type Block struct {
 	Dollars bool
 	Indent  int
 	Closed  bool
+	Inline  bool
 }
 
 // KindBlock is the node kind for math blocks

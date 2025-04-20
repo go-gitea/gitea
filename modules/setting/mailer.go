@@ -13,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	shellquote "github.com/kballard/go-shellquote"
+	"github.com/kballard/go-shellquote"
 )
 
 // Mailer represents mail service.
@@ -28,6 +28,9 @@ type Mailer struct {
 	SendAsPlainText      bool                `ini:"SEND_AS_PLAIN_TEXT"`
 	SubjectPrefix        string              `ini:"SUBJECT_PREFIX"`
 	OverrideHeader       map[string][]string `ini:"-"`
+
+	// Embed attachment images as inline base64 img src attribute
+	EmbedAttachmentImages bool
 
 	// SMTP sender
 	Protocol             string `ini:"PROTOCOL"`
@@ -255,8 +258,6 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		MailService.OverrideEnvelopeFrom = true
 		MailService.EnvelopeFrom = parsed.Address
 	}
-
-	log.Info("Mail Service Enabled")
 }
 
 func loadRegisterMailFrom(rootCfg ConfigProvider) {
@@ -267,7 +268,6 @@ func loadRegisterMailFrom(rootCfg ConfigProvider) {
 		return
 	}
 	Service.RegisterEmailConfirm = true
-	log.Info("Register Mail Service Enabled")
 }
 
 func loadNotifyMailFrom(rootCfg ConfigProvider) {
@@ -278,7 +278,6 @@ func loadNotifyMailFrom(rootCfg ConfigProvider) {
 		return
 	}
 	Service.EnableNotifyMail = true
-	log.Info("Notify Mail Service Enabled")
 }
 
 func tryResolveAddr(addr string) []net.IPAddr {

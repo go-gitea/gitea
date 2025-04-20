@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // Ensure the struct implements the interface.
@@ -48,8 +47,10 @@ func (b *Basic) Name() string {
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if !middleware.IsAPIPath(req) && !isContainerPath(req) && !isAttachmentDownload(req) && !isGitRawOrAttachOrLFSPath(req) {
+	// Basic authentication should only fire on API, Feed, Download or on Git or LFSPaths
+	// Not all feed (rss/atom) clients feature the ability to add cookies or headers, so we need to allow basic auth for feeds
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isFeedRequest(req) && !detector.isContainerPath() && !detector.isAttachmentDownload() && !detector.isGitRawOrAttachOrLFSPath() {
 		return nil, nil
 	}
 
@@ -77,8 +78,8 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		log.Trace("Basic Authorization: Attempting login with username as token")
 	}
 
-	// check oauth2 token
-	uid := CheckOAuthAccessToken(req.Context(), authToken)
+	// get oauth2 token's user's ID
+	_, uid := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 

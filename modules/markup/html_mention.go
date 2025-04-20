@@ -25,15 +25,16 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		loc.Start += start
 		loc.End += start
 		mention := node.Data[loc.Start:loc.End]
-		teams, ok := ctx.Metas["teams"]
+		teams, ok := ctx.RenderOptions.Metas["teams"]
 		// FIXME: util.URLJoin may not be necessary here:
 		// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
 		// is an AppSubURL link we can probably fallback to concatenation.
 		// team mention should follow @orgName/teamName style
 		if ok && strings.Contains(mention, "/") {
 			mentionOrgAndTeam := strings.Split(mention, "/")
-			if mentionOrgAndTeam[0][1:] == ctx.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
-				replaceContent(node, loc.Start, loc.End, createLink(ctx, util.URLJoin(ctx.Links.Prefix(), "org", ctx.Metas["org"], "teams", mentionOrgAndTeam[1]), mention, "" /*mention*/))
+			if mentionOrgAndTeam[0][1:] == ctx.RenderOptions.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
+				link := "/:root/" + util.URLJoin("org", ctx.RenderOptions.Metas["org"], "teams", mentionOrgAndTeam[1])
+				replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
 				node = node.NextSibling.NextSibling
 				start = 0
 				continue
@@ -43,8 +44,9 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		mentionedUsername := mention[1:]
 
-		if DefaultProcessorHelper.IsUsernameMentionable != nil && DefaultProcessorHelper.IsUsernameMentionable(ctx.Ctx, mentionedUsername) {
-			replaceContent(node, loc.Start, loc.End, createLink(ctx, util.URLJoin(ctx.Links.Prefix(), mentionedUsername), mention, "" /*mention*/))
+		if DefaultRenderHelperFuncs != nil && DefaultRenderHelperFuncs.IsUsernameMentionable(ctx, mentionedUsername) {
+			link := "/:root/" + mentionedUsername
+			replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
 			node = node.NextSibling.NextSibling
 			start = 0
 		} else {

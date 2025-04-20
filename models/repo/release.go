@@ -156,7 +156,7 @@ func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, er
 
 // UpdateRelease updates all columns of a release
 func UpdateRelease(ctx context.Context, rel *Release) error {
-	rel.Title, _ = util.SplitStringAtByteN(rel.Title, 255)
+	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
 	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel)
 	return err
 }
@@ -557,4 +557,9 @@ func FindTagsByCommitIDs(ctx context.Context, repoID int64, commitIDs ...string)
 		res[r.Sha1] = append(res[r.Sha1], r)
 	}
 	return res, nil
+}
+
+func DeleteRepoReleases(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Delete(new(Release))
+	return err
 }

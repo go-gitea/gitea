@@ -26,6 +26,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
 	policy.AllowAttrs("checked", "disabled", "data-source-position").OnElements("input")
 
+	// Chroma always uses 1-2 letters for style names, we could tolerate it at the moment
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^\w{0,2}$`)).OnElements("span")
+
 	// Custom URL-Schemes
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
@@ -45,7 +48,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(unchecked|checked|indeterminate)$`)).OnElements("li")
 
 	// Allow 'color' and 'background-color' properties for the style attribute on text elements.
-	policy.AllowStyles("color", "background-color").OnElements("span", "p")
+	policy.AllowStyles("color", "background-color").OnElements("div", "span", "p", "tr", "th", "td")
 
 	policy.AllowAttrs("src", "autoplay", "controls").OnElements("video")
 

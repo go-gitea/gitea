@@ -4,7 +4,6 @@
 package integration
 
 import (
-	gocontext "context"
 	"net/url"
 	"slices"
 	"strings"
@@ -46,7 +45,7 @@ func TestGitLFSSSH(t *testing.T) {
 			setting.LFS.AllowPureSSH = true
 			require.NoError(t, cfg.Save())
 
-			_, _, cmdErr := git.NewCommand(gocontext.Background(), "config", "lfs.sshtransfer", "always").RunStdString(&git.RunOpts{Dir: dstPath})
+			_, _, cmdErr := git.NewCommand("config", "lfs.sshtransfer", "always").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
 			assert.NoError(t, cmdErr)
 			lfsCommitAndPushTest(t, dstPath, 10)
 		})
@@ -55,9 +54,14 @@ func TestGitLFSSSH(t *testing.T) {
 			return strings.Contains(s, "POST /api/internal/repo/user2/repo1.git/info/lfs/objects/batch")
 		})
 		countUpload := slices.ContainsFunc(routerCalls, func(s string) bool {
-			return strings.Contains(s, "PUT /user2/repo1.git/info/lfs/objects/")
+			return strings.Contains(s, "PUT /api/internal/repo/user2/repo1.git/info/lfs/objects/")
+		})
+		nonAPIRequests := slices.ContainsFunc(routerCalls, func(s string) bool {
+			fields := strings.Fields(s)
+			return !strings.HasPrefix(fields[1], "/api/")
 		})
 		assert.NotZero(t, countBatch)
 		assert.NotZero(t, countUpload)
+		assert.Zero(t, nonAPIRequests)
 	})
 }

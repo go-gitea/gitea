@@ -33,7 +33,7 @@ func ListUserBadges(ctx *context.APIContext) {
 
 	badges, maxResults, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserBadges", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -70,7 +70,7 @@ func AddUserBadges(ctx *context.APIContext) {
 	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.AddUserBadges(ctx, ctx.ContextUser, badges); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ReplaceUserBadges", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -106,7 +106,7 @@ func DeleteUserBadges(ctx *context.APIContext) {
 	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.RemoveUserBadges(ctx, ctx.ContextUser, badges); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ReplaceUserBadges", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

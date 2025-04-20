@@ -42,114 +42,6 @@ func TestAction_GetRepoLink(t *testing.T) {
 	assert.Equal(t, comment.HTMLURL(db.DefaultContext), action.GetCommentHTMLURL(db.DefaultContext))
 }
 
-func TestGetFeeds(t *testing.T) {
-	// test with an individual user
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	actions, count, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedUser:   user,
-		Actor:           user,
-		IncludePrivate:  true,
-		OnlyPerformedBy: false,
-		IncludeDeleted:  true,
-	})
-	assert.NoError(t, err)
-	if assert.Len(t, actions, 1) {
-		assert.EqualValues(t, 1, actions[0].ID)
-		assert.EqualValues(t, user.ID, actions[0].UserID)
-	}
-	assert.Equal(t, int64(1), count)
-
-	actions, count, err = activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedUser:   user,
-		Actor:           user,
-		IncludePrivate:  false,
-		OnlyPerformedBy: false,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, actions, 0)
-	assert.Equal(t, int64(0), count)
-}
-
-func TestGetFeedsForRepos(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	privRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	pubRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8})
-
-	// private repo & no login
-	actions, count, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedRepo:  privRepo,
-		IncludePrivate: true,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, actions, 0)
-	assert.Equal(t, int64(0), count)
-
-	// public repo & no login
-	actions, count, err = activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedRepo:  pubRepo,
-		IncludePrivate: true,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
-	assert.Equal(t, int64(1), count)
-
-	// private repo and login
-	actions, count, err = activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedRepo:  privRepo,
-		IncludePrivate: true,
-		Actor:          user,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
-	assert.Equal(t, int64(1), count)
-
-	// public repo & login
-	actions, count, err = activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedRepo:  pubRepo,
-		IncludePrivate: true,
-		Actor:          user,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
-	assert.Equal(t, int64(1), count)
-}
-
-func TestGetFeeds2(t *testing.T) {
-	// test with an organization user
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	actions, count, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedUser:   org,
-		Actor:           user,
-		IncludePrivate:  true,
-		OnlyPerformedBy: false,
-		IncludeDeleted:  true,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
-	if assert.Len(t, actions, 1) {
-		assert.EqualValues(t, 2, actions[0].ID)
-		assert.EqualValues(t, org.ID, actions[0].UserID)
-	}
-	assert.Equal(t, int64(1), count)
-
-	actions, count, err = activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedUser:   org,
-		Actor:           user,
-		IncludePrivate:  false,
-		OnlyPerformedBy: false,
-		IncludeDeleted:  true,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, actions, 0)
-	assert.Equal(t, int64(0), count)
-}
-
 func TestActivityReadable(t *testing.T) {
 	tt := []struct {
 		desc   string
@@ -190,63 +82,6 @@ func TestActivityReadable(t *testing.T) {
 	}
 }
 
-func TestNotifyWatchers(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	action := &activities_model.Action{
-		ActUserID: 8,
-		RepoID:    1,
-		OpType:    activities_model.ActionStarRepo,
-	}
-	assert.NoError(t, activities_model.NotifyWatchers(db.DefaultContext, action))
-
-	// One watchers are inactive, thus action is only created for user 8, 1, 4, 11
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: action.ActUserID,
-		UserID:    8,
-		RepoID:    action.RepoID,
-		OpType:    action.OpType,
-	})
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: action.ActUserID,
-		UserID:    1,
-		RepoID:    action.RepoID,
-		OpType:    action.OpType,
-	})
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: action.ActUserID,
-		UserID:    4,
-		RepoID:    action.RepoID,
-		OpType:    action.OpType,
-	})
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: action.ActUserID,
-		UserID:    11,
-		RepoID:    action.RepoID,
-		OpType:    action.OpType,
-	})
-}
-
-func TestGetFeedsCorrupted(t *testing.T) {
-	// Now we will not check for corrupted data in the feeds
-	// users should run doctor to fix their data
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ID:     8,
-		RepoID: 1700,
-	})
-
-	actions, count, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedUser:  user,
-		Actor:          user,
-		IncludePrivate: true,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
-	assert.Equal(t, int64(1), count)
-}
-
 func TestConsistencyUpdateAction(t *testing.T) {
 	if !setting.Database.Type.IsSQLite3() {
 		t.Skip("Test is only for SQLite database.")
@@ -256,7 +91,7 @@ func TestConsistencyUpdateAction(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
 		ID: int64(id),
 	})
-	_, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = "" WHERE id = ?`, id)
+	_, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = '' WHERE id = ?`, id)
 	assert.NoError(t, err)
 	actions := make([]*activities_model.Action, 0, 1)
 	//
@@ -295,7 +130,7 @@ func TestDeleteIssueActions(t *testing.T) {
 
 	// load an issue
 	issue := unittest.AssertExistsAndLoadBean(t, &issue_model.Issue{ID: 4})
-	assert.NotEqualValues(t, issue.ID, issue.Index) // it needs to use different ID/Index to test the DeleteIssueActions to delete some actions by IssueIndex
+	assert.NotEqual(t, issue.ID, issue.Index) // it needs to use different ID/Index to test the DeleteIssueActions to delete some actions by IssueIndex
 
 	// insert a comment
 	err := db.Insert(db.DefaultContext, &issue_model.Comment{Type: issue_model.CommentTypeComment, IssueID: issue.ID})
@@ -321,25 +156,4 @@ func TestDeleteIssueActions(t *testing.T) {
 	unittest.AssertCount(t, &activities_model.Action{}, 2)
 	assert.NoError(t, activities_model.DeleteIssueActions(db.DefaultContext, issue.RepoID, issue.ID, issue.Index))
 	unittest.AssertCount(t, &activities_model.Action{}, 0)
-}
-
-func TestRepoActions(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	_ = db.TruncateBeans(db.DefaultContext, &activities_model.Action{})
-	for i := 0; i < 3; i++ {
-		_ = db.Insert(db.DefaultContext, &activities_model.Action{
-			UserID:    2 + int64(i),
-			ActUserID: 2,
-			RepoID:    repo.ID,
-			OpType:    activities_model.ActionCommentIssue,
-		})
-	}
-	count, _ := db.Count[activities_model.Action](db.DefaultContext, &db.ListOptions{})
-	assert.EqualValues(t, 3, count)
-	actions, _, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
-		RequestedRepo: repo,
-	})
-	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
 }

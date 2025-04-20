@@ -131,7 +131,7 @@ func TestAddOrgUser(t *testing.T) {
 	testSuccess := func(orgID, userID int64, isPublic bool) {
 		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID})
 		expectedNumMembers := org.NumMembers
-		if !unittest.BeanExists(t, &organization.OrgUser{OrgID: orgID, UID: userID}) {
+		if unittest.GetBean(t, &organization.OrgUser{OrgID: orgID, UID: userID}) == nil {
 			expectedNumMembers++
 		}
 		assert.NoError(t, organization.AddOrgUser(db.DefaultContext, orgID, userID))
@@ -139,7 +139,7 @@ func TestAddOrgUser(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, ou)
 		assert.Equal(t, isPublic, ou.IsPublic)
 		org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID})
-		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
+		assert.Equal(t, expectedNumMembers, org.NumMembers)
 	}
 
 	setting.Service.DefaultOrgMemberVisible = false

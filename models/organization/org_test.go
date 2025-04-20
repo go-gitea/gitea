@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUser_IsOwnedBy(t *testing.T) {
@@ -134,7 +135,7 @@ func TestIsOrganizationOwner(t *testing.T) {
 	test := func(orgID, userID int64, expected bool) {
 		isOwner, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, userID)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expected, isOwner)
+		assert.Equal(t, expected, isOwner)
 	}
 	test(3, 2, true)
 	test(3, 3, false)
@@ -148,7 +149,7 @@ func TestIsOrganizationMember(t *testing.T) {
 	test := func(orgID, userID int64, expected bool) {
 		isMember, err := organization.IsOrganizationMember(db.DefaultContext, orgID, userID)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expected, isMember)
+		assert.Equal(t, expected, isMember)
 	}
 	test(3, 2, true)
 	test(3, 3, false)
@@ -163,7 +164,7 @@ func TestIsPublicMembership(t *testing.T) {
 	test := func(orgID, userID int64, expected bool) {
 		isMember, err := organization.IsPublicMembership(db.DefaultContext, orgID, userID)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expected, isMember)
+		assert.Equal(t, expected, isMember)
 	}
 	test(3, 2, true)
 	test(3, 3, false)
@@ -180,9 +181,8 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 		ID:           29,
 		IsRestricted: true,
 	})
-	if !assert.True(t, restrictedUser.IsRestricted) {
-		return // ensure fixtures return restricted user
-	}
+	// ensure fixtures return restricted user
+	require.True(t, restrictedUser.IsRestricted)
 
 	testCases := []struct {
 		name         string
@@ -237,7 +237,7 @@ func TestRestrictedUserOrgMembers(t *testing.T) {
 				memberUIDs = append(memberUIDs, member.UID)
 			}
 			slices.Sort(memberUIDs)
-			assert.EqualValues(t, tc.expectedUIDs, memberUIDs)
+			assert.Equal(t, tc.expectedUIDs, memberUIDs)
 		})
 	}
 }
@@ -255,7 +255,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	sort.Slice(orgUsers, func(i, j int) bool {
 		return orgUsers[i].ID < orgUsers[j].ID
 	})
-	assert.EqualValues(t, []*organization.OrgUser{{
+	assert.Equal(t, []*organization.OrgUser{{
 		ID:       1,
 		OrgID:    3,
 		UID:      2,
@@ -283,7 +283,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 		OrgID:       unittest.NonexistentID,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, orgUsers, 0)
+	assert.Empty(t, orgUsers)
 }
 
 func TestChangeOrgUserStatus(t *testing.T) {
@@ -318,11 +318,11 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess := func(userID, expectedCount int64) {
-		env, err := organization.AccessibleReposEnv(db.DefaultContext, org, userID)
+		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
-		count, err := env.CountRepos()
+		count, err := env.CountRepos(db.DefaultContext)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expectedCount, count)
+		assert.Equal(t, expectedCount, count)
 	}
 	testSuccess(2, 3)
 	testSuccess(4, 2)
@@ -332,9 +332,9 @@ func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
-		env, err := organization.AccessibleReposEnv(db.DefaultContext, org, userID)
+		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
-		repoIDs, err := env.RepoIDs(1, 100)
+		repoIDs, err := env.RepoIDs(db.DefaultContext, 1, 100)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedRepoIDs, repoIDs)
 	}
@@ -346,9 +346,9 @@ func TestAccessibleReposEnv_Repos(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
-		env, err := organization.AccessibleReposEnv(db.DefaultContext, org, userID)
+		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
-		repos, err := env.Repos(1, 100)
+		repos, err := env.Repos(db.DefaultContext, 1, 100)
 		assert.NoError(t, err)
 		expectedRepos := make(repo_model.RepositoryList, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {
@@ -365,9 +365,9 @@ func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
-		env, err := organization.AccessibleReposEnv(db.DefaultContext, org, userID)
+		env, err := repo_model.AccessibleReposEnv(db.DefaultContext, org, userID)
 		assert.NoError(t, err)
-		repos, err := env.MirrorRepos()
+		repos, err := env.MirrorRepos(db.DefaultContext)
 		assert.NoError(t, err)
 		expectedRepos := make(repo_model.RepositoryList, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {

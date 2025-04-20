@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/markup/internal"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -29,96 +29,114 @@ const (
 )
 
 var RenderBehaviorForTesting struct {
-	// Markdown line break rendering has 2 default behaviors:
-	// * Use hard: replace "\n" with "<br>" for comments, setting.Markdown.EnableHardLineBreakInComments=true
-	// * Keep soft: "\n" for non-comments (a.k.a. documents), setting.Markdown.EnableHardLineBreakInDocuments=false
-	// In history, there was a mess:
-	// * The behavior was controlled by `Metas["mode"] != "document",
-	// * However, many places render the content without setting "mode" in Metas, all these places used comment line break setting incorrectly
-	ForceHardLineBreak bool
-
-	// Gitea will emit some internal attributes for various purposes, these attributes don't affect rendering.
+	// Gitea will emit some additional attributes for various purposes, these attributes don't affect rendering.
 	// But there are too many hard-coded test cases, to avoid changing all of them again and again, we can disable emitting these internal attributes.
-	DisableInternalAttributes bool
+	DisableAdditionalAttributes bool
 }
 
-// RenderContext represents a render context
-type RenderContext struct {
-	Ctx          context.Context
-	RelativePath string // relative path from tree root of the branch
+type RenderOptions struct {
+	UseAbsoluteLink bool
+
+	// relative path from tree root of the branch
+	RelativePath string
 
 	// eg: "orgmode", "asciicast", "console"
 	// for file mode, it could be left as empty, and will be detected by file extension in RelativePath
 	MarkupType string
 
-	Links Links // special link references for rendering, especially when there is a branch/tree path
-
 	// user&repo, format&style&regexp (for external issue pattern), teams&org (for mention)
-	// BranchNameSubURL (for iframe&asciicast)
-	// markupAllowShortIssuePattern, markupContentMode (wiki)
-	// markdownLineBreakStyle (comment, document)
+	// RefTypeNameSubURL (for iframe&asciicast)
+	// markupAllowShortIssuePattern
+	// markdownNewLineHardBreak
 	Metas map[string]string
 
-	GitRepo          *git.Repository
-	Repo             gitrepo.Repository
-	ShaExistCache    map[string]bool
-	cancelFn         func()
-	SidebarTocNode   ast.Node
-	RenderMetaAs     RenderMetaMode
-	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+	InStandalonePage bool
+}
 
+// RenderContext represents a render context
+type RenderContext struct {
+	ctx context.Context
+
+	// the context might be used by the "render" function, but it might also be used by "postProcess" function
+	usedByRender bool
+
+	SidebarTocNode ast.Node
+
+	RenderHelper   RenderHelper
+	RenderOptions  RenderOptions
 	RenderInternal internal.RenderInternal
 }
 
-// Cancel runs any cleanup functions that have been registered for this Ctx
-func (ctx *RenderContext) Cancel() {
-	if ctx == nil {
-		return
-	}
-	ctx.ShaExistCache = map[string]bool{}
-	if ctx.cancelFn == nil {
-		return
-	}
-	ctx.cancelFn()
+func (ctx *RenderContext) Deadline() (deadline time.Time, ok bool) {
+	return ctx.ctx.Deadline()
 }
 
-// AddCancel adds the provided fn as a Cleanup for this Ctx
-func (ctx *RenderContext) AddCancel(fn func()) {
-	if ctx == nil {
-		return
-	}
-	oldCancelFn := ctx.cancelFn
-	if oldCancelFn == nil {
-		ctx.cancelFn = fn
-		return
-	}
-	ctx.cancelFn = func() {
-		defer oldCancelFn()
-		fn()
-	}
+func (ctx *RenderContext) Done() <-chan struct{} {
+	return ctx.ctx.Done()
 }
 
-func (ctx *RenderContext) IsMarkupContentWiki() bool {
-	return ctx.Metas != nil && ctx.Metas["markupContentMode"] == "wiki"
+func (ctx *RenderContext) Err() error {
+	return ctx.ctx.Err()
+}
+
+func (ctx *RenderContext) Value(key any) any {
+	return ctx.ctx.Value(key)
+}
+
+var _ context.Context = (*RenderContext)(nil)
+
+func NewRenderContext(ctx context.Context) *RenderContext {
+	return &RenderContext{ctx: ctx, RenderHelper: &SimpleRenderHelper{}}
+}
+
+func (ctx *RenderContext) WithMarkupType(typ string) *RenderContext {
+	ctx.RenderOptions.MarkupType = typ
+	return ctx
+}
+
+func (ctx *RenderContext) WithRelativePath(path string) *RenderContext {
+	ctx.RenderOptions.RelativePath = path
+	return ctx
+}
+
+func (ctx *RenderContext) WithMetas(metas map[string]string) *RenderContext {
+	ctx.RenderOptions.Metas = metas
+	return ctx
+}
+
+func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
+	ctx.RenderOptions.InStandalonePage = v
+	return ctx
+}
+
+func (ctx *RenderContext) WithUseAbsoluteLink(v bool) *RenderContext {
+	ctx.RenderOptions.UseAbsoluteLink = v
+	return ctx
+}
+
+func (ctx *RenderContext) WithHelper(helper RenderHelper) *RenderContext {
+	ctx.RenderHelper = helper
+	return ctx
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
 func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	if ctx.MarkupType == "" && ctx.RelativePath != "" {
-		ctx.MarkupType = DetectMarkupTypeByFileName(ctx.RelativePath)
-		if ctx.MarkupType == "" {
-			return util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RelativePath)
+	if ctx.RenderOptions.MarkupType == "" && ctx.RenderOptions.RelativePath != "" {
+		ctx.RenderOptions.MarkupType = DetectMarkupTypeByFileName(ctx.RenderOptions.RelativePath)
+		if ctx.RenderOptions.MarkupType == "" {
+			return util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RenderOptions.RelativePath)
 		}
 	}
 
-	renderer := renderers[ctx.MarkupType]
+	renderer := renderers[ctx.RenderOptions.MarkupType]
 	if renderer == nil {
-		return util.NewInvalidArgumentErrorf("unsupported markup type: %q", ctx.MarkupType)
+		return util.NewInvalidArgumentErrorf("unsupported markup type: %q", ctx.RenderOptions.MarkupType)
 	}
 
-	if ctx.RelativePath != "" {
+	if ctx.RenderOptions.RelativePath != "" {
 		if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
-			if !ctx.InStandalonePage {
+			if !ctx.RenderOptions.InStandalonePage {
 				// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
 				// otherwise, a <iframe> should be outputted to embed the external rendered page
 				return renderIFrame(ctx, output)
@@ -151,10 +169,10 @@ width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
 sandbox="allow-scripts"
 ></iframe>`,
 		setting.AppSubURL,
-		url.PathEscape(ctx.Metas["user"]),
-		url.PathEscape(ctx.Metas["repo"]),
-		ctx.Metas["BranchNameSubURL"],
-		url.PathEscape(ctx.RelativePath),
+		url.PathEscape(ctx.RenderOptions.Metas["user"]),
+		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
+		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
+		url.PathEscape(ctx.RenderOptions.RelativePath),
 	))
 	return err
 }
@@ -168,6 +186,11 @@ func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 }
 
 func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+	ctx.usedByRender = true
+	if ctx.RenderHelper != nil {
+		defer ctx.RenderHelper.CleanUp()
+	}
+
 	finalProcessor := ctx.RenderInternal.Init(output)
 	defer finalProcessor.Close()
 
@@ -176,7 +199,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	pr1, pw1, close1 := pipes()
 	defer close1()
 
-	eg, _ := errgroup.WithContext(ctx.Ctx)
+	eg, _ := errgroup.WithContext(ctx)
 	var pw2 io.WriteCloser = util.NopCloser{Writer: finalProcessor}
 
 	if r, ok := renderer.(ExternalRenderer); !ok || !r.SanitizerDisabled() {
@@ -192,7 +215,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 
 	eg.Go(func() (err error) {
 		if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
-			err = PostProcess(ctx, pr1, pw2)
+			err = PostProcessDefault(ctx, pr1, pw2)
 		} else {
 			_, err = io.Copy(pw2, pr1)
 		}
@@ -209,11 +232,8 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 }
 
 // Init initializes the render global variables
-func Init(ph *ProcessorHelper) {
-	if ph != nil {
-		DefaultProcessorHelper = *ph
-	}
-
+func Init(renderHelpFuncs *RenderHelperFuncs) {
+	DefaultRenderHelperFuncs = renderHelpFuncs
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 	}
@@ -228,5 +248,51 @@ func Init(ph *ProcessorHelper) {
 }
 
 func ComposeSimpleDocumentMetas() map[string]string {
-	return map[string]string{"markdownLineBreakStyle": "document"}
+	// TODO: there is no separate config option for "simple document" rendering, so temporarily use the same config as "repo file"
+	return map[string]string{"markdownNewLineHardBreak": strconv.FormatBool(setting.Markdown.RenderOptionsRepoFile.NewLineHardBreak)}
+}
+
+type TestRenderHelper struct {
+	ctx      *RenderContext
+	BaseLink string
+}
+
+func (r *TestRenderHelper) CleanUp() {}
+
+func (r *TestRenderHelper) IsCommitIDExisting(commitID string) bool {
+	return strings.HasPrefix(commitID, "65f1bf2") //|| strings.HasPrefix(commitID, "88fc37a")
+}
+
+func (r *TestRenderHelper) ResolveLink(link, preferLinkType string) string {
+	linkType, link := ParseRenderedLink(link, preferLinkType)
+	switch linkType {
+	case LinkTypeRoot:
+		return r.ctx.ResolveLinkRoot(link)
+	default:
+		return r.ctx.ResolveLinkRelative(r.BaseLink, "", link)
+	}
+}
+
+var _ RenderHelper = (*TestRenderHelper)(nil)
+
+// NewTestRenderContext is a helper function to create a RenderContext for testing purpose
+// It accepts string (BaseLink), map[string]string (Metas)
+func NewTestRenderContext(baseLinkOrMetas ...any) *RenderContext {
+	if !setting.IsInTesting {
+		panic("NewTestRenderContext should only be used in testing")
+	}
+	helper := &TestRenderHelper{}
+	ctx := NewRenderContext(context.Background()).WithHelper(helper)
+	helper.ctx = ctx
+	for _, v := range baseLinkOrMetas {
+		switch v := v.(type) {
+		case string:
+			helper.BaseLink = v
+		case map[string]string:
+			ctx = ctx.WithMetas(v)
+		default:
+			panic(fmt.Sprintf("unknown type %T", v))
+		}
+	}
+	return ctx
 }

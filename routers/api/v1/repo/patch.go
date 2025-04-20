@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
+	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository/files"
 )
 
@@ -58,12 +58,12 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		Committer: &files.IdentityOptions{
-			Name:  apiOpts.Committer.Name,
-			Email: apiOpts.Committer.Email,
+			GitUserName:  apiOpts.Committer.Name,
+			GitUserEmail: apiOpts.Committer.Email,
 		},
 		Author: &files.IdentityOptions{
-			Name:  apiOpts.Author.Name,
-			Email: apiOpts.Author.Email,
+			GitUserName:  apiOpts.Author.Name,
+			GitUserEmail: apiOpts.Author.Email,
 		},
 		Dates: &files.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
@@ -83,7 +83,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 	}
 
 	if !canWriteFiles(ctx, apiOpts.BranchName) {
-		ctx.Error(http.StatusInternalServerError, "ApplyPatch", repo_model.ErrUserDoesNotHaveAccessToRepo{
+		ctx.APIErrorInternal(repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -92,20 +92,20 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 
 	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 	if err != nil {
-		if models.IsErrUserCannotCommit(err) || models.IsErrFilePathProtected(err) {
-			ctx.Error(http.StatusForbidden, "Access", err)
+		if files.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
+			ctx.APIError(http.StatusForbidden, err)
 			return
 		}
-		if git_model.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
-			models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
+		if git_model.IsErrBranchAlreadyExists(err) || files.IsErrFilenameInvalid(err) || pull_service.IsErrSHADoesNotMatch(err) ||
+			files.IsErrFilePathInvalid(err) || files.IsErrRepoFileAlreadyExists(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 			return
 		}
 		if git_model.IsErrBranchNotExist(err) || git.IsErrBranchNotExist(err) {
-			ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
+			ctx.APIError(http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "ApplyPatch", err)
+		ctx.APIErrorInternal(err)
 	} else {
 		ctx.JSON(http.StatusCreated, fileResponse)
 	}

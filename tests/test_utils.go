@@ -15,13 +15,12 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
@@ -32,10 +31,7 @@ import (
 func InitTest(requireGitea bool) {
 	testlogger.Init()
 
-	giteaRoot := base.SetupGiteaRoot()
-	if giteaRoot == "" {
-		testlogger.Fatalf("Environment variable $GITEA_ROOT not set\n")
-	}
+	giteaRoot := test.SetupGiteaRoot()
 
 	// TODO: Speedup tests that rely on the event source ticker, confirm whether there is any bug or failure.
 	// setting.UI.Notification.EventSourceUpdateTime = time.Second
@@ -61,7 +57,7 @@ func InitTest(requireGitea bool) {
 		_ = os.Setenv("GITEA_CONF", giteaConf)
 		fmt.Printf("Environment variable $GITEA_CONF not set, use default: %s\n", giteaConf)
 		if !setting.EnableSQLite3 {
-			testlogger.Fatalf(`sqlite3 requires: import _ "github.com/mattn/go-sqlite3" or -tags sqlite,sqlite_unlock_notify` + "\n")
+			testlogger.Fatalf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify` + "\n")
 		}
 	}
 	if !filepath.IsAbs(giteaConf) {
@@ -70,9 +66,8 @@ func InitTest(requireGitea bool) {
 		setting.CustomConf = giteaConf
 	}
 
-	unittest.InitSettings()
+	unittest.InitSettingsForTesting()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
-	_ = util.RemoveAll(repo_module.LocalCopyPath())
 
 	if err := git.InitFull(context.Background()); err != nil {
 		log.Fatal("git.InitOnceWithSync: %v", err)
@@ -96,7 +91,7 @@ func InitTest(requireGitea bool) {
 		if err != nil {
 			log.Fatal("sql.Open: %v", err)
 		}
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
+		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name); err != nil {
 			log.Fatal("db.Exec: %v", err)
 		}
 	case setting.Database.Type.IsPostgreSQL():
@@ -121,7 +116,7 @@ func InitTest(requireGitea bool) {
 		defer dbrows.Close()
 
 		if !dbrows.Next() {
-			if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
+			if _, err = db.Exec("CREATE DATABASE " + setting.Database.Name); err != nil {
 				log.Fatal("db.Exec: CREATE DATABASE: %v", err)
 			}
 		}
@@ -151,7 +146,7 @@ func InitTest(requireGitea bool) {
 
 		if !schrows.Next() {
 			// Create and setup a DB schema
-			if _, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema)); err != nil {
+			if _, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema); err != nil {
 				log.Fatal("db.Exec: CREATE SCHEMA: %v", err)
 			}
 		}
