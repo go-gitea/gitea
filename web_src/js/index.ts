@@ -60,7 +60,7 @@ import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './features/common-fetch-action.ts';
-import {initFootLanguageMenu, initGlobalDropdown, initGlobalInput, initGlobalTabularMenu, initHeadNavbarContentToggle} from './features/common-page.ts';
+import {initFootLanguageMenu, initGlobalAvatarUploader, initGlobalDropdown, initGlobalInput, initGlobalTabularMenu, initHeadNavbarContentToggle} from './features/common-page.ts';
 import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton} from './features/common-button.ts';
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
@@ -72,6 +72,7 @@ initSubmitEventPolyfill();
 onDomReady(() => {
   const initStartTime = performance.now();
   const initPerformanceTracer = callInitFunctions([
+    initGlobalAvatarUploader,
     initGlobalDropdown,
     initGlobalTabularMenu,
     initGlobalFetchAction,
