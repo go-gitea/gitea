@@ -197,7 +197,7 @@ func RunnersEdit(ctx *context.Context) {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
-	if !runner.Editable(ownerID, repoID) {
+	if !runner.EditableInContext(ownerID, repoID) {
 		err = errors.New("no permission to edit this runner")
 		ctx.NotFound(err)
 		return
@@ -250,7 +250,7 @@ func RunnersEditPost(ctx *context.Context) {
 		ctx.ServerError("RunnerDetailsEditPost.GetRunnerByID", err)
 		return
 	}
-	if !runner.Editable(ownerID, repoID) {
+	if !runner.EditableInContext(ownerID, repoID) {
 		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to edit this runner"))
 		return
 	}
@@ -304,7 +304,7 @@ func RunnerDeletePost(ctx *context.Context) {
 		return
 	}
 
-	if !runner.Editable(rCtx.OwnerID, rCtx.RepoID) {
+	if !runner.EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
 		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to delete this runner"))
 		return
 	}

@@ -212,7 +212,7 @@ export default defineComponent({
   <div class="ui scrolling dropdown custom diff-commit-selector">
     <button
       ref="expandBtn"
-      class="ui basic button"
+      class="ui tiny basic button"
       @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_changes_by_commit"
       aria-haspopup="true"
