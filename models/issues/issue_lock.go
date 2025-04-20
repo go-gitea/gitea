@@ -5,12 +5,9 @@ package issues
 
 import (
 	"context"
-	"slices"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // IssueLockOptions defines options for locking and/or unlocking an issue/PR
@@ -66,14 +63,4 @@ func updateIssueLock(ctx context.Context, opts *IssueLockOptions, lock bool) err
 	}
 
 	return committer.Commit()
-}
-
-// IsValidReason checks to make sure that the reason submitted
-// matches any of the values in the config
-func IsValidReason(reason string) bool {
-	if strings.TrimSpace(reason) == "" {
-		return true
-	}
-
-	return slices.Contains(setting.Repository.Issue.LockReasons, reason)
 }

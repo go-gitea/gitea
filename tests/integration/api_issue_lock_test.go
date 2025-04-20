@@ -31,12 +31,8 @@ func TestAPILockIssue(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	// check invalid reason
-	req := NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Not valid"}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusBadRequest)
-
 	// check lock issue
-	req = NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
+	req := NewRequestWithJSON(t, "PUT", urlStr, api.LockIssueOption{Reason: "Spam"}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	assert.True(t, issueAfter.IsLocked)

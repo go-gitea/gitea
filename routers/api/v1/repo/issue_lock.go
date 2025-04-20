@@ -50,8 +50,6 @@ func LockIssue(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
-	//   "400":
-	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -63,11 +61,6 @@ func LockIssue(ctx *context.APIContext) {
 	reasonParts := strings.Split(reason, " ")
 	reasonParts[0] = caser.String(reasonParts[0])
 	reason = strings.Join(reasonParts, " ")
-
-	if !issues_model.IsValidReason(reason) {
-		ctx.APIError(http.StatusBadRequest, errors.New("reason not valid"))
-		return
-	}
 
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
