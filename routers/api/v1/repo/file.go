@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -985,16 +986,53 @@ func GetContentsList(ctx *context.APIContext) {
 	GetContents(ctx)
 }
 
-// GetFiles Get the metadata and contents of requested files
-func GetFiles(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/files repository repoGetFiles
+func GetFileContentsGet(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/file-contents repository repoGetFileContents
+	// ---
+	// summary: Get the metadata and contents of requested files
+	// description: See the POST method. This GET method supports to use JSON encoded request body in parameter.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
+	// - name: body
+	//   in: query
+	//   description: "The JSON encoded body (see the POST request): {files: [\"filename1\", \"filename2\"]}"
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ContentsListResponse"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	// POST method requires "write" permission, so we also support this "GET" method
+	handleGetFileContents(ctx)
+}
+
+func GetFileContentsPost(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/file-contents repository repoGetFileContentsPost
 	// ---
 	// summary: Get the metadata and contents of requested files
 	// description: Uses automatic pagination based on default page size and
 	// 							max response size and returns the maximum allowed number of files.
-	//							Files which could not be retrieved are null. Blobs which are too large
-	//							are being returned with `content = ""` and `size > 0`, they can be
-	// 							requested using the `download_url`.
+	//							Files which could not be retrieved are null. Files which are too large
+	//							are being returned with `encoding == null`, `content == null` and `size > 0`,
+	//							they can be requested separately by using the `download_url`.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1023,12 +1061,22 @@ func GetFiles(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ContentsListResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	handleGetFileContents(ctx)
+}
 
-	apiOpts := web.GetForm(ctx).(*api.GetFilesOptions)
+func handleGetFileContents(ctx *context.APIContext) {
+	opts, ok := web.GetForm(ctx).(*api.GetFilesOptions)
+	if !ok {
+		err := json.Unmarshal(util.UnsafeStringToBytes(ctx.FormString("body")), &opts)
+		if err != nil {
+			ctx.APIError(http.StatusBadRequest, "invalid body parameter")
+			return
+		}
+	}
 	refCommit := resolveRefCommit(ctx, ctx.FormTrim("ref"))
 	if ctx.Written() {
 		return
 	}
-	filesResponse := files_service.GetContentsListFromTreePaths(ctx, ctx.Repo.Repository, refCommit, apiOpts.Files)
+	filesResponse := files_service.GetContentsListFromTreePaths(ctx, ctx.Repo.Repository, refCommit, opts.Files)
 	ctx.JSON(http.StatusOK, util.SliceNilAsEmpty(filesResponse))
 }

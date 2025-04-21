@@ -1397,7 +1397,9 @@ func Routes() *web.Router {
 						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.DeleteFile)
 					}, reqToken())
 				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
-				m.Post("/files", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), bind(api.GetFilesOptions{}), repo.GetFiles)
+				m.Combo("/file-contents", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo()).
+					Get(repo.GetFileContentsGet).
+					Post(bind(api.GetFilesOptions{}), repo.GetFileContentsPost) // POST method requires "write" permission, so we also support "GET" method above
 				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).

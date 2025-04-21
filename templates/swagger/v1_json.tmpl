@@ -7263,9 +7263,9 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/files": {
-      "post": {
-        "description": "Uses automatic pagination based on default page size and max response size and returns the maximum allowed number of files. Files which could not be retrieved are null. Blobs which are too large are being returned with `content = \"\"` and `size \u003e 0`, they can be requested using the `download_url`.",
+    "/repos/{owner}/{repo}/file-contents": {
+      "get": {
+        "description": "See the POST method. This GET method supports to use JSON encoded request body in parameter.",
         "produces": [
           "application/json"
         ],
@@ -7273,7 +7273,55 @@
           "repository"
         ],
         "summary": "Get the metadata and contents of requested files",
-        "operationId": "repoGetFiles",
+        "operationId": "repoGetFileContents",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The JSON encoded body (see the POST request): {files: [\"filename1\", \"filename2\"]}",
+            "name": "body",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContentsListResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "description": "Uses automatic pagination based on default page size and max response size and returns the maximum allowed number of files. Files which could not be retrieved are null. Files which are too large are being returned with `encoding == null`, `content == null` and `size \u003e 0`, they can be requested separately by using the `download_url`.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the metadata and contents of requested files",
+        "operationId": "repoGetFileContentsPost",
         "parameters": [
           {
             "type": "string",
