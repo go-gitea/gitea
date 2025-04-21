@@ -36,7 +36,7 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
 
 async function initRepoProjectSortable(): Promise<void> {
   // the HTML layout is: #project-board > .board > .project-column .cards > .issue-card
-  const mainBoard = document.querySelector('#project-board > .board.sortable');
+  const mainBoard = document.querySelector('#project-board');
   let boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
