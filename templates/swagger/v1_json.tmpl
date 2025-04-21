@@ -7265,7 +7265,7 @@
     },
     "/repos/{owner}/{repo}/file-contents": {
       "get": {
-        "description": "See the POST method. This GET method supports to use JSON encoded request body in parameter.",
+        "description": "See the POST method. This GET method supports to use JSON encoded request body in query parameter.",
         "produces": [
           "application/json"
         ],
@@ -7297,7 +7297,7 @@
           },
           {
             "type": "string",
-            "description": "The JSON encoded body (see the POST request): {files: [\"filename1\", \"filename2\"]}",
+            "description": "The JSON encoded body (see the POST request): {\"files\": [\"filename1\", \"filename2\"]}",
             "name": "body",
             "in": "query",
             "required": true

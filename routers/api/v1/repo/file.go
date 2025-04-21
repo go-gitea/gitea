@@ -990,7 +990,7 @@ func GetFileContentsGet(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/file-contents repository repoGetFileContents
 	// ---
 	// summary: Get the metadata and contents of requested files
-	// description: See the POST method. This GET method supports to use JSON encoded request body in parameter.
+	// description: See the POST method. This GET method supports to use JSON encoded request body in query parameter.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1011,7 +1011,7 @@ func GetFileContentsGet(ctx *context.APIContext) {
 	//   required: false
 	// - name: body
 	//   in: query
-	//   description: "The JSON encoded body (see the POST request): {files: [\"filename1\", \"filename2\"]}"
+	//   description: "The JSON encoded body (see the POST request): {\"files\": [\"filename1\", \"filename2\"]}"
 	//   type: string
 	//   required: true
 	// responses:
