@@ -52,8 +52,8 @@ var (
 	// It maps to ini:"ROOT_URL"
 	AppURL string
 
-	// PublicURLGeneration controls how to use the HTTP request headers to generate public URL
-	PublicURLGeneration string
+	// PublicURLDetection controls how to use the HTTP request headers to detect public URL
+	PublicURLDetection string
 
 	// AppSubURL represents the sub-url mounting point for gitea, parsed from "ROOT_URL"
 	// It is either "" or starts with '/' and ends without '/', such as '/{sub-path}'.
@@ -289,9 +289,9 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	PublicURLGeneration = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
-	if PublicURLGeneration != PublicURLAuto && PublicURLGeneration != PublicURLLegacy {
-		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLGeneration)
+	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
+	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy {
+		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
 
 	// Check validity of AppURL

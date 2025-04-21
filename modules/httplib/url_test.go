@@ -50,7 +50,7 @@ func TestGuessCurrentHostURL(t *testing.T) {
 
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
 
-		// legacy: the "Host" is not used when there is no "X-Forwarded-Proto" header
+		// legacy: "Host" is not used when there is no "X-Forwarded-Proto" header
 		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 
