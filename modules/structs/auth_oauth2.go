@@ -1,5 +1,4 @@
-// Copyright 2015 The Gogs Authors. All rights reserved.
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package structs
@@ -7,7 +6,6 @@ package structs
 type AuthOauth2Option struct {
 	ID                 int64  `json:"id"`
 	AuthenticationName string `json:"authentication_name" binding:"Required"`
-	Type               int    `json:"type"`
 	TypeName           string `json:"type_name"`
 
 	IsActive      bool `json:"is_active"`
