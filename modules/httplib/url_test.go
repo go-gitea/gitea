@@ -46,7 +46,7 @@ func TestGuessCurrentHostURL(t *testing.T) {
 	headersWithProto := http.Header{"X-Forwarded-Proto": {"https"}}
 
 	t.Run("Legacy", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.PublicURLGeneration, setting.PublicURLLegacy)()
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLLegacy)()
 
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
 
@@ -60,7 +60,7 @@ func TestGuessCurrentHostURL(t *testing.T) {
 	})
 
 	t.Run("Auto", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.PublicURLGeneration, setting.PublicURLAuto)()
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLAuto)()
 
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
 

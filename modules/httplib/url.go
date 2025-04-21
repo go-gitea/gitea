@@ -77,7 +77,7 @@ func GuessCurrentHostURL(ctx context.Context) string {
 	reqScheme := getRequestScheme(req)
 	if reqScheme == "" {
 		// if no reverse proxy header, try to use "Host" header for absolute URL
-		if setting.PublicURLGeneration == setting.PublicURLAuto && req.Host != "" {
+		if setting.PublicURLDetection == setting.PublicURLAuto && req.Host != "" {
 			return util.Iif(req.TLS == nil, "http://", "https://") + req.Host
 		}
 		// fall back to default AppURL
