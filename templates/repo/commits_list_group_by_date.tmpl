@@ -1,7 +1,5 @@
-{{$index := 0}}
 {{range .GroupCommits}}
-{{$index = Eval $index "+" 1}}
-<div class="ui timeline commits-list-group-by-date" data-index="{{$index}}">
+<div class="ui timeline commits-list-group-by-date">
 
 	<div class="timeline-badge-wrapper">
 		<div class="timeline-badge">
