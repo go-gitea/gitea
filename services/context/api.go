@@ -304,12 +304,12 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 
 		refName, refType, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
-		switch {
-		case refType == git.RefTypeBranch:
+		switch refType {
+		case git.RefTypeBranch:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
-		case refType == git.RefTypeTag:
+		case git.RefTypeTag:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
-		case refType == git.RefTypeCommit:
+		case git.RefTypeCommit:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 		}
 		if ctx.Repo.Commit == nil || errors.Is(err, util.ErrNotExist) {

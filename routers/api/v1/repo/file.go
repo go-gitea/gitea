@@ -16,7 +16,6 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -410,11 +409,6 @@ func canWriteFiles(ctx *context.APIContext, branch string) bool {
 	return ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, branch) &&
 		!ctx.Repo.Repository.IsMirror &&
 		!ctx.Repo.Repository.IsArchived
-}
-
-// canReadFiles returns true if repository is readable and user has proper access level.
-func canReadFiles(r *context.Repository) bool {
-	return r.Permission.CanRead(unit.TypeCode)
 }
 
 func base64Reader(s string) (io.ReadSeeker, error) {
