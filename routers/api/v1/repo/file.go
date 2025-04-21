@@ -25,7 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -894,6 +896,17 @@ func DeleteFile(ctx *context.APIContext) {
 	}
 }
 
+func resolveRefCommit(ctx *context.APIContext, ref string) *utils.RefCommit {
+	ref = util.IfZero(ref, ctx.Repo.Repository.DefaultBranch)
+	refCommit, err := utils.ResolveRefCommit(ctx, ref)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.APIErrorNotFound(err)
+	} else if err != nil {
+		ctx.APIErrorInternal(err)
+	}
+	return refCommit
+}
+
 // GetContents Get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 func GetContents(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetContents
@@ -928,18 +941,13 @@ func GetContents(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !canReadFiles(ctx.Repo) {
-		ctx.APIErrorInternal(repo_model.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   ctx.Doer.ID,
-			RepoName: ctx.Repo.Repository.LowerName,
-		})
+	treePath := ctx.PathParam("*")
+	refCommit := resolveRefCommit(ctx, ctx.FormTrim("ref"))
+	if ctx.Written() {
 		return
 	}
 
-	treePath := ctx.PathParam("*")
-	ref := ctx.FormTrim("ref")
-
-	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref); err != nil {
+	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, refCommit, treePath); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound("GetContentsOrList", err)
 			return
@@ -1023,19 +1031,10 @@ func GetFiles(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	apiOpts := web.GetForm(ctx).(*api.GetFilesOptions)
-
-	ref := ctx.FormTrim("ref")
-	if ref == "" {
-		ref = ctx.Repo.Repository.DefaultBranch
-	}
-
-	if !ctx.Repo.GitRepo.IsReferenceExist(ref) {
-		ctx.APIErrorNotFound("GetFiles", "ref does not exist")
+	refCommit := resolveRefCommit(ctx, ctx.FormTrim("ref"))
+	if ctx.Written() {
 		return
 	}
-
-	files := apiOpts.Files
-	filesResponse := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, ref, files)
-
-	ctx.JSON(http.StatusOK, filesResponse)
+	filesResponse := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, refCommit, apiOpts.Files)
+	ctx.JSON(http.StatusOK, util.SliceNilAsEmpty(filesResponse))
 }

@@ -4,6 +4,11 @@
 package files
 
 import (
+	"context"
+	"fmt"
+	"net/url"
+	"path"
+
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -11,10 +16,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"context"
-	"fmt"
-	"net/url"
-	"path"
 )
 
 // ContentType repo content type

@@ -4,7 +4,6 @@
 package files
 
 import (
-	"code.gitea.io/gitea/routers/api/v1/utils"
 	"context"
 	"errors"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treeNames []string) []*api.ContentsResponse {
@@ -40,10 +40,10 @@ func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, 
 	return files
 }
 
-func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch string, treeNames []string) (*api.FilesResponse, error) {
-	files := GetContentsListFromTrees(ctx, repo, branch, treeNames)
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
+func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treeNames []string) (*api.FilesResponse, error) {
+	files := GetContentsListFromTrees(ctx, repo, refCommit, treeNames)
+	fileCommitResponse, _ := GetFileCommitResponse(repo, refCommit.Commit) // ok if fails, then will be nil
+	verification := GetPayloadCommitVerification(ctx, refCommit.Commit)
 	filesResponse := &api.FilesResponse{
 		Files:        files,
 		Commit:       fileCommitResponse,

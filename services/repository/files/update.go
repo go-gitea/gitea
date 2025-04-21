@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -297,7 +298,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// FIXME: this call seems not right, why it needs to read the file content again
-	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePaths)
+	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, utils.NewRefCommit(git.RefNameFromCommit(commit.ID.String()), commit), treePaths)
 	if err != nil {
 		return nil, err
 	}

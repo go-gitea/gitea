@@ -4,10 +4,11 @@
 package utils
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/services/context"
-	"errors"
 )
 
 type RefCommit struct {
@@ -36,6 +37,10 @@ func ResolveRefCommit(ctx *context.APIContext, inputRef string) (_ *RefCommit, e
 	refCommit.InputRef = inputRef
 	refCommit.CommitID = refCommit.Commit.ID.String()
 	return &refCommit, nil
+}
+
+func NewRefCommit(refName git.RefName, commit *git.Commit) *RefCommit {
+	return &RefCommit{InputRef: refName.ShortName(), Ref: refName, Commit: commit, CommitID: commit.ID.String()}
 }
 
 // GetGitRefs return git references based on filter
