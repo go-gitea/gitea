@@ -298,7 +298,8 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// FIXME: this call seems not right, why it needs to read the file content again
-	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, utils.NewRefCommit(git.RefNameFromCommit(commit.ID.String()), commit), treePaths)
+	// FIXME: why it uses the NewBranch as "ref", it should use the commit ID because the response is only for this commit
+	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, utils.NewRefCommit(git.RefNameFromBranch(opts.NewBranch), commit), treePaths)
 	if err != nil {
 		return nil, err
 	}

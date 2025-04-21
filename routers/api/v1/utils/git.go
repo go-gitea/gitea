@@ -6,8 +6,10 @@ package utils
 import (
 	"errors"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -19,19 +21,23 @@ type RefCommit struct {
 }
 
 // ResolveRefCommit resolve ref to a commit if exist
-func ResolveRefCommit(ctx *context.APIContext, inputRef string) (_ *RefCommit, err error) {
+func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, inputRef string) (_ *RefCommit, err error) {
+	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
 	refCommit := RefCommit{InputRef: inputRef}
-	if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, inputRef) {
+	if gitrepo.IsBranchExist(ctx, repo, inputRef) {
 		refCommit.Ref = git.RefNameFromBranch(inputRef)
-	} else if gitrepo.IsTagExist(ctx, ctx.Repo.Repository, inputRef) {
+	} else if gitrepo.IsTagExist(ctx, repo, inputRef) {
 		refCommit.Ref = git.RefNameFromTag(inputRef)
-	} else if len(inputRef) == ctx.Repo.GetObjectFormat().FullLength() {
+	} else if len(inputRef) == git.ObjectFormatFromName(repo.ObjectFormatName).FullLength() {
 		refCommit.Ref = git.RefNameFromCommit(inputRef)
 	}
 	if refCommit.Ref == "" {
 		return nil, git.ErrNotExist{ID: inputRef}
 	}
-	if refCommit.Commit, err = ctx.Repo.GitRepo.GetCommit(refCommit.Ref.String()); err != nil {
+	if refCommit.Commit, err = gitRepo.GetCommit(refCommit.Ref.String()); err != nil {
 		return nil, err
 	}
 	refCommit.CommitID = refCommit.Commit.ID.String()

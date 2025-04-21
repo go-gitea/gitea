@@ -1389,15 +1389,15 @@ func Routes() *web.Router {
 				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), mustNotBeArchived, repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
-					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
 					m.Get("/*", repo.GetContents)
+					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
 					m.Group("/*", func() {
 						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.CreateFile)
 						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.UpdateFile)
 						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.DeleteFile)
 					}, reqToken())
-				}, reqRepoReader(unit.TypeCode))
-				m.Post("/files", context.ReferencesGitRepo(), context.RepoRefForAPI, bind(api.GetFilesOptions{}), reqRepoReader(unit.TypeCode), repo.GetFiles)
+				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				m.Post("/files", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), context.RepoRefForAPI, bind(api.GetFilesOptions{}), repo.GetFiles)
 				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
