@@ -43,6 +43,7 @@ func GetGeneralAPISettings(ctx *context.APIContext) {
 		DefaultPagingNum:       setting.API.DefaultPagingNum,
 		DefaultGitTreesPerPage: setting.API.DefaultGitTreesPerPage,
 		DefaultMaxBlobSize:     setting.API.DefaultMaxBlobSize,
+		DefaultMaxResponseSize: setting.API.DefaultMaxResponseSize,
 	})
 }
 
