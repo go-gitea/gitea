@@ -60,7 +60,7 @@ func CreateOauthAuth(ctx *context.APIContext) {
 		OpenIDConnectAutoDiscoveryURL: form.ProviderAutoDiscoveryURL,
 		CustomURLMapping:              nil,
 		IconURL:                       form.ProviderIconURL,
-		Scopes:                        generateScopes(),
+		Scopes:                        []string{},
 		RequiredClaimName:             form.RequiredClaimName,
 		RequiredClaimValue:            form.RequiredClaimValue,
 		SkipLocalTwoFA:                form.SkipLocal2FA,
@@ -146,7 +146,7 @@ func EditOauthAuth(ctx *context.APIContext) {
 		OpenIDConnectAutoDiscoveryURL: form.ProviderAutoDiscoveryURL,
 		CustomURLMapping:              nil,
 		IconURL:                       form.ProviderIconURL,
-		Scopes:                        generateScopes(),
+		Scopes:                        []string{},
 		RequiredClaimName:             form.RequiredClaimName,
 		RequiredClaimValue:            form.RequiredClaimValue,
 		SkipLocalTwoFA:                form.SkipLocal2FA,
@@ -266,18 +266,4 @@ func SearchOauthAuth(ctx *context.APIContext) {
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &results)
-}
-
-// ??? todo: what should I do here?
-func generateScopes() []string {
-	var scopes []string
-
-	// for _, s := range strings.Split(form.Oauth2Scopes, ",") {
-	// 	s = strings.TrimSpace(s)
-	// 	if s != "" {
-	// 		scopes = append(scopes, s)
-	// 	}
-	// }
-
-	return scopes
 }
