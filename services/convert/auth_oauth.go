@@ -11,7 +11,7 @@ import (
 )
 
 // ToOauthProvider convert auth_model.Source≤ to api.AuthOauth2Option
-func ToOauthProvider(ctx context.Context, provider *auth_model.Source) *api.AuthOauth2Option {
+func ToOauthProvider(ctx context.Context, provider *auth_model.Source) *api.AuthSourceOption {
 	if provider == nil {
 		return nil
 	}
@@ -20,16 +20,16 @@ func ToOauthProvider(ctx context.Context, provider *auth_model.Source) *api.Auth
 }
 
 // ToOauthProviders convert list of auth_model.Source to list of api.AuthOauth2Option
-func ToOauthProviders(ctx context.Context, provider []*auth_model.Source) []*api.AuthOauth2Option {
-	result := make([]*api.AuthOauth2Option, len(provider))
+func ToOauthProviders(ctx context.Context, provider []*auth_model.Source) []*api.AuthSourceOption {
+	result := make([]*api.AuthSourceOption, len(provider))
 	for i := range provider {
 		result[i] = ToOauthProvider(ctx, provider[i])
 	}
 	return result
 }
 
-func toOauthProvider(provider *auth_model.Source) *api.AuthOauth2Option {
-	return &api.AuthOauth2Option{
+func toOauthProvider(provider *auth_model.Source) *api.AuthSourceOption {
+	return &api.AuthSourceOption{
 		ID:                 provider.ID,
 		AuthenticationName: provider.Name,
 		TypeName:           provider.Type.String(),

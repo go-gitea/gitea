@@ -251,13 +251,15 @@ func SearchOauthAuth(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	authSources, maxResults, err := db.FindAndCount[auth_model.Source](ctx, auth_model.FindSourcesOptions{})
+	authSources, maxResults, err := db.FindAndCount[auth_model.Source](ctx, auth_model.FindSourcesOptions{
+		LoginType: auth_model.OAuth2,
+	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	results := make([]*api.AuthOauth2Option, len(authSources))
+	results := make([]*api.AuthSourceOption, len(authSources))
 	for i := range authSources {
 		results[i] = convert.ToOauthProvider(ctx, authSources[i])
 	}

@@ -3,15 +3,6 @@
 
 package structs
 
-type AuthOauth2Option struct {
-	ID                 int64  `json:"id"`
-	AuthenticationName string `json:"authentication_name" binding:"Required"`
-	TypeName           string `json:"type_name"`
-
-	IsActive      bool `json:"is_active"`
-	IsSyncEnabled bool `json:"is_sync_enabled"`
-}
-
 // CreateUserOption create user options
 type CreateAuthOauth2Option struct {
 	AuthenticationName       string `json:"authentication_name" binding:"Required"`
