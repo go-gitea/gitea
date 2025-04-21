@@ -1,6 +1,6 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
-<div class="ui container fluid padded">
+<div class="ui container fluid padded projects-view">
 	<div class="ui container flex-text-block tw-flex-wrap tw-mb-4">
 		<h2 class="tw-mb-0">{{.Project.Title}}</h2>
 		<div class="tw-flex-1"></div>
@@ -19,7 +19,7 @@
 		</div>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
-				<a class="item screen-full" data-fullscreen-elements-selector="{{.FullscreenElementsSelector}}">
+				<a class="item screen-full" data-fullscreen-elements-selector=".projects-view">
 					{{svg "octicon-screen-full"}}
 					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
 				</a>

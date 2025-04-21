@@ -99,8 +99,7 @@
   opacity: 0;
 }
 
-.fullscreen.org-projects-view .ui.container,
-.fullscreen.repo-projects-view .ui.container {
+.fullscreen.projects-view .ui.container.flex-text-block {
   position: fixed;
   z-index: 1000;
   top: 0;
@@ -113,8 +112,13 @@
   background-color: var(--color-body);
 }
 
+/* Hide project-description in full-screen due to its variable height. No need to show it for better space use. */
+.fullscreen.projects-view div[class="ui container"] {
+  display: none;
+}
+
 .fullscreen #project-board {
   position: absolute;
-  top: 75px;
+  top: 50px;
   left: 0;
 }
