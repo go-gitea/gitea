@@ -15,29 +15,29 @@ import (
 
 type RefCommit struct {
 	InputRef string
-	Ref      git.RefName
+	RefName  git.RefName
 	Commit   *git.Commit
 	CommitID string
 }
 
 // ResolveRefCommit resolve ref to a commit if exist
-func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, inputRef string) (_ *RefCommit, err error) {
+func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, inputRef string, minCommitIDLen ...int) (_ *RefCommit, err error) {
 	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
 	refCommit := RefCommit{InputRef: inputRef}
 	if gitrepo.IsBranchExist(ctx, repo, inputRef) {
-		refCommit.Ref = git.RefNameFromBranch(inputRef)
+		refCommit.RefName = git.RefNameFromBranch(inputRef)
 	} else if gitrepo.IsTagExist(ctx, repo, inputRef) {
-		refCommit.Ref = git.RefNameFromTag(inputRef)
-	} else if len(inputRef) == git.ObjectFormatFromName(repo.ObjectFormatName).FullLength() {
-		refCommit.Ref = git.RefNameFromCommit(inputRef)
+		refCommit.RefName = git.RefNameFromTag(inputRef)
+	} else if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.ObjectFormatName), inputRef, minCommitIDLen...) {
+		refCommit.RefName = git.RefNameFromCommit(inputRef)
 	}
-	if refCommit.Ref == "" {
+	if refCommit.RefName == "" {
 		return nil, git.ErrNotExist{ID: inputRef}
 	}
-	if refCommit.Commit, err = gitRepo.GetCommit(refCommit.Ref.String()); err != nil {
+	if refCommit.Commit, err = gitRepo.GetCommit(refCommit.RefName.String()); err != nil {
 		return nil, err
 	}
 	refCommit.CommitID = refCommit.Commit.ID.String()
@@ -45,7 +45,7 @@ func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, in
 }
 
 func NewRefCommit(refName git.RefName, commit *git.Commit) *RefCommit {
-	return &RefCommit{InputRef: refName.ShortName(), Ref: refName, Commit: commit, CommitID: commit.ID.String()}
+	return &RefCommit{InputRef: refName.ShortName(), RefName: refName, Commit: commit, CommitID: commit.ID.String()}
 }
 
 // GetGitRefs return git references based on filter

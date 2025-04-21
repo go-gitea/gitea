@@ -300,16 +300,16 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 
 		if ctx.Repo.GitRepo == nil {
 			panic("no GitRepo, forgot to call the middleware?") // it is a programming error
-			return
 		}
 
 		refName, refType, _ := getRefNameLegacy(ctx.Base, ctx.Repo, ctx.PathParam("*"), ctx.FormTrim("ref"))
 		var err error
-		if refType == git.RefTypeBranch {
+		switch {
+		case refType == git.RefTypeBranch:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
-		} else if refType == git.RefTypeTag {
+		case refType == git.RefTypeTag:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
-		} else if refType == git.RefTypeCommit {
+		case refType == git.RefTypeCommit:
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 		}
 		if ctx.Repo.Commit == nil || errors.Is(err, util.ErrNotExist) {

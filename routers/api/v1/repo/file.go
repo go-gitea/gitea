@@ -896,9 +896,9 @@ func DeleteFile(ctx *context.APIContext) {
 	}
 }
 
-func resolveRefCommit(ctx *context.APIContext, ref string) *utils.RefCommit {
+func resolveRefCommit(ctx *context.APIContext, ref string, minCommitIDLen ...int) *utils.RefCommit {
 	ref = util.IfZero(ref, ctx.Repo.Repository.DefaultBranch)
-	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ref)
+	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ref, minCommitIDLen...)
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.APIErrorNotFound(err)
 	} else if err != nil {

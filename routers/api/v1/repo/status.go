@@ -177,7 +177,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"))
+	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {
 		return
 	}
@@ -251,7 +251,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"))
+	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {
 		return
 	}

@@ -123,9 +123,9 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 		return nil, err
 	}
 
-	refType := refCommit.Ref.RefType()
+	refType := refCommit.RefName.RefType()
 	if refType != git.RefTypeBranch && refType != git.RefTypeTag && refType != git.RefTypeCommit {
-		return nil, fmt.Errorf("no commit found for the ref [ref: %s]", refCommit.Ref)
+		return nil, fmt.Errorf("no commit found for the ref [ref: %s]", refCommit.RefName)
 	}
 
 	selfURL, err := url.Parse(repo.APIURL() + "/contents/" + util.PathEscapeSegments(treePath) + "?ref=" + url.QueryEscape(refCommit.InputRef))
@@ -200,7 +200,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 	}
 	// Handle links
 	if entry.IsRegular() || entry.IsLink() || entry.IsExecutable() {
-		downloadURL, err := url.Parse(repo.HTMLURL() + "/raw/" + refCommit.Ref.RefWebLinkPath() + "/" + util.PathEscapeSegments(treePath))
+		downloadURL, err := url.Parse(repo.HTMLURL() + "/raw/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(treePath))
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +208,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 		contentsResponse.DownloadURL = &downloadURLString
 	}
 	if !entry.IsSubModule() {
-		htmlURL, err := url.Parse(repo.HTMLURL() + "/src/" + refCommit.Ref.RefWebLinkPath() + "/" + util.PathEscapeSegments(treePath))
+		htmlURL, err := url.Parse(repo.HTMLURL() + "/src/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(treePath))
 		if err != nil {
 			return nil, err
 		}
