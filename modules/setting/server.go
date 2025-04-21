@@ -41,11 +41,19 @@ const (
 	LandingPageLogin         LandingPage = "/user/login"
 )
 
+const (
+	PublicURLAuto   = "auto"
+	PublicURLLegacy = "legacy"
+)
+
 // Server settings
 var (
 	// AppURL is the Application ROOT_URL. It always has a '/' suffix
 	// It maps to ini:"ROOT_URL"
 	AppURL string
+
+	// PublicURLDetection controls how to use the HTTP request headers to detect public URL
+	PublicURLDetection string
 
 	// AppSubURL represents the sub-url mounting point for gitea, parsed from "ROOT_URL"
 	// It is either "" or starts with '/' and ends without '/', such as '/{sub-path}'.
@@ -55,9 +63,6 @@ var (
 	// UseSubURLPath makes Gitea handle requests with sub-path like "/sub-path/owner/repo/...",
 	// to make it easier to debug sub-path related problems without a reverse proxy.
 	UseSubURLPath bool
-
-	// UseHostHeader makes Gitea prefer to use the "Host" request header for construction of absolute URLs.
-	UseHostHeader bool
 
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" in [server] and defaults to AppWorkPath + "/data"
@@ -283,10 +288,10 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
-	AppURL = sec.Key("ROOT_URL").String()
-	if AppURL == "" {
-		UseHostHeader = true
-		AppURL = defaultAppURL
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
+	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
+	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy {
+		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
 
 	// Check validity of AppURL
