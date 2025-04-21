@@ -296,6 +296,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return nil, err
 	}
 
+	// FIXME: this call seems not right, why it needs to read the file content again
 	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePaths)
 	if err != nil {
 		return nil, err

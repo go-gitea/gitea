@@ -4,6 +4,7 @@
 package files
 
 import (
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"context"
 	"errors"
 	"fmt"
@@ -18,13 +19,15 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, branch string, treeNames []string) []*api.ContentsResponse {
-	files := []*api.ContentsResponse{}
+func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treeNames []string) []*api.ContentsResponse {
+	var files []*api.ContentsResponse
 	var size int64
 	for _, file := range treeNames {
-		fileContents, _ := GetContents(ctx, repo, file, branch, false) // ok if fails, then will be nil
+		fileContents, _ := GetContents(ctx, repo, refCommit, file, false) // ok if fails, then will be nil
 		if fileContents != nil && *fileContents.Content != "" {
-			size += fileContents.Size // if content isn't empty (e. g. due to the single blob being too large), add file size to response size
+			// if content isn't empty (e.g. due to the single blob being too large), add file size to response size
+			// the content is base64 encoded
+			size += fileContents.Size * 4 / 3
 		}
 		if size > setting.API.DefaultMaxResponseSize {
 			return files // return if max page size would be exceeded
