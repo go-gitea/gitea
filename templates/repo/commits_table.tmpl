@@ -30,7 +30,7 @@
 {{end}}
 
 {{if and .GroupCommits (gt .CommitCount 0)}}
-	{{template "repo/commits_list_group_by_date" .}}
+	{{template "repo/commits-list-group-by-date" .}}
 {{end}}
 
 {{template "base/paginate" .}}

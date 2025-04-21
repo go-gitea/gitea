@@ -2280,18 +2280,18 @@ tbody.commit-list {
   height: 4em;
 }
 
-.commits_list_group_by_date.timeline {
+.commits-list-group-by-date.timeline {
   display: flex;
   margin-left: 16px;
   position: relative;
   padding-bottom: 6px;
 }
 
-.commits_list_group_by_date.timeline[data-index="1"] {
+.commits-list-group-by-date.timeline[data-index="1"] {
   margin-top: 6px;
 }
 
-.commits_list_group_by_date.timeline::before {
+.commits-list-group-by-date.timeline::before {
   background-color: var(--color-timeline);
   bottom: 0;
   content: "";
@@ -2302,12 +2302,12 @@ tbody.commit-list {
   width: 2px;
 }
 
-.commits_list_group_by_date.timeline .timeline-badge-wrapper {
+.commits-list-group-by-date.timeline .timeline-badge-wrapper {
   position: relative;
   z-index: 1;
 }
 
-.commits_list_group_by_date.timeline .timeline-badge {
+.commits-list-group-by-date.timeline .timeline-badge {
   border-style: solid;
   border-radius: var(--border-radius-full);
   color: var(--color-text);
@@ -2323,33 +2323,33 @@ tbody.commit-list {
   overflow: hidden;
 }
 
-.commits_list_group_by_date.timeline .timeline-heading {
+.commits-list-group-by-date.timeline .timeline-heading {
   font-size: 15px;
   font-weight: var(--font-weight-normal);
   color: var(--color-text-light-2);
   margin: 0;
 }
 
-.commits_list_group_by_date.timeline .timeline-body {
+.commits-list-group-by-date.timeline .timeline-body {
   max-width: 100%;
   flex: auto;
   padding-left: 5px;
 }
 
-.commits_list_group_by_date.timeline .timeline-list-container {
+.commits-list-group-by-date.timeline .timeline-list-container {
   border: 1px solid var(--color-secondary);
   background: var(--color-box-body);
   border-radius: var(--border-radius);
 }
 
-.commits_list_group_by_date.timeline .commits-list {
+.commits-list-group-by-date.timeline .commits-list {
   list-style: none;
   margin: 0;
   padding: 0;
   flex: auto;
 }
 
-.commits_list_group_by_date.timeline .commits-list-item {
+.commits-list-group-by-date.timeline .commits-list-item {
   list-style: none;
   display: grid;
   gap: .5rem;
@@ -2362,27 +2362,27 @@ tbody.commit-list {
   grid-template-rows: repeat(2, auto);
 }
 
-.commits_list_group_by_date.timeline .commits-list-item:not(:last-child) {
+.commits-list-group-by-date.timeline .commits-list-item:not(:last-child) {
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.commits_list_group_by_date.timeline .commits-list-item:hover {
+.commits-list-group-by-date.timeline .commits-list-item:hover {
   background-color: var(--color-hover)
 }
 
-.commits_list_group_by_date.timeline .commits-list-item .title {
+.commits-list-group-by-date.timeline .commits-list-item .title {
   grid-area: primary;
 }
 
-.commits_list_group_by_date.timeline .commits-list-item .description {
+.commits-list-group-by-date.timeline .commits-list-item .description {
   grid-area: main-content;
 }
 
-.commits_list_group_by_date.timeline .commits-list-item .metadata {
+.commits-list-group-by-date.timeline .commits-list-item .metadata {
   grid-area: metadata;
 }
 
-.commits_list_group_by_date.timeline .author img {
+.commits-list-group-by-date.timeline .author img {
   width: 16px;
   height: 16px;
 }
