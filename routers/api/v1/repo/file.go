@@ -1029,6 +1029,6 @@ func GetFiles(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	filesResponse := files_service.GetContentsListFromTrees(ctx, ctx.Repo.Repository, refCommit, apiOpts.Files)
+	filesResponse := files_service.GetContentsListFromTreePaths(ctx, ctx.Repo.Repository, refCommit, apiOpts.Files)
 	ctx.JSON(http.StatusOK, util.SliceNilAsEmpty(filesResponse))
 }

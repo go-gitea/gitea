@@ -19,29 +19,29 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treeNames []string) []*api.ContentsResponse {
+func GetContentsListFromTreePaths(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treePaths []string) []*api.ContentsResponse {
 	var files []*api.ContentsResponse
 	var size int64
-	for _, file := range treeNames {
-		fileContents, _ := GetContents(ctx, repo, refCommit, file, false) // ok if fails, then will be nil
-		if fileContents != nil && *fileContents.Content != "" {
+	for _, treePath := range treePaths {
+		fileContents, _ := GetContents(ctx, repo, refCommit, treePath, false) // ok if fails, then will be nil
+		if fileContents != nil && fileContents.Content != nil && *fileContents.Content != "" {
 			// if content isn't empty (e.g. due to the single blob being too large), add file size to response size
 			// the content is base64 encoded, so it's size increases to around 4/3 of the original size
 			size += fileContents.Size * 4 / 3
 		}
 		if size > setting.API.DefaultMaxResponseSize {
-			return files // return if max page size would be exceeded
+			break // stop if max page size would be exceeded
 		}
 		files = append(files, fileContents)
 		if len(files) == setting.API.DefaultPagingNum {
-			return files // return if paging num or max size reached
+			break // stop if paging num or max size reached
 		}
 	}
 	return files
 }
 
 func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, refCommit *utils.RefCommit, treeNames []string) (*api.FilesResponse, error) {
-	files := GetContentsListFromTrees(ctx, repo, refCommit, treeNames)
+	files := GetContentsListFromTreePaths(ctx, repo, refCommit, treeNames)
 	fileCommitResponse, _ := GetFileCommitResponse(repo, refCommit.Commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(ctx, refCommit.Commit)
 	filesResponse := &api.FilesResponse{

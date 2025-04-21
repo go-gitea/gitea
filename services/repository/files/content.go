@@ -175,8 +175,8 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 			if err != nil {
 				return nil, err
 			}
-			contentsResponse.Encoding = &blobResponse.Encoding
-			contentsResponse.Content = &blobResponse.Content
+			contentsResponse.Encoding = blobResponse.Encoding
+			contentsResponse.Content = blobResponse.Content
 		}
 	} else if entry.IsDir() {
 		contentsResponse.Type = string(ContentTypeDir)
@@ -240,11 +240,11 @@ func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		Size: gitBlob.Size(),
 	}
 	if gitBlob.Size() <= setting.API.DefaultMaxBlobSize {
-		ret.Encoding = "base64"
-		ret.Content, err = gitBlob.GetBlobContentBase64()
+		content, err := gitBlob.GetBlobContentBase64()
 		if err != nil {
 			return nil, err
 		}
+		ret.Encoding, ret.Content = util.ToPointer("base64"), &content
 	}
 	return ret, nil
 }
