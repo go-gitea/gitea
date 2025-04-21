@@ -555,7 +555,7 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 	}
 
 	// Skip check if disabled in repository
-	if ctx.Repo.Repository.IsPushSecretDetectionEnabled() {
+	if !ctx.Repo.Repository.IsPushSecretDetectionEnabled() {
 		return
 	}
 
@@ -586,7 +586,11 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 
 	// if this reference is new we need a base to compare to
 	if oldCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
-		oldCommitID = repo.DefaultBranch
+		if git.IsReferenceExist(ctx, repo.RepoPath(), repo.DefaultBranch) {
+			oldCommitID = repo.DefaultBranch
+		} else {
+			oldCommitID = ctx.Repo.GetObjectFormat().EmptyTree().String()
+		}
 	}
 	out, _, err := git.NewCommand("show", "-U0").AddDynamicArguments(oldCommitID+".."+newCommitID).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
 	if err != nil {
