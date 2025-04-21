@@ -6863,7 +6863,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch.",
             "name": "ref",
             "in": "query"
           }
@@ -6966,7 +6966,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch.",
             "name": "ref",
             "in": "query"
           }
@@ -7248,7 +7248,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch.",
             "name": "ref",
             "in": "query"
           }
@@ -7256,6 +7256,105 @@
         "responses": {
           "200": {
             "description": "success"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/file-contents": {
+      "get": {
+        "description": "See the POST method. This GET method supports to use JSON encoded request body in query parameter.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the metadata and contents of requested files",
+        "operationId": "repoGetFileContents",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch.",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "The JSON encoded body (see the POST request): {\"files\": [\"filename1\", \"filename2\"]}",
+            "name": "body",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContentsListResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "description": "Uses automatic pagination based on default page size and max response size and returns the maximum allowed number of files. Files which could not be retrieved are null. Files which are too large are being returned with `encoding == null`, `content == null` and `size \u003e 0`, they can be requested separately by using the `download_url`.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the metadata and contents of requested files",
+        "operationId": "repoGetFileContentsPost",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch.",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetFilesOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContentsListResponse"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -23623,6 +23722,11 @@
           "format": "int64",
           "x-go-name": "DefaultMaxBlobSize"
         },
+        "default_max_response_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "DefaultMaxResponseSize"
+        },
         "default_paging_num": {
           "type": "integer",
           "format": "int64",
@@ -23785,6 +23889,20 @@
           "description": "include webhooks in template repo",
           "type": "boolean",
           "x-go-name": "Webhooks"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GetFilesOptions": {
+      "description": "GetFilesOptions options for retrieving metadate and content of multiple files",
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Files"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
