@@ -1061,6 +1061,10 @@ func GetFileContentsPost(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ContentsListResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
+	// This is actually a "read" request, but we need to accept a "files" list, then POST method seems easy to use.
+	// But the permission system requires that the caller must have "write" permission to use POST method.
+	// At the moment there is no other way to get around the permission check, so there is a "GET" workaround method above.
 	handleGetFileContents(ctx)
 }
 

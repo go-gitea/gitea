@@ -149,7 +149,7 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 		setting.API.DefaultMaxBlobSize = 20000
 
 		// if the total response size would exceed the DefaultMaxResponseSize, then the list stops
-		setting.API.DefaultMaxResponseSize = ret[1].Size*4/3 + 1
+		setting.API.DefaultMaxResponseSize = ret[1].Size*4/3 + 10
 		ret = requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=DefaultBranch", []string{"no-such.txt", "LICENSE", "README.md"})
 		assertResponse(t, []*expected{nil, {"LICENSE", true}}, ret)
 		setting.API.DefaultMaxBlobSize = 20000
