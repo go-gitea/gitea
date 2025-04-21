@@ -377,7 +377,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
 	//   type: string
 	//   required: false
 	// responses:
@@ -927,7 +927,7 @@ func GetContents(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
 	//   type: string
 	//   required: false
 	// responses:
@@ -973,7 +973,7 @@ func GetContentsList(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
 	//   type: string
 	//   required: false
 	// responses:
@@ -1006,7 +1006,7 @@ func GetFileContentsGet(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
 	//   type: string
 	//   required: false
 	// - name: body
@@ -1048,7 +1048,7 @@ func GetFileContentsPost(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
 	//   type: string
 	//   required: false
 	// - name: body
