@@ -2287,7 +2287,7 @@ tbody.commit-list {
   padding-bottom: 6px;
 }
 
-.commits-list-group-by-date.timeline[data-index="1"] {
+.commits-list-group-by-date.timeline[data-index="0"] {
   margin-top: 6px;
 }
 

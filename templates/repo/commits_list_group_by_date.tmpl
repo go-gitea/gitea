@@ -1,5 +1,5 @@
-{{range .GroupCommits}}
-<div class="ui timeline commits-list-group-by-date">
+{{range $index, $groupCommit := .GroupCommits}}
+<div class="ui timeline commits-list-group-by-date" data-index="{{$index}}">
 
 	<div class="timeline-badge-wrapper">
 		<div class="timeline-badge">
@@ -9,11 +9,11 @@
 
 	<div class="timeline-body">
 		<h3 class="flex-text-block tw-py-2 timeline-heading">
-			Commits on {{DateUtils.AbsoluteShort .Date}}
+			Commits on {{DateUtils.AbsoluteShort $groupCommit.Date}}
 		</h3>
 		<div class="tw-flex tw-mt-2 timeline-list-container">
 			<ul class="commits-list">
-			{{range .Commits}}
+			{{range $groupCommit.Commits}}
 			{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
 				<li class="commits-list-item">
 					<div class="tw-pt-4 tw-pl-4 title">
