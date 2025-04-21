@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
@@ -465,13 +467,14 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 
 // GroupedCommits defines the structure for grouped commits.
 type GroupedCommits struct {
-	Date    time.Time
+	Date    timeutil.TimeStamp
 	Commits []*git_model.SignCommitWithStatuses
 }
 
 // GroupCommitsByDate groups the commits by date (in days).
 func GroupCommitsByDate(commits []*git_model.SignCommitWithStatuses) []GroupedCommits {
-	grouped := make(map[string][]*git_model.SignCommitWithStatuses)
+	// Use Unix timestamp of date as key (truncated to day)
+	grouped := make(map[int64][]*git_model.SignCommitWithStatuses)
 
 	for _, commit := range commits {
 		var sigTime time.Time
@@ -481,17 +484,32 @@ func GroupCommitsByDate(commits []*git_model.SignCommitWithStatuses) []GroupedCo
 			sigTime = commit.Author.When
 		}
 
-		// Extract the date part
-		date := sigTime.Format("2006-01-02")
-		grouped[date] = append(grouped[date], commit)
+		// Truncate time to date part (remove hours, minutes, seconds)
+		year, month, day := sigTime.Date()
+		dateOnly := time.Date(year, month, day, 0, 0, 0, 0, sigTime.Location())
+		dateUnix := dateOnly.Unix()
+
+		grouped[dateUnix] = append(grouped[dateUnix], commit)
 	}
 
+	// Create result slice with pre-allocated capacity
 	result := make([]GroupedCommits, 0, len(grouped))
-	for dateStr, commitsGroup := range grouped {
-		date, _ := time.Parse("2006-01-02", dateStr)
+
+	// Collect all dates and sort them
+	dates := make([]int64, 0, len(grouped))
+	for dateUnix := range grouped {
+		dates = append(dates, dateUnix)
+	}
+	// Sort dates in descending order (most recent first)
+	sort.Slice(dates, func(i, j int) bool {
+		return dates[i] > dates[j]
+	})
+
+	// Build result in sorted order
+	for _, dateUnix := range dates {
 		result = append(result, GroupedCommits{
-			Date:    date,
-			Commits: commitsGroup,
+			Date:    timeutil.TimeStamp(dateUnix),
+			Commits: grouped[dateUnix],
 		})
 	}
 
