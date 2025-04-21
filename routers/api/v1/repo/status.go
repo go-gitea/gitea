@@ -4,14 +4,12 @@
 package repo
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -179,13 +177,8 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	refCommit, err := utils.ResolveRefCommit(ctx, ctx.PathParam("ref"))
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"))
+	if ctx.Written() {
 		return
 	}
 	getCommitStatuses(ctx, refCommit.CommitID)
@@ -258,13 +251,8 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	refCommit, err := utils.ResolveRefCommit(ctx, ctx.PathParam("ref"))
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"))
+	if ctx.Written() {
 		return
 	}
 
