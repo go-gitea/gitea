@@ -61,7 +61,7 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 	t.Run("User2Get", func(t *testing.T) {
 		reqBodyOpt := &api.GetFilesOptions{Files: []string{"README.md"}}
 		reqBodyParam, _ := json.Marshal(reqBodyOpt)
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/file-contents?body=%s", url.QueryEscape(string(reqBodyParam))))
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/file-contents?body="+url.QueryEscape(string(reqBodyParam)))
 		resp := MakeRequest(t, req, http.StatusOK)
 		var ret []*api.ContentsResponse
 		DecodeJSON(t, resp, &ret)
