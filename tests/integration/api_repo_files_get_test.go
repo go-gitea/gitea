@@ -4,8 +4,11 @@
 package integration
 
 import (
+	"fmt"
+	"net/http"
+	"testing"
+
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -13,23 +16,17 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"encoding/base64"
-	"fmt"
+	"code.gitea.io/gitea/tests"
+
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/url"
-	"testing"
-	"time"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIGetRequestedFiles(t *testing.T) {
-	onGiteaRun(t, testAPIGetRequestedFiles)
-}
+	defer tests.PrepareTestEnv(t)()
 
-func testAPIGetRequestedFiles(t *testing.T, u *url.URL) {
-	/*** SETUP ***/
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})          // owner of the repo3, is an org
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
@@ -37,12 +34,14 @@ func testAPIGetRequestedFiles(t *testing.T, u *url.URL) {
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
 	repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}) // private repo
 
+	// TODO: add "GET" support
+
 	// Get user2's token
 	session := loginUser(t, user2.Name)
-	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository) // TODO: allow for a POST-request to be scope read
+	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	// Get user4's token
 	session = loginUser(t, user4.Name)
-	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository) // TODO: allow for a POST-request to be scope read
+	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 	assert.NoError(t, err)
@@ -97,94 +96,52 @@ func testAPIGetRequestedFiles(t *testing.T, u *url.URL) {
 		MakeRequest(t, req, http.StatusOK)
 	})
 
-	// TODO: use mocked config to test without creating new files (to speed up the test)
-	// Test pagination
-	for i := 0; i < 40; i++ {
-		filesOptions.Files = append(filesOptions.Files, filesOptions.Files[0])
-	}
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", user2.Name, repo1.Name), &filesOptions)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsListResponse)
-	assert.NotNil(t, contentsListResponse)
-	assert.Len(t, contentsListResponse, setting.API.DefaultPagingNum)
+	t.Run("ResponseList", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.API.DefaultPagingNum)()
+		defer test.MockVariableValue(&setting.API.DefaultMaxBlobSize)()
+		defer test.MockVariableValue(&setting.API.DefaultMaxResponseSize)()
 
-	// create new repo for large file tests
-	baseRepo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
-		Name:          "repo-test-files-api",
-		Description:   "test files api",
-		AutoInit:      true,
-		Gitignores:    "Go",
-		License:       "MIT",
-		Readme:        "Default",
-		DefaultBranch: "main",
-		IsPrivate:     false,
+		type expected struct {
+			Name       string
+			HasContent bool
+		}
+		assertResponse := func(t *testing.T, expected []*expected, ret []*api.ContentsResponse) {
+			require.Len(t, ret, len(expected))
+			for i, e := range expected {
+				if e == nil {
+					assert.Nil(t, ret[i], "item %d", i)
+					continue
+				}
+				assert.Equal(t, e.Name, ret[i].Name, "item %d name", i)
+				if e.HasContent {
+					require.NotNil(t, ret[i].Content, "item %d content", i)
+					assert.NotEmpty(t, *ret[i].Content, "item %d content", i)
+				} else {
+					assert.Nil(t, ret[i].Content, "item %d content", i)
+				}
+			}
+		}
+
+		// repo1 "DefaultBranch" has 2 files: LICENSE (1064 bytes), README.md (30 bytes)
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/files?ref=DefaultBranch", []string{"no-such.txt", "LICENSE", "README.md"})
+		assertResponse(t, []*expected{nil, {"LICENSE", true}, {"README.md", true}}, ret)
+
+		// the returned file list is limited by the DefaultPagingNum
+		setting.API.DefaultPagingNum = 2
+		ret = requestFiles(t, "/api/v1/repos/user2/repo1/files?ref=DefaultBranch", []string{"no-such.txt", "LICENSE", "README.md"})
+		assertResponse(t, []*expected{nil, {"LICENSE", true}}, ret)
+		setting.API.DefaultPagingNum = 100
+
+		// if a file exceeds the DefaultMaxBlobSize, the content is not returned
+		setting.API.DefaultMaxBlobSize = 200
+		ret = requestFiles(t, "/api/v1/repos/user2/repo1/files?ref=DefaultBranch", []string{"no-such.txt", "LICENSE", "README.md"})
+		assertResponse(t, []*expected{nil, {"LICENSE", false}, {"README.md", true}}, ret)
+		setting.API.DefaultMaxBlobSize = 20000
+
+		// if the total response size would exceed the DefaultMaxResponseSize, then the list stops
+		setting.API.DefaultMaxResponseSize = 1064*4/3 + 1
+		ret = requestFiles(t, "/api/v1/repos/user2/repo1/files?ref=DefaultBranch", []string{"no-such.txt", "LICENSE", "README.md"})
+		assertResponse(t, []*expected{nil, {"LICENSE", true}}, ret)
+		setting.API.DefaultMaxBlobSize = 20000
 	})
-	assert.NoError(t, err)
-	assert.NotEmpty(t, baseRepo)
-
-	// Test file size limit
-	largeFile := make([]byte, 15728640) // 15 MiB -> over max blob size
-	for i := range largeFile {
-		largeFile[i] = byte(i % 256)
-	}
-	user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-	doAPICreateFile(user2APICtx, "large-file.txt", &api.CreateFileOptions{
-		FileOptions: api.FileOptions{
-			Message: "create large-file.txt",
-			Author: api.Identity{
-				Name:  user2.Name,
-				Email: user2.Email,
-			},
-			Committer: api.Identity{
-				Name:  user2.Name,
-				Email: user2.Email,
-			},
-			Dates: api.CommitDateOptions{
-				Author:    time.Now(),
-				Committer: time.Now(),
-			},
-		},
-		ContentBase64: base64.StdEncoding.EncodeToString(largeFile),
-	})(t)
-
-	filesOptions.Files = []string{"large-file.txt"}
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", user2.Name, baseRepo.Name), &filesOptions)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsListResponse)
-	assert.NotNil(t, contentsListResponse)
-	assert.Equal(t, int64(15728640), contentsListResponse[0].Size)
-	assert.Empty(t, *contentsListResponse[0].Content)
-
-	// Test response size limit
-	smallFile := make([]byte, 5242880) // 5 MiB -> under max blob size
-	for i := range smallFile {
-		smallFile[i] = byte(i % 256)
-	}
-	doAPICreateFile(user2APICtx, "small-file.txt", &api.CreateFileOptions{
-		FileOptions: api.FileOptions{
-			Message: "create small-file.txt",
-			Author: api.Identity{
-				Name:  user2.Name,
-				Email: user2.Email,
-			},
-			Committer: api.Identity{
-				Name:  user2.Name,
-				Email: user2.Email,
-			},
-			Dates: api.CommitDateOptions{
-				Author:    time.Now(),
-				Committer: time.Now(),
-			},
-		},
-		ContentBase64: base64.StdEncoding.EncodeToString(smallFile),
-	})(t)
-	filesOptions.Files = []string{"small-file.txt"}
-	for i := 0; i < 40; i++ {
-		filesOptions.Files = append(filesOptions.Files, filesOptions.Files[0])
-	}
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", user2.Name, baseRepo.Name), &filesOptions)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsListResponse)
-	assert.NotNil(t, contentsListResponse)
-	assert.Len(t, contentsListResponse, 15) // base64-encoded content is around 4/3 the size of the original content
 }
