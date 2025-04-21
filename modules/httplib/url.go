@@ -69,7 +69,7 @@ func GuessCurrentHostURL(ctx context.Context) string {
 	// 3. There is no reverse proxy.
 	// Without more information, Gitea is impossible to distinguish between case 2 and case 3, then case 2 would result in
 	// wrong guess like guessed public URL becomes "http://gitea:3000/" behind a "https" reverse proxy, which is not accessible by end users.
-	// So we introduced "PUBLIC_URL_GENERATION" option, to control the guessing behavior to satisfy different use cases.
+	// So we introduced "PUBLIC_URL_DETECTION" option, to control the guessing behavior to satisfy different use cases.
 	req, ok := ctx.Value(RequestContextKey).(*http.Request)
 	if !ok {
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")

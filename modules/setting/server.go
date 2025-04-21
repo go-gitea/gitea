@@ -289,9 +289,9 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	PublicURLGeneration = sec.Key("PUBLIC_URL_GENERATION").MustString(PublicURLLegacy)
+	PublicURLGeneration = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
 	if PublicURLGeneration != PublicURLAuto && PublicURLGeneration != PublicURLLegacy {
-		log.Fatal("Invalid PUBLIC_URL_GENERATION value: %s", PublicURLGeneration)
+		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLGeneration)
 	}
 
 	// Check validity of AppURL
