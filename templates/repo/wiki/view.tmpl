@@ -33,7 +33,7 @@
 		<div class="ui dividing header">
 			<div class="flex-text-block tw-flex-wrap tw-justify-end">
 				<div class="flex-text-block tw-flex-1 tw-min-w-[300px]">
-					<a class="file-revisions-btn ui basic button" title="{{ctx.Locale.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
+					<a class="ui basic button tw-px-3 tw-gap-3" title="{{ctx.Locale.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" >{{if .CommitCount}}<span>{{.CommitCount}}</span> {{end}}{{svg "octicon-history"}}</a>
 					<div class="tw-flex-1 gt-ellipsis">
 						{{$title}}
 						<div class="ui sub header gt-ellipsis">

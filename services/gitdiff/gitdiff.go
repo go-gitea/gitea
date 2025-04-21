@@ -1337,10 +1337,13 @@ func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID str
 
 // SyncUserSpecificDiff inserts user-specific data such as which files the user has already viewed on the given diff
 // Additionally, the database is updated asynchronously if files have changed since the last review
-func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions, files ...string) error {
+func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions) (*pull_model.ReviewState, error) {
 	review, err := pull_model.GetNewestReviewState(ctx, userID, pull.ID)
-	if err != nil || review == nil || review.UpdatedFiles == nil {
-		return err
+	if err != nil {
+		return nil, err
+	}
+	if review == nil || len(review.UpdatedFiles) == 0 {
+		return review, nil
 	}
 
 	latestCommit := opts.AfterCommitID
@@ -1393,11 +1396,11 @@ outer:
 		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
 			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return review, err
 }
 
 // CommentAsDiff returns c.Patch as *Diff

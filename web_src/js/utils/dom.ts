@@ -89,7 +89,7 @@ export function queryElemChildren<T extends Element>(parent: Element | ParentNod
 }
 
 // it works like parent.querySelectorAll: all descendants are selected
-// in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent
+// in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent if the targets are not for page-level components.
 export function queryElems<T extends HTMLElement>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
 }
@@ -360,7 +360,11 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
 export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => Promisable<void>, options?: boolean | AddEventListenerOptions) {
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
-    if (!elem || !parent.contains(elem)) return;
+    // It strictly checks "parent contains the target elem" to avoid side effects of selector running on outside the parent.
+    // Keep in mind that the elem could have been removed from parent by other event handlers before this event handler is called.
+    // For example: tippy popup item, the tippy popup could be hidden and removed from DOM before this.
+    // It is caller's responsibility make sure the elem is still in parent's DOM when this event handler is called.
+    if (!elem || (parent !== document && !parent.contains(elem))) return;
     listener(elem as T, e as E);
   }, options);
 }
