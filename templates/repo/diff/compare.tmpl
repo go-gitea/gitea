@@ -32,7 +32,7 @@
 			<a class="tw-mr-2" href="{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
 			<div class="ui dropdown jump select-branch">
 				<div class="ui basic small button">
-					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: {{$BaseCompareName}}:{{$.BaseBranch}}</span>
+					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: <strong>{{$BaseCompareName}}:{{$.BaseBranch}}</strong></span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</div>
 				<div class="menu">
@@ -103,7 +103,7 @@
 
 			<div class="ui dropdown jump select-branch">
 				<div class="ui basic small button">
-					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: {{$HeadCompareName}}:{{$.HeadBranch}}</span>
+					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: <strong>{{$HeadCompareName}}:{{$.HeadBranch}}</strong></span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</div>
 				<div class="menu">
