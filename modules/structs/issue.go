@@ -266,3 +266,8 @@ type IssueMeta struct {
 	Owner string `json:"owner"`
 	Name  string `json:"repo"`
 }
+
+// LockIssueOption options to lock an issue
+type LockIssueOption struct {
+	Reason string `json:"lock_reason"`
+}
