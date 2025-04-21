@@ -3,18 +3,18 @@
 	{{template "repo/header" .}}
 	{{$title := .title}}
 	<div class="ui container">
-		<div class="ui stackable grid">
-			<div class="ui eight wide column">
-				<div class="ui header">
-					<a class="file-revisions-btn ui basic button" title="{{ctx.Locale.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}"><span>{{.revision}}</span> {{svg "octicon-home"}}</a>
+		<div class="ui dividing header flex-text-block tw-flex-wrap tw-justify-between">
+			<div class="flex-text-block">
+				<a class="ui basic button tw-px-3" title="{{ctx.Locale.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}">{{svg "octicon-home"}}</a>
+				<div class="tw-flex-1 gt-ellipsis">
 					{{$title}}
-					<div class="ui sub header tw-break-anywhere">
+					<div class="ui sub header gt-ellipsis">
 						{{$timeSince := DateUtils.TimeSince .Author.When}}
 						{{ctx.Locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince}}
 					</div>
 				</div>
 			</div>
-			<div class="ui eight wide column tw-text-right">
+			<div>
 				{{template "repo/clone_panel" .}}
 			</div>
 		</div>

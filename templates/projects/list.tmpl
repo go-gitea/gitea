@@ -1,5 +1,5 @@
 {{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-	<div class="tw-flex tw-justify-between tw-mb-4">
+	<div class="flex-text-block tw-justify-between tw-mb-4">
 		<div class="small-menu-items ui compact tiny menu list-header-toggle">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="?state=open&q={{$.Keyword}}">
 				{{svg "octicon-project-symlink" 16 "tw-mr-2"}}
@@ -10,9 +10,7 @@
 				{{ctx.Locale.PrettyNumber .ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 			</a>
 		</div>
-		<div class="tw-text-right">
-			<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.projects.new"}}</a>
-		</div>
+		<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.projects.new"}}</a>
 	</div>
 {{end}}
 
