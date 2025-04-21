@@ -26,7 +26,7 @@ func GetContentsListFromTrees(ctx context.Context, repo *repo_model.Repository, 
 		fileContents, _ := GetContents(ctx, repo, refCommit, file, false) // ok if fails, then will be nil
 		if fileContents != nil && *fileContents.Content != "" {
 			// if content isn't empty (e.g. due to the single blob being too large), add file size to response size
-			// the content is base64 encoded
+			// the content is base64 encoded, so it's size increases to around 4/3 of the original size
 			size += fileContents.Size * 4 / 3
 		}
 		if size > setting.API.DefaultMaxResponseSize {

@@ -235,5 +235,5 @@ func testAPIGetRequestedFiles(t *testing.T, u *url.URL) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
-	assert.Len(t, contentsListResponse, 20)
+	assert.Len(t, contentsListResponse, 15) // base64-encoded content is around 4/3 the size of the original content
 }
