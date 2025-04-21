@@ -4,13 +4,6 @@
 package integration
 
 import (
-	"encoding/base64"
-	"fmt"
-	"net/http"
-	"net/url"
-	"testing"
-	"time"
-
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -20,14 +13,16 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
-
+	"encoding/base64"
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/url"
+	"testing"
+	"time"
 )
-
-func getExpectedcontentsListResponseForFiles(ref, refType, lastCommitSHA string) []*api.ContentsResponse {
-	return []*api.ContentsResponse{getExpectedContentsResponseForContents(ref, refType, lastCommitSHA)}
-}
 
 func TestAPIGetRequestedFiles(t *testing.T) {
 	onGiteaRun(t, testAPIGetRequestedFiles)
@@ -41,112 +36,68 @@ func testAPIGetRequestedFiles(t *testing.T, u *url.URL) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
 	repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}) // private repo
-	filesOptions := &api.GetFilesOptions{
-		Files: []string{
-			"README.md",
-		},
-	}
 
-	// Get user2's token	req.Body =
+	// Get user2's token
 	session := loginUser(t, user2.Name)
 	token2 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository) // TODO: allow for a POST-request to be scope read
 	// Get user4's token
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository) // TODO: allow for a POST-request to be scope read
 
-	// Get the commit ID of the default branch
 	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-
-	// Make a new branch in repo1
-	newBranch := "test_branch"
-	err = repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
-	assert.NoError(t, err)
-
-	commitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
-	assert.NoError(t, err)
-	// Make a new tag in repo1
-	newTag := "test_tag"
-	err = gitRepo.CreateTag(newTag, commitID)
-	assert.NoError(t, err)
-	/*** END SETUP ***/
-
-	// ref is default ref
-	ref := repo1.DefaultBranch
-	refType := "branch"
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files?ref=%s", user2.Name, repo1.Name, ref), &filesOptions)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var contentsListResponse []*api.ContentsResponse
-	DecodeJSON(t, resp, &contentsListResponse)
-	assert.NotNil(t, contentsListResponse)
 	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
-	expectedcontentsListResponse := getExpectedcontentsListResponseForFiles(ref, refType, lastCommit.ID.String())
-	assert.Equal(t, expectedcontentsListResponse, contentsListResponse)
 
-	// No ref
-	refType = "branch"
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", user2.Name, repo1.Name), &filesOptions)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsListResponse)
-	assert.NotNil(t, contentsListResponse)
-	expectedcontentsListResponse = getExpectedcontentsListResponseForFiles(repo1.DefaultBranch, refType, lastCommit.ID.String())
-	assert.Equal(t, expectedcontentsListResponse, contentsListResponse)
+	requestFiles := func(t *testing.T, url string, files []string, expectedStatusCode ...int) (ret []*api.ContentsResponse) {
+		req := NewRequestWithJSON(t, "POST", url, &api.GetFilesOptions{Files: files})
+		resp := MakeRequest(t, req, util.OptionalArg(expectedStatusCode, http.StatusOK))
+		if resp.Code != http.StatusOK {
+			return nil
+		}
+		DecodeJSON(t, resp, &ret)
+		return ret
+	}
 
-	// ref is the branch we created above  in setup
-	ref = newBranch
-	refType = "branch"
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files?ref=%s", user2.Name, repo1.Name, ref), &filesOptions)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsListResponse)
-	assert.NotNil(t, contentsListResponse)
-	branchCommit, _ := gitRepo.GetBranchCommit(ref)
-	lastCommit, _ = branchCommit.GetCommitByPath("README.md")
-	expectedcontentsListResponse = getExpectedcontentsListResponseForFiles(ref, refType, lastCommit.ID.String())
-	assert.Equal(t, expectedcontentsListResponse, contentsListResponse)
+	t.Run("User2NoRef", func(t *testing.T) {
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/files", []string{"README.md"})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())}
+		assert.Equal(t, expected, ret)
+	})
+	t.Run("User2RefBranch", func(t *testing.T) {
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/files?ref=master", []string{"README.md"})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())}
+		assert.Equal(t, expected, ret)
+	})
+	t.Run("User2RefTag", func(t *testing.T) {
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/files?ref=v1.1", []string{"README.md"})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("v1.1", "tag", lastCommit.ID.String())}
+		assert.Equal(t, expected, ret)
+	})
+	t.Run("User2RefCommit", func(t *testing.T) {
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/files?ref=65f1bf27bc3bf70f64657658635e66094edbcb4d", []string{"README.md"})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("65f1bf27bc3bf70f64657658635e66094edbcb4d", "commit", lastCommit.ID.String())}
+		assert.Equal(t, expected, ret)
+	})
+	t.Run("User2RefNotExist", func(t *testing.T) {
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/files?ref=not-exist", []string{"README.md"}, http.StatusNotFound)
+		assert.Empty(t, ret)
+	})
 
-	// ref is the new tag we created above in setup
-	ref = newTag
-	refType = "tag"
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files?ref=%s", user2.Name, repo1.Name, ref), &filesOptions)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsListResponse)
-	assert.NotNil(t, contentsListResponse)
-	tagCommit, _ := gitRepo.GetTagCommit(ref)
-	lastCommit, _ = tagCommit.GetCommitByPath("README.md")
-	expectedcontentsListResponse = getExpectedcontentsListResponseForFiles(ref, refType, lastCommit.ID.String())
-	assert.Equal(t, expectedcontentsListResponse, contentsListResponse)
+	t.Run("PermissionCheck", func(t *testing.T) {
+		filesOptions := &api.GetFilesOptions{Files: []string{"README.md"}}
+		// Test accessing private ref with user token that does not have access - should fail
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", user2.Name, repo16.Name), &filesOptions).AddTokenAuth(token4)
+		MakeRequest(t, req, http.StatusNotFound)
+		// Test access private ref of owner of token
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", user2.Name, repo16.Name), &filesOptions).AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusOK)
+		// Test access of org org3 private repo file by owner user2
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", org3.Name, repo3.Name), &filesOptions).AddTokenAuth(token2)
+		MakeRequest(t, req, http.StatusOK)
+	})
 
-	// ref is a commit
-	ref = commitID
-	refType = "commit"
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files?ref=%s", user2.Name, repo1.Name, ref), &filesOptions)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &contentsListResponse)
-	assert.NotNil(t, contentsListResponse)
-	expectedcontentsListResponse = getExpectedcontentsListResponseForFiles(ref, refType, commitID)
-	assert.Equal(t, expectedcontentsListResponse, contentsListResponse)
-
-	// Test file contents a file with a bad ref
-	ref = "badref"
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files?ref=%s", user2.Name, repo1.Name, ref), &filesOptions)
-	MakeRequest(t, req, http.StatusNotFound)
-
-	// Test accessing private ref with user token that does not have access - should fail
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", user2.Name, repo16.Name), &filesOptions).
-		AddTokenAuth(token4)
-	MakeRequest(t, req, http.StatusNotFound)
-
-	// Test access private ref of owner of token
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", user2.Name, repo16.Name), &filesOptions).
-		AddTokenAuth(token2)
-	MakeRequest(t, req, http.StatusOK)
-
-	// Test access of org org3 private repo file by owner user2
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/files", org3.Name, repo3.Name), &filesOptions).
-		AddTokenAuth(token2)
-	MakeRequest(t, req, http.StatusOK)
-
+	// TODO: use mocked config to test without creating new files (to speed up the test)
 	// Test pagination
 	for i := 0; i < 40; i++ {
 		filesOptions.Files = append(filesOptions.Files, filesOptions.Files[0])
