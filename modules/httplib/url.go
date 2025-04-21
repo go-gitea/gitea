@@ -70,11 +70,16 @@ func GuessCurrentHostURL(ctx context.Context) string {
 	// 1. The reverse proxy is configured correctly, it passes "X-Forwarded-Proto/Host" headers. Perfect, Gitea can handle it correctly.
 	// 2. The reverse proxy is not configured correctly, doesn't pass "X-Forwarded-Proto/Host" headers, eg: only one "proxy_pass http://gitea:3000" in Nginx.
 	// 3. There is no reverse proxy.
-	// Without an extra config option, Gitea is impossible to distinguish between case 2 and case 3,
-	// then case 2 would result in wrong guess like guessed AppURL becomes "http://gitea:3000/", which is not accessible by end users.
-	// So in the future maybe it should introduce a new config option, to let site admin decide how to guess the AppURL.
+	// Without more information, Gitea is impossible to distinguish between case 2 and case 3, then case 2 would result in
+	// wrong guess like guessed AppURL becomes "http://gitea:3000/" behind a "https" reverse proxy, which is not accessible by end users.
+	// So we introduced "UseHostHeader" option, it could be enabled by setting "ROOT_URL" to empty
 	reqScheme := getRequestScheme(req)
 	if reqScheme == "" {
+		// if no reverse proxy header, try to use "Host" header for absolute URL
+		if setting.UseHostHeader && req.Host != "" {
+			return util.Iif(req.TLS == nil, "http://", "https://") + req.Host
+		}
+		// fall back to default AppURL
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
 	// X-Forwarded-Host has many problems: non-standard, not well-defined (X-Forwarded-Port or not), conflicts with Host header.

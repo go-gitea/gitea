@@ -133,3 +133,26 @@ type ActionWorkflowJob struct {
 	// swagger:strfmt date-time
 	CompletedAt time.Time `json:"completed_at,omitempty"`
 }
+
+// ActionRunnerLabel represents a Runner Label
+type ActionRunnerLabel struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+// ActionRunner represents a Runner
+type ActionRunner struct {
+	ID        int64                `json:"id"`
+	Name      string               `json:"name"`
+	Status    string               `json:"status"`
+	Busy      bool                 `json:"busy"`
+	Ephemeral bool                 `json:"ephemeral"`
+	Labels    []*ActionRunnerLabel `json:"labels"`
+}
+
+// ActionRunnersResponse returns Runners
+type ActionRunnersResponse struct {
+	Entries    []*ActionRunner `json:"runners"`
+	TotalCount int64           `json:"total_count"`
+}
