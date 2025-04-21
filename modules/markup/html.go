@@ -71,7 +71,8 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// it is still accepted by the CommonMark specification, as well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
-	v.emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|;|,|\\?|!|\\.(\\s|$))")
+	// At the moment, we use stricter rule for rendering purpose: only allow the "name" part starting after the word boundary
+	v.emailRegex = regexp.MustCompile(`\b([-\w.!#$%&'*+/=?^{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)\b`)
 
 	// emojiShortCodeRegex find emoji by alias like :smile:
 	v.emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
