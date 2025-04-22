@@ -12,7 +12,9 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type materialIconRulesData struct {
@@ -78,41 +80,41 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 	return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
 }
 
-func (m *MaterialIconProvider) FolderIconWithOpenStatus(p *RenderedIconPool, isOpen bool) template.HTML {
-	name := m.FindIconName("folder", true, isOpen)
-	return m.renderFileIconSVG(p, name, m.svgs[name], BasicThemeFolderIconName(isOpen))
-}
-
-func (m *MaterialIconProvider) FileIconWithOpenStatus(p *RenderedIconPool, entry *FileEntry, isOpen bool) template.HTML {
+func (m *MaterialIconProvider) EntryIconHTML(p *RenderedIconPool, entry *EntryInfo) template.HTML {
 	if m.rules == nil {
-		return BasicThemeIconWithOpenStatus(entry, isOpen)
+		return BasicEntryIconHTML(entry)
 	}
 
 	if entry.EntryMode.IsLink() {
-		if entry.FollowEntryMode.IsDir() {
+		if entry.SymlinkToMode.IsDir() {
 			// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
 			return svg.RenderHTML("material-folder-symlink", 16, "octicon-file-directory-symlink")
 		}
 		return svg.RenderHTML("octicon-file-symlink-file") // TODO: find some better icons for them
 	}
 
-	// TODO: add "open icon" support
-	name := m.findIconNameByGit(entry, isOpen)
-	// the material icon pack's "folder" icon doesn't look good, so use our built-in one
-	// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
-	if iconSVG, ok := m.svgs[name]; ok && iconSVG != "" {
-		// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
-		extraClass := "octicon-file"
-		switch {
-		case entry.EntryMode.IsDir():
-			extraClass = BasicThemeFolderIconName(isOpen)
-		case entry.EntryMode.IsSubModule():
-			extraClass = "octicon-file-submodule"
+	name := m.FindIconName(entry)
+	iconSVG := m.svgs[name]
+	if iconSVG == "" {
+		name = "file"
+		if entry.EntryMode.IsDir() {
+			name = util.Iif(entry.IsOpen, "folder-open", "folder")
 		}
-		return m.renderFileIconSVG(p, name, iconSVG, extraClass)
+		iconSVG = m.svgs[name]
+		if iconSVG == "" {
+			setting.PanicInDevOrTesting("missing file icon for %s", name)
+		}
 	}
-	// TODO: use an interface or wrapper for git.Entry to make the code testable.
-	return BasicThemeIconWithOpenStatus(entry, isOpen)
+
+	// keep the old "octicon-xxx" class name to make some "theme plugin selector" could still work
+	extraClass := "octicon-file"
+	switch {
+	case entry.EntryMode.IsDir():
+		extraClass = BasicEntryIconName(entry)
+	case entry.EntryMode.IsSubModule():
+		extraClass = "octicon-file-submodule"
+	}
+	return m.renderFileIconSVG(p, name, iconSVG, extraClass)
 }
 
 func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
@@ -127,16 +129,17 @@ func (m *MaterialIconProvider) findIconNameWithLangID(s string) string {
 	return ""
 }
 
-func (m *MaterialIconProvider) FindIconName(name string, isDir, isOpen bool) string {
-	fileNameLower := strings.ToLower(path.Base(name))
-	if isDir {
+func (m *MaterialIconProvider) FindIconName(entry *EntryInfo) string {
+	if entry.EntryMode.IsSubModule() {
+		return "folder-git"
+	}
+
+	fileNameLower := strings.ToLower(path.Base(entry.FullName))
+	if entry.EntryMode.IsDir() {
 		if s, ok := m.rules.FolderNames[fileNameLower]; ok {
 			return s
 		}
-		if isOpen {
-			return "folder-open"
-		}
-		return "folder"
+		return util.Iif(entry.IsOpen, "folder-open", "folder")
 	}
 
 	if s, ok := m.rules.FileNames[fileNameLower]; ok {
@@ -157,11 +160,4 @@ func (m *MaterialIconProvider) FindIconName(name string, isDir, isOpen bool) str
 	}
 
 	return "file"
-}
-
-func (m *MaterialIconProvider) findIconNameByGit(entry *FileEntry, isOpen bool) string {
-	if entry.EntryMode.IsSubModule() {
-		return "folder-git"
-	}
-	return m.FindIconName(entry.Name, entry.EntryMode.IsDir(), isOpen)
 }

@@ -33,9 +33,9 @@ func (p *RenderedIconPool) RenderToHTML() template.HTML {
 	return template.HTML(sb.String())
 }
 
-func RenderEntryIconWithOpenStatus(renderedIconPool *RenderedIconPool, entry *FileEntry, isOpen bool) template.HTML {
+func RenderEntryIconHTML(renderedIconPool *RenderedIconPool, entry *EntryInfo) template.HTML {
 	if setting.UI.FileIconTheme == "material" {
-		return DefaultMaterialIconProvider().FileIconWithOpenStatus(renderedIconPool, entry, isOpen)
+		return DefaultMaterialIconProvider().EntryIconHTML(renderedIconPool, entry)
 	}
-	return BasicThemeIconWithOpenStatus(entry, isOpen)
+	return BasicEntryIconHTML(entry)
 }

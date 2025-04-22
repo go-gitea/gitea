@@ -14,13 +14,11 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
@@ -193,11 +191,4 @@ func tabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
 		}
 	}
 	return "tab-size-4"
-}
-
-func FolderIconHTMLByOpenStatus(isOpen bool) template.HTML {
-	if setting.UI.FileIconTheme == "material" {
-		return fileicon.DefaultMaterialIconProvider().FolderIconWithOpenStatus(nil, isOpen)
-	}
-	return fileicon.BasicThemeFolderIconWithOpenStatus(isOpen)
 }

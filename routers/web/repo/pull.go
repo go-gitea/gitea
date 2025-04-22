@@ -827,8 +827,6 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 
 		renderedIconPool := fileicon.NewRenderedIconPool()
 		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, filesViewedState)
-		ctx.PageData["FolderIcon"] = templates.FolderIconHTMLByOpenStatus(false)
-		ctx.PageData["FolderOpenIcon"] = templates.FolderIconHTMLByOpenStatus(true)
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 	}
 
