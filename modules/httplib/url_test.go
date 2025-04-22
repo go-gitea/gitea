@@ -43,20 +43,37 @@ func TestIsRelativeURL(t *testing.T) {
 func TestGuessCurrentHostURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
-	defer test.MockVariableValue(&setting.UseHostHeader, false)()
+	headersWithProto := http.Header{"X-Forwarded-Proto": {"https"}}
 
-	ctx := t.Context()
-	assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+	t.Run("Legacy", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLLegacy)()
 
-	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{Host: "localhost:3000"})
-	assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
 
-	defer test.MockVariableValue(&setting.UseHostHeader, true)()
-	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{Host: "http-host:3000"})
-	assert.Equal(t, "http://http-host:3000", GuessCurrentHostURL(ctx))
+		// legacy: "Host" is not used when there is no "X-Forwarded-Proto" header
+		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 
-	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{Host: "http-host", TLS: &tls.ConnectionState{}})
-	assert.Equal(t, "https://http-host", GuessCurrentHostURL(ctx))
+		// if "X-Forwarded-Proto" exists, then use it and "Host" header
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
+	})
+
+	t.Run("Auto", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLAuto)()
+
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
+
+		// auto: always use "Host" header, the scheme is determined by "X-Forwarded-Proto" header, or TLS config if no "X-Forwarded-Proto" header
+		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
+		assert.Equal(t, "http://req-host:3000", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host", TLS: &tls.ConnectionState{}})
+		assert.Equal(t, "https://req-host", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
+	})
 }
 
 func TestMakeAbsoluteURL(t *testing.T) {
