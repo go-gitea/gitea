@@ -41,8 +41,8 @@
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui list flex-items-block">
+				{{if $.EnableNotifyMail}}
 				<div class="item">
-					{{if $.EnableNotifyMail}}
 					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 						{{$.CsrfTokenHtml}}
 						<input name="_method" type="hidden" value="NOTIFICATION">
@@ -64,8 +64,8 @@
 							<button class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
 						</div>
 					</form>
-					{{end}}
 				</div>
+				{{end}}
 				{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 					{{range .Emails}}
 						<div class="item tw-flex-wrap">
