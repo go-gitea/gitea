@@ -99,7 +99,7 @@
   opacity: 0;
 }
 
-.fullscreen.projects-view .ui.container.flex-text-block {
+.fullscreen.projects-view .project-header {
   position: fixed;
   z-index: 1000;
   top: 0;
@@ -113,7 +113,7 @@
 }
 
 /* Hide project-description in full-screen due to its variable height. No need to show it for better space use. */
-.fullscreen.projects-view div[class="ui container"] {
+.fullscreen.projects-view .project-description {
   display: none;
 }
 

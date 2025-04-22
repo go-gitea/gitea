@@ -1,7 +1,7 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
 <div class="ui container fluid padded projects-view">
-	<div class="ui container flex-text-block tw-flex-wrap tw-mb-4">
+	<div class="ui container flex-text-block tw-flex-wrap tw-mb-4 project-header">
 		<h2 class="tw-mb-0">{{.Project.Title}}</h2>
 		<div class="tw-flex-1"></div>
 		<div class="ui secondary menu tw-m-0">
@@ -64,7 +64,7 @@
 		{{end}}
 	</div>
 
-	<div class="ui container">
+	<div class="ui container project-description">
 		{{$.Project.RenderedContent}}
 		<div class="divider"></div>
 	</div>
