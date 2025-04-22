@@ -1389,14 +1389,17 @@ func Routes() *web.Router {
 				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), mustNotBeArchived, repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
-					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
 					m.Get("/*", repo.GetContents)
+					m.Post("", reqToken(), bind(api.ChangeFilesOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.ChangeFiles)
 					m.Group("/*", func() {
 						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.CreateFile)
 						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.UpdateFile)
 						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, mustNotBeArchived, repo.DeleteFile)
 					}, reqToken())
-				}, reqRepoReader(unit.TypeCode))
+				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				m.Combo("/file-contents", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo()).
+					Get(repo.GetFileContentsGet).
+					Post(bind(api.GetFilesOptions{}), repo.GetFileContentsPost) // POST method requires "write" permission, so we also support "GET" method above
 				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
