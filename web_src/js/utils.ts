@@ -192,12 +192,12 @@ export function toggleFullScreen(fullscreenElementsSelector: string, isFullScree
 
   const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector) : contentEl;
 
-  const fullScreenEls = document.querySelectorAll(fullscreenElementsSelector);
+  const fullScreenEl = document.querySelector(fullscreenElementsSelector);
   const outerEl = document.querySelector('.full.height');
   toggleClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
   if (isFullScreen) {
-    for (const e of fullScreenEls) outerEl.append(e);
+    outerEl.append(fullScreenEl);
   } else {
-    for (const e of fullScreenEls) sourceParentEl.append(e);
+    sourceParentEl.append(fullScreenEl);
   }
 }

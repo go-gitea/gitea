@@ -145,12 +145,10 @@ function initRepoProjectToggleFullScreen(): void {
   const exitFullscreenBtn = document.querySelector('.screen-normal');
   if (!enterFullscreenBtn || !exitFullscreenBtn) return;
 
-  const fullscreenElementsSelector = enterFullscreenBtn.getAttribute('data-fullscreen-elements-selector');
-
   const toggleFullscreenState = (isFullScreen: boolean) => {
-    toggleFullScreen(fullscreenElementsSelector, isFullScreen);
-    toggleElem(enterFullscreenBtn);
-    toggleElem(exitFullscreenBtn);
+    toggleFullScreen('.projects-view', isFullScreen);
+    toggleElem(enterFullscreenBtn, !isFullScreen);
+    toggleElem(exitFullscreenBtn, isFullScreen);
   };
 
   enterFullscreenBtn.addEventListener('click', () => toggleFullscreenState(true));
