@@ -45,6 +45,9 @@ func canCreateBasePullRequest(ctx *context.Context) bool {
 	return baseRepo != nil && baseRepo.UnitEnabled(ctx, unit.TypePullRequests)
 }
 
+// defaultCreateNewBranch checks if the default commit choice should be to create new branch.
+// As a heuristic, always do this the default branch on forks, which is the right choice for
+// pull requests, and making further edits to that pull request branch.
 func defaultCreateNewBranch(ctx *context.Context) bool {
 	baseRepo := ctx.Repo.Repository.BaseRepo
 	return canCreateBasePullRequest(ctx) && baseRepo != nil && ctx.Repo.BranchName == baseRepo.DefaultBranch
@@ -69,6 +72,8 @@ func redirectForCommitChoice(ctx *context.Context, commitChoice, newBranchName, 
 		repo := ctx.Repo.Repository
 		baseBranch := ctx.Repo.BranchName
 		headBranch := newBranchName
+		// Prefer to create a pull request to the base repository if possible, matching
+		// the behavior when creating a pull request from a branch elsewhere in the UI.
 		if canCreateBasePullRequest(ctx) {
 			redirectToPullRequest = true
 			baseBranch = repo.BaseRepo.DefaultBranch
