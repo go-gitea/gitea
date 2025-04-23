@@ -1,31 +1,24 @@
-.board {
+#project-board {
   display: flex;
+  align-items: stretch;
   flex-direction: row;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: clip;
-  align-items: stretch;
+  overflow: auto;
   margin: 0 0.5em;
+  max-height: calc(100vh - 120px);
 }
 
 .project-column {
-  background-color: var(--color-project-column-bg) !important;
-  border: 1px solid var(--color-secondary) !important;
-  border-radius: var(--border-radius);
-  margin: 0 0.5rem !important;
-  padding: 0.5rem !important;
-  width: 320px;
-  height: initial;
-  min-height: max(calc(100vh - 400px), 300px);
   flex: 0 0 auto;
-  overflow: visible;
   display: flex;
   flex-direction: column;
-  cursor: default;
-}
-
-.project-column .issue-card {
-  color: var(--color-text);
+  background-color: var(--color-project-column-bg);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  margin: 0 0.5rem;
+  padding: 0.5rem;
+  width: 320px;
+  overflow: visible;
 }
 
 .project-column-header {
@@ -39,16 +32,15 @@
   color: inherit;
 }
 
-.project-column > .cards {
+.project-column > .ui.cards {
   flex: 1;
   display: flex;
-  align-content: baseline;
-  margin: 0 !important;
-  padding: 0 !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: nowrap;
   flex-direction: column;
-  overflow-x: clip;
+  overflow: clip auto;
   gap: .25rem;
+  margin: 0;
+  padding: 0;
 }
 
 .project-column > .divider {
@@ -110,6 +102,7 @@
   width: 100%;
   max-width: 100%;
   background-color: var(--color-body);
+  border-bottom: 1px solid var(--color-secondary);
 }
 
 /* Hide project-description in full-screen due to its variable height. No need to show it for better space use. */
@@ -117,14 +110,10 @@
   display: none;
 }
 
-.fullscreen #project-board {
+.fullscreen.projects-view #project-board {
   position: absolute;
-  top: 50px;
+  top: 60px;
   left: 0;
   right: 0;
-  max-height: calc(100vh - 50px);
-}
-
-.fullscreen #project-board .project-column .ui.cards {
-  overflow-y: auto;
+  max-height: calc(100vh - 70px);
 }
