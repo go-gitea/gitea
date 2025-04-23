@@ -565,7 +565,7 @@ func TestActionsArtifactV4Delete(t *testing.T) {
 		WorkflowJobRunBackendId: "193",
 	})).
 		AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusNotFound)
+	_ = MakeRequest(t, req, http.StatusNotFound)
 
 	// confirm artifact is no longer enumerateable by ListArtifacts and returns length == 0 without error
 	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
@@ -576,7 +576,7 @@ func TestActionsArtifactV4Delete(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	var listResp actions.ListArtifactsResponse
 	protojson.Unmarshal(resp.Body.Bytes(), &listResp)
-	assert.Len(t, listResp.Artifacts, 0)
+	assert.Empty(t, listResp.Artifacts)
 }
 
 func TestActionsArtifactV4DeletePublicApi(t *testing.T) {
