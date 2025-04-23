@@ -79,7 +79,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 	var note git.Note
 	if err := git.GetNote(ctx, ctx.Repo.GitRepo, commitID.String(), &note); err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(identifier)
+			ctx.APIErrorNotFound("commit doesn't exist: " + identifier)
 			return
 		}
 		ctx.APIErrorInternal(err)
