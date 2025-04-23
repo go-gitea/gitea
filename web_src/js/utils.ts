@@ -1,5 +1,6 @@
 import {decode, encode} from 'uint8-to-base64';
 import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
+import {toggleClass, toggleElem} from './utils/dom.ts';
 
 // transform /path/to/file.ext to /path/to
 export function dirname(path: string): string {
@@ -178,4 +179,25 @@ export function isImageFile({name, type}: {name?: string, type?: string}): boole
 
 export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
   return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
+}
+
+export function toggleFullScreen(fullscreenElementsSelector: string, isFullScreen: boolean, sourceParentSelector?: string): void {
+  // hide other elements
+  const headerEl = document.querySelector('#navbar');
+  const contentEl = document.querySelector('.page-content');
+  const footerEl = document.querySelector('.page-footer');
+  toggleElem(headerEl, !isFullScreen);
+  toggleElem(contentEl, !isFullScreen);
+  toggleElem(footerEl, !isFullScreen);
+
+  const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector) : contentEl;
+
+  const fullScreenEl = document.querySelector(fullscreenElementsSelector);
+  const outerEl = document.querySelector('.full.height');
+  toggleClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
+  if (isFullScreen) {
+    outerEl.append(fullScreenEl);
+  } else {
+    sourceParentEl.append(fullScreenEl);
+  }
 }

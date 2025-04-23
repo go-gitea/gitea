@@ -7,6 +7,7 @@ import {formatDatetime} from '../utils/time.ts';
 import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
+import {toggleFullScreen} from '../utils.ts';
 
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
@@ -416,21 +417,7 @@ export default defineComponent({
 
     toggleFullScreen() {
       this.isFullScreen = !this.isFullScreen;
-      const fullScreenEl = document.querySelector('.action-view-right');
-      const outerEl = document.querySelector('.full.height');
-      const actionBodyEl = document.querySelector('.action-view-body');
-      const headerEl = document.querySelector('#navbar');
-      const contentEl = document.querySelector('.page-content');
-      const footerEl = document.querySelector('.page-footer');
-      toggleElem(headerEl, !this.isFullScreen);
-      toggleElem(contentEl, !this.isFullScreen);
-      toggleElem(footerEl, !this.isFullScreen);
-      // move .action-view-right to new parent
-      if (this.isFullScreen) {
-        outerEl.append(fullScreenEl);
-      } else {
-        actionBodyEl.append(fullScreenEl);
-      }
+      toggleFullScreen('.action-view-right', this.isFullScreen, '.action-view-body');
     },
     async hashChangeListener() {
       const selectedLogStep = window.location.hash;
