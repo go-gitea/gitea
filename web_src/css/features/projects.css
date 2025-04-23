@@ -8,6 +8,16 @@
   max-height: calc(100vh - 120px);
 }
 
+.project-header {
+  padding: 0.5em 0;
+  overflow-x: auto; /* in fullscreen mode, the position is fixed, so we can't use "flex wrap" which would change the height */
+}
+
+.project-header h2 {
+  white-space: nowrap;
+  margin: 0;
+}
+
 .project-column {
   flex: 0 0 auto;
   display: flex;
@@ -97,8 +107,7 @@
   top: 0;
   left: 0;
   right: 0;
-  margin: 0 !important;
-  padding: .25rem;
+  padding: 0.5em;
   width: 100%;
   max-width: 100%;
   background-color: var(--color-body);
