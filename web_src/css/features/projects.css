@@ -121,4 +121,10 @@
   position: absolute;
   top: 50px;
   left: 0;
+  right: 0;
+  max-height: calc(100vh - 50px);
+}
+
+.fullscreen #project-board .project-column .ui.cards {
+  overflow-y: auto;
 }
