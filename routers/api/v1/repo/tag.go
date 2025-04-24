@@ -150,7 +150,7 @@ func GetTag(ctx *context.APIContext) {
 
 	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
 	if err != nil {
-		ctx.APIErrorNotFound(tagName)
+		ctx.APIErrorNotFound("tag doesn't exist: " + tagName)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToTag(ctx.Repo.Repository, tag))

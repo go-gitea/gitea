@@ -177,20 +177,14 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	filter := utils.ResolveRefOrSha(ctx, ctx.PathParam("ref"))
+	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {
 		return
 	}
-
-	getCommitStatuses(ctx, filter) // By default filter is maybe the raw SHA
+	getCommitStatuses(ctx, refCommit.CommitID)
 }
 
-func getCommitStatuses(ctx *context.APIContext, sha string) {
-	if len(sha) == 0 {
-		ctx.APIError(http.StatusBadRequest, nil)
-		return
-	}
-	sha = utils.MustConvertToSHA1(ctx.Base, ctx.Repo, sha)
+func getCommitStatuses(ctx *context.APIContext, commitID string) {
 	repo := ctx.Repo.Repository
 
 	listOptions := utils.GetListOptions(ctx)
@@ -198,12 +192,12 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](ctx, &git_model.CommitStatusOptions{
 		ListOptions: listOptions,
 		RepoID:      repo.ID,
-		SHA:         sha,
+		SHA:         commitID,
 		SortType:    ctx.FormTrim("sort"),
 		State:       ctx.FormTrim("state"),
 	})
 	if err != nil {
-		ctx.APIErrorInternal(fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %w", repo.FullName(), sha, ctx.FormInt("page"), err))
+		ctx.APIErrorInternal(fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %w", repo.FullName(), commitID, ctx.FormInt("page"), err))
 		return
 	}
 
@@ -257,16 +251,16 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := utils.ResolveRefOrSha(ctx, ctx.PathParam("ref"))
+	refCommit := resolveRefCommit(ctx, ctx.PathParam("ref"), 7)
 	if ctx.Written() {
 		return
 	}
 
 	repo := ctx.Repo.Repository
 
-	statuses, count, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, utils.GetListOptions(ctx))
+	statuses, count, err := git_model.GetLatestCommitStatus(ctx, repo.ID, refCommit.Commit.ID.String(), utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.APIErrorInternal(fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), sha, err))
+		ctx.APIErrorInternal(fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), refCommit.CommitID, err))
 		return
 	}
 
