@@ -509,7 +509,7 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 		return
 	}
 	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
-		log.Error("Error artifact not found: unconfirmed")
+		log.Error("Error artifact not found: %s", artifact.Status.ToString())
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
@@ -542,7 +542,7 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 		return
 	}
 	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
-		log.Error("Error artifact not found: unconfirmed")
+		log.Error("Error artifact not found: %s", artifact.Status.ToString())
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
