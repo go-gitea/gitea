@@ -14,5 +14,9 @@ func AddContentVersionToIssueAndComment(x *xorm.Engine) error {
 		ContentVersion int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync(new(Comment), new(Issue))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(Comment), new(Issue))
+	return err
 }
