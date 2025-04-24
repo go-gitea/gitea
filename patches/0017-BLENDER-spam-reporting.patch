@@ -1,0 +1,1042 @@
+From 06041a4e57aec40f53204cf151aafee4f84a168e Mon Sep 17 00:00:00 2001
+From: Oleg Komarov <oleg@blender.org>
+Date: Fri, 11 Apr 2025 16:57:54 +0200
+Subject: [PATCH] BLENDER: spam reporting
+
+Spam reporting is available for trusted users (org members and admins) via a
+button on a spammer's profile page;
+a new section Site Administration > Identity & Access > Spam Reports;
+a new "pending spam reports" indicator in the header for admins.
+---
+ models/user/spamreport.go                     | 136 +++++++++++
+ options/locale/locale_en-US.ini               |  22 ++
+ routers/web/admin/spamreports.go              | 142 +++++++++++
+ routers/web/shared/user/header.go             |  20 ++
+ routers/web/user/setting/spamreport.go        |  43 ++++
+ routers/web/web.go                            |  12 +
+ services/user/spamreport.go                   | 226 ++++++++++++++++++
+ services/user/spamreport_test.go              |  93 +++++++
+ templates/admin/navbar.tmpl                   |   5 +-
+ templates/admin/spamreports/list.tmpl         |  88 +++++++
+ templates/base/head_navbar.tmpl               |   7 +
+ templates/shared/user/profile_big_avatar.tmpl |  17 ++
+ .../shared/user/purgespammer_user_dialog.tmpl |  14 ++
+ .../shared/user/spamreport_user_dialog.tmpl   |  14 ++
+ 14 files changed, 838 insertions(+), 1 deletion(-)
+ create mode 100644 models/user/spamreport.go
+ create mode 100644 routers/web/admin/spamreports.go
+ create mode 100644 routers/web/user/setting/spamreport.go
+ create mode 100644 services/user/spamreport.go
+ create mode 100644 services/user/spamreport_test.go
+ create mode 100644 templates/admin/spamreports/list.tmpl
+ create mode 100644 templates/shared/user/purgespammer_user_dialog.tmpl
+ create mode 100644 templates/shared/user/spamreport_user_dialog.tmpl
+
+diff --git a/models/user/spamreport.go b/models/user/spamreport.go
+new file mode 100644
+index 0000000000..a4390c9d4a
+--- /dev/null
++++ b/models/user/spamreport.go
+@@ -0,0 +1,136 @@
++// Copyright 2025 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++
++// BLENDER: spam reporting
++
++package user
++
++import (
++	"context"
++	"fmt"
++
++	"code.gitea.io/gitea/models/db"
++	"code.gitea.io/gitea/modules/timeutil"
++)
++
++// SpamReportStatusType is used to support a spam report lifecycle:
++//
++// pending -> locked
++// locked -> processed | dismissed
++//
++// "locked" status works as a lock for a record that is being processed.
++type SpamReportStatusType int
++
++const (
++	SpamReportStatusTypePending   = iota // 0
++	SpamReportStatusTypeLocked           // 1
++	SpamReportStatusTypeProcessed        // 2
++	SpamReportStatusTypeDismissed        // 3
++)
++
++func (t SpamReportStatusType) String() string {
++	switch t {
++	case SpamReportStatusTypePending:
++		return "pending"
++	case SpamReportStatusTypeLocked:
++		return "locked"
++	case SpamReportStatusTypeProcessed:
++		return "processed"
++	case SpamReportStatusTypeDismissed:
++		return "dismissed"
++	}
++	return "unknown"
++}
++
++type SpamReport struct {
++	ID          int64                `xorm:"pk autoincr"`
++	UserID      int64                `xorm:"UNIQUE"`
++	ReporterID  int64                `xorm:"NOT NULL"`
++	Status      SpamReportStatusType `xorm:"INDEX NOT NULL DEFAULT 0"`
++	CreatedUnix timeutil.TimeStamp   `xorm:"created"`
++	UpdatedUnix timeutil.TimeStamp   `xorm:"updated"`
++}
++
++func (*SpamReport) TableName() string {
++	return "user_spamreport"
++}
++
++func init() {
++	// This table doesn't exist in the upstream code.
++	// We don't introduce migrations for it to avoid migration id clashes.
++	// Gitea will create the table in the database during startup,
++	// so no manual action is required until we start modifying the table.
++	db.RegisterModel(new(SpamReport))
++}
++
++type ListSpamReportsOptions struct {
++	db.ListOptions
++	Status SpamReportStatusType
++}
++
++type ListSpamReportsResults struct {
++	ID              int64
++	CreatedUnix     timeutil.TimeStamp
++	UpdatedUnix     timeutil.TimeStamp
++	Status          SpamReportStatusType
++	UserName        string
++	UserCreatedUnix timeutil.TimeStamp
++	ReporterName    string
++}
++
++func ListSpamReports(ctx context.Context, opts *ListSpamReportsOptions) ([]*ListSpamReportsResults, int64, error) {
++	opts.SetDefaultValues()
++	count, err := db.GetEngine(ctx).Count(new(SpamReport))
++	if err != nil {
++		return nil, 0, fmt.Errorf("Count: %w", err)
++	}
++	spamReports := make([]*ListSpamReportsResults, 0, opts.PageSize)
++	err = db.GetEngine(ctx).Table("user_spamreport").Select(
++		"user_spamreport.id, "+
++			"user_spamreport.created_unix, "+
++			"user_spamreport.updated_unix, "+
++			"user_spamreport.status, "+
++			"`user`.name as user_name, "+
++			"`user`.created_unix as user_created_unix, "+
++			"reporter.name as reporter_name",
++	).
++		Join("LEFT", "`user`", "`user`.id = user_spamreport.user_id").
++		Join("LEFT", "`user` as reporter", "`reporter`.id = user_spamreport.reporter_id").
++		Where("status = ?", opts.Status).
++		OrderBy("user_spamreport.id").
++		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
++		Find(&spamReports)
++
++	return spamReports, count, err
++}
++
++func GetPendingSpamReportIDs(ctx context.Context) ([]int64, error) {
++	var ids []int64
++	err := db.GetEngine(ctx).Table("user_spamreport").
++		Select("id").Where("status = ?", SpamReportStatusTypePending).Find(&ids)
++	return ids, err
++}
++
++type SpamReportStatusCounts struct {
++	Count  int64
++	Status SpamReportStatusType
++}
++
++func GetSpamReportStatusCounts(ctx context.Context) ([]*SpamReportStatusCounts, error) {
++	statusCounts := make([]*SpamReportStatusCounts, 0, 4) // 4 status types
++	err := db.GetEngine(ctx).Table("user_spamreport").
++		Select("count(*) as count, status").
++		GroupBy("status").
++		Find(&statusCounts)
++
++	return statusCounts, err
++}
++
++func GetSpamReportForUser(ctx context.Context, user *User) (*SpamReport, error) {
++	spamReport := &SpamReport{}
++	has, err := db.GetEngine(ctx).Where("user_id = ?", user.ID).Get(spamReport)
++	if has {
++		return spamReport, err
++	}
++	return nil, err
++}
+diff --git a/options/locale/locale_en-US.ini b/options/locale/locale_en-US.ini
+index 9d71ccb6d5..be52d8f9c3 100644
+--- a/options/locale/locale_en-US.ini
++++ b/options/locale/locale_en-US.ini
+@@ -692,6 +692,18 @@ block.note.edit = Edit note
+ block.list = Blocked users
+ block.list.none = You have not blocked any users.
+ 
++purgespammer.modal_title = Purge spam account
++purgespammer.modal_info = All content created by the user will be deleted! This cannot be undone.
++purgespammer.modal_action = Purge spam account
++purgespammer.profile_button = Purge spam account
++
++spamreport.existing_status = The user has already been reported as a spammer, the report is %s.
++
++spamreport.modal_title = Report spam
++spamreport.modal_info = Report a user as a spammer to site admins.
++spamreport.modal_action = Report spam
++spamreport.profile_button = Report spam
++
+ [settings]
+ profile = Profile
+ account = Account
+@@ -2889,6 +2901,7 @@ first_page = First
+ last_page = Last
+ total = Total: %d
+ settings = Admin Settings
++spamreports = Spam Reports
+ 
+ dashboard.new_version_hint = Gitea %s is now available, you are running %s. Check <a target="_blank" rel="noreferrer" href="%s">the blog</a> for more details.
+ dashboard.statistic = Summary
+@@ -2976,6 +2989,7 @@ dashboard.sync_branch.started = Branches Sync started
+ dashboard.sync_tag.started = Tags Sync started
+ dashboard.rebuild_issue_indexer = Rebuild issue indexer
+ dashboard.sync_repo_licenses = Sync repo licenses
++dashboard.process_spam_reports = Process spam reports
+ 
+ users.user_manage_panel = User Account Management
+ users.new_account = Create User Account
+@@ -3052,6 +3066,14 @@ emails.delete_desc = Are you sure you want to delete this email address?
+ emails.deletion_success = The email address has been deleted.
+ emails.delete_primary_email_error = You can not delete the primary email.
+ 
++spamreports.spamreport_manage_panel = Spam Report Management
++spamreports.user = Reported for spam
++spamreports.user_created = User created
++spamreports.reporter = Reporter
++spamreports.created = Report Created
++spamreports.updated = Report Updated
++spamreports.status = Report Status
++
+ orgs.org_manage_panel = Organization Management
+ orgs.name = Name
+ orgs.teams = Teams
+diff --git a/routers/web/admin/spamreports.go b/routers/web/admin/spamreports.go
+new file mode 100644
+index 0000000000..6f2ce0c37a
+--- /dev/null
++++ b/routers/web/admin/spamreports.go
+@@ -0,0 +1,142 @@
++// Copyright 2025 The Gitea Authors.
++// SPDX-License-Identifier: MIT
++
++// BLENDER: spam reporting
++
++package admin
++
++import (
++	"net/http"
++	"strconv"
++
++	"code.gitea.io/gitea/models/db"
++	user_model "code.gitea.io/gitea/models/user"
++	"code.gitea.io/gitea/modules/base"
++	"code.gitea.io/gitea/modules/log"
++	"code.gitea.io/gitea/modules/setting"
++	"code.gitea.io/gitea/services/context"
++	user_service "code.gitea.io/gitea/services/user"
++)
++
++const (
++	tplSpamReports base.TplName = "admin/spamreports/list"
++)
++
++// GetPendingSpamReports populates the counter for the header section displayed to site admins.
++func GetPendingSpamReports(ctx *context.Context) {
++	if ctx.Doer == nil || !ctx.Doer.IsAdmin {
++		return
++	}
++	ids, err := user_model.GetPendingSpamReportIDs(ctx)
++	if err != nil {
++		log.Error("Failed to GetPendingSpamReportIDs while rendering header: %v", err)
++		ctx.Data["PendingSpamReports"] = -1
++		return
++	}
++	ctx.Data["PendingSpamReports"] = len(ids)
++}
++
++// SpamReports shows spam reports
++func SpamReports(ctx *context.Context) {
++	ctx.Data["Title"] = ctx.Tr("admin.spamreports")
++	ctx.Data["PageIsSpamReports"] = true
++
++	var (
++		count        int64
++		err          error
++		filterStatus user_model.SpamReportStatusType
++	)
++
++	// When no value is specified reports are filtered by status=pending (=0),
++	// which luckily makes sense as a default view.
++	filterStatus = user_model.SpamReportStatusType(ctx.FormInt("status"))
++	ctx.Data["FilterStatus"] = filterStatus
++	opts := &user_model.ListSpamReportsOptions{
++		ListOptions: db.ListOptions{
++			PageSize: setting.UI.Admin.UserPagingNum,
++			Page:     ctx.FormInt("page"),
++		},
++		Status: filterStatus,
++	}
++
++	if opts.Page <= 1 {
++		opts.Page = 1
++	}
++
++	spamReports, count, err := user_model.ListSpamReports(ctx, opts)
++	if err != nil {
++		ctx.ServerError("SpamReports", err)
++		return
++	}
++
++	ctx.Data["Total"] = count
++	ctx.Data["SpamReports"] = spamReports
++
++	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
++	pager.SetDefaultParams(ctx)
++	ctx.Data["Page"] = pager
++
++	statusCounts, err := user_model.GetSpamReportStatusCounts(ctx)
++	if err != nil {
++		ctx.ServerError("GetSpamReportStatusCounts", err)
++		return
++	}
++	ctx.Data["StatusCounts"] = statusCounts
++
++	ctx.HTML(http.StatusOK, tplSpamReports)
++}
++
++// SpamReportsPost handles "process" and "dismiss" actions for pending reports.
++// The processing is done synchronously.
++func SpamReportsPost(ctx *context.Context) {
++	action := ctx.FormString("action")
++	// ctx.Req.PostForm is now parsed due to the call to FormString above
++	spamReportIDs := make([]int64, 0, len(ctx.Req.PostForm["spamreport_id"]))
++	for _, idStr := range ctx.Req.PostForm["spamreport_id"] {
++		id, err := strconv.ParseInt(idStr, 10, 64)
++		if err != nil {
++			ctx.ServerError("ParseSpamReportID", err)
++			return
++		}
++		spamReportIDs = append(spamReportIDs, id)
++	}
++
++	if action == "process" {
++		if err := user_service.ProcessSpamReports(ctx, ctx.Doer, spamReportIDs); err != nil {
++			ctx.ServerError("ProcessSpamReports", err)
++			return
++		}
++	}
++	if action == "dismiss" {
++		if err := user_service.DismissSpamReports(ctx, spamReportIDs); err != nil {
++			ctx.ServerError("DismissSpamReports", err)
++			return
++		}
++	}
++	ctx.Redirect(setting.AppSubURL + "/-/admin/spamreports")
++}
++
++// PurgeSpammerPost is a shortcut for admins to report and process at the same time.
++func PurgeSpammerPost(ctx *context.Context) {
++	username := ctx.FormString("username")
++
++	user, err := user_model.GetUserByName(ctx, username)
++	if err != nil {
++		ctx.NotFoundOrServerError("GetUserByName", user_model.IsErrUserNotExist, nil)
++		return
++	}
++	spamReport, err := user_service.CreateSpamReport(ctx, ctx.Doer, user)
++	if err != nil {
++		ctx.ServerError("CreateSpamReport", err)
++		return
++	}
++	if err := user_service.ProcessSpamReports(ctx, ctx.Doer, []int64{spamReport.ID}); err != nil {
++		ctx.ServerError("ProcessSpamReports", err)
++		return
++	}
++
++	if ctx.Written() {
++		return
++	}
++	ctx.Redirect(setting.AppSubURL + "/" + username)
++}
+diff --git a/routers/web/shared/user/header.go b/routers/web/shared/user/header.go
+index 4cb0592b4b..e1c8b9608a 100644
+--- a/routers/web/shared/user/header.go
++++ b/routers/web/shared/user/header.go
+@@ -21,6 +21,7 @@ import (
+ 	"code.gitea.io/gitea/modules/optional"
+ 	"code.gitea.io/gitea/modules/setting"
+ 	"code.gitea.io/gitea/services/context"
++	user_service "code.gitea.io/gitea/services/user"
+ )
+ 
+ // prepareContextForCommonProfile store some common data into context data for user's profile related pages (including the nav menu)
+@@ -90,6 +91,25 @@ func PrepareContextForProfileBigAvatar(ctx *context.Context) {
+ 		} else {
+ 			ctx.Data["UserBlocking"] = block
+ 		}
++
++		// BLENDER: spam reporting
++		doerIsTrusted, err := user_service.IsTrustedUser(ctx, ctx.Doer)
++		if err != nil {
++			ctx.ServerError("IsTrustedUser", err)
++			return
++		}
++		userIsTrusted, err := user_service.IsTrustedUser(ctx, ctx.ContextUser)
++		if err != nil {
++			ctx.ServerError("IsTrustedUser", err)
++			return
++		}
++		ctx.Data["CanReportSpam"] = doerIsTrusted && !userIsTrusted
++		existingSpamReport, err := user_model.GetSpamReportForUser(ctx, ctx.ContextUser)
++		if err != nil {
++			ctx.ServerError("GetSpamReportForUser", err)
++			return
++		}
++		ctx.Data["ExistingSpamReport"] = existingSpamReport
+ 	}
+ }
+ 
+diff --git a/routers/web/user/setting/spamreport.go b/routers/web/user/setting/spamreport.go
+new file mode 100644
+index 0000000000..254b54c56f
+--- /dev/null
++++ b/routers/web/user/setting/spamreport.go
+@@ -0,0 +1,43 @@
++// Copyright 2025 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++
++// BLENDER: spam reporting
++
++package setting
++
++import (
++	"net/http"
++
++	user_model "code.gitea.io/gitea/models/user"
++	"code.gitea.io/gitea/modules/setting"
++	"code.gitea.io/gitea/services/context"
++	user_service "code.gitea.io/gitea/services/user"
++)
++
++// SpamReportUserPost creates a spam report for a given user.
++func SpamReportUserPost(ctx *context.Context) {
++	canReportSpam, err := user_service.IsTrustedUser(ctx, ctx.Doer)
++	if err != nil {
++		ctx.ServerError("IsTrustedUser", err)
++		return
++	}
++	if !canReportSpam {
++		ctx.PlainText(http.StatusForbidden, "you are not allowed to report spam")
++	}
++	username := ctx.FormString("username")
++
++	user, err := user_model.GetUserByName(ctx, username)
++	if err != nil {
++		ctx.NotFoundOrServerError("GetUserByName", user_model.IsErrUserNotExist, nil)
++		return
++	}
++	if _, err := user_service.CreateSpamReport(ctx, ctx.Doer, user); err != nil {
++		ctx.ServerError("CreateSpamReport", err)
++		return
++	}
++
++	if ctx.Written() {
++		return
++	}
++	ctx.Redirect(setting.AppSubURL + "/" + username)
++}
+diff --git a/routers/web/web.go b/routers/web/web.go
+index ae5f51d403..4bf65eb065 100644
+--- a/routers/web/web.go
++++ b/routers/web/web.go
+@@ -284,6 +284,8 @@ func Routes() *web.Router {
+ 	mid = append(mid, user.GetNotificationCount)
+ 	mid = append(mid, repo.GetActiveStopwatch)
+ 	mid = append(mid, goGet)
++	// BLENDER: spam reporting
++	mid = append(mid, admin.GetPendingSpamReports)
+ 
+ 	others := web.NewRouter()
+ 	others.Use(mid...)
+@@ -676,6 +678,9 @@ func registerRoutes(m *web.Router) {
+ 			m.Get("", user_setting.BlockedUsers)
+ 			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
+ 		})
++
++		// BLENDER: spam reporting
++		m.Post("/spamreport", user_setting.SpamReportUserPost)
+ 	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled))
+ 
+ 	m.Group("/user", func() {
+@@ -748,6 +753,13 @@ func registerRoutes(m *web.Router) {
+ 			m.Post("/delete", admin.DeleteEmail)
+ 		})
+ 
++		// BLENDER: spam reporting
++		m.Group("/spamreports", func() {
++			m.Get("", admin.SpamReports)
++			m.Post("", admin.SpamReportsPost)
++		})
++		m.Post("/purge_spammer", admin.PurgeSpammerPost)
++
+ 		m.Group("/orgs", func() {
+ 			m.Get("", admin.Organizations)
+ 		})
+diff --git a/services/user/spamreport.go b/services/user/spamreport.go
+new file mode 100644
+index 0000000000..d240546cc0
+--- /dev/null
++++ b/services/user/spamreport.go
+@@ -0,0 +1,226 @@
++// Copyright 2025 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++
++// BLENDER: spam reporting
++
++package user
++
++import (
++	"context"
++	"fmt"
++
++	"code.gitea.io/gitea/models/db"
++	issues_model "code.gitea.io/gitea/models/issues"
++	"code.gitea.io/gitea/models/organization"
++	project_model "code.gitea.io/gitea/models/project"
++	user_model "code.gitea.io/gitea/models/user"
++	"code.gitea.io/gitea/modules/log"
++	"code.gitea.io/gitea/modules/optional"
++	"code.gitea.io/gitea/modules/structs"
++	issue_service "code.gitea.io/gitea/services/issue"
++	repo_service "code.gitea.io/gitea/services/repository"
++)
++
++// IsTrustedUser tells if a user is trusted to report spam and to be excluded from others' spam reports.
++func IsTrustedUser(ctx context.Context, user *user_model.User) (bool, error) {
++	if user.IsAdmin {
++		return true, nil
++	}
++	count, err := organization.GetOrganizationCount(ctx, user)
++	if err != nil {
++		return false, fmt.Errorf("GetOrganizationCount: %w", err)
++	}
++	return count > 0, nil
++}
++
++// CreateSpamReport checks that a reporter can report a user,
++// and inserts a new record in default status=pending
++// for further processing.
++// If a record for a given user already exists, it will be returned.
++func CreateSpamReport(ctx context.Context, reporter, user *user_model.User) (*user_model.SpamReport, error) {
++	reporterIsTrusted, err := IsTrustedUser(ctx, reporter)
++	if err != nil {
++		return nil, fmt.Errorf("failed IsTrustedUser: %w", err)
++	}
++	if !reporterIsTrusted {
++		return nil, fmt.Errorf("reporter %s is not trusted", reporter.Name)
++	}
++	userIsTrusted, err := IsTrustedUser(ctx, user)
++	if err != nil {
++		return nil, fmt.Errorf("failed IsTrustedUser: %w", err)
++	}
++	if userIsTrusted {
++		return nil, fmt.Errorf("can't report a trusted user %s", user.Name)
++	}
++
++	spamReport := &user_model.SpamReport{
++		ReporterID: reporter.ID,
++		UserID:     user.ID,
++	}
++	insertErr := db.Insert(ctx, spamReport)
++	if insertErr != nil {
++		// Normally the error may happen due to a duplicate record.
++		// Let's try to fetch the existing record, and if it doesn't exist, escalate the original error.
++		existingSpamReport := &user_model.SpamReport{}
++		if has, _ := db.GetEngine(ctx).Where("user_id = ?", user.ID).Get(existingSpamReport); has {
++			return existingSpamReport, nil
++		}
++		return nil, insertErr
++	}
++	return spamReport, nil
++}
++
++// ProcessSpamReports performs the cleanup of a reported user account and the content it created.
++// Only the reports in "pending" status are processed to avoid race conditions.
++// A processed user account becomes inactive, restricted, login prohibited, profile fields erased,
++// and the following objects that were created by the user are deleted:
++//   - issues and pulls
++//   - comments
++//   - personal repositories
++//   - personal projects
++//
++// If the processing code fails it leaves the SpamReport record that was being processed in "locked" status.
++// It would need to be handled manually, as the error is assumed to be unrecoverable
++// (which may not always be true, e.g. during transient db downtime).
++//
++// We will have to revisit this approach if it actually causes problems.
++// E.g. we could
++//   - either try to unlock the record on failure (this may not always be possible),
++//     or unlock after some timeout (according to the record's UpdatedUnix)
++//   - add a new field to keep track of an attempt count per record
++//   - retry on subsequent runs, until the attempt budget is exhausted
++func ProcessSpamReports(ctx context.Context, doer *user_model.User, spamReportIDs []int64) error {
++	var spamReports []user_model.SpamReport
++	err := db.GetEngine(ctx).In("id", spamReportIDs).Find(&spamReports)
++	if err != nil {
++		return fmt.Errorf("failed to fetch SpamReports: %w", err)
++	}
++
++	for _, spamReport := range spamReports {
++		id := spamReport.ID
++		count, err := db.GetEngine(ctx).ID(id).And("status = ?", user_model.SpamReportStatusTypePending).
++			Update(&user_model.SpamReport{Status: user_model.SpamReportStatusTypeLocked})
++		if err != nil {
++			return fmt.Errorf("failed to set SpamReport.Status to locked for id=%d: %w", id, err)
++		}
++		if count < 1 {
++			log.Info("Skipping SpamReport id=%d, status wasn't pending", id)
++			continue
++		}
++
++		userID := spamReport.UserID
++		user := &user_model.User{ID: userID}
++		has, err := db.GetEngine(ctx).Get(user)
++		if err != nil {
++			return fmt.Errorf("failed to fetch user  userID=%d: %w", userID, err)
++		}
++		if !has {
++			return fmt.Errorf("user id=%d was not found", userID)
++		}
++
++		// Clean up everything and update report status if there were no errors.
++		// On failure the transaction will be rolled back, and the report will be stuck in locked status.
++		log.Info("Processing SpamReport id=%d for user %s", id, user.Name)
++		err = db.WithTx(ctx, func(ctx context.Context) error {
++			if err := cleanupSpam(ctx, user, doer); err != nil {
++				return err
++			}
++			// Everything is cleaned up, marking the spam report as processed.
++			count, err = db.GetEngine(ctx).ID(id).And("status = ?", user_model.SpamReportStatusTypeLocked).
++				Update(&user_model.SpamReport{Status: user_model.SpamReportStatusTypeProcessed})
++			if err != nil {
++				return fmt.Errorf("failed to set SpamReport.Status to processed for id=%d: %w", id, err)
++			}
++			if count < 1 {
++				return fmt.Errorf("SpamReport id=%d status wasn't locked, rolling back the transaction", id)
++			}
++			return nil
++		})
++		if err != nil {
++			return fmt.Errorf("failed to process SpamReport id=%d: %w", id, err)
++		}
++
++		log.Info("Processed SpamReport id=%d for user %s", id, user.Name)
++	}
++	return nil
++}
++
++// cleanupSpam is supposed to be called as a part of a database transaction.
++func cleanupSpam(ctx context.Context, user, doer *user_model.User) error {
++	// UpdateUser and UpdateAuth to clean the profile and prohibit logins.
++	if err := UpdateUser(ctx, user,
++		&UpdateOptions{
++			Description:     optional.Some(""),
++			FullName:        optional.Some("Confirmed Spammer"),
++			IsActive:        optional.Some(false),
++			IsRestricted:    optional.Some(true),
++			Location:        optional.Some(""),
++			MaxRepoCreation: optional.Some(0),
++			Visibility:      optional.Some(structs.VisibleTypeLimited),
++			Website:         optional.Some(""),
++		},
++	); err != nil {
++		return fmt.Errorf("failed to UpdateUser: %w", err)
++	}
++	if err := UpdateAuth(ctx, user, &UpdateAuthOptions{ProhibitLogin: optional.Some(true)}); err != nil {
++		return fmt.Errorf("failed to UpdateAuth: %w", err)
++	}
++
++	log.Info("Cleaning up issues and pulls by user %s", user.Name)
++	issues, err := issues_model.Issues(ctx, &issues_model.IssuesOptions{PosterID: optional.Some(user.ID)})
++	if err != nil {
++		return fmt.Errorf("failed to fetch IssueIDs: %w", err)
++	}
++	for _, issue := range issues {
++		if err := issue_service.DeleteIssue(ctx, doer, nil, issue); err != nil {
++			return fmt.Errorf("failed to delete issue: %w", err)
++		}
++	}
++
++	log.Info("Cleaning up comments by user %s", user.Name)
++	const batchSize = 50
++	for {
++		comments := make([]*issues_model.Comment, 0, batchSize)
++		if err := db.GetEngine(ctx).
++			Where("type=? AND poster_id=?", issues_model.CommentTypeComment, user.ID).
++			Limit(batchSize, 0).
++			Find(&comments); err != nil {
++			return fmt.Errorf("failed to find comments to delete: %w", err)
++		}
++		if len(comments) == 0 {
++			break
++		}
++
++		for _, comment := range comments {
++			if err := issues_model.DeleteComment(ctx, comment); err != nil {
++				return fmt.Errorf("failed to delete comment: %w", err)
++			}
++		}
++	}
++
++	log.Info("Cleaning up personal repositories of user %s", user.Name)
++	if err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, user); err != nil {
++		return fmt.Errorf("failed to clean up repositories: %w", err)
++	}
++
++	log.Info("Cleaning up personal projects of user %s", user.Name)
++	projectIDs, err := project_model.GetAllProjectsIDsByOwnerIDAndType(ctx, user.ID, project_model.TypeIndividual)
++	if err != nil {
++		return fmt.Errorf("failed to fetch personal project ids: %w", err)
++	}
++	for _, projectID := range projectIDs {
++		if err := project_model.DeleteProjectByID(ctx, projectID); err != nil {
++			return fmt.Errorf("failed to clean up personal project id=%d: %w", projectID, err)
++		}
++	}
++	return nil
++}
++
++// DismissSpamReports updates only reports in "pending" status to avoid race conditions
++// with the actual processing.
++func DismissSpamReports(ctx context.Context, spamReportIDs []int64) error {
++	_, err := db.GetEngine(ctx).In("id", spamReportIDs).
++		And("status = ?", user_model.SpamReportStatusTypePending).
++		Update(&user_model.SpamReport{Status: user_model.SpamReportStatusTypeDismissed})
++	return err
++}
+diff --git a/services/user/spamreport_test.go b/services/user/spamreport_test.go
+new file mode 100644
+index 0000000000..2f4ebcdc86
+--- /dev/null
++++ b/services/user/spamreport_test.go
+@@ -0,0 +1,93 @@
++// Copyright 2025 The Gitea Authors. All rights reserved.
++// SPDX-License-Identifier: MIT
++
++// BLENDER: spam reporting
++
++package user
++
++import (
++	"context"
++	"testing"
++
++	"code.gitea.io/gitea/models/db"
++	"code.gitea.io/gitea/models/unittest"
++	user_model "code.gitea.io/gitea/models/user"
++
++	"github.com/stretchr/testify/assert"
++)
++
++func TestIsTrustedUser(t *testing.T) {
++	assert.NoError(t, unittest.PrepareTestDatabase())
++
++	userWithOrgs := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
++	isTrusted, err := IsTrustedUser(context.Background(), userWithOrgs)
++	assert.NoError(t, err)
++	assert.True(t, isTrusted)
++
++	userWithoutOrgs := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
++	isTrusted, err = IsTrustedUser(context.Background(), userWithoutOrgs)
++	assert.NoError(t, err)
++	assert.False(t, isTrusted)
++
++	userWithoutOrgs.IsAdmin = true // now becomes trusted
++	isTrusted, err = IsTrustedUser(context.Background(), userWithoutOrgs)
++	assert.NoError(t, err)
++	assert.True(t, isTrusted)
++}
++
++func TestCreateSpamReport(t *testing.T) {
++	assert.NoError(t, unittest.PrepareTestDatabase())
++	// Prevent interaction between tests, for whatever reason db is not reset.
++	db.GetEngine(db.DefaultContext).Exec("delete from user_spamreport")
++
++	userWithOrgs := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
++	userWithoutOrgs := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
++
++	// An untrusted user can't report.
++	_, err := CreateSpamReport(context.Background(), userWithoutOrgs, userWithoutOrgs)
++	assert.Error(t, err)
++
++	// A trusted user can't be reported.
++	_, err = CreateSpamReport(context.Background(), userWithOrgs, userWithOrgs)
++	assert.Error(t, err)
++
++	spamReport, err := CreateSpamReport(context.Background(), userWithOrgs, userWithoutOrgs)
++	assert.NoError(t, err)
++	assert.NotNil(t, spamReport)
++
++	// Try to create a duplicate report by a different reporter.
++	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
++	spamReport2, err := CreateSpamReport(context.Background(), adminUser, userWithoutOrgs)
++	assert.NoError(t, err)
++	assert.NotNil(t, spamReport2)
++	assert.Equal(t, spamReport.ID, spamReport2.ID)
++}
++
++func TestProcessSpamReports(t *testing.T) {
++	assert.NoError(t, unittest.PrepareTestDatabase())
++	// Prevent interaction between tests, for whatever reason db is not reset.
++	db.GetEngine(db.DefaultContext).Exec("delete from user_spamreport")
++
++	userWithOrgs := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})    // reporter
++	userWithoutOrgs := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9}) // spammer, and a different one
++	_, err := CreateSpamReport(context.Background(), userWithOrgs, userWithoutOrgs)
++	assert.NoError(t, err)
++
++	ids, err := user_model.GetPendingSpamReportIDs(context.Background())
++	assert.Len(t, ids, 1)
++	assert.NoError(t, err)
++	cronDoer := &user_model.User{
++		ID:        -1,
++		Name:      "(Cron)",
++		LowerName: "(cron)",
++	}
++	err = ProcessSpamReports(context.Background(), cronDoer, ids)
++	assert.NoError(t, err)
++	userWithoutOrgs = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9}) // reload from db
++	assert.Equal(t, "Confirmed Spammer", userWithoutOrgs.FullName)
++	assert.True(t, userWithoutOrgs.ProhibitLogin)
++
++	ids, err = user_model.GetPendingSpamReportIDs(context.Background())
++	assert.Empty(t, ids)
++	assert.NoError(t, err)
++}
+diff --git a/templates/admin/navbar.tmpl b/templates/admin/navbar.tmpl
+index 4116357d1d..235547ec0f 100644
+--- a/templates/admin/navbar.tmpl
++++ b/templates/admin/navbar.tmpl
+@@ -13,7 +13,7 @@
+ 				</a>
+ 			</div>
+ 		</details>
+-		<details class="item toggleable-item" {{if or .PageIsAdminUsers .PageIsAdminEmails .PageIsAdminOrganizations .PageIsAdminAuthentications}}open{{end}}>
++		<details class="item toggleable-item" {{if or .PageIsAdminUsers .PageIsAdminEmails .PageIsAdminOrganizations .PageIsAdminAuthentications .PageIsSpamReports}}open{{end}}>
+ 			<summary>{{ctx.Locale.Tr "admin.identity_access"}}</summary>
+ 			<div class="menu">
+ 				<a class="{{if .PageIsAdminAuthentications}}active {{end}}item" href="{{AppSubUrl}}/-/admin/auths">
+@@ -28,6 +28,9 @@
+ 				<a class="{{if .PageIsAdminEmails}}active {{end}}item" href="{{AppSubUrl}}/-/admin/emails">
+ 					{{ctx.Locale.Tr "admin.emails"}}
+ 				</a>
++				<a class="{{if .PageIsSpamReports}}active {{end}}item" href="{{AppSubUrl}}/-/admin/spamreports">
++					{{ctx.Locale.Tr "admin.spamreports"}}
++				</a>
+ 			</div>
+ 		</details>
+ 		<details class="item toggleable-item" {{if or .PageIsAdminRepositories (and .EnablePackages .PageIsAdminPackages)}}open{{end}}>
+diff --git a/templates/admin/spamreports/list.tmpl b/templates/admin/spamreports/list.tmpl
+new file mode 100644
+index 0000000000..dc8240ba3f
+--- /dev/null
++++ b/templates/admin/spamreports/list.tmpl
+@@ -0,0 +1,88 @@
++{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
++
++<script>
++document.addEventListener('DOMContentLoaded', function(event) {
++	const selectAll = document.getElementsByClassName('select-all')[0];
++	selectAll.addEventListener('change', function() {
++		const checkboxes = document.getElementsByClassName('managed-by-select-all');
++		for (const checkbox of checkboxes) {
++			checkbox.checked = selectAll.checked;
++		}
++	});
++});
++</script>
++<div class="admin-setting-content">
++	<h4 class="ui top attached header">
++		{{ctx.Locale.Tr "admin.spamreports.spamreport_manage_panel"}}
++		<div class="small-menu-items ui compact tiny menu">
++			{{range .StatusCounts}}
++				<a class="{{if eq .Status $.FilterStatus}}active {{end}}item flex-text-inline" href="?status={{printf "%d" .Status}}">
++					{{.Count}} {{.Status}}
++				</a>
++			{{end}}
++		</div>
++	</h4>
++	{{if .SpamReports}}
++		<form method="post">
++			{{.CsrfTokenHtml}}
++			<div class="ui attached table segment">
++				<table class="ui very basic striped table unstackable">
++					<thead>
++						<tr>
++							{{if eq $.FilterStatus 0}}
++								<th><input type="checkbox" class="select-all" /></th>
++							{{end}}
++							<th>{{ctx.Locale.Tr "admin.spamreports.user"}}</th>
++							<th>{{ctx.Locale.Tr "admin.spamreports.user_created"}}</th>
++							<th>{{ctx.Locale.Tr "admin.spamreports.reporter"}}</th>
++							<th>{{ctx.Locale.Tr "admin.spamreports.created"}}</th>
++							<th>{{ctx.Locale.Tr "admin.spamreports.updated"}}</th>
++							<th>{{ctx.Locale.Tr "admin.spamreports.status"}}</th>
++						</tr>
++					</thead>
++					<tbody>
++						{{range .SpamReports}}
++							<tr>
++								{{if eq $.FilterStatus 0}}
++									<td><input type="checkbox" class="managed-by-select-all" name="spamreport_id" value="{{.ID}}" /></td>
++								{{end}}
++								<td><a href="{{AppSubUrl}}/{{.UserName | PathEscape}}">{{.UserName}}</a></td>
++								<td title="{{DateUtils.FullTime .UserCreatedUnix}}">{{DateUtils.TimeSince .UserCreatedUnix}}</td>
++								<td><a href="{{AppSubUrl}}/{{.ReporterName | PathEscape}}">{{.ReporterName}}</a></td>
++								<td title="{{DateUtils.FullTime .CreatedUnix}}">{{DateUtils.TimeSince .CreatedUnix}}</td>
++								<td title="{{DateUtils.FullTime .UpdatedUnix}}">{{DateUtils.TimeSince .UpdatedUnix}}</td>
++								<td>
++									{{if eq .Status 0}}
++										{{svg "octicon-clock" 16 "tw-mr-2 text primary"}}
++									{{end}}
++									{{if eq .Status 1}}
++										{{svg "octicon-lock" 16 "tw-mr-2 text grey"}}
++									{{end}}
++									{{if eq .Status 2}}
++										{{svg "octicon-check" 16 "tw-mr-2 text green"}}
++									{{end}}
++									{{if eq .Status 3}}
++										{{svg "octicon-trash" 16 "tw-mr-2 text red"}}
++									{{end}}
++									{{.Status}}
++								</td>
++							</tr>
++						{{end}}
++					</tbody>
++				</table>
++			</div>
++			{{if eq $.FilterStatus 0}}
++				<br />
++				<button type="submit" name="action" value="process" class="ui submit primary button btn-submit red" onclick="return confirm('Purge selected accounts?');">Purge accounts</button>
++				<button type="submit" name="action" value="dismiss" class="ui submit primary button btn-submit">Dismiss reports</button>
++			{{end}}
++		</form>
++		{{template "base/paginate" .}}
++	{{else}}
++		<div class="ui info message align center">
++			No {{$.FilterStatus}} reports.
++		</div>
++	{{end}}
++</div>
++
++{{template "admin/layout_footer" .}}
+diff --git a/templates/base/head_navbar.tmpl b/templates/base/head_navbar.tmpl
+index 86d73a235d..dd4c015eb8 100644
+--- a/templates/base/head_navbar.tmpl
++++ b/templates/base/head_navbar.tmpl
+@@ -91,6 +91,13 @@
+ 			</a>
+ 			{{end}}
+ 
++			{{if and .IsAdmin .PendingSpamReports}}
++			<a class="item tw-mx-0" href="{{AppSubUrl}}/-/admin/spamreports">
++				<strong class="tw-relative attention-important">
++					pending spam reports: {{.PendingSpamReports}}
++				</strong>
++			</a>
++			{{end}}
+ 			<a class="item not-mobile tw-mx-0" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-label="{{ctx.Locale.Tr "notifications"}}">
+ 				<div class="tw-relative">
+ 					{{svg "octicon-bell"}}
+diff --git a/templates/shared/user/profile_big_avatar.tmpl b/templates/shared/user/profile_big_avatar.tmpl
+index f04f1ef6c4..7c2b376b00 100644
+--- a/templates/shared/user/profile_big_avatar.tmpl
++++ b/templates/shared/user/profile_big_avatar.tmpl
+@@ -127,9 +127,26 @@
+ 						<a class="muted" href="{{AppSubUrl}}/user/settings/blocked_users">{{ctx.Locale.Tr "user.block.unblock"}}</a>
+ 					{{end}}
+ 				</li>
++				{{if .CanReportSpam}}
++					<li>
++						{{if .ExistingSpamReport}}
++							<span>
++								{{ctx.Locale.Tr "user.spamreport.existing_status" .ExistingSpamReport.Status}}
++							</span>
++						{{else}}
++						  {{if .IsAdmin}}
++								<a class="muted show-modal" href="#" data-modal="#purgespammer-user-modal" data-modal-modal-username="{{.ContextUser.Name}}" data-modal-modal-form.action="{{AppSubUrl}}/-/admin/purge_spammer">{{ctx.Locale.Tr "user.purgespammer.profile_button"}}</a>
++							{{else}}
++								<a class="muted show-modal" href="#" data-modal="#spamreport-user-modal" data-modal-modal-username="{{.ContextUser.Name}}" data-modal-modal-form.action="{{AppSubUrl}}/user/settings/spamreport">{{ctx.Locale.Tr "user.spamreport.profile_button"}}</a>
++							{{end}}
++						{{end}}
++					</li>
++				{{end}}
+ 			{{end}}
+ 		</ul>
+ 	</div>
+ </div>
+ 
+ {{template "shared/user/block_user_dialog" .}}
++{{template "shared/user/purgespammer_user_dialog" .}}
++{{template "shared/user/spamreport_user_dialog" .}}
+diff --git a/templates/shared/user/purgespammer_user_dialog.tmpl b/templates/shared/user/purgespammer_user_dialog.tmpl
+new file mode 100644
+index 0000000000..77960ae49e
+--- /dev/null
++++ b/templates/shared/user/purgespammer_user_dialog.tmpl
+@@ -0,0 +1,14 @@
++<div class="ui small modal" id="purgespammer-user-modal">
++	<div class="header">{{ctx.Locale.Tr "user.purgespammer.modal_title"}}</div>
++	<div class="content">
++		<div class="ui warning message">{{ctx.Locale.Tr "user.purgespammer.modal_info"}}</div>
++		<form class="ui form modal-form" method="post">
++			{{.CsrfTokenHtml}}
++			<input type="hidden" name="username" class="modal-username" />
++			<div class="text right actions">
++				<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
++				<button class="ui red button">{{ctx.Locale.Tr "user.purgespammer.modal_action"}}</button>
++			</div>
++		</form>
++	</div>
++</div>
+diff --git a/templates/shared/user/spamreport_user_dialog.tmpl b/templates/shared/user/spamreport_user_dialog.tmpl
+new file mode 100644
+index 0000000000..e9015fd16c
+--- /dev/null
++++ b/templates/shared/user/spamreport_user_dialog.tmpl
+@@ -0,0 +1,14 @@
++<div class="ui small modal" id="spamreport-user-modal">
++	<div class="header">{{ctx.Locale.Tr "user.spamreport.modal_title"}}</div>
++	<div class="content">
++		<div class="ui warning message">{{ctx.Locale.Tr "user.spamreport.modal_info"}}</div>
++		<form class="ui form modal-form" method="post">
++			{{.CsrfTokenHtml}}
++			<input type="hidden" name="username" class="modal-username" />
++			<div class="text right actions">
++				<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
++				<button class="ui red button">{{ctx.Locale.Tr "user.spamreport.modal_action"}}</button>
++			</div>
++		</form>
++	</div>
++</div>
+-- 
+2.43.0
+
