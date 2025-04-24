@@ -991,5 +991,4 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}
-	ctx.Data["Issue"] = issue
 }
