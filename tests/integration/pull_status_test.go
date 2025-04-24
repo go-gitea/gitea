@@ -29,7 +29,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,
 			map[string]string{
-				"_csrf": GetCSRF(t, session, url),
+				"_csrf": GetUserCSRFToken(t, session),
 				"title": "pull request from status1",
 			},
 		)
@@ -86,7 +86,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			commitURL, exists = doc.doc.Find("#commits-table tbody tr td.sha a").Last().Attr("href")
 			assert.True(t, exists)
 			assert.NotEmpty(t, commitURL)
-			assert.EqualValues(t, commitID, path.Base(commitURL))
+			assert.Equal(t, commitID, path.Base(commitURL))
 
 			cls, ok := doc.doc.Find("#commits-table tbody tr td.message .commit-status").Last().Attr("class")
 			assert.True(t, ok)
@@ -95,7 +95,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
 		css := unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusSummary{RepoID: repo1.ID, SHA: commitID})
-		assert.EqualValues(t, api.CommitStatusWarning, css.State)
+		assert.Equal(t, api.CommitStatusWarning, css.State)
 	})
 }
 
@@ -129,7 +129,7 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,
 			map[string]string{
-				"_csrf": GetCSRF(t, session, url),
+				"_csrf": GetUserCSRFToken(t, session),
 				"title": "pull request from status1",
 			},
 		)
@@ -152,7 +152,7 @@ func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,
 			map[string]string{
-				"_csrf": GetCSRF(t, session, url),
+				"_csrf": GetUserCSRFToken(t, session),
 				"title": "pull request from status1",
 			},
 		)

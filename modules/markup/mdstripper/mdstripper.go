@@ -46,7 +46,7 @@ func (r *stripRenderer) Render(w io.Writer, source []byte, doc ast.Node) error {
 				coalesce := prevSibIsText
 				r.processString(
 					w,
-					v.Text(source),
+					v.Text(source), //nolint:staticcheck
 					coalesce)
 				if v.SoftLineBreak() {
 					r.doubleSpace(w)
@@ -107,11 +107,12 @@ func (r *stripRenderer) processAutoLink(w io.Writer, link []byte) {
 	}
 
 	var sep string
-	if parts[3] == "issues" {
+	switch parts[3] {
+	case "issues":
 		sep = "#"
-	} else if parts[3] == "pulls" {
+	case "pulls":
 		sep = "!"
-	} else {
+	default:
 		// Process out of band
 		r.links = append(r.links, linkStr)
 		return

@@ -4,7 +4,7 @@
 package cache
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
@@ -43,6 +43,7 @@ func TestTest(t *testing.T) {
 	elapsed, err := Test()
 	assert.NoError(t, err)
 	// mem cache should take from 300ns up to 1ms on modern hardware ...
+	assert.Positive(t, elapsed)
 	assert.Less(t, elapsed, SlowCacheThreshold)
 }
 
@@ -56,22 +57,22 @@ func TestGetString(t *testing.T) {
 	createTestCache()
 
 	data, err := GetString("key", func() (string, error) {
-		return "", fmt.Errorf("some error")
+		return "", errors.New("some error")
 	})
 	assert.Error(t, err)
-	assert.Equal(t, "", data)
+	assert.Empty(t, data)
 
 	data, err = GetString("key", func() (string, error) {
 		return "", nil
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "", data)
+	assert.Empty(t, data)
 
 	data, err = GetString("key", func() (string, error) {
 		return "some data", nil
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "", data)
+	assert.Empty(t, data)
 	Remove("key")
 
 	data, err = GetString("key", func() (string, error) {
@@ -81,7 +82,7 @@ func TestGetString(t *testing.T) {
 	assert.Equal(t, "some data", data)
 
 	data, err = GetString("key", func() (string, error) {
-		return "", fmt.Errorf("some error")
+		return "", errors.New("some error")
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "some data", data)
@@ -92,7 +93,7 @@ func TestGetInt64(t *testing.T) {
 	createTestCache()
 
 	data, err := GetInt64("key", func() (int64, error) {
-		return 0, fmt.Errorf("some error")
+		return 0, errors.New("some error")
 	})
 	assert.Error(t, err)
 	assert.EqualValues(t, 0, data)
@@ -117,7 +118,7 @@ func TestGetInt64(t *testing.T) {
 	assert.EqualValues(t, 100, data)
 
 	data, err = GetInt64("key", func() (int64, error) {
-		return 0, fmt.Errorf("some error")
+		return 0, errors.New("some error")
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 100, data)

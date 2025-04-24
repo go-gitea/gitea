@@ -7,19 +7,17 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/test"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestActionScheduleSpec_Parse(t *testing.T) {
 	// Mock the local timezone is not UTC
-	local := time.Local
 	tz, err := time.LoadLocation("Asia/Shanghai")
 	require.NoError(t, err)
-	defer func() {
-		time.Local = local
-	}()
-	time.Local = tz
+	defer test.MockVariableValue(&time.Local, tz)()
 
 	now, err := time.Parse(time.RFC3339, "2024-07-31T15:47:55+08:00")
 	require.NoError(t, err)

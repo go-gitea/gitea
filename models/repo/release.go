@@ -156,6 +156,7 @@ func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, er
 
 // UpdateRelease updates all columns of a release
 func UpdateRelease(ctx context.Context, rel *Release) error {
+	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
 	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel)
 	return err
 }
@@ -234,6 +235,7 @@ type FindReleasesOptions struct {
 	IsDraft       optional.Option[bool]
 	TagNames      []string
 	HasSha1       optional.Option[bool] // useful to find draft releases which are created with existing tags
+	NamePattern   optional.Option[string]
 }
 
 func (opts FindReleasesOptions) ToConds() builder.Cond {
@@ -261,6 +263,11 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 			cond = cond.And(builder.Eq{"sha1": ""})
 		}
 	}
+
+	if opts.NamePattern.Has() && opts.NamePattern.Value() != "" {
+		cond = cond.And(builder.Like{"lower_tag_name", strings.ToLower(opts.NamePattern.Value())})
+	}
+
 	return cond
 }
 
@@ -550,4 +557,9 @@ func FindTagsByCommitIDs(ctx context.Context, repoID int64, commitIDs ...string)
 		res[r.Sha1] = append(res[r.Sha1], r)
 	}
 	return res, nil
+}
+
+func DeleteRepoReleases(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Delete(new(Release))
+	return err
 }

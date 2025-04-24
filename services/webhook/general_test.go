@@ -64,9 +64,17 @@ func forkTestPayload() *api.ForkPayload {
 }
 
 func pushTestPayload() *api.PushPayload {
+	return pushTestPayloadWithCommitMessage("commit message")
+}
+
+func pushTestMultilineCommitMessagePayload() *api.PushPayload {
+	return pushTestPayloadWithCommitMessage("chore: This is a commit summary\n\nThis is a commit description.")
+}
+
+func pushTestPayloadWithCommitMessage(message string) *api.PushPayload {
 	commit := &api.PayloadCommit{
 		ID:      "2020558fe2e34debb818a514715839cabd25e778",
-		Message: "commit message",
+		Message: message,
 		URL:     "http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778",
 		Author: &api.PayloadUser{
 			Name:     "user1",
@@ -311,8 +319,8 @@ func packageTestPayload() *api.PackagePayload {
 			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Repository: nil,
-		Organization: &api.User{
-			UserName:  "org1",
+		Organization: &api.Organization{
+			Name:      "org1",
 			AvatarURL: "http://localhost:3000/org1/avatar",
 		},
 		Package: &api.Package{

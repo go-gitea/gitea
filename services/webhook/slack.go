@@ -84,9 +84,9 @@ func SlackLinkFormatter(url, text string) string {
 // SlackLinkToRef slack-formatter link to a repo ref
 func SlackLinkToRef(repoURL, ref string) string {
 	// FIXME: SHA1 hardcoded here
-	url := git.RefURL(repoURL, ref)
-	refName := git.RefName(ref).ShortName()
-	return SlackLinkFormatter(url, refName)
+	refName := git.RefName(ref)
+	url := repoURL + "/src/" + refName.RefWebLinkPath()
+	return SlackLinkFormatter(url, refName.ShortName())
 }
 
 // Create implements payloadConvertor Create method
@@ -163,6 +163,18 @@ func (s slackConvertor) Release(p *api.ReleasePayload) (SlackPayload, error) {
 
 func (s slackConvertor) Package(p *api.PackagePayload) (SlackPayload, error) {
 	text, _ := getPackagePayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
+func (s slackConvertor) Status(p *api.CommitStatusPayload) (SlackPayload, error) {
+	text, _ := getStatusPayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
+func (s slackConvertor) WorkflowJob(p *api.WorkflowJobPayload) (SlackPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, SlackLinkFormatter, true)
 
 	return s.createPayload(text, nil), nil
 }
@@ -293,6 +305,10 @@ func newSlackRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mod
 		Color:    meta.Color,
 	}
 	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.SLACK, newSlackRequest)
 }
 
 var slackChannel = regexp.MustCompile(`^#?[a-z0-9_-]{1,80}$`)

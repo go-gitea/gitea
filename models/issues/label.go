@@ -87,6 +87,7 @@ type Label struct {
 	OrgID           int64 `xorm:"INDEX"`
 	Name            string
 	Exclusive       bool
+	ExclusiveOrder  int `xorm:"DEFAULT 0"` // 0 means no exclusive order
 	Description     string
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
@@ -236,7 +237,7 @@ func UpdateLabel(ctx context.Context, l *Label) error {
 	}
 	l.Color = color
 
-	return updateLabelCols(ctx, l, "name", "description", "color", "exclusive", "archived_unix")
+	return updateLabelCols(ctx, l, "name", "description", "color", "exclusive", "exclusive_order", "archived_unix")
 }
 
 // DeleteLabel delete a label
@@ -299,6 +300,9 @@ func GetLabelByID(ctx context.Context, labelID int64) (*Label, error) {
 // GetLabelsByIDs returns a list of labels by IDs
 func GetLabelsByIDs(ctx context.Context, labelIDs []int64, cols ...string) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
+	if len(labelIDs) == 0 {
+		return labels, nil
+	}
 	return labels, db.GetEngine(ctx).Table("label").
 		In("id", labelIDs).
 		Asc("name").
@@ -349,6 +353,17 @@ func GetLabelIDsInRepoByNames(ctx context.Context, repoID int64, labelNames []st
 		Find(&labelIDs)
 }
 
+// GetLabelIDsInOrgByNames returns a list of labelIDs by names in a given org.
+func GetLabelIDsInOrgByNames(ctx context.Context, orgID int64, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, db.GetEngine(ctx).Table("label").
+		Where("org_id = ?", orgID).
+		In("name", labelNames).
+		Asc("name").
+		Cols("id").
+		Find(&labelIDs)
+}
+
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
 func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 	return builder.Select("issue_label.issue_id").
@@ -364,6 +379,9 @@ func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 // it silently ignores label IDs that do not belong to the repository.
 func GetLabelsInRepoByIDs(ctx context.Context, repoID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
+	if len(labelIDs) == 0 {
+		return labels, nil
+	}
 	return labels, db.GetEngine(ctx).
 		Where("repo_id = ?", repoID).
 		In("id", labelIDs).
@@ -390,7 +408,7 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 		sess.Asc("name")
 	}
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
@@ -436,6 +454,9 @@ func GetLabelInOrgByID(ctx context.Context, orgID, labelID int64) (*Label, error
 // it silently ignores label IDs that do not belong to the organization.
 func GetLabelsInOrgByIDs(ctx context.Context, orgID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
+	if len(labelIDs) == 0 {
+		return labels, nil
+	}
 	return labels, db.GetEngine(ctx).
 		Where("org_id = ?", orgID).
 		In("id", labelIDs).
@@ -462,7 +483,7 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 		sess.Asc("name")
 	}
 
-	if listOptions.Page != 0 {
+	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 

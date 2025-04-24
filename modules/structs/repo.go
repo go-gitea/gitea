@@ -114,6 +114,7 @@ type Repository struct {
 	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
 	Topics        []string      `json:"topics"`
+	Licenses      []string      `json:"licenses"`
 }
 
 // CreateRepoOption options when creating repository
@@ -275,6 +276,16 @@ type CreateBranchRepoOption struct {
 	//
 	// unique: true
 	OldRefName string `json:"old_ref_name" binding:"GitRefName;MaxSize(100)"`
+}
+
+// UpdateBranchRepoOption options when updating a branch in a repository
+// swagger:model
+type UpdateBranchRepoOption struct {
+	// New branch name
+	//
+	// required: true
+	// unique: true
+	Name string `json:"name" binding:"Required;GitRefName;MaxSize(100)"`
 }
 
 // TransferRepoOption options when transfer a repository's ownership

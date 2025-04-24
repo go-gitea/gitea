@@ -6,8 +6,6 @@ package setting
 import (
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 
 	"github.com/dustin/go-humanize"
 )
@@ -15,13 +13,13 @@ import (
 // Package registry settings
 var (
 	Packages = struct {
-		Storage           *Storage
-		Enabled           bool
-		ChunkedUploadPath string
+		Storage *Storage
+		Enabled bool
 
 		LimitTotalOwnerCount int64
 		LimitTotalOwnerSize  int64
 		LimitSizeAlpine      int64
+		LimitSizeArch        int64
 		LimitSizeCargo       int64
 		LimitSizeChef        int64
 		LimitSizeComposer    int64
@@ -66,19 +64,9 @@ func loadPackagesFrom(rootCfg ConfigProvider) (err error) {
 		return err
 	}
 
-	Packages.ChunkedUploadPath = filepath.ToSlash(sec.Key("CHUNKED_UPLOAD_PATH").MustString("tmp/package-upload"))
-	if !filepath.IsAbs(Packages.ChunkedUploadPath) {
-		Packages.ChunkedUploadPath = filepath.ToSlash(filepath.Join(AppDataPath, Packages.ChunkedUploadPath))
-	}
-
-	if HasInstallLock(rootCfg) {
-		if err := os.MkdirAll(Packages.ChunkedUploadPath, os.ModePerm); err != nil {
-			return fmt.Errorf("unable to create chunked upload directory: %s (%v)", Packages.ChunkedUploadPath, err)
-		}
-	}
-
 	Packages.LimitTotalOwnerSize = mustBytes(sec, "LIMIT_TOTAL_OWNER_SIZE")
 	Packages.LimitSizeAlpine = mustBytes(sec, "LIMIT_SIZE_ALPINE")
+	Packages.LimitSizeArch = mustBytes(sec, "LIMIT_SIZE_ARCH")
 	Packages.LimitSizeCargo = mustBytes(sec, "LIMIT_SIZE_CARGO")
 	Packages.LimitSizeChef = mustBytes(sec, "LIMIT_SIZE_CHEF")
 	Packages.LimitSizeComposer = mustBytes(sec, "LIMIT_SIZE_COMPOSER")

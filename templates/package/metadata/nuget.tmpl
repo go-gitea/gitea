@@ -1,5 +1,5 @@
 {{if eq .PackageDescriptor.Package.Type "nuget"}}
-	{{if .PackageDescriptor.Metadata.Authors}}<div class="item" title="{{ctx.Locale.Tr "packages.details.author"}}">{{svg "octicon-person" 16 "tw-mr-2"}} {{.PackageDescriptor.Metadata.Authors}}</div>{{end}}
-	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external" 16 "tw-mr-2"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
-	{{if .PackageDescriptor.Metadata.RepositoryURL}}<div class="item">{{svg "octicon-link-external" 16 "tw-mr-2"}} <a href="{{.PackageDescriptor.Metadata.RepositoryURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.repository_site"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.Authors}}<div class="item" title="{{ctx.Locale.Tr "packages.details.author"}}">{{svg "octicon-person"}} {{.PackageDescriptor.Metadata.Authors}}</div>{{end}}
+	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
+	{{if .PackageDescriptor.Metadata.RepositoryURL}}<div class="item">{{svg "octicon-link-external"}} <a href="{{.PackageDescriptor.Metadata.RepositoryURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.repository_site"}}</a></div>{{end}}
 {{end}}

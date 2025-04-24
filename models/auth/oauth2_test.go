@@ -18,14 +18,14 @@ func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
 	secret, err := app.GenerateClientSecret(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.True(t, len(secret) > 0)
+	assert.NotEmpty(t, secret)
 	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1, ClientSecret: app.ClientSecret})
 }
 
 func BenchmarkOAuth2Application_GenerateClientSecret(b *testing.B) {
 	assert.NoError(b, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(b, &auth_model.OAuth2Application{ID: 1})
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, _ = app.GenerateClientSecret(db.DefaultContext)
 	}
 }
@@ -126,7 +126,7 @@ func TestOAuth2Application_CreateGrant(t *testing.T) {
 	assert.NotNil(t, grant)
 	assert.Equal(t, int64(2), grant.UserID)
 	assert.Equal(t, int64(1), grant.ApplicationID)
-	assert.Equal(t, "", grant.Scope)
+	assert.Empty(t, grant.Scope)
 }
 
 //////////////////// Grant
@@ -165,7 +165,7 @@ func TestOAuth2Grant_GenerateNewAuthorizationCode(t *testing.T) {
 	code, err := grant.GenerateNewAuthorizationCode(db.DefaultContext, "https://example2.com/callback", "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg", "S256")
 	assert.NoError(t, err)
 	assert.NotNil(t, code)
-	assert.True(t, len(code.Code) > 32) // secret length > 32
+	assert.Greater(t, len(code.Code), 32) // secret length > 32
 }
 
 func TestOAuth2Grant_TableName(t *testing.T) {

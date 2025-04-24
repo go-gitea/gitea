@@ -4,13 +4,13 @@
 package repo
 
 import (
+	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	tplPatchFile base.TplName = "repo/editor/patch"
+	tplPatchFile templates.TplName = "repo/editor/patch"
 )
 
 // NewDiffPatch render create patch page
@@ -38,9 +38,9 @@ func NewDiffPatch(ctx *context.Context) {
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
-	ctx.HTML(200, tplPatchFile)
+	ctx.HTML(http.StatusOK, tplPatchFile)
 }
 
 // NewDiffPatchPost response for sending patch page
@@ -53,7 +53,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 		branchName = form.NewBranchName
 	}
 	ctx.Data["PageIsPatch"] = true
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 	ctx.Data["FileContent"] = form.Content
 	ctx.Data["commit_summary"] = form.CommitSummary
 	ctx.Data["commit_message"] = form.CommitMessage
@@ -63,11 +63,11 @@ func NewDiffPatchPost(ctx *context.Context) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplPatchFile)
+		ctx.HTML(http.StatusOK, tplPatchFile)
 		return
 	}
 
-	// Cannot commit to a an existing branch if user doesn't have rights
+	// Cannot commit to an existing branch if user doesn't have rights
 	if branchName == ctx.Repo.BranchName && !canCommit {
 		ctx.Data["Err_NewBranchName"] = true
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
@@ -87,12 +87,21 @@ func NewDiffPatchPost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
+	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitEmail)
+	if !valid {
+		ctx.Data["Err_CommitEmail"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.editor.invalid_commit_email"), tplPatchFile, &form)
+		return
+	}
+
 	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, &files.ApplyDiffPatchOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
 		Message:      message,
 		Content:      strings.ReplaceAll(form.Content, "\r", ""),
+		Author:       gitCommitter,
+		Committer:    gitCommitter,
 	})
 	if err != nil {
 		if git_model.IsErrBranchAlreadyExists(err) {
@@ -101,7 +110,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
 			return
-		} else if models.IsErrCommitIDDoesNotMatch(err) {
+		} else if files.IsErrCommitIDDoesNotMatch(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplPatchFile, &form)
 			return
 		}

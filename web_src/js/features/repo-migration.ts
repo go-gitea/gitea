@@ -1,14 +1,15 @@
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {sanitizeRepoName} from './repo-common.ts';
 
-const service = document.querySelector('#service_type');
-const user = document.querySelector('#auth_username');
-const pass = document.querySelector('#auth_password');
-const token = document.querySelector('#auth_token');
-const mirror = document.querySelector('#mirror');
-const lfs = document.querySelector('#lfs');
-const lfsSettings = document.querySelector('#lfs_settings');
-const lfsEndpoint = document.querySelector('#lfs_endpoint');
-const items = document.querySelectorAll('#migrate_items input[type=checkbox]');
+const service = document.querySelector<HTMLInputElement>('#service_type');
+const user = document.querySelector<HTMLInputElement>('#auth_username');
+const pass = document.querySelector<HTMLInputElement>('#auth_password');
+const token = document.querySelector<HTMLInputElement>('#auth_token');
+const mirror = document.querySelector<HTMLInputElement>('#mirror');
+const lfs = document.querySelector<HTMLInputElement>('#lfs');
+const lfsSettings = document.querySelector<HTMLElement>('#lfs_settings');
+const lfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint');
+const items = document.querySelectorAll<HTMLInputElement>('#migrate_items input[type=checkbox]');
 
 export function initRepoMigration() {
   checkAuth();
@@ -25,13 +26,19 @@ export function initRepoMigration() {
   });
   lfs?.addEventListener('change', setLFSSettingsVisibility);
 
-  const cloneAddr = document.querySelector('#clone_addr');
-  cloneAddr?.addEventListener('change', () => {
-    const repoName = document.querySelector('#repo_name');
-    if (cloneAddr.value && !repoName?.value) { // Only modify if repo_name input is blank
-      repoName.value = cloneAddr.value.match(/^(.*\/)?((.+?)(\.git)?)$/)[3];
-    }
-  });
+  const elCloneAddr = document.querySelector<HTMLInputElement>('#clone_addr');
+  const elRepoName = document.querySelector<HTMLInputElement>('#repo_name');
+  if (elCloneAddr && elRepoName) {
+    let repoNameChanged = false;
+    elRepoName.addEventListener('input', () => {repoNameChanged = true});
+    elCloneAddr.addEventListener('input', () => {
+      if (repoNameChanged) return;
+      let repoNameFromUrl = elCloneAddr.value.split(/[?#]/)[0];
+      repoNameFromUrl = /^(.*\/)?((.+?)\/?)$/.exec(repoNameFromUrl)[3];
+      repoNameFromUrl = repoNameFromUrl.split(/[?#]/)[0];
+      elRepoName.value = sanitizeRepoName(repoNameFromUrl);
+    });
+  }
 }
 
 function checkAuth() {
@@ -41,8 +48,8 @@ function checkAuth() {
   checkItems(serviceType !== 1);
 }
 
-function checkItems(tokenAuth) {
-  let enableItems;
+function checkItems(tokenAuth: boolean) {
+  let enableItems = false;
   if (tokenAuth) {
     enableItems = token?.value !== '';
   } else {

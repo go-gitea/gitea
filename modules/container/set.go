@@ -31,8 +31,8 @@ func (s Set[T]) AddMultiple(values ...T) {
 	}
 }
 
-// Contains determines whether a set contains the specified elements.
-// Returns true if the set contains the specified element; otherwise, false.
+// Contains determines whether a set contains all these elements.
+// Returns true if the set contains all these elements; otherwise, false.
 func (s Set[T]) Contains(values ...T) bool {
 	ret := true
 	for _, value := range values {

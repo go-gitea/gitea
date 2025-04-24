@@ -1,9 +1,26 @@
 <script lang="ts">
+import {defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {generateAriaId} from '../modules/fomantic/base.ts';
 
-export default {
+type Commit = {
+  id: string,
+  hovered: boolean,
+  selected: boolean,
+  summary: string,
+  committer_or_author_name: string,
+  time: string,
+  short_sha: string,
+}
+
+type CommitListResult = {
+  commits: Array<Commit>,
+  last_review_commit_sha: string,
+  locale: Record<string, string>,
+}
+
+export default defineComponent({
   components: {SvgIcon},
   data: () => {
     const el = document.querySelector('#diff-commit-select');
@@ -14,10 +31,10 @@ export default {
       issueLink: el.getAttribute('data-issuelink'),
       locale: {
         filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
-      },
-      commits: [],
+      } as Record<string, string>,
+      commits: [] as Array<Commit>,
       hoverActivated: false,
-      lastReviewCommitSha: null,
+      lastReviewCommitSha: '',
       uniqueIdMenu: generateAriaId(),
       uniqueIdShowAll: generateAriaId(),
     };
@@ -41,25 +58,25 @@ export default {
     this.$el.removeEventListener('keyup', this.onKeyUp);
   },
   methods: {
-    onBodyClick(event) {
+    onBodyClick(event: MouseEvent) {
       // close this menu on click outside of this element when the dropdown is currently visible opened
       if (this.$el.contains(event.target)) return;
       if (this.menuVisible) {
         this.toggleMenu();
       }
     },
-    onKeyDown(event) {
+    onKeyDown(event: KeyboardEvent) {
       if (!this.menuVisible) return;
-      const item = document.activeElement;
+      const item = document.activeElement as HTMLElement;
       if (!this.$el.contains(item)) return;
       switch (event.key) {
         case 'ArrowDown': // select next element
           event.preventDefault();
-          this.focusElem(item.nextElementSibling, item);
+          this.focusElem(item.nextElementSibling as HTMLElement, item);
           break;
         case 'ArrowUp': // select previous element
           event.preventDefault();
-          this.focusElem(item.previousElementSibling, item);
+          this.focusElem(item.previousElementSibling as HTMLElement, item);
           break;
         case 'Escape': // close menu
           event.preventDefault();
@@ -70,10 +87,10 @@ export default {
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         const item = document.activeElement; // try to highlight the selected commits
         const commitIdx = item?.matches('.item') ? item.getAttribute('data-commit-idx') : null;
-        if (commitIdx) this.highlight(this.commits[commitIdx]);
+        if (commitIdx) this.highlight(this.commits[Number(commitIdx)]);
       }
     },
-    onKeyUp(event) {
+    onKeyUp(event: KeyboardEvent) {
       if (!this.menuVisible) return;
       const item = document.activeElement;
       if (!this.$el.contains(item)) return;
@@ -86,7 +103,7 @@ export default {
         }
       }
     },
-    highlight(commit) {
+    highlight(commit: Commit) {
       if (!this.hoverActivated) return;
       const indexSelected = this.commits.findIndex((x) => x.selected);
       const indexCurrentElem = this.commits.findIndex((x) => x.id === commit.id);
@@ -95,7 +112,7 @@ export default {
       }
     },
     /** Focus given element */
-    focusElem(elem, prevElem) {
+    focusElem(elem: HTMLElement, prevElem: HTMLElement) {
       if (elem) {
         elem.tabIndex = 0;
         if (prevElem) prevElem.tabIndex = -1;
@@ -118,16 +135,17 @@ export default {
       // set correct tabindex to allow easier navigation
       this.$nextTick(() => {
         if (this.menuVisible) {
-          this.focusElem(this.$refs.showAllChanges, this.$refs.expandBtn);
+          this.focusElem(this.$refs.showAllChanges as HTMLElement, this.$refs.expandBtn as HTMLElement);
         } else {
-          this.focusElem(this.$refs.expandBtn, this.$refs.showAllChanges);
+          this.focusElem(this.$refs.expandBtn as HTMLElement, this.$refs.showAllChanges as HTMLElement);
         }
       });
     },
+
     /** Load the commits to show in this dropdown */
     async fetchCommits() {
       const resp = await GET(`${this.issueLink}/commits/list`);
-      const results = await resp.json();
+      const results = await resp.json() as CommitListResult;
       this.commits.push(...results.commits.map((x) => {
         x.hovered = false;
         return x;
@@ -142,19 +160,19 @@ export default {
       Object.assign(this.locale, results.locale);
     },
     showAllChanges() {
-      window.location = `${this.issueLink}/files${this.queryParams}`;
+      window.location.assign(`${this.issueLink}/files${this.queryParams}`);
     },
     /** Called when user clicks on since last review */
     changesSinceLastReviewClick() {
-      window.location = `${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1).id}${this.queryParams}`;
+      window.location.assign(`${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1).id}${this.queryParams}`);
     },
     /** Clicking on a single commit opens this specific commit */
-    commitClicked(commitId, newWindow = false) {
+    commitClicked(commitId: string, newWindow = false) {
       const url = `${this.issueLink}/commits/${commitId}${this.queryParams}`;
       if (newWindow) {
         window.open(url);
       } else {
-        window.location = url;
+        window.location.assign(url);
       }
     },
     /**
@@ -165,7 +183,7 @@ export default {
      * the diff from beginning of PR up to the second clicked commit is
      * opened
      */
-    commitClickedShift(commit) {
+    commitClickedShift(commit: Commit) {
       this.hoverActivated = !this.hoverActivated;
       commit.selected = true;
       // Second click -> determine our range and open links accordingly
@@ -176,25 +194,25 @@ export default {
           const lastCommitIdx = this.commits.findLastIndex((x) => x.selected);
           if (lastCommitIdx === this.commits.length - 1) {
             // user selected all commits - just show the normal diff page
-            window.location = `${this.issueLink}/files${this.queryParams}`;
+            window.location.assign(`${this.issueLink}/files${this.queryParams}`);
           } else {
-            window.location = `${this.issueLink}/files/${this.commits[lastCommitIdx].id}${this.queryParams}`;
+            window.location.assign(`${this.issueLink}/files/${this.commits[lastCommitIdx].id}${this.queryParams}`);
           }
         } else {
           const start = this.commits[this.commits.findIndex((x) => x.selected) - 1].id;
           const end = this.commits.findLast((x) => x.selected).id;
-          window.location = `${this.issueLink}/files/${start}..${end}${this.queryParams}`;
+          window.location.assign(`${this.issueLink}/files/${start}..${end}${this.queryParams}`);
         }
       }
     },
   },
-};
+});
 </script>
 <template>
   <div class="ui scrolling dropdown custom diff-commit-selector">
     <button
       ref="expandBtn"
-      class="ui basic button"
+      class="ui tiny basic button"
       @click.stop="toggleMenu()"
       :data-tooltip-content="locale.filter_changes_by_commit"
       aria-haspopup="true"

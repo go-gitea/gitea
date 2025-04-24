@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -25,6 +26,7 @@ type IndexerData struct {
 	// Fields used for filtering
 	IsPull             bool               `json:"is_pull"`
 	IsClosed           bool               `json:"is_closed"`
+	IsArchived         bool               `json:"is_archived"`
 	LabelIDs           []int64            `json:"label_ids"`
 	NoLabel            bool               `json:"no_label"` // True if LabelIDs is empty
 	MilestoneID        int64              `json:"milestone_id"`
@@ -76,13 +78,14 @@ type SearchResult struct {
 type SearchOptions struct {
 	Keyword string // keyword to search
 
-	IsFuzzyKeyword bool // if false the levenshtein distance is 0
+	SearchMode indexer.SearchModeType
 
 	RepoIDs   []int64 // repository IDs which the issues belong to
 	AllPublic bool    // if include all public repositories
 
-	IsPull   optional.Option[bool] // if the issues is a pull request
-	IsClosed optional.Option[bool] // if the issues is closed
+	IsPull     optional.Option[bool] // if the issues is a pull request
+	IsClosed   optional.Option[bool] // if the issues is closed
+	IsArchived optional.Option[bool] // if the repo is archived
 
 	IncludedLabelIDs    []int64 // labels the issues have
 	ExcludedLabelIDs    []int64 // labels the issues don't have
@@ -94,9 +97,8 @@ type SearchOptions struct {
 	ProjectID       optional.Option[int64] // project the issues belong to
 	ProjectColumnID optional.Option[int64] // project column the issues belong to
 
-	PosterID optional.Option[int64] // poster of the issues
-
-	AssigneeID optional.Option[int64] // assignee of the issues, zero means no assignee
+	PosterID   string // poster of the issues, "(none)" or "(any)" or a user ID
+	AssigneeID string // assignee of the issues, "(none)" or "(any)" or a user ID
 
 	MentionID optional.Option[int64] // mentioned user of the issues
 

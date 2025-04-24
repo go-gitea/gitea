@@ -90,6 +90,8 @@ type swaggerParameterBodies struct {
 	// in:body
 	EditRepoOption api.EditRepoOption
 	// in:body
+	UpdateBranchRepoOption api.UpdateBranchRepoOption
+	// in:body
 	TransferRepoOption api.TransferRepoOption
 	// in:body
 	CreateForkOption api.CreateForkOption
@@ -115,6 +117,9 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	EditAttachmentOptions api.EditAttachmentOptions
+
+	// in:body
+	GetFilesOptions api.GetFilesOptions
 
 	// in:body
 	ChangeFilesOptions api.ChangeFilesOptions
@@ -145,6 +150,9 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	EditBranchProtectionOption api.EditBranchProtectionOption
+
+	// in:body
+	UpdateBranchProtectionPriories api.UpdateBranchProtectionPriories
 
 	// in:body
 	CreateOAuth2ApplicationOptions api.CreateOAuth2ApplicationOptions
@@ -204,5 +212,14 @@ type swaggerParameterBodies struct {
 	CreateVariableOption api.CreateVariableOption
 
 	// in:body
+	RenameOrgOption api.RenameOrgOption
+
+	// in:body
+	CreateActionWorkflowDispatch api.CreateActionWorkflowDispatch
+
+	// in:body
 	UpdateVariableOption api.UpdateVariableOption
+
+	// in:body
+	LockIssueOption api.LockIssueOption
 }
