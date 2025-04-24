@@ -77,11 +77,12 @@ func StartPullRequestCheckImmediately(ctx context.Context, pr *issues_model.Pull
 	AddPullRequestToCheckQueue(pr.ID)
 }
 
-// StartPullRequestCheckDelayable will delay the check if the pull request is not update recently.
-// The case is when the "base" branch gets updated, all PRs targeting that "base" branch needs to re-check whether they are mergeable.
+// StartPullRequestCheckDelayable will delay the check if the pull request was not updated recently.
+// When the "base" branch gets updated, all PRs targeting that "base" branch need to re-check whether
+// they are mergeable.
 // When there are too many stale PRs, each "base" branch update will consume a lot of system resources.
-// So we could delay the checks for PRs that are not updated recently, only mark their status as "checking",
-// then next time when these PRs are update or viewed, the real checks will run.
+// So we can delay the checks for PRs that were not updated recently, only mark their status as
+// "checking", and then next time when these PRs are updated or viewed, the real checks will run.
 func StartPullRequestCheckDelayable(ctx context.Context, pr *issues_model.PullRequest) {
 	if !markPullRequestStatusAsChecking(ctx, pr) {
 		return
