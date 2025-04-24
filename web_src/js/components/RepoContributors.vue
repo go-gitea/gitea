@@ -353,8 +353,8 @@ export default defineComponent({
       </div>
       <div>
         <!-- Contribution type -->
-        <div class="ui floating dropdown jump" id="repo-contributors">
-          <div class="ui basic compact button tw-mr-0">
+        <div class="ui floating dropdown jump flex-text-block" id="repo-contributors">
+          <div class="ui basic compact button">
             <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
             <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
