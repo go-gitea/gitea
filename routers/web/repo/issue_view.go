@@ -426,7 +426,7 @@ func ViewIssue(ctx *context.Context) {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
-	if !issue.PullRequest.IsChecking() && !setting.IsProd {
+	if issue.PullRequest != nil && !issue.PullRequest.IsChecking() && !setting.IsProd {
 		ctx.Data["PullMergeBoxReloadingInterval"] = 1 // in dev env, force using the reloading logic to make sure it won't break
 	}
 
@@ -870,7 +870,7 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		}
 	}
 
-	ctx.Data["PullMergeBoxReloadingInterval"] = util.Iif(issue.PullRequest.IsChecking(), 2000, 0)
+	ctx.Data["PullMergeBoxReloadingInterval"] = util.Iif(pull != nil && pull.IsChecking(), 2000, 0)
 	ctx.Data["CanWriteToHeadRepo"] = canWriteToHeadRepo
 	ctx.Data["ShowMergeInstructions"] = canWriteToHeadRepo
 	ctx.Data["AllowMerge"] = allowMerge

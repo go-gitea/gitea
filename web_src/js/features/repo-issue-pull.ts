@@ -108,18 +108,6 @@ export function initRepoPullMergeBox(el: HTMLElement) {
     if (timerId) return;
     setTimeout(reloadMergeBox, reloadingInterval);
   };
-  reloadMergeBox = async () => {
-    const resp = await GET(`${pullLink}/merge_box`);
-    stopReloading();
-    if (!resp.ok) {
-      startReloading();
-      return;
-    }
-    const respHtml = await resp.text();
-    const newElem = createElementFromHTML(respHtml);
-    executeScripts(newElem);
-    el.replaceWith(newElem);
-  };
   const onVisibilityChange = () => {
     if (document.hidden) {
       stopReloading();
@@ -127,6 +115,19 @@ export function initRepoPullMergeBox(el: HTMLElement) {
       startReloading();
     }
   };
+  reloadMergeBox = async () => {
+    const resp = await GET(`${pullLink}/merge_box`);
+    stopReloading();
+    if (!resp.ok) {
+      startReloading();
+      return;
+    }
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    const newElem = createElementFromHTML(await resp.text());
+    executeScripts(newElem);
+    el.replaceWith(newElem);
+  };
+
   document.addEventListener('visibilitychange', onVisibilityChange);
   startReloading();
 }
