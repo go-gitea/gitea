@@ -361,7 +361,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 
 // InitializePullRequests checks and tests untested patches of pull requests.
 func InitializePullRequests(ctx context.Context) {
-	// if we prefer to delay the checks, then no need to do any check during startup, there should be no much difference
+	// If we prefer to delay the checks, then no need to do any check during startup, there should be not much difference
 	if setting.Repository.PullRequest.DelayCheckForInactiveDays >= 0 {
 		return
 	}
