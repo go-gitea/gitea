@@ -556,7 +556,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(ctx, pr)
+		pull.StartPullRequestCheckImmediately(ctx, pr)
 	}
 	return nil
 }

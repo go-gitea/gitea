@@ -792,7 +792,7 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	allowMerge := false
 	canWriteToHeadRepo := false
 
-	pull_service.AddToTaskQueueOnView(ctx, pull)
+	pull_service.StartPullRequestCheckOnView(ctx, pull)
 
 	if ctx.IsSigned {
 		if err := pull.LoadHeadRepo(ctx); err != nil {

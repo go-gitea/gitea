@@ -191,10 +191,11 @@
 						</div>
 					{{end}}
 				{{end}}
+
 				{{template "repo/issue/view_content/update_branch_by_merge" $}}
+
 				{{if .Issue.PullRequest.IsEmpty}}
 					<div class="divider"></div>
-
 					<div class="item">
 						{{svg "octicon-alert"}}
 						{{ctx.Locale.Tr "repo.pulls.is_empty"}}
@@ -318,7 +319,7 @@
 				{{if .IsBlockedByApprovals}}
 					<div class="item text red">
 						{{svg "octicon-x"}}
-					{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item text red">

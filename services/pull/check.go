@@ -36,91 +36,74 @@ import (
 var prPatchCheckerQueue *queue.WorkerPoolQueue[string]
 
 var (
-	ErrIsClosed              = errors.New("pull is closed")
-	ErrUserNotAllowedToMerge = ErrDisallowedToMerge{}
-	ErrHasMerged             = errors.New("has already been merged")
-	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
-	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
-	ErrNotMergeableState     = errors.New("not in mergeable state")
-	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
+	ErrIsClosed            = errors.New("pull is closed")
+	ErrNoPermissionToMerge = errors.New("no permission to merge")
+	ErrNotReadyToMerge     = errors.New("not ready to merge")
+	ErrHasMerged           = errors.New("has already been merged")
+	ErrIsWorkInProgress    = errors.New("work in progress PRs cannot be merged")
+	ErrIsChecking          = errors.New("cannot merge while conflict checking is in progress")
+	ErrNotMergeableState   = errors.New("not in mergeable state")
+	ErrDependenciesLeft    = errors.New("is blocked by an open dependency")
 )
 
-// Change the pull request status to checking.
-func setStatusChecking(ctx context.Context, pr *issues_model.PullRequest) bool {
+func markPullRequestStatusAsChecking(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.Status = issues_model.PullRequestStatusChecking
 	err := pr.UpdateColsIfNotMerged(ctx, "status")
 	if err != nil {
-		log.Error("setStatusChecking(%-v).UpdateCols.(add to queue): %v", pr, err)
+		log.Error("UpdateColsIfNotMerged failed, pr: %-v, err: %v", pr, err)
 		return false
 	}
-	return true
+	pr, err = issues_model.GetPullRequestByID(ctx, pr.ID)
+	if err != nil {
+		log.Error("GetPullRequestByID failed, pr: %-v, err: %v", pr, err)
+		return false
+	}
+	return pr.Status == issues_model.PullRequestStatusChecking
 }
 
-// Add pull request in the actual queue.
-func addToTaskQueue(pr *issues_model.PullRequest) {
-	log.Trace("Adding %-v to the test pull requests queue", pr)
-	err := prPatchCheckerQueue.Push(strconv.FormatInt(pr.ID, 10))
-	if err != nil && err != queue.ErrAlreadyInQueue {
-		log.Error("Error adding %-v to the test pull requests queue: %v", pr, err)
+func addPullRequestToCheckQueue(prID int64) {
+	err := prPatchCheckerQueue.Push(strconv.FormatInt(prID, 10))
+	if err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
+		log.Error("Error adding %v to the pull requests check queue: %v", prID, err)
 	}
 }
 
-// Test if check should be delayed.
-func shouldDelayCheck(ctx context.Context, pr *issues_model.PullRequest) bool {
-	if setting.Repository.PullRequest.CheckOnlyLastUpdatedDays >= 0 {
+func StartPullRequestCheckImmediately(ctx context.Context, pr *issues_model.PullRequest) {
+	if !markPullRequestStatusAsChecking(ctx, pr) {
+		return
+	}
+	addPullRequestToCheckQueue(pr.ID)
+}
+
+// StartPullRequestCheckDelayable will delay the check if the pull request is not update recently.
+// The case is when the "base" branch gets updated, all PRs targeting that "base" branch needs to re-check whether they are mergeable.
+// When there are too many stale PRs, each "base" branch update will consume a lot of system resources.
+// So we could delay the checks for PRs that are not updated recently, only mark their status as "checking",
+// then next time when these PRs are update or viewed, the real checks will run.
+func StartPullRequestCheckDelayable(ctx context.Context, pr *issues_model.PullRequest) {
+	if !markPullRequestStatusAsChecking(ctx, pr) {
+		return
+	}
+
+	if setting.Repository.PullRequest.DelayCheckForInactiveDays >= 0 {
 		if err := pr.LoadIssue(ctx); err != nil {
-			return true
-		}
-		delay := time.Hour * 24 * time.Duration(setting.Repository.PullRequest.CheckOnlyLastUpdatedDays)
-		if pr.Issue.UpdatedUnix.AddDuration(delay) < timeutil.TimeStampNow() {
-			log.Trace("Delaying %-v patch checking because it was not updated recently", pr)
-			return true
-		}
-	}
-	return false
-}
-
-// When base branch is updated.
-func AddToTaskQueueOnBaseUpdate(ctx context.Context, pr *issues_model.PullRequest) {
-	if !setStatusChecking(ctx, pr) {
-		return
-	}
-	if shouldDelayCheck(ctx, pr) {
-		return
-	}
-	addToTaskQueue(pr)
-}
-
-// When pull request is viewed by a user or through the API.
-func AddToTaskQueueOnView(ctx context.Context, pr *issues_model.PullRequest) {
-	if setting.Repository.PullRequest.CheckOnlyLastUpdatedDays >= 0 &&
-		pr.Status == issues_model.PullRequestStatusChecking {
-		addToTaskQueue(pr)
-	}
-}
-
-// When Gitea restarts.
-func AddToTaskQueueOnInit(ctx context.Context, prID int64) {
-	if setting.Repository.PullRequest.CheckOnlyLastUpdatedDays >= 0 {
-		pr, err := issues_model.GetPullRequestByID(ctx, prID)
-		if err != nil {
 			return
 		}
-		if shouldDelayCheck(ctx, pr) {
+		duration := 24 * time.Hour * time.Duration(setting.Repository.PullRequest.DelayCheckForInactiveDays)
+		if pr.Issue.UpdatedUnix.AddDuration(duration) <= timeutil.TimeStampNow() {
 			return
 		}
 	}
 
-	log.Trace("Adding PR[%d] to the pull requests patch checking queue", prID)
-	if err := prPatchCheckerQueue.Push(strconv.FormatInt(prID, 10)); err != nil {
-		log.Error("Error adding PR[%d] to the pull requests patch checking queue %v", prID, err)
-	}
+	addPullRequestToCheckQueue(pr.ID)
 }
 
-// When pull request must be checked immediately without delay.
-func AddToTaskQueue(ctx context.Context, pr *issues_model.PullRequest) {
-	if setStatusChecking(ctx, pr) {
-		addToTaskQueue(pr)
+func StartPullRequestCheckOnView(_ context.Context, pr *issues_model.PullRequest) {
+	// TODO: its correctness totally depends on the "unique queue" feature.
+	// So duplicate "start" requests will be ignored if there is already a task in the queue
+	// Ideally in the future we should decouple the "unique queue" feature from the "start" request
+	if pr.Status == issues_model.PullRequestStatusChecking {
+		addPullRequestToCheckQueue(pr.ID)
 	}
 }
 
@@ -150,7 +133,7 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			log.Error("Error whilst checking if %-v is allowed to merge %-v: %v", doer, pr, err)
 			return err
 		} else if !allowedMerge {
-			return ErrUserNotAllowedToMerge
+			return ErrNoPermissionToMerge
 		}
 
 		if mergeCheckType == MergeCheckTypeManually {
@@ -171,7 +154,7 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 		}
 
 		if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
-			if !IsErrDisallowedToMerge(err) {
+			if !errors.Is(err, ErrNotReadyToMerge) {
 				log.Error("Error whilst checking pull branch protection for %-v: %v", pr, err)
 				return err
 			}
@@ -238,10 +221,10 @@ func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer 
 	return sign, err
 }
 
-// checkAndUpdateStatus checks if pull request is possible to leaving checking status,
+// markPullRequestAsMergeable checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
-func checkAndUpdateStatus(ctx context.Context, pr *issues_model.PullRequest) {
-	// If status has not been changed to conflict by testPatch then we are mergeable
+func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullRequest) {
+	// If status has not been changed to conflict by testPullRequestTmpRepoBranchMergeable then we are mergeable
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
@@ -376,6 +359,10 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 
 // InitializePullRequests checks and tests untested patches of pull requests.
 func InitializePullRequests(ctx context.Context) {
+	// if we prefer to delay the checks, then no need to do any check during startup, there should be no much difference
+	if setting.Repository.PullRequest.DelayCheckForInactiveDays >= 0 {
+		return
+	}
 	prs, err := issues_model.GetPullRequestIDsByCheckStatus(ctx, issues_model.PullRequestStatusChecking)
 	if err != nil {
 		log.Error("Find Checking PRs: %v", err)
@@ -386,21 +373,12 @@ func InitializePullRequests(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			AddToTaskQueueOnInit(ctx, prID)
+			addPullRequestToCheckQueue(prID)
 		}
 	}
 }
 
-// handle passed PR IDs and test the PRs
-func handler(items ...string) []string {
-	for _, s := range items {
-		id, _ := strconv.ParseInt(s, 10, 64)
-		testPR(id)
-	}
-	return nil
-}
-
-func testPR(id int64) {
+func checkPullRequestMergeable(id int64) {
 	ctx := graceful.GetManager().HammerContext()
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(id))
 	if err != nil {
@@ -414,7 +392,7 @@ func testPR(id int64) {
 
 	pr, err := issues_model.GetPullRequestByID(ctx, id)
 	if err != nil {
-		log.Error("Unable to GetPullRequestByID[%d] for testPR: %v", id, err)
+		log.Error("Unable to GetPullRequestByID[%d] for checkPullRequestMergeable: %v", id, err)
 		return
 	}
 
@@ -433,15 +411,15 @@ func testPR(id int64) {
 		return
 	}
 
-	if err := TestPatch(pr); err != nil {
-		log.Error("testPatch[%-v]: %v", pr, err)
+	if err := testPullRequestBranchMergeable(pr); err != nil {
+		log.Error("testPullRequestTmpRepoBranchMergeable[%-v]: %v", pr, err)
 		pr.Status = issues_model.PullRequestStatusError
 		if err := pr.UpdateCols(ctx, "status"); err != nil {
 			log.Error("update pr [%-v] status to PullRequestStatusError failed: %v", pr, err)
 		}
 		return
 	}
-	checkAndUpdateStatus(ctx, pr)
+	markPullRequestAsMergeable(ctx, pr)
 }
 
 // CheckPRsForBaseBranch check all pulls with baseBrannch
@@ -450,17 +428,21 @@ func CheckPRsForBaseBranch(ctx context.Context, baseRepo *repo_model.Repository,
 	if err != nil {
 		return err
 	}
-
 	for _, pr := range prs {
-		AddToTaskQueue(ctx, pr)
+		StartPullRequestCheckImmediately(ctx, pr)
 	}
-
 	return nil
 }
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
-	prPatchCheckerQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_patch_checker", handler)
+	prPatchCheckerQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_patch_checker", func(items ...string) []string {
+		for _, s := range items {
+			id, _ := strconv.ParseInt(s, 10, 64)
+			checkPullRequestMergeable(id)
+		}
+		return nil
+	})
 
 	if prPatchCheckerQueue == nil {
 		return errors.New("unable to create pr_patch_checker queue")
