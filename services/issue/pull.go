@@ -145,6 +145,9 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return nil, err
 			}
+			if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
+				continue
+			}
 			notifiers = append(notifiers, &ReviewRequestNotifier{
 				Comment:  comment,
 				IsAdd:    true,
@@ -157,6 +160,9 @@ func PullRequestCodeOwnersReviewSpecialCommits(ctx context.Context, pr *issues_m
 		if err != nil {
 			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 			return nil, err
+		}
+		if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
+			continue
 		}
 		notifiers = append(notifiers, &ReviewRequestNotifier{
 			Comment:    comment,
