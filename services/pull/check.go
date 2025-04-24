@@ -101,12 +101,17 @@ func StartPullRequestCheckDelayable(ctx context.Context, pr *issues_model.PullRe
 	AddPullRequestToCheckQueue(pr.ID)
 }
 
-func StartPullRequestCheckOnView(_ context.Context, pr *issues_model.PullRequest) {
-	// TODO: its correctness totally depends on the "unique queue" feature.
-	// So duplicate "start" requests will be ignored if there is already a task in the queue
-	// Ideally in the future we should decouple the "unique queue" feature from the "start" request
+func StartPullRequestCheckOnView(ctx context.Context, pr *issues_model.PullRequest) {
+	// TODO: its correctness totally depends on the "unique queue" feature and the global lock.
+	// So duplicate "start" requests will be ignored if there is already a task in the queue or one is running.
+	// Ideally in the future we should decouple the "unique queue" feature from the "start" request.
 	if pr.Status == issues_model.PullRequestStatusChecking {
-		AddPullRequestToCheckQueue(pr.ID)
+		// When a PR check starts, the task is popped from the queue and the task handler acquires the global lock
+		// So we need to acquire the global lock here to prevent from duplicate tasks
+		_, _ = globallock.TryLockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
+			AddPullRequestToCheckQueue(pr.ID) // the queue is a unique queue and won't add the same task again
+			return nil
+		})
 	}
 }
 
