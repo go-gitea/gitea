@@ -102,7 +102,7 @@
     "material-icon-theme": "5.21.1",
     "nolyfill": "1.0.44",
     "postcss-html": "1.8.0",
-    "stylelint": "16.18.0",
+    "stylelint": "16.19.0",
     "stylelint-config-recommended": "16.0.0",
     "stylelint-declaration-block-no-ignored-properties": "2.8.0",
     "stylelint-declaration-strict-value": "1.10.11",
