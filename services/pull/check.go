@@ -61,7 +61,9 @@ func markPullRequestStatusAsChecking(ctx context.Context, pr *issues_model.PullR
 	return pr.Status == issues_model.PullRequestStatusChecking
 }
 
-func addPullRequestToCheckQueue(prID int64) {
+var AddPullRequestToCheckQueue = realAddPullRequestToCheckQueue
+
+func realAddPullRequestToCheckQueue(prID int64) {
 	err := prPatchCheckerQueue.Push(strconv.FormatInt(prID, 10))
 	if err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
 		log.Error("Error adding %v to the pull requests check queue: %v", prID, err)
@@ -72,7 +74,7 @@ func StartPullRequestCheckImmediately(ctx context.Context, pr *issues_model.Pull
 	if !markPullRequestStatusAsChecking(ctx, pr) {
 		return
 	}
-	addPullRequestToCheckQueue(pr.ID)
+	AddPullRequestToCheckQueue(pr.ID)
 }
 
 // StartPullRequestCheckDelayable will delay the check if the pull request is not update recently.
@@ -95,7 +97,7 @@ func StartPullRequestCheckDelayable(ctx context.Context, pr *issues_model.PullRe
 		}
 	}
 
-	addPullRequestToCheckQueue(pr.ID)
+	AddPullRequestToCheckQueue(pr.ID)
 }
 
 func StartPullRequestCheckOnView(_ context.Context, pr *issues_model.PullRequest) {
@@ -103,7 +105,7 @@ func StartPullRequestCheckOnView(_ context.Context, pr *issues_model.PullRequest
 	// So duplicate "start" requests will be ignored if there is already a task in the queue
 	// Ideally in the future we should decouple the "unique queue" feature from the "start" request
 	if pr.Status == issues_model.PullRequestStatusChecking {
-		addPullRequestToCheckQueue(pr.ID)
+		AddPullRequestToCheckQueue(pr.ID)
 	}
 }
 
@@ -373,7 +375,7 @@ func InitializePullRequests(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			addPullRequestToCheckQueue(prID)
+			AddPullRequestToCheckQueue(prID)
 		}
 	}
 }
