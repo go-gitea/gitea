@@ -1663,6 +1663,7 @@ func Routes() *web.Router {
 
 		m.Group("/admin", func() {
 			m.Group("/identity-auth", func() {
+				m.Get("", admin.SearchAuth)
 				m.Group("/oauth", func() {
 					m.Get("", admin.SearchOauthAuth)
 					m.Put("", bind(api.CreateAuthOauth2Option{}), admin.CreateOauthAuth)
