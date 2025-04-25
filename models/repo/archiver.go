@@ -50,22 +50,17 @@ func (archiver *RepoArchiver) RelativePath() string {
 func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
 	parts := strings.SplitN(relativePath, "/", 3)
 	if len(parts) != 3 {
-		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+		return nil, util.NewInvalidArgumentErrorf("invalid storage path: must have 3 parts")
 	}
 	repoID, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+		return nil, util.NewInvalidArgumentErrorf("invalid storage path: invalid repo id")
 	}
-	nameExts := strings.SplitN(parts[2], ".", 2)
-	if len(nameExts) != 2 {
-		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+	commitID, archiveType := git.SplitArchiveNameType(parts[2])
+	if archiveType == git.ArchiveUnknown {
+		return nil, util.NewInvalidArgumentErrorf("invalid storage path: invalid archive type")
 	}
-
-	return &RepoArchiver{
-		RepoID:   repoID,
-		CommitID: parts[1] + nameExts[0],
-		Type:     git.ToArchiveType(nameExts[1]),
-	}, nil
+	return &RepoArchiver{RepoID: repoID, CommitID: commitID, Type: archiveType}, nil
 }
 
 // GetRepoArchiver get an archiver

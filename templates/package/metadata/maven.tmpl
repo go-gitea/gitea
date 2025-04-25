@@ -1,5 +1,8 @@
-{{if eq .PackageDescriptor.Package.Type "maven"}}
-	{{if .PackageDescriptor.Metadata.Name}}<div class="item">{{svg "octicon-note" 16 "tw-mr-2"}} {{.PackageDescriptor.Metadata.Name}}</div>{{end}}
-	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external" 16 "tw-mr-2"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
-	{{range .PackageDescriptor.Metadata.Licenses}}<div class="item" title="{{ctx.Locale.Tr "packages.details.license"}}">{{svg "octicon-law" 16 "tw-mr-2"}} {{.}}</div>{{end}}
+{{if and (eq .PackageDescriptor.Package.Type "maven") (not .PackageDescriptor.Metadata)}}
+	<div class="item">{{svg "octicon-note"}} {{ctx.Locale.Tr "packages.no_metadata"}}</div>
+{{end}}
+{{if and (eq .PackageDescriptor.Package.Type "maven") .PackageDescriptor.Metadata}}
+	{{if .PackageDescriptor.Metadata.Name}}<div class="item">{{svg "octicon-note"}} {{.PackageDescriptor.Metadata.Name}}</div>{{end}}
+	{{if .PackageDescriptor.Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external"}} <a href="{{.PackageDescriptor.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{ctx.Locale.Tr "packages.details.project_site"}}</a></div>{{end}}
+	{{range .PackageDescriptor.Metadata.Licenses}}<div class="item" title="{{ctx.Locale.Tr "packages.details.license"}}">{{svg "octicon-law"}} {{.}}</div>{{end}}
 {{end}}

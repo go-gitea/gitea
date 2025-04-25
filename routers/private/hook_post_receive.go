@@ -4,6 +4,7 @@
 package private
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -12,12 +13,15 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cachegroup"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	gitea_context "code.gitea.io/gitea/services/context"
@@ -35,8 +39,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	// b) our update function will likely change the repository in the db so we will need to refresh it
 	// c) we don't always need the repo
 
-	ownerName := ctx.Params(":owner")
-	repoName := ctx.Params(":repo")
+	ownerName := ctx.PathParam("owner")
+	repoName := ctx.PathParam("repo")
 
 	// defer getting the repository at this point - as we should only retrieve it if we're going to call update
 	var (
@@ -117,16 +121,14 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 		}
 		if len(branchesToSync) > 0 {
-			if gitRepo == nil {
-				var err error
-				gitRepo, err = gitrepo.OpenRepository(ctx, repo)
-				if err != nil {
-					log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
-					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-						Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
-					})
-					return
-				}
+			var err error
+			gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+			if err != nil {
+				log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
+				})
+				return
 			}
 
 			var (
@@ -160,6 +162,14 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
+	// handle pull request merging, a pull request action should push at least 1 commit
+	if opts.PushTrigger == repo_module.PushTriggerPRMergeToBase {
+		handlePullRequestMerging(ctx, opts, ownerName, repoName, updates)
+		if ctx.Written() {
+			return
+		}
+	}
+
 	isPrivate := opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate)
 	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 	// Handle Push Options
@@ -174,7 +184,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			wasEmpty = repo.IsEmpty
 		}
 
-		pusher, err := user_model.GetUserByID(ctx, opts.UserID)
+		pusher, err := loadContextCacheUser(ctx, opts.UserID)
 		if err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
@@ -197,7 +207,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 
-		cols := make([]string, 0, len(opts.GitPushOptions))
+		cols := make([]string, 0, 2)
 
 		if isPrivate.Has() {
 			repo.IsPrivate = isPrivate.Value()
@@ -267,10 +277,19 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 			branch := refFullName.BranchName()
 
-			// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
-			if !repo.IsFork && branch == baseRepo.DefaultBranch {
-				results = append(results, private.HookPostReceiveBranchResult{})
-				continue
+			if branch == baseRepo.DefaultBranch {
+				if err := repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
+					RepoID: repo.ID,
+				}); err != nil {
+					ctx.JSON(http.StatusInternalServerError, private.Response{Err: err.Error()})
+					return
+				}
+
+				// If our branch is the default branch of an unforked repo - there's no PR to create or refer to
+				if !repo.IsFork {
+					results = append(results, private.HookPostReceiveBranchResult{})
+					continue
+				}
 			}
 
 			pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)
@@ -285,14 +304,11 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 
 			if pr == nil {
-				if repo.IsFork {
-					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
-				}
 				results = append(results, private.HookPostReceiveBranchResult{
 					Message: setting.Git.PullRequestPushMessage && baseRepo.AllowsPulls(ctx),
 					Create:  true,
 					Branch:  branch,
-					URL:     fmt.Sprintf("%s/compare/%s...%s", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch)),
+					URL:     fmt.Sprintf("%s/pulls/new/%s", repo.HTMLURL(), util.PathEscapeSegments(branch)),
 				})
 			} else {
 				results = append(results, private.HookPostReceiveBranchResult{
@@ -308,4 +324,39 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		Results:      results,
 		RepoWasEmpty: wasEmpty,
 	})
+}
+
+func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, error) {
+	return cache.GetWithContextCache(ctx, cachegroup.User, id, user_model.GetUserByID)
+}
+
+// handlePullRequestMerging handle pull request merging, a pull request action should push at least 1 commit
+func handlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.HookOptions, ownerName, repoName string, updates []*repo_module.PushUpdateOptions) {
+	if len(updates) == 0 {
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+			Err: fmt.Sprintf("Pushing a merged PR (pr:%d) no commits pushed ", opts.PullRequestID),
+		})
+		return
+	}
+
+	pr, err := issues_model.GetPullRequestByID(ctx, opts.PullRequestID)
+	if err != nil {
+		log.Error("GetPullRequestByID[%d]: %v", opts.PullRequestID, err)
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "GetPullRequestByID failed"})
+		return
+	}
+
+	pusher, err := loadContextCacheUser(ctx, opts.UserID)
+	if err != nil {
+		log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Load pusher user failed"})
+		return
+	}
+
+	// FIXME: Maybe we need a `PullRequestStatusMerged` status for PRs that are merged, currently we use the previous status
+	// here to keep it as before, that maybe PullRequestStatusMergeable
+	if _, err := pull_service.SetMerged(ctx, pr, updates[len(updates)-1].NewCommitID, timeutil.TimeStampNow(), pusher, pr.Status); err != nil {
+		log.Error("Failed to update PR to merged: %v", err)
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{Err: "Failed to update PR to merged"})
+	}
 }

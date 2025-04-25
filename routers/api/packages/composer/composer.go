@@ -134,8 +134,8 @@ func EnumeratePackages(ctx *context.Context) {
 // PackageMetadata returns the metadata for a single package
 // https://packagist.org/apidoc#get-package-data
 func PackageMetadata(ctx *context.Context) {
-	vendorName := ctx.Params("vendorname")
-	projectName := ctx.Params("projectname")
+	vendorName := ctx.PathParam("vendorname")
+	projectName := ctx.PathParam("projectname")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer, vendorName+"/"+projectName)
 	if err != nil {
@@ -168,15 +168,15 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeComposer,
-			Name:        ctx.Params("package"),
-			Version:     ctx.Params("version"),
+			Name:        ctx.PathParam("package"),
+			Version:     ctx.PathParam("version"),
 		},
 		&packages_service.PackageFileInfo{
-			Filename: ctx.Params("filename"),
+			Filename: ctx.PathParam("filename"),
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

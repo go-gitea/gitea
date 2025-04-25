@@ -134,12 +134,6 @@ h4.ui.header .sub.header {
   font-weight: var(--font-weight-normal);
 }
 
-/* open dropdown menus to the left in right-attached headers */
-.ui.attached.header > .ui.right .ui.dropdown .menu {
-  right: 0;
-  left: auto;
-}
-
 /* if a .top.attached.header is followed by a .segment, add some margin */
 .ui.segments + .ui.top.attached.header,
 .ui.attached.segment + .ui.top.attached.header {

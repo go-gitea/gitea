@@ -5,6 +5,7 @@ package user
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -13,14 +14,16 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
+	arch_module "code.gitea.io/gitea/modules/packages/arch"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
@@ -31,15 +34,18 @@ import (
 )
 
 const (
-	tplPackagesList       base.TplName = "user/overview/packages"
-	tplPackagesView       base.TplName = "package/view"
-	tplPackageVersionList base.TplName = "user/overview/package_versions"
-	tplPackagesSettings   base.TplName = "package/settings"
+	tplPackagesList       templates.TplName = "user/overview/packages"
+	tplPackagesView       templates.TplName = "package/view"
+	tplPackageVersionList templates.TplName = "user/overview/package_versions"
+	tplPackagesSettings   templates.TplName = "package/settings"
 )
 
 // ListPackages displays a list of all packages of the context user
 func ListPackages(ctx *context.Context) {
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -91,8 +97,6 @@ func ListPackages(ctx *context.Context) {
 		return
 	}
 
-	shared_user.RenderUserHeader(ctx)
-
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["Query"] = query
@@ -103,9 +107,8 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -123,21 +126,18 @@ func ListPackages(ctx *context.Context) {
 			ctx.Data["IsOrganizationOwner"] = false
 		}
 	}
-
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamString("q", query)
-	pager.AddParamString("type", packageType)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
-
 	ctx.HTML(http.StatusOK, tplPackagesList)
 }
 
 // RedirectToLastVersion redirects to the latest package version
 func RedirectToLastVersion(ctx *context.Context) {
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
-			ctx.NotFound("GetPackageByName", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetPackageByName", err)
 		}
@@ -153,7 +153,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 		return
 	}
 	if len(pvs) == 0 {
-		ctx.NotFound("", err)
+		ctx.NotFound(err)
 		return
 	}
 
@@ -162,23 +162,28 @@ func RedirectToLastVersion(ctx *context.Context) {
 		ctx.ServerError("GetPackageDescriptor", err)
 		return
 	}
-
 	ctx.Redirect(pd.VersionWebLink())
 }
 
 // ViewPackageVersion displays a single package version
 func ViewPackageVersion(ctx *context.Context) {
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+
 	pd := ctx.Package.Descriptor
-
-	shared_user.RenderUserHeader(ctx)
-
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
+	registryHostURL, err := url.Parse(httplib.GuessCurrentHostURL(ctx))
+	if err != nil {
+		registryHostURL, _ = url.Parse(setting.AppURL)
+	}
+	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
+
 	switch pd.Package.Type {
-	case packages_model.TypeContainer:
-		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
 		repositories := make(container.Set[string])
@@ -198,6 +203,23 @@ func ViewPackageVersion(ctx *context.Context) {
 		}
 
 		ctx.Data["Branches"] = util.Sorted(branches.Values())
+		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
+		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
+	case packages_model.TypeArch:
+		repositories := make(container.Set[string])
+		architectures := make(container.Set[string])
+
+		for _, f := range pd.Files {
+			for _, pp := range f.Properties {
+				switch pp.Name {
+				case arch_module.PropertyRepository:
+					repositories.Add(pp.Value)
+				case arch_module.PropertyArchitecture:
+					architectures.Add(pp.Value)
+				}
+			}
+		}
+
 		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
 		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	case packages_model.TypeDebian:
@@ -243,7 +265,6 @@ func ViewPackageVersion(ctx *context.Context) {
 	var (
 		total int64
 		pvs   []*packages_model.PackageVersion
-		err   error
 	)
 	switch pd.Package.Type {
 	case packages_model.TypeContainer:
@@ -279,23 +300,20 @@ func ViewPackageVersion(ctx *context.Context) {
 		hasRepositoryAccess = permission.HasAnyUnitAccess()
 	}
 	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
-
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
 
 // ListPackageVersions lists all versions of a package
 func ListPackageVersions(ctx *context.Context) {
-	shared_user.PrepareContextForProfileBigAvatar(ctx)
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
+
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
-			ctx.NotFound("GetPackageByName", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetPackageByName", err)
 		}
@@ -314,8 +332,6 @@ func ListPackageVersions(ctx *context.Context) {
 	query := ctx.FormTrim("q")
 	sort := ctx.FormTrim("sort")
 
-	shared_user.RenderUserHeader(ctx)
-
 	ctx.Data["Title"] = ctx.Tr("packages.title")
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = &packages_model.PackageDescriptor{
@@ -325,11 +341,6 @@ func ListPackageVersions(ctx *context.Context) {
 	ctx.Data["Query"] = query
 	ctx.Data["Sort"] = sort
 
-	pagerParams := map[string]string{
-		"q":    query,
-		"sort": sort,
-	}
-
 	var (
 		total int64
 		pvs   []*packages_model.PackageVersion
@@ -338,7 +349,6 @@ func ListPackageVersions(ctx *context.Context) {
 	case packages_model.TypeContainer:
 		tagged := ctx.FormTrim("tagged")
 
-		pagerParams["tagged"] = tagged
 		ctx.Data["Tagged"] = tagged
 
 		pvs, total, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
@@ -377,16 +387,8 @@ func ListPackageVersions(ctx *context.Context) {
 
 	ctx.Data["Total"] = total
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	for k, v := range pagerParams {
-		pager.AddParamString(k, v)
-	}
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackageVersionList)
@@ -396,7 +398,10 @@ func ListPackageVersions(ctx *context.Context) {
 func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
 
-	shared_user.RenderUserHeader(ctx)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
+		return
+	}
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
@@ -408,12 +413,6 @@ func PackageSettings(ctx *context.Context) {
 	})
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
-
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
@@ -479,10 +478,10 @@ func PackageSettingsPost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.ParamsInt64(":fileid"))
+	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64("fileid"))
 	if err != nil {
 		if err == packages_model.ErrPackageFileNotExist {
-			ctx.NotFound("", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetFileForVersionByID", err)
 		}

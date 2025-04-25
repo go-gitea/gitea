@@ -8,16 +8,16 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -30,13 +30,13 @@ import (
 
 const (
 	// tplSettingsOptions template path for render settings
-	tplSettingsOptions base.TplName = "org/settings/options"
+	tplSettingsOptions templates.TplName = "org/settings/options"
 	// tplSettingsDelete template path for render delete repository
-	tplSettingsDelete base.TplName = "org/settings/delete"
+	tplSettingsDelete templates.TplName = "org/settings/delete"
 	// tplSettingsHooks template path for render hook settings
-	tplSettingsHooks base.TplName = "org/settings/hooks"
+	tplSettingsHooks templates.TplName = "org/settings/hooks"
 	// tplSettingsLabels template path for render labels settings
-	tplSettingsLabels base.TplName = "org/settings/labels"
+	tplSettingsLabels templates.TplName = "org/settings/labels"
 )
 
 // Settings render the main settings page
@@ -48,9 +48,8 @@ func Settings(ctx *context.Context) {
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -170,7 +169,7 @@ func SettingsDelete(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsDelete"] = true
 
-	if ctx.Req.Method == "POST" {
+	if ctx.Req.Method == http.MethodPost {
 		if ctx.Org.Organization.Name != ctx.FormString("org_name") {
 			ctx.Data["Err_OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_org_name"), tplSettingsDelete, nil)
@@ -178,10 +177,10 @@ func SettingsDelete(ctx *context.Context) {
 		}
 
 		if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false); err != nil {
-			if models.IsErrUserOwnRepos(err) {
+			if repo_model.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
-			} else if models.IsErrUserOwnPackages(err) {
+			} else if packages_model.IsErrUserOwnPackages(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_packages"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
 			} else {
@@ -194,9 +193,8 @@ func SettingsDelete(ctx *context.Context) {
 		return
 	}
 
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -218,9 +216,8 @@ func Webhooks(ctx *context.Context) {
 		return
 	}
 
-	err = shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -246,9 +243,8 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["LabelTemplateFiles"] = repo_module.LabelTemplateFiles
 
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
+	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 

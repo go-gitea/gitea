@@ -11,12 +11,13 @@ import (
 	"strings"
 
 	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
@@ -25,8 +26,8 @@ import (
 )
 
 const (
-	tplConfig         base.TplName = "admin/config"
-	tplConfigSettings base.TplName = "admin/config_settings"
+	tplConfig         templates.TplName = "admin/config"
+	tplConfigSettings templates.TplName = "admin/config_settings"
 )
 
 // SendTestMail send test mail to confirm mail service is OK
@@ -39,7 +40,23 @@ func SendTestMail(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("admin.config.test_mail_sent", email))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/admin/config")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/config")
+}
+
+// TestCache test the cache settings
+func TestCache(ctx *context.Context) {
+	elapsed, err := cache.Test()
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.config.cache_test_failed", err))
+	} else {
+		if elapsed > cache.SlowCacheThreshold {
+			ctx.Flash.Warning(ctx.Tr("admin.config.cache_test_slow", elapsed))
+		} else {
+			ctx.Flash.Info(ctx.Tr("admin.config.cache_test_succeeded", elapsed))
+		}
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/-/admin/config")
 }
 
 func shadowPasswordKV(cfgItem, splitter string) string {
@@ -112,7 +129,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
-	ctx.Data["GitVersion"] = git.VersionInfo()
+	ctx.Data["GitVersion"] = git.DefaultFeatures().VersionInfo()
 
 	ctx.Data["AppDataPath"] = setting.AppDataPath
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
@@ -183,7 +200,7 @@ func ChangeConfig(ctx *context.Context) {
 	value := ctx.FormString("value")
 	cfg := setting.Config()
 
-	marshalBool := func(v string) (string, error) {
+	marshalBool := func(v string) (string, error) { //nolint:unparam
 		if b, _ := strconv.ParseBool(v); b {
 			return "true", nil
 		}

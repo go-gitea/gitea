@@ -4,106 +4,58 @@
 package pwn
 
 import (
-	"math/rand"
+	"errors"
+	"io"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var client = New(WithHTTP(&http.Client{
-	Timeout: time.Second * 2,
-}))
+type mockTransport struct{}
 
-func TestMain(m *testing.M) {
-	rand.Seed(time.Now().Unix())
-	os.Exit(m.Run())
+func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Host != "api.pwnedpasswords.com" {
+		return nil, errors.New("unsupported host")
+	}
+	respMap := map[string]string{
+		"/range/5c1d8": "EAF2F254732680E8AC339B84F3266ECCBB5:1\r\nFC446EB88938834178CB9322C1EE273C2A7:2",
+		"/range/ba189": "FD4CB34F0378BCB15D23F6FFD28F0775C9E:3\r\nFDF342FCD8C3611DAE4D76E8A992A3E4169:4",
+		"/range/a1733": "C4CE0F1F0062B27B9E2F41AF0C08218017C:1\r\nFC446EB88938834178CB9322C1EE273C2A7:2\r\nFE81480327C992FE62065A827429DD1318B:0",
+		"/range/5617b": "FD4CB34F0378BCB15D23F6FFD28F0775C9E:3\r\nFDF342FCD8C3611DAE4D76E8A992A3E4169:4\r\nFE81480327C992FE62065A827429DD1318B:0",
+		"/range/79082": "FDF342FCD8C3611DAE4D76E8A992A3E4169:4\r\nFE81480327C992FE62065A827429DD1318B:0\r\nAFEF386F56EB0B4BE314E07696E5E6E6536:0",
+	}
+	if resp, ok := respMap[req.URL.Path]; ok {
+		return &http.Response{Request: req, Body: io.NopCloser(strings.NewReader(resp))}, nil
+	}
+	return nil, errors.New("unsupported path")
 }
 
 func TestPassword(t *testing.T) {
-	// Check input error
-	_, err := client.CheckPassword("", false)
+	client := New(WithHTTP(&http.Client{Transport: mockTransport{}}))
+
+	count, err := client.CheckPassword("", false)
 	assert.ErrorIs(t, err, ErrEmptyPassword, "blank input should return ErrEmptyPassword")
+	assert.Equal(t, -1, count)
 
-	// Should fail
-	fail := "password1234"
-	count, err := client.CheckPassword(fail, false)
-	assert.NotEmpty(t, count, "%s should fail as a password", fail)
+	count, err = client.CheckPassword("pwned", false)
 	assert.NoError(t, err)
+	assert.Equal(t, 1, count)
 
-	// Should fail (with padding)
-	failPad := "administrator"
-	count, err = client.CheckPassword(failPad, true)
-	assert.NotEmpty(t, count, "%s should fail as a password", failPad)
+	count, err = client.CheckPassword("notpwned", false)
 	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 
-	// Checking for a "good" password isn't going to be perfect, but we can give it a good try
-	// with hopefully minimal error. Try five times?
-	assert.Condition(t, func() bool {
-		for i := 0; i <= 5; i++ {
-			count, err = client.CheckPassword(testPassword(), false)
-			assert.NoError(t, err)
-			if count == 0 {
-				return true
-			}
-		}
-		return false
-	}, "no generated passwords passed. there is a chance this is a fluke")
+	count, err = client.CheckPassword("paddedpwned", true)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, count)
 
-	// Again, but with padded responses
-	assert.Condition(t, func() bool {
-		for i := 0; i <= 5; i++ {
-			count, err = client.CheckPassword(testPassword(), true)
-			assert.NoError(t, err)
-			if count == 0 {
-				return true
-			}
-		}
-		return false
-	}, "no generated passwords passed. there is a chance this is a fluke")
-}
+	count, err = client.CheckPassword("paddednotpwned", true)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 
-// Credit to https://golangbyexample.com/generate-random-password-golang/
-// DO NOT USE THIS FOR AN ACTUAL PASSWORD GENERATOR
-var (
-	lowerCharSet   = "abcdedfghijklmnopqrst"
-	upperCharSet   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	specialCharSet = "!@#$%&*"
-	numberSet      = "0123456789"
-	allCharSet     = lowerCharSet + upperCharSet + specialCharSet + numberSet
-)
-
-func testPassword() string {
-	var password strings.Builder
-
-	// Set special character
-	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(specialCharSet))
-		password.WriteString(string(specialCharSet[random]))
-	}
-
-	// Set numeric
-	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(numberSet))
-		password.WriteString(string(numberSet[random]))
-	}
-
-	// Set uppercase
-	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(upperCharSet))
-		password.WriteString(string(upperCharSet[random]))
-	}
-
-	for i := 0; i < 5; i++ {
-		random := rand.Intn(len(allCharSet))
-		password.WriteString(string(allCharSet[random]))
-	}
-	inRune := []rune(password.String())
-	rand.Shuffle(len(inRune), func(i, j int) {
-		inRune[i], inRune[j] = inRune[j], inRune[i]
-	})
-	return string(inRune)
+	count, err = client.CheckPassword("paddednotpwnedzero", true)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 }

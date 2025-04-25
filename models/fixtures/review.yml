@@ -4,6 +4,7 @@
   reviewer_id: 1
   issue_id: 2
   content: "Demo Review"
+  original_author_id: 0
   updated_unix: 946684810
   created_unix: 946684810
 -
@@ -12,6 +13,7 @@
   reviewer_id: 534543
   issue_id: 534543
   content: "Invalid Review #1"
+  original_author_id: 0
   updated_unix: 946684810
   created_unix: 946684810
 -
@@ -20,6 +22,7 @@
   reviewer_id: 1
   issue_id: 343545
   content: "Invalid Review #2"
+  original_author_id: 0
   updated_unix: 946684810
   created_unix: 946684810
 -
@@ -28,6 +31,7 @@
   reviewer_id: 1
   issue_id: 2
   content: "Pending Review"
+  original_author_id: 0
   updated_unix: 946684810
   created_unix: 946684810
 -
@@ -36,6 +40,7 @@
   reviewer_id: 1
   issue_id: 3
   content: "New review 1"
+  original_author_id: 0
   updated_unix: 946684810
   created_unix: 946684810
 -
@@ -61,8 +66,8 @@
   type: 1
   reviewer_id: 4
   issue_id: 3
-  original_author_id: 0
   content: "New review 5"
+  original_author_id: 0
   commit_id: 8091a55037cd59e47293aca02981b5a67076b364
   stale: true
   updated_unix: 946684813
@@ -73,9 +78,9 @@
   reviewer_id: 2
   issue_id: 3
   content: "New review 3 rejected"
+  original_author_id: 0
   updated_unix: 946684814
   created_unix: 946684814
-  original_author_id: 0
 
 -
   id: 10
@@ -83,6 +88,7 @@
   reviewer_id: 100
   issue_id: 3
   content: "a deleted user's review"
+  original_author_id: 0
   official: true
   updated_unix: 946684815
   created_unix: 946684815
@@ -112,6 +118,7 @@
   reviewer_id: 5
   issue_id: 11
   content: "old review from user5"
+  original_author_id: 0
   updated_unix: 946684820
   created_unix: 946684820
 
@@ -121,6 +128,7 @@
   reviewer_id: 5
   issue_id: 11
   content: "duplicate review from user5 (latest)"
+  original_author_id: 0
   updated_unix: 946684830
   created_unix: 946684830
 
@@ -130,6 +138,7 @@
   reviewer_id: 6
   issue_id: 11
   content: "singular review from org6 and final review for this pr"
+  original_author_id: 0
   updated_unix: 946684831
   created_unix: 946684831
 
@@ -139,6 +148,7 @@
   reviewer_id: 20
   issue_id: 20
   content: "review request for user20"
+  original_author_id: 0
   updated_unix: 946684832
   created_unix: 946684832
 
@@ -148,6 +158,7 @@
   reviewer_id: 20
   issue_id: 20
   content: "review approved by user20"
+  original_author_id: 0
   updated_unix: 946684833
   created_unix: 946684833
 
@@ -158,6 +169,7 @@
   reviewer_team_id: 5
   issue_id: 20
   content: "review request for team5"
+  original_author_id: 0
   updated_unix: 946684834
   created_unix: 946684834
 
@@ -168,6 +180,7 @@
   reviewer_team_id: 0
   issue_id: 20
   content: "review request for user15"
+  original_author_id: 0
   updated_unix: 946684835
   created_unix: 946684835
 
@@ -177,5 +190,27 @@
   reviewer_id: 1
   issue_id: 2
   content: "Review Comment"
+  original_author_id: 0
   updated_unix: 946684810
   created_unix: 946684810
+
+-
+  id: 21
+  type: 2
+  reviewer_id: 5
+  issue_id: 3
+  content: "reviewed by user5"
+  original_author_id: 0
+  commit_id: 4a357436d925b5c974181ff12a994538ddc5a269
+  updated_unix: 946684816
+  created_unix: 946684816
+
+-
+  id: 22
+  type: 4
+  reviewer_id: 5
+  issue_id: 3
+  content: "review request for user5"
+  original_author_id: 0
+  updated_unix: 946684817
+  created_unix: 946684817

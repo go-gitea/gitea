@@ -23,8 +23,6 @@ import (
 const (
 	uuidHeaderKey  = "x-runner-uuid"
 	tokenHeaderKey = "x-runner-token"
-	// Deprecated: will be removed after Gitea 1.20 released.
-	versionHeaderKey = "x-runner-version"
 )
 
 var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
@@ -35,9 +33,6 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		}
 		uuid := request.Header().Get(uuidHeaderKey)
 		token := request.Header().Get(tokenHeaderKey)
-		// TODO: version will be removed from request header after Gitea 1.20 released.
-		// And Gitea will not try to read version from reuqest header
-		version := request.Header().Get(versionHeaderKey)
 
 		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
 		if err != nil {
@@ -51,14 +46,6 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		}
 
 		cols := []string{"last_online"}
-
-		// TODO: version will be removed from request header after Gitea 1.20 released.
-		// And Gitea will not try to read version from reuqest header
-		version, _ = util.SplitStringAtByteN(version, 64)
-		if !util.IsEmptyString(version) && runner.Version != version {
-			runner.Version = version
-			cols = append(cols, "version")
-		}
 		runner.LastOnline = timeutil.TimeStampNow()
 		if methodName == "UpdateTask" || methodName == "UpdateLog" {
 			runner.LastActive = timeutil.TimeStampNow()

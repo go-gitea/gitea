@@ -97,8 +97,7 @@ func TestListEmails(t *testing.T) {
 	}
 	emails, count, err := user_model.SearchEmails(db.DefaultContext, opts)
 	assert.NoError(t, err)
-	assert.NotEqual(t, int64(0), count)
-	assert.True(t, count > 5)
+	assert.Greater(t, count, int64(5))
 
 	contains := func(match func(s *user_model.SearchEmailResult) bool) bool {
 		for _, v := range emails {
@@ -206,7 +205,7 @@ func TestEmailAddressValidate(t *testing.T) {
 	}
 	for kase, err := range kases {
 		t.Run(kase, func(t *testing.T) {
-			assert.EqualValues(t, err, user_model.ValidateEmail(kase))
+			assert.Equal(t, err, user_model.ValidateEmail(kase))
 		})
 	}
 }

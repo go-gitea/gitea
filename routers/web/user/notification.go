@@ -4,7 +4,6 @@
 package user
 
 import (
-	goctx "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,13 +12,16 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -27,36 +29,10 @@ import (
 )
 
 const (
-	tplNotification              base.TplName = "user/notification/notification"
-	tplNotificationDiv           base.TplName = "user/notification/notification_div"
-	tplNotificationSubscriptions base.TplName = "user/notification/notification_subscriptions"
+	tplNotification              templates.TplName = "user/notification/notification"
+	tplNotificationDiv           templates.TplName = "user/notification/notification_div"
+	tplNotificationSubscriptions templates.TplName = "user/notification/notification_subscriptions"
 )
-
-// GetNotificationCount is the middleware that sets the notification count in the context
-func GetNotificationCount(ctx *context.Context) {
-	if strings.HasPrefix(ctx.Req.URL.Path, "/api") {
-		return
-	}
-
-	if !ctx.IsSigned {
-		return
-	}
-
-	ctx.Data["NotificationUnreadCount"] = func() int64 {
-		count, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
-			UserID: ctx.Doer.ID,
-			Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
-		})
-		if err != nil {
-			if err != goctx.Canceled {
-				log.Error("Unable to GetNotificationCount for user:%-v: %v", ctx.Doer, err)
-			}
-			return -1
-		}
-
-		return count
-	}
-}
 
 // Notifications is the notifications page
 func Notifications(ctx *context.Context) {
@@ -170,7 +146,7 @@ func getNotifications(ctx *context.Context) {
 	ctx.Data["Status"] = status
 	ctx.Data["Notifications"] = notifications
 
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }
 
@@ -303,6 +279,11 @@ func NotificationSubscriptions(ctx *context.Context) {
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
 	}
+	if !ctx.Repo.CanRead(unit.TypeActions) {
+		for key := range commitStatuses {
+			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
+		}
+	}
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["Issues"] = issues
@@ -327,9 +308,10 @@ func NotificationSubscriptions(ctx *context.Context) {
 			return 0
 		}
 		reviewTyp := issues_model.ReviewTypeApprove
-		if typ == "reject" {
+		switch typ {
+		case "reject":
 			reviewTyp = issues_model.ReviewTypeReject
-		} else if typ == "waiting" {
+		case "waiting":
 			reviewTyp = issues_model.ReviewTypeRequest
 		}
 		for _, count := range counts {
@@ -349,8 +331,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		ctx.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
 		return
 	}
-	pager.AddParamString("sort", sortType)
-	pager.AddParamString("state", state)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplNotificationSubscriptions)
@@ -438,7 +419,7 @@ func NotificationWatching(ctx *context.Context) {
 
 	// redirect to last page if request page is more than total pages
 	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.Data["Status"] = 2

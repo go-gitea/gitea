@@ -4,68 +4,40 @@
 package git
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
 )
 
 // ObjectCache provides thread-safe cache operations.
-type ObjectCache struct {
+type ObjectCache[T any] struct {
 	lock  sync.RWMutex
-	cache map[string]any
+	cache map[string]T
 }
 
-func newObjectCache() *ObjectCache {
-	return &ObjectCache{
-		cache: make(map[string]any, 10),
-	}
+func newObjectCache[T any]() *ObjectCache[T] {
+	return &ObjectCache[T]{cache: make(map[string]T, 10)}
 }
 
-// Set add obj to cache
-func (oc *ObjectCache) Set(id string, obj any) {
+// Set adds obj to cache
+func (oc *ObjectCache[T]) Set(id string, obj T) {
 	oc.lock.Lock()
 	defer oc.lock.Unlock()
 
 	oc.cache[id] = obj
 }
 
-// Get get cached obj by id
-func (oc *ObjectCache) Get(id string) (any, bool) {
+// Get gets cached obj by id
+func (oc *ObjectCache[T]) Get(id string) (T, bool) {
 	oc.lock.RLock()
 	defer oc.lock.RUnlock()
 
 	obj, has := oc.cache[id]
 	return obj, has
-}
-
-// isDir returns true if given path is a directory,
-// or returns false when it's a file or does not exist.
-func isDir(dir string) bool {
-	f, e := os.Stat(dir)
-	if e != nil {
-		return false
-	}
-	return f.IsDir()
-}
-
-// isFile returns true if given path is a file,
-// or returns false when it's a directory or does not exist.
-func isFile(filePath string) bool {
-	f, e := os.Stat(filePath)
-	if e != nil {
-		return false
-	}
-	return !f.IsDir()
-}
-
-// isExist checks whether a file or directory exists.
-// It returns false when the file or directory does not exist.
-func isExist(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil || os.IsExist(err)
 }
 
 // ConcatenateError concatenats an error with stderr string
@@ -127,4 +99,10 @@ func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
 // Close implements io.Closer
 func (l *LimitedReaderCloser) Close() error {
 	return l.C.Close()
+}
+
+func HashFilePathForWebUI(s string) string {
+	h := sha1.New()
+	_, _ = h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
 }

@@ -1,5 +1,4 @@
-{{template "base/head" .}}
-<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
+{{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	<div>
 		<h1>Link</h1>
@@ -10,16 +9,16 @@
 			<a class="silenced" href="#">silenced</a>
 		</div>
 		<h1>Button</h1>
-		<div>
-			Style:
-			<label><input type="checkbox" name="button-style-compact" value="compact">compact</label>
-			<label><input type="radio" name="button-style-size" value="">(normal)</label>
-			<label><input type="radio" name="button-style-size" value="tiny">tiny</label>
-			<label><input type="radio" name="button-style-size" value="mini">mini</label>
+		".ui.button" styles:
+		<div class="flex-text-block tw-gap-4">
+			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="">(normal)</label>
+			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="small">small</label>
+			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="tiny">tiny</label>
+			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="mini">mini</label>
 		</div>
-		<div>
-			State:
-			<label><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
+		<div class="flex-text-block tw-gap-4">
+			<label class="gt-checkbox"><input type="checkbox" name="button-style-compact" value="compact">compact</label>
+			<label class="gt-checkbox"><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
 		</div>
 		<div id="devtest-button-samples">
 			<ul class="button-sample-groups">
@@ -139,13 +138,13 @@
 
 	<div>
 		<h1>TimeSince</h1>
-		<div>Now: {{TimeSince .TimeNow ctx.Locale}}</div>
-		<div>5s past: {{TimeSince .TimePast5s ctx.Locale}}</div>
-		<div>5s future: {{TimeSince .TimeFuture5s ctx.Locale}}</div>
-		<div>2m past: {{TimeSince .TimePast2m ctx.Locale}}</div>
-		<div>2m future: {{TimeSince .TimeFuture2m ctx.Locale}}</div>
-		<div>1y past: {{TimeSince .TimePast1y ctx.Locale}}</div>
-		<div>1y future: {{TimeSince .TimeFuture1y ctx.Locale}}</div>
+		<div>Now: {{DateUtils.TimeSince .TimeNow}}</div>
+		<div>5s past: {{DateUtils.TimeSince .TimePast5s}}</div>
+		<div>5s future: {{DateUtils.TimeSince .TimeFuture5s}}</div>
+		<div>2m past: {{DateUtils.TimeSince .TimePast2m}}</div>
+		<div>2m future: {{DateUtils.TimeSince .TimeFuture2m}}</div>
+		<div>1y past: {{DateUtils.TimeSince .TimePast1y}}</div>
+		<div>1y future: {{DateUtils.TimeSince .TimeFuture1y}}</div>
 	</div>
 
 	<div>
@@ -180,116 +179,16 @@
 				<input type="text" placeholder="place holder">
 			</div>
 		</div>
-
-		<h2>Dropdown with SVG</h2>
-		<div>
-			<div class="ui dropdown tw-border tw-border-red tw-border-dashed" data-tooltip-content="border for demo purpose only">
-				<span class="text">search-input &amp; flex-item in menu</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				<div class="menu flex-items-menu">
-					<div class="ui icon search input"><i class="icon">{{svg "octicon-search"}}</i><input type="text" value="search input in menu"></div>
-					<div class="item"><input type="radio">item</div>
-					<div class="item"><input type="radio">item</div>
-				</div>
-			</div>
-			<div class="ui search selection dropdown">
-				<span class="text">search ...</span>
-				<input name="value" class="search">
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				{{svg "octicon-x" 14 "remove icon"}}
-				<div class="menu">
-					<div class="item">item</div>
-				</div>
-			</div>
-			<div class="ui multiple selection dropdown">
-				<input class="hidden" value="1">
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				{{svg "octicon-x" 14 "remove icon"}}
-				<div class="default text">empty multiple dropdown</div>
-				<div class="menu">
-					<div class="item">item</div>
-				</div>
-			</div>
-			<div class="ui multiple clearable search selection dropdown">
-				<input type="hidden" value="1">
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				{{svg "octicon-x" 14 "remove icon"}}
-				<div class="default text">clearable search dropdown</div>
-				<div class="menu">
-					<div class="item" data-value="1">item</div>
-				</div>
-			</div>
-			<div class="ui buttons">
-				<button class="ui button">Button with Dropdown</button>
-				<div class="ui dropdown button icon">
-					{{svg "octicon-triangle-down"}}
-					<div class="menu">
-						<div class="item">item</div>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<div>
-			<div class="ui dropdown mini button">
-				<span class="text">mini dropdown</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</div>
-			<div class="ui dropdown tiny button">
-				<span class="text">tiny dropdown</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</div>
-			<div class="ui button dropdown">
-				<span class="text">button dropdown</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</div>
-		</div>
-
-		<div>
-			<div class="ui dropdown mini compact button">
-				<span class="text">mini compact</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</div>
-			<div class="ui dropdown tiny compact button">
-				<span class="text">tiny compact</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</div>
-			<div class="ui button compact dropdown">
-				<span class="text">button compact</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</div>
-		</div>
-
-		<div>
-			<hr>
-			<div class="ui tiny button">Button align with ...</div>
-			<div class="ui dropdown tiny button">
-				<span class="text">... Dropdown Button</span>
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			</div>
-		</div>
-	</div>
-
-	<div>
-		<h1>Toast</h1>
-		<div>
-			<button class="ui button" id="info-toast">Show Info Toast</button>
-			<button class="ui button" id="warning-toast">Show Warning Toast</button>
-			<button class="ui button" id="error-toast">Show Error Toast</button>
-		</div>
 	</div>
 
 	<div>
 		<h1>ComboMarkdownEditor</h1>
-		<div>ps: no JS code attached, so just a layout</div>
-		{{template "shared/combomarkdowneditor" .}}
+		{{template "shared/combomarkdowneditor" dict "MarkdownPreviewContext" "/owner/path"}}
 	</div>
 
 	<h1>Tailwind CSS Demo</h1>
 	<div>
 		<button class="{{if true}}tw-bg-red{{end}} tw-p-5 tw-border tw-rounded hover:tw-bg-blue active:tw-bg-yellow">Button</button>
 	</div>
-
-	<script src="{{AssetUrlPrefix}}/js/devtest.js?v={{AssetVersion}}"></script>
 </div>
-{{template "base/footer" .}}
+{{template "devtest/devtest-footer"}}

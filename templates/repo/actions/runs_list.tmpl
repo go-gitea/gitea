@@ -15,7 +15,7 @@
 					{{if .Title}}{{.Title}}{{else}}{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}{{end}}
 				</a>
 				<div class="flex-item-body">
-					<b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>:
+					<span><b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>:</span>
 					{{- if .ScheduleID -}}
 						{{ctx.Locale.Tr "actions.runs.scheduled"}}
 					{{- else -}}
@@ -27,13 +27,13 @@
 				</div>
 			</div>
 			<div class="flex-item-trailing">
-				{{if .RefLink}}
-					<a class="ui label run-list-ref gt-ellipsis" href="{{.RefLink}}">{{.PrettyRef}}</a>
+				{{if .IsRefDeleted}}
+					<span class="ui label run-list-ref gt-ellipsis tw-line-through" data-tooltip-content="{{.PrettyRef}}">{{.PrettyRef}}</span>
 				{{else}}
-					<span class="ui label run-list-ref gt-ellipsis">{{.PrettyRef}}</span>
+					<a class="ui label run-list-ref gt-ellipsis" href="{{.RefLink}}" data-tooltip-content="{{.PrettyRef}}">{{.PrettyRef}}</a>
 				{{end}}
 				<div class="run-list-item-right">
-					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{TimeSinceUnix .Updated ctx.Locale}}</div>
+					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
 				</div>
 			</div>

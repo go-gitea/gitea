@@ -24,7 +24,7 @@ import (
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
-func SortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML {
+func sortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 	// if needed
 	if len(normSort) == 0 || len(urlSort) == 0 {
 		return ""
@@ -38,10 +38,11 @@ func SortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML 
 	} else {
 		// if sort arg is in url test if it correlates with column header sort arguments
 		// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
-		if urlSort == normSort {
+		switch urlSort {
+		case normSort:
 			// the table is sorted with this header normal
 			return svg.RenderHTML("octicon-triangle-up", 16)
-		} else if urlSort == revSort {
+		case revSort:
 			// the table is sorted with this header reverse
 			return svg.RenderHTML("octicon-triangle-down", 16)
 		}
@@ -50,8 +51,8 @@ func SortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML 
 	return ""
 }
 
-// IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
-func IsMultilineCommitMessage(msg string) bool {
+// isMultilineCommitMessage checks to see if a commit message contains multiple lines.
+func isMultilineCommitMessage(msg string) bool {
 	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
 }
 
@@ -69,8 +70,8 @@ type Actioner interface {
 	GetIssueInfos() []string
 }
 
-// ActionIcon accepts an action operation type and returns an icon class name.
-func ActionIcon(opType activities_model.ActionType) string {
+// actionIcon accepts an action operation type and returns an icon class name.
+func actionIcon(opType activities_model.ActionType) string {
 	switch opType {
 	case activities_model.ActionCreateRepo, activities_model.ActionTransferRepo, activities_model.ActionRenameRepo:
 		return "repo"
@@ -126,8 +127,8 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	return push
 }
 
-// MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
-func MigrationIcon(hostname string) string {
+// migrationIcon returns a SVG name matching the service an issue/comment was migrated from
+func migrationIcon(hostname string) string {
 	switch hostname {
 	case "github.com":
 		return "octicon-mark-github"
@@ -150,7 +151,7 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 		return ret
 	}
 
-	u, err := giturl.Parse(remoteURL)
+	u, err := giturl.ParseGitURL(remoteURL)
 	if err != nil {
 		log.Error("giturl.Parse %v", err)
 		return ret
@@ -177,12 +178,12 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 	return ret
 }
 
-func FilenameIsImage(filename string) bool {
+func filenameIsImage(filename string) bool {
 	mimeType := mime.TypeByExtension(filepath.Ext(filename))
 	return strings.HasPrefix(mimeType, "image/")
 }
 
-func TabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
+func tabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
 	if ec != nil {
 		def, err := ec.GetDefinitionForFilename(filename)
 		if err == nil && def.TabWidth >= 1 && def.TabWidth <= 16 {

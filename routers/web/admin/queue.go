@@ -24,7 +24,7 @@ func Queues(ctx *context.Context) {
 
 // QueueManage shows details for a specific queue
 func QueueManage(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
+	qid := ctx.PathParamInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
 		ctx.Status(http.StatusNotFound)
@@ -38,7 +38,7 @@ func QueueManage(ctx *context.Context) {
 
 // QueueSet sets the maximum number of workers and other settings for this queue
 func QueueSet(ctx *context.Context) {
-	qid := ctx.ParamsInt64("qid")
+	qid := ctx.PathParamInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
 		ctx.Status(http.StatusNotFound)
@@ -53,7 +53,7 @@ func QueueSet(ctx *context.Context) {
 		maxNumber, err = strconv.Atoi(maxNumberStr)
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.maxnumberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+			ctx.Redirect(setting.AppSubURL + "/-/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 		if maxNumber < -1 {
@@ -65,14 +65,14 @@ func QueueSet(ctx *context.Context) {
 
 	mq.SetWorkerMaxNumber(maxNumber)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
-	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
 func QueueRemoveAllItems(ctx *context.Context) {
 	// Gitea's queue doesn't have transaction support
 	// So in rare cases, the queue could be corrupted/out-of-sync
 	// Site admin could remove all items from the queue to make it work again
-	qid := ctx.ParamsInt64("qid")
+	qid := ctx.PathParamInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
 		ctx.Status(http.StatusNotFound)
@@ -85,5 +85,5 @@ func QueueRemoveAllItems(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.remove_all_items_done"))
-	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }

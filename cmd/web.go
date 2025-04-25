@@ -12,15 +12,18 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
@@ -115,6 +118,16 @@ func showWebStartupMessage(msg string) {
 	log.Info("* CustomPath: %s", setting.CustomPath)
 	log.Info("* ConfigFile: %s", setting.CustomConf)
 	log.Info("%s", msg) // show startup message
+
+	if setting.CORSConfig.Enabled {
+		log.Info("CORS Service Enabled")
+	}
+	if setting.DefaultUILocation != time.Local {
+		log.Info("Default UI Location is %v", setting.DefaultUILocation.String())
+	}
+	if setting.MailService != nil {
+		log.Info("Mail Service Enabled: RegisterEmailConfirm=%v, Service.EnableNotifyMail=%v", setting.Service.RegisterEmailConfirm, setting.Service.EnableNotifyMail)
+	}
 }
 
 func serveInstall(ctx *cli.Context) error {
@@ -200,12 +213,18 @@ func serveInstalled(ctx *cli.Context) error {
 		log.Fatal("Can not find APP_DATA_PATH %q", setting.AppDataPath)
 	}
 
+	// the AppDataTempDir is fully managed by us with a safe sub-path
+	// so it's safe to automatically remove the outdated files
+	setting.AppDataTempDir("").RemoveOutdated(3 * 24 * time.Hour)
+
 	// Override the provided port number within the configuration
 	if ctx.IsSet("port") {
 		if err := setPort(ctx.String("port")); err != nil {
 			return err
 		}
 	}
+
+	gtprof.EnableBuiltinTracer(util.Iif(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond))
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()

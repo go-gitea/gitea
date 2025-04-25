@@ -5,11 +5,13 @@ package pypi
 
 import (
 	"encoding/hex"
+	"errors"
 	"io"
 	"net/http"
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -45,7 +47,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // PackageMetadata returns the metadata for a single package
 func PackageMetadata(ctx *context.Context) {
-	packageName := normalizer.Replace(ctx.Params("id"))
+	packageName := normalizer.Replace(ctx.PathParam("id"))
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypePyPI, packageName)
 	if err != nil {
@@ -76,9 +78,9 @@ func PackageMetadata(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	packageName := normalizer.Replace(ctx.Params("id"))
-	packageVersion := ctx.Params("version")
-	filename := ctx.Params("filename")
+	packageName := normalizer.Replace(ctx.PathParam("id"))
+	packageVersion := ctx.PathParam("version")
+	filename := ctx.PathParam("filename")
 
 	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
@@ -93,7 +95,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -139,9 +141,30 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	projectURL := ctx.Req.FormValue("home_page")
-	if !validation.IsValidURL(projectURL) {
-		projectURL = ""
+	// Ensure ctx.Req.Form exists.
+	_ = ctx.Req.ParseForm()
+
+	var homepageURL string
+	projectURLs := ctx.Req.Form["project_urls"]
+	for _, purl := range projectURLs {
+		label, url, found := strings.Cut(purl, ",")
+		if !found {
+			continue
+		}
+		if normalizeLabel(label) != "homepage" {
+			continue
+		}
+		homepageURL = strings.TrimSpace(url)
+		break
+	}
+
+	if len(homepageURL) == 0 {
+		// TODO: Home-page is a deprecated metadata field. Remove this branch once it's no longer apart of the spec.
+		homepageURL = ctx.Req.FormValue("home_page")
+	}
+
+	if !validation.IsValidURL(homepageURL) {
+		homepageURL = ""
 	}
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
@@ -160,7 +183,7 @@ func UploadPackageFile(ctx *context.Context) {
 				Description:     ctx.Req.FormValue("description"),
 				LongDescription: ctx.Req.FormValue("long_description"),
 				Summary:         ctx.Req.FormValue("summary"),
-				ProjectURL:      projectURL,
+				ProjectURL:      homepageURL,
 				License:         ctx.Req.FormValue("license"),
 				RequiresPython:  ctx.Req.FormValue("requires_python"),
 			},
@@ -187,6 +210,23 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	ctx.Status(http.StatusCreated)
+}
+
+// Normalizes a Project-URL label.
+// See https://packaging.python.org/en/latest/specifications/well-known-project-urls/#label-normalization.
+func normalizeLabel(label string) string {
+	var builder strings.Builder
+
+	// "A label is normalized by deleting all ASCII punctuation and whitespace, and then converting the result
+	// to lowercase."
+	for _, r := range label {
+		if unicode.IsPunct(r) || unicode.IsSpace(r) {
+			continue
+		}
+		builder.WriteRune(unicode.ToLower(r))
+	}
+
+	return builder.String()
 }
 
 func isValidNameAndVersion(packageName, packageVersion string) bool {

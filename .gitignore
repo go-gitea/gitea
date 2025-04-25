@@ -9,6 +9,11 @@ _test
 
 # IntelliJ
 .idea
+.run
+
+# IntelliJ Gateway
+.uuid
+
 # Goland's output filename can not be set manually
 /go_build_*
 /gitea_*
@@ -28,6 +33,7 @@ _testmain.go
 *.exe
 *.test
 *.prof
+*.tsbuildinfo
 
 *coverage.out
 coverage.all
@@ -78,18 +84,6 @@ cpu.out
 /public/assets/fonts
 /public/assets/licenses.txt
 /vendor
-/web_src/fomantic/node_modules
-/web_src/fomantic/build/*
-!/web_src/fomantic/build/semantic.js
-!/web_src/fomantic/build/semantic.css
-!/web_src/fomantic/build/themes
-/web_src/fomantic/build/themes/*
-!/web_src/fomantic/build/themes/default
-/web_src/fomantic/build/themes/default/assets/*
-!/web_src/fomantic/build/themes/default/assets/fonts
-/web_src/fomantic/build/themes/default/assets/fonts/*
-!/web_src/fomantic/build/themes/default/assets/fonts/icons.woff2
-!/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
 /.air
 /.go-licenses
@@ -107,6 +101,9 @@ prime/
 *.snap-build
 *_source.tar.bz2
 .DS_Store
+
+# nix-direnv generated files
+.direnv/
 
 # Make evidence files
 /.make_evidence

@@ -42,7 +42,7 @@ func ShowReleaseFeed(ctx *context.Context, repo *repo_model.Repository, isReleas
 		Created:     time.Now(),
 	}
 
-	feed.Items, err = releasesToFeedItems(ctx, releases, isReleasesOnly)
+	feed.Items, err = releasesToFeedItems(ctx, releases)
 	if err != nil {
 		ctx.ServerError("releasesToFeedItems", err)
 		return

@@ -6,27 +6,33 @@
 		{{template "repo/release_tag_header" .}}
 		<h4 class="ui top attached header">
 			<div class="five wide column tw-flex tw-items-center">
-				{{svg "octicon-tag" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.release.tags"}}
+				{{.TagCount}} {{ctx.Locale.Tr "repo.release.tags"}}
 			</div>
 		</h4>
 		{{$canReadReleases := $.Permission.CanRead ctx.Consts.RepoUnitTypeReleases}}
+		<div class="ui attached segment">
+			<form class="ignore-dirty" method="get">
+				{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.tag_kind") "Tooltip" (ctx.Locale.Tr "search.tag_tooltip")}}
+			</form>
+		</div>
 		<div class="ui attached table segment">
+			{{if .Releases}}
 			<table class="ui very basic striped fixed table single line" id="tags-table">
 				<tbody class="tag-list">
 					{{range $idx, $release := .Releases}}
 						<tr>
-							<td class="tag">
-								<h3 class="release-tag-name tw-mb-2">
+							<td class="tag-list-row">
+								<h3 class="tag-list-row-title tw-mb-2">
 									{{if $canReadReleases}}
-										<a class="tw-flex tw-items-center" href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
+										<a class="tag-list-row-link tw-flex tw-items-center" href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
 									{{else}}
-										<a class="tw-flex tw-items-center" href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
+										<a class="tag-list-row-link tw-flex tw-items-center" href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{.TagName}}</a>
 									{{end}}
 								</h3>
 								<div class="download tw-flex tw-items-center">
 									{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 										{{if .CreatedUnix}}
-											<span class="tw-mr-2">{{svg "octicon-clock" 16 "tw-mr-1"}}{{TimeSinceUnix .CreatedUnix ctx.Locale}}</span>
+											<span class="tw-mr-2">{{svg "octicon-clock" 16 "tw-mr-1"}}{{DateUtils.TimeSince .CreatedUnix}}</span>
 										{{end}}
 
 										<a class="tw-mr-2 tw-font-mono muted" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "tw-mr-1"}}{{ShortSha .Sha1}}</a>
@@ -56,8 +62,12 @@
 					{{end}}
 				</tbody>
 			</table>
+			{{else}}
+				{{if .NumTags}}
+					<p class="tw-p-4">{{ctx.Locale.Tr "no_results_found"}}</p>
+				{{end}}
+			{{end}}
 		</div>
-
 		{{template "base/paginate" .}}
 	</div>
 </div>

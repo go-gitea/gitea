@@ -1,9 +1,9 @@
 <div class="ui secondary filter menu">
 	{{if not .Repository.IsArchived}}
 		<!-- Action Button -->
-		{{if .IsShowClosed}}
+		{{if and .IsShowClosed.Has .IsShowClosed.Value}}
 			<button class="ui primary basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_open"}}</button>
-		{{else}}
+		{{else if and .IsShowClosed.Has (not .IsShowClosed.Value)}}
 			<button class="ui red basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_close"}}</button>
 		{{end}}
 		{{if $.IsRepoAdmin}}
@@ -30,7 +30,7 @@
 					{{end}}
 					{{$previousExclusiveScope = $exclusiveScope}}
 					<div class="item issue-action tw-flex tw-justify-between" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{if $exclusiveScope}}{{svg "octicon-dot-fill"}}{{else}}{{svg "octicon-check"}}{{end}}{{end}} {{RenderLabel $.Context ctx.Locale .}}
+						{{if SliceUtils.Contains $.SelLabelIDs .ID}}{{svg (Iif $exclusiveScope "octicon-dot-fill" "octicon-check")}}{{end}} {{ctx.RenderUtils.RenderLabel .}}
 						{{template "repo/issue/labels/label_archived" .}}
 					</div>
 				{{end}}
@@ -58,7 +58,7 @@
 				{{end}}
 				{{if .ClosedMilestones}}
 					<div class="divider"></div>
-					<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
+					<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_closed"}}</div>
 					{{range .ClosedMilestones}}
 						<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
 							{{.Name}}
@@ -71,7 +71,7 @@
 		<!-- Projects -->
 		<div class="ui{{if not (or .OpenProjects .ClosedProjects)}} disabled{{end}} dropdown jump item">
 			<span class="text">
-				{{ctx.Locale.Tr "repo.project_board"}}
+				{{ctx.Locale.Tr "repo.projects"}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">

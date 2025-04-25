@@ -36,6 +36,8 @@ func newFeishuTextPayload(text string) FeishuPayload {
 	}
 }
 
+type feishuConvertor struct{}
+
 // Create implements PayloadConvertor Create method
 func (fc feishuConvertor) Create(p *api.CreatePayload) (FeishuPayload, error) {
 	// created tag/branch
@@ -164,10 +166,23 @@ func (fc feishuConvertor) Package(p *api.PackagePayload) (FeishuPayload, error) 
 	return newFeishuTextPayload(text), nil
 }
 
-type feishuConvertor struct{}
+func (fc feishuConvertor) Status(p *api.CommitStatusPayload) (FeishuPayload, error) {
+	text, _ := getStatusPayloadInfo(p, noneLinkFormatter, true)
 
-var _ payloadConvertor[FeishuPayload] = feishuConvertor{}
+	return newFeishuTextPayload(text), nil
+}
 
-func newFeishuRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
-	return newJSONRequest(feishuConvertor{}, w, t, true)
+func (feishuConvertor) WorkflowJob(p *api.WorkflowJobPayload) (FeishuPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, noneLinkFormatter, true)
+
+	return newFeishuTextPayload(text), nil
+}
+
+func newFeishuRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
+	var pc payloadConvertor[FeishuPayload] = feishuConvertor{}
+	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.FEISHU, newFeishuRequest)
 }

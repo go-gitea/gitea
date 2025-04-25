@@ -2,7 +2,7 @@
 	{{template "repo/issue/fields/header" .}}
 	{{/* FIXME: required validation */}}
 	<div class="ui fluid selection dropdown {{if .item.Attributes.multiple}}multiple clearable{{end}}">
-		<input type="hidden" name="form-field-{{.item.ID}}" value="0">
+		<input type="hidden" name="form-field-{{.item.ID}}" value="{{.item.Attributes.default}}">
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		{{if not .item.Validations.required}}
 		{{svg "octicon-x" 14 "remove icon"}}

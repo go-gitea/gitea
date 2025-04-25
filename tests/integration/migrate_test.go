@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -72,15 +73,19 @@ func TestMigrateGiteaForm(t *testing.T) {
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeReadMisc)
 
 		// Step 0: verify the repo is available
-		req := NewRequestf(t, "GET", fmt.Sprintf("/%s/%s", ownerName, repoName))
+		req := NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
 		_ = session.MakeRequest(t, req, http.StatusOK)
 		// Step 1: get the Gitea migration form
 		req = NewRequestf(t, "GET", "/repo/migrate/?service_type=%d", structs.GiteaService)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		// Step 2: load the form
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		link, exists := htmlDoc.doc.Find(`form.ui.form[action^="/repo/migrate"]`).Attr("action")
+		form := htmlDoc.doc.Find(`form.ui.form[action^="/repo/migrate"]`)
+		link, exists := form.Attr("action")
 		assert.True(t, exists, "The template has changed")
+		serviceInput, exists := form.Find(`input[name="service"]`).Attr("value")
+		assert.True(t, exists)
+		assert.Equal(t, fmt.Sprintf("%d", structs.GiteaService), serviceInput)
 		// Step 4: submit the migration to only migrate issues
 		migratedRepoName := "otherrepo"
 		req = NewRequestWithValues(t, "POST", link, map[string]string{
@@ -91,12 +96,12 @@ func TestMigrateGiteaForm(t *testing.T) {
 			"issues":      "on",
 			"repo_name":   migratedRepoName,
 			"description": "",
-			"uid":         fmt.Sprintf("%d", repoOwner.ID),
+			"uid":         strconv.FormatInt(repoOwner.ID, 10),
 		})
 		resp = session.MakeRequest(t, req, http.StatusSeeOther)
 		// Step 5: a redirection displays the migrated repository
 		loc := resp.Header().Get("Location")
-		assert.EqualValues(t, fmt.Sprintf("/%s/%s", ownerName, migratedRepoName), loc)
+		assert.Equal(t, fmt.Sprintf("/%s/%s", ownerName, migratedRepoName), loc)
 		// Step 6: check the repo was created
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: migratedRepoName})
 	})

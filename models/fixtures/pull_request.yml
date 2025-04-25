@@ -1,7 +1,7 @@
 -
   id: 1
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 2
   index: 2
   head_repo_id: 1
@@ -16,7 +16,7 @@
 -
   id: 2
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 3
   index: 3
   head_repo_id: 1
@@ -29,7 +29,7 @@
 -
   id: 3
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 8
   index: 1
   head_repo_id: 11
@@ -42,7 +42,7 @@
 -
   id: 4
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 9
   index: 1
   head_repo_id: 48
@@ -55,7 +55,7 @@
 -
   id: 5 # this PR is outdated (one commit behind branch1 )
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 11
   index: 5
   head_repo_id: 1
@@ -68,7 +68,7 @@
 -
   id: 6
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 12
   index: 2
   head_repo_id: 3
@@ -81,7 +81,7 @@
 -
   id: 7
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 19
   index: 1
   head_repo_id: 58
@@ -94,7 +94,7 @@
 -
   id: 8
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 20
   index: 1
   head_repo_id: 23
@@ -103,7 +103,7 @@
 -
   id: 9
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 21
   index: 1
   head_repo_id: 60
@@ -112,7 +112,7 @@
 -
   id: 10
   type: 0 # gitea pull request
-  status: 2 # mergable
+  status: 2 # mergeable
   issue_id: 22
   index: 1
   head_repo_id: 61

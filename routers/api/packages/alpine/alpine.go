@@ -73,7 +73,7 @@ func GetRepositoryFile(ctx *context.Context) {
 		pv,
 		&packages_service.PackageFileInfo{
 			Filename:     alpine_service.IndexArchiveFilename,
-			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
+			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")),
 		},
 	)
 	if err != nil {
@@ -89,8 +89,8 @@ func GetRepositoryFile(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	branch := strings.TrimSpace(ctx.Params("branch"))
-	repository := strings.TrimSpace(ctx.Params("repository"))
+	branch := strings.TrimSpace(ctx.PathParam("branch"))
+	repository := strings.TrimSpace(ctx.PathParam("repository"))
 	if branch == "" || repository == "" {
 		apiError(ctx, http.StatusBadRequest, "invalid branch or repository")
 		return
@@ -114,7 +114,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	pck, err := alpine_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) || err == io.EOF {
+		if errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, io.EOF) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -182,14 +182,14 @@ func UploadPackageFile(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	branch := ctx.Params("branch")
-	repository := ctx.Params("repository")
-	architecture := ctx.Params("architecture")
+	branch := ctx.PathParam("branch")
+	repository := ctx.PathParam("repository")
+	architecture := ctx.PathParam("architecture")
 
 	opts := &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeAlpine,
-		Query:        ctx.Params("filename"),
+		Query:        ctx.PathParam("filename"),
 		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 	}
 	pfs, _, err := packages_model.SearchFiles(ctx, opts)
@@ -230,12 +230,12 @@ func DownloadPackageFile(ctx *context.Context) {
 }
 
 func DeletePackageFile(ctx *context.Context) {
-	branch, repository, architecture := ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")
+	branch, repository, architecture := ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeAlpine,
-		Query:        ctx.Params("filename"),
+		Query:        ctx.PathParam("filename"),
 		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 	})
 	if err != nil {

@@ -6,10 +6,8 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -28,12 +26,12 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		OrderBy:     "id ASC",
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if err := repos.LoadAttributes(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "RepositoryList.LoadAttributes", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -41,10 +39,10 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	for i := range repos {
 		permission, err := access_model.GetUserRepoPermission(ctx, repos[i], ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
-		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.UnitAccessMode(unit_model.TypeCode) >= perm.AccessModeRead {
+		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.HasAnyUnitAccess() {
 			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
 		}
 	}
@@ -113,22 +111,21 @@ func ListMyRepos(ctx *context.APIContext) {
 		IncludeDescription: true,
 	}
 
-	var err error
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "SearchRepository", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.LoadOwner(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadOwner", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			ctx.APIErrorInternal(err)
 		}
 		results[i] = convert.ToRepo(ctx, repo, permission)
 	}

@@ -88,8 +88,8 @@ func SetLogSQL(ctx *context.PrivateContext) {
 
 // RemoveLogger removes a logger
 func RemoveLogger(ctx *context.PrivateContext) {
-	logger := ctx.Params("logger")
-	writer := ctx.Params("writer")
+	logger := ctx.PathParam("logger")
+	writer := ctx.PathParam("writer")
 	err := log.GetManager().GetLogger(logger).RemoveWriter(writer)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -180,7 +180,7 @@ func AddLogger(ctx *context.PrivateContext) {
 		writerOption.Addr, _ = opts.Config["address"].(string)
 		writerMode.WriterOption = writerOption
 	default:
-		panic(fmt.Sprintf("invalid log writer mode: %s", writerType))
+		panic("invalid log writer mode: " + writerType)
 	}
 	writer, err := log.NewEventWriter(opts.Writer, writerType, writerMode)
 	if err != nil {

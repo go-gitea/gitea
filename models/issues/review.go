@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -155,14 +156,14 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return err
 	}
-	if err = r.loadIssue(ctx); err != nil {
+	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
 	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r, false)
 	return err
 }
 
-func (r *Review) loadIssue(ctx context.Context) (err error) {
+func (r *Review) LoadIssue(ctx context.Context) (err error) {
 	if r.Issue != nil {
 		return err
 	}
@@ -199,7 +200,7 @@ func (r *Review) LoadReviewerTeam(ctx context.Context) (err error) {
 
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes(ctx context.Context) (err error) {
-	if err = r.loadIssue(ctx); err != nil {
+	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
 	if err = r.LoadCodeComments(ctx); err != nil {
@@ -214,9 +215,13 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	return err
 }
 
+// HTMLTypeColorName returns the color used in the ui indicating the review
 func (r *Review) HTMLTypeColorName() string {
 	switch r.Type {
 	case ReviewTypeApprove:
+		if !r.Official {
+			return "grey"
+		}
 		if r.Stale {
 			return "yellow"
 		}
@@ -229,6 +234,27 @@ func (r *Review) HTMLTypeColorName() string {
 		return "yellow"
 	}
 	return "grey"
+}
+
+// TooltipContent returns the locale string describing the review type
+func (r *Review) TooltipContent() string {
+	switch r.Type {
+	case ReviewTypeApprove:
+		if r.Stale {
+			return "repo.issues.review.stale"
+		}
+		if !r.Official {
+			return "repo.issues.review.unofficial"
+		}
+		return "repo.issues.review.official"
+	case ReviewTypeComment:
+		return "repo.issues.review.commented"
+	case ReviewTypeReject:
+		return "repo.issues.review.rejected"
+	case ReviewTypeRequest:
+		return "repo.issues.review.requested"
+	}
+	return ""
 }
 
 // GetReviewByID returns the review by the given ID
@@ -349,7 +375,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 		review.Type = ReviewTypeRequest
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
 	} else {
-		return nil, fmt.Errorf("provide either reviewer or reviewer team")
+		return nil, errors.New("provide either reviewer or reviewer team")
 	}
 
 	if _, err := sess.Insert(review); err != nil {
@@ -364,7 +390,7 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 		return nil, nil
 	}
 	reviews, err := FindReviews(ctx, FindReviewOptions{
-		Type:       ReviewTypePending,
+		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,
 		ReviewerID: reviewer.ID,
 	})
@@ -614,6 +640,10 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 				return err
 			}
 		}
+
+		if err := UpdateIssueNumComments(ctx, review.IssueID); err != nil {
+			return err
+		}
 	}
 
 	return committer.Commit()
@@ -634,7 +664,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 	}
 
 	if review != nil {
-		// skip it when reviewer hase been request to review
+		// skip it when reviewer has been request to review
 		if review.Type == ReviewTypeRequest {
 			return nil, committer.Commit() // still commit the transaction, or committer.Close() will rollback it, even if it's a reused transaction.
 		}
@@ -901,17 +931,19 @@ func MarkConversation(ctx context.Context, comment *Comment, doer *user_model.Us
 }
 
 // CanMarkConversation  Add or remove Conversation mark for a code comment permission check
-// the PR writer , offfcial reviewer and poster can do it
+// the PR writer , official reviewer and poster can do it
 func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.User) (permResult bool, err error) {
 	if doer == nil || issue == nil {
-		return false, fmt.Errorf("issue or doer is nil")
+		return false, errors.New("issue or doer is nil")
 	}
 
+	if err = issue.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+	if issue.Repo.IsArchived {
+		return false, nil
+	}
 	if doer.ID != issue.PosterID {
-		if err = issue.LoadRepo(ctx); err != nil {
-			return false, err
-		}
-
 		p, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return false, err
@@ -941,11 +973,11 @@ func DeleteReview(ctx context.Context, r *Review) error {
 	defer committer.Close()
 
 	if r.ID == 0 {
-		return fmt.Errorf("review is not allowed to be 0")
+		return errors.New("review is not allowed to be 0")
 	}
 
 	if r.Type == ReviewTypeRequest {
-		return fmt.Errorf("review request can not be deleted using this method")
+		return errors.New("review request can not be deleted using this method")
 	}
 
 	opts := FindCommentsOptions{

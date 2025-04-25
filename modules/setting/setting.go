@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/user"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // settings
@@ -25,12 +25,7 @@ var (
 	// AppStartTime store time gitea has started
 	AppStartTime time.Time
 
-	// Other global setting objects
-
 	CfgProvider ConfigProvider
-	RunMode     string
-	RunUser     string
-	IsProd      bool
 	IsWindows   bool
 
 	// IsInTesting indicates whether the testing is running. A lot of unreliable code causes a lot of nonsense error logs during testing
@@ -152,6 +147,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadGitFrom(cfg)
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
+	loadGlobalLockFrom(cfg)
 	loadOtherFrom(cfg)
 	return nil
 }
@@ -163,7 +159,7 @@ func loadRunModeFrom(rootCfg ConfigProvider) {
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := ConfigSectionKeyBool(rootSec, "I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")
-	unsafeAllowRunAsRoot = unsafeAllowRunAsRoot || util.OptionalBoolParse(os.Getenv("GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")).Value()
+	unsafeAllowRunAsRoot = unsafeAllowRunAsRoot || optional.ParseBool(os.Getenv("GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT")).Value()
 	RunMode = os.Getenv("GITEA_RUN_MODE")
 	if RunMode == "" {
 		RunMode = rootSec.Key("RUN_MODE").MustString("prod")
@@ -238,4 +234,10 @@ func checkOverlappedPath(name, path string) {
 		LogStartupProblem(1, log.ERROR, "Configured path %q is used by %q and %q at the same time. The paths must be unique to prevent data loss.", path, targetName, name)
 	}
 	configuredPaths[path] = name
+}
+
+func PanicInDevOrTesting(msg string, a ...any) {
+	if !IsProd || IsInTesting {
+		panic(fmt.Sprintf(msg, a...))
+	}
 }

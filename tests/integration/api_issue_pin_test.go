@@ -153,7 +153,7 @@ func TestAPIListPinnedIssues(t *testing.T) {
 	var issueList []api.Issue
 	DecodeJSON(t, resp, &issueList)
 
-	assert.Equal(t, 1, len(issueList))
+	assert.Len(t, issueList, 1)
 	assert.Equal(t, issue.ID, issueList[0].ID)
 }
 
@@ -169,7 +169,7 @@ func TestAPIListPinnedPullrequests(t *testing.T) {
 	var prList []api.PullRequest
 	DecodeJSON(t, resp, &prList)
 
-	assert.Equal(t, 0, len(prList))
+	assert.Empty(t, prList)
 }
 
 func TestAPINewPinAllowed(t *testing.T) {

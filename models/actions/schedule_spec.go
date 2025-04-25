@@ -5,6 +5,8 @@ package actions
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -32,8 +34,29 @@ type ActionScheduleSpec struct {
 	Updated timeutil.TimeStamp `xorm:"updated"`
 }
 
+// Parse parses the spec and returns a cron.Schedule
+// Unlike the default cron parser, Parse uses UTC timezone as the default if none is specified.
 func (s *ActionScheduleSpec) Parse() (cron.Schedule, error) {
-	return cronParser.Parse(s.Spec)
+	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	schedule, err := parser.Parse(s.Spec)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the spec has specified a timezone, use it
+	if strings.HasPrefix(s.Spec, "TZ=") || strings.HasPrefix(s.Spec, "CRON_TZ=") {
+		return schedule, nil
+	}
+
+	specSchedule, ok := schedule.(*cron.SpecSchedule)
+	// If it's not a spec schedule, like "@every 5m", timezone is not relevant
+	if !ok {
+		return schedule, nil
+	}
+
+	// Set the timezone to UTC
+	specSchedule.Location = time.UTC
+	return specSchedule, nil
 }
 
 func init() {

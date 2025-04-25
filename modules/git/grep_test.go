@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -16,7 +15,7 @@ func TestGrepSearch(t *testing.T) {
 	assert.NoError(t, err)
 	defer repo.Close()
 
-	res, err := GrepSearch(context.Background(), repo, "void", GrepOptions{})
+	res, err := GrepSearch(t.Context(), repo, "void", GrepOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, []*GrepResult{
 		{
@@ -31,7 +30,7 @@ func TestGrepSearch(t *testing.T) {
 		},
 	}, res)
 
-	res, err = GrepSearch(context.Background(), repo, "void", GrepOptions{MaxResultLimit: 1})
+	res, err = GrepSearch(t.Context(), repo, "void", GrepOptions{PathspecList: []string{":(glob)java-hello/*"}})
 	assert.NoError(t, err)
 	assert.Equal(t, []*GrepResult{
 		{
@@ -41,7 +40,27 @@ func TestGrepSearch(t *testing.T) {
 		},
 	}, res)
 
-	res, err = GrepSearch(context.Background(), repo, "void", GrepOptions{MaxResultLimit: 1, MaxLineLength: 39})
+	res, err = GrepSearch(t.Context(), repo, "void", GrepOptions{PathspecList: []string{":(glob,exclude)java-hello/*"}})
+	assert.NoError(t, err)
+	assert.Equal(t, []*GrepResult{
+		{
+			Filename:    "main.vendor.java",
+			LineNumbers: []int{3},
+			LineCodes:   []string{" public static void main(String[] args)"},
+		},
+	}, res)
+
+	res, err = GrepSearch(t.Context(), repo, "void", GrepOptions{MaxResultLimit: 1})
+	assert.NoError(t, err)
+	assert.Equal(t, []*GrepResult{
+		{
+			Filename:    "java-hello/main.java",
+			LineNumbers: []int{3},
+			LineCodes:   []string{" public static void main(String[] args)"},
+		},
+	}, res)
+
+	res, err = GrepSearch(t.Context(), repo, "void", GrepOptions{MaxResultLimit: 1, MaxLineLength: 39})
 	assert.NoError(t, err)
 	assert.Equal(t, []*GrepResult{
 		{
@@ -51,11 +70,11 @@ func TestGrepSearch(t *testing.T) {
 		},
 	}, res)
 
-	res, err = GrepSearch(context.Background(), repo, "no-such-content", GrepOptions{})
+	res, err = GrepSearch(t.Context(), repo, "no-such-content", GrepOptions{})
 	assert.NoError(t, err)
-	assert.Len(t, res, 0)
+	assert.Empty(t, res)
 
-	res, err = GrepSearch(context.Background(), &Repository{Path: "no-such-git-repo"}, "no-such-content", GrepOptions{})
+	res, err = GrepSearch(t.Context(), &Repository{Path: "no-such-git-repo"}, "no-such-content", GrepOptions{})
 	assert.Error(t, err)
-	assert.Len(t, res, 0)
+	assert.Empty(t, res)
 }

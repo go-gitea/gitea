@@ -31,7 +31,7 @@
   border-width: 4px;
   border-style: solid;
   border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
-  border-radius: var(--border-radius-circle);
+  border-radius: var(--border-radius-full);
 }
 
 .is-loading.loading-icon-2px::after {
@@ -92,20 +92,22 @@ code.language-math.is-loading::after {
   }
 }
 
-@keyframes pulse {
+/* 1p5 means 1-point-5. it can't use "pulse" here, otherwise the animation is not right (maybe due to some conflicts */
+@keyframes pulse-1p5 {
   0% {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.8);
+    transform: scale(1.5);
   }
   100% {
     transform: scale(1);
   }
 }
 
-.pulse {
-  animation: pulse 2s linear;
+/* pulse animation for scale(1.5) in 200ms */
+.pulse-1p5-200 {
+  animation: pulse-1p5 200ms linear;
 }
 
 .ui.modal,
@@ -113,4 +115,16 @@ code.language-math.is-loading::after {
   animation-name: fadein;
   animation-duration: 100ms;
   animation-timing-function: ease-in-out;
+}
+
+/* FIXME: `octicon-sync` is counterclockwise, so this animation is also counterclockwise, it looks somewhat strange.
+Ideally in the future we should use a better image for clockwise animation. */
+.circular-spin {
+  animation: circular-spin-keyframes 1s linear infinite;
+}
+
+@keyframes circular-spin-keyframes {
+  100% {
+    transform: rotate(-360deg);
+  }
 }

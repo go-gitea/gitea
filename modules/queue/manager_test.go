@@ -4,7 +4,6 @@
 package queue
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -48,7 +47,7 @@ CONN_STR = redis://
 	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/common"), q.baseConfig.DataFullDir)
 	assert.Equal(t, 100000, q.baseConfig.Length)
 	assert.Equal(t, 20, q.batchLength)
-	assert.Equal(t, "", q.baseConfig.ConnStr)
+	assert.Empty(t, q.baseConfig.ConnStr)
 	assert.Equal(t, "default_queue", q.baseConfig.QueueFullName)
 	assert.Equal(t, "default_queue_unique", q.baseConfig.SetFullName)
 	assert.NotZero(t, q.GetWorkerMaxNumber())
@@ -80,7 +79,7 @@ MAX_WORKERS = 123
 
 	assert.NoError(t, err)
 
-	q1 := createWorkerPoolQueue[string](context.Background(), "no-such", cfgProvider, nil, false)
+	q1 := createWorkerPoolQueue[string](t.Context(), "no-such", cfgProvider, nil, false)
 	assert.Equal(t, "no-such", q1.GetName())
 	assert.Equal(t, "dummy", q1.GetType()) // no handler, so it becomes dummy
 	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/dir1"), q1.baseConfig.DataFullDir)
@@ -96,13 +95,13 @@ MAX_WORKERS = 123
 	assert.Equal(t, "string", q1.GetItemTypeName())
 	qid1 := GetManager().qidCounter
 
-	q2 := createWorkerPoolQueue(context.Background(), "sub", cfgProvider, func(s ...int) (unhandled []int) { return nil }, false)
+	q2 := createWorkerPoolQueue(t.Context(), "sub", cfgProvider, func(s ...int) (unhandled []int) { return nil }, false)
 	assert.Equal(t, "sub", q2.GetName())
 	assert.Equal(t, "level", q2.GetType())
 	assert.Equal(t, filepath.Join(setting.AppDataPath, "queues/dir2"), q2.baseConfig.DataFullDir)
 	assert.Equal(t, 102, q2.baseConfig.Length)
 	assert.Equal(t, 22, q2.batchLength)
-	assert.Equal(t, "", q2.baseConfig.ConnStr)
+	assert.Empty(t, q2.baseConfig.ConnStr)
 	assert.Equal(t, "sub_q2", q2.baseConfig.QueueFullName)
 	assert.Equal(t, "sub_q2_u2", q2.baseConfig.SetFullName)
 	assert.Equal(t, 123, q2.GetWorkerMaxNumber())
@@ -118,7 +117,7 @@ MAX_WORKERS = 123
 	assert.Equal(t, 120, q1.workerMaxNum)
 
 	stop := runWorkerPoolQueue(q2)
-	assert.NoError(t, GetManager().GetManagedQueue(qid2).FlushWithContext(context.Background(), 0))
-	assert.NoError(t, GetManager().FlushAll(context.Background(), 0))
+	assert.NoError(t, GetManager().GetManagedQueue(qid2).FlushWithContext(t.Context(), 0))
+	assert.NoError(t, GetManager().FlushAll(t.Context(), 0))
 	stop()
 }

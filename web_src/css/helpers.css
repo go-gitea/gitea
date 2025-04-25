@@ -3,12 +3,6 @@ Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
 
-.gt-word-break {
-  word-wrap: break-word !important;
-  word-break: break-word; /* compat: Safari */
-  overflow-wrap: anywhere;
-}
-
 .gt-ellipsis {
   overflow: hidden !important;
   white-space: nowrap !important;
@@ -21,10 +15,7 @@ Gitea's private styles use `g-` prefix.
 
 .g-table-auto-ellipsis td.auto-ellipsis span {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  inset: 0;
   padding: inherit;
   white-space: nowrap;
   overflow: hidden;
@@ -38,22 +29,6 @@ Gitea's private styles use `g-` prefix.
 .interact-bg { background: transparent !important; }
 .interact-bg:hover { background: var(--color-hover) !important; }
 .interact-bg:active { background: var(--color-active) !important; }
-
-/*
-tw-hidden must win all other "display: xxx !important" classes to get the chance to "hide" an element.
-do not use:
-* "[hidden]" attribute: it's too weak, can not be applied to an element with "display: flex"
-* ".hidden" class: it has been polluted by Fomantic UI in many cases
-* inline style="display: none": it's difficult to tweak
-* jQuery's show/hide/toggle: it can not show/hide elements with "display: xxx !important"
-only use:
-* this ".tw-hidden" class
-* showElem/hideElem/toggleElem functions in "utils/dom.js"
-*/
-.tw-hidden.tw-hidden { display: none !important; }
-
-/* proposed class from https://github.com/tailwindlabs/tailwindcss/pull/12128 */
-.tw-break-anywhere { overflow-wrap: anywhere !important; }
 
 @media (max-width: 767.98px) {
   /* double selector so it wins over .tw-flex (old .gt-df) etc */

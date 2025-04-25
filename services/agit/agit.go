@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,10 +24,10 @@ import (
 // ProcReceive handle proc receive work
 func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
+	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
-	forcePush, _ := strconv.ParseBool(opts.GitPushOptions["force-push"])
 	title := strings.TrimSpace(opts.GitPushOptions["title"])
-	description := strings.TrimSpace(opts.GitPushOptions["description"]) // TODO: Add more options?
+	description := strings.TrimSpace(opts.GitPushOptions["description"])
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	userName := strings.ToLower(opts.UserName)
 
@@ -56,19 +56,19 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		baseBranchName := opts.RefFullNames[i].ForBranchName()
-		curentTopicBranch := ""
-		if !gitRepo.IsBranchExist(baseBranchName) {
+		currentTopicBranch := ""
+		if !gitrepo.IsBranchExist(ctx, repo, baseBranchName) {
 			// try match refs/for/<target-branch>/<topic-branch>
 			for p, v := range baseBranchName {
-				if v == '/' && gitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
-					curentTopicBranch = baseBranchName[p+1:]
+				if v == '/' && gitrepo.IsBranchExist(ctx, repo, baseBranchName[:p]) && p != len(baseBranchName)-1 {
+					currentTopicBranch = baseBranchName[p+1:]
 					baseBranchName = baseBranchName[:p]
 					break
 				}
 			}
 		}
 
-		if len(topicBranch) == 0 && len(curentTopicBranch) == 0 {
+		if len(topicBranch) == 0 && len(currentTopicBranch) == 0 {
 			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
@@ -78,18 +78,18 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		if len(curentTopicBranch) == 0 {
-			curentTopicBranch = topicBranch
+		if len(currentTopicBranch) == 0 {
+			currentTopicBranch = topicBranch
 		}
 
 		// because different user maybe want to use same topic,
 		// So it's better to make sure the topic branch name
-		// has user name prefix
+		// has username prefix
 		var headBranch string
-		if !strings.HasPrefix(curentTopicBranch, userName+"/") {
-			headBranch = userName + "/" + curentTopicBranch
+		if !strings.HasPrefix(currentTopicBranch, userName+"/") {
+			headBranch = userName + "/" + currentTopicBranch
 		} else {
-			headBranch = curentTopicBranch
+			headBranch = currentTopicBranch
 		}
 
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
@@ -138,8 +138,12 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				Type:         issues_model.PullRequestGitea,
 				Flow:         issues_model.PullRequestFlowAGit,
 			}
-
-			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
+			prOpts := &pull_service.NewPullRequestOptions{
+				Repo:        repo,
+				Issue:       prIssue,
+				PullRequest: pr,
+			}
+			if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 				return nil, err
 			}
 
@@ -150,7 +154,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				OriginalRef:       opts.RefFullNames[i],
 				OldOID:            objectFormat.EmptyObjectID().String(),
 				NewOID:            opts.NewCommitIDs[i],
-				IsCreatePR:        true,
+				IsCreatePR:        false, // AGit always creates a pull request so there is no point in prompting user to create one
 				URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
 				ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 				HeadBranch:        headBranch,
@@ -178,10 +182,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		if !forcePush {
-			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
+		if !forcePush.Value() {
+			output, _, err := git.NewCommand("rev-list", "--max-count=1").
 				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
-				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
+				RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
 			if err != nil {
 				return nil, fmt.Errorf("failed to detect force push: %w", err)
 			} else if len(output) > 0 {
@@ -200,7 +204,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
 		}
 
-		pull_service.AddToTaskQueue(ctx, pr)
+		pull_service.StartPullRequestCheckImmediately(ctx, pr)
 		err = pr.LoadIssue(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load pull issue. Error: %w", err)

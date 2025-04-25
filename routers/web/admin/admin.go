@@ -9,15 +9,19 @@ import (
 	"net/http"
 	"runtime"
 	"sort"
+	"strings"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -28,14 +32,15 @@ import (
 )
 
 const (
-	tplDashboard    base.TplName = "admin/dashboard"
-	tplSystemStatus base.TplName = "admin/system_status"
-	tplSelfCheck    base.TplName = "admin/self_check"
-	tplCron         base.TplName = "admin/cron"
-	tplQueue        base.TplName = "admin/queue"
-	tplStacktrace   base.TplName = "admin/stacktrace"
-	tplQueueManage  base.TplName = "admin/queue_manage"
-	tplStats        base.TplName = "admin/stats"
+	tplDashboard    templates.TplName = "admin/dashboard"
+	tplSystemStatus templates.TplName = "admin/system_status"
+	tplSelfCheck    templates.TplName = "admin/self_check"
+	tplCron         templates.TplName = "admin/cron"
+	tplQueue        templates.TplName = "admin/queue"
+	tplPerfTrace    templates.TplName = "admin/perftrace"
+	tplStacktrace   templates.TplName = "admin/stacktrace"
+	tplQueueManage  templates.TplName = "admin/queue_manage"
+	tplStats        templates.TplName = "admin/stats"
 )
 
 var sysStatus struct {
@@ -159,7 +164,7 @@ func DashboardPost(ctx *context.Context) {
 		switch form.Op {
 		case "sync_repo_branches":
 			go func() {
-				if err := repo_service.AddAllRepoBranchesToSyncQueue(graceful.GetManager().ShutdownContext(), ctx.Doer.ID); err != nil {
+				if err := repo_service.AddAllRepoBranchesToSyncQueue(graceful.GetManager().ShutdownContext()); err != nil {
 					log.Error("AddAllRepoBranchesToSyncQueue: %v: %v", ctx.Doer.ID, err)
 				}
 			}()
@@ -182,9 +187,9 @@ func DashboardPost(ctx *context.Context) {
 		}
 	}
 	if form.From == "monitor" {
-		ctx.Redirect(setting.AppSubURL + "/admin/monitor/cron")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/monitor/cron")
 	} else {
-		ctx.Redirect(setting.AppSubURL + "/admin")
+		ctx.Redirect(setting.AppSubURL + "/-/admin")
 	}
 }
 
@@ -220,7 +225,25 @@ func SelfCheck(ctx *context.Context) {
 
 		ctx.Data["DatabaseCheckHasProblems"] = hasProblem
 	}
+
+	elapsed, err := cache.Test()
+	if err != nil {
+		ctx.Data["CacheError"] = err
+	} else if elapsed > cache.SlowCacheThreshold {
+		ctx.Data["CacheSlow"] = fmt.Sprint(elapsed)
+	}
+
 	ctx.HTML(http.StatusOK, tplSelfCheck)
+}
+
+func SelfCheckPost(ctx *context.Context) {
+	var problems []string
+	frontendAppURL := ctx.FormString("location_origin") + setting.AppSubURL + "/"
+	ctxAppURL := httplib.GuessCurrentAppURL(ctx)
+	if !strings.HasPrefix(ctxAppURL, frontendAppURL) {
+		problems = append(problems, ctx.Locale.TrString("admin.self_check.location_origin_mismatch", frontendAppURL, ctxAppURL))
+	}
+	ctx.JSON(http.StatusOK, map[string]any{"problems": problems})
 }
 
 func CronTasks(ctx *context.Context) {
