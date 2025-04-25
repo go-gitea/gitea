@@ -499,12 +499,12 @@ img.ui.avatar,
 
 /* add margin below .secondary nav when it is the first child */
 .page-content > :first-child.secondary-nav {
-  margin-bottom: var(--page-spacing);
+  margin-bottom: 14px;
 }
 
 /* add margin to all pages when there is no .secondary.nav */
 .page-content > :first-child:not(.secondary-nav) {
-  margin-top: 14px;
+  margin-top: var(--page-spacing);
 }
 /* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
    to compensate here */
