@@ -31,6 +31,7 @@
 #release-list .release-entry .detail {
   flex: 1;
   margin: 0;
+  min-width: 0;
 }
 
 @media (max-width: 767.98px) {
@@ -58,17 +59,20 @@
   margin-bottom: 2px; /* the legacy trick to align the avatar vertically, no better solution at the moment */
 }
 
-#release-list .release-entry .detail .download .list {
-  padding-left: 0;
+#release-list .release-entry .attachment-list {
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
 }
 
-#release-list .release-entry .detail .download .list li {
+#release-list .release-entry .attachment-list > .item {
   display: flex;
-  justify-content: space-between;
   padding: 8px;
-  border-bottom: 1px solid var(--color-secondary);
+  flex-wrap: wrap;
+}
+
+#release-list .release-entry .attachment-list .attachment-right-info {
+  flex-grow: 1;
+  min-width: 300px;
 }
 
 #release-list .release-entry .detail .download[open] summary {
@@ -76,7 +80,6 @@
 }
 
 #release-list .download-icon {
-  margin-right: .25rem;
   color: var(--color-text-light-1);
 }
 

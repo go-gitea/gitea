@@ -5,7 +5,6 @@ package ldap
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -106,7 +105,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 
 		if su.Mail == "" {
-			su.Mail = fmt.Sprintf("%s@localhost.local", su.Username)
+			su.Mail = su.Username + "@localhost.local"
 		}
 
 		fullName := composeFullName(su.Name, su.Surname, su.Username)

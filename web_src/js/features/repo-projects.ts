@@ -2,8 +2,9 @@ import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {POST, request} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {queryElemChildren, queryElems} from '../utils/dom.ts';
+import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import type {SortableEvent} from 'sortablejs';
+import {toggleFullScreen} from '../utils.ts';
 
 function updateIssueCount(card: HTMLElement): void {
   const parent = card.parentElement;
@@ -34,8 +35,8 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
 }
 
 async function initRepoProjectSortable(): Promise<void> {
-  // the HTML layout is: #project-board > .board > .project-column .cards > .issue-card
-  const mainBoard = document.querySelector('#project-board > .board.sortable');
+  // the HTML layout is: #project-board.board > .project-column .cards > .issue-card
+  const mainBoard = document.querySelector('#project-board');
   let boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
@@ -139,7 +140,24 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   });
 }
 
+function initRepoProjectToggleFullScreen(): void {
+  const enterFullscreenBtn = document.querySelector('.screen-full');
+  const exitFullscreenBtn = document.querySelector('.screen-normal');
+  if (!enterFullscreenBtn || !exitFullscreenBtn) return;
+
+  const toggleFullscreenState = (isFullScreen: boolean) => {
+    toggleFullScreen('.projects-view', isFullScreen);
+    toggleElem(enterFullscreenBtn, !isFullScreen);
+    toggleElem(exitFullscreenBtn, isFullScreen);
+  };
+
+  enterFullscreenBtn.addEventListener('click', () => toggleFullscreenState(true));
+  exitFullscreenBtn.addEventListener('click', () => toggleFullscreenState(false));
+}
+
 export function initRepoProject(): void {
+  initRepoProjectToggleFullScreen();
+
   const writableProjectBoard = document.querySelector('#project-board[data-project-borad-writable="true"]');
   if (!writableProjectBoard) return;
 

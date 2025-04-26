@@ -32,7 +32,7 @@
 			<a class="tw-mr-2" href="{{$.HeadRepo.Link}}/compare/{{PathEscapeSegments $.HeadBranch}}{{$.CompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.BaseName}}/{{PathEscape $.Repository.Name}}:{{end}}{{PathEscapeSegments $.BaseBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_head_and_base"}}">{{svg "octicon-git-compare"}}</a>
 			<div class="ui dropdown jump select-branch">
 				<div class="ui basic small button">
-					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: {{$BaseCompareName}}:{{$.BaseBranch}}</span>
+					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_base"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_base"}}{{end}}: <strong>{{$BaseCompareName}}:{{$.BaseBranch}}</strong></span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</div>
 				<div class="menu">
@@ -103,7 +103,7 @@
 
 			<div class="ui dropdown jump select-branch">
 				<div class="ui basic small button">
-					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: {{$HeadCompareName}}:{{$.HeadBranch}}</span>
+					<span class="text">{{if $.PageIsComparePull}}{{ctx.Locale.Tr "repo.pulls.compare_compare"}}{{else}}{{ctx.Locale.Tr "repo.compare.compare_head"}}{{end}}: <strong>{{$HeadCompareName}}:{{$.HeadBranch}}</strong></span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				</div>
 				<div class="menu">
@@ -189,7 +189,7 @@
 				<div class="ui segment flex-text-block tw-gap-4">
 					{{template "shared/issueicon" .}}
 					<div class="issue-title tw-break-anywhere">
-						{{ctx.RenderUtils.RenderIssueTitle .PullRequest.Issue.Title ($.Repository.ComposeMetas ctx)}}
+						{{ctx.RenderUtils.RenderIssueTitle .PullRequest.Issue.Title ($.Repository.ComposeCommentMetas ctx)}}
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>
 					</div>
 					<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui compact button primary">
@@ -205,10 +205,10 @@
 					{{end}}
 				</div>
 			{{else if $allowCreatePR}}
-				<div class="ui info message pullrequest-form-toggle {{if .Flash}}tw-hidden{{end}}">
+				<div class="ui info message pullrequest-form-toggle {{if .ExpandNewPrForm}}tw-hidden{{end}}">
 					<button class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
 				</div>
-				<div class="pullrequest-form {{if not .Flash}}tw-hidden{{end}}">
+				<div class="pullrequest-form {{if not .ExpandNewPrForm}}tw-hidden{{end}}">
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}

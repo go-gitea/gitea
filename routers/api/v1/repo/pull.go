@@ -202,6 +202,10 @@ func GetPullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
+	// Consider API access a view for delayed checking.
+	pull_service.StartPullRequestCheckOnView(ctx, pr)
+
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
 
@@ -287,6 +291,10 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
+	// Consider API access a view for delayed checking.
+	pull_service.StartPullRequestCheckOnView(ctx, pr)
+
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
 
@@ -921,7 +929,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	if err := pull_service.CheckPullMergeable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, mergeCheckType, form.ForceMerge); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.APIErrorNotFound()
-		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
 		} else if errors.Is(err, pull_service.ErrHasMerged) {
 			ctx.APIError(http.StatusMethodNotAllowed, "")
@@ -929,7 +937,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
 		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Please try again later")
-		} else if pull_service.IsErrDisallowedToMerge(err) {
+		} else if errors.Is(err, pull_service.ErrNotReadyToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
 		} else if asymkey_service.IsErrWontSign(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, err)
@@ -1054,9 +1062,9 @@ func MergePullRequest(ctx *context.APIContext) {
 				case git.IsErrBranchNotExist(err):
 					ctx.APIErrorNotFound(err)
 				case errors.Is(err, repo_service.ErrBranchIsDefault):
-					ctx.APIError(http.StatusForbidden, fmt.Errorf("can not delete default branch"))
+					ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
 				case errors.Is(err, git_model.ErrBranchIsProtected):
-					ctx.APIError(http.StatusForbidden, fmt.Errorf("branch protected"))
+					ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
 				default:
 					ctx.APIErrorInternal(err)
 				}

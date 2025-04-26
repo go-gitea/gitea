@@ -38,7 +38,7 @@ var currentEngine *xorm.Engine
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
 	giteaRoot := test.SetupGiteaRoot()
-	setting.AppPath = path.Join(giteaRoot, "gitea")
+	setting.AppPath = filepath.Join(giteaRoot, "gitea")
 	if _, err := os.Stat(setting.AppPath); err != nil {
 		testlogger.Fatalf(fmt.Sprintf("Could not find gitea binary at %s\n", setting.AppPath))
 	}
@@ -47,15 +47,15 @@ func initMigrationTest(t *testing.T) func() {
 	if giteaConf == "" {
 		testlogger.Fatalf("Environment variable $GITEA_CONF not set\n")
 	} else if !path.IsAbs(giteaConf) {
-		setting.CustomConf = path.Join(giteaRoot, giteaConf)
+		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
 	} else {
 		setting.CustomConf = giteaConf
 	}
 
-	unittest.InitSettings()
+	unittest.InitSettingsForTesting()
 
 	assert.NotEmpty(t, setting.RepoRootPath)
-	assert.NoError(t, unittest.SyncDirs(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	assert.NoError(t, git.InitFull(t.Context()))
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
@@ -140,10 +140,10 @@ func restoreOldDB(t *testing.T, version string) {
 		assert.NoError(t, err)
 		defer db.Close()
 
-		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
+		_, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name)
 		assert.NoError(t, err)
 
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name))
+		_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + setting.Database.Name)
 		assert.NoError(t, err)
 		db.Close()
 
@@ -170,10 +170,10 @@ func restoreOldDB(t *testing.T, version string) {
 		}
 		defer db.Close()
 
-		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
+		_, err = db.Exec("DROP DATABASE IF EXISTS " + setting.Database.Name)
 		assert.NoError(t, err)
 
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name))
+		_, err = db.Exec("CREATE DATABASE " + setting.Database.Name)
 		assert.NoError(t, err)
 		db.Close()
 
@@ -195,7 +195,7 @@ func restoreOldDB(t *testing.T, version string) {
 
 			if !schrows.Next() {
 				// Create and setup a DB schema
-				_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema))
+				_, err = db.Exec("CREATE SCHEMA " + setting.Database.Schema)
 				assert.NoError(t, err)
 			}
 			schrows.Close()

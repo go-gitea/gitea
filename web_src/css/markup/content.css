@@ -2,11 +2,7 @@
   overflow: hidden;
   font-size: 16px;
   line-height: 1.5 !important;
-  overflow-wrap: break-word;
-}
-
-.conversation-holder .markup {
-  overflow-wrap: anywhere; /* prevent overflow in code comments. TODO: properly restrict .conversation-holder width and remove this */
+  overflow-wrap: anywhere;
 }
 
 .markup > *:first-child {
@@ -336,11 +332,6 @@
   padding-right: 28px;
 }
 
-.markup .emoji {
-  max-width: none;
-  vertical-align: text-top;
-}
-
 .markup span.frame {
   display: block;
   overflow: hidden;
@@ -452,14 +443,25 @@
 }
 
 .markup pre > code {
-  padding: 0;
-  margin: 0;
   font-size: 100%;
+}
+
+.markup .code-block,
+.markup .code-block-container {
+  position: relative;
+}
+
+.markup .code-block-container.code-overflow-wrap pre > code {
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
-  background: transparent;
-  border: 0;
+}
+
+.markup .code-block-container.code-overflow-scroll pre {
+  overflow-x: auto;
+}
+
+.markup .code-block-container.code-overflow-scroll pre > code {
+  white-space: pre;
+  overflow-wrap: normal;
 }
 
 .markup .highlight {
@@ -480,16 +482,11 @@
   word-break: normal;
 }
 
-.markup pre {
-  word-wrap: normal;
-}
-
 .markup pre code,
 .markup pre tt {
   display: inline;
   padding: 0;
   line-height: inherit;
-  word-wrap: normal;
   background-color: transparent;
   border: 0;
 }
@@ -520,18 +517,16 @@
   padding-left: 2em;
 }
 
-.file-revisions-btn {
-  display: block;
-  float: left;
-  margin-bottom: 2px !important;
-  padding: 11px !important;
-  margin-right: 10px !important;
+.markup details.frontmatter-content summary {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-bottom: 0.25em;
 }
 
-.file-revisions-btn i {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+.markup details.frontmatter-content svg {
+  vertical-align: middle;
+  margin: 0 0.25em;
 }
 
 .markup-content-iframe {

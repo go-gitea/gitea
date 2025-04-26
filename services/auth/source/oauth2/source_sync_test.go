@@ -88,8 +88,8 @@ func TestSource(t *testing.T) {
 			ok, err := user_model.GetExternalLogin(t.Context(), e)
 			assert.NoError(t, err)
 			assert.True(t, ok)
-			assert.Equal(t, "", e.RefreshToken)
-			assert.Equal(t, "", e.AccessToken)
+			assert.Empty(t, e.RefreshToken)
+			assert.Empty(t, e.AccessToken)
 
 			u, err := user_model.GetUserByID(t.Context(), user.ID)
 			assert.NoError(t, err)

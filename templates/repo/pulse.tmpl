@@ -1,12 +1,12 @@
 <h2 class="ui header activity-header">
 	<span>{{DateUtils.AbsoluteLong .DateFrom}} - {{DateUtils.AbsoluteLong .DateUntil}}</span>
 	<!-- Period -->
-	<div class="ui floating dropdown jump filter">
+	<div class="ui floating dropdown jump">
 		<div class="ui basic compact button">
 			{{ctx.Locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>
-		<div class="menu">
+		<div class="left menu">
 			<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{ctx.Locale.Tr "repo.activity.period.daily"}}</a>
 			<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{ctx.Locale.Tr "repo.activity.period.halfweekly"}}</a>
 			<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{ctx.Locale.Tr "repo.activity.period.weekly"}}</a>

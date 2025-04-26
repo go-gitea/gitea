@@ -25,32 +25,34 @@ function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: a
   }
 }
 
+export function toggleClass(el: ElementArg, className: string, force?: boolean) {
+  elementsCall(el, (e: Element) => {
+    if (force === true) {
+      e.classList.add(className);
+    } else if (force === false) {
+      e.classList.remove(className);
+    } else if (force === undefined) {
+      e.classList.toggle(className);
+    } else {
+      throw new Error('invalid force argument');
+    }
+  });
+}
+
 /**
- * @param el Element
+ * @param el ElementArg
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
-function toggleShown(el: Element, force: boolean) {
-  if (force === true) {
-    el.classList.remove('tw-hidden');
-  } else if (force === false) {
-    el.classList.add('tw-hidden');
-  } else if (force === undefined) {
-    el.classList.toggle('tw-hidden');
-  } else {
-    throw new Error('invalid force argument');
-  }
+export function toggleElem(el: ElementArg, force?: boolean) {
+  toggleClass(el, 'tw-hidden', force === undefined ? force : !force);
 }
 
 export function showElem(el: ElementArg) {
-  elementsCall(el, toggleShown, true);
+  toggleElem(el, true);
 }
 
 export function hideElem(el: ElementArg) {
-  elementsCall(el, toggleShown, false);
-}
-
-export function toggleElem(el: ElementArg, force?: boolean) {
-  elementsCall(el, toggleShown, force);
+  toggleElem(el, false);
 }
 
 export function isElemHidden(el: ElementArg) {
@@ -87,7 +89,7 @@ export function queryElemChildren<T extends Element>(parent: Element | ParentNod
 }
 
 // it works like parent.querySelectorAll: all descendants are selected
-// in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent
+// in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent if the targets are not for page-level components.
 export function queryElems<T extends HTMLElement>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
 }
@@ -358,7 +360,11 @@ export function querySingleVisibleElem<T extends HTMLElement>(parent: Element, s
 export function addDelegatedEventListener<T extends HTMLElement, E extends Event>(parent: Node, type: string, selector: string, listener: (elem: T, e: E) => Promisable<void>, options?: boolean | AddEventListenerOptions) {
   parent.addEventListener(type, (e: Event) => {
     const elem = (e.target as HTMLElement).closest(selector);
-    if (!elem) return;
+    // It strictly checks "parent contains the target elem" to avoid side effects of selector running on outside the parent.
+    // Keep in mind that the elem could have been removed from parent by other event handlers before this event handler is called.
+    // For example: tippy popup item, the tippy popup could be hidden and removed from DOM before this.
+    // It is caller's responsibility make sure the elem is still in parent's DOM when this event handler is called.
+    if (!elem || (parent !== document && !parent.contains(elem))) return;
     listener(elem as T, e as E);
   }, options);
 }

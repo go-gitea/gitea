@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"os"
@@ -222,7 +221,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	ctx.Permissions().Permissions = &gossh.Permissions{}
 	setPermExt := func(keyID int64) {
 		ctx.Permissions().Permissions.Extensions = map[string]string{
-			giteaPermissionExtensionKeyID: fmt.Sprint(keyID),
+			giteaPermissionExtensionKeyID: strconv.FormatInt(keyID, 10),
 		}
 	}
 

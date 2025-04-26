@@ -15,12 +15,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -107,8 +109,13 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	defer closer.Close()
 
 	// oldBranch must exist for this operation
-	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil && !repo.IsEmpty {
+	if exist, err := git_model.IsBranchExist(ctx, repo.ID, opts.OldBranch); err != nil {
 		return nil, err
+	} else if !exist && !repo.IsEmpty {
+		return nil, git_model.ErrBranchNotExist{
+			RepoID:     repo.ID,
+			BranchName: opts.OldBranch,
+		}
 	}
 
 	var treePaths []string
@@ -145,14 +152,14 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
-		if existingBranch != nil {
+		exist, err := git_model.IsBranchExist(ctx, repo.ID, opts.NewBranch)
+		if err != nil {
+			return nil, err
+		}
+		if exist {
 			return nil, git_model.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
 			}
-		}
-		if err != nil && !git.IsErrBranchNotExist(err) {
-			return nil, err
 		}
 	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, treePaths); err != nil {
 		return nil, err
@@ -290,7 +297,9 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return nil, err
 	}
 
-	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePaths)
+	// FIXME: this call seems not right, why it needs to read the file content again
+	// FIXME: why it uses the NewBranch as "ref", it should use the commit ID because the response is only for this commit
+	filesResponse, err := GetFilesResponseFromCommit(ctx, repo, utils.NewRefCommit(git.RefNameFromBranch(opts.NewBranch), commit), treePaths)
 	if err != nil {
 		return nil, err
 	}
@@ -483,16 +492,15 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	var lfsMetaObject *git_model.LFSMetaObject
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
-		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
-			Attributes: []string{"filter"},
+		attributesMap, err := attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
+			Attributes: []string{attribute.Filter},
 			Filenames:  []string{file.Options.treePath},
-			CachedOnly: true,
 		})
 		if err != nil {
 			return err
 		}
 
-		if filename2attribute2info[file.Options.treePath] != nil && filename2attribute2info[file.Options.treePath]["filter"] == "lfs" {
+		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath].Get(attribute.Filter).ToString().Value() == "lfs" {
 			// OK so we are supposed to LFS this data!
 			pointer, err := lfs.GeneratePointer(treeObjectContentReader)
 			if err != nil {

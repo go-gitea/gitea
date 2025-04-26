@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -117,14 +118,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.Owner = u
 	}
 
-	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-		return repo, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	if stdout, _, err := git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
-		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
+	if err := updateGitRepoAfterCreate(ctx, repo); err != nil {
+		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repoPath)
@@ -141,12 +136,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	if !repo.IsEmpty {
 		if len(repo.DefaultBranch) == 0 {
 			// Try to get HEAD branch and set it as default branch.
-			headBranch, err := gitRepo.GetHEADBranch()
+			headBranchName, err := git.GetDefaultBranch(ctx, repoPath)
 			if err != nil {
 				return repo, fmt.Errorf("GetHEADBranch: %w", err)
 			}
-			if headBranch != nil {
-				repo.DefaultBranch = headBranch.Name
+			if headBranchName != "" {
+				repo.DefaultBranch = headBranchName
 			}
 		}
 
@@ -246,6 +241,19 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
+	var enableRepoUnits []repo_model.RepoUnit
+	if opts.Releases && !unit_model.TypeReleases.UnitGlobalDisabled() {
+		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeReleases})
+	}
+	if opts.Wiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
+		enableRepoUnits = append(enableRepoUnits, repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeWiki})
+	}
+	if len(enableRepoUnits) > 0 {
+		err = UpdateRepositoryUnits(ctx, repo, enableRepoUnits, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return repo, committer.Commit()
 }
 

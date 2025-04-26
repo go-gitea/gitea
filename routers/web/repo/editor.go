@@ -160,7 +160,6 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		defer dataRc.Close()
 
 		ctx.Data["FileSize"] = blob.Size()
-		ctx.Data["FileName"] = blob.Name()
 
 		buf := make([]byte, 1024)
 		n, _ := util.ReadAtMost(dataRc, buf)
@@ -668,7 +667,7 @@ func UploadFilePost(ctx *context.Context) {
 	}
 
 	if oldBranchName != branchName {
-		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err == nil {
+		if exist, err := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, branchName); err == nil && exist {
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplUploadFile, &form)
 			return
@@ -875,12 +874,11 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 	prefix := ctx.Doer.LowerName + "-patch-"
 	for i := 1; i <= 1000; i++ {
 		branchName := fmt.Sprintf("%s%d", prefix, i)
-		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err != nil {
-			if git.IsErrBranchNotExist(err) {
-				return branchName
-			}
+		if exist, err := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, branchName); err != nil {
 			log.Error("GetUniquePatchBranchName: %v", err)
 			return ""
+		} else if !exist {
+			return branchName
 		}
 	}
 	return ""

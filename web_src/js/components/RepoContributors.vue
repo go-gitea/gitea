@@ -353,12 +353,12 @@ export default defineComponent({
       </div>
       <div>
         <!-- Contribution type -->
-        <div class="ui dropdown jump" id="repo-contributors">
-          <div class="ui basic compact button">
+        <div class="ui floating dropdown jump" id="repo-contributors">
+          <div class="ui basic compact button tw-mr-0">
             <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
             <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
-          <div class="menu">
+          <div class="left menu">
             <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
               {{ locale.contributionType.commits }}
             </div>
@@ -375,7 +375,7 @@ export default defineComponent({
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+          <SvgIcon name="octicon-sync" class="tw-mr-2 circular-spin"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">

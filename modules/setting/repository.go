@@ -5,7 +5,6 @@ package setting
 
 import (
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -63,15 +62,9 @@ var (
 		// Repository upload settings
 		Upload struct {
 			Enabled      bool
-			TempPath     string
 			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
-		} `ini:"-"`
-
-		// Repository local settings
-		Local struct {
-			LocalCopyPath string
 		} `ini:"-"`
 
 		// Pull request settings
@@ -89,6 +82,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
+			DelayCheckForInactiveDays                int
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -182,23 +176,14 @@ var (
 		// Repository upload settings
 		Upload: struct {
 			Enabled      bool
-			TempPath     string
 			AllowedTypes string
 			FileMaxSize  int64
 			MaxFiles     int
 		}{
 			Enabled:      true,
-			TempPath:     "data/tmp/uploads",
 			AllowedTypes: "",
 			FileMaxSize:  50,
 			MaxFiles:     5,
-		},
-
-		// Repository local settings
-		Local: struct {
-			LocalCopyPath string
-		}{
-			LocalCopyPath: "tmp/local-repo",
 		},
 
 		// Pull request settings
@@ -216,6 +201,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
+			DelayCheckForInactiveDays                int
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -231,6 +217,7 @@ var (
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
+			DelayCheckForInactiveDays:                7,
 		},
 
 		// Issue settings
@@ -284,7 +271,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
-	RepoRootPath = sec.Key("ROOT").MustString(path.Join(AppDataPath, "gitea-repositories"))
+	RepoRootPath = sec.Key("ROOT").MustString(filepath.Join(AppDataPath, "gitea-repositories"))
 	if !filepath.IsAbs(RepoRootPath) {
 		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
 	} else {
@@ -309,8 +296,6 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.Editor settings: %v", err)
 	} else if err = rootCfg.Section("repository.upload").MapTo(&Repository.Upload); err != nil {
 		log.Fatal("Failed to map Repository.Upload settings: %v", err)
-	} else if err = rootCfg.Section("repository.local").MapTo(&Repository.Local); err != nil {
-		log.Fatal("Failed to map Repository.Local settings: %v", err)
 	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
@@ -360,10 +345,6 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 			Repository.DetectedCharsetScore[charset] = i
 			i++
 		}
-	}
-
-	if !filepath.IsAbs(Repository.Upload.TempPath) {
-		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
 	if err := loadRepoArchiveFrom(rootCfg); err != nil {

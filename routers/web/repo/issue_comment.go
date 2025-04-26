@@ -96,7 +96,7 @@ func NewComment(ctx *context.Context) {
 				// Regenerate patch and test conflict.
 				if pr == nil {
 					issue.PullRequest.HeadCommitID = ""
-					pull_service.AddToTaskQueue(ctx, issue.PullRequest)
+					pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
 				}
 
 				// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo

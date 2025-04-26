@@ -36,7 +36,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.NoError(t, err)
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	AddToTaskQueue(db.DefaultContext, pr)
+	StartPullRequestCheckImmediately(db.DefaultContext, pr)
 
 	assert.Eventually(t, func() bool {
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -51,7 +51,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	select {
 	case id := <-idChan:
-		assert.EqualValues(t, pr.ID, id)
+		assert.Equal(t, pr.ID, id)
 	case <-time.After(time.Second):
 		assert.FailNow(t, "Timeout: nothing was added to pullRequestQueue")
 	}

@@ -80,6 +80,13 @@ func (c *Command) LogString() string {
 	return strings.Join(a, " ")
 }
 
+func (c *Command) ProcessState() string {
+	if c.cmd == nil {
+		return ""
+	}
+	return c.cmd.ProcessState.String()
+}
+
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 // Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommand(args ...internal.CmdArg) *Command {
@@ -350,9 +357,10 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 	// We need to check if the context is canceled by the program on Windows.
 	// This is because Windows does not have signal checking when terminating the process.
 	// It always returns exit code 1, unlike Linux, which has many exit codes for signals.
+	// `err.Error()` returns "exit status 1" when using the `git check-attr` command after the context is canceled.
 	if runtime.GOOS == "windows" &&
 		err != nil &&
-		err.Error() == "" &&
+		(err.Error() == "" || err.Error() == "exit status 1") &&
 		cmd.ProcessState.ExitCode() == 1 &&
 		ctx.Err() == context.Canceled {
 		return ctx.Err()

@@ -2,7 +2,10 @@
   /* fonts */
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
   --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
-  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  /* GitHub explicitly sets font names like: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
+  Actually "Twemoji Mozilla" emoji font is widely used by browsers like Firefox, Pale Moon, and it is more likely up-to-dated than the system emoji font.
+  So not setting emoji font seems to be the best choice, here we just use a non-existing dummy font name and let browsers choose. */
+  --fonts-emoji: -emoji-fallback;
   /* font weights - use between 400 and 600 for general purposes. Avoid 700 as it is perceived too bold */
   --font-weight-light: 300;
   --font-weight-normal: 400;
@@ -26,6 +29,7 @@
   --checkbox-size: 15px; /* height and width of checkbox and radio inputs */
   --page-spacing: 16px; /* space between page elements */
   --page-margin-x: 32px; /* minimum space on left and right side of page */
+  --page-space-bottom: 64px; /* space between last page element and footer */
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -224,6 +228,7 @@ progress::-moz-progress-bar {
 }
 
 .unselectable,
+.btn,
 .button,
 .lines-num,
 .lines-commit,
@@ -347,6 +352,7 @@ a.label,
 
 .ui.dropdown .menu > .item {
   color: var(--color-text);
+  line-height: var(--line-height-default);
 }
 
 .ui.dropdown .menu > .item:hover {
@@ -474,7 +480,7 @@ img.ui.avatar,
 
 .full.height {
   flex-grow: 1;
-  padding-bottom: 80px;
+  padding-bottom: var(--page-space-bottom);
 }
 
 .status-page-error {
@@ -646,10 +652,11 @@ img.ui.avatar,
   border: 1px solid;
 }
 
-.ui.floating.dropdown .overflow.menu .scrolling.menu.items {
+.ui.dropdown .menu.context-user-switch .scrolling.menu {
   border-radius: 0 !important;
   box-shadow: none !important;
   border-bottom: 1px solid var(--color-secondary);
+  max-width: 80vw;
 }
 
 .user-menu > .item {
@@ -743,6 +750,14 @@ overflow-menu .overflow-menu-button {
   text-align: center;
   width: 32px;
   padding: 0;
+}
+
+/* match the styles of ".ui.secondary.pointing.menu .active.item" */
+overflow-menu.ui.secondary.pointing.menu .overflow-menu-button.active {
+  padding: 2px 0 0;
+  border-bottom: 2px solid currentcolor;
+  background-color: transparent;
+  font-weight: var(--font-weight-medium);
 }
 
 overflow-menu .overflow-menu-button:hover {
@@ -876,7 +891,6 @@ overflow-menu .ui.label {
 .code-inner {
   font: 12px var(--fonts-monospace);
   white-space: pre-wrap;
-  word-break: break-all;
   overflow-wrap: anywhere;
   line-height: inherit; /* needed for inline code preview in markup */
 }
@@ -989,14 +1003,7 @@ table th[data-sortt-desc] .svg {
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 
-.emoji {
-  font-size: 1.25em;
-  line-height: var(--line-height-default);
-  font-style: normal !important;
-  font-weight: var(--font-weight-normal) !important;
-  vertical-align: -0.075em;
-}
-
+/* for "image" emojis like ":git:"  ":gitea:" and ":github:" (see CUSTOM_EMOJIS config option) */
 .emoji img {
   border-width: 0 !important;
   margin: 0 !important;
@@ -1035,26 +1042,13 @@ table th[data-sortt-desc] .svg {
   text-align: left;
 }
 
-.truncated-item-container {
-  display: flex !important;
-  align-items: center;
-}
-
-.ellipsis-button {
-  padding: 0 5px 8px !important;
-  display: inline-block !important;
-  font-weight: var(--font-weight-semibold) !important;
-  line-height: 6px !important;
-  vertical-align: middle !important;
-}
-
-.truncated-item-name {
-  line-height: 2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: -0.5em;
-  margin-bottom: -0.5em;
+.ui.button.ellipsis-button {
+  padding: 0 5px 8px;
+  display: inline-block;
+  font-weight: var(--font-weight-semibold);
+  line-height: 8px;
+  vertical-align: middle;
+  min-height: 0;
 }
 
 .precolors {
@@ -1147,12 +1141,18 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.list.flex-items-block > .item,
+.ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
   align-items: center;
   gap: .5rem;
   min-width: 0;
+}
+
+.flex-text-block > .ui.button,
+.flex-text-inline > .ui.button {
+  margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */
 }
 
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
@@ -1168,14 +1168,20 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   margin: 0; /* use gap, but not margin */
 }
 
-.ui.dropdown.ellipsis-items-nowrap > .text {
+.ui.dropdown.ellipsis-text-items {
+  /* reset y padding and use the line-height below instead, to avoid the "overflow: hidden" clips the larger image in the "text" element */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ui.dropdown.ellipsis-text-items > .text {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: 2.71; /* matches fomantic dropdown's default min-height */
 }
 
-.ellipsis-items-nowrap > .item,
-.ui.dropdown.ellipsis-items-nowrap .menu > .item {
+.ui.dropdown.ellipsis-text-items .menu > .item {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -1189,4 +1195,16 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   display: flex;
   flex-grow: 1;
   justify-content: space-between;
+}
+
+.svg.octicon-file-directory-fill,
+.svg.octicon-file-directory-open-fill,
+.svg.octicon-file-submodule {
+  color: var(--color-primary);
+}
+
+.svg.octicon-file,
+.svg.octicon-file-symlink-file,
+.svg.octicon-file-directory-symlink {
+  color: var(--color-secondary-dark-7);
 }

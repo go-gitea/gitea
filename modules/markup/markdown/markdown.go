@@ -5,7 +5,7 @@
 package markdown
 
 import (
-	"fmt"
+	"errors"
 	"html/template"
 	"io"
 	"strings"
@@ -48,7 +48,7 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 		if err != nil {
 			return n, err
 		}
-		return n, fmt.Errorf("rendered content too large - truncating render")
+		return n, errors.New("rendered content too large - truncating render")
 	}
 	n, err := l.w.Write(data)
 	l.sum += int64(n)
@@ -86,20 +86,15 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 			preClasses += " is-loading"
 		}
 
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<pre class="%s">`, preClasses)
-		if err != nil {
-			return
-		}
-
 		// include language-x class as part of commonmark spec, "chroma" class is used to highlight the code
 		// the "display" class is used by "js/markup/math.ts" to render the code element as a block
 		// the "math.ts" strictly depends on the structure: <pre class="code-block is-loading"><code class="language-math display">...</code></pre>
-		err = r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<code class="chroma language-%s display">`, languageStr)
+		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre class="%s"><code class="chroma language-%s display">`, preClasses, languageStr)
 		if err != nil {
 			return
 		}
 	} else {
-		_, err := w.WriteString("</code></pre>")
+		_, err := w.WriteString("</code></pre></div>")
 		if err != nil {
 			return
 		}
@@ -126,11 +121,11 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 				highlighting.WithWrapperRenderer(r.highlightingRenderer),
 			),
 			math.NewExtension(&ctx.RenderInternal, math.Options{
-				Enabled:           setting.Markdown.EnableMath,
-				ParseDollarInline: true,
-				ParseDollarBlock:  true,
-				ParseSquareBlock:  true, // TODO: this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping, it should be deprecated in the future (by some config options)
-				// ParseBracketInline: true, // TODO: this is also a bad syntax "\( ... \)", it also conflicts, it should be deprecated in the future
+				Enabled:                  setting.Markdown.EnableMath,
+				ParseInlineDollar:        setting.Markdown.MathCodeBlockOptions.ParseInlineDollar,
+				ParseInlineParentheses:   setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses, // this is a bad syntax "\( ... \)", it conflicts with normal markdown escaping
+				ParseBlockDollar:         setting.Markdown.MathCodeBlockOptions.ParseBlockDollar,
+				ParseBlockSquareBrackets: setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets, //  this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping
 			}),
 			meta.Meta,
 		),
@@ -184,11 +179,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	// Preserve original length.
 	bufWithMetadataLength := len(buf)
 
-	rc := &RenderConfig{
-		Meta: markup.RenderMetaAsDetails,
-		Icon: "table",
-		Lang: "",
-	}
+	rc := &RenderConfig{Meta: markup.RenderMetaAsDetails}
 	buf, _ = ExtractMetadataBytes(buf, rc)
 
 	metaLength := bufWithMetadataLength - len(buf)
