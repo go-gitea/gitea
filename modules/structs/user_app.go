@@ -23,9 +23,11 @@ type AccessToken struct {
 type AccessTokenList []*AccessToken
 
 // CreateAccessTokenOption options when create access token
+// swagger:model CreateAccessTokenOption
 type CreateAccessTokenOption struct {
 	// required: true
-	Name   string   `json:"name" binding:"Required"`
+	Name string `json:"name" binding:"Required"`
+	// example: ["all", "read:activitypub","read:issue", "write:misc", "read:notification", "read:organization", "read:package", "read:repository", "read:user"]
 	Scopes []string `json:"scopes"`
 }
 
