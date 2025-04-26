@@ -373,17 +373,16 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	}
 
 	if len(keys) == 0 {
-		for i := range 3 {
-			filename := setting.SSH.ServerHostKeys[i]
-			filePath := filepath.Dir(filename)
-			if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-				log.Error("Failed to create dir %s: %v", filePath, err)
-			}
-			err := GenKeyPair(filename)
-			if err != nil {
-				log.Fatal("Failed to generate private key: %v", err)
-			}
-			log.Trace("New private key is generated: %s", filename)
+		filePath := filepath.Dir(setting.SSH.ServerHostKeys[0])
+		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
+			log.Error("Failed to create dir %s: %v", filePath, err)
+		}
+		err := initDefaultKeys(filePath)
+		if err != nil {
+			log.Fatal("Failed to generate private key: %v", err)
+		}
+		for _, keytype := range []string{"rsa", "ecdsa", "ed25519"} {
+			filename := filePath + "/gitea." + keytype
 			keys = append(keys, filename)
 		}
 	}
@@ -405,17 +404,12 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 // GenKeyPair make a pair of public and private keys for SSH access.
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
-func GenKeyPair(keyPath string) error {
+func GenKeyPair(keyPath, keytype string) error {
 	bits := 4096
-	keytype := filepath.Ext(keyPath)
-	if keytype == ".ed25519" {
-		keytype = "ed25519"
-	} else if keytype == ".ecdsa" {
+	if keytype == "ecdsa" {
 		bits = 256
-		keytype = "ecdsa"
-	} else {
-		keytype = "rsa"
 	}
+
 	publicKey, privateKeyPEM, err := generate.NewSSHKey(keytype, bits)
 	if err != nil {
 		return err
@@ -447,4 +441,20 @@ func GenKeyPair(keyPath string) error {
 	}()
 	_, err = p.Write(public)
 	return err
+}
+
+// initDefaultKeys mirrors how ssh-keygen -A operates
+// it runs checks if public and private keys are already defined and creates new ones if not present
+// key naming does not follow the openssh convention due to existing settings being gitea.{keytype} so generation follows gitea convention
+func initDefaultKeys(path string) error {
+	var errs []error
+	keytypes := []string{"rsa", "ecdsa", "ed25519"}
+	for _, keytype := range keytypes {
+		privExists, _ := util.IsExist(path + "/gitea." + keytype)
+		pubExists, _ := util.IsExist(path + "/gitea." + keytype + ".pub")
+		if !privExists || !pubExists {
+			errs = append(errs, GenKeyPair(path+"/gitea."+keytype, keytype))
+		}
+	}
+	return errors.Join(errs...)
 }

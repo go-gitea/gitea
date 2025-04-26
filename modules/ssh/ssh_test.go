@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package ssh_test
+package ssh
 
 import (
 	"crypto/ecdsa"
@@ -12,8 +12,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/ssh"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
@@ -21,26 +19,26 @@ import (
 
 func TestGenKeyPair(t *testing.T) {
 	testCases := []struct {
-		keyPath      string
+		keyType      string
 		expectedType any
 	}{
 		{
-			keyPath:      "/gitea.rsa",
+			keyType:      "rsa",
 			expectedType: &rsa.PrivateKey{},
 		},
 		{
-			keyPath:      "/gitea.ed25519",
+			keyType:      "ed25519",
 			expectedType: &ed25519.PrivateKey{},
 		},
 		{
-			keyPath:      "/gitea.ecdsa",
+			keyType:      "ecdsa",
 			expectedType: &ecdsa.PrivateKey{},
 		},
 	}
 	for _, tC := range testCases {
-		t.Run("Generate "+filepath.Ext(tC.keyPath), func(t *testing.T) {
-			path := t.TempDir() + tC.keyPath
-			require.NoError(t, ssh.GenKeyPair(path))
+		t.Run("Generate "+filepath.Ext(tC.keyType), func(t *testing.T) {
+			path := t.TempDir() + "gitea." + tC.keyType
+			require.NoError(t, GenKeyPair(path, tC.keyType))
 
 			file, err := os.Open(path)
 			require.NoError(t, err)
@@ -52,5 +50,69 @@ func TestGenKeyPair(t *testing.T) {
 			require.NoError(t, err)
 			assert.IsType(t, tC.expectedType, privateKey)
 		})
+	}
+	t.Run("Generate unknown keytype", func(t *testing.T) {
+		path := t.TempDir() + "gitea.badkey"
+
+		err := GenKeyPair(path, "badkey")
+		require.Error(t, err)
+	})
+}
+
+func TestInitKeys(t *testing.T) {
+	tempDir := t.TempDir()
+
+	keytypes := []string{"rsa", "ecdsa", "ed25519"}
+	for _, keytype := range keytypes {
+		privKeyPath := filepath.Join(tempDir, "gitea."+keytype)
+		pubKeyPath := filepath.Join(tempDir, "gitea."+keytype+".pub")
+		assert.NoFileExists(t, privKeyPath)
+		assert.NoFileExists(t, pubKeyPath)
+	}
+
+	// Test basic creation
+	err := initDefaultKeys(tempDir)
+	require.NoError(t, err)
+
+	metadata := map[string]os.FileInfo{}
+	for _, keytype := range keytypes {
+		privKeyPath := filepath.Join(tempDir, "gitea."+keytype)
+		pubKeyPath := filepath.Join(tempDir, "gitea."+keytype+".pub")
+		assert.FileExists(t, privKeyPath)
+		assert.FileExists(t, pubKeyPath)
+
+		info, err := os.Stat(privKeyPath)
+		require.NoError(t, err)
+		metadata[privKeyPath] = info
+
+		info, err = os.Stat(pubKeyPath)
+		require.NoError(t, err)
+		metadata[pubKeyPath] = info
+	}
+
+	// Test recreation on missing public or private key
+	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ecdsa.pub")))
+	require.NoError(t, os.Remove(filepath.Join(tempDir, "gitea.ed25519")))
+
+	err = initDefaultKeys(tempDir)
+	require.NoError(t, err)
+
+	for _, keytype := range keytypes {
+		privKeyPath := filepath.Join(tempDir, "gitea."+keytype)
+		pubKeyPath := filepath.Join(tempDir, "gitea."+keytype+".pub")
+		assert.FileExists(t, privKeyPath)
+		assert.FileExists(t, pubKeyPath)
+
+		infoPriv, err := os.Stat(privKeyPath)
+		require.NoError(t, err)
+		infoPub, err := os.Stat(pubKeyPath)
+		require.NoError(t, err)
+		if keytype == "rsa" {
+			assert.Equal(t, metadata[privKeyPath], infoPriv)
+			assert.Equal(t, metadata[pubKeyPath], infoPub)
+		} else {
+			assert.NotEqual(t, metadata[privKeyPath], infoPriv)
+			assert.NotEqual(t, metadata[pubKeyPath], infoPub)
+		}
 	}
 }
