@@ -47,6 +47,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
+	ctx.Data["AllowedOrgVisibilityModes"] = setting.Service.AllowedOrgVisibilityModesSlice.ToVisibleTypeSlice()
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
@@ -63,6 +64,14 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
+	ctx.Data["AllowedOrgVisibilityModes"] = setting.Service.AllowedOrgVisibilityModesSlice.ToVisibleTypeSlice()
+
+	// Check if the visibility is allowed
+	if !setting.Service.AllowedOrgVisibilityModesSlice.IsAllowedVisibility(form.Visibility) {
+		ctx.Data["Err_Visibility"] = true
+		ctx.RenderWithErr(ctx.Tr("org.form.visibility_not_allowed"), tplSettingsOptions, form)
+		return
+	}
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsOptions)

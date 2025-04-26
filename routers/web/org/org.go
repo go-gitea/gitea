@@ -33,6 +33,7 @@ func Create(ctx *context.Context) {
 	}
 
 	ctx.Data["visibility"] = setting.Service.DefaultOrgVisibilityMode
+	ctx.Data["AllowedOrgVisibilityModes"] = setting.Service.AllowedOrgVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["repo_admin_change_team_access"] = true
 
 	ctx.HTML(http.StatusOK, tplCreateOrg)
@@ -45,6 +46,13 @@ func CreatePost(ctx *context.Context) {
 
 	if !ctx.Doer.CanCreateOrganization() {
 		ctx.ServerError("Not allowed", errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
+		return
+	}
+
+	// Check if the visibility is allowed
+	if !setting.Service.AllowedOrgVisibilityModesSlice.IsAllowedVisibility(form.Visibility) {
+		ctx.Data["Err_OrgVisibility"] = true
+		ctx.RenderWithErr(ctx.Tr("org.form.visibility_not_allowed"), tplCreateOrg, &form)
 		return
 	}
 
