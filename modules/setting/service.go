@@ -248,7 +248,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
 	}
 	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
-	
+
 	// Process allowed organization visibility modes
 	modes = sec.Key("ALLOWED_ORG_VISIBILITY_MODES").Strings(",")
 	if len(modes) != 0 {
@@ -268,7 +268,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 		Service.AllowedOrgVisibilityModes = []string{"public", "limited", "private"}
 		Service.AllowedOrgVisibilityModesSlice = []bool{true, true, true}
 	}
-	
+
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").String()
 	if Service.DefaultOrgVisibility == "" {
 		Service.DefaultOrgVisibility = Service.AllowedOrgVisibilityModes[0]
