@@ -222,7 +222,8 @@ export default defineComponent({
         <template v-if="dropdownFixedText">{{ dropdownFixedText }}</template>
         <template v-else>
           <svg-icon v-if="currentRefType === 'tag'" name="octicon-tag"/>
-          <svg-icon v-else name="octicon-git-branch"/>
+          <svg-icon v-else-if="currentRefType === 'branch'" name="octicon-git-branch"/>
+          <svg-icon v-else name="octicon-git-commit"/>
           <strong ref="dropdownRefName" class="tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
