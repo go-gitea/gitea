@@ -54,7 +54,7 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 				{{else}}
 					{{if eq .CurrentRefType "tag"}}
 						{{svg "octicon-tag"}}
-					{{else if  eq .CurrentRefType "branch"}}
+					{{else if eq .CurrentRefType "branch"}}
 						{{svg "octicon-git-branch"}}
 					{{else}}
 						{{svg "octicon-git-commit"}}
