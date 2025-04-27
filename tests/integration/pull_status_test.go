@@ -172,7 +172,6 @@ func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 
 func TestPullStatusDelayCheck(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		defer test.MockVariableValue(&setting.IsProd)()
 		defer test.MockVariableValue(&setting.Repository.PullRequest.DelayCheckForInactiveDays, 1)()
 		defer test.MockVariableValue(&pull.AddPullRequestToCheckQueue)()
 
@@ -203,11 +202,11 @@ func TestPullStatusDelayCheck(t *testing.T) {
 		issue3, checkedPrID := run(t, func(t *testing.T) {})
 		assert.Equal(t, issues.PullRequestStatusMergeable, issue3.PullRequest.Status)
 		assert.Zero(t, checkedPrID)
-		setting.IsProd = true
 		assertReloadingInterval(t, "") // the PR is mergeable, so no need to reload the merge box
-		setting.IsProd = false
-		assertReloadingInterval(t, "1") // make sure dev mode always do merge box reloading, to make sure the UI logic won't break
-		setting.IsProd = true
+
+		// setting.IsProd = false // it would cause data-race because the queue handlers might be running and reading its value
+		// assertReloadingInterval(t, "1") // make sure dev mode always do merge box reloading, to make sure the UI logic won't break
+		// setting.IsProd = true
 
 		// when base branch changes, PR status should be updated, but it is inactive for long time, so no real check
 		issue3, checkedPrID = run(t, func(t *testing.T) {

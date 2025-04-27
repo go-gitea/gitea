@@ -19,5 +19,9 @@ func AddCommentMetaDataColumn(x *xorm.Engine) error {
 		CommentMetaData *CommentMetaData `xorm:"JSON TEXT"` // put all non-index metadata in a single field
 	}
 
-	return x.Sync(new(Comment))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(Comment))
+	return err
 }
