@@ -64,21 +64,19 @@ func TestFastImport(t *testing.T) {
 					ContentReader: f,
 				},
 			},
-			Author: &IdentityOptions{
-				GitUserName:  "Test User",
-				GitUserEmail: "testuser@gitea.com",
+			Author: &git.Signature{
+				Name:  "Test User",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
-			Committer: &IdentityOptions{
-				GitUserName:  "Test Committer",
-				GitUserEmail: "testuser@gitea.com",
-			},
-			Dates: &CommitDateOptions{
-				Author:    time.Now(),
-				Committer: time.Now(),
+			Committer: &git.Signature{
+				Name:  "Test Committer",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
 		}
 
-		err = UpdateRepoBranch(t.Context(), doer, repoPath, options)
+		err = UpdateRepoBranch(t.Context(), doer, repoPath, true, options)
 		assert.NoError(t, err)
 
 		gitRepo, err := git.OpenRepository(t.Context(), repoPath)
@@ -100,7 +98,7 @@ func TestFastImport(t *testing.T) {
 		assert.Equal(t, "testfile.txt", entries[0].Name())
 		content, err := entries[0].Blob().GetBlobContent(entries[0].Blob().Size())
 		assert.NoError(t, err)
-		assert.Equal(t, "Hello, World!\n", content)
+		assert.Equal(t, "Hello, World!", content)
 	})
 
 	// 2 - Add a new file and update the existing one in a new branch
@@ -125,20 +123,18 @@ func TestFastImport(t *testing.T) {
 					ContentReader: f2,
 				},
 			},
-			Author: &IdentityOptions{
-				GitUserName:  "Test User",
-				GitUserEmail: "testuser@gitea.com",
+			Author: &git.Signature{
+				Name:  "Test User",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
-			Committer: &IdentityOptions{
-				GitUserName:  "Test Committer",
-				GitUserEmail: "testuser@gitea.com",
-			},
-			Dates: &CommitDateOptions{
-				Author:    time.Now(),
-				Committer: time.Now(),
+			Committer: &git.Signature{
+				Name:  "Test Committer",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
 		}
-		err = UpdateRepoBranch(t.Context(), doer, repoPath, options)
+		err = UpdateRepoBranch(t.Context(), doer, repoPath, true, options)
 		assert.NoError(t, err)
 
 		gitRepo, err := git.OpenRepository(t.Context(), repoPath)
@@ -149,8 +145,7 @@ func TestFastImport(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 2, total)
 		assert.Equal(t, 2, len(branches))
-		assert.Equal(t, "test-branch", branches[0])
-		assert.Equal(t, "test-branch-2", branches[1])
+		assert.True(t, slices.Equal(branches, []string{"test-branch", "test-branch-2"}))
 
 		commit, err := gitRepo.GetBranchCommit("test-branch-2")
 		assert.NoError(t, err)
@@ -162,11 +157,11 @@ func TestFastImport(t *testing.T) {
 		assert.Equal(t, "testfile2.txt", entries[1].Name())
 		content, err := entries[0].Blob().GetBlobContent(entries[0].Blob().Size())
 		assert.NoError(t, err)
-		assert.Equal(t, "Hello, World! 1\n", content)
+		assert.Equal(t, "Hello, World! 1", content)
 
 		content, err = entries[1].Blob().GetBlobContent(entries[1].Blob().Size())
 		assert.NoError(t, err)
-		assert.Equal(t, "Hello, World!\n", content)
+		assert.Equal(t, "Hello, World!", content)
 	})
 
 	// 3 - Delete the file
@@ -180,20 +175,18 @@ func TestFastImport(t *testing.T) {
 					FromTreePath: "testfile.txt",
 				},
 			},
-			Author: &IdentityOptions{
-				GitUserName:  "Test User",
-				GitUserEmail: "testuser@gitea.com",
+			Author: &git.Signature{
+				Name:  "Test User",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
-			Committer: &IdentityOptions{
-				GitUserName:  "Test Committer",
-				GitUserEmail: "testuser@gitea.com",
-			},
-			Dates: &CommitDateOptions{
-				Author:    time.Now(),
-				Committer: time.Now(),
+			Committer: &git.Signature{
+				Name:  "Test Committer",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
 		}
-		err = UpdateRepoBranch(t.Context(), doer, repoPath, options)
+		err = UpdateRepoBranch(t.Context(), doer, repoPath, true, options)
 		assert.NoError(t, err)
 
 		gitRepo, err := git.OpenRepository(t.Context(), repoPath)
@@ -204,8 +197,7 @@ func TestFastImport(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 2, total)
 		assert.Equal(t, 2, len(branches))
-		assert.Equal(t, "test-branch", branches[0])
-		assert.Equal(t, "test-branch-2", branches[1])
+		assert.True(t, slices.Equal(branches, []string{"test-branch", "test-branch-2"}))
 
 		commit, err := gitRepo.GetBranchCommit("test-branch-2")
 		assert.NoError(t, err)
@@ -216,7 +208,7 @@ func TestFastImport(t *testing.T) {
 		assert.Equal(t, "testfile2.txt", entries[0].Name())
 		content, err := entries[0].Blob().GetBlobContent(entries[0].Blob().Size())
 		assert.NoError(t, err)
-		assert.Equal(t, "Hello, World!\n", content)
+		assert.Equal(t, "Hello, World!", content)
 	})
 
 	// 4 - Delete the file in a new branch
@@ -231,20 +223,18 @@ func TestFastImport(t *testing.T) {
 					FromTreePath: "testfile2.txt",
 				},
 			},
-			Author: &IdentityOptions{
-				GitUserName:  "Test User",
-				GitUserEmail: "testuser@gitea.com",
+			Author: &git.Signature{
+				Name:  "Test User",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
-			Committer: &IdentityOptions{
-				GitUserName:  "Test Committer",
-				GitUserEmail: "testuser@gitea.com",
-			},
-			Dates: &CommitDateOptions{
-				Author:    time.Now(),
-				Committer: time.Now(),
+			Committer: &git.Signature{
+				Name:  "Test Committer",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
 		}
-		err = UpdateRepoBranch(t.Context(), doer, repoPath, options)
+		err = UpdateRepoBranch(t.Context(), doer, repoPath, true, options)
 		assert.NoError(t, err)
 
 		gitRepo, err := git.OpenRepository(t.Context(), repoPath)
@@ -282,20 +272,18 @@ func TestFastImport(t *testing.T) {
 					FromTreePath: "testfile2.txt",
 				},
 			},
-			Author: &IdentityOptions{
-				GitUserName:  "Test User",
-				GitUserEmail: "testuser@gitea.com",
+			Author: &git.Signature{
+				Name:  "Test User",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
-			Committer: &IdentityOptions{
-				GitUserName:  "Test Committer",
-				GitUserEmail: "testuser@gitea.com",
-			},
-			Dates: &CommitDateOptions{
-				Author:    time.Now(),
-				Committer: time.Now(),
+			Committer: &git.Signature{
+				Name:  "Test Committer",
+				Email: "testuser@gitea.com",
+				When:  time.Now(),
 			},
 		}
-		err = UpdateRepoBranch(t.Context(), doer, repoPath, options)
+		err = UpdateRepoBranch(t.Context(), doer, repoPath, true, options)
 		assert.NoError(t, err)
 
 		gitRepo, err := git.OpenRepository(t.Context(), repoPath)
@@ -317,6 +305,6 @@ func TestFastImport(t *testing.T) {
 		assert.Equal(t, "testfile3.txt", entries[0].Name())
 		content, err := entries[0].Blob().GetBlobContent(entries[0].Blob().Size())
 		assert.NoError(t, err)
-		assert.Equal(t, "Hello, World! 3\n", content)
+		assert.Equal(t, "Hello, World! 3", content)
 	})
 }

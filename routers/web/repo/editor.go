@@ -296,9 +296,15 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
 			},
 		},
-		Signoff:   form.Signoff,
-		Author:    gitCommitter,
-		Committer: gitCommitter,
+		Signoff: form.Signoff,
+		Author: &git.Signature{
+			Name:  gitCommitter.GitUserName,
+			Email: gitCommitter.GitUserEmail,
+		},
+		Committer: &git.Signature{
+			Name:  gitCommitter.GitUserName,
+			Email: gitCommitter.GitUserEmail,
+		},
 	}); err != nil {
 		// This is where we handle all the errors thrown by files_service.ChangeRepoFiles
 		if git.IsErrNotExist(err) {
@@ -512,10 +518,16 @@ func DeleteFilePost(ctx *context.Context) {
 				TreePath:  ctx.Repo.TreePath,
 			},
 		},
-		Message:   message,
-		Signoff:   form.Signoff,
-		Author:    gitCommitter,
-		Committer: gitCommitter,
+		Message: message,
+		Signoff: form.Signoff,
+		Author: &git.Signature{
+			Name:  gitCommitter.GitUserName,
+			Email: gitCommitter.GitUserEmail,
+		},
+		Committer: &git.Signature{
+			Name:  gitCommitter.GitUserName,
+			Email: gitCommitter.GitUserEmail,
+		},
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.DeleteRepoFile
 		if git.IsErrNotExist(err) || files_service.IsErrRepoFileDoesNotExist(err) {

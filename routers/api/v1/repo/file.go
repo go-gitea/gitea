@@ -485,25 +485,17 @@ func ChangeFiles(ctx *context.APIContext) {
 		Message:   apiOpts.Message,
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
-		Committer: &files_service.IdentityOptions{
-			GitUserName:  apiOpts.Committer.Name,
-			GitUserEmail: apiOpts.Committer.Email,
+		Committer: &git.Signature{
+			Name:  apiOpts.Committer.Name,
+			Email: apiOpts.Committer.Email,
+			When:  apiOpts.Dates.Committer,
 		},
-		Author: &files_service.IdentityOptions{
-			GitUserName:  apiOpts.Author.Name,
-			GitUserEmail: apiOpts.Author.Email,
-		},
-		Dates: &files_service.CommitDateOptions{
-			Author:    apiOpts.Dates.Author,
-			Committer: apiOpts.Dates.Committer,
+		Author: &git.Signature{
+			Name:  apiOpts.Author.Name,
+			Email: apiOpts.Author.Email,
+			When:  apiOpts.Dates.Author,
 		},
 		Signoff: apiOpts.Signoff,
-	}
-	if opts.Dates.Author.IsZero() {
-		opts.Dates.Author = time.Now()
-	}
-	if opts.Dates.Committer.IsZero() {
-		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
@@ -582,25 +574,17 @@ func CreateFile(ctx *context.APIContext) {
 		Message:   apiOpts.Message,
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
-		Committer: &files_service.IdentityOptions{
-			GitUserName:  apiOpts.Committer.Name,
-			GitUserEmail: apiOpts.Committer.Email,
+		Committer: &git.Signature{
+			Name:  apiOpts.Committer.Name,
+			Email: apiOpts.Committer.Email,
+			When:  apiOpts.Dates.Committer,
 		},
-		Author: &files_service.IdentityOptions{
-			GitUserName:  apiOpts.Author.Name,
-			GitUserEmail: apiOpts.Author.Email,
-		},
-		Dates: &files_service.CommitDateOptions{
-			Author:    apiOpts.Dates.Author,
-			Committer: apiOpts.Dates.Committer,
+		Author: &git.Signature{
+			Name:  apiOpts.Author.Name,
+			Email: apiOpts.Author.Email,
+			When:  apiOpts.Dates.Author,
 		},
 		Signoff: apiOpts.Signoff,
-	}
-	if opts.Dates.Author.IsZero() {
-		opts.Dates.Author = time.Now()
-	}
-	if opts.Dates.Committer.IsZero() {
-		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
@@ -685,25 +669,17 @@ func UpdateFile(ctx *context.APIContext) {
 		Message:   apiOpts.Message,
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
-		Committer: &files_service.IdentityOptions{
-			GitUserName:  apiOpts.Committer.Name,
-			GitUserEmail: apiOpts.Committer.Email,
+		Committer: &git.Signature{
+			Name:  apiOpts.Committer.Name,
+			Email: apiOpts.Committer.Email,
+			When:  apiOpts.Dates.Committer,
 		},
-		Author: &files_service.IdentityOptions{
-			GitUserName:  apiOpts.Author.Name,
-			GitUserEmail: apiOpts.Author.Email,
-		},
-		Dates: &files_service.CommitDateOptions{
-			Author:    apiOpts.Dates.Author,
-			Committer: apiOpts.Dates.Committer,
+		Author: &git.Signature{
+			Name:  apiOpts.Author.Name,
+			Email: apiOpts.Author.Email,
+			When:  apiOpts.Dates.Author,
 		},
 		Signoff: apiOpts.Signoff,
-	}
-	if opts.Dates.Author.IsZero() {
-		opts.Dates.Author = time.Now()
-	}
-	if opts.Dates.Committer.IsZero() {
-		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
@@ -844,25 +820,17 @@ func DeleteFile(ctx *context.APIContext) {
 		Message:   apiOpts.Message,
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
-		Committer: &files_service.IdentityOptions{
-			GitUserName:  apiOpts.Committer.Name,
-			GitUserEmail: apiOpts.Committer.Email,
+		Committer: &git.Signature{
+			Name:  apiOpts.Committer.Name,
+			Email: apiOpts.Committer.Email,
+			When:  apiOpts.Dates.Committer,
 		},
-		Author: &files_service.IdentityOptions{
-			GitUserName:  apiOpts.Author.Name,
-			GitUserEmail: apiOpts.Author.Email,
-		},
-		Dates: &files_service.CommitDateOptions{
-			Author:    apiOpts.Dates.Author,
-			Committer: apiOpts.Dates.Committer,
+		Author: &git.Signature{
+			Name:  apiOpts.Author.Name,
+			Email: apiOpts.Author.Email,
+			When:  apiOpts.Dates.Author,
 		},
 		Signoff: apiOpts.Signoff,
-	}
-	if opts.Dates.Author.IsZero() {
-		opts.Dates.Author = time.Now()
-	}
-	if opts.Dates.Committer.IsZero() {
-		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {

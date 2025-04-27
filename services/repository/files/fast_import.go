@@ -9,10 +9,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
+	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
+	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -34,7 +41,6 @@ type ChangeRepoFile struct {
 	TreePath      string
 	FromTreePath  string
 	ContentReader io.ReadSeeker
-	FileSize      int64
 	SHA           string
 	Options       *RepoFileOptions
 }
@@ -46,9 +52,10 @@ type ChangeRepoFilesOptions struct {
 	NewBranch    string
 	Message      string
 	Files        []*ChangeRepoFile
-	Author       *IdentityOptions
-	Committer    *IdentityOptions
-	Dates        *CommitDateOptions
+	Author       *git.Signature
+	Committer    *git.Signature
+	Signer       *git.Signature
+	SignKey      string
 	Signoff      bool
 }
 
@@ -58,18 +65,91 @@ type RepoFileOptions struct {
 	executable   bool
 }
 
-// UpdateRepoBranch updates the specified branch in the given repository with the provided file changes.
-// It uses the fast-import command to perform the update efficiently. So that we can avoid to clone the whole repo.
-// TODO: add support for LFS
-// TODO: add support for GPG signing
-func UpdateRepoBranch(ctx context.Context, doer *user_model.User, repoPath string, opts ChangeRepoFilesOptions) error {
-	fPath, cancel, err := generateFastImportFile(doer, opts)
+// UpdateRepoBranchWithLFS updates the specified branch in the given repository with the provided file changes.
+func UpdateRepoBranchWithLFS(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, opts ChangeRepoFilesOptions) error {
+	trustCommitter := repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel
+	repoPath := repo.RepoPath()
+	if !setting.LFS.StartServer {
+		return UpdateRepoBranch(ctx, doer, repoPath, trustCommitter, opts)
+	}
+
+	// handle lfs files
+	fileNames := make([]string, 0, len(opts.Files))
+	for _, file := range opts.Files {
+		if file.Operation == "create" || file.Operation == "update" {
+			fileNames = append(fileNames, file.TreePath)
+		}
+	}
+	if len(fileNames) == 0 {
+		return UpdateRepoBranch(ctx, doer, repoPath, trustCommitter, opts)
+	}
+
+	attributesMap, err := attribute.CheckAttributes(ctx, gitRepo, "", attribute.CheckAttributeOpts{
+		Attributes: []string{attribute.Filter},
+		Filenames:  fileNames,
+	})
 	if err != nil {
 		return err
 	}
-	defer func() {
-		cancel()
-	}()
+
+	contentStore := lfs.NewContentStore()
+
+	// Upload the files to LFS Store and replace the content reader with the pointer
+	for _, file := range opts.Files {
+		if attributesMap[file.TreePath] == nil || !attributesMap[file.TreePath].MatchLFS() {
+			continue
+		}
+
+		pointer, err := lfs.GeneratePointer(file.ContentReader)
+		if err != nil {
+			return err
+		}
+		file.ContentReader.Seek(0, io.SeekStart)
+
+		// upload the file to LFS Store
+		exist, err := contentStore.Exists(pointer)
+		if err != nil {
+			return err
+		}
+		if !exist {
+			// FIXME: Put regenerates the hash and copies the file over.
+			// I guess this strictly ensures the soundness of the store but this is inefficient.
+			if err := contentStore.Put(pointer, file.ContentReader); err != nil {
+				// OK Now we need to cleanup
+				// Can't clean up the store, once uploaded there they're there.
+				return err
+			}
+
+			// add the meta object to the database
+			lfsMetaObject, err := git_model.NewLFSMetaObject(ctx, repo.ID, pointer)
+			if err != nil {
+				// OK Now we need to cleanup
+				return err
+			}
+			defer func() {
+				if err != nil {
+					if _, err := git_model.RemoveLFSMetaObjectByOid(ctx, repo.ID, lfsMetaObject.Oid); err != nil {
+						log.Error("Unable to delete LFS meta object: %v", err)
+					}
+				}
+			}()
+		}
+
+		// TODO: should the content reader be closed?
+		file.ContentReader = bytes.NewReader([]byte(pointer.StringContent()))
+	}
+
+	return UpdateRepoBranch(ctx, doer, repo.RepoPath(), trustCommitter, opts)
+}
+
+// UpdateRepoBranch updates the specified branch in the given repository with the provided file changes.
+// It uses the fast-import command to perform the update efficiently. So that we can avoid to clone the whole repo.
+func UpdateRepoBranch(ctx context.Context, doer *user_model.User, repoPath string, trustCommitter bool, opts ChangeRepoFilesOptions) error {
+	fPath, cancel, err := generateFastImportFile(ctx, doer, repoPath, trustCommitter, opts)
+	if err != nil {
+		return err
+	}
+	defer cancel()
 
 	f, err := os.Open(fPath)
 	if err != nil {
@@ -85,69 +165,58 @@ func UpdateRepoBranch(ctx context.Context, doer *user_model.User, repoPath strin
 	return err
 }
 
-const commitFileHead = `commit refs/heads/%s
-author %s <%s> %d %s
-committer %s <%s> %d %s
-data %d
-%s
-
-%s`
-
-func getReadSeekerSize(r io.ReadSeeker) (int64, error) {
-	if file, ok := r.(*os.File); ok {
-		stat, err := file.Stat()
-		if err != nil {
-			return 0, err
-		}
-		return stat.Size(), nil
-	}
-
-	size, err := r.Seek(0, io.SeekEnd)
-	if err != nil {
-		return 0, err
-	}
-	if _, err := r.Seek(0, io.SeekStart); err != nil {
-		return 0, err
-	}
-	return size, nil
-}
-
 func getZoneOffsetStr(t time.Time) string {
 	// Get the timezone offset in hours and minutes
 	_, offset := t.Zone()
 	return fmt.Sprintf("%+03d%02d", offset/3600, (offset%3600)/60)
 }
 
-func writeCommit(f io.Writer, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
+func writeCommit(ctx context.Context, f io.Writer, _ string, _ bool, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
 	_, err := fmt.Fprintf(f, "commit refs/heads/%s\n", util.Iif(opts.NewBranch != "", opts.NewBranch, opts.OldBranch))
 	return err
 }
 
-func writeAuthor(f io.Writer, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
+func writeAuthor(ctx context.Context, f io.Writer, _ string, _ bool, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
 	_, err := fmt.Fprintf(f, "author %s <%s> %d %s\n",
-		opts.Author.GitUserName,
-		opts.Author.GitUserEmail,
-		opts.Dates.Author.Unix(),
-		getZoneOffsetStr(opts.Dates.Author))
+		opts.Author.Name,
+		opts.Author.Email,
+		opts.Author.When.Unix(),
+		getZoneOffsetStr(opts.Author.When))
 	return err
 }
 
-func writeCommitter(f io.Writer, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
+func writeCommitter(ctx context.Context, f io.Writer, _ string, _ bool, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
 	_, err := fmt.Fprintf(f, "committer %s <%s> %d %s\n",
-		opts.Committer.GitUserName,
-		opts.Committer.GitUserEmail,
-		opts.Dates.Committer.Unix(),
-		getZoneOffsetStr(opts.Dates.Committer))
+		opts.Committer.Name,
+		opts.Committer.Email,
+		opts.Committer.When.Unix(),
+		getZoneOffsetStr(opts.Committer.When))
 	return err
 }
 
-func writeMessage(f io.Writer, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
+func writeMessage(ctx context.Context, f io.Writer, repoPath string, trustCommitter bool, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
 	messageBytes := new(bytes.Buffer)
 	if _, err := messageBytes.WriteString(opts.Message); err != nil {
 		return err
 	}
 
-	committerSig := makeGitUserSignature(doer, opts.Committer, opts.Author)
+	committerSig := opts.Committer
+
+	if opts.Signer != nil {
+		if trustCommitter {
+			if opts.Committer.Name != opts.Author.Name || opts.Committer.Email != opts.Author.Email {
+				// Add trailers
+				_, _ = messageBytes.WriteString("\n")
+				_, _ = messageBytes.WriteString("Co-authored-by: ")
+				_, _ = messageBytes.WriteString(opts.Author.String())
+				_, _ = messageBytes.WriteString("\n")
+				_, _ = messageBytes.WriteString("Co-committed-by: ")
+				_, _ = messageBytes.WriteString(opts.Committer.String())
+				_, _ = messageBytes.WriteString("\n")
+			}
+		}
+		committerSig = opts.Signer
+	}
 
 	if opts.Signoff {
 		// Signed-off-by
@@ -159,7 +228,7 @@ func writeMessage(f io.Writer, doer *user_model.User, opts *ChangeRepoFilesOptio
 	return err
 }
 
-func writeFrom(f io.Writer, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
+func writeFrom(ctx context.Context, f io.Writer, _ string, _ bool, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
 	var fromStatement string
 	if opts.LastCommitID != "" && opts.LastCommitID != "HEAD" {
 		fromStatement = fmt.Sprintf("from %s\n", opts.LastCommitID)
@@ -174,8 +243,39 @@ func writeFrom(f io.Writer, doer *user_model.User, opts *ChangeRepoFilesOptions)
 	return err
 }
 
+func writeGPGSign(ctx context.Context, f io.Writer, _ string, _ bool, doer *user_model.User, opts *ChangeRepoFilesOptions) error {
+	if opts.SignKey == "" {
+		return nil
+	}
+
+	// write the GPG signature
+	if _, err := fmt.Fprintf(f, "gpgsig %s\n", opts.SignKey); err != nil {
+		return err
+	}
+	return nil
+}
+
+// hashObject writes the provided content to the object db and returns its hash
+func hashObject(ctx context.Context, repoPath string, content io.Reader) (string, error) {
+	stdOut := new(bytes.Buffer)
+	stdErr := new(bytes.Buffer)
+
+	if err := git.NewCommand("hash-object", "-w", "--stdin").
+		Run(ctx, &git.RunOpts{
+			Dir:    repoPath,
+			Stdin:  content,
+			Stdout: stdOut,
+			Stderr: stdErr,
+		}); err != nil {
+		log.Error("Unable to hash-object to temporary repo: %s Error: %v\nstdout: %s\nstderr: %s", repoPath, err, stdOut.String(), stdErr.String())
+		return "", fmt.Errorf("unable to hash-object to temporary repo: %s Error: %w\nstdout: %s\nstderr: %s", repoPath, err, stdOut.String(), stdErr.String())
+	}
+
+	return strings.TrimSpace(stdOut.String()), nil
+}
+
 // generateFastImportFile generates a fast-import file based on the provided options.
-func generateFastImportFile(doer *user_model.User, opts ChangeRepoFilesOptions) (fPath string, cancel func(), err error) {
+func generateFastImportFile(ctx context.Context, doer *user_model.User, repoPath string, trustCommitter bool, opts ChangeRepoFilesOptions) (fPath string, cancel func(), err error) {
 	if opts.OldBranch == "" && opts.NewBranch == "" {
 		return "", nil, fmt.Errorf("both old and new branches are empty")
 	}
@@ -183,12 +283,12 @@ func generateFastImportFile(doer *user_model.User, opts ChangeRepoFilesOptions) 
 		opts.NewBranch = ""
 	}
 
-	writeFuncs := []func(io.Writer, *user_model.User, *ChangeRepoFilesOptions) error{
+	writeFuncs := []func(context.Context, io.Writer, string, bool, *user_model.User, *ChangeRepoFilesOptions) error{
 		writeCommit,
 		writeAuthor,
 		writeCommitter,
+		writeGPGSign,
 		writeMessage,
-		// TODO: add support for Gpg signing
 		writeFrom,
 	}
 
@@ -203,7 +303,7 @@ func generateFastImportFile(doer *user_model.User, opts ChangeRepoFilesOptions) 
 	}()
 
 	for _, writeFunc := range writeFuncs {
-		if err := writeFunc(f, doer, &opts); err != nil {
+		if err := writeFunc(ctx, f, repoPath, trustCommitter, doer, &opts); err != nil {
 			return "", nil, err
 		}
 	}
@@ -219,28 +319,15 @@ func generateFastImportFile(doer *user_model.User, opts ChangeRepoFilesOptions) 
 				}
 			}
 
-			fileMask := "100644"
-			if file.Options != nil && file.Options.executable {
-				fileMask = "100755"
+			fileMask := util.Iif(file.Options != nil && file.Options.executable, "100755", "100644")
+
+			// Write the file to objects
+			objectHash, err := hashObject(ctx, repoPath, file.ContentReader)
+			if err != nil {
+				return "", nil, err
 			}
 
-			if _, err := fmt.Fprintf(f, "M %s inline %s\n", fileMask, file.TreePath); err != nil {
-				return "", nil, err
-			}
-			size := file.FileSize
-			if size == 0 {
-				size, err = getReadSeekerSize(file.ContentReader)
-				if err != nil {
-					return "", nil, err
-				}
-			}
-			if _, err := fmt.Fprintf(f, "data %d\n", size+1); err != nil {
-				return "", nil, err
-			}
-			if _, err := io.Copy(f, file.ContentReader); err != nil {
-				return "", nil, err
-			}
-			if _, err := fmt.Fprintln(f); err != nil {
+			if _, err := fmt.Fprintf(f, "M %s %s %s\n", fileMask, objectHash, file.TreePath); err != nil {
 				return "", nil, err
 			}
 		case "delete":

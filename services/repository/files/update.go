@@ -227,18 +227,17 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	// Now commit the tree
 	commitOpts := &CommitTreeUserOptions{
-		ParentCommitID:    opts.LastCommitID,
-		TreeHash:          treeHash,
-		CommitMessage:     message,
-		SignOff:           opts.Signoff,
-		DoerUser:          doer,
-		AuthorIdentity:    opts.Author,
-		AuthorTime:        nil,
-		CommitterIdentity: opts.Committer,
-		CommitterTime:     nil,
-	}
-	if opts.Dates != nil {
-		commitOpts.AuthorTime, commitOpts.CommitterTime = &opts.Dates.Author, &opts.Dates.Committer
+		ParentCommitID: opts.LastCommitID,
+		TreeHash:       treeHash,
+		CommitMessage:  message,
+		SignOff:        opts.Signoff,
+		DoerUser:       doer,
+		// FIXME:
+		// AuthorIdentity:    opts.Author,
+		AuthorTime: &opts.Author.When,
+		// FIXME:
+		// CommitterIdentity: opts.Committer,
+		CommitterTime: &opts.Committer.When,
 	}
 	commitHash, err := t.CommitTree(ctx, commitOpts)
 	if err != nil {

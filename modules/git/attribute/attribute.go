@@ -88,6 +88,10 @@ func (attrs *Attributes) GetLinguistLanguage() optional.Option[string] {
 	return attrs.Get(LinguistLanguage).ToString()
 }
 
+func (attrs *Attributes) MatchLFS() bool {
+	return attrs.Get(Filter).ToString().Value() == "lfs"
+}
+
 func (attrs *Attributes) GetGitlabLanguage() optional.Option[string] {
 	attrStr := attrs.Get(GitlabLanguage).ToString()
 	if attrStr.Has() {

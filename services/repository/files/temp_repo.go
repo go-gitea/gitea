@@ -166,21 +166,7 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(ctx context.Context, fi
 
 // HashObject writes the provided content to the object db and returns its hash
 func (t *TemporaryUploadRepository) HashObject(ctx context.Context, content io.Reader) (string, error) {
-	stdOut := new(bytes.Buffer)
-	stdErr := new(bytes.Buffer)
-
-	if err := git.NewCommand("hash-object", "-w", "--stdin").
-		Run(ctx, &git.RunOpts{
-			Dir:    t.basePath,
-			Stdin:  content,
-			Stdout: stdOut,
-			Stderr: stdErr,
-		}); err != nil {
-		log.Error("Unable to hash-object to temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
-		return "", fmt.Errorf("Unable to hash-object to temporary repo: %s Error: %w\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
-	}
-
-	return strings.TrimSpace(stdOut.String()), nil
+	return hashObject(ctx, t.basePath, content)
 }
 
 // AddObjectToIndex adds the provided object hash to the index with the provided mode and path

@@ -184,7 +184,7 @@ func copyUploadedLFSFileIntoRepository(ctx context.Context, info *uploadInfo, at
 	defer file.Close()
 
 	var objectHash string
-	if setting.LFS.StartServer && attributesMap[info.upload.Name] != nil && attributesMap[info.upload.Name].Get(attribute.Filter).ToString().Value() == "lfs" {
+	if setting.LFS.StartServer && attributesMap[info.upload.Name] != nil && attributesMap[info.upload.Name].MatchLFS() {
 		// Handle LFS
 		// FIXME: Inefficient! this should probably happen in models.Upload
 		pointer, err := lfs.GeneratePointer(file)
