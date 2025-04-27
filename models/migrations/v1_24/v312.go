@@ -17,5 +17,9 @@ func (pullAutoMerge) TableName() string {
 }
 
 func AddDeleteBranchAfterMergeForAutoMerge(x *xorm.Engine) error {
-	return x.Sync(new(pullAutoMerge))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(pullAutoMerge))
+	return err
 }

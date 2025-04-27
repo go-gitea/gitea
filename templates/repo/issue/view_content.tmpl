@@ -68,7 +68,7 @@
 			{{template "repo/issue/view_content/comments" .}}
 
 			{{if and .Issue.IsPull (not $.Repository.IsArchived)}}
-				{{template "repo/issue/view_content/pull".}}
+				{{template "repo/issue/view_content/pull_merge_box".}}
 			{{end}}
 
 			{{if .IsSigned}}
