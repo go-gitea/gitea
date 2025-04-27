@@ -20,10 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMain(m *testing.M) {
-	unittest.MainTest(m)
-}
-
 func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 	treePath := "README.md"
 	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"

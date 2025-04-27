@@ -9,7 +9,6 @@ import (
 	"io"
 	"path"
 	"strings"
-	"time"
 
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -26,46 +25,6 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
-
-// IdentityOptions for a person's identity like an author or committer
-type IdentityOptions struct {
-	GitUserName  string // to match "git config user.name"
-	GitUserEmail string // to match "git config user.email"
-}
-
-// CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
-type CommitDateOptions struct {
-	Author    time.Time
-	Committer time.Time
-}
-
-type ChangeRepoFile struct {
-	Operation     string
-	TreePath      string
-	FromTreePath  string
-	ContentReader io.ReadSeeker
-	SHA           string
-	Options       *RepoFileOptions
-}
-
-// ChangeRepoFilesOptions holds the repository files update options
-type ChangeRepoFilesOptions struct {
-	LastCommitID string
-	OldBranch    string
-	NewBranch    string
-	Message      string
-	Files        []*ChangeRepoFile
-	Author       *IdentityOptions
-	Committer    *IdentityOptions
-	Dates        *CommitDateOptions
-	Signoff      bool
-}
-
-type RepoFileOptions struct {
-	treePath     string
-	fromTreePath string
-	executable   bool
-}
 
 // ErrRepoFileDoesNotExist represents a "RepoFileDoesNotExist" kind of error.
 type ErrRepoFileDoesNotExist struct {
