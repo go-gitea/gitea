@@ -52,12 +52,14 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 				{{if .DropdownFixedText}}
 					{{.DropdownFixedText}}
 				{{else}}
-					{{if .ShowTabTags}}
+					{{if eq .CurrentRefType "tag"}}
 						{{svg "octicon-tag"}}
-					{{else if .ShowTabBranches}}
+					{{else if  eq .CurrentRefType "branch"}}
 						{{svg "octicon-git-branch"}}
+					{{else}}
+						{{svg "octicon-git-commit"}}
 					{{end}}
-					<strong class="tw-inline-block gt-ellipsis">{{.SelectedRefShortName}}</strong>
+					<strong class="tw-inline-block gt-ellipsis">{{.CurrentRefShortName}}</strong>
 				{{end}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
