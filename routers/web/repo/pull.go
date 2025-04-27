@@ -1052,7 +1052,7 @@ func MergePullRequest(ctx *context.Context) {
 			} else {
 				ctx.JSONError(ctx.Tr("repo.issues.closed_title"))
 			}
-		case errors.Is(err, pull_service.ErrUserNotAllowedToMerge):
+		case errors.Is(err, pull_service.ErrNoPermissionToMerge):
 			ctx.JSONError(ctx.Tr("repo.pulls.update_not_allowed"))
 		case errors.Is(err, pull_service.ErrHasMerged):
 			ctx.JSONError(ctx.Tr("repo.pulls.has_merged"))
@@ -1060,7 +1060,7 @@ func MergePullRequest(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_wip"))
 		case errors.Is(err, pull_service.ErrNotMergeableState):
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
-		case pull_service.IsErrDisallowedToMerge(err):
+		case errors.Is(err, pull_service.ErrNotReadyToMerge):
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
 		case asymkey_service.IsErrWontSign(err):
 			ctx.JSONError(err.Error()) // has no translation ...

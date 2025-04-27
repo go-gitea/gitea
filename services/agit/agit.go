@@ -204,7 +204,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
 		}
 
-		pull_service.AddToTaskQueue(ctx, pr)
+		pull_service.StartPullRequestCheckImmediately(ctx, pr)
 		err = pr.LoadIssue(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load pull issue. Error: %w", err)

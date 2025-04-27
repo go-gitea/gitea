@@ -16,5 +16,9 @@ func AddDescriptionForSecretsAndVariables(x *xorm.Engine) error {
 		Description string `xorm:"TEXT"`
 	}
 
-	return x.Sync(new(Secret), new(ActionVariable))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(Secret), new(ActionVariable))
+	return err
 }

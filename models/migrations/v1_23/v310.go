@@ -12,5 +12,9 @@ func AddPriorityToProtectedBranch(x *xorm.Engine) error {
 		Priority int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync(new(ProtectedBranch))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ProtectedBranch))
+	return err
 }
