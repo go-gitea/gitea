@@ -28,6 +28,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
 	notify_service "code.gitea.io/gitea/services/notify"
+	"gopkg.in/yaml.v3"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
@@ -299,8 +300,12 @@ func handleWorkflows(
 	}
 
 	for _, dwf := range detectedWorkflows {
+		var yamlData map[string]any
+		if err := yaml.Unmarshal([]byte(dwf.Content), &yamlData); err != nil {
+			log.Fatal(err.Error())
+		}
 		run := &actions_model.ActionRun{
-			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
+			Title:             yamlData["run-name"].(string),
 			RepoID:            input.Repo.ID,
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        dwf.EntryName,
