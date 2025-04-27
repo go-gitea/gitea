@@ -47,16 +47,18 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 >
 	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
 	<div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
-		<div class="ui button branch-dropdown-button">
+		<div class="ui compact button branch-dropdown-button">
 			<span class="flex-text-block gt-ellipsis">
-				{{if not .DropdownFixedText}}
+				{{if .DropdownFixedText}}
+					{{.DropdownFixedText}}
+				{{else}}
 					{{if .ShowTabTags}}
 						{{svg "octicon-tag"}}
 					{{else if .ShowTabBranches}}
 						{{svg "octicon-git-branch"}}
 					{{end}}
+					<strong class="tw-inline-block gt-ellipsis">{{.SelectedRefShortName}}</strong>
 				{{end}}
-				<strong class="tw-ml-2 tw-inline-block gt-ellipsis">{{Iif .DropdownFixedText .SelectedRefShortName}}</strong>
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>
