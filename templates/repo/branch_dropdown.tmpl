@@ -49,14 +49,16 @@ Search "repo/branch_dropdown" in the template directory to find all occurrences.
 	<div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
 		<div class="ui compact button branch-dropdown-button">
 			<span class="flex-text-block gt-ellipsis">
-				{{if not .DropdownFixedText}}
+				{{if .DropdownFixedText}}
+					{{.DropdownFixedText}}
+				{{else}}
 					{{if .ShowTabTags}}
 						{{svg "octicon-tag"}}
 					{{else if .ShowTabBranches}}
 						{{svg "octicon-git-branch"}}
 					{{end}}
+					<strong class="tw-inline-block gt-ellipsis">{{.SelectedRefShortName}}</strong>
 				{{end}}
-				<strong class="tw-inline-block gt-ellipsis">{{Iif .DropdownFixedText .SelectedRefShortName}}</strong>
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>
