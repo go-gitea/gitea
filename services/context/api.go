@@ -313,7 +313,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
 		}
 		if ctx.Repo.Commit == nil || errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound(fmt.Errorf("not exist: '%s'", ctx.PathParam("*")))
+			ctx.APIErrorNotFound("unable to find a git ref")
 			return
 		} else if err != nil {
 			ctx.APIErrorInternal(err)

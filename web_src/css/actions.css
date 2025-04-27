@@ -6,14 +6,6 @@
   overflow-x: auto;
 }
 
-.runner-container .runner-ops > a {
-  margin-left: 0.5em;
-}
-
-.runner-container .runner-ops-delete {
-  color: var(--color-red-light);
-}
-
 .runner-container .runner-new-text {
   color: var(--color-white);
 }

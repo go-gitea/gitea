@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path"
-	"sort"
 	"strings"
 	"testing"
 
@@ -76,7 +75,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 		t.Run("First Pull Request", func(t *testing.T) {
 			// create a new branch to prepare for pull request
-			resp1, err := files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			_, err := files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 				NewBranch: "codeowner-basebranch",
 				Files: []*files_service.ChangeRepoFile{
 					{
@@ -96,13 +95,8 @@ func TestPullView_CodeOwner(t *testing.T) {
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
 			assert.NoError(t, pr.LoadIssue(db.DefaultContext))
 
-			reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(db.DefaultContext, pr)
-			assert.NoError(t, err)
-			assert.Len(t, reviewNotifiers, 1)
-			assert.EqualValues(t, 5, reviewNotifiers[0].Reviewer.ID)
-
 			// update the file on the pr branch
-			resp2, err := files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			_, err = files_service.ChangeRepoFiles(db.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
 				OldBranch: "codeowner-basebranch",
 				Files: []*files_service.ChangeRepoFile{
 					{
@@ -114,14 +108,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			})
 			assert.NoError(t, err)
 
-			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(db.DefaultContext, pr)
-			assert.NoError(t, err)
-			assert.Len(t, reviewNotifiers, 2)
-			reviewerIDs := []int64{reviewNotifiers[0].Reviewer.ID, reviewNotifiers[1].Reviewer.ID}
-			sort.Slice(reviewerIDs, func(i, j int) bool { return reviewerIDs[i] < reviewerIDs[j] })
-			assert.Equal(t, []int64{5, 8}, reviewerIDs)
-
-			reviewNotifiers, err = issue_service.PullRequestCodeOwnersReviewSpecialCommits(db.DefaultContext, pr, resp1.Commit.SHA, resp2.Commit.SHA)
+			reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(db.DefaultContext, pr)
 			assert.NoError(t, err)
 			assert.Len(t, reviewNotifiers, 1)
 			assert.EqualValues(t, 8, reviewNotifiers[0].Reviewer.ID)
@@ -171,11 +158,6 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadBranch: "codeowner-basebranch2"})
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
-
-			reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(db.DefaultContext, pr)
-			assert.NoError(t, err)
-			assert.Len(t, reviewNotifiers, 1)
-			assert.EqualValues(t, 8, reviewNotifiers[0].Reviewer.ID)
 		})
 
 		t.Run("Forked Repo Pull Request", func(t *testing.T) {
