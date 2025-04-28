@@ -266,8 +266,8 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		Status:            actions_model.StatusWaiting,
 	}
 
-	if err := EvaluateExpressionsForRun(run, dwf); err != nil {
-		log.Error("EvaluateExpressionsForRun: %v", err)
+	if err := evaluateExpressionsForRun(run, dwf); err != nil {
+		log.Error("evaluateExpressionsForRun: %v", err)
 	}
 
 	// cancel running jobs of the same workflow
