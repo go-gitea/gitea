@@ -30,6 +30,7 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 	"gopkg.in/yaml.v3"
 
+	"github.com/nektos/act/pkg/exprparser"
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 )
@@ -300,16 +301,14 @@ func handleWorkflows(
 	}
 
 	for _, dwf := range detectedWorkflows {
-		var yamlData map[string]any
-		if err := yaml.Unmarshal([]byte(dwf.Content), &yamlData); err != nil {
-			log.Fatal(err.Error())
-		}
 		run := &actions_model.ActionRun{
-			Title:             yamlData["run-name"].(string),
+			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
+			Repo:              input.Repo,
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
+			TriggerUser:       input.Doer,
 			Ref:               ref,
 			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
@@ -317,6 +316,11 @@ func handleWorkflows(
 			EventPayload:      string(p),
 			TriggerEvent:      dwf.TriggerEvent.Name,
 			Status:            actions_model.StatusWaiting,
+		}
+
+		if err := EvaluateExpressionsForRun(run, dwf); err != nil {
+			log.Error("EvaluateExpressionsForRun: %v", err)
+			continue
 		}
 
 		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
@@ -523,6 +527,11 @@ func handleSchedules(
 			Specs:         schedules,
 			Content:       dwf.Content,
 		}
+
+		if runName, err := parseRunNameFromDetectedWorkflow(dwf); err == nil {
+			run.Title = runName
+		}
+
 		crons = append(crons, run)
 	}
 
@@ -560,4 +569,57 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	notifyInput := newNotifyInputForSchedules(repo)
 
 	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
+}
+
+func newExpressionEvaluatorForRun(r *actions_model.ActionRun) (*jobparser.ExpressionEvaluator, error) {
+	ghCtx := &model.GithubContext{}
+	gitCtx := GenerateGiteaContext(r, nil)
+
+	gitCtxRaw, err := json.Marshal(gitCtx)
+	if err != nil {
+		log.Error("NewInterpolatorForRun: %v", err)
+		return nil, err
+	}
+
+	err = json.Unmarshal(gitCtxRaw, ghCtx)
+	if err != nil {
+		log.Error("NewInterpolatorForRun: %v", err)
+		return nil, err
+	}
+
+	interp := exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Github: ghCtx}, exprparser.Config{})
+	ee := jobparser.NewExpressionEvaluator(interp)
+	return ee, nil
+}
+
+func parseRunNameFromDetectedWorkflow(w *actions_module.DetectedWorkflow) (string, error) {
+	var data map[string]any
+	var value string
+
+	if err := yaml.Unmarshal([]byte(w.Content), &data); err != nil {
+		log.Error("parseRunNameFromDetectedWorkflow: %v", err)
+		return "", err
+	}
+
+	if v, ok := data["run-name"]; !ok {
+		return "", fmt.Errorf("run-name not found in workflow")
+	} else {
+		value = v.(string)
+	}
+
+	return value, nil
+}
+
+func EvaluateExpressionsForRun(r *actions_model.ActionRun, w *actions_module.DetectedWorkflow) error {
+	if runName, err := parseRunNameFromDetectedWorkflow(w); err == nil {
+		ee, err := newExpressionEvaluatorForRun(r)
+		if err != nil {
+			log.Error("newExpressionEvaluatorForRun: %v", err)
+			return err
+		}
+		r.Title = ee.Interpolate(runName)
+	} else {
+		log.Error("parseRunNameFromDetectedWorkflow: %v", err)
+	}
+	return nil
 }

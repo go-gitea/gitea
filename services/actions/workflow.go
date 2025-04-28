@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
+	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/reqctx"
@@ -192,6 +193,8 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 
 	// find workflow from commit
 	var workflows []*jobparser.SingleWorkflow
+	dwf := &actions_module.DetectedWorkflow{}
+
 	for _, entry := range entries {
 		if entry.Name() != workflowID {
 			continue
@@ -201,10 +204,15 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		if err != nil {
 			return err
 		}
+
 		workflows, err = jobparser.Parse(content)
 		if err != nil {
 			return err
 		}
+
+		dwf.Content = content
+		dwf.EntryName = entry.Name()
+
 		break
 	}
 
@@ -244,9 +252,11 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	run := &actions_model.ActionRun{
 		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
 		RepoID:            repo.ID,
+		Repo:              repo,
 		OwnerID:           repo.OwnerID,
 		WorkflowID:        workflowID,
 		TriggerUserID:     doer.ID,
+		TriggerUser:       doer,
 		Ref:               string(refName),
 		CommitSHA:         runTargetCommit.ID.String(),
 		IsForkPullRequest: false,
@@ -254,6 +264,10 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		TriggerEvent:      "workflow_dispatch",
 		EventPayload:      string(eventPayload),
 		Status:            actions_model.StatusWaiting,
+	}
+
+	if err := EvaluateExpressionsForRun(run, dwf); err != nil {
+		log.Error("EvaluateExpressionsForRun: %v", err)
 	}
 
 	// cancel running jobs of the same workflow
