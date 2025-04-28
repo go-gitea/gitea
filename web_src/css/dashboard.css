@@ -1,0 +1,72 @@
+.dashboard.feeds .context.user.menu,
+.dashboard.issues .context.user.menu {
+  z-index: 101;
+  min-width: 200px;
+}
+
+.dashboard.feeds .context.user.menu .ui.header,
+.dashboard.issues .context.user.menu .ui.header {
+  font-size: 1rem;
+}
+
+.dashboard.feeds .filter.menu,
+.dashboard.issues .filter.menu {
+  width: initial;
+}
+
+.dashboard.feeds .filter.menu .item,
+.dashboard.issues .filter.menu .item {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard.feeds .filter.menu .item .text.truncate,
+.dashboard.issues .filter.menu .item .text.truncate {
+  width: 75%;
+}
+
+/* Sort */
+.dashboard.feeds .filter.menu .jump.item,
+.dashboard.issues .filter.menu .jump.item {
+  margin: 1px;
+  padding-right: 0;
+}
+
+.dashboard.feeds .filter.menu .menu,
+.dashboard.issues .filter.menu .menu {
+  max-height: 300px;
+  overflow-x: auto;
+  right: 0 !important;
+  left: auto !important;
+}
+
+@media (max-width: 767.98px) {
+  .dashboard.feeds .filter.menu,
+  .dashboard.issues .filter.menu {
+    width: 100%;
+  }
+}
+
+.dashboard.feeds .right.stackable.menu > .item.active,
+.dashboard.issues .right.stackable.menu > .item.active {
+  color: var(--color-red);
+}
+
+.dashboard .dashboard-repos,
+.dashboard .dashboard-orgs {
+  margin: 0 1px; /* Accommodate for Semantic's 1px hacks on .attached elements */
+}
+
+.dashboard .secondary-nav {
+  padding: 1px 12px; /* match .overflow-menu-items in height */
+}
+
+.dashboard .secondary-nav .org-visibility .label {
+  margin-left: 5px;
+}
+
+.dashboard .secondary-nav .ui.dropdown {
+  max-width: 100%;
+}

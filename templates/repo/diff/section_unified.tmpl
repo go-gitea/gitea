@@ -1,0 +1,73 @@
+{{$file := .file}}
+{{$repoLink := or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink}}
+{{$afterCommitID := or $.root.AfterCommitID "no-after-commit-id"}}{{/* this tmpl is also used by the PR Conversation page, so the "AfterCommitID" may not exist */}}
+{{$blobExcerptLink := print $repoLink (Iif $.root.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $afterCommitID) "?"}}
+<colgroup>
+	<col width="50">
+	<col width="50">
+	<col width="10">
+	<col width="10">
+	<col>
+</colgroup>
+{{range $j, $section := $file.Sections}}
+	{{range $k, $line := $section.Lines}}
+		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
+			{{if eq .GetType 4}}
+				{{if $.root.AfterCommitID}}
+					{{$expandDirection := $line.GetExpandDirection}}
+					<td colspan="2" class="lines-num">
+						<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
+							{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
+								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+									{{svg "octicon-fold-down"}}
+								</button>
+							{{end}}
+							{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
+								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+									{{svg "octicon-fold-up"}}
+								</button>
+							{{end}}
+							{{if eq $expandDirection 2}}
+								<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=unified&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
+									{{svg "octicon-fold"}}
+								</button>
+							{{end}}
+						</div>
+					</td>
+				{{else}}
+					{{/* for code file preview page or comment diffs on pull comment pages, do not show the expansion arrows */}}
+					<td colspan="2" class="lines-num"></td>
+				{{end}}
+			{{else}}
+				<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$file.NameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
+				<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
+			{{end}}
+			{{$inlineDiff := $section.GetComputedInlineDiffFor $line ctx.Locale -}}
+			<td class="lines-escape">
+				{{- if $inlineDiff.EscapeStatus.Escaped -}}
+					<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>
+				{{- end -}}
+			</td>
+			<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
+			{{if eq .GetType 4}}
+				<td class="chroma lines-code blob-hunk">{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
+			{{else}}
+				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
+					{{- if and $.root.SignedUserID $.root.PageIsPullFiles -}}
+						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+							{{- svg "octicon-plus" -}}
+						</button>
+					{{- end -}}
+					{{- template "repo/diff/section_code" dict "diff" $inlineDiff -}}
+				</td>
+			{{end}}
+		</tr>
+		{{if $line.Comments}}
+			<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+				<td class="add-comment-left add-comment-right" colspan="5">
+					{{template "repo/diff/conversation" dict "." $.root "comments" $line.Comments}}
+				</td>
+			</tr>
+		{{end}}
+	{{end}}
+{{end}}

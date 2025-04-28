@@ -1,0 +1,13 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization repository projects view-project">
+	{{if .ContextUser.IsOrganization}}
+		{{template "org/header" .}}
+	{{else}}
+		{{template "shared/user/org_profile_avatar" .}}
+		<div class="ui container tw-mb-4">
+			{{template "user/overview/header" .}}
+		</div>
+	{{end}}
+	{{template "projects/view" .}}
+</div>
+{{template "base/footer" .}}

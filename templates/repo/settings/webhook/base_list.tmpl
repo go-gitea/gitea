@@ -1,0 +1,24 @@
+<h4 class="ui top attached header">
+	{{.Title}}
+	<div class="ui right">
+		<div class="ui jump dropdown">
+			<div class="ui primary tiny button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</div>
+			{{template "repo/settings/webhook/link_menu" .}}
+		</div>
+	</div>
+</h4>
+<div class="ui attached segment">
+	<div class="ui list flex-items-block">
+		<div class="item"><span>{{.Description}}</span></div>
+		{{range .Webhooks}}
+			<div class="item">
+				<span class="text {{if eq .LastStatus 1}}green{{else if eq .LastStatus 2}}red{{else}}grey{{end}}">{{svg "octicon-dot-fill" 22}}</span>
+				<div class="gt-ellipsis tw-flex-1">
+					<a title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
+				</div>
+				<a class="muted tw-p-2" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+				<a class="delete-button tw-p-2" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trash"}}</a>
+			</div>
+		{{end}}
+	</div>
+</div>

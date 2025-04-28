@@ -1,0 +1,63 @@
+<script type="module">
+const data = {
+	...window.config.pageData.dashboardRepoList, // it only contains searchLimit and uid
+
+	isMirrorsEnabled: {{.MirrorsEnabled}},
+	isStarsEnabled: {{not .IsDisableStars}},
+
+	canCreateMigrations: {{not .DisableMigrations}},
+
+	textNoOrg: {{ctx.Locale.Tr "home.empty_org"}},
+	textNoRepo: {{ctx.Locale.Tr "home.empty_repo"}},
+	textRepository: {{ctx.Locale.Tr "repository"}},
+	textOrganization: {{ctx.Locale.Tr "organization"}},
+	textMyRepos: {{ctx.Locale.Tr "home.my_repos"}},
+	textNewRepo: {{ctx.Locale.Tr "new_repo"}},
+	textSearchRepos: {{ctx.Locale.Tr "search.repo_kind"}},
+	textFilter: {{ctx.Locale.Tr "home.filter"}},
+	textShowArchived: {{ctx.Locale.Tr "home.show_archived"}},
+	textShowPrivate: {{ctx.Locale.Tr "home.show_private"}},
+
+	textShowBothArchivedUnarchived: {{ctx.Locale.Tr "home.show_both_archived_unarchived"}},
+	textShowOnlyUnarchived: {{ctx.Locale.Tr "home.show_only_unarchived"}},
+	textShowOnlyArchived: {{ctx.Locale.Tr "home.show_only_archived"}},
+
+	textShowBothPrivatePublic: {{ctx.Locale.Tr "home.show_both_private_public"}},
+	textShowOnlyPublic: {{ctx.Locale.Tr "home.show_only_public"}},
+	textShowOnlyPrivate: {{ctx.Locale.Tr "home.show_only_private"}},
+
+	textAll: {{ctx.Locale.Tr "all"}},
+	textSources: {{ctx.Locale.Tr "sources"}},
+	textForks: {{ctx.Locale.Tr "forks"}},
+	textMirrors: {{ctx.Locale.Tr "mirrors"}},
+	textCollaborative: {{ctx.Locale.Tr "collaborative"}},
+
+	textFirstPage: {{ctx.Locale.Tr "admin.first_page"}},
+	textPreviousPage: {{ctx.Locale.Tr "repo.issues.previous"}},
+	textNextPage: {{ctx.Locale.Tr "repo.issues.next"}},
+	textLastPage: {{ctx.Locale.Tr "admin.last_page"}},
+
+	textMyOrgs: {{ctx.Locale.Tr "home.my_orgs"}},
+	textNewOrg: {{ctx.Locale.Tr "new_org"}},
+
+	textOrgVisibilityLimited: {{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}},
+	textOrgVisibilityPrivate: {{ctx.Locale.Tr "org.settings.visibility.private_shortname"}},
+};
+
+{{if .Team}}
+data.teamId = {{.Team.ID}};
+{{end}}
+
+{{if not .ContextUser.IsOrganization}}
+data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'full_name': {{.FullName}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
+data.isOrganization = false;
+data.organizationsTotalCount = {{.UserOrgsCount}};
+data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}};
+{{else}}
+data.organizationId = {{.ContextUser.ID}};
+{{end}}
+
+window.config.pageData.dashboardRepoList = data;
+</script>
+
+<div id="dashboard-repo-list" class="flex-container-sidebar"></div>

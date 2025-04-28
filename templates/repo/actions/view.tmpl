@@ -1,0 +1,12 @@
+{{template "base/head" .}}
+
+<div class="page-content repository">
+	{{template "repo/header" .}}
+	{{template "repo/actions/view_component" (dict
+		"RunIndex" .RunIndex
+		"JobIndex" .JobIndex
+		"ActionsURL" .ActionsURL
+	)}}
+</div>
+
+{{template "base/footer" .}}

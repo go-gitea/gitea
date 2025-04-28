@@ -1,0 +1,5 @@
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings webhooks")}}
+			<div class="org-setting-content">
+				{{template "repo/settings/webhook/list" .}}
+			</div>
+{{template "org/settings/layout_footer" .}}

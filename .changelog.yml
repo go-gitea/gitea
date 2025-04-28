@@ -1,0 +1,62 @@
+# The full repository name
+repo: go-gitea/gitea
+
+# Service type (gitea or github)
+service: github
+
+# Base URL for Gitea instance if using gitea service type (optional)
+# Default: https://gitea.com
+base-url:
+
+# Changelog groups and which labeled PRs to add to each group
+groups:
+  -
+    name: BREAKING
+    labels:
+      - pr/breaking
+  -
+    name: SECURITY
+    labels:
+      - topic/security
+  -
+    name: FEATURES
+    labels:
+      - type/feature
+  -
+    name: ENHANCEMENTS
+    labels:
+      - type/enhancement
+  -
+    name: PERFORMANCE
+    labels:
+      - performance/memory
+      - performance/speed
+      - performance/bigrepo
+      - performance/cpu
+  -
+    name: BUGFIXES
+    labels:
+      - type/bug
+  -
+    name: API
+    labels:
+      - modifies/api
+  -
+    name: TESTING
+    labels:
+      - type/testing
+  -
+    name: BUILD
+    labels:
+      - topic/build
+      - topic/code-linting
+  -
+    name: DOCS
+    labels:
+      - type/docs
+  -
+    name: MISC
+    default: true
+
+# regex indicating which labels to skip for the changelog
+skip-labels: skip-changelog|backport\/.+

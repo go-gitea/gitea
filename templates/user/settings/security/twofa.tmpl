@@ -1,0 +1,37 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "settings.twofa"}}
+</h4>
+<div class="ui attached segment">
+	<p>{{ctx.Locale.Tr "settings.twofa_desc"}}</p>
+	{{if .TOTPEnrolled}}
+	<p>{{ctx.Locale.Tr "settings.twofa_is_enrolled"}}</p>
+	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/regenerate_scratch" method="post" enctype="multipart/form-data">
+		{{.CsrfTokenHtml}}
+		<p>{{ctx.Locale.Tr "settings.regenerate_scratch_token_desc"}}</p>
+		<button class="ui primary button">{{ctx.Locale.Tr "settings.twofa_scratch_token_regenerate"}}</button>
+	</form>
+	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/disable" method="post" enctype="multipart/form-data" id="disable-form">
+		{{.CsrfTokenHtml}}
+		<p>{{ctx.Locale.Tr "settings.twofa_disable_note"}}</p>
+		<button class="ui red button delete-button" data-modal-id="disable-twofa" data-type="form" data-form="#disable-form">{{ctx.Locale.Tr "settings.twofa_disable"}}</button>
+	</form>
+	{{else}}
+	{{/* The recovery tip is there as a means of encouraging a user to enroll */}}
+	<p>{{ctx.Locale.Tr "settings.twofa_recovery_tip"}}</p>
+	<p>{{ctx.Locale.Tr "settings.twofa_not_enrolled"}}</p>
+	<div class="inline field">
+		<a class="ui primary button" href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{ctx.Locale.Tr "settings.twofa_enroll"}}</a>
+	</div>
+	{{end}}
+
+	<div class="ui g-modal-confirm delete modal" id="disable-twofa">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{ctx.Locale.Tr "settings.twofa_disable"}}
+		</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "settings.twofa_disable_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</div>
+</div>

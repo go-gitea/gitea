@@ -1,0 +1,103 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Folders
+_obj
+_test
+
+# IntelliJ
+.idea
+# Goland's output filename can not be set manually
+/go_build_*
+
+# MS VSCode
+.vscode
+__debug_bin*
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.exe
+*.test
+*.prof
+
+*coverage.out
+coverage.all
+cpu.out
+
+/modules/migration/bindata.go
+/modules/migration/bindata.go.hash
+/modules/options/bindata.go
+/modules/options/bindata.go.hash
+/modules/public/bindata.go
+/modules/public/bindata.go.hash
+/modules/templates/bindata.go
+/modules/templates/bindata.go.hash
+
+*.db
+*.log
+
+/gitea
+/gitea-vet
+/debug
+/integrations.test
+
+/bin
+/dist
+/custom/*
+!/custom/conf
+/custom/conf/*
+!/custom/conf/app.example.ini
+/data
+/indexers
+/log
+/tests/integration/gitea-integration-*
+/tests/integration/indexers-*
+/tests/e2e/gitea-e2e-*
+/tests/e2e/indexers-*
+/tests/e2e/reports
+/tests/e2e/test-artifacts
+/tests/e2e/test-snapshots
+/tests/*.ini
+/node_modules
+/yarn.lock
+/yarn-error.log
+/npm-debug.log*
+/public/assets/js
+/public/assets/css
+/public/assets/fonts
+/public/assets/img/avatar
+/vendor
+/VERSION
+/.air
+/.go-licenses
+
+# Files and folders that were previously generated
+/public/assets/img/webpack
+
+# Snapcraft
+snap/.snapcraft/
+parts/
+stage/
+prime/
+*.snap
+*.snap-build
+*_source.tar.bz2
+.DS_Store
+
+# Make evidence files
+/.make_evidence
+
+# Manpage
+/man

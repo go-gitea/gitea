@@ -1,0 +1,65 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository milestone-issue-list">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<div class="flex-text-block tw-flex-wrap tw-mb-2">
+			<h1 class="tw-flex-1 tw-m-0">{{.Milestone.Name}}</h1>
+			{{if not .Repository.IsArchived}}
+				<div>
+					{{if or .CanWriteIssues .CanWritePulls}}
+						{{if .Milestone.IsClosed}}
+							<a class="ui primary basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/open">{{ctx.Locale.Tr "repo.milestones.open"}}
+							</a>
+						{{else}}
+							<a class="ui red basic button link-action" href data-url="{{$.RepoLink}}/milestones/{{.MilestoneID}}/close">{{ctx.Locale.Tr "repo.milestones.close"}}
+							</a>
+						{{end}}
+						<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{ctx.Locale.Tr "repo.milestones.edit"}}</a>
+					{{end}}
+					<a class="ui primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
+				</div>
+			{{end}}
+		</div>
+		{{if .Milestone.RenderedContent}}
+		<div class="render-content markup tw-mb-4">
+				{{.Milestone.RenderedContent}}
+		</div>
+		{{end}}
+		<div class="tw-flex tw-flex-col tw-gap-2">
+			<progress class="milestone-progress-big" value="{{.Milestone.Completeness}}" max="100"></progress>
+			<div class="flex-text-block tw-gap-4">
+				<div class="flex-text-inline">
+					{{$closedDate:= DateUtils.TimeSince .Milestone.ClosedDateUnix}}
+					{{if .IsClosed}}
+						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
+					{{else}}
+
+						{{if .Milestone.DeadlineString}}
+							<span{{if .IsOverdue}} class="text red"{{end}}>
+								{{svg "octicon-calendar"}}
+								{{DateUtils.AbsoluteShort (.Milestone.DeadlineString|DateUtils.ParseLegacy)}}
+							</span>
+						{{else}}
+							{{svg "octicon-calendar"}}
+							{{ctx.Locale.Tr "repo.milestones.no_due_date"}}
+						{{end}}
+					{{end}}
+				</div>
+				<div>{{ctx.Locale.Tr "repo.milestones.completeness" .Milestone.Completeness}}</div>
+				{{if .TotalTrackedTime}}
+					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
+						{{svg "octicon-clock"}}
+						{{.TotalTrackedTime | Sec2Hour}}
+					</div>
+				{{end}}
+			</div>
+		</div>
+		<div class="divider"></div>
+
+		{{template "repo/issue/filters" .}}
+
+		{{template "shared/issuelist" dict "." . "listType" "milestone"}}
+	</div>
+</div>
+{{template "base/footer" .}}

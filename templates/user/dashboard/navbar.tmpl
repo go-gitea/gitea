@@ -1,0 +1,107 @@
+<div class="secondary-nav tw-border-b tw-border-b-secondary">
+	<div class="ui secondary stackable menu">
+		<div class="item">
+			<div class="ui floating dropdown jump">
+				<span class="text">
+					{{ctx.AvatarUtils.Avatar .ContextUser 24 "tw-mr-1"}}
+					<span class="gt-ellipsis">{{.ContextUser.ShortName 40}}</span>
+					<span class="org-visibility">
+						{{if .ContextUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+						{{if .ContextUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+					</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon tw-ml-1"}}
+				</span>
+				<div class="menu context-user-switch">
+					<div class="header">
+						{{ctx.Locale.Tr "home.switch_dashboard_context"}}
+					</div>
+					<div class="scrolling menu">
+						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}">
+							{{ctx.AvatarUtils.Avatar .SignedUser}}
+							<span class="gt-ellipsis">{{.SignedUser.ShortName 40}}</span>
+							<span class="org-visibility">
+								{{if .SignedUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+								{{if .SignedUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+							</span>
+						</a>
+						{{range .Orgs}}
+							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
+								{{ctx.AvatarUtils.Avatar .}}
+								<span class="gt-ellipsis">{{.ShortName 40}}</span>
+								<span class="org-visibility">
+									{{if .Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+									{{if .Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+								</span>
+							</a>
+						{{end}}
+					</div>
+					{{if .SignedUser.CanCreateOrganization}}
+					<a class="item" href="{{AppSubUrl}}/org/create">
+						{{svg "octicon-plus" 16 "tw-ml-1 tw-mr-5"}}{{ctx.Locale.Tr "new_org"}}
+					</a>
+					{{end}}
+				</div>
+			</div>
+		</div>
+		{{if .ContextUser.IsOrganization}}
+			<div class="item">
+				<div class="ui floating dropdown jump">
+					<span class="text">
+						{{svg "octicon-people" 18}}
+						{{if .Team}}
+							{{.Team.Name}}
+						{{else}}
+							{{ctx.Locale.Tr "org.teams"}}
+						{{end}}
+					</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="context user overflow menu">
+						<div class="header">
+							{{ctx.Locale.Tr "home.filter_by_team_repositories"}}
+						</div>
+						<div class="scrolling menu items">
+							<a class="{{if not $.Team}}active selected{{end}} item" title="{{ctx.Locale.Tr "all"}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
+								{{ctx.Locale.Tr "all"}}
+							</a>
+							{{range .Teams}}
+								{{if not .IncludesAllRepositories}}
+									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}">
+										{{.Name}}
+									</a>
+								{{end}}
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</div>
+		{{end}}
+
+	{{if .ContextUser.IsOrganization}}
+		<div class="right menu tw-flex-wrap tw-justify-end">
+			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+				{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
+			</a>
+			{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
+			<a class="{{if .PageIsIssues}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/issues{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+				{{svg "octicon-issue-opened"}}&nbsp;{{ctx.Locale.Tr "issues"}}
+			</a>
+			{{end}}
+			{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
+			<a class="{{if .PageIsPulls}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/pulls{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+				{{svg "octicon-git-pull-request"}}&nbsp;{{ctx.Locale.Tr "pull_requests"}}
+			</a>
+			{{end}}
+			{{if and .ShowMilestonesDashboardPage (not (and ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled))}}
+			<a class="{{if .PageIsMilestonesDashboard}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/milestones{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+				{{svg "octicon-milestone"}}&nbsp;{{ctx.Locale.Tr "milestones"}}
+			</a>
+			{{end}}
+			<div class="item">
+				<a class="ui primary basic button" href="{{.ContextUser.HomeLink}}" title="{{ctx.Locale.Tr "home.view_home" .ContextUser.Name}}">
+					{{ctx.Locale.Tr "home.view_home" (.ContextUser.ShortName 20)}}
+				</a>
+			</div>
+		</div>
+	{{end}}
+	</div>
+</div>

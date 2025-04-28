@@ -1,0 +1,26 @@
+#424242 Status: Needs feedback ; Feedback is needed
+#fbc02d Status: In progress ; Work is in progress
+#43a047 Status: Completed ; Work is complete
+#00796b Status: Help wanted ; 
+#880e4f Status: Blocked ; 
+#b0bec5 Status: Stale ; 
+
+#d32f2f Kind: Bug ; 
+#607d8b Kind: Question ; 
+#9c27b0 Kind: Security ; 
+#795548 Kind: Testing ; 
+#c62828 Kind: Breaking ; 
+#37474f Kind: Documentation ; 
+#0288d1 Kind: Feature ; 
+#2e7d32 Kind: Enhancement ; 
+#f4511e Kind: Maintenance ; 
+
+#546e7a Reviewed: Invalid ; Something was marked as invalid
+#616161 Reviewed: Duplicate; Something exists already
+#795548 Reviewed: Confirmed ; Something has been confirmed
+#eeeeee Reviewed: Wontfix ; Something won't be fixed
+
+#d32f2f Priority: High ; The priority is high
+#e64a19 Priority: Medium ; The priority is medium
+#4caf50 Priority: Low ; The priority is low
+#b71c1c Priority: Critical ; The priority is critical

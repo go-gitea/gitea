@@ -1,0 +1,77 @@
+-
+  id: 1
+  project_id: 1
+  title: To Do
+  creator_id: 2
+  default: true
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 2
+  project_id: 1
+  title: In Progress
+  creator_id: 2
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 3
+  project_id: 1
+  title: Done
+  creator_id: 2
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 4
+  project_id: 4
+  title: Done
+  creator_id: 2
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 5
+  project_id: 2
+  title: Backlog
+  creator_id: 2
+  default: true
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 6
+  project_id: 4
+  title: Backlog
+  creator_id: 2
+  default: true
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 7
+  project_id: 5
+  title: Done
+  creator_id: 2
+  default: false
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 8
+  project_id: 6
+  title: Backlog
+  creator_id: 2
+  default: true
+  created_unix: 1588117528
+  updated_unix: 1588117528
+
+-
+  id: 9
+  project_id: 6
+  title: Uncategorized
+  creator_id: 2
+  default: true
+  created_unix: 1588117528
+  updated_unix: 1588117528

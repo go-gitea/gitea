@@ -1,0 +1,12 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository view issue pull">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "repo/issue/view_title" .}}
+		{{if .Issue.IsPull}}
+			{{template "repo/pulls/tab_menu" .}}
+		{{end}}
+		{{template "repo/issue/view_content" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

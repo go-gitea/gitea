@@ -1,0 +1,14 @@
+{{if .Statuses}}
+	{{if and (eq (len .Statuses) 1) .Status.TargetURL}}
+		<a class="flex-text-inline tw-no-underline {{.AdditionalClasses}}" data-global-init="initCommitStatuses" href="{{.Status.TargetURL}}">
+			{{template "repo/commit_status" .Status}}
+		</a>
+	{{else}}
+		<span class="flex-text-inline {{.AdditionalClasses}}" data-global-init="initCommitStatuses" tabindex="0">
+			{{template "repo/commit_status" .Status}}
+		</span>
+	{{end}}
+	<div class="tippy-target">
+		{{template "repo/pulls/status" (dict "CommitStatuses" .Statuses "CommitStatus" .Status)}}
+	</div>
+{{end}}

@@ -1,0 +1,26 @@
+root = "."
+tmp_dir = ".air"
+
+[build]
+pre_cmd = ["killall -9 gitea 2>/dev/null || true"] # kill off potential zombie processes from previous runs
+cmd = "make --no-print-directory backend"
+bin = "gitea"
+delay = 2000
+include_ext = ["go", "tmpl"]
+include_file = ["main.go"]
+include_dir = ["cmd", "models", "modules", "options", "routers", "services"]
+exclude_dir = [
+  "models/fixtures",
+  "models/migrations/fixtures",
+  "modules/avatar/identicon/testdata",
+  "modules/avatar/testdata",
+  "modules/git/tests",
+  "modules/migration/file_format_testdata",
+  "routers/private/tests",
+  "services/gitdiff/testdata",
+]
+exclude_regex = ["_test.go$", "_gen.go$"]
+stop_on_error = true
+
+[log]
+main_only = true

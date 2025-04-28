@@ -1,0 +1,40 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "settings.authorized_oauth2_applications"}}
+</h4>
+<div class="ui attached segment">
+	<div class="flex-list">
+		<div class="flex-item">
+			{{ctx.Locale.Tr "settings.authorized_oauth2_applications_description"}}
+		</div>
+		{{range .Grants}}
+			<div class="flex-item">
+				<div class="flex-item-leading">
+					{{svg "octicon-key" 32}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">{{.Application.Name}}</div>
+					<div class="flex-item-body">
+						<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}</i>
+					</div>
+				</div>
+				<div class="flex-item-trailing">
+					<button class="ui red tiny button delete-button" data-modal-id="revoke-gitea-oauth2-grant"
+							data-url="{{AppSubUrl}}/user/settings/applications/oauth2/{{.ApplicationID}}/revoke/{{.ID}}">
+						{{ctx.Locale.Tr "settings.revoke_key"}}
+					</button>
+				</div>
+			</div>
+		{{end}}
+	</div>
+
+	<div class="ui g-modal-confirm delete modal" id="revoke-gitea-oauth2-grant">
+		<div class="header">
+			{{svg "octicon-shield" 16 "tw-mr-1"}}
+			{{ctx.Locale.Tr "settings.revoke_oauth2_grant"}}
+		</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "settings.revoke_oauth2_grant_description"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</div>
+</div>

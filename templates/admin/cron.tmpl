@@ -1,0 +1,39 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+<div class="admin-setting-content">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "admin.monitor.cron"}}
+	</h4>
+	<div class="ui attached table segment">
+		<form method="post" action="{{AppSubUrl}}/-/admin">
+			<table class="ui very basic striped table unstackable tw-mb-0">
+				<thead>
+					<tr>
+						<th></th>
+						<th>{{ctx.Locale.Tr "admin.monitor.name"}}</th>
+						<th>{{ctx.Locale.Tr "admin.monitor.schedule"}}</th>
+						<th>{{ctx.Locale.Tr "admin.monitor.next"}}</th>
+						<th>{{ctx.Locale.Tr "admin.monitor.previous"}}</th>
+						<th>{{ctx.Locale.Tr "admin.monitor.execute_times"}}</th>
+						<th>{{ctx.Locale.Tr "admin.monitor.last_execution_result"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Entries}}
+						<tr>
+							<td><button type="submit" class="ui primary button" name="op" value="{{.Name}}" title="{{ctx.Locale.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right"}}</button></td>
+							<td>{{ctx.Locale.Tr (printf "admin.dashboard.%s" .Name)}}</td>
+							<td>{{.Spec}}</td>
+							<td>{{DateUtils.FullTime .Next}}</td>
+							<td>{{if gt .Prev.Year 1}}{{DateUtils.FullTime .Prev}}{{else}}-{{end}}</td>
+							<td>{{.ExecTimes}}</td>
+							<td {{if ne .Status ""}}data-tooltip-content="{{.FormatLastMessage ctx.Locale}}"{{end}} >{{if eq .Status ""}}—{{else}}{{svg (Iif (eq .Status "finished") "octicon-check" "octicon-x") 16}}{{end}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+			<input type="hidden" name="from" value="monitor">
+			{{.CsrfTokenHtml}}
+		</form>
+	</div>
+</div>
+{{template "admin/layout_footer" .}}

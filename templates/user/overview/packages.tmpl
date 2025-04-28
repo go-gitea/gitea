@@ -1,0 +1,24 @@
+{{template "base/head" .}}
+{{if .ContextUser.IsOrganization}}
+	<div role="main" aria-label="{{.Title}}" class="page-content organization packages">
+		{{template "org/header" .}}
+		<div class="ui container">
+			{{template "package/shared/list" .}}
+		</div>
+	</div>
+{{else}}
+	<div role="main" aria-label="{{.Title}}" class="page-content user profile packages">
+		<div class="ui container">
+			<div class="ui stackable grid">
+				<div class="ui four wide column">
+					{{template "shared/user/profile_big_avatar" .}}
+				</div>
+				<div class="ui twelve wide column tw-mb-4">
+						{{template "user/overview/header" .}}
+						{{template "package/shared/list" .}}
+				</div>
+			</div>
+		</div>
+	</div>
+{{end}}
+{{template "base/footer" .}}

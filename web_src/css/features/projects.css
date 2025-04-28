@@ -1,0 +1,128 @@
+#project-board {
+  display: flex;
+  align-items: stretch;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow: auto;
+  margin: 0 0.5em;
+  max-height: calc(100vh - 120px);
+}
+
+.project-header {
+  padding: 0.5em 0;
+  overflow-x: auto; /* in fullscreen mode, the position is fixed, so we can't use "flex wrap" which would change the height */
+}
+
+.project-header h2 {
+  white-space: nowrap;
+  margin: 0;
+}
+
+.project-column {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-project-column-bg);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  margin: 0 0.5rem;
+  padding: 0.5rem;
+  width: 320px;
+  overflow: visible;
+}
+
+.project-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+}
+
+.ui.label.project-column-issue-count {
+  color: inherit;
+}
+
+.project-column > .ui.cards {
+  flex: 1;
+  display: flex;
+  flex-wrap: nowrap;
+  flex-direction: column;
+  overflow: clip auto;
+  gap: .25rem;
+  margin: 0;
+  padding: 0;
+}
+
+.project-column > .divider {
+  margin: 5px 0;
+  border-color: currentcolor;
+  opacity: .5;
+}
+
+.project-column:first-child {
+  margin-left: auto !important;
+}
+
+.project-column:last-child {
+  margin-right: auto !important;
+}
+
+.card-attachment-images {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: scroll;
+  cursor: default;
+  scroll-snap-type: x mandatory;
+  text-align: center;
+}
+
+.card-attachment-images img {
+  display: inline-block;
+  max-height: 50px;
+  border-radius: var(--border-radius);
+  text-align: left;
+  scroll-snap-align: center;
+  margin-right: 2px;
+  aspect-ratio: 1;
+}
+
+.card-attachment-images img:only-child {
+  max-height: 90px;
+  margin: auto;
+}
+
+.card-ghost {
+  border-color: var(--color-secondary-dark-4) !important;
+  border-style: dashed !important;
+  background: none !important;
+}
+
+.card-ghost * {
+  opacity: 0;
+}
+
+.fullscreen.projects-view .project-header {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 0.5em;
+  width: 100%;
+  max-width: 100%;
+  background-color: var(--color-body);
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+/* Hide project-description in full-screen due to its variable height. No need to show it for better space use. */
+.fullscreen.projects-view .project-description {
+  display: none;
+}
+
+.fullscreen.projects-view #project-board {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  right: 0;
+  max-height: calc(100vh - 70px);
+}

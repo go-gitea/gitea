@@ -1,0 +1,67 @@
+{
+    "title": "Milestone",
+    "description": "Milestone associated to a repository within a forge.",
+
+    "type": "array",
+    "items": {
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+	    "title": {
+		"description": "Short description.",
+		"type": "string"
+	    },
+	    "description": {
+		"description": "Long, multiline, description.",
+		"type": "string"
+	    },
+	    "deadline": {
+		"description": "Deadline after which the milestone is overdue.",
+		"type": "string",
+		"format": "date-time"
+	    },
+	    "created": {
+		"description": "Creation time.",
+		"type": "string",
+		"format": "date-time"
+	    },
+	    "updated": {
+		"description": "Last update time.",
+		"type": "string",
+		"format": "date-time"
+	    },
+	    "closed": {
+		"description": "The last time 'state' changed to 'closed'.",
+		"anyOf": [
+		    {
+			"type": "string",
+			"format": "date-time"
+		    },
+		    {
+			"type": "null"
+		    }
+		]
+	    },
+	    "state": {
+		"description": "A 'closed' issue will not see any activity in the future, otherwise it is 'open'.",
+		"enum": [
+		    "closed",
+		    "open"
+		]
+	    }
+	},
+	"required": [
+	    "title",
+	    "description",
+	    "deadline",
+	    "created",
+	    "updated",
+	    "closed",
+	    "state"
+	]
+    },
+
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$id": "http://example.com/milestone.json",
+    "$$target": "milestone.json"
+}

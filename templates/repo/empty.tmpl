@@ -1,0 +1,76 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository quickstart">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			<div class="sixteen wide column content">
+				{{template "base/alert" .}}
+				{{if .Repository.IsArchived}}
+					<div class="ui warning message tw-text-center">
+						{{if .Repository.ArchivedUnix.IsZero}}
+							{{ctx.Locale.Tr "repo.archive.title"}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
+						{{end}}
+					</div>
+				{{end}}
+
+				{{if .Repository.IsBroken}}
+					<div class="ui segment center">{{ctx.Locale.Tr "repo.broken_message"}}</div>
+				{{else if .RepoHasContentsWithoutBranch}}
+					<div class="ui segment center">{{ctx.Locale.Tr "repo.no_branch"}}</div>
+				{{else if .CanWriteCode}}
+					<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.quick_guide"}}</h4>
+					<div class="ui attached guide table segment empty-repo-guide">
+						<div class="item">
+							<h3>{{ctx.Locale.Tr "repo.clone_this_repo"}} <small>{{ctx.Locale.Tr "repo.clone_helper" "http://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository"}}</small></h3>
+
+							<div class="repo-button-row">
+								{{if and .CanWriteCode (not .Repository.IsArchived)}}
+									<a class="ui small button" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/">
+										{{ctx.Locale.Tr "repo.editor.new_file"}}
+									</a>
+									{{if .RepositoryUploadEnabled}}
+									<a class="ui small button" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/">
+										{{ctx.Locale.Tr "repo.editor.upload_file"}}
+									</a>
+									{{end}}
+								{{end}}
+								{{template "repo/clone_buttons" .}}
+							</div>
+						</div>
+
+						{{if not .Repository.IsArchived}}
+							<div class="divider tw-my-0"></div>
+
+							<div class="item">
+								<h3>{{ctx.Locale.Tr "repo.create_new_repo_command"}}</h3>
+								<div class="markup">
+									<pre><code>touch README.md
+git init
+{{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
+git add README.md
+git commit -m "first commit"
+git remote add origin <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
+git push -u origin {{.Repository.DefaultBranch}}</code></pre>
+								</div>
+							</div>
+							<div class="divider"></div>
+
+							<div class="item">
+								<h3>{{ctx.Locale.Tr "repo.push_exist_repo"}}</h3>
+								<div class="markup">
+									<pre><code>git remote add origin <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
+git push -u origin {{.Repository.DefaultBranch}}</code></pre>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				{{else}}
+					<div class="ui segment center">{{ctx.Locale.Tr "repo.empty_message"}}</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

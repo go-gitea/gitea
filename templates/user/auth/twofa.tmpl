@@ -1,0 +1,26 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content user signin">
+	<div class="ui middle very relaxed page grid">
+		<div class="column">
+			<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<h3 class="ui top attached header">
+					{{ctx.Locale.Tr "twofa"}}
+				</h3>
+				<div class="ui attached segment">
+					{{template "base/alert" .}}
+					<div class="required field">
+						<label for="passcode">{{ctx.Locale.Tr "passcode"}}</label>
+						<input id="passcode" name="passcode" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" autofocus required>
+					</div>
+
+					<div class="inline field">
+						<button class="ui primary button">{{ctx.Locale.Tr "auth.verify"}}</button>
+						<a href="{{AppSubUrl}}/user/two_factor/scratch">{{ctx.Locale.Tr "auth.use_scratch_code"}}</a>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

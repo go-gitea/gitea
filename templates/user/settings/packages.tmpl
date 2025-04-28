@@ -1,0 +1,24 @@
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings packages")}}
+	<div class="user-setting-content">
+		{{template "package/shared/cleanup_rules/list" .}}
+		{{template "package/shared/cargo" .}}
+
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "packages.owner.settings.chef.title"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui form">
+				<div class="field">
+					<label>{{ctx.Locale.Tr "packages.owner.settings.chef.keypair.description"}}</label>
+				</div>
+				<form class="field" action="{{.Link}}/chef/regenerate_keypair" method="post">
+					{{.CsrfTokenHtml}}
+					<button class="ui primary button">{{ctx.Locale.Tr "packages.owner.settings.chef.keypair"}}</button>
+				</form>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "packages.registry.documentation" "Chef" "https://docs.gitea.com/usage/packages/chef/"}}</label>
+				</div>
+			</div>
+		</div>
+	</div>
+{{template "user/settings/layout_footer" .}}

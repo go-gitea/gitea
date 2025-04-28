@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>Label</key>
+		<string>io.gitea.web</string>
+		<!-- assumes Gitea is running under 'git' account -->
+		<!-- modify below to reflect your settings -->
+		<key>UserName</key>
+		<string>git</string>
+		<key>GroupName</key>
+		<string>git</string>
+		<key>ProgramArguments</key>
+		<array>
+			<!-- assumes Gitea is installed in /Users/git/gitea -->
+			<!-- modify below to reflect your settings -->
+			<string>/Users/git/gitea/gitea</string>
+			<string>web</string>
+		</array>
+		<key>RunAtLoad</key>
+		<true/>
+		<key>KeepAlive</key>
+		<true/>
+		<!-- assumes Gitea is installed in /Users/git/gitea -->
+		<!-- modify below to reflect your settings -->
+		<key>WorkingDirectory</key>
+		<string>/Users/git/gitea/</string>
+		<key>StandardOutPath</key>
+		<string>/Users/git/gitea/log/stdout.log</string>
+		<key>StandardErrorPath</key>
+		<string>/Users/git/gitea/log/stderr.log</string>
+		<!-- default 256 is too low for Gitea needs using parallel pipes -->
+		<key>SoftResourceLimits</key>
+		<dict>
+			<key>NumberOfFiles</key>
+			<integer>8192</integer>
+		</dict>
+	</dict>
+</plist>

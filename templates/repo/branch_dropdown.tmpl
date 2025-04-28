@@ -1,0 +1,68 @@
+{{/* Attributes:
+* ContainerClasses
+* Repository
+* CurrentRefType: eg. "branch", "tag", "commit"
+* CurrentRefShortName: eg. "master", "v1.0", "abcdef0123"
+* CurrentTreePath
+* RefLinkTemplate: redirect to the link when a branch/tag is selected
+* RefFormActionTemplate: change the parent form's action when a branch/tag is selected
+* DropdownFixedText: the text to show in the dropdown (mainly used by "release page"), if empty, the text will be the branch/tag name
+* ShowTabBranches
+* ShowTabTagsTab
+* AllowCreateNewRef
+* ShowViewAllRefsEntry
+
+Search "repo/branch_dropdown" in the template directory to find all occurrences.
+*/}}
+<div class="{{if .ContainerClasses}}{{.ContainerClasses}}{{end}}"
+	data-global-init="initRepoBranchTagSelector"
+	data-text-release-compare="{{ctx.Locale.Tr "repo.release.compare"}}"
+	data-text-branches="{{ctx.Locale.Tr "repo.branches"}}"
+	data-text-tags="{{ctx.Locale.Tr "repo.tags"}}"
+	data-text-filter-branch="{{ctx.Locale.Tr "repo.pulls.filter_branch"}}"
+	data-text-filter-tag="{{ctx.Locale.Tr "repo.find_tag"}}"
+	data-text-default-branch-label="{{ctx.Locale.Tr "repo.default_branch_label"}}"
+	data-text-create-tag="{{ctx.Locale.Tr "repo.tag.create_tag"}}"
+	data-text-create-branch="{{ctx.Locale.Tr "repo.branch.create_branch"}}"
+	data-text-create-ref-from="{{ctx.Locale.Tr "repo.branch.create_from"}}"
+	data-text-no-results="{{ctx.Locale.Tr "no_results_found"}}"
+	data-text-view-all-branches="{{ctx.Locale.Tr "repo.view_all_branches"}}"
+	data-text-view-all-tags="{{ctx.Locale.Tr "repo.view_all_tags"}}"
+
+	data-current-repo-default-branch="{{.Repository.DefaultBranch}}"
+	data-current-repo-link="{{.Repository.Link}}"
+	data-current-tree-path="{{.CurrentTreePath}}"
+	data-current-ref-type="{{.CurrentRefType}}"
+	data-current-ref-short-name="{{.CurrentRefShortName}}"
+
+	data-ref-link-template="{{.RefLinkTemplate}}"
+	data-ref-form-action-template="{{.RefFormActionTemplate}}"
+	data-dropdown-fixed-text="{{.DropdownFixedText}}"
+	data-show-tab-branches="{{.ShowTabBranches}}"
+	data-show-tab-tags="{{.ShowTabTags}}"
+	data-allow-create-new-ref="{{.AllowCreateNewRef}}"
+	data-show-view-all-refs-entry="{{.ShowViewAllRefsEntry}}"
+
+	data-enable-feed="{{ctx.RootData.EnableFeed}}"
+>
+	{{/* show dummy elements before Vue componment is mounted, this code must match the code in BranchTagSelector.vue */}}
+	<div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
+		<div class="ui compact button branch-dropdown-button">
+			<span class="flex-text-block gt-ellipsis">
+				{{if .DropdownFixedText}}
+					{{.DropdownFixedText}}
+				{{else}}
+					{{if eq .CurrentRefType "tag"}}
+						{{svg "octicon-tag"}}
+					{{else if eq .CurrentRefType "branch"}}
+						{{svg "octicon-git-branch"}}
+					{{else}}
+						{{svg "octicon-git-commit"}}
+					{{end}}
+					<strong class="tw-inline-block gt-ellipsis">{{.CurrentRefShortName}}</strong>
+				{{end}}
+			</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		</div>
+	</div>
+</div>

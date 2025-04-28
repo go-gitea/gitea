@@ -1,0 +1,23 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization invite">
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<div class="ui centered card">
+			<div class="image">
+				{{ctx.AvatarUtils.Avatar .Organization 140}}
+			</div>
+			<div class="content">
+				<div class="header">{{ctx.Locale.Tr "org.teams.invite.title" .Team.Name .Organization.Name}}</div>
+				<div class="meta">{{ctx.Locale.Tr "org.teams.invite.by" .Inviter.Name}}</div>
+				<div class="description">{{ctx.Locale.Tr "org.teams.invite.description"}}</div>
+			</div>
+			<div class="extra content">
+				<form class="ui form" action="" method="post">
+					{{.CsrfTokenHtml}}
+					<button class="fluid ui primary button">{{ctx.Locale.Tr "org.teams.join"}}</button>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

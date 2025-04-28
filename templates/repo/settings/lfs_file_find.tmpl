@@ -1,0 +1,46 @@
+{{template "repo/settings/layout_head" (dict "ctxData" . "pageClass" "repository settings lfs")}}
+	<div class="user-main-content twelve wide column content repository file list">
+		<div class="tab-size-8 non-diff-file-content">
+			<h4 class="ui top attached header">
+				<a href="{{.LFSFilesLink}}">{{ctx.Locale.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.Oid}}</span>
+			</h4>
+			<table id="lfs-files-find-table" class="ui attached segment single line table">
+				<tbody>
+					{{range .Results}}
+						<tr>
+							<td>
+								{{svg "octicon-file"}}
+								<a href="{{$.RepoLink}}/src/commit/{{.SHA}}/{{PathEscapeSegments .Name}}" title="{{.Name}}">{{.Name}}</a>
+							</td>
+							<td class="message">
+								<span class="truncate">
+									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary}}">
+										{{.Summary | ctx.RenderUtils.RenderEmoji}}
+									</a>
+								</span>
+							</td>
+							<td>
+								<span class="text grey">{{svg "octicon-git-branch"}}{{.BranchName}}</span>
+							</td>
+							<td>
+								{{if .ParentHashes}}
+									{{ctx.Locale.Tr "repo.diff.parent"}}
+									{{range .ParentHashes}}
+										<a class="ui primary sha label" href="{{$.RepoLink}}/commit/{{.String}}">{{ShortSha .String}}</a>
+									{{end}}
+								{{end}}
+								{{ctx.Locale.Tr "repo.diff.commit"}}
+								<a class="ui primary sha label" href="{{$.RepoLink}}/commit/{{.SHA}}">{{ShortSha .SHA}}</a>
+							</td>
+							<td>{{DateUtils.TimeSince .When}}</td>
+						</tr>
+					{{else}}
+						<tr>
+							<td colspan="5">{{ctx.Locale.Tr "repo.settings.lfs_lfs_file_no_commits"}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</div>
+{{template "repo/settings/layout_footer" .}}
