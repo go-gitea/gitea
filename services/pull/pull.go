@@ -463,12 +463,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 					}
 
 					if !pr.IsWorkInProgress(ctx) {
-						var reviewNotifiers []*issue_service.ReviewRequestNotifier
-						if opts.IsForcePush {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, pr)
-						} else {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, opts.OldCommitID, opts.NewCommitID)
-						}
+						reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(ctx, pr)
 						if err != nil {
 							log.Error("PullRequestCodeOwnersReview: %v", err)
 						}
