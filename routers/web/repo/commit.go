@@ -372,6 +372,8 @@ func Diff(ctx *context.Context) {
 
 		renderedIconPool := fileicon.NewRenderedIconPool()
 		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
+		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
+		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 	}
 

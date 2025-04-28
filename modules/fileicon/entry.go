@@ -25,3 +25,7 @@ func EntryInfoFromGitTreeEntry(gitEntry *git.TreeEntry) *EntryInfo {
 func EntryInfoFolder() *EntryInfo {
 	return &EntryInfo{EntryMode: git.EntryModeTree}
 }
+
+func EntryInfoFolderOpen() *EntryInfo {
+	return &EntryInfo{EntryMode: git.EntryModeTree, IsOpen: true}
+}
