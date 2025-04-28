@@ -267,7 +267,7 @@ index 0000000000..2bf4c443d8
 +
 +	a.Equal(p.ClientKey, os.Getenv("BLENDERID_KEY"))
 +	a.Equal(p.Secret, os.Getenv("BLENDERID_SECRET"))
-+	a.Equal(p.CallbackURL, "/foo")
++	a.Equal("/foo", p.CallbackURL)
 +}
 +
 +func Test_NewCustomisedURL(t *testing.T) {
@@ -305,8 +305,8 @@ index 0000000000..2bf4c443d8
 +	a.NoError(err)
 +
 +	s := session.(*blenderid.Session)
-+	a.Equal(s.AuthURL, "https://id.blender.org/oauth/authorize")
-+	a.Equal(s.AccessToken, "1234567890")
++	a.Equal("https://id.blender.org/oauth/authorize", s.AuthURL)
++	a.Equal("1234567890", s.AccessToken)
 +}
 +
 +func provider() *blenderid.Provider {
@@ -546,7 +546,7 @@ index 0000000000..ab7fb974a5
 +	s.AuthURL = "/foo"
 +
 +	url, _ := s.GetAuthURL()
-+	a.Equal(url, "/foo")
++	a.Equal("/foo", url)
 +}
 +
 +func Test_ToJSON(t *testing.T) {
@@ -555,7 +555,7 @@ index 0000000000..ab7fb974a5
 +	s := &blenderid.Session{}
 +
 +	data := s.Marshal()
-+	a.Equal(data, `{"AuthURL":"","AccessToken":"","RefreshToken":"","ExpiresAt":"0001-01-01T00:00:00Z"}`)
++	a.JSONEq(`{"AuthURL":"","AccessToken":"","RefreshToken":"","ExpiresAt":"0001-01-01T00:00:00Z"}`, data)
 +}
 +
 +func Test_String(t *testing.T) {
