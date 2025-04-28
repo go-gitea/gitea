@@ -453,7 +453,7 @@ func TestGithubMultiToken(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			opts := base.MigrateOptions{CloneAddr: "https://github.com/go-gitea/gitea", AuthToken: tC.token}
-			client, err := factory.New(t.Context(), opts)
+			client, err := factory.New(context.Background(), opts)
 			require.NoError(t, err)
 
 			cloneURL, err := client.FormatCloneURL(opts, "https://github.com")
