@@ -60,6 +60,29 @@ the base repository that does the right thing.
  create mode 100644 templates/repo/editor/fork.tmpl
  create mode 100644 templates/repo/view_content.tmpl
 
+diff --git a/models/git/branch.go b/models/git/branch.go
+index d1caa35947..9ac6c45578 100644
+--- a/models/git/branch.go
++++ b/models/git/branch.go
+@@ -173,6 +173,18 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
+ 	return &branch, nil
+ }
+ 
++// IsBranchExist returns true if the branch exists in the repository.
++func IsBranchExist(ctx context.Context, repoID int64, branchName string) (bool, error) {
++	var branch Branch
++	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
++	if err != nil {
++		return false, err
++	} else if !has {
++		return false, nil
++	}
++	return !branch.IsDeleted, nil
++}
++
+ func GetBranches(ctx context.Context, repoID int64, branchNames []string, includeDeleted bool) ([]*Branch, error) {
+ 	branches := make([]*Branch, 0, len(branchNames))
+ 
 diff --git a/models/repo/repo.go b/models/repo/repo.go
 index c5060a419f..e581c1a18d 100644
 --- a/models/repo/repo.go
