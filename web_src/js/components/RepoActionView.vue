@@ -346,9 +346,11 @@ export default defineComponent({
         const isFirstLoad = !this.run.status;
         const job = await this.fetchJobData(abortController);
         if (this.loadingAbortController !== abortController) return;
+
         this.artifacts = job.artifacts || [];
         this.run = job.state.run;
         this.currentJob = job.state.currentJob;
+        
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
           const expanded = isFirstLoad && this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
