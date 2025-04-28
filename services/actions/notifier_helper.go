@@ -318,8 +318,8 @@ func handleWorkflows(
 			Status:            actions_model.StatusWaiting,
 		}
 
-		if err := EvaluateExpressionsForRun(run, dwf); err != nil {
-			log.Error("EvaluateExpressionsForRun: %v", err)
+		if err := evaluateExpressionsForRun(run, dwf); err != nil {
+			log.Error("evaluateExpressionsForRun: %v", err)
 			continue
 		}
 
@@ -610,7 +610,7 @@ func parseRunNameFromDetectedWorkflow(w *actions_module.DetectedWorkflow) (strin
 	return value, nil
 }
 
-func EvaluateExpressionsForRun(r *actions_model.ActionRun, w *actions_module.DetectedWorkflow) error {
+func evaluateExpressionsForRun(r *actions_model.ActionRun, w *actions_module.DetectedWorkflow) error {
 	if runName, err := parseRunNameFromDetectedWorkflow(w); err == nil {
 		ee, err := newExpressionEvaluatorForRun(r)
 		if err != nil {
