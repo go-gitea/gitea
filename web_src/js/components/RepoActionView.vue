@@ -350,7 +350,7 @@ export default defineComponent({
         this.artifacts = job.artifacts || [];
         this.run = job.state.run;
         this.currentJob = job.state.currentJob;
-        
+
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
           const expanded = isFirstLoad && this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
