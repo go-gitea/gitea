@@ -67,9 +67,8 @@ var patchErrorSuffices = []string{
 	": does not exist in index",
 }
 
-// TestPatch will test whether a simple patch will apply
-func TestPatch(pr *issues_model.PullRequest) error {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: %s", pr))
+func testPullRequestBranchMergeable(pr *issues_model.PullRequest) error {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
 	defer finished()
 
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
@@ -81,10 +80,10 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	}
 	defer cancel()
 
-	return testPatch(ctx, prCtx, pr)
+	return testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr)
 }
 
-func testPatch(ctx context.Context, prCtx *prContext, pr *issues_model.PullRequest) error {
+func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepoContext, pr *issues_model.PullRequest) error {
 	gitRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
@@ -380,7 +379,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		return false, nil
 	}
 
-	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
+	log.Trace("PullRequest[%d].testPullRequestTmpRepoBranchMergeable (patchPath): %s", pr.ID, patchPath)
 
 	// 4. Read the base branch in to the index of the temporary repository
 	_, _, err = git.NewCommand("read-tree", "base").RunStdString(gitRepo.Ctx, &git.RunOpts{Dir: tmpBasePath})
@@ -450,7 +449,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 			scanner := bufio.NewScanner(stderrReader)
 			for scanner.Scan() {
 				line := scanner.Text()
-				log.Trace("PullRequest[%d].testPatch: stderr: %s", pr.ID, line)
+				log.Trace("PullRequest[%d].testPullRequestTmpRepoBranchMergeable: stderr: %s", pr.ID, line)
 				if strings.HasPrefix(line, prefix) {
 					conflict = true
 					filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])

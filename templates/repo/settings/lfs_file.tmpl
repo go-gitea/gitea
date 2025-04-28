@@ -21,7 +21,7 @@
 					{{else if not .IsTextFile}}
 						<div class="view-raw">
 							{{if .IsImageFile}}
-								<img src="{{$.RawFileLink}}">
+								<img alt="{{$.RawFileLink}}" src="{{$.RawFileLink}}">
 							{{else if .IsVideoFile}}
 								<video controls src="{{$.RawFileLink}}">
 									<strong>{{ctx.Locale.Tr "repo.video_not_supported_in_browser"}}</strong>

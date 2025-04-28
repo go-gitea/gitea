@@ -28,8 +28,8 @@
 		{{end}}
 		<div class="tw-flex tw-flex-col tw-gap-2">
 			<progress class="milestone-progress-big" value="{{.Milestone.Completeness}}" max="100"></progress>
-			<div class="tw-flex tw-gap-4">
-				<div classs="tw-flex tw-items-center">
+			<div class="flex-text-block tw-gap-4">
+				<div class="flex-text-inline">
 					{{$closedDate:= DateUtils.TimeSince .Milestone.ClosedDateUnix}}
 					{{if .IsClosed}}
 						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
@@ -46,7 +46,7 @@
 						{{end}}
 					{{end}}
 				</div>
-				<div class="tw-mr-2">{{ctx.Locale.Tr "repo.milestones.completeness" .Milestone.Completeness}}</div>
+				<div>{{ctx.Locale.Tr "repo.milestones.completeness" .Milestone.Completeness}}</div>
 				{{if .TotalTrackedTime}}
 					<div data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
 						{{svg "octicon-clock"}}
