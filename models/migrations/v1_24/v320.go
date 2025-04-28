@@ -13,7 +13,13 @@ func MigrateSkipTwoFactor(x *xorm.Engine) error {
 	type LoginSource struct {
 		TwoFactorPolicy string `xorm:"two_factor_policy NOT NULL DEFAULT ''"`
 	}
-	err := x.Sync(new(LoginSource))
+	_, err := x.SyncWithOptions(
+		xorm.SyncOptions{
+			IgnoreConstrains: true,
+			IgnoreIndices:    true,
+		},
+		new(LoginSource),
+	)
 	if err != nil {
 		return err
 	}
