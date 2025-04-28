@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
-	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/reqctx"
@@ -193,7 +192,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 
 	// find workflow from commit
 	var workflows []*jobparser.SingleWorkflow
-	dwf := &actions_module.DetectedWorkflow{}
+	dwf := &actions.DetectedWorkflow{}
 
 	for _, entry := range entries {
 		if entry.Name() != workflowID {

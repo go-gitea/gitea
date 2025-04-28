@@ -596,15 +596,15 @@ func parseRunNameFromDetectedWorkflow(w *actions_module.DetectedWorkflow) (strin
 	var data map[string]any
 	var value string
 
-	if err := yaml.Unmarshal([]byte(w.Content), &data); err != nil {
+	if err := yaml.Unmarshal(w.Content, &data); err != nil {
 		log.Error("parseRunNameFromDetectedWorkflow: %v", err)
 		return "", err
 	}
 
-	if v, ok := data["run-name"]; !ok {
-		return "", fmt.Errorf("run-name not found in workflow")
-	} else {
+	if v, ok := data["run-name"]; ok {
 		value = v.(string)
+	} else {
+		return "", fmt.Errorf("run-name not found in workflow")
 	}
 
 	return value, nil
