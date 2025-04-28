@@ -97,11 +97,10 @@ func TestGetTreeViewNodes(t *testing.T) {
 			EntryIconOpen: mockOpenIconForFolder(`svg-mfi-folder-docs`),
 			Children: []*TreeViewNode{
 				{
-					EntryName:     "README.md",
-					EntryMode:     "blob",
-					FullPath:      "docs/README.md",
-					EntryIcon:     mockIconForFile(`svg-mfi-readme`),
-					EntryIconOpen: mockIconForFile(`svg-mfi-readme`),
+					EntryName: "README.md",
+					EntryMode: "blob",
+					FullPath:  "docs/README.md",
+					EntryIcon: mockIconForFile(`svg-mfi-readme`),
 				},
 			},
 		},
@@ -111,11 +110,10 @@ func TestGetTreeViewNodes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
-			EntryName:     "README.md",
-			EntryMode:     "blob",
-			FullPath:      "docs/README.md",
-			EntryIcon:     mockIconForFile(`svg-mfi-readme`),
-			EntryIconOpen: mockIconForFile(`svg-mfi-readme`),
+			EntryName: "README.md",
+			EntryMode: "blob",
+			FullPath:  "docs/README.md",
+			EntryIcon: mockIconForFile(`svg-mfi-readme`),
 		},
 	}, treeNodes)
 }
