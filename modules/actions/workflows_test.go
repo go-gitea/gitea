@@ -288,7 +288,7 @@ func TestMatchIssuesEvent(t *testing.T) {
 				expectedAction = string(tc.payload.Action)
 			}
 
-			assert.Equal(t, tc.eventType, expectedAction, "Event type should match expected")
+			assert.Equal(t, expectedAction, tc.eventType, "Event type should match expected")
 		})
 	}
 }
