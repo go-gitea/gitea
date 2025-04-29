@@ -81,7 +81,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		return nil, err
 	}
 
-	return &Repository{
+	repo := &Repository{
 		Path:         repoPath,
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
@@ -89,7 +89,10 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		commitCache:  make(map[string]*Commit),
 		Ctx:          ctx,
 		objectFormat: ParseGogitHash(plumbing.ZeroHash).Type(),
-	}, nil
+	}
+	repo.lastCommitCache = newLastCommitCache(repo.Path, repo, cache.GetCache())
+
+	return repo, nil
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
