@@ -34,28 +34,19 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 		return nil, nil, err
 	}
 
-	var revs map[string]*Commit
-	if commit.repo.LastCommitCache != nil {
-		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
+	revs, unHitPaths, err := commit.repo.lastCommitCache.getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(unHitPaths) > 0 {
+		revs2, err := GetLastCommitForPaths(ctx, commit.repo.lastCommitCache, c, treePath, unHitPaths)
 		if err != nil {
 			return nil, nil, err
 		}
-		if len(unHitPaths) > 0 {
-			revs2, err := GetLastCommitForPaths(ctx, commit.repo.LastCommitCache, c, treePath, unHitPaths)
-			if err != nil {
-				return nil, nil, err
-			}
 
-			for k, v := range revs2 {
-				revs[k] = v
-			}
+		for k, v := range revs2 {
+			revs[k] = v
 		}
-	} else {
-		revs, err = GetLastCommitForPaths(ctx, nil, c, treePath, entryPaths)
-	}
-	if err != nil {
-		return nil, nil, err
 	}
 
 	commit.repo.gogitStorage.Close()
@@ -154,7 +145,7 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 }
 
 // GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(ctx context.Context, cache *LastCommitCache, c cgobject.CommitNode, treePath string, paths []string) (map[string]*Commit, error) {
+func GetLastCommitForPaths(ctx context.Context, cache *lastCommitCache, c cgobject.CommitNode, treePath string, paths []string) (map[string]*Commit, error) {
 	refSha := c.ID().String()
 
 	// We do a tree traversal with nodes sorted by commit time

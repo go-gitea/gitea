@@ -16,7 +16,7 @@ import (
 func (c *lastCommitCache) CacheCommit(ctx context.Context, commit *Commit) error {
 	commitNodeIndex, _ := c.repo.CommitNodeIndex()
 
-	index, err := commitNodeIndex.Get(plumbing.Hash(c.ID.RawValue()))
+	index, err := commitNodeIndex.Get(plumbing.Hash(commit.ID.RawValue()))
 	if err != nil {
 		return err
 	}
