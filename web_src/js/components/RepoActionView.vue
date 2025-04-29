@@ -504,7 +504,7 @@ export default defineComponent({
                   <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
                 </a>
               </li>
-              <li v-else>
+              <li class="job-artifacts-item" v-else>
                 <span style="color: var(--color-grey-light)">
                   <SvgIcon name="octicon-file" class="ui text light-gray job-artifacts-icon"/>{{ artifact.name }}
                 </span>
