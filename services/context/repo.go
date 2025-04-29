@@ -340,10 +340,14 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
+	if ctx.DoerNeedTwoFactorAuth() {
+		ctx.Repo.Permission = access_model.PermissionNoAccess()
+	} else {
+		ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
 	}
 
 	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {

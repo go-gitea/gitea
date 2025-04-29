@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
@@ -120,7 +121,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 		return
 	}
 	_ = ctx.Session.Delete("webauthnName")
-
+	_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
 	ctx.JSON(http.StatusCreated, cred)
 }
 
