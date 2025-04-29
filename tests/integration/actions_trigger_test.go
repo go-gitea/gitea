@@ -414,12 +414,15 @@ jobs:
 		err = repo_service.CreateNewBranchFromCommit(db.DefaultContext, user2, repo, gitRepo, branch.CommitID, "test-create-branch")
 		assert.NoError(t, err)
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-			Title:      "add workflow",
-			RepoID:     repo.ID,
-			Event:      "create",
-			Ref:        "refs/heads/test-create-branch",
-			WorkflowID: "createdelete.yml",
-			CommitSHA:  branch.CommitID,
+			Title:         "add workflow",
+			RepoID:        repo.ID,
+			Repo:          repo,
+			Event:         "create",
+			Ref:           "refs/heads/test-create-branch",
+			WorkflowID:    "createdelete.yml",
+			CommitSHA:     branch.CommitID,
+			TriggerUserID: user2.ID,
+			TriggerUser:   user2,
 		})
 		assert.NotNil(t, run)
 
@@ -427,12 +430,15 @@ jobs:
 		err = release_service.CreateNewTag(db.DefaultContext, user2, repo, branch.CommitID, "test-create-tag", "test create tag event")
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-			Title:      "add workflow",
-			RepoID:     repo.ID,
-			Event:      "create",
-			Ref:        "refs/tags/test-create-tag",
-			WorkflowID: "createdelete.yml",
-			CommitSHA:  branch.CommitID,
+			Title:         "add workflow",
+			RepoID:        repo.ID,
+			Repo:          repo,
+			Event:         "create",
+			Ref:           "refs/tags/test-create-tag",
+			WorkflowID:    "createdelete.yml",
+			CommitSHA:     branch.CommitID,
+			TriggerUserID: user2.ID,
+			TriggerUser:   user2,
 		})
 		assert.NotNil(t, run)
 
@@ -440,12 +446,15 @@ jobs:
 		err = repo_service.DeleteBranch(db.DefaultContext, user2, repo, gitRepo, "test-create-branch", nil)
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-			Title:      "add workflow",
-			RepoID:     repo.ID,
-			Event:      "delete",
-			Ref:        "refs/heads/main",
-			WorkflowID: "createdelete.yml",
-			CommitSHA:  branch.CommitID,
+			Title:         "add workflow",
+			RepoID:        repo.ID,
+			Repo:          repo,
+			Event:         "delete",
+			Ref:           "refs/heads/main",
+			WorkflowID:    "createdelete.yml",
+			CommitSHA:     branch.CommitID,
+			TriggerUserID: user2.ID,
+			TriggerUser:   user2,
 		})
 		assert.NotNil(t, run)
 
@@ -455,12 +464,15 @@ jobs:
 		err = release_service.DeleteReleaseByID(db.DefaultContext, repo, tag, user2, true)
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-			Title:      "add workflow",
-			RepoID:     repo.ID,
-			Event:      "delete",
-			Ref:        "refs/heads/main",
-			WorkflowID: "createdelete.yml",
-			CommitSHA:  branch.CommitID,
+			Title:         "add workflow",
+			RepoID:        repo.ID,
+			Repo:          repo,
+			Event:         "delete",
+			Ref:           "refs/heads/main",
+			WorkflowID:    "createdelete.yml",
+			CommitSHA:     branch.CommitID,
+			TriggerUserID: user2.ID,
+			TriggerUser:   user2,
 		})
 		assert.NotNil(t, run)
 	})
@@ -762,12 +774,15 @@ jobs:
 		_ = MakeRequest(t, req, http.StatusNoContent)
 
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-			Title:      "add workflow",
-			RepoID:     repo.ID,
-			Event:      "workflow_dispatch",
-			Ref:        "refs/heads/main",
-			WorkflowID: "dispatch.yml",
-			CommitSHA:  branch.CommitID,
+			Title:         "add workflow",
+			RepoID:        repo.ID,
+			Repo:          repo,
+			Event:         "workflow_dispatch",
+			Ref:           "refs/heads/main",
+			WorkflowID:    "dispatch.yml",
+			CommitSHA:     branch.CommitID,
+			TriggerUserID: user2.ID,
+			TriggerUser:   user2,
 		})
 		assert.NotNil(t, run)
 	})
@@ -844,12 +859,15 @@ jobs:
 		_ = MakeRequest(t, req, http.StatusNoContent)
 
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-			Title:      "add workflow",
-			RepoID:     repo.ID,
-			Event:      "workflow_dispatch",
-			Ref:        "refs/heads/main",
-			WorkflowID: "dispatch.yml",
-			CommitSHA:  branch.CommitID,
+			Title:         "add workflow",
+			RepoID:        repo.ID,
+			Repo:          repo,
+			Event:         "workflow_dispatch",
+			Ref:           "refs/heads/main",
+			WorkflowID:    "dispatch.yml",
+			CommitSHA:     branch.CommitID,
+			TriggerUserID: user2.ID,
+			TriggerUser:   user2,
 		})
 		assert.NotNil(t, run)
 		dispatchPayload := &api.WorkflowDispatchPayload{}
@@ -939,12 +957,15 @@ jobs:
 		_ = MakeRequest(t, req, http.StatusNoContent)
 
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-			Title:      "add workflow",
-			RepoID:     repo.ID,
-			Event:      "workflow_dispatch",
-			Ref:        "refs/heads/main",
-			WorkflowID: "dispatch.yml",
-			CommitSHA:  branch.CommitID,
+			Title:         "add workflow",
+			RepoID:        repo.ID,
+			Repo:          repo,
+			Event:         "workflow_dispatch",
+			Ref:           "refs/heads/main",
+			WorkflowID:    "dispatch.yml",
+			CommitSHA:     branch.CommitID,
+			TriggerUserID: user2.ID,
+			TriggerUser:   user2,
 		})
 		assert.NotNil(t, run)
 	})
@@ -1024,12 +1045,15 @@ jobs:
 		_ = MakeRequest(t, req, http.StatusNoContent)
 
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-			Title:      "add workflow",
-			RepoID:     repo.ID,
-			Event:      "workflow_dispatch",
-			Ref:        "refs/heads/main",
-			WorkflowID: "dispatch.yml",
-			CommitSHA:  branch.CommitID,
+			Title:         "add workflow",
+			RepoID:        repo.ID,
+			Repo:          repo,
+			Event:         "workflow_dispatch",
+			Ref:           "refs/heads/main",
+			WorkflowID:    "dispatch.yml",
+			CommitSHA:     branch.CommitID,
+			TriggerUserID: user2.ID,
+			TriggerUser:   user2,
 		})
 		assert.NotNil(t, run)
 		dispatchPayload := &api.WorkflowDispatchPayload{}
@@ -1156,6 +1180,7 @@ jobs:
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
 			RepoID:     repo.ID,
+			Repo:       repo,
 			Event:      "workflow_dispatch",
 			Ref:        "refs/heads/dispatch",
 			WorkflowID: "dispatch.yml",
@@ -1351,12 +1376,15 @@ jobs:
 		_ = MakeRequest(t, req, http.StatusNoContent)
 
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
-			Title:      "add workflow",
-			RepoID:     repo.ID,
-			Event:      "workflow_dispatch",
-			Ref:        "refs/heads/main",
-			WorkflowID: "dispatch.yml",
-			CommitSHA:  branch.CommitID,
+			Title:         "add workflow",
+			RepoID:        repo.ID,
+			Repo:          repo,
+			Event:         "workflow_dispatch",
+			Ref:           "refs/heads/main",
+			WorkflowID:    "dispatch.yml",
+			CommitSHA:     branch.CommitID,
+			TriggerUserID: user2.ID,
+			TriggerUser:   user2,
 		})
 		assert.NotNil(t, run)
 		dispatchPayload := &api.WorkflowDispatchPayload{}
