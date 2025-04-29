@@ -257,8 +257,9 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	fileIcons := map[string]template.HTML{}
 	for _, f := range files {
-		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIcon(renderedIconPool, f.Entry)
+		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFromGitTreeEntry(f.Entry))
 	}
+	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
 	ctx.Data["FileIcons"] = fileIcons
 	ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 }
