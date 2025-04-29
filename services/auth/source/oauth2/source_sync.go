@@ -18,27 +18,27 @@ import (
 
 // Sync causes this OAuth2 source to synchronize its users with the db.
 func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
-	log.Trace("Doing: SyncExternalUsers[%s] %d", source.authSource.Name, source.authSource.ID)
+	log.Trace("Doing: SyncExternalUsers[%s] %d", source.AuthSource.Name, source.AuthSource.ID)
 
 	if !updateExisting {
-		log.Info("SyncExternalUsers[%s] not running since updateExisting is false", source.authSource.Name)
+		log.Info("SyncExternalUsers[%s] not running since updateExisting is false", source.AuthSource.Name)
 		return nil
 	}
 
-	provider, err := createProvider(source.authSource.Name, source)
+	provider, err := createProvider(source.AuthSource.Name, source)
 	if err != nil {
 		return err
 	}
 
 	if !provider.RefreshTokenAvailable() {
-		log.Trace("SyncExternalUsers[%s] provider doesn't support refresh tokens, can't synchronize", source.authSource.Name)
+		log.Trace("SyncExternalUsers[%s] provider doesn't support refresh tokens, can't synchronize", source.AuthSource.Name)
 		return nil
 	}
 
 	opts := user_model.FindExternalUserOptions{
 		HasRefreshToken: true,
 		Expired:         true,
-		LoginSourceID:   source.authSource.ID,
+		LoginSourceID:   source.AuthSource.ID,
 	}
 
 	return user_model.IterateExternalLogin(ctx, opts, func(ctx context.Context, u *user_model.ExternalLoginUser) error {
@@ -77,7 +77,7 @@ func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *us
 	// recognizes them as a valid user, they will be able to login
 	// via their provider and reactivate their account.
 	if shouldDisable {
-		log.Info("SyncExternalUsers[%s] disabling user %d", source.authSource.Name, user.ID)
+		log.Info("SyncExternalUsers[%s] disabling user %d", source.AuthSource.Name, user.ID)
 
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			if hasUser {

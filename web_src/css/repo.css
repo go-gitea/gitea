@@ -476,14 +476,6 @@ td .commit-summary {
   margin-right: 5px;
 }
 
-.repository.view.issue .merge.box .branch-update.grid .row {
-  padding-bottom: 1rem;
-}
-
-.repository.view.issue .merge.box .branch-update.grid .row .icon {
-  margin-top: 1.1rem;
-}
-
 .repository.view.issue .comment-list:not(.prevent-before-timeline)::before {
   display: block;
   content: "";

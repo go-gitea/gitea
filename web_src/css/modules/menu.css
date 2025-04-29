@@ -1,5 +1,6 @@
 .ui.menu {
   display: flex;
+  flex-shrink: 0;
   margin: 1rem 0;
   font-family: var(--fonts-regular);
   font-weight: var(--font-weight-normal);
@@ -643,6 +644,7 @@
   display: inline-flex;
   margin: 0;
   vertical-align: middle;
+  flex-shrink: 0;
 }
 .ui.compact.vertical.menu {
   display: inline-block;

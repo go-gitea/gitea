@@ -76,6 +76,10 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 		}
 		return false, nil
 	}
+	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
+	if err != nil {
+		return false, fmt.Errorf("HasTwoFactorOrWebAuthn: %w", err)
+	}
 
 	isSucceed = true
 
@@ -87,9 +91,9 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
 	if err := updateSession(ctx, nil, map[string]any{
-		// Set session IDs
-		"uid":   u.ID,
-		"uname": u.Name,
+		session.KeyUID:                  u.ID,
+		session.KeyUname:                u.Name,
+		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}
@@ -239,9 +243,8 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	// Now handle 2FA:
-
 	// First of all if the source can skip local two fa we're done
-	if skipper, ok := source.Cfg.(auth_service.LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
+	if source.TwoFactorShouldSkip() {
 		handleSignIn(ctx, u, form.Remember)
 		return
 	}
@@ -262,7 +265,7 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	if !hasTOTPtwofa && !hasWebAuthnTwofa {
-		// No two factor auth configured we can sign in the user
+		// No two-factor auth configured we can sign in the user
 		handleSignIn(ctx, u, form.Remember)
 		return
 	}
@@ -311,8 +314,14 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 	}
 
+	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
+	if err != nil {
+		ctx.ServerError("HasTwoFactorOrWebAuthn", err)
+		return setting.AppSubURL + "/"
+	}
+
 	if err := updateSession(ctx, []string{
-		// Delete the openid, 2fa and linkaccount data
+		// Delete the openid, 2fa and link_account data
 		"openid_verified_uri",
 		"openid_signin_remember",
 		"openid_determined_email",
@@ -321,8 +330,9 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		"twofaRemember",
 		"linkAccount",
 	}, map[string]any{
-		"uid":   u.ID,
-		"uname": u.Name,
+		session.KeyUID:                  u.ID,
+		session.KeyUname:                u.Name,
+		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return setting.AppSubURL + "/"
