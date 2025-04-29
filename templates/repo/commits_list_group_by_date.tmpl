@@ -78,7 +78,7 @@
 						{{else if $.Reponame}}
 							{{$commitBaseLink = printf "%s/commit" $commitRepoLink}}
 						{{end}}
-						<div class="commit_sign_badge">
+						<div class="commit-sign-badge">
 							{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
 						</div>
 						<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
