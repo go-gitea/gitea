@@ -18,6 +18,8 @@ git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 h1:cliQ4H
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
 gitea.com/gitea/act v0.261.3 h1:BhiYpGJQKGq0XMYYICCYAN4KnsEWHyLbA6dxhZwFcV4=
 gitea.com/gitea/act v0.261.3/go.mod h1:Pg5C9kQY1CEA3QjthjhlrqOC/QOT5NyWNjOjRHw23Ok=
+gitea.com/gitea/go-xsd-duration v0.0.0-20220703122237-02e73435a078 h1:BAFmdZpRW7zMQZQDClaCWobRj9uL1MR3MzpCVJvc5s4=
+gitea.com/gitea/go-xsd-duration v0.0.0-20220703122237-02e73435a078/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
 gitea.com/gitea/git-lfs-transfer v0.2.0 h1:baHaNoBSRaeq/xKayEXwiDQtlIjps4Ac/Ll4KqLMB40=
 gitea.com/gitea/git-lfs-transfer v0.2.0/go.mod h1:UrXUCm3xLQkq15fu7qlXHUMlrhdlXHoi13KH2Dfiits=
 gitea.com/go-chi/binding v0.0.0-20240430071103-39a851e106ed h1:EZZBtilMLSZNWtHHcgq2mt6NSGhJSZBuduAlinMEmso=
