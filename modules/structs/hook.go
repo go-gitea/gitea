@@ -342,6 +342,7 @@ type PullRequestPayload struct {
 	Action            HookIssueAction `json:"action"`
 	Index             int64           `json:"number"`
 	Changes           *ChangesPayload `json:"changes,omitempty"`
+	RemovedLabels     []*Label        `json:"removed_labels"`
 	PullRequest       *PullRequest    `json:"pull_request"`
 	RequestedReviewer *User           `json:"requested_reviewer"`
 	Repository        *Repository     `json:"repository"`
