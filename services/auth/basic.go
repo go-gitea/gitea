@@ -142,14 +142,14 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		return nil, err
 	}
 
-	if skipper, ok := source.Cfg.(LocalTwoFASkipper); !ok || !skipper.IsSkipLocalTwoFA() {
-		// Check if the user has webAuthn registration
+	if !source.TwoFactorShouldSkip() {
+		// Check if the user has WebAuthn registration
 		hasWebAuthn, err := auth_model.HasWebAuthnRegistrationsByUID(req.Context(), u.ID)
 		if err != nil {
 			return nil, err
 		}
 		if hasWebAuthn {
-			return nil, errors.New("Basic authorization is not allowed while webAuthn enrolled")
+			return nil, errors.New("basic authorization is not allowed while WebAuthn enrolled")
 		}
 
 		if err := validateTOTP(req, u); err != nil {

@@ -7,10 +7,13 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddBranchCommitsCount(x *xorm.Engine) error {
-	type Branch struct {
-		CommitCountID string // the commit id of the commit count
-		CommitCount   int64  // the number of commits in this branch
+func AddExclusiveOrderColumnToLabelTable(x *xorm.Engine) error {
+	type Label struct {
+		ExclusiveOrder int `xorm:"DEFAULT 0"`
 	}
-	return x.Sync(new(Branch))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(Label))
+	return err
 }

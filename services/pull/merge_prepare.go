@@ -23,7 +23,7 @@ import (
 )
 
 type mergeContext struct {
-	*prContext
+	*prTmpRepoContext
 	doer      *user_model.User
 	sig       *git.Signature
 	committer *git.Signature
@@ -68,8 +68,8 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	mergeCtx = &mergeContext{
-		prContext: prCtx,
-		doer:      doer,
+		prTmpRepoContext: prCtx,
+		doer:             doer,
 	}
 
 	if expectedHeadCommitID != "" {

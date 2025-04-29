@@ -7,6 +7,7 @@ import {formatDatetime} from '../utils/time.ts';
 import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
+import {toggleFullScreen} from '../utils.ts';
 
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
@@ -416,21 +417,7 @@ export default defineComponent({
 
     toggleFullScreen() {
       this.isFullScreen = !this.isFullScreen;
-      const fullScreenEl = document.querySelector('.action-view-right');
-      const outerEl = document.querySelector('.full.height');
-      const actionBodyEl = document.querySelector('.action-view-body');
-      const headerEl = document.querySelector('#navbar');
-      const contentEl = document.querySelector('.page-content');
-      const footerEl = document.querySelector('.page-footer');
-      toggleElem(headerEl, !this.isFullScreen);
-      toggleElem(contentEl, !this.isFullScreen);
-      toggleElem(footerEl, !this.isFullScreen);
-      // move .action-view-right to new parent
-      if (this.isFullScreen) {
-        outerEl.append(fullScreenEl);
-      } else {
-        actionBodyEl.append(fullScreenEl);
-      }
+      toggleFullScreen('.action-view-right', this.isFullScreen, '.action-view-body');
     },
     async hashChangeListener() {
       const selectedLogStep = window.location.hash;
@@ -574,7 +561,7 @@ export default defineComponent({
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
-              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 circular-spin"/>
               <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"/>
               <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
 
@@ -896,16 +883,6 @@ export default defineComponent({
 
 <style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
 /* some elements are not managed by vue, so we need to use global style */
-.job-status-rotate {
-  animation: job-status-rotate-keyframes 1s linear infinite;
-}
-
-@keyframes job-status-rotate-keyframes {
-  100% {
-    transform: rotate(-360deg);
-  }
-}
-
 .job-step-section {
   margin: 10px;
 }
@@ -955,7 +932,6 @@ export default defineComponent({
 
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
-  word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
   overflow-wrap: anywhere;

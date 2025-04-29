@@ -181,6 +181,7 @@ func setMergeTarget(ctx *context.Context, pull *issues_model.PullRequest) {
 
 // GetPullDiffStats get Pull Requests diff stats
 func GetPullDiffStats(ctx *context.Context) {
+	// FIXME: this getPullInfo seems to be a duplicate call with other route handlers
 	issue, ok := getPullInfo(ctx)
 	if !ok {
 		return
@@ -188,21 +189,19 @@ func GetPullDiffStats(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	mergeBaseCommitID := GetMergedBaseCommitID(ctx, issue)
-
 	if mergeBaseCommitID == "" {
-		ctx.NotFound(nil)
-		return
+		return // no merge base, do nothing, do not stop the route handler, see below
 	}
 
+	// do not report 500 server error to end users if error occurs, otherwise a PR missing ref won't be able to view.
 	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
-		ctx.ServerError("GetRefCommitID", err)
+		log.Error("Failed to GetRefCommitID: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
 	}
-
 	diffShortStat, err := gitdiff.GetDiffShortStat(ctx.Repo.GitRepo, mergeBaseCommitID, headCommitID)
 	if err != nil {
-		ctx.ServerError("GetDiffShortStat", err)
+		log.Error("Failed to GetDiffShortStat: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
 	}
 
@@ -759,12 +758,9 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 	// have to load only the diff and not get the viewed information
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
-	shouldGetUserSpecificDiff := false
-	if !ctx.IsSigned || willShowSpecifiedCommit || willShowSpecifiedCommitRange {
-		// do nothing
-	} else {
-		shouldGetUserSpecificDiff = true
-		err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions, files...)
+	var reviewState *pull_model.ReviewState
+	if ctx.IsSigned && !willShowSpecifiedCommit && !willShowSpecifiedCommitRange {
+		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
 			return
@@ -823,18 +819,11 @@ func viewPullFiles(ctx *context.Context, specifiedStartCommit, specifiedEndCommi
 			ctx.ServerError("GetDiffTree", err)
 			return
 		}
-
-		filesViewedState := make(map[string]pull_model.ViewedState)
-		if shouldGetUserSpecificDiff {
-			// This sort of sucks because we already fetch this when getting the diff
-			review, err := pull_model.GetNewestReviewState(ctx, ctx.Doer.ID, issue.ID)
-			if err == nil && review != nil && review.UpdatedFiles != nil {
-				// If there wasn't an error and we have a review with updated files, use that
-				filesViewedState = review.UpdatedFiles
-			}
+		var filesViewedState map[string]pull_model.ViewedState
+		if reviewState != nil {
+			filesViewedState = reviewState.UpdatedFiles
 		}
-
-		ctx.PageData["DiffFiles"] = transformDiffTreeForUI(diffTree, filesViewedState)
+		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(diffTree, filesViewedState)
 	}
 
 	ctx.Data["Diff"] = diff
@@ -1063,7 +1052,7 @@ func MergePullRequest(ctx *context.Context) {
 			} else {
 				ctx.JSONError(ctx.Tr("repo.issues.closed_title"))
 			}
-		case errors.Is(err, pull_service.ErrUserNotAllowedToMerge):
+		case errors.Is(err, pull_service.ErrNoPermissionToMerge):
 			ctx.JSONError(ctx.Tr("repo.pulls.update_not_allowed"))
 		case errors.Is(err, pull_service.ErrHasMerged):
 			ctx.JSONError(ctx.Tr("repo.pulls.has_merged"))
@@ -1071,7 +1060,7 @@ func MergePullRequest(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_wip"))
 		case errors.Is(err, pull_service.ErrNotMergeableState):
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
-		case pull_service.IsErrDisallowedToMerge(err):
+		case errors.Is(err, pull_service.ErrNotReadyToMerge):
 			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_not_ready"))
 		case asymkey_service.IsErrWontSign(err):
 			ctx.JSONError(err.Error()) // has no translation ...

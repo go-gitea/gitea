@@ -11,6 +11,9 @@ func AddTimeEstimateColumnToIssueTable(x *xorm.Engine) error {
 	type Issue struct {
 		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
-
-	return x.Sync(new(Issue))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(Issue))
+	return err
 }

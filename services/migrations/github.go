@@ -133,7 +133,7 @@ func (g *GithubDownloaderV3) LogString() string {
 func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) {
 	githubClient := github.NewClient(client)
 	if baseURL != "https://github.com" {
-		githubClient, _ = github.NewClient(client).WithEnterpriseURLs(baseURL, baseURL)
+		githubClient, _ = githubClient.WithEnterpriseURLs(baseURL, baseURL)
 	}
 	g.clients = append(g.clients, githubClient)
 	g.rates = append(g.rates, nil)
@@ -871,4 +871,19 @@ func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Rev
 		opt.Page = resp.NextPage
 	}
 	return allReviews, nil
+}
+
+// FormatCloneURL add authentication into remote URLs
+func (g *GithubDownloaderV3) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
+	u, err := url.Parse(remoteAddr)
+	if err != nil {
+		return "", err
+	}
+	if len(opts.AuthToken) > 0 {
+		// "multiple tokens" are used to benefit more "API rate limit quota"
+		// git clone doesn't count for rate limits, so only use the first token.
+		// source: https://github.com/orgs/community/discussions/44515
+		u.User = url.UserPassword("oauth2", strings.Split(opts.AuthToken, ",")[0])
+	}
+	return u.String(), nil
 }

@@ -369,10 +369,14 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
+	if ctx.DoerNeedTwoFactorAuth() {
+		ctx.Repo.Permission = access_model.PermissionNoAccess()
+	} else {
+		ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
 	}
 
 	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {
@@ -697,12 +701,6 @@ func RepoAssignment(ctx *Context) {
 }
 
 const headRefName = "HEAD"
-
-func RepoRef() func(*Context) {
-	// old code does: return RepoRefByType(git.RefTypeBranch)
-	// in most cases, it is an abuse, so we just disable it completely and fix the abuses one by one (if there is anything wrong)
-	return nil
-}
 
 func getRefNameFromPath(repo *Repository, path string, isExist func(string) bool) string {
 	refName := ""

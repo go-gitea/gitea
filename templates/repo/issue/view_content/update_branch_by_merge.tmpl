@@ -9,7 +9,7 @@
 			{{if and $.UpdateAllowed $.UpdateByRebaseAllowed}}
 				<div class="tw-inline-block">
 					<div id="update-pr-branch-with-base" class="ui buttons">
-						<button class="ui button" data-do="{{$.Link}}/update" data-redirect="{{$.Link}}">
+						<button class="ui button" data-do="{{$.Issue.Link}}/update" data-redirect="{{$.Issue.Link}}">
 							<span class="button-text">
 								{{ctx.Locale.Tr "repo.pulls.update_branch"}}
 							</span>
@@ -17,15 +17,15 @@
 						<div class="ui dropdown icon button">
 							{{svg "octicon-triangle-down"}}
 							<div class="menu">
-								<a class="item active selected" data-do="{{$.Link}}/update">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</a>
-								<a class="item" data-do="{{$.Link}}/update?style=rebase">{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</a>
+								<a class="item active selected" data-do="{{$.Issue.Link}}/update">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</a>
+								<a class="item" data-do="{{$.Issue.Link}}/update?style=rebase">{{ctx.Locale.Tr "repo.pulls.update_branch_rebase"}}</a>
 							</div>
 						</div>
 					</div>
 				</div>
 			{{end}}
 			{{if and $.UpdateAllowed (not $.UpdateByRebaseAllowed)}}
-				<form action="{{$.Link}}/update" method="post" class="ui update-branch-form">
+				<form action="{{$.Issue.Link}}/update" method="post" class="ui update-branch-form">
 					{{$.CsrfTokenHtml}}
 					<button class="ui compact button">
 						<span class="ui text">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</span>

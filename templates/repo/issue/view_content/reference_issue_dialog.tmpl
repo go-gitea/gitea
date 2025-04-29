@@ -7,7 +7,7 @@
 			{{.CsrfTokenHtml}}
 			<div class="field">
 				<label><strong>{{ctx.Locale.Tr "repository"}}</strong></label>
-				<div class="ui search selection dropdown issue_reference_repository_search ellipsis-items-nowrap">
+				<div class="ui search selection dropdown issue_reference_repository_search ellipsis-text-items">
 					<div class="default text gt-ellipsis">{{.Repository.FullName}}</div>
 					<div class="menu"></div>
 				</div>
@@ -20,7 +20,7 @@
 				<label><strong>{{ctx.Locale.Tr "repo.issues.reference_issue.body"}}</strong></label>
 				<textarea name="content"></textarea>
 			</div>
-			<div class="tw-text-right">
+			<div class="flex-text-block tw-justify-end">
 				<button class="ui primary button">{{ctx.Locale.Tr "repo.issues.create"}}</button>
 			</div>
 		</form>
