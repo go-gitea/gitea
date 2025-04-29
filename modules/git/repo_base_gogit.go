@@ -28,14 +28,15 @@ const isGogit = true
 type Repository struct {
 	Path string
 
-	tagCache *ObjectCache[*Tag]
+	tagCache    *ObjectCache[*Tag]
+	commitCache map[string]*Commit
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
 	gpgSettings  *GPGSettings
 
 	Ctx             context.Context
-	LastCommitCache *LastCommitCache
+	lastCommitCache *lastCommitCache
 	objectFormat    ObjectFormat
 }
 
@@ -85,6 +86,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
 		tagCache:     newObjectCache[*Tag](),
+		commitCache:  make(map[string]*Commit),
 		Ctx:          ctx,
 		objectFormat: ParseGogitHash(plumbing.ZeroHash).Type(),
 	}, nil
@@ -99,8 +101,9 @@ func (repo *Repository) Close() error {
 		gitealog.Error("Error closing storage: %v", err)
 	}
 	repo.gogitStorage = nil
-	repo.LastCommitCache = nil
+	repo.lastCommitCache = nil
 	repo.tagCache = nil
+	repo.commitCache = nil
 	return nil
 }
 
