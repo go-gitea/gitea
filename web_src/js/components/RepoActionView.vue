@@ -495,14 +495,21 @@ export default defineComponent({
             {{ locale.artifactsTitle }}
           </div>
           <ul class="job-artifacts-list">
-            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.name">
-              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
-              </a>
-              <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
-                <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
-              </a>
-            </li>
+            <template v-for="artifact in artifacts" :key="artifact.name">
+              <li class="job-artifacts-item" v-if="artifact.status !== 'expired'">
+                <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                  <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
+                </a>
+                <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
+                  <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
+                </a>
+              </li>
+              <li v-else>
+                <span style="color: var(--color-grey-light)">
+                  <SvgIcon name="octicon-file" class="ui text light-gray job-artifacts-icon"/>{{ artifact.name }}
+                </span>
+              </li>
+            </template>
           </ul>
         </div>
       </div>
