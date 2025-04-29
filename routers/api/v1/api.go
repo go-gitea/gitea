@@ -64,6 +64,7 @@
 package v1
 
 import (
+	gocontext "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -211,10 +212,19 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.Repo.Permission.AccessMode)
 		} else {
-			ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
+			}
+			if needTwoFactor {
+				ctx.Repo.Permission = access_model.PermissionNoAccess()
+			} else {
+				ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return
+				}
 			}
 		}
 
@@ -223,6 +233,20 @@ func repoAssignment() func(ctx *context.APIContext) {
 			return
 		}
 	}
+}
+
+func doerNeedTwoFactorAuth(ctx gocontext.Context, doer *user_model.User) (bool, error) {
+	if !setting.TwoFactorAuthEnforced {
+		return false, nil
+	}
+	if doer == nil {
+		return false, nil
+	}
+	has, err := auth_model.HasTwoFactorOrWebAuthn(ctx, doer.ID)
+	if err != nil {
+		return false, err
+	}
+	return !has, nil
 }
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) {

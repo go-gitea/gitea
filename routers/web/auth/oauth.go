@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -302,7 +303,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	updateAvatarIfNeed(ctx, gothUser.AvatarURL, u)
 
 	needs2FA := false
-	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
+	if !source.TwoFactorShouldSkip() {
 		_, err := auth.GetTwoFactorByUID(ctx, u.ID)
 		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserSignIn", err)
@@ -352,10 +353,16 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
+		userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
+		if err != nil {
+			ctx.ServerError("UpdateUser", err)
+			return
+		}
 
 		if err := updateSession(ctx, nil, map[string]any{
-			"uid":   u.ID,
-			"uname": u.Name,
+			session.KeyUID:                  u.ID,
+			session.KeyUname:                u.Name,
+			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 		}); err != nil {
 			ctx.ServerError("updateSession", err)
 			return

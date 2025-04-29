@@ -9,6 +9,7 @@ test('diff-tree', () => {
       'IsViewed': false,
       'NameHash': '....',
       'DiffStatus': '',
+      'FileIcon': '',
       'Children': [
         {
           'FullName': 'dir1',
@@ -17,6 +18,7 @@ test('diff-tree', () => {
           'IsViewed': false,
           'NameHash': '....',
           'DiffStatus': '',
+          'FileIcon': '',
           'Children': [
             {
               'FullName': 'dir1/test.txt',
@@ -25,6 +27,7 @@ test('diff-tree', () => {
               'NameHash': '....',
               'EntryMode': '',
               'IsViewed': false,
+              'FileIcon': '',
               'Children': null,
             },
           ],
@@ -36,11 +39,12 @@ test('diff-tree', () => {
           'DiffStatus': 'added',
           'EntryMode': '',
           'IsViewed': false,
+          'FileIcon': '',
           'Children': null,
         },
       ],
     },
-  });
+  }, '', '');
   diffTreeStoreSetViewed(store, 'dir1/test.txt', true);
   expect(store.fullNameMap['dir1/test.txt'].IsViewed).toBe(true);
   expect(store.fullNameMap['dir1'].IsViewed).toBe(true);
