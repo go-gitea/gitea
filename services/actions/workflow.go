@@ -265,8 +265,10 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		Status:            actions_model.StatusWaiting,
 	}
 
-	if err := evaluateExpressionsForRun(run, dwf); err != nil {
-		log.Error("evaluateExpressionsForRun: %v", err)
+	if runName, err := parseRunName(run, dwf); err == nil {
+		run.Title = runName
+	} else {
+		log.Error("ParseRunName: %v", err)
 	}
 
 	// cancel running jobs of the same workflow
