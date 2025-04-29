@@ -10,7 +10,7 @@ import (
 	"context"
 	"path/filepath"
 
-	"code.gitea.io/gitea/modules/cache"
+	giteacache "code.gitea.io/gitea/modules/cache"
 	gitealog "code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -91,7 +91,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		Ctx:          ctx,
 		objectFormat: ParseGogitHash(plumbing.ZeroHash).Type(),
 	}
-	repo.lastCommitCache = newLastCommitCache(repo.Path, repo, cache.GetCache())
+	repo.lastCommitCache = newLastCommitCache(repo.Path, repo, giteacache.GetCache())
 
 	return repo, nil
 }
