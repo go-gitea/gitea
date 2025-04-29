@@ -248,6 +248,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix dynamic content loading init problem (#33748)
   * Fix git empty check and HEAD request (#33690)
   * Fix Untranslated Text on Actions Page (#33635)
+
 * MISC
   * Enable addtional linters (#34085)
   * Enable testifylint rules (#34075)
