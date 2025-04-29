@@ -84,13 +84,13 @@ func RefNameFromCommit(shortName string) RefName {
 	return RefName(shortName)
 }
 
-func RefNameFromObjectTypeAndShortName(objectType ObjectType, shortName string) RefName {
-	switch objectType {
-	case ObjectBranch:
+func RefNameFromRefTypeAndShortName(refType RefType, shortName string) RefName {
+	switch refType {
+	case RefTypeBranch:
 		return RefNameFromBranch(shortName)
-	case ObjectTag:
+	case RefTypeTag:
 		return RefNameFromTag(shortName)
-	case ObjectCommit:
+	case RefTypeCommit:
 		return RefNameFromCommit(shortName)
 	}
 	return RefName(shortName)

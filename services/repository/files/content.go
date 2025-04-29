@@ -135,7 +135,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 	}
 	selfURLString := selfURL.String()
 
-	refName := git.RefNameFromObjectTypeAndShortName(refType, refCommit.InputRef)
+	refName := git.RefNameFromRefTypeAndShortName(refType, refCommit.InputRef)
 
 	commitsCount, _ := context_service.GetRefCommitsCount(ctx, repo.ID, gitRepo, refName)
 
