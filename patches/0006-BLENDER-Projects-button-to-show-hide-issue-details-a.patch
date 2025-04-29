@@ -20,7 +20,6 @@ index 966d3bf604..7f97b13c7d 100644
 @@ -20,6 +20,16 @@
  					}}
  				</div>
- 			</div>
 +			<div class="ui compact mini menu" style="margin-left: auto; margin-right: 1em;">
 +				<button class="item btn" onclick="clickDetailsView()">
 +					<span class="issue-card-details">Show Details</span>
