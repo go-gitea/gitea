@@ -10,6 +10,7 @@ import (
 	"context"
 	"path/filepath"
 
+	"code.gitea.io/gitea/modules/cache"
 	gitealog "code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
