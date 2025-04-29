@@ -507,6 +507,8 @@ export default defineComponent({
               <li class="job-artifacts-item" v-else>
                 <span class="ui text light grey">
                   <SvgIcon name="octicon-file" class="ui text light grey job-artifacts-icon"/>{{ artifact.name }}
+                  <!-- LOCALES? -->
+                  <span class="ui text label light grey tw-ml-1">Expired</span>
                 </span>
               </li>
             </template>
