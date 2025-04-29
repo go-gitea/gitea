@@ -17,6 +17,13 @@
 					<label for="auth_name">{{ctx.Locale.Tr "admin.auths.auth_name"}}</label>
 					<input id="auth_name" name="name" value="{{.Source.Name}}" autofocus required>
 				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label ><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+						<input name="two_factor_policy" type="checkbox" value="skip" {{if eq .Source.TwoFactorPolicy "skip"}}checked{{end}}>
+						<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+					</div>
+				</div>
 
 				<!-- LDAP and DLDAP -->
 				{{if or .Source.IsLDAP .Source.IsDLDAP}}
@@ -159,13 +166,6 @@
 							</div>
 						</div>
 					{{end}}
-					<div class="optional field">
-						<div class="ui checkbox">
-							<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
-							<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
-						</div>
-					</div>
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label for="allow_deactivate_all"><strong>{{ctx.Locale.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
@@ -227,13 +227,6 @@
 						<input id="allowed_domains" name="allowed_domains" value="{{$cfg.AllowedDomains}}">
 						<p class="help">{{ctx.Locale.Tr "admin.auths.allowed_domains_helper"}}</p>
 					</div>
-					<div class="optional field">
-						<div class="ui checkbox">
-							<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
-							<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
-						</div>
-					</div>
 				{{end}}
 
 				<!-- PAM -->
@@ -246,13 +239,6 @@
 					<div class="field">
 						<label for="pam_email_domain">{{ctx.Locale.Tr "admin.auths.pam_email_domain"}}</label>
 						<input id="pam_email_domain" name="pam_email_domain" value="{{$cfg.EmailDomain}}">
-					</div>
-					<div class="optional field">
-						<div class="ui checkbox">
-							<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
-							<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
-						</div>
 					</div>
 				{{end}}
 
@@ -287,13 +273,6 @@
 					<div class="open_id_connect_auto_discovery_url required field">
 						<label for="open_id_connect_auto_discovery_url">{{ctx.Locale.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
 						<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{$cfg.OpenIDConnectAutoDiscoveryURL}}">
-					</div>
-					<div class="optional field">
-						<div class="ui checkbox">
-							<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
-							<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
-						</div>
 					</div>
 					<div class="oauth2_use_custom_url inline field">
 						<div class="ui checkbox">
