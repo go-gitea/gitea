@@ -370,16 +370,11 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			actions := []string{}
 			switch issuePayload.Action {
 			case api.HookIssueLabelUpdated:
-				// Check if both labels were added and removed to determine events to fire
-				if len(issuePayload.Issue.Labels) > 0 && len(issuePayload.RemovedLabels) > 0 {
-					// Both labeled and unlabeled events should be triggered
-					actions = append(actions, "labeled", "unlabeled")
-				} else if len(issuePayload.RemovedLabels) > 0 {
-					// Only labels were removed
-					actions = append(actions, "unlabeled")
-				} else {
-					// Only labels were added
+				if len(issuePayload.Issue.Labels) > 0 {
 					actions = append(actions, "labeled")
+				}
+				if len(issuePayload.RemovedLabels) > 0 {
+					actions = append(actions, "unlabeled")
 				}
 			case api.HookIssueLabelCleared:
 				actions = append(actions, "unlabeled")
