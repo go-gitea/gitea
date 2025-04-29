@@ -367,21 +367,35 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			// Unsupported activity types:
 			// deleted, transferred, pinned, unpinned, locked, unlocked
 
-			action := issuePayload.Action
-			switch action {
+			actions := []string{}
+			switch issuePayload.Action {
 			case api.HookIssueLabelUpdated:
-				// Check if any labels were removed to determine if this should be "labeled" or "unlabeled"
-				if len(issuePayload.RemovedLabels) > 0 {
-					action = "unlabeled"
+				// Check if both labels were added and removed to determine events to fire
+				if len(issuePayload.Issue.Labels) > 0 && len(issuePayload.RemovedLabels) > 0 {
+					// Both labeled and unlabeled events should be triggered
+					actions = append(actions, "labeled", "unlabeled")
+				} else if len(issuePayload.RemovedLabels) > 0 {
+					// Only labels were removed
+					actions = append(actions, "unlabeled")
 				} else {
-					action = "labeled"
+					// Only labels were added
+					actions = append(actions, "labeled")
 				}
 			case api.HookIssueLabelCleared:
-				action = "unlabeled"
+				actions = append(actions, "unlabeled")
+			default:
+				actions = append(actions, string(issuePayload.Action))
 			}
+
 			for _, val := range vals {
-				if glob.MustCompile(val, '/').Match(string(action)) {
-					matchTimes++
+				for _, action := range actions {
+					if glob.MustCompile(val, '/').Match(action) {
+						matchTimes++
+						break
+					}
+				}
+				// Once a match is found for this value, we can move to the next one
+				if matchTimes > 0 {
 					break
 				}
 			}
