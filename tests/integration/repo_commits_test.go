@@ -33,7 +33,7 @@ func TestRepoCommits(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
-	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit_sign_badge .commit-id-short").Attr("href")
+	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 }
@@ -50,7 +50,7 @@ func Test_ReposGitCommitListNotMaster(t *testing.T) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	commits := []string{}
-	doc.doc.Find(".timeline.commits-list-group-by-date .commit_sign_badge .commit-id-short").Each(func(i int, s *goquery.Selection) {
+	doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Each(func(i int, s *goquery.Selection) {
 		commitURL, exists := s.Attr("href")
 		assert.True(t, exists)
 		assert.NotEmpty(t, commitURL)
@@ -87,7 +87,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
-	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit_sign_badge .commit-id-short").Attr("href")
+	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
@@ -181,7 +181,7 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
-	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit_sign_badge .commit-id-short").Attr("href")
+	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
@@ -216,7 +216,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
-	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit_sign_badge .commit-id-short").Attr("href")
+	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
