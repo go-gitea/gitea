@@ -362,7 +362,7 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			// Actions with the same name:
 			// opened, edited, closed, reopened, assigned, unassigned, milestoned, demilestoned
 			// Actions need to be converted:
-			// label_updated -> labeled
+			// label_updated -> labeled (when adding) or unlabeled (when removing)
 			// label_cleared -> unlabeled
 			// Unsupported activity types:
 			// deleted, transferred, pinned, unpinned, locked, unlocked
@@ -370,7 +370,12 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 			action := issuePayload.Action
 			switch action {
 			case api.HookIssueLabelUpdated:
-				action = "labeled"
+				// Check if any labels were removed to determine if this should be "labeled" or "unlabeled"
+				if len(issuePayload.RemovedLabels) > 0 {
+					action = "unlabeled"
+				} else {
+					action = "labeled"
+				}
 			case api.HookIssueLabelCleared:
 				action = "unlabeled"
 			}
