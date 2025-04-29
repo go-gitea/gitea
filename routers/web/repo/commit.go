@@ -471,7 +471,7 @@ type GroupedCommits struct {
 	Commits []*git_model.SignCommitWithStatuses
 }
 
-// GroupCommitsByDate groups the commits by date (in days).
+// GroupCommitsByDate groups the commits by date (in days) using UTC timezone.
 func GroupCommitsByDate(commits []*git_model.SignCommitWithStatuses) []GroupedCommits {
 	// Use Unix timestamp of date as key (truncated to day)
 	grouped := make(map[int64][]*git_model.SignCommitWithStatuses)
@@ -484,9 +484,12 @@ func GroupCommitsByDate(commits []*git_model.SignCommitWithStatuses) []GroupedCo
 			sigTime = commit.Author.When
 		}
 
+		// Convert time to UTC timezone first
+		sigTimeUTC := sigTime.UTC()
+
 		// Truncate time to date part (remove hours, minutes, seconds)
-		year, month, day := sigTime.Date()
-		dateOnly := time.Date(year, month, day, 0, 0, 0, 0, sigTime.Location())
+		year, month, day := sigTimeUTC.Date()
+		dateOnly := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 		dateUnix := dateOnly.Unix()
 
 		grouped[dateUnix] = append(grouped[dateUnix], commit)
