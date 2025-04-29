@@ -7,39 +7,41 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.24.0-rc0](https://github.com/go-gitea/gitea/releases/tag/1.24.0-rc0) - 2025-04-28
 
 * BREAKING
-  * Add package version api endpoints (#34173)
-  * Fix markdown render behaviors (#34122)
-  * Improve log format (#33814)
   * Make Gitea always use its internal config, ignore `/etc/gitconfig` (#33076)
+  * Improve log format (#33814)
+  * Fix markdown render behaviors (#34122)
+  * Add package version api endpoints (#34173)
+
 * FEATURES
   * Enforce two-factor auth (2FA: TOTP or WebAuthn) (#34187)
   * Add fullscreen mode as a more efficient operation way to view projects (#34081)
   * Add anonymous access support for private/unlisted repositories (#34051)
+  * Support public code/issue access for private repositories (#33127)
   * Add middleware for request prioritization (#33951)
   * Add cli flags LDAP group configuration (#33933)
-  * Actions Runner rest api (#33873)
+  * Add file tree to file view page (#32721)
   * Add material icons for file list (#33837)
   * Artifacts download api for artifact actions v4 (#33510)
   * Support choose email when creating a commit via web UI (#33432)
   * Add basic auth support to rss/atom feeds (#33371)
   * Add sorting by exclusive labels (issue priority) (#33206)
-  * Support public code/issue access for private repositories (#33127)
   * Add sub issue list support (#32940)
   * Private README.md for organization (#32872)
-  * Add file tree to file view page (#32721)
   * Email option to embed images as base64 instead of link (#32061)
   * Option to delay conflict checking of old pull requests until page view (#27779)
   * Worktime tracking for the organization level (#19808)
+
 * PERFORMANCE
-  * Refactor Git Attribute & performance optimization (#34154)
-  * Cache GPG keys, emails and users when list commits (#34086)
-  * Improve pull request list API performance (#34052)
-  * Only use prev and next buttons for pagination on user dashboard (#33981)
-  * Optimize heatmap query (#33853)
-  * Optimize total count of feed when loading activities in user dashboard. (#33841)
-  * Improve commits list performance to reduce unnecessary database queries (#33528)
+  * Add cache for common package queries (#22491)
   * Move issue pin to an standalone table for querying performance (#33452)
-    * Add cache for common package queries (#22491)
+  * Improve commits list performance to reduce unnecessary database queries (#33528)
+  * Optimize total count of feed when loading activities in user dashboard. (#33841)
+  * Optimize heatmap query (#33853)
+  * Only use prev and next buttons for pagination on user dashboard (#33981)
+  * Improve pull request list API performance (#34052)
+  * Cache GPG keys, emails and users when list commits (#34086)
+  * Refactor Git Attribute & performance optimization (#34154)
+
 * ENHANCEMENTS
   * Code
     * Display when a release attachment was uploaded (#34261)
@@ -111,6 +113,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
     * Add descriptions for private repo public access settings and improve the UI (#34057)
 
 * API
+  * Actions Runner rest api (#33873)
   * Inclusion of rename organization api (#33303)
   * Add API to support link package to repository and unlink it (#33481)
   * Add API endpoint to request contents of multiple files simultaniously (#34139)
