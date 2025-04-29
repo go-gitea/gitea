@@ -18,7 +18,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -77,7 +76,6 @@ func CommitInfoCache(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-	ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {

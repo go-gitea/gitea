@@ -134,11 +134,6 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, refCommit *ut
 	}
 	selfURLString := selfURL.String()
 
-	err = gitRepo.AddLastCommitCache(repo.GetCommitsCountCacheKey(refCommit.InputRef, refType != git.RefTypeCommit), repo.FullName(), refCommit.CommitID)
-	if err != nil {
-		return nil, err
-	}
-
 	lastCommit, err := commit.GetCommitByPath(treePath)
 	if err != nil {
 		return nil, err

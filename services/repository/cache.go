@@ -7,7 +7,6 @@ import (
 	"context"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 )
 
@@ -18,13 +17,5 @@ func CacheRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		return err
 	}
 
-	if gitRepo.LastCommitCache == nil {
-		commitsCount, err := cache.GetInt64(repo.GetCommitsCountCacheKey(fullRefName.ShortName(), true), commit.CommitsCount)
-		if err != nil {
-			return err
-		}
-		gitRepo.LastCommitCache = git.NewLastCommitCache(commitsCount, repo.FullName(), gitRepo, cache.GetCache())
-	}
-
-	return commit.CacheCommit(ctx)
+	return gitRepo.CacheCommit(ctx, commit)
 }

@@ -153,25 +153,6 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 	return hashes, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
-	var unHitEntryPaths []string
-	results := make(map[string]*Commit)
-	for _, p := range paths {
-		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
-		if err != nil {
-			return nil, nil, err
-		}
-		if lastCommit != nil {
-			results[p] = lastCommit
-			continue
-		}
-
-		unHitEntryPaths = append(unHitEntryPaths, p)
-	}
-
-	return results, unHitEntryPaths, nil
-}
-
 // GetLastCommitForPaths returns last commit information
 func GetLastCommitForPaths(ctx context.Context, cache *LastCommitCache, c cgobject.CommitNode, treePath string, paths []string) (map[string]*Commit, error) {
 	refSha := c.ID().String()
