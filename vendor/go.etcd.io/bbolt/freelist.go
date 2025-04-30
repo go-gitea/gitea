@@ -2,7 +2,6 @@ package bbolt
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 	"unsafe"
 )
@@ -94,24 +93,8 @@ func (f *freelist) pending_count() int {
 	return count
 }
 
-// copyallunsafe copies a list of all free ids and all pending ids in one sorted list.
+// copyall copies a list of all free ids and all pending ids in one sorted list.
 // f.count returns the minimum length required for dst.
-func (f *freelist) copyallunsafe(dstptr unsafe.Pointer) { // dstptr is []pgid data pointer
-	m := make(pgids, 0, f.pending_count())
-	for _, txp := range f.pending {
-		m = append(m, txp.ids...)
-	}
-	sort.Sort(m)
-	fpgids := f.getFreePageIDs()
-	sz := len(fpgids) + len(m)
-	dst := *(*[]pgid)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(dstptr),
-		Len:  sz,
-		Cap:  sz,
-	}))
-	mergepgids(dst, fpgids, m)
-}
-
 func (f *freelist) copyall(dst []pgid) {
 	m := make(pgids, 0, f.pending_count())
 	for _, txp := range f.pending {
@@ -284,21 +267,23 @@ func (f *freelist) read(p *page) {
 	}
 	// If the page.count is at the max uint16 value (64k) then it's considered
 	// an overflow and the size of the freelist is stored as the first element.
-	var idx, count uintptr = 0, uintptr(p.count)
+	var idx, count = 0, int(p.count)
 	if count == 0xFFFF {
 		idx = 1
-		count = uintptr(*(*pgid)(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(*p))))
+		c := *(*pgid)(unsafeAdd(unsafe.Pointer(p), unsafe.Sizeof(*p)))
+		count = int(c)
+		if count < 0 {
+			panic(fmt.Sprintf("leading element count %d overflows int", c))
+		}
 	}
 
 	// Copy the list of page ids from the freelist.
 	if count == 0 {
 		f.ids = nil
 	} else {
-		ids := *(*[]pgid)(unsafe.Pointer(&reflect.SliceHeader{
-			Data: uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(*p) + idx*unsafe.Sizeof(pgid(0)),
-			Len:  int(count),
-			Cap:  int(count),
-		}))
+		var ids []pgid
+		data := unsafeIndex(unsafe.Pointer(p), unsafe.Sizeof(*p), unsafe.Sizeof(ids[0]), idx)
+		unsafeSlice(unsafe.Pointer(&ids), data, count)
 
 		// copy the ids, so we don't modify on the freelist page directly
 		idsCopy := make([]pgid, count)
@@ -331,16 +316,22 @@ func (f *freelist) write(p *page) error {
 
 	// The page.count can only hold up to 64k elements so if we overflow that
 	// number then we handle it by putting the size in the first element.
-	lenids := f.count()
-	if lenids == 0 {
-		p.count = uint16(lenids)
-	} else if lenids < 0xFFFF {
-		p.count = uint16(lenids)
-		f.copyallunsafe(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(*p)))
+	l := f.count()
+	if l == 0 {
+		p.count = uint16(l)
+	} else if l < 0xFFFF {
+		p.count = uint16(l)
+		var ids []pgid
+		data := unsafeAdd(unsafe.Pointer(p), unsafe.Sizeof(*p))
+		unsafeSlice(unsafe.Pointer(&ids), data, l)
+		f.copyall(ids)
 	} else {
 		p.count = 0xFFFF
-		*(*pgid)(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(*p))) = pgid(lenids)
-		f.copyallunsafe(unsafe.Pointer(uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(*p) + unsafe.Sizeof(pgid(0))))
+		var ids []pgid
+		data := unsafeAdd(unsafe.Pointer(p), unsafe.Sizeof(*p))
+		unsafeSlice(unsafe.Pointer(&ids), data, l+1)
+		ids[0] = pgid(l)
+		f.copyall(ids[1:])
 	}
 
 	return nil

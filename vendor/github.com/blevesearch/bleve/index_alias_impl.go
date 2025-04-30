@@ -16,7 +16,6 @@ package bleve
 
 import (
 	"context"
-	"sort"
 	"sync"
 	"time"
 
@@ -42,6 +41,16 @@ func NewIndexAlias(indexes ...Index) *indexAliasImpl {
 		indexes: indexes,
 		open:    true,
 	}
+}
+
+// VisitIndexes invokes the visit callback on every
+// indexes included in the index alias.
+func (i *indexAliasImpl) VisitIndexes(visit func(Index)) {
+	i.mutex.RLock()
+	for _, idx := range i.indexes {
+		visit(idx)
+	}
+	i.mutex.RUnlock()
 }
 
 func (i *indexAliasImpl) isAliasToSingleIndex() error {
@@ -511,10 +520,11 @@ func MultiSearch(ctx context.Context, req *SearchRequest, indexes ...Index) (*Se
 		}
 	}
 
+	sortFunc := req.SortFunc()
 	// sort all hits with the requested order
 	if len(req.Sort) > 0 {
 		sorter := newSearchHitSorter(req.Sort, sr.Hits)
-		sort.Sort(sorter)
+		sortFunc(sorter)
 	}
 
 	// now skip over the correct From
@@ -539,7 +549,7 @@ func MultiSearch(ctx context.Context, req *SearchRequest, indexes ...Index) (*Se
 		req.Sort.Reverse()
 		// resort using the original order
 		mhs := newSearchHitSorter(req.Sort, sr.Hits)
-		sort.Sort(mhs)
+		sortFunc(mhs)
 		// reset request
 		req.SearchBefore = req.SearchAfter
 		req.SearchAfter = nil

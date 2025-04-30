@@ -256,7 +256,7 @@ func (s *Scorch) pausePersisterForMergerCatchUp(lastPersistedEpoch uint64,
 	// for sufficient in-memory segments to pile up for the next
 	// memory merge cum persist loop.
 	if numFilesOnDisk < uint64(po.PersisterNapUnderNumFiles) &&
-		po.PersisterNapTimeMSec > 0 && s.paused() == 0 {
+		po.PersisterNapTimeMSec > 0 && s.NumEventsBlocking() == 0 {
 		select {
 		case <-s.closeCh:
 		case <-time.After(time.Millisecond * time.Duration(po.PersisterNapTimeMSec)):
@@ -333,7 +333,7 @@ func (s *Scorch) persistSnapshot(snapshot *IndexSnapshot,
 	// Perform in-memory segment merging only when the memory pressure is
 	// below the configured threshold, else the persister performs the
 	// direct persistence of segments.
-	if s.paused() < po.MemoryPressurePauseThreshold {
+	if s.NumEventsBlocking() < po.MemoryPressurePauseThreshold {
 		persisted, err := s.persistSnapshotMaybeMerge(snapshot)
 		if err != nil {
 			return err
@@ -428,6 +428,100 @@ func (s *Scorch) persistSnapshotMaybeMerge(snapshot *IndexSnapshot) (
 	return true, nil
 }
 
+func prepareBoltSnapshot(snapshot *IndexSnapshot, tx *bolt.Tx, path string,
+	segPlugin segment.Plugin) ([]string, map[uint64]string, error) {
+	snapshotsBucket, err := tx.CreateBucketIfNotExists(boltSnapshotsBucket)
+	if err != nil {
+		return nil, nil, err
+	}
+	newSnapshotKey := segment.EncodeUvarintAscending(nil, snapshot.epoch)
+	snapshotBucket, err := snapshotsBucket.CreateBucketIfNotExists(newSnapshotKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// persist meta values
+	metaBucket, err := snapshotBucket.CreateBucketIfNotExists(boltMetaDataKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = metaBucket.Put(boltMetaDataSegmentTypeKey, []byte(segPlugin.Type()))
+	if err != nil {
+		return nil, nil, err
+	}
+	buf := make([]byte, binary.MaxVarintLen32)
+	binary.BigEndian.PutUint32(buf, segPlugin.Version())
+	err = metaBucket.Put(boltMetaDataSegmentVersionKey, buf)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// persist internal values
+	internalBucket, err := snapshotBucket.CreateBucketIfNotExists(boltInternalKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	// TODO optimize writing these in order?
+	for k, v := range snapshot.internal {
+		err = internalBucket.Put([]byte(k), v)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	var filenames []string
+	newSegmentPaths := make(map[uint64]string)
+
+	// first ensure that each segment in this snapshot has been persisted
+	for _, segmentSnapshot := range snapshot.segment {
+		snapshotSegmentKey := segment.EncodeUvarintAscending(nil, segmentSnapshot.id)
+		snapshotSegmentBucket, err := snapshotBucket.CreateBucketIfNotExists(snapshotSegmentKey)
+		if err != nil {
+			return nil, nil, err
+		}
+		switch seg := segmentSnapshot.segment.(type) {
+		case segment.PersistedSegment:
+			segPath := seg.Path()
+			filename := strings.TrimPrefix(segPath, path+string(os.PathSeparator))
+			err = snapshotSegmentBucket.Put(boltPathKey, []byte(filename))
+			if err != nil {
+				return nil, nil, err
+			}
+			filenames = append(filenames, filename)
+		case segment.UnpersistedSegment:
+			// need to persist this to disk
+			filename := zapFileName(segmentSnapshot.id)
+			path := path + string(os.PathSeparator) + filename
+			err = seg.Persist(path)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error persisting segment: %v", err)
+			}
+			newSegmentPaths[segmentSnapshot.id] = path
+			err = snapshotSegmentBucket.Put(boltPathKey, []byte(filename))
+			if err != nil {
+				return nil, nil, err
+			}
+			filenames = append(filenames, filename)
+		default:
+			return nil, nil, fmt.Errorf("unknown segment type: %T", seg)
+		}
+		// store current deleted bits
+		var roaringBuf bytes.Buffer
+		if segmentSnapshot.deleted != nil {
+			_, err = segmentSnapshot.deleted.WriteTo(&roaringBuf)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error persisting roaring bytes: %v", err)
+			}
+			err = snapshotSegmentBucket.Put(boltDeletedKey, roaringBuf.Bytes())
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+
+	return filenames, newSegmentPaths, nil
+}
+
 func (s *Scorch) persistSnapshotDirect(snapshot *IndexSnapshot) (err error) {
 	// start a write transaction
 	tx, err := s.rootBolt.Begin(true)
@@ -441,94 +535,9 @@ func (s *Scorch) persistSnapshotDirect(snapshot *IndexSnapshot) (err error) {
 		}
 	}()
 
-	snapshotsBucket, err := tx.CreateBucketIfNotExists(boltSnapshotsBucket)
+	filenames, newSegmentPaths, err := prepareBoltSnapshot(snapshot, tx, s.path, s.segPlugin)
 	if err != nil {
 		return err
-	}
-	newSnapshotKey := segment.EncodeUvarintAscending(nil, snapshot.epoch)
-	snapshotBucket, err := snapshotsBucket.CreateBucketIfNotExists(newSnapshotKey)
-	if err != nil {
-		return err
-	}
-
-	// persist meta values
-	metaBucket, err := snapshotBucket.CreateBucketIfNotExists(boltMetaDataKey)
-	if err != nil {
-		return err
-	}
-	err = metaBucket.Put(boltMetaDataSegmentTypeKey, []byte(s.segPlugin.Type()))
-	if err != nil {
-		return err
-	}
-	buf := make([]byte, binary.MaxVarintLen32)
-	binary.BigEndian.PutUint32(buf, s.segPlugin.Version())
-	err = metaBucket.Put(boltMetaDataSegmentVersionKey, buf)
-	if err != nil {
-		return err
-	}
-
-	// persist internal values
-	internalBucket, err := snapshotBucket.CreateBucketIfNotExists(boltInternalKey)
-	if err != nil {
-		return err
-	}
-	// TODO optimize writing these in order?
-	for k, v := range snapshot.internal {
-		err = internalBucket.Put([]byte(k), v)
-		if err != nil {
-			return err
-		}
-	}
-
-	var filenames []string
-	newSegmentPaths := make(map[uint64]string)
-
-	// first ensure that each segment in this snapshot has been persisted
-	for _, segmentSnapshot := range snapshot.segment {
-		snapshotSegmentKey := segment.EncodeUvarintAscending(nil, segmentSnapshot.id)
-		snapshotSegmentBucket, err := snapshotBucket.CreateBucketIfNotExists(snapshotSegmentKey)
-		if err != nil {
-			return err
-		}
-		switch seg := segmentSnapshot.segment.(type) {
-		case segment.PersistedSegment:
-			path := seg.Path()
-			filename := strings.TrimPrefix(path, s.path+string(os.PathSeparator))
-			err = snapshotSegmentBucket.Put(boltPathKey, []byte(filename))
-			if err != nil {
-				return err
-			}
-			filenames = append(filenames, filename)
-		case segment.UnpersistedSegment:
-			// need to persist this to disk
-			filename := zapFileName(segmentSnapshot.id)
-			path := s.path + string(os.PathSeparator) + filename
-			err = seg.Persist(path)
-			if err != nil {
-				return fmt.Errorf("error persisting segment: %v", err)
-			}
-			newSegmentPaths[segmentSnapshot.id] = path
-			err = snapshotSegmentBucket.Put(boltPathKey, []byte(filename))
-			if err != nil {
-				return err
-			}
-			filenames = append(filenames, filename)
-
-		default:
-			return fmt.Errorf("unknown segment type: %T", seg)
-		}
-		// store current deleted bits
-		var roaringBuf bytes.Buffer
-		if segmentSnapshot.deleted != nil {
-			_, err = segmentSnapshot.deleted.WriteTo(&roaringBuf)
-			if err != nil {
-				return fmt.Errorf("error persisting roaring bytes: %v", err)
-			}
-			err = snapshotSegmentBucket.Put(boltDeletedKey, roaringBuf.Bytes())
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	// we need to swap in a new root only when we've persisted 1 or
@@ -779,12 +788,6 @@ func (s *Scorch) loadSegment(segmentBucket *bolt.Bucket) (*SegmentSnapshot, erro
 
 	return rv, nil
 }
-
-type uint64Descending []uint64
-
-func (p uint64Descending) Len() int           { return len(p) }
-func (p uint64Descending) Less(i, j int) bool { return p[i] > p[j] }
-func (p uint64Descending) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func (s *Scorch) removeOldData() {
 	removed, err := s.removeOldBoltSnapshots()

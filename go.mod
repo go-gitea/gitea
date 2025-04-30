@@ -20,7 +20,7 @@ require (
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0
-	github.com/blevesearch/bleve v1.0.7
+	github.com/blevesearch/bleve v1.0.11
 	github.com/denisenkom/go-mssqldb v0.0.0-20200428022330-06a60b6afbbc
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
@@ -114,15 +114,18 @@ require (
 	github.com/blevesearch/mmap-go v1.0.2 // indirect
 	github.com/blevesearch/segment v0.9.0 // indirect
 	github.com/blevesearch/snowballstem v0.9.0 // indirect
-	github.com/blevesearch/zap/v11 v11.0.7 // indirect
-	github.com/blevesearch/zap/v12 v12.0.7 // indirect
+	github.com/blevesearch/zap/v11 v11.0.11 // indirect
+	github.com/blevesearch/zap/v12 v12.0.11 // indirect
+	github.com/blevesearch/zap/v13 v13.0.3 // indirect
+	github.com/blevesearch/zap/v14 v14.0.2 // indirect
+	github.com/blevesearch/zap/v15 v15.0.0 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
 	github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85 // indirect
-	github.com/couchbase/vellum v1.0.1 // indirect
+	github.com/couchbase/vellum v1.0.2 // indirect
 	github.com/couchbaselabs/go-couchbase v0.0.0-20190708161019-23e7ca2ce2b7 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
@@ -201,7 +204,7 @@ require (
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
 	github.com/willf/bitset v1.1.10 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	go.etcd.io/bbolt v1.3.4 // indirect
+	go.etcd.io/bbolt v1.3.5 // indirect
 	go.mongodb.org/mongo-driver v1.1.1 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
@@ -213,3 +216,5 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/blevesearch/zap/v15 => github.com/blevesearch/zap/v14 v14.0.0

@@ -15,6 +15,7 @@
 package searcher
 
 import (
+	"fmt"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/search"
 )
@@ -22,9 +23,112 @@ import (
 func NewMultiTermSearcher(indexReader index.IndexReader, terms []string,
 	field string, boost float64, options search.SearcherOptions, limit bool) (
 	search.Searcher, error) {
-	if limit && tooManyClauses(len(terms)) {
-		return nil, tooManyClausesErr(len(terms))
+
+	if tooManyClauses(len(terms)) {
+		if optionsDisjunctionOptimizable(options) {
+			return optimizeMultiTermSearcher(indexReader, terms, field, boost, options)
+		}
+		if limit {
+			return nil, tooManyClausesErr(field, len(terms))
+		}
 	}
+
+	qsearchers, err := makeBatchSearchers(indexReader, terms, field, boost, options)
+	if err != nil {
+		return nil, err
+	}
+
+	// build disjunction searcher of these ranges
+	return newMultiTermSearcherInternal(indexReader, qsearchers, field, boost,
+		options, limit)
+}
+
+func NewMultiTermSearcherBytes(indexReader index.IndexReader, terms [][]byte,
+	field string, boost float64, options search.SearcherOptions, limit bool) (
+	search.Searcher, error) {
+
+	if tooManyClauses(len(terms)) {
+		if optionsDisjunctionOptimizable(options) {
+			return optimizeMultiTermSearcherBytes(indexReader, terms, field, boost, options)
+		}
+
+		if limit {
+			return nil, tooManyClausesErr(field, len(terms))
+		}
+	}
+
+	qsearchers, err := makeBatchSearchersBytes(indexReader, terms, field, boost, options)
+	if err != nil {
+		return nil, err
+	}
+
+	// build disjunction searcher of these ranges
+	return newMultiTermSearcherInternal(indexReader, qsearchers, field, boost,
+		options, limit)
+}
+
+func newMultiTermSearcherInternal(indexReader index.IndexReader,
+	searchers []search.Searcher, field string, boost float64,
+	options search.SearcherOptions, limit bool) (
+	search.Searcher, error) {
+
+	// build disjunction searcher of these ranges
+	searcher, err := newDisjunctionSearcher(indexReader, searchers, 0, options,
+		limit)
+	if err != nil {
+		for _, s := range searchers {
+			_ = s.Close()
+		}
+		return nil, err
+	}
+
+	return searcher, nil
+}
+
+func optimizeMultiTermSearcher(indexReader index.IndexReader, terms []string,
+	field string, boost float64, options search.SearcherOptions) (
+	search.Searcher, error) {
+	var finalSearcher search.Searcher
+	for len(terms) > 0 {
+		var batchTerms []string
+		if len(terms) > DisjunctionMaxClauseCount {
+			batchTerms = terms[:DisjunctionMaxClauseCount]
+			terms = terms[DisjunctionMaxClauseCount:]
+		} else {
+			batchTerms = terms
+			terms = nil
+		}
+		batch, err := makeBatchSearchers(indexReader, batchTerms, field, boost, options)
+		if err != nil {
+			return nil, err
+		}
+		if finalSearcher != nil {
+			batch = append(batch, finalSearcher)
+		}
+		cleanup := func() {
+			for _, searcher := range batch {
+				if searcher != nil {
+					_ = searcher.Close()
+				}
+			}
+		}
+		finalSearcher, err = optimizeCompositeSearcher("disjunction:unadorned",
+			indexReader, batch, options)
+		// all searchers in batch should be closed, regardless of error or optimization failure
+		// either we're returning, or continuing and only finalSearcher is needed for next loop
+		cleanup()
+		if err != nil {
+			return nil, err
+		}
+		if finalSearcher == nil {
+			return nil, fmt.Errorf("unable to optimize")
+		}
+	}
+	return finalSearcher, nil
+}
+
+func makeBatchSearchers(indexReader index.IndexReader, terms []string, field string,
+	boost float64, options search.SearcherOptions) ([]search.Searcher, error) {
 
 	qsearchers := make([]search.Searcher, len(terms))
 	qsearchersClose := func() {
@@ -42,17 +146,54 @@ func NewMultiTermSearcher(indexReader index.IndexReader, terms []string,
 			return nil, err
 		}
 	}
-	// build disjunction searcher of these ranges
-	return newMultiTermSearcherBytes(indexReader, qsearchers, field, boost,
-		options, limit)
+	return qsearchers, nil
 }
 
-func NewMultiTermSearcherBytes(indexReader index.IndexReader, terms [][]byte,
-	field string, boost float64, options search.SearcherOptions, limit bool) (
+func optimizeMultiTermSearcherBytes(indexReader index.IndexReader, terms [][]byte,
+	field string, boost float64, options search.SearcherOptions) (
 	search.Searcher, error) {
-	if limit && tooManyClauses(len(terms)) {
-		return nil, tooManyClausesErr(len(terms))
+
+	var finalSearcher search.Searcher
+	for len(terms) > 0 {
+		var batchTerms [][]byte
+		if len(terms) > DisjunctionMaxClauseCount {
+			batchTerms = terms[:DisjunctionMaxClauseCount]
+			terms = terms[DisjunctionMaxClauseCount:]
+		} else {
+			batchTerms = terms
+			terms = nil
+		}
+		batch, err := makeBatchSearchersBytes(indexReader, batchTerms, field, boost, options)
+		if err != nil {
+			return nil, err
+		}
+		if finalSearcher != nil {
+			batch = append(batch, finalSearcher)
+		}
+		cleanup := func() {
+			for _, searcher := range batch {
+				if searcher != nil {
+					_ = searcher.Close()
+				}
+			}
+		}
+		finalSearcher, err = optimizeCompositeSearcher("disjunction:unadorned",
+			indexReader, batch, options)
+		// all searchers in batch should be closed, regardless of error or optimization failure
+		// either we're returning, or continuing and only finalSearcher is needed for next loop
+		cleanup()
+		if err != nil {
+			return nil, err
+		}
+		if finalSearcher == nil {
+			return nil, fmt.Errorf("unable to optimize")
+		}
 	}
+	return finalSearcher, nil
+}
+
+func makeBatchSearchersBytes(indexReader index.IndexReader, terms [][]byte, field string,
+	boost float64, options search.SearcherOptions) ([]search.Searcher, error) {
 
 	qsearchers := make([]search.Searcher, len(terms))
 	qsearchersClose := func() {
@@ -70,24 +211,5 @@ func NewMultiTermSearcherBytes(indexReader index.IndexReader, terms [][]byte,
 			return nil, err
 		}
 	}
-	return newMultiTermSearcherBytes(indexReader, qsearchers, field, boost,
-		options, limit)
-}
-
-func newMultiTermSearcherBytes(indexReader index.IndexReader,
-	searchers []search.Searcher, field string, boost float64,
-	options search.SearcherOptions, limit bool) (
-	search.Searcher, error) {
-
-	// build disjunction searcher of these ranges
-	searcher, err := newDisjunctionSearcher(indexReader, searchers, 0, options,
-		limit)
-	if err != nil {
-		for _, s := range searchers {
-			_ = s.Close()
-		}
-		return nil, err
-	}
-
-	return searcher, nil
+	return qsearchers, nil
 }

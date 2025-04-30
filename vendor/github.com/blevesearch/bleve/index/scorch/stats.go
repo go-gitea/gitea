@@ -47,6 +47,9 @@ type Stats struct {
 	TotTermSearchersStarted  uint64
 	TotTermSearchersFinished uint64
 
+	TotEventTriggerStarted   uint64
+	TotEventTriggerCompleted uint64
+
 	TotIntroduceLoop       uint64
 	TotIntroduceSegmentBeg uint64
 	TotIntroduceSegmentEnd uint64
@@ -82,6 +85,9 @@ type Stats struct {
 	TotFileMergeLoopErr uint64
 	TotFileMergeLoopEnd uint64
 
+	TotFileMergeForceOpsStarted   uint64
+	TotFileMergeForceOpsCompleted uint64
+
 	TotFileMergePlan     uint64
 	TotFileMergePlanErr  uint64
 	TotFileMergePlanNone uint64
@@ -105,9 +111,10 @@ type Stats struct {
 	TotFileMergeZapIntroductionTime uint64
 	MaxFileMergeZapIntroductionTime uint64
 
-	TotFileMergeIntroductions        uint64
-	TotFileMergeIntroductionsDone    uint64
-	TotFileMergeIntroductionsSkipped uint64
+	TotFileMergeIntroductions          uint64
+	TotFileMergeIntroductionsDone      uint64
+	TotFileMergeIntroductionsSkipped   uint64
+	TotFileMergeIntroductionsObsoleted uint64
 
 	CurFilesIneligibleForRemoval     uint64
 	TotSnapshotsRemovedFromMetaStore uint64

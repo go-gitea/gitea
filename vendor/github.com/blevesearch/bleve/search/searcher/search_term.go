@@ -137,5 +137,5 @@ func (s *TermSearcher) Optimize(kind string, octx index.OptimizableContext) (
 		return o.Optimize(kind, octx)
 	}
 
-	return octx, nil
+	return nil, nil
 }

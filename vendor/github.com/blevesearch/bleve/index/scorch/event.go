@@ -54,3 +54,11 @@ var EventKindBatchIntroductionStart = EventKind(5)
 
 // EventKindBatchIntroduction is fired when Batch() completes.
 var EventKindBatchIntroduction = EventKind(6)
+
+// EventKindMergeTaskIntroductionStart is fired when the merger is about to
+// start the introduction of merged segment from a single merge task.
+var EventKindMergeTaskIntroductionStart = EventKind(7)
+
+// EventKindMergeTaskIntroduction is fired when the merger has completed
+// the introduction of merged segment from a single merge task.
+var EventKindMergeTaskIntroduction = EventKind(8)

@@ -116,7 +116,7 @@ github.com/aymerick/douceur/parser
 github.com/beorn7/perks/quantile
 # github.com/bgentry/speakeasy v0.1.0
 ## explicit
-# github.com/blevesearch/bleve v1.0.7
+# github.com/blevesearch/bleve v1.0.11
 ## explicit; go 1.13
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
@@ -170,12 +170,21 @@ github.com/blevesearch/segment
 ## explicit; go 1.13
 github.com/blevesearch/snowballstem
 github.com/blevesearch/snowballstem/english
-# github.com/blevesearch/zap/v11 v11.0.7
+# github.com/blevesearch/zap/v11 v11.0.11
 ## explicit; go 1.12
 github.com/blevesearch/zap/v11
-# github.com/blevesearch/zap/v12 v12.0.7
+# github.com/blevesearch/zap/v12 v12.0.11
 ## explicit; go 1.12
 github.com/blevesearch/zap/v12
+# github.com/blevesearch/zap/v13 v13.0.3
+## explicit; go 1.12
+github.com/blevesearch/zap/v13
+# github.com/blevesearch/zap/v14 v14.0.2
+## explicit; go 1.12
+github.com/blevesearch/zap/v14
+# github.com/blevesearch/zap/v15 v15.0.0 => github.com/blevesearch/zap/v14 v14.0.0
+## explicit; go 1.12
+github.com/blevesearch/zap/v15
 # github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
 ## explicit
 github.com/boombuler/barcode
@@ -209,7 +218,7 @@ github.com/couchbase/gomemcached/client
 ## explicit
 github.com/couchbase/goutils/logging
 github.com/couchbase/goutils/scramsha
-# github.com/couchbase/vellum v1.0.1
+# github.com/couchbase/vellum v1.0.2
 ## explicit; go 1.12
 github.com/couchbase/vellum
 github.com/couchbase/vellum/levenshtein
@@ -801,7 +810,7 @@ github.com/yuin/goldmark/util
 # github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 ## explicit; go 1.13
 github.com/yuin/goldmark-meta
-# go.etcd.io/bbolt v1.3.4
+# go.etcd.io/bbolt v1.3.5
 ## explicit; go 1.12
 go.etcd.io/bbolt
 # go.mongodb.org/mongo-driver v1.1.1
@@ -1030,3 +1039,4 @@ xorm.io/xorm/log
 xorm.io/xorm/names
 xorm.io/xorm/schemas
 xorm.io/xorm/tags
+# github.com/blevesearch/zap/v15 => github.com/blevesearch/zap/v14 v14.0.0

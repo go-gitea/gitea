@@ -74,9 +74,8 @@ func NewNumericRangeSearcher(indexReader index.IndexReader,
 	terms := termRanges.Enumerate(isIndexed)
 	if fieldDict != nil {
 		if fd, ok := fieldDict.(index.FieldDict); ok {
-			cerr := fd.Close()
-			if cerr != nil {
-				err = cerr
+			if err = fd.Close(); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -97,7 +96,7 @@ func NewNumericRangeSearcher(indexReader index.IndexReader,
 	}
 
 	if tooManyClauses(len(terms)) {
-		return nil, tooManyClausesErr(len(terms))
+		return nil, tooManyClausesErr(field, len(terms))
 	}
 
 	return NewMultiTermSearcherBytes(indexReader, terms, field, boost, options,
