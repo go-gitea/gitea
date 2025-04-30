@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	"code.gitea.io/gitea/modules/globallock"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"unicode"
 
+	"code.gitea.io/gitea/modules/globallock"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -23,7 +23,6 @@ import (
 var (
 	packageNameRegex                        = regexp.MustCompile(`\A[-_+.\w]+\z`)
 	filenameRegex                           = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
-	lockRelease      globallock.ReleaseFunc = nil
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
