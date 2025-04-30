@@ -318,9 +318,6 @@ func handleWorkflows(
 
 		if runName, err := parseRunName(run, dwf); err == nil {
 			run.Title = runName
-		} else {
-			log.Error("evaluateExpressionsForRun: %v", err)
-			continue
 		}
 
 		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
@@ -532,8 +529,6 @@ func handleSchedules(
 
 		if runName, err := parseRunName(run.ToActionRun(), dwf); err == nil {
 			run.Title = runName
-		} else {
-			log.Error("ParseRunName: %v", err)
 		}
 
 		crons = append(crons, run)
@@ -591,7 +586,11 @@ func parseRunName(r *actions_model.ActionRun, w *actions_module.DetectedWorkflow
 		return "", err
 	}
 
-	title, _ := jobparser.ParseRunName(w.Content, jobparser.WithGitContext(ghCtx))
-	log.Info("title: %s", title)
+	title, err := jobparser.ParseRunName(w.Content, jobparser.WithGitContext(ghCtx))
+	if err != nil {
+		// stay silent, run-name was not provided.
+		return "", err
+	}
+
 	return title, nil
 }
