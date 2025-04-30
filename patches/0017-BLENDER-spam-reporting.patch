@@ -474,9 +474,9 @@ index ae5f51d403..4bf65eb065 100644
 +	// BLENDER: spam reporting
 +	mid = append(mid, admin.GetPendingSpamReports)
  
- 	others := web.NewRouter()
- 	others.Use(mid...)
-@@ -676,6 +678,9 @@ func registerRoutes(m *web.Router) {
+ 	webRoutes := web.NewRouter()
+ 	webRoutes.Use(mid...)
+@@ -676,6 +678,9 @@ func registerWebRoutes(m *web.Router) {
  			m.Get("", user_setting.BlockedUsers)
  			m.Post("", web.Bind(forms.BlockUserForm{}), user_setting.BlockedUsersPost)
  		})
@@ -486,7 +486,7 @@ index ae5f51d403..4bf65eb065 100644
  	}, reqSignIn, ctxDataSet("PageIsUserSettings", true, "EnablePackages", setting.Packages.Enabled))
  
  	m.Group("/user", func() {
-@@ -748,6 +753,13 @@ func registerRoutes(m *web.Router) {
+@@ -748,6 +753,13 @@ func registerWebRoutes(m *web.Router) {
  			m.Post("/delete", admin.DeleteEmail)
  		})
  
