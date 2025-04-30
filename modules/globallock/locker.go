@@ -32,6 +32,8 @@ type Locker interface {
 	// And if it fails to acquire the lock because it's already locked, not other reasons like redis is down,
 	// it will return false without any error.
 	TryLock(ctx context.Context, key string) (bool, ReleaseFunc, error)
+
+	Unlock(ctx context.Context, key string) error
 }
 
 // ReleaseFunc is a function that releases a lock.

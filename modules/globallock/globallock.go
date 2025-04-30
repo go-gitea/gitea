@@ -45,6 +45,10 @@ func TryLock(ctx context.Context, key string) (bool, ReleaseFunc, error) {
 	return DefaultLocker().TryLock(ctx, key)
 }
 
+func Unlock(ctx context.Context, key string) error {
+	return DefaultLocker().Unlock(ctx, key)
+}
+
 // LockAndDo tries to acquire a lock for the given key and then calls the given function.
 // It uses the default locker, and it will return an error if failed to acquire the lock.
 func LockAndDo(ctx context.Context, key string, f func(context.Context) error) error {

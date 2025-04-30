@@ -208,3 +208,49 @@ func DeletePackageFile(ctx *context.Context) {
 
 	ctx.Status(http.StatusNoContent)
 }
+
+// LockPackage locks the specific terraform state.
+func LockPackage(ctx *context.Context) {
+	packageName := ctx.PathParam("packagename")
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName, ctx.PathParam("filename"))
+	if err != nil {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	//log.Error("pv: %+v", pv)
+	ok, _, err := globallock.TryLock(ctx, fmt.Sprintf("%s/%s", packageName, pv.LowerVersion))
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		apiError(ctx, http.StatusLocked, err)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
+
+// UnlockPackage unlock the specific terraform state.
+func UnlockPackage(ctx *context.Context) {
+	packageName := ctx.PathParam("packagename")
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName, ctx.PathParam("filename"))
+	if err != nil {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	//log.Error("pv: %+v", pv)
+	_ = globallock.Unlock(ctx, fmt.Sprintf("%s/%s", packageName, pv.LowerVersion))
+
+	ctx.Status(http.StatusOK)
+}

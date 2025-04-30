@@ -64,6 +64,19 @@ func (l *redisLocker) TryLock(ctx context.Context, key string) (bool, ReleaseFun
 	return err == nil, f, err
 }
 
+func (l *redisLocker) Unlock(ctx context.Context, key string) error {
+	mutex, ok := l.mutexM.Load(key)
+	if ok {
+		l.mutexM.Delete(key)
+
+		// It's safe to ignore the error here,
+		// if it failed to unlock, it will be released automatically after the lock expires.
+		// Do not call mutex.UnlockContext(ctx) here, or it will fail to release when ctx has timed out.
+		_, _ = mutex.(*redsync.Mutex).Unlock()
+	}
+	return nil
+}
+
 // Close closes the locker.
 // It will stop extending the locks and refuse to acquire new locks.
 // In actual use, it is not necessary to call this function.
