@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/rpm"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
 	"code.gitea.io/gitea/routers/api/packages/swift"
+	"code.gitea.io/gitea/routers/api/packages/terraform"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
@@ -662,6 +663,18 @@ func CommonRoutes() *web.Router {
 				r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
+		r.Group("/terraform", func() {
+			r.Group("/{packagename}", func() {
+				r.Delete("", reqPackageAccess(perm.AccessModeWrite), terraform.DeletePackage)
+				r.Group("/state/{filename}", func() {
+					r.Get("", terraform.DownloadPackageFile)
+					r.Group("", func() {
+						r.Put("", terraform.UploadPackage)
+						r.Delete("", terraform.DeletePackageFile)
+					}, reqPackageAccess(perm.AccessModeWrite))
+				})
+			})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {
 				r.Get("", vagrant.CheckAuthenticate)

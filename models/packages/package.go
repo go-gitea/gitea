@@ -51,6 +51,7 @@ const (
 	TypeRpm       Type = "rpm"
 	TypeRubyGems  Type = "rubygems"
 	TypeSwift     Type = "swift"
+	TypeTerraform Type = "terraform"
 	TypeVagrant   Type = "vagrant"
 )
 
@@ -76,6 +77,7 @@ var TypeList = []Type{
 	TypeRpm,
 	TypeRubyGems,
 	TypeSwift,
+	TypeTerraform,
 	TypeVagrant,
 }
 
@@ -124,6 +126,8 @@ func (pt Type) Name() string {
 		return "RubyGems"
 	case TypeSwift:
 		return "Swift"
+	case TypeTerraform:
+		return "Terraform"
 	case TypeVagrant:
 		return "Vagrant"
 	}
@@ -175,6 +179,8 @@ func (pt Type) SVGName() string {
 		return "gitea-rubygems"
 	case TypeSwift:
 		return "gitea-swift"
+	case TypeTerraform:
+		return "gitea-terraform"
 	case TypeVagrant:
 		return "gitea-vagrant"
 	}
