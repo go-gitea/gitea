@@ -1188,16 +1188,6 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   text-overflow: ellipsis !important;
 }
 
-.ui.dropdown.text-flex-grow {
-  display: flex;
-}
-
-.ui.dropdown.text-flex-grow > .text {
-  display: flex;
-  flex-grow: 1;
-  justify-content: space-between;
-}
-
 .svg.octicon-file-directory-fill,
 .svg.octicon-file-directory-open-fill,
 .svg.octicon-file-submodule {
