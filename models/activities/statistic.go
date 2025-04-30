@@ -17,13 +17,15 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // Statistic contains the database statistics
 type Statistic struct {
 	Counter struct {
-		User, Org, PublicKey,
+		UsersActive, UsersNotActive,
+		Org, PublicKey,
 		Repo, Watch, Star, Access,
 		Issue, IssueClosed, IssueOpen,
 		Comment, Oauth, Follow,
@@ -53,7 +55,19 @@ type IssueByRepositoryCount struct {
 // GetStatistic returns the database statistics
 func GetStatistic(ctx context.Context) (stats Statistic) {
 	e := db.GetEngine(ctx)
-	stats.Counter.User = user_model.CountUsers(ctx, nil)
+
+	// Number of active users
+	usersActiveOpts := user_model.CountUserFilter{
+		IsActive: optional.Some(true),
+	}
+	stats.Counter.UsersActive = user_model.CountUsers(ctx, &usersActiveOpts)
+
+	// Number of inactive users
+	usersNotActiveOpts := user_model.CountUserFilter{
+		IsActive: optional.Some(false),
+	}
+	stats.Counter.UsersNotActive = user_model.CountUsers(ctx, &usersNotActiveOpts)
+
 	stats.Counter.Org, _ = db.Count[organization.Organization](ctx, organization.FindOrgOptions{IncludePrivate: true})
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
 	stats.Counter.Repo, _ = repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{})
