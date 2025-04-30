@@ -1,6 +1,6 @@
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {POST} from '../modules/fetch.ts';
-import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 
 // if there are draft comments, confirm before reloading, to avoid losing comments
 function issueSidebarReloadConfirmDraftComment() {
@@ -22,7 +22,7 @@ function issueSidebarReloadConfirmDraftComment() {
   window.location.reload();
 }
 
-class IssueSidebarComboList {
+export class IssueSidebarComboList {
   updateUrl: string;
   updateAlgo: string;
   selectionMode: string;
@@ -95,9 +95,7 @@ class IssueSidebarComboList {
     }
   }
 
-  async onItemClick(e: Event) {
-    const elItem = (e.target as HTMLElement).closest('.item');
-    if (!elItem) return;
+  async onItemClick(elItem: HTMLElement, e: Event) {
     e.preventDefault();
     if (elItem.hasAttribute('data-can-change') && elItem.getAttribute('data-can-change') !== 'true') return;
 
@@ -146,16 +144,13 @@ class IssueSidebarComboList {
     }
     this.initialValues = this.collectCheckedValues();
 
-    this.elDropdown.addEventListener('click', (e) => this.onItemClick(e));
+    addDelegatedEventListener(this.elDropdown, 'click', '.item', (el, e) => this.onItemClick(el, e));
 
     fomanticQuery(this.elDropdown).dropdown('setting', {
       action: 'nothing', // do not hide the menu if user presses Enter
       fullTextSearch: 'exact',
+      hideDividers: 'empty',
       onHide: () => this.onHide(),
     });
   }
-}
-
-export function initIssueSidebarComboList(container: HTMLElement) {
-  new IssueSidebarComboList(container).init();
 }

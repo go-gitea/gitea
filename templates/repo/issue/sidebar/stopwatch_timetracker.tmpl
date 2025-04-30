@@ -2,10 +2,11 @@
 	{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 		<div class="divider"></div>
 		<div>
-			<div class="ui dropdown text-flex-grow jump">
-				<a class="text muted">
+			<div class="ui dropdown full-width jump">
+				<a class="fixed-text muted">
 					<div>
-						<strong>{{ctx.Locale.Tr "repo.issues.tracker"}}</strong> {{if $.IsStopwatchRunning}}{{svg "octicon-stopwatch"}}{{end}}
+						<strong>{{ctx.Locale.Tr "repo.issues.tracker"}}</strong>
+						{{if $.IsStopwatchRunning}}{{svg "octicon-stopwatch"}}{{end}}
 					</div>
 					{{svg "octicon-gear"}}
 				</a>

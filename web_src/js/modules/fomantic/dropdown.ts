@@ -228,12 +228,13 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
-      const dropdownCall = fomanticDropdownFn.bind($(dropdown));
-      let $item = dropdownCall('get item', dropdownCall('get value'));
-      if (!$item) $item = $(menu).find('> .item.selected'); // when dropdown filters items by input, there is no "value", so query the "selected" item
+      const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');
       // if the selected item is clickable, then trigger the click event.
       // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
-      if ($item?.[0]?.matches('a, .js-aria-clickable')) $item[0].click();
+      if (elItem?.matches('a, .js-aria-clickable') && !elItem.matches('.tw-hidden, .filtered')) {
+        e.preventDefault();
+        elItem.click();
+      }
     }
   });
 
