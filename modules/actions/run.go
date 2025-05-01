@@ -1,12 +1,16 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package actions
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
-	"context"
 )
 
 // TODO: When deleting a run, it should at lease delete artifacts, tasks logs, database record.
