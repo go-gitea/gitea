@@ -17,7 +17,7 @@ type AccessToken struct {
 	TokenLastEight string    `json:"token_last_eight"`
 	Scopes         []string  `json:"scopes"`
 	Created        time.Time `json:"created_at"`
-	Updated        time.Time `json:"updated_at"`
+	Updated        time.Time `json:"last_used_at"`
 }
 
 // AccessTokenList represents a list of API access token.
