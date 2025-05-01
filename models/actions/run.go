@@ -445,13 +445,16 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 
 // TODO: When deleting a run, it should at lease delete artifacts, tasks logs, database record.
 func DeleteRun(ctx context.Context, repoID int64, run *ActionRun, jobs []*ActionRunJob) error {
+	tasks := make(TaskList, 0)
+
 	jobIDs := container_module.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
 		return j.ID, j.ID != 0
 	})
 
-	tasks := make(TaskList, 0)
-	if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).In("job_id", jobIDs).Find(&tasks); err != nil {
-		return err
+	if len(jobIDs) > 0 {
+		if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).In("job_id", jobIDs).Find(&tasks); err != nil {
+			return err
+		}
 	}
 
 	artifacts, err := db.Find[ActionArtifact](ctx, FindArtifactsOptions{
