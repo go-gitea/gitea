@@ -6,14 +6,14 @@
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>
 terraform {
-  backend "http" {
-    address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.PackageDescriptor.Version.Version}}"></origin-url>"
-    update_method = "PUT"
-    lock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.PackageDescriptor.Version.Version}}/lock"></origin-url>"
-    unlock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.PackageDescriptor.Version.Version}}/lock"></origin-url>"
-    lock_method = "POST"
-    unlock_method = "DELETE"
-  }
+	backend "http" {
+		address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.PackageDescriptor.Version.Version}}"></origin-url>"
+		update_method = "PUT"
+		lock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.PackageDescriptor.Version.Version}}/lock"></origin-url>"
+		unlock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.PackageDescriptor.Version.Version}}/lock"></origin-url>"
+		lock_method = "POST"
+		unlock_method = "DELETE"
+	}
 }
 				</code></pre></div>
 			</div>
