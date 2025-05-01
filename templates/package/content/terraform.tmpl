@@ -3,12 +3,23 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.terraform.download"}}</label>
+				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>
-{{- range .PackageDescriptor.Files -}}
-curl -OJ <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.File.Name}}"></origin-url>
-{{end -}}
+terraform {
+  backend "http" {
+    address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.PackageDescriptor.Version.Version}}"></origin-url>"
+    update_method = "PUT"
+    lock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.PackageDescriptor.Version.Version}}/lock"></origin-url>"
+    unlock_address = "<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/terraform/{{$.PackageDescriptor.Package.Name}}/state/{{.PackageDescriptor.Version.Version}}/lock"></origin-url>"
+    lock_method = "POST"
+    unlock_method = "DELETE"
+  }
+}
 				</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "packages.terraform.install2"}}</label>
+				<div class="markup"><pre class="code-block"><code>terraform init -migrate-state</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{ctx.Locale.Tr "packages.registry.documentation" "Terraform" "https://docs.gitea.com/usage/packages/terraform"}}</label>
