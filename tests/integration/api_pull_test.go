@@ -5,7 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -493,17 +492,17 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
 		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
 		assert.NoError(t, err)
-		pr := convert.ToAPIPullRequest(context.Background(), pullRequest, user1)
+		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
 
 		ctx = NewAPITestContext(t, "user2", baseRepo.Name, auth_model.AccessTokenScopeAll)
 		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {
 			if assert.Len(t, files, 1) {
-				assert.EqualValues(t, "file_1.txt", files[0].Filename)
-				assert.EqualValues(t, "", files[0].PreviousFilename)
-				assert.EqualValues(t, 1, files[0].Additions)
-				assert.EqualValues(t, 1, files[0].Changes)
-				assert.EqualValues(t, 0, files[0].Deletions)
-				assert.EqualValues(t, "added", files[0].Status)
+				assert.Equal(t, "file_1.txt", files[0].Filename)
+				assert.Empty(t, files[0].PreviousFilename)
+				assert.Equal(t, 1, files[0].Additions)
+				assert.Equal(t, 1, files[0].Changes)
+				assert.Equal(t, 0, files[0].Deletions)
+				assert.Equal(t, "added", files[0].Status)
 			}
 		})(t)
 
@@ -513,12 +512,12 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 
 		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {
 			if assert.Len(t, files, 1) {
-				assert.EqualValues(t, "file_1.txt", files[0].Filename)
-				assert.EqualValues(t, "", files[0].PreviousFilename)
-				assert.EqualValues(t, 1, files[0].Additions)
-				assert.EqualValues(t, 1, files[0].Changes)
-				assert.EqualValues(t, 0, files[0].Deletions)
-				assert.EqualValues(t, "added", files[0].Status)
+				assert.Equal(t, "file_1.txt", files[0].Filename)
+				assert.Empty(t, files[0].PreviousFilename)
+				assert.Equal(t, 1, files[0].Additions)
+				assert.Equal(t, 1, files[0].Changes)
+				assert.Equal(t, 0, files[0].Deletions)
+				assert.Equal(t, "added", files[0].Status)
 			}
 		})(t)
 	})
