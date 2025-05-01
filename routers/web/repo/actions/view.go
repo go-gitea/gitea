@@ -598,7 +598,7 @@ func Delete(ctx *context_module.Context) {
 
 	repoID := ctx.Repo.Repository.ID
 
-	if err := actions_model.DeleteRun(ctx, repoID, run, jobs); err != nil {
+	if err := actions.DeleteRun(ctx, repoID, run, jobs); err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}

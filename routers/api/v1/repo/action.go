@@ -1121,7 +1121,7 @@ func DeleteActionRun(ctx *context.APIContext) {
 		return
 	}
 
-	if err := actions_model.DeleteRun(ctx, repoID, run, jobs); err != nil {
+	if err := actions.DeleteRun(ctx, repoID, run, jobs); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

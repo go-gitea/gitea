@@ -4,10 +4,6 @@
 package actions
 
 import (
-	actions_module "code.gitea.io/gitea/modules/actions"
-	container_module "code.gitea.io/gitea/modules/container"
-	log_module "code.gitea.io/gitea/modules/log"
-	storage_module "code.gitea.io/gitea/modules/storage"
 	"context"
 	"errors"
 	"fmt"
@@ -440,76 +436,6 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		}
 	}
 
-	return nil
-}
-
-// TODO: When deleting a run, it should at lease delete artifacts, tasks logs, database record.
-func DeleteRun(ctx context.Context, repoID int64, run *ActionRun, jobs []*ActionRunJob) error {
-	tasks := make(TaskList, 0)
-
-	jobIDs := container_module.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
-		return j.ID, j.ID != 0
-	})
-
-	if len(jobIDs) > 0 {
-		if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).In("job_id", jobIDs).Find(&tasks); err != nil {
-			return err
-		}
-	}
-
-	artifacts, err := db.Find[ActionArtifact](ctx, FindArtifactsOptions{
-		RepoID: repoID,
-		RunID:  run.ID,
-	})
-	if err != nil {
-		return err
-	}
-
-	var recordsToDelete []any
-
-	for _, task := range tasks {
-		recordsToDelete = append(recordsToDelete, &ActionTask{
-			RepoID: repoID,
-			ID:     task.ID,
-		})
-		recordsToDelete = append(recordsToDelete, &ActionTaskStep{
-			RepoID: repoID,
-			TaskID: task.ID,
-		})
-	}
-	recordsToDelete = append(recordsToDelete, &ActionRunJob{
-		RepoID: repoID,
-		RunID:  run.ID,
-	})
-	recordsToDelete = append(recordsToDelete, &ActionRun{
-		RepoID: repoID,
-		ID:     run.ID,
-	})
-	recordsToDelete = append(recordsToDelete, &ActionArtifact{
-		RepoID: repoID,
-		RunID:  run.ID,
-	})
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		return db.DeleteBeans(ctx, recordsToDelete...)
-	}); err != nil {
-		return err
-	}
-
-	// Delete files on storage
-	for _, tas := range tasks {
-		err := actions_module.RemoveLogs(ctx, tas.LogInStorage, tas.LogFilename)
-		if err != nil {
-			log_module.Error("remove log file %q: %v", tas.LogFilename, err)
-		}
-	}
-	for _, art := range artifacts {
-		if err := storage_module.ActionsArtifacts.Delete(art.StoragePath); err != nil {
-			log_module.Error("remove artifact file %q: %v", art.StoragePath, err)
-		}
-	}
-
-	// TODO: Delete commit status? Looks like it has no direct reference to a run/task/job. Not quite feasible without modifying db models (Dangerous).
 	return nil
 }
 
