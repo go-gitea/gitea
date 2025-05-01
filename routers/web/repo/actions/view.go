@@ -581,6 +581,97 @@ func Approve(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
+// TODO: When deleting a run, it should at lease delete artifacts, tasks logs, database record.
+func Delete(ctx *context_module.Context) {
+	runIndex := getRunIndex(ctx)
+
+	job0, jobs := getRunJobs(ctx, runIndex, -1)
+	if ctx.Written() {
+		return
+	}
+
+	run := job0.Run
+	if !run.Status.IsDone() {
+		// TODO: Locale?
+		ctx.JSONError("run not done yet")
+		return
+	}
+
+	repoID := ctx.Repo.Repository.ID
+
+	tasks := []*actions_model.ActionTask{}
+
+	for _, job := range jobs {
+		tasks0, err := db.Find[actions_model.ActionTask](ctx, actions_model.FindTaskOptions{
+			RepoID: repoID,
+			JobID:  job.ID,
+		})
+		if err != nil {
+			ctx.HTTPError(http.StatusInternalServerError, err.Error())
+			return
+		}
+		tasks = append(tasks, tasks0...)
+	}
+
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
+		RepoID: repoID,
+		RunID:  run.ID,
+	})
+	if err != nil {
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	recordsToDelete := []any{}
+
+	for _, task := range tasks {
+		recordsToDelete = append(recordsToDelete, &actions_model.ActionTask{
+			RepoID: repoID,
+			ID:     task.ID,
+		})
+		recordsToDelete = append(recordsToDelete, &actions_model.ActionTaskStep{
+			RepoID: repoID,
+			TaskID: task.ID,
+		})
+	}
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionRunJob{
+		RepoID: repoID,
+		RunID:  run.ID,
+	})
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionRun{
+		RepoID: repoID,
+		ID:     run.ID,
+	})
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionArtifact{
+		RepoID: repoID,
+		RunID:  run.ID,
+	})
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		return db.DeleteBeans(ctx, recordsToDelete...)
+	}); err != nil {
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Delete files on storage
+	for _, task := range tasks {
+		err := actions.RemoveLogs(ctx, task.LogInStorage, task.LogFilename)
+		if err != nil {
+			log.Error("remove log file %q: %v", task.LogFilename, err)
+		}
+	}
+	for _, art := range artifacts {
+		if err := storage.ActionsArtifacts.Delete(art.StoragePath); err != nil {
+			log.Error("remove artifact file %q: %v", art.StoragePath, err)
+		}
+	}
+
+	// TODO: Delete commit status? Looks like it has no direct reference to a run/task/job. Not quite feasible without modifying db models (Dangerous).
+
+	ctx.JSON(http.StatusOK, struct{}{})
+}
+
 // getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
 // Any error will be written to the ctx.
 // It never returns a nil job of an empty jobs, if the jobIndex is out of range, it will be treated as 0.
