@@ -1,7 +1,7 @@
-From b7ab7d82754fd5d7ea154d31f991a5da206d96a1 Mon Sep 17 00:00:00 2001
+From 21206ca6201d4b510cffc0068aabd785f5864850 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:58:05 +0200
-Subject: [PATCH 05/14] BLENDER: Support both exclusive and non-exclusive scope
+Subject: [PATCH 05/18] BLENDER: Support both exclusive and non-exclusive scope
  for labels
 
 ---
@@ -149,5 +149,5 @@ index 9b6195a8f4..c8310203c4 100644
  					{{end}}
  				</div>
 -- 
-2.47.1
+2.49.0
 

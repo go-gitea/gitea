@@ -1,7 +1,7 @@
-From 4cf49edf4de94065e9ad6e24c4482c2054d6eece Mon Sep 17 00:00:00 2001
+From e19c11cbfe0e7f278aae17cd512560cfc237c00d Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 13:32:53 +0200
-Subject: [PATCH 03/14] BLENDER: Workaround LFS files not being available in
+Subject: [PATCH 03/18] BLENDER: Workaround LFS files not being available in
  pull requests
 
 Patch taken from issue number 17715, associating the LFS pointer when the
@@ -56,5 +56,5 @@ index c4866edaab..1fa2b7a67f 100644
  				err = &lfs_module.ObjectError{
  					Code:    http.StatusNotFound,
 -- 
-2.47.1
+2.49.0
 

@@ -1,7 +1,7 @@
-From 06041a4e57aec40f53204cf151aafee4f84a168e Mon Sep 17 00:00:00 2001
+From 4470d5e4ec3482d1534d8e17d25ff59cd6ed730b Mon Sep 17 00:00:00 2001
 From: Oleg Komarov <oleg@blender.org>
 Date: Fri, 11 Apr 2025 16:57:54 +0200
-Subject: [PATCH] BLENDER: spam reporting
+Subject: [PATCH 17/18] BLENDER: Add Spam Reporting
 
 Spam reporting is available for trusted users (org members and admins) via a
 button on a spammer's profile page;
@@ -175,7 +175,7 @@ index 0000000000..a4390c9d4a
 +	return nil, err
 +}
 diff --git a/options/locale/locale_en-US.ini b/options/locale/locale_en-US.ini
-index 9d71ccb6d5..be52d8f9c3 100644
+index 6b6f83a64b..7d6bc40a3d 100644
 --- a/options/locale/locale_en-US.ini
 +++ b/options/locale/locale_en-US.ini
 @@ -692,6 +692,18 @@ block.note.edit = Edit note
@@ -197,7 +197,7 @@ index 9d71ccb6d5..be52d8f9c3 100644
  [settings]
  profile = Profile
  account = Account
-@@ -2889,6 +2901,7 @@ first_page = First
+@@ -2899,6 +2911,7 @@ first_page = First
  last_page = Last
  total = Total: %d
  settings = Admin Settings
@@ -205,7 +205,7 @@ index 9d71ccb6d5..be52d8f9c3 100644
  
  dashboard.new_version_hint = Gitea %s is now available, you are running %s. Check <a target="_blank" rel="noreferrer" href="%s">the blog</a> for more details.
  dashboard.statistic = Summary
-@@ -2976,6 +2989,7 @@ dashboard.sync_branch.started = Branches Sync started
+@@ -2986,6 +2999,7 @@ dashboard.sync_branch.started = Branches Sync started
  dashboard.sync_tag.started = Tags Sync started
  dashboard.rebuild_issue_indexer = Rebuild issue indexer
  dashboard.sync_repo_licenses = Sync repo licenses
@@ -213,7 +213,7 @@ index 9d71ccb6d5..be52d8f9c3 100644
  
  users.user_manage_panel = User Account Management
  users.new_account = Create User Account
-@@ -3052,6 +3066,14 @@ emails.delete_desc = Are you sure you want to delete this email address?
+@@ -3062,6 +3076,14 @@ emails.delete_desc = Are you sure you want to delete this email address?
  emails.deletion_success = The email address has been deleted.
  emails.delete_primary_email_error = You can not delete the primary email.
  
@@ -464,7 +464,7 @@ index 0000000000..254b54c56f
 +	ctx.Redirect(setting.AppSubURL + "/" + username)
 +}
 diff --git a/routers/web/web.go b/routers/web/web.go
-index ae5f51d403..4bf65eb065 100644
+index cf9959ecfe..b0cec470f2 100644
 --- a/routers/web/web.go
 +++ b/routers/web/web.go
 @@ -284,6 +284,8 @@ func Routes() *web.Router {
@@ -1038,5 +1038,5 @@ index 0000000000..e9015fd16c
 +	</div>
 +</div>
 -- 
-2.43.0
+2.49.0
 

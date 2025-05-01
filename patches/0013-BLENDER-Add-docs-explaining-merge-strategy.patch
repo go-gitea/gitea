@@ -1,7 +1,7 @@
-From 7aa2069c44ea862ddb68b4dce4ed52fcf866b486 Mon Sep 17 00:00:00 2001
+From c7ce8c9d1bb65b13201e5c10c629a4ba38c7e493 Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:58:32 +0200
-Subject: [PATCH 13/14] BLENDER: Add docs explaining merge strategy
+Subject: [PATCH 13/18] BLENDER: Add docs explaining merge strategy
 
 ---
  BLENDER_README.md | 12 ++++++++++++
@@ -27,5 +27,5 @@ index 0000000000..f5bd495d5e
 +First do changes in `blender-merged-develop`, and deploy on uatest. Then apply
 +the changes in `blender-merged` and deploy in production.
 -- 
-2.47.1
+2.49.0
 

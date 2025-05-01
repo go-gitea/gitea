@@ -1,0 +1,101 @@
+From b16e4d99ebb8519b4d8abf5a1d7b4beb3356aa59 Mon Sep 17 00:00:00 2001
+From: Bart van der Braak <bart@blender.org>
+Date: Wed, 30 Apr 2025 18:09:40 +0200
+Subject: [PATCH 18/18] BLENDER: Add Line Length indicator for cursor
+
+---
+ .../js/components/PullRequestMergeForm.vue    | 31 ++++++++++++++++++-
+ .../js/features/comp/ComboMarkdownEditor.ts   | 21 +++++++++++++
+ 2 files changed, 51 insertions(+), 1 deletion(-)
+
+diff --git a/web_src/js/components/PullRequestMergeForm.vue b/web_src/js/components/PullRequestMergeForm.vue
+index bafeec6c97..c409c12c6f 100644
+--- a/web_src/js/components/PullRequestMergeForm.vue
++++ b/web_src/js/components/PullRequestMergeForm.vue
+@@ -26,6 +26,10 @@ const mergeStyleAllowedCount = ref(0);
+ const showMergeStyleMenu = ref(false);
+ const showActionForm = ref(false);
+ 
++const mergeMessageTextarea = ref<HTMLTextAreaElement | null>(null);
++const cursorLine = ref(1);
++const cursorColumn = ref(1);
++
+ const mergeButtonStyleClass = computed(() => {
+   if (mergeForm.value.allOverridableChecksOk) return 'primary';
+   return autoMergeWhenSucceed.value ? 'primary' : 'red';
+@@ -76,6 +80,19 @@ function switchMergeStyle(name, autoMerge = false) {
+ function clearMergeMessage() {
+   mergeMessageFieldValue.value = mergeForm.value.defaultMergeMessage;
+ }
++
++function updateCursorPosition() {
++  const textarea = mergeMessageTextarea.value;
++  if (!textarea) return;
++
++  const pos = textarea.selectionStart ?? 0;
++  const value = textarea.value;
++
++  const lines = value.substring(0, pos).split('\n');
++  cursorLine.value = lines.length;
++  cursorColumn.value = lines[lines.length - 1].length + 1;
++}
++
+ </script>
+ 
+ <template>
+@@ -105,7 +122,19 @@ function clearMergeMessage() {
+           <input type="text" name="merge_title_field" v-model="mergeTitleFieldValue">
+         </div>
+         <div class="field">
+-          <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
++          <textarea
++            ref="mergeMessageTextarea"
++            name="merge_message_field"
++            rows="5"
++            :placeholder="mergeForm.mergeMessageFieldPlaceHolder"
++            v-model="mergeMessageFieldValue"
++            @click="updateCursorPosition"
++            @keyup="updateCursorPosition"
++            @input="updateCursorPosition"
++          />
++          <div class="tw-mt-2 tw-text-sm tw-text-gray-500">
++            Line: {{ cursorLine }}, Column: {{ cursorColumn }}
++          </div>
+           <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
+             <button @click.prevent="clearMergeMessage" class="btn tw-mt-1 tw-p-1 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
+               {{ mergeForm.textClearMergeMessage }}
+diff --git a/web_src/js/features/comp/ComboMarkdownEditor.ts b/web_src/js/features/comp/ComboMarkdownEditor.ts
+index bba50a1296..0df15ca1b4 100644
+--- a/web_src/js/features/comp/ComboMarkdownEditor.ts
++++ b/web_src/js/features/comp/ComboMarkdownEditor.ts
+@@ -161,6 +161,27 @@ export class ComboMarkdownEditor {
+ 
+     initTextareaMarkdown(this.textarea);
+     initTextareaEvents(this.textarea, this.dropzone);
++
++    // Cursor Position Tracker
++    const positionDisplay = document.createElement('div');
++    positionDisplay.className = 'tw-mt-2 tw-text-sm tw-text-gray-500';
++    this.container.appendChild(positionDisplay);
++
++    const updateCursorPosition = () => {
++      const value = this.textarea.value;
++      const pos = this.textarea.selectionStart;
++
++      const lines = value.substr(0, pos).split('\n');
++      const line = lines.length;
++      const column = lines[lines.length - 1].length + 1;
++
++      positionDisplay.textContent = `Line: ${line}, Column: ${column}`;
++    };
++
++    this.textarea.addEventListener('input', updateCursorPosition);
++    this.textarea.addEventListener('click', updateCursorPosition);
++    this.textarea.addEventListener('keyup', updateCursorPosition);
++    updateCursorPosition();
+   }
+ 
+   async setupDropzone() {
+-- 
+2.49.0
+

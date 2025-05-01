@@ -1,7 +1,7 @@
-From fd09d4851658310327e2e110e16963226fdd5954 Mon Sep 17 00:00:00 2001
+From dc145e6f21466387dde81ce41664c4100ee271bb Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:00:36 +0200
-Subject: [PATCH 06/14] BLENDER: Projects: button to show/hide issue details
+Subject: [PATCH 06/18] BLENDER: Projects: button to show/hide issue details
  and closed issue
 
 Both are off by default. This is implemented fully on the frontend, so
@@ -14,7 +14,7 @@ all issues and their details are still always loaded.
  4 files changed, 59 insertions(+), 13 deletions(-)
 
 diff --git a/templates/projects/view.tmpl b/templates/projects/view.tmpl
-index 966d3bf604..7f97b13c7d 100644
+index 217ffe6355..9640deee94 100644
 --- a/templates/projects/view.tmpl
 +++ b/templates/projects/view.tmpl
 @@ -19,6 +19,16 @@
@@ -46,7 +46,7 @@ index 966d3bf604..7f97b13c7d 100644
 @@ -178,6 +188,37 @@
  	</div>
  </div>
-
+ 
 +<script>
 +	keyDetails = 'project-show-issue-details:{{.Repository.FullName | JSEscape}}:{{.Project.ID}}';
 +	keyClosed = 'project-show-issue-closed:{{.Repository.FullName | JSEscape}}:{{.Project.ID}}';
@@ -138,7 +138,7 @@ index 2e19e86d7a..e27cf1cbb7 100644
  			</div>
  		{{end}}
  	</div>
-
+ 
 -	{{if or .Labels .Assignees}}
 +	{{if or .Labels}}
  	<div class="issue-card-bottom">
@@ -157,10 +157,10 @@ index 2e19e86d7a..e27cf1cbb7 100644
  	{{end}}
  {{end}}
 diff --git a/web_src/css/features/projects.css b/web_src/css/features/projects.css
-index 9d462c4c4a..1eafbed75e 100644
+index ef3b036217..ca5057118f 100644
 --- a/web_src/css/features/projects.css
 +++ b/web_src/css/features/projects.css
-@@ -28,7 +28,7 @@
+@@ -16,7 +16,7 @@
    padding: 0.5rem !important;
    width: 320px;
    height: initial;
@@ -181,5 +181,5 @@ index fb832bd05a..4fb9b42f46 100644
 +  margin-left: 0.5em;
  }
 -- 
-2.47.1
+2.49.0
 

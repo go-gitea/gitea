@@ -1,7 +1,7 @@
-From e1e63508813a2a4d67e029a5c07b32a9442fed20 Mon Sep 17 00:00:00 2001
+From baddc7d7cbccc3dbbd2fcdb74594fa62a3964a13 Mon Sep 17 00:00:00 2001
 From: Bart van der Braak <bart@blender.org>
 Date: Wed, 4 Dec 2024 15:29:10 +0100
-Subject: [PATCH 14/14] BLENDER: Add Python for external renderering
+Subject: [PATCH 14/18] BLENDER: Add Python for external renderering
 
 To be used for RestructuredText rendering using Sphinx to HTML.
 
@@ -27,5 +27,5 @@ index be6f125104..1032790dd0 100644
      -S -g 1000 \
      git && \
 -- 
-2.47.1
+2.49.0
 

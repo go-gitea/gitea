@@ -1,8 +1,8 @@
-From fb83158d7e28aa8059cbb42575f19f06ca23bda6 Mon Sep 17 00:00:00 2001
+From 5843b4bdb51b90c22777f49d7c730cf2429b9a7f Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 18 Apr 2025 03:26:24 +0200
-Subject: [PATCH] BLENDER: Edit file workflow for creating a fork and proposing
- changes
+Subject: [PATCH 12/18] BLENDER: Edit file workflow for creating a fork and
+ proposing changes
 
 When viewing a file that the user can't edit because they can't write to
 the branch, the new, upload, patch, edit and delete functionality is no
@@ -29,15 +29,15 @@ the base repository that does the right thing.
  routers/api/v1/api.go                   |   2 +-
  routers/api/v1/repo/file.go             |   2 +-
  routers/web/repo/cherry_pick.go         |   6 +-
- routers/web/repo/editor.go              | 179 +++++++-----
+ routers/web/repo/editor.go              | 170 ++++++----
  routers/web/repo/editor_test.go         |   2 +-
- routers/web/repo/fork.go                |  68 +++--
- routers/web/repo/fork_to_edit.go        | 240 +++++++++++++++
+ routers/web/repo/fork.go                |  68 ++--
+ routers/web/repo/fork_to_edit.go        | 241 ++++++++++++++
  routers/web/repo/patch.go               |  36 ++-
  routers/web/repo/repo.go                |  15 -
  routers/web/repo/view_file.go           |   8 +-
  routers/web/repo/view_readme.go         |   6 +-
- routers/web/web.go                      |  26 +-
+ routers/web/web.go                      |  20 +-
  services/context/permission.go          |   6 +-
  services/context/repo.go                |  47 ++-
  services/forms/repo_form.go             |  12 +
@@ -48,14 +48,14 @@ the base repository that does the right thing.
  templates/repo/editor/upload.tmpl       |   5 +
  templates/repo/empty.tmpl               |   2 +-
  templates/repo/view_content.tmpl        | 111 +++++++
- tests/integration/editor_test.go        | 371 +++++++++++++++++++++++-
+ tests/integration/editor_test.go        | 408 ++++++++++++++++++++----
  tests/integration/pull_compare_test.go  |   2 +-
  tests/integration/pull_merge_test.go    |  24 +-
  tests/integration/pull_review_test.go   |   2 +-
  tests/integration/pull_status_test.go   |   6 +-
  tests/integration/repo_activity_test.go |   4 +-
  tests/integration/repo_webhook_test.go  |   4 +-
- 31 files changed, 1048 insertions(+), 207 deletions(-)
+ 31 files changed, 1034 insertions(+), 244 deletions(-)
  create mode 100644 routers/web/repo/fork_to_edit.go
  create mode 100644 templates/repo/editor/fork.tmpl
  create mode 100644 templates/repo/view_content.tmpl
@@ -1557,7 +1557,7 @@ index f0f71b80d1..b9ed72c196 100644
  	req := NewRequest(t, "GET", newURL)
  	resp := session.MakeRequest(t, req, http.StatusOK)
  
-@@ -36,74 +51,101 @@ func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, file
+@@ -36,72 +51,99 @@ func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, file
  
  	// Save new file to master branch
  	req = NewRequestWithValues(t, "POST", newURL, map[string]string{
@@ -1594,7 +1594,10 @@ index f0f71b80d1..b9ed72c196 100644
  func TestCreateFileOnProtectedBranch(t *testing.T) {
  	onGiteaRun(t, func(t *testing.T, u *url.URL) {
  		session := loginUser(t, "user2")
--
++		testCreateFileOnProtectedBranch(t, session, "user2", "user2", "repo1", "master", "master", "direct")
++	})
++}
+ 
 -		csrf := GetUserCSRFToken(t, session)
 -		// Change master branch to protected
 -		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
@@ -1615,7 +1618,14 @@ index f0f71b80d1..b9ed72c196 100644
 -		doc := NewHTMLParser(t, resp.Body)
 -		lastCommit := doc.GetInputValueByName("last_commit")
 -		assert.NotEmpty(t, lastCommit)
--
++func TestCreateFileOnProtectedBranchFork(t *testing.T) {
++	onGiteaRun(t, func(t *testing.T, u *url.URL) {
++		session := loginUser(t, "user4")
++		forkToEdit(t, session, "user2", "repo1", "_new", "master", "test.txt")
++		testCreateFileOnProtectedBranch(t, session, "user4", "user2", "repo1", "master", "feature/test", "commit-to-new-branch")
++	})
++}
+ 
 -		// Save new file to master branch
 -		req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
 -			"_csrf":         doc.GetCSRF(),
@@ -1624,41 +1634,6 @@ index f0f71b80d1..b9ed72c196 100644
 -			"content":       "Content",
 -			"commit_choice": "direct",
 -		})
--
--		resp = session.MakeRequest(t, req, http.StatusOK)
--		// Check body for error message
--		assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#34;master&#34;.")
--
--		// remove the protected branch
--		csrf = GetUserCSRFToken(t, session)
--
--		// Change master branch to protected
--		req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/1/delete", map[string]string{
--			"_csrf": csrf,
--		})
--
--		resp = session.MakeRequest(t, req, http.StatusOK)
--
--		res := make(map[string]string)
--		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&res))
--		assert.EqualValues(t, "/user2/repo1/settings/branches", res["redirect"])
--
--		// Check if master branch has been locked successfully
--		flashCookie = session.GetCookie(gitea_context.CookieNameFlash)
--		assert.NotNil(t, flashCookie)
--		assert.EqualValues(t, "error%3DRemoving%2Bbranch%2Bprotection%2Brule%2B%25221%2522%2Bfailed.", flashCookie.Value)
-+		testCreateFileOnProtectedBranch(t, session, "user2", "user2", "repo1", "master", "master", "direct")
- 	})
- }
- 
-+func TestCreateFileOnProtectedBranchFork(t *testing.T) {
-+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-+		session := loginUser(t, "user4")
-+		forkToEdit(t, session, "user2", "repo1", "_new", "master", "test.txt")
-+		testCreateFileOnProtectedBranch(t, session, "user4", "user2", "repo1", "master", "feature/test", "commit-to-new-branch")
-+	})
-+}
-+
 +func testCreateFileOnProtectedBranch(t *testing.T, session *TestSession, user, owner, repo, branch, targetBranch, commitChoice string) {
 +	csrf := GetUserCSRFToken(t, session)
 +	// Change target branch to protected
@@ -1672,15 +1647,24 @@ index f0f71b80d1..b9ed72c196 100644
 +	flashCookie := session.GetCookie(gitea_context.CookieNameFlash)
 +	assert.NotNil(t, flashCookie)
 +	assert.Equal(t, "success%3DBranch%2Bprotection%2Bfor%2Brule%2B%2522"+strings.ReplaceAll(targetBranch, "/", "%252F")+"%2522%2Bhas%2Bbeen%2Bupdated.", flashCookie.Value)
-+
+ 
+-		resp = session.MakeRequest(t, req, http.StatusOK)
+-		// Check body for error message
+-		assert.Contains(t, resp.Body.String(), "Cannot commit to protected branch &#34;master&#34;.")
 +	// Request editor page
 +	req = NewRequest(t, "GET", path.Join(owner, repo, "_new", branch))
 +	resp := session.MakeRequest(t, req, http.StatusOK)
-+
+ 
+-		// remove the protected branch
+-		csrf = GetUserCSRFToken(t, session)
 +	doc := NewHTMLParser(t, resp.Body)
 +	lastCommit := doc.GetInputValueByName("last_commit")
 +	assert.NotEmpty(t, lastCommit)
-+
+ 
+-		// Change master branch to protected
+-		req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/1/delete", map[string]string{
+-			"_csrf": csrf,
+-		})
 +	// Save new file to target branch
 +	req = NewRequestWithValues(t, "POST", path.Join(owner, repo, "_new", branch), map[string]string{
 +		"_csrf":           doc.GetCSRF(),
@@ -1690,18 +1674,26 @@ index f0f71b80d1..b9ed72c196 100644
 +		"commit_choice":   commitChoice,
 +		"new_branch_name": targetBranch,
 +	})
-+
+ 
+-		resp = session.MakeRequest(t, req, http.StatusOK)
 +	resp = session.MakeRequest(t, req, http.StatusOK)
 +	// Check body for error message
 +	assert.Contains(t, resp.Body.String(), fmt.Sprintf("Cannot commit to protected branch &#34;%s&#34;.", targetBranch))
-+
+ 
+-		res := make(map[string]string)
+-		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&res))
+-		assert.EqualValues(t, "/user2/repo1/settings/branches", res["redirect"])
 +	// remove the protected branch
 +	csrf = GetUserCSRFToken(t, session)
-+
+ 
+-		// Check if master branch has been locked successfully
+-		flashCookie = session.GetCookie(gitea_context.CookieNameFlash)
+-		assert.NotNil(t, flashCookie)
+-		assert.EqualValues(t, "error%3DRemoving%2Bbranch%2Bprotection%2Brule%2B%25221%2522%2Bfailed.", flashCookie.Value)
 +	// Change target branch to protected
 +	req = NewRequestWithValues(t, "POST", path.Join(user, repo, "settings", "branches", "1", "delete"), map[string]string{
 +		"_csrf": csrf,
-+	})
+ 	})
 +
 +	resp = session.MakeRequest(t, req, http.StatusOK)
 +
@@ -1713,11 +1705,9 @@ index f0f71b80d1..b9ed72c196 100644
 +	flashCookie = session.GetCookie(gitea_context.CookieNameFlash)
 +	assert.NotNil(t, flashCookie)
 +	assert.Equal(t, "error%3DRemoving%2Bbranch%2Bprotection%2Brule%2B%25221%2522%2Bfailed.", flashCookie.Value)
-+}
-+
+ }
+ 
  func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePath, newContent string) *httptest.ResponseRecorder {
- 	// Get to the 'edit this file' page
- 	req := NewRequest(t, "GET", path.Join(user, repo, "_edit", branch, filePath))
 @@ -133,9 +175,9 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
  	return resp
  }
@@ -2179,5 +2169,5 @@ index 0952263968..a31c5f67f7 100644
  		// 3. validate the webhook is triggered with right event
  		assert.EqualValues(t, "push", trigger)
 -- 
-2.45.2
+2.49.0
 

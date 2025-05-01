@@ -1,7 +1,7 @@
-From f0298ae745baf28da6fa2c7904709547eacaacfa Mon Sep 17 00:00:00 2001
+From ffc6d64f27593ca7bf8c080401a787532f4848eb Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:07:25 +0200
-Subject: [PATCH 11/14] BLENDER: Workaround internal server error comparing
+Subject: [PATCH 11/18] BLENDER: Workaround internal server error comparing
  branches on some repos
 
 https://projects.blender.org/infrastructure/blender-projects-platform/issues/61
@@ -30,5 +30,5 @@ index 16fcdcf4c8..91d61d2158 100644
  	}
  
 -- 
-2.47.1
+2.49.0
 

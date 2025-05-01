@@ -1,7 +1,7 @@
-From 91fecdeb64112cfbf99eea85a9c87739863a476c Mon Sep 17 00:00:00 2001
+From 619f7a041405989c2e1b7fec3cdff6783384f26d Mon Sep 17 00:00:00 2001
 From: Brecht Van Lommel <brecht@blender.org>
 Date: Fri, 10 May 2024 14:04:02 +0200
-Subject: [PATCH 08/14] BLENDER: Remember login for OAuth / Blender ID
+Subject: [PATCH 08/18] BLENDER: Remember login for OAuth / Blender ID
 
 Otherwise for some browsers, users have to login again for every session.
 ---
@@ -41,5 +41,5 @@ index 75f94de0ed..5b58bc6337 100644
  		ctx.Csrf.PrepareForSessionUser(ctx)
  
 -- 
-2.47.1
+2.49.0
 
