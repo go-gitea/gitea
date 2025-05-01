@@ -14,12 +14,17 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/nektos/act/pkg/model"
 )
+
+type GiteaContext map[string]any
 
 // GenerateGiteaContext generate the gitea context without token and gitea_runtime_token
 // job can be nil when generating a context for parsing workflow-level expressions
-func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.ActionRunJob) map[string]any {
+func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.ActionRunJob) GiteaContext {
 	event := map[string]any{}
 	_ = json.Unmarshal([]byte(run.EventPayload), &event)
 
@@ -42,7 +47,7 @@ func GenerateGiteaContext(run *actions_model.ActionRun, job *actions_model.Actio
 
 	refName := git.RefName(ref)
 
-	gitContext := map[string]any{
+	gitContext := GiteaContext{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 		"action":            "",                                       // string, The name of the action currently running, or the id of a step. GitHub removes special characters, and uses the name __run when the current step runs a script without an id. If you use the same action more than once in the same job, the name will include a suffix with the sequence number with underscore before it. For example, the first script you run will have the name __run, and the second script will be named __run_2. Similarly, the second invocation of actions/checkout will be actionscheckout2.
 		"action_path":       "",                                       // string, The path where an action is located. This property is only supported in composite actions. You can use this path to access files located in the same repository as the action.
@@ -159,4 +164,20 @@ func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
 		}
 	}
 	return ret
+}
+
+func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
+	ghCtx := &model.GithubContext{}
+
+	gitCtxRaw, err := json.Marshal(g)
+	if err != nil {
+		log.Error("ToGitHubContext.json.Marshal: %v", err)
+	}
+
+	err = json.Unmarshal(gitCtxRaw, ghCtx)
+	if err != nil {
+		log.Error("ToGitHubContext.json.Unmarshal: %v", err)
+	}
+
+	return ghCtx
 }
