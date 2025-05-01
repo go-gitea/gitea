@@ -11,8 +11,8 @@ import (
 	"strings"
 	"unicode"
 
-	"code.gitea.io/gitea/modules/globallock"
 	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/routers/api/packages/helper"
@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	packageNameRegex                        = regexp.MustCompile(`\A[-_+.\w]+\z`)
-	filenameRegex                           = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
+	packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
+	filenameRegex    = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -221,7 +221,6 @@ func LockPackage(ctx *context.Context) {
 		return
 	}
 
-	//log.Error("pv: %+v", pv)
 	ok, _, err := globallock.TryLock(ctx, fmt.Sprintf("%s/%s", packageName, pv.LowerVersion))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -248,7 +247,6 @@ func UnlockPackage(ctx *context.Context) {
 		return
 	}
 
-	//log.Error("pv: %+v", pv)
 	_ = globallock.Unlock(ctx, fmt.Sprintf("%s/%s", packageName, pv.LowerVersion))
 
 	ctx.Status(http.StatusOK)
