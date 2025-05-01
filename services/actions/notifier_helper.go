@@ -316,10 +316,6 @@ func handleWorkflows(
 			Status:            actions_model.StatusWaiting,
 		}
 
-		if runName, err := parseRunName(run, dwf); err == nil {
-			run.Title = runName
-		}
-
 		need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
 		if err != nil {
 			log.Error("check if need approval for repo %d with user %d: %v", input.Repo.ID, input.Doer.ID, err)
@@ -339,10 +335,16 @@ func handleWorkflows(
 			continue
 		}
 
-		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars))
+		giteaCtx := GenerateGiteaContext(run, nil)
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
+		}
+
+		if len(jobs) > 0 && jobs[0].RunName != "" {
+			run.Title = jobs[0].RunName
 		}
 
 		// cancel running jobs if the event is push or pull_request_sync
@@ -527,8 +529,22 @@ func handleSchedules(
 			Content:       dwf.Content,
 		}
 
-		if runName, err := parseRunName(run.ToActionRun(), dwf); err == nil {
-			run.Title = runName
+		vars, err := actions_model.GetVariablesOfRun(ctx, run.ToActionRun())
+		if err != nil {
+			log.Error("GetVariablesOfRun: %v", err)
+			continue
+		}
+
+		giteaCtx := GenerateGiteaContext(run.ToActionRun(), nil)
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
+		if err != nil {
+			log.Error("jobparser.Parse: %v", err)
+			continue
+		}
+
+		if len(jobs) > 0 && jobs[0].RunName != "" {
+			run.Title = jobs[0].RunName
 		}
 
 		crons = append(crons, run)
@@ -568,29 +584,4 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	notifyInput := newNotifyInputForSchedules(repo)
 
 	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
-}
-
-func parseRunName(r *actions_model.ActionRun, w *actions_module.DetectedWorkflow) (string, error) {
-	ghCtx := &model.GithubContext{}
-	gitCtx := GenerateGiteaContext(r, nil)
-
-	gitCtxRaw, err := json.Marshal(gitCtx)
-	if err != nil {
-		log.Error("NewInterpolatorForRun: %v", err)
-		return "", err
-	}
-
-	err = json.Unmarshal(gitCtxRaw, ghCtx)
-	if err != nil {
-		log.Error("NewInterpolatorForRun: %v", err)
-		return "", err
-	}
-
-	title, err := jobparser.ParseRunName(w.Content, jobparser.WithGitContext(ghCtx))
-	if err != nil {
-		// stay silent, run-name was not provided.
-		return "", err
-	}
-
-	return title, nil
 }
