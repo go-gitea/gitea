@@ -143,8 +143,6 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 	// Assume file is not editable first.
 	if fInfo.isLFSFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-	} else if !isRepresentableAsText {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
 	// read all needed attributes which will be used later
@@ -243,21 +241,6 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileContent"] = fileContent
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
-		if !fInfo.isLFSFile {
-			if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
-				if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
-					ctx.Data["CanEditFile"] = false
-					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-				} else {
-					ctx.Data["CanEditFile"] = true
-					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-				}
-			} else if !ctx.Repo.RefFullName.IsBranch() {
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-			} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
-			}
-		}
 
 	case fInfo.st.IsPDF():
 		ctx.Data["IsPDFFile"] = true
@@ -304,6 +287,22 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 			// There are Image formats go can't decode
 			// Instead of throwing an error in that case, we show the size only when we can decode
 			ctx.Data["ImageSize"] = fmt.Sprintf("%dx%dpx", img.Width, img.Height)
+		}
+	}
+
+	if !fInfo.isLFSFile {
+		if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
+			if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
+				ctx.Data["CanEditFile"] = false
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+			} else {
+				ctx.Data["CanEditFile"] = true
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+			}
+		} else if !ctx.Repo.RefFullName.IsBranch() {
+			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
+		} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
+			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 		}
 	}
 

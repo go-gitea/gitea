@@ -146,11 +146,6 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		blob := entry.Blob()
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
-			ctx.NotFound(err)
-			return
-		}
-
 		dataRc, err := blob.DataAsync()
 		if err != nil {
 			ctx.NotFound(err)
@@ -159,6 +154,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		defer dataRc.Close()
 
+		ctx.Data["IsFileTooLarge"] = blob.Size() >= setting.UI.MaxDisplayFileSize
 		ctx.Data["FileSize"] = blob.Size()
 
 		buf := make([]byte, 1024)
@@ -166,10 +162,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		buf = buf[:n]
 
 		// Only some file types are editable online as text.
-		if !typesniffer.DetectContentType(buf).IsRepresentableAsText() {
-			ctx.NotFound(nil)
-			return
-		}
+		ctx.Data["IsFileText"] = typesniffer.DetectContentType(buf).IsRepresentableAsText()
 
 		d, _ := io.ReadAll(dataRc)
 
