@@ -414,7 +414,7 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 
 	defaultReason := asymkey_model.NoKeyFound
 
-	if setting.Repository.Signing.SigningFormat == "ssh" && setting.Repository.Signing.SigningKey != "" && setting.Repository.Signing.SigningKey != "default" && setting.Repository.Signing.SigningKey != "none" {
+	if setting.Repository.Signing.SigningFormat == git.KeyTypeSSH && setting.Repository.Signing.SigningKey != "" && setting.Repository.Signing.SigningKey != "default" && setting.Repository.Signing.SigningKey != "none" {
 		// OK we should try the default key
 		gpgSettings := git.GPGSettings{
 			Sign:   true,
@@ -442,7 +442,7 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 	}
 
 	defaultGPGSettings, err := c.GetRepositoryDefaultPublicGPGKey(false)
-	if defaultGPGSettings.Format == "ssh" {
+	if defaultGPGSettings.Format == git.KeyTypeSSH {
 		if err != nil {
 			log.Error("Error getting default public gpg key: %v", err)
 		} else if defaultGPGSettings == nil {

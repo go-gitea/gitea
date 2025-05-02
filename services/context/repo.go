@@ -14,7 +14,6 @@ import (
 	"path"
 	"strings"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -102,7 +101,7 @@ type CanCommitToBranchResults struct {
 	UserCanPush       bool
 	RequireSigned     bool
 	WillSign          bool
-	SigningKey        asymkey_model.SigningKey
+	SigningKey        git.SigningKey
 	WontSignReason    string
 }
 

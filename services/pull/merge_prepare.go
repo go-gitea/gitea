@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -28,7 +27,7 @@ type mergeContext struct {
 	doer      *user_model.User
 	sig       *git.Signature
 	committer *git.Signature
-	signKey   asymkey_model.SigningKey // empty for no-sign, non-empty to sign
+	signKey   git.SigningKey // empty for no-sign, non-empty to sign
 	env       []string
 }
 

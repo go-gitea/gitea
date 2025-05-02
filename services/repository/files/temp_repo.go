@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -294,7 +293,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	}
 
 	var sign bool
-	var key asymkey_model.SigningKey
+	var key git.SigningKey
 	var signer *git.Signature
 	if opts.ParentCommitID != "" {
 		sign, key, signer, _ = asymkey_service.SignCRUDAction(ctx, t.repo.RepoPath(), opts.DoerUser, t.basePath, opts.ParentCommitID)

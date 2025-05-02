@@ -86,9 +86,9 @@ func IsErrWontSign(err error) bool {
 }
 
 // SigningKey returns the KeyID and git Signature for the repo
-func SigningKey(ctx context.Context, repoPath string) (asymkey_model.SigningKey, *git.Signature) {
+func SigningKey(ctx context.Context, repoPath string) (git.SigningKey, *git.Signature) {
 	if setting.Repository.Signing.SigningKey == "none" {
-		return asymkey_model.SigningKey{}, nil
+		return git.SigningKey{}, nil
 	}
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
@@ -96,14 +96,14 @@ func SigningKey(ctx context.Context, repoPath string) (asymkey_model.SigningKey,
 		value, _, _ := git.NewCommand("config", "--get", "commit.gpgsign").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 		sign, valid := git.ParseBool(strings.TrimSpace(value))
 		if !sign || !valid {
-			return asymkey_model.SigningKey{}, nil
+			return git.SigningKey{}, nil
 		}
 
-		format, _, _ := git.NewCommand("config", "--get", "gpg.format").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		format, _, _ := git.NewCommand("config", "--default", git.KeyTypeOpenPGP, "--get", "gpg.format").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 		signingKey, _, _ := git.NewCommand("config", "--get", "user.signingkey").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 		signingName, _, _ := git.NewCommand("config", "--get", "user.name").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 		signingEmail, _, _ := git.NewCommand("config", "--get", "user.email").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		return asymkey_model.SigningKey{
+		return git.SigningKey{
 				KeyID:  strings.TrimSpace(signingKey),
 				Format: strings.TrimSpace(format),
 			}, &git.Signature{
@@ -112,7 +112,7 @@ func SigningKey(ctx context.Context, repoPath string) (asymkey_model.SigningKey,
 			}
 	}
 
-	return asymkey_model.SigningKey{
+	return git.SigningKey{
 			KeyID:  setting.Repository.Signing.SigningKey,
 			Format: setting.Repository.Signing.SigningFormat,
 		}, &git.Signature{
@@ -127,7 +127,7 @@ func PublicSigningKey(ctx context.Context, repoPath string) (string, string, err
 	if signingKey.KeyID == "" {
 		return "", signingKey.Format, nil
 	}
-	if signingKey.Format == "ssh" {
+	if signingKey.Format == git.KeyTypeSSH {
 		content, err := os.ReadFile(signingKey.KeyID)
 		if err != nil {
 			log.Error("Unable to read SSH public key file in %s: %s, %v", repoPath, signingKey, err)
@@ -146,18 +146,18 @@ func PublicSigningKey(ctx context.Context, repoPath string) (string, string, err
 }
 
 // SignInitialCommit determines if we should sign the initial commit to this repository
-func SignInitialCommit(ctx context.Context, repoPath string, u *user_model.User) (bool, asymkey_model.SigningKey, *git.Signature, error) {
+func SignInitialCommit(ctx context.Context, repoPath string, u *user_model.User) (bool, git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.InitialCommit)
 	signingKey, sig := SigningKey(ctx, repoPath)
 	if signingKey.KeyID == "" {
-		return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{noKey}
+		return false, git.SigningKey{}, nil, &ErrWontSign{noKey}
 	}
 
 Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
-			return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{never}
+			return false, git.SigningKey{}, nil, &ErrWontSign{never}
 		case always:
 			break Loop
 		case pubkey:
@@ -166,18 +166,18 @@ Loop:
 				IncludeSubKeys: true,
 			})
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if len(keys) == 0 {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{pubkey}
+				return false, git.SigningKey{}, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
 			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if twofaModel == nil {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{twofa}
+				return false, git.SigningKey{}, nil, &ErrWontSign{twofa}
 			}
 		}
 	}
@@ -185,19 +185,19 @@ Loop:
 }
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
-func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_model.User) (bool, asymkey_model.SigningKey, *git.Signature, error) {
+func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_model.User) (bool, git.SigningKey, *git.Signature, error) {
 	repoWikiPath := repo.WikiPath()
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
 	signingKey, sig := SigningKey(ctx, repoWikiPath)
 	if signingKey.KeyID == "" {
-		return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{noKey}
+		return false, git.SigningKey{}, nil, &ErrWontSign{noKey}
 	}
 
 Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
-			return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{never}
+			return false, git.SigningKey{}, nil, &ErrWontSign{never}
 		case always:
 			break Loop
 		case pubkey:
@@ -206,35 +206,35 @@ Loop:
 				IncludeSubKeys: true,
 			})
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if len(keys) == 0 {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{pubkey}
+				return false, git.SigningKey{}, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
 			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if twofaModel == nil {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{twofa}
+				return false, git.SigningKey{}, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
 			gitRepo, err := gitrepo.OpenRepository(ctx, repo.WikiStorageRepo())
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			defer gitRepo.Close()
 			commit, err := gitRepo.GetCommit("HEAD")
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if commit.Signature == nil {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{parentSigned}
+				return false, git.SigningKey{}, nil, &ErrWontSign{parentSigned}
 			}
 			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{parentSigned}
+				return false, git.SigningKey{}, nil, &ErrWontSign{parentSigned}
 			}
 		}
 	}
@@ -242,18 +242,18 @@ Loop:
 }
 
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
-func SignCRUDAction(ctx context.Context, repoPath string, u *user_model.User, tmpBasePath, parentCommit string) (bool, asymkey_model.SigningKey, *git.Signature, error) {
+func SignCRUDAction(ctx context.Context, repoPath string, u *user_model.User, tmpBasePath, parentCommit string) (bool, git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
 	signingKey, sig := SigningKey(ctx, repoPath)
 	if signingKey.KeyID == "" {
-		return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{noKey}
+		return false, git.SigningKey{}, nil, &ErrWontSign{noKey}
 	}
 
 Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
-			return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{never}
+			return false, git.SigningKey{}, nil, &ErrWontSign{never}
 		case always:
 			break Loop
 		case pubkey:
@@ -262,35 +262,35 @@ Loop:
 				IncludeSubKeys: true,
 			})
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if len(keys) == 0 {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{pubkey}
+				return false, git.SigningKey{}, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
 			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if twofaModel == nil {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{twofa}
+				return false, git.SigningKey{}, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
 			gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			defer gitRepo.Close()
 			commit, err := gitRepo.GetCommit(parentCommit)
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if commit.Signature == nil {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{parentSigned}
+				return false, git.SigningKey{}, nil, &ErrWontSign{parentSigned}
 			}
 			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{parentSigned}
+				return false, git.SigningKey{}, nil, &ErrWontSign{parentSigned}
 			}
 		}
 	}
@@ -298,16 +298,16 @@ Loop:
 }
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
-func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, asymkey_model.SigningKey, *git.Signature, error) {
+func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, git.SigningKey, *git.Signature, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
-		return false, asymkey_model.SigningKey{}, nil, err
+		return false, git.SigningKey{}, nil, err
 	}
 	repo := pr.BaseRepo
 
 	signingKey, signer := SigningKey(ctx, repo.RepoPath())
 	if signingKey.KeyID == "" {
-		return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{noKey}
+		return false, git.SigningKey{}, nil, &ErrWontSign{noKey}
 	}
 	rules := signingModeFromStrings(setting.Repository.Signing.Merges)
 
@@ -318,7 +318,7 @@ Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
-			return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{never}
+			return false, git.SigningKey{}, nil, &ErrWontSign{never}
 		case always:
 			break Loop
 		case pubkey:
@@ -327,91 +327,91 @@ Loop:
 				IncludeSubKeys: true,
 			})
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if len(keys) == 0 {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{pubkey}
+				return false, git.SigningKey{}, nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
 			twofaModel, err := auth.GetTwoFactorByUID(ctx, u.ID)
 			if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if twofaModel == nil {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{twofa}
+				return false, git.SigningKey{}, nil, &ErrWontSign{twofa}
 			}
 		case approved:
 			protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, pr.BaseBranch)
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			if protectedBranch == nil {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{approved}
+				return false, git.SigningKey{}, nil, &ErrWontSign{approved}
 			}
 			if issues_model.GetGrantedApprovalsCount(ctx, protectedBranch, pr) < 1 {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{approved}
+				return false, git.SigningKey{}, nil, &ErrWontSign{approved}
 			}
 		case baseSigned:
 			if gitRepo == nil {
 				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
 				if err != nil {
-					return false, asymkey_model.SigningKey{}, nil, err
+					return false, git.SigningKey{}, nil, err
 				}
 				defer gitRepo.Close()
 			}
 			commit, err := gitRepo.GetCommit(baseCommit)
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{baseSigned}
+				return false, git.SigningKey{}, nil, &ErrWontSign{baseSigned}
 			}
 		case headSigned:
 			if gitRepo == nil {
 				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
 				if err != nil {
-					return false, asymkey_model.SigningKey{}, nil, err
+					return false, git.SigningKey{}, nil, err
 				}
 				defer gitRepo.Close()
 			}
 			commit, err := gitRepo.GetCommit(headCommit)
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{headSigned}
+				return false, git.SigningKey{}, nil, &ErrWontSign{headSigned}
 			}
 		case commitsSigned:
 			if gitRepo == nil {
 				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
 				if err != nil {
-					return false, asymkey_model.SigningKey{}, nil, err
+					return false, git.SigningKey{}, nil, err
 				}
 				defer gitRepo.Close()
 			}
 			commit, err := gitRepo.GetCommit(headCommit)
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			verification := ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
-				return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{commitsSigned}
+				return false, git.SigningKey{}, nil, &ErrWontSign{commitsSigned}
 			}
 			// need to work out merge-base
 			mergeBaseCommit, _, err := gitRepo.GetMergeBase("", baseCommit, headCommit)
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			commitList, err := commit.CommitsBeforeUntil(mergeBaseCommit)
 			if err != nil {
-				return false, asymkey_model.SigningKey{}, nil, err
+				return false, git.SigningKey{}, nil, err
 			}
 			for _, commit := range commitList {
 				verification := ParseCommitWithSignature(ctx, commit)
 				if !verification.Verified {
-					return false, asymkey_model.SigningKey{}, nil, &ErrWontSign{commitsSigned}
+					return false, git.SigningKey{}, nil, &ErrWontSign{commitsSigned}
 				}
 			}
 		}
