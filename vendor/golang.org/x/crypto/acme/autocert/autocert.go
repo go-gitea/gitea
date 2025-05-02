@@ -292,6 +292,10 @@ func (m *Manager) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, 
 	}
 
 	// regular domain
+	if err := m.hostPolicy()(ctx, name); err != nil {
+		return nil, err
+	}
+
 	ck := certKey{
 		domain: strings.TrimSuffix(name, "."), // golang.org/issue/18114
 		isRSA:  !supportsECDSA(hello),
@@ -305,9 +309,6 @@ func (m *Manager) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, 
 	}
 
 	// first-time
-	if err := m.hostPolicy()(ctx, name); err != nil {
-		return nil, err
-	}
 	cert, err = m.createCert(ctx, ck)
 	if err != nil {
 		return nil, err

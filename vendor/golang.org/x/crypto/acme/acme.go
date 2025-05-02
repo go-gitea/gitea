@@ -514,7 +514,11 @@ func (c *Client) Accept(ctx context.Context, chal *Challenge) (*Challenge, error
 		return nil, err
 	}
 
-	res, err := c.post(ctx, nil, chal.URI, json.RawMessage("{}"), wantStatus(
+	payload := json.RawMessage("{}")
+	if len(chal.Payload) != 0 {
+		payload = chal.Payload
+	}
+	res, err := c.post(ctx, nil, chal.URI, payload, wantStatus(
 		http.StatusOK,       // according to the spec
 		http.StatusAccepted, // Let's Encrypt: see https://goo.gl/WsJ7VT (acme-divergences.md)
 	))
