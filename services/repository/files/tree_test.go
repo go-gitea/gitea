@@ -71,14 +71,18 @@ func TestGetTreeViewNodes(t *testing.T) {
 	mockIconForFolder := func(id string) template.HTML {
 		return template.HTML(`<svg class="svg git-entry-icon octicon-file-directory-fill" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)
 	}
+	mockOpenIconForFolder := func(id string) template.HTML {
+		return template.HTML(`<svg class="svg git-entry-icon octicon-file-directory-open-fill" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)
+	}
 	treeNodes, err := GetTreeViewNodes(ctx, renderedIconPool, ctx.Repo.Commit, "", "")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
-			EntryName: "docs",
-			EntryMode: "tree",
-			FullPath:  "docs",
-			EntryIcon: mockIconForFolder(`svg-mfi-folder-docs`),
+			EntryName:     "docs",
+			EntryMode:     "tree",
+			FullPath:      "docs",
+			EntryIcon:     mockIconForFolder(`svg-mfi-folder-docs`),
+			EntryIconOpen: mockOpenIconForFolder(`svg-mfi-folder-docs`),
 		},
 	}, treeNodes)
 
@@ -86,10 +90,11 @@ func TestGetTreeViewNodes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
-			EntryName: "docs",
-			EntryMode: "tree",
-			FullPath:  "docs",
-			EntryIcon: mockIconForFolder(`svg-mfi-folder-docs`),
+			EntryName:     "docs",
+			EntryMode:     "tree",
+			FullPath:      "docs",
+			EntryIcon:     mockIconForFolder(`svg-mfi-folder-docs`),
+			EntryIconOpen: mockOpenIconForFolder(`svg-mfi-folder-docs`),
 			Children: []*TreeViewNode{
 				{
 					EntryName: "README.md",

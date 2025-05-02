@@ -5,6 +5,7 @@ package httplib
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"testing"
 
@@ -37,6 +38,42 @@ func TestIsRelativeURL(t *testing.T) {
 	for _, s := range abs {
 		assert.False(t, IsRelativeURL(s), "abs = %q", s)
 	}
+}
+
+func TestGuessCurrentHostURL(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	headersWithProto := http.Header{"X-Forwarded-Proto": {"https"}}
+
+	t.Run("Legacy", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLLegacy)()
+
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
+
+		// legacy: "Host" is not used when there is no "X-Forwarded-Proto" header
+		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
+
+		// if "X-Forwarded-Proto" exists, then use it and "Host" header
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
+	})
+
+	t.Run("Auto", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLAuto)()
+
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
+
+		// auto: always use "Host" header, the scheme is determined by "X-Forwarded-Proto" header, or TLS config if no "X-Forwarded-Proto" header
+		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
+		assert.Equal(t, "http://req-host:3000", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host", TLS: &tls.ConnectionState{}})
+		assert.Equal(t, "https://req-host", GuessCurrentHostURL(ctx))
+
+		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
+	})
 }
 
 func TestMakeAbsoluteURL(t *testing.T) {

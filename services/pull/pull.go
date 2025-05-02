@@ -96,7 +96,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	defer cancel()
 
-	if err := testPatch(ctx, prCtx, pr); err != nil {
+	if err := testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr); err != nil {
 		return err
 	}
 
@@ -314,12 +314,12 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	pr.BaseBranch = targetBranch
 
 	// Refresh patch
-	if err := TestPatch(pr); err != nil {
+	if err := testPullRequestBranchMergeable(pr); err != nil {
 		return err
 	}
 
 	// Update target branch, PR diff and status
-	// This is the same as checkAndUpdateStatus in check service, but also updates base_branch
+	// This is the same as markPullRequestAsMergeable in check service, but also updates base_branch
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
@@ -409,7 +409,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 				continue
 			}
 
-			AddToTaskQueue(ctx, pr)
+			StartPullRequestCheckImmediately(ctx, pr)
 			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID)
 			if err == nil && comment != nil {
 				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
@@ -463,12 +463,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 					}
 
 					if !pr.IsWorkInProgress(ctx) {
-						var reviewNotifiers []*issue_service.ReviewRequestNotifier
-						if opts.IsForcePush {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, pr)
-						} else {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, opts.OldCommitID, opts.NewCommitID)
-						}
+						reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(ctx, pr)
 						if err != nil {
 							log.Error("PullRequestCodeOwnersReview: %v", err)
 						}
@@ -502,7 +497,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
 			}
-			AddToTaskQueue(ctx, pr)
+			StartPullRequestCheckDelayable(ctx, pr)
 		}
 	})
 }

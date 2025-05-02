@@ -557,6 +557,26 @@ func TestActionsArtifactV4Delete(t *testing.T) {
 	var deleteResp actions.DeleteArtifactResponse
 	protojson.Unmarshal(resp.Body.Bytes(), &deleteResp)
 	assert.True(t, deleteResp.Ok)
+
+	// confirm artifact is no longer accessible by GetSignedArtifactURL
+	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/GetSignedArtifactURL", toProtoJSON(&actions.GetSignedArtifactURLRequest{
+		Name:                    "artifact-v4-download",
+		WorkflowRunBackendId:    "792",
+		WorkflowJobRunBackendId: "193",
+	})).
+		AddTokenAuth(token)
+	_ = MakeRequest(t, req, http.StatusNotFound)
+
+	// confirm artifact is no longer enumerateable by ListArtifacts and returns length == 0 without error
+	req = NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
+		NameFilter:              wrapperspb.String("artifact-v4-download"),
+		WorkflowRunBackendId:    "792",
+		WorkflowJobRunBackendId: "193",
+	})).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	var listResp actions.ListArtifactsResponse
+	protojson.Unmarshal(resp.Body.Bytes(), &listResp)
+	assert.Empty(t, listResp.Artifacts)
 }
 
 func TestActionsArtifactV4DeletePublicApi(t *testing.T) {

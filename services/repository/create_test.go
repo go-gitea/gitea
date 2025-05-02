@@ -25,7 +25,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 
 	createdRepo, err := CreateRepositoryDirectly(git.DefaultContext, user2, user2, CreateRepoOptions{
 		Name: "created-repo",
-	})
+	}, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, createdRepo)
 
@@ -44,7 +44,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 
 	createdRepo2, err := CreateRepositoryDirectly(db.DefaultContext, user2, user2, CreateRepoOptions{
 		Name: "created-repo",
-	})
+	}, true)
 	assert.Nil(t, createdRepo2)
 	assert.Error(t, err)
 

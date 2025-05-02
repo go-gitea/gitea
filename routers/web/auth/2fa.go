@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
@@ -87,6 +88,7 @@ func TwoFactorPost(ctx *context.Context) {
 			return
 		}
 
+		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
 		handleSignIn(ctx, u, remember)
 		return
 	}

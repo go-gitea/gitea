@@ -11,11 +11,13 @@ import (
 // AccessToken represents an API access token.
 // swagger:response AccessToken
 type AccessToken struct {
-	ID             int64    `json:"id"`
-	Name           string   `json:"name"`
-	Token          string   `json:"sha1"`
-	TokenLastEight string   `json:"token_last_eight"`
-	Scopes         []string `json:"scopes"`
+	ID             int64     `json:"id"`
+	Name           string    `json:"name"`
+	Token          string    `json:"sha1"`
+	TokenLastEight string    `json:"token_last_eight"`
+	Scopes         []string  `json:"scopes"`
+	Created        time.Time `json:"created_at"`
+	Updated        time.Time `json:"last_used_at"`
 }
 
 // AccessTokenList represents a list of API access token.
@@ -23,9 +25,11 @@ type AccessToken struct {
 type AccessTokenList []*AccessToken
 
 // CreateAccessTokenOption options when create access token
+// swagger:model CreateAccessTokenOption
 type CreateAccessTokenOption struct {
 	// required: true
-	Name   string   `json:"name" binding:"Required"`
+	Name string `json:"name" binding:"Required"`
+	// example: ["all", "read:activitypub","read:issue", "write:misc", "read:notification", "read:organization", "read:package", "read:repository", "read:user"]
 	Scopes []string `json:"scopes"`
 }
 

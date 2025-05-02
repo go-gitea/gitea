@@ -3,6 +3,7 @@ import {showGlobalErrorMessage} from '../bootstrap.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 
 const {appUrl} = window.config;
 
@@ -78,6 +79,10 @@ export function initGlobalDropdown() {
 
 export function initGlobalTabularMenu() {
   fomanticQuery('.ui.menu.tabular:not(.custom) .item').tab();
+}
+
+export function initGlobalAvatarUploader() {
+  registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
 }
 
 // for performance considerations, it only uses performant syntax

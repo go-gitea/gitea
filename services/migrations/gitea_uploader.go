@@ -107,7 +107,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 			IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 			IsMirror:       opts.Mirror,
 			Status:         repo_model.RepositoryBeingMigrated,
-		})
+		}, false)
 	} else {
 		r, err = repo_model.GetRepositoryByID(ctx, opts.MigrateToRepoID)
 	}
@@ -556,7 +556,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(ctx, pr)
+		pull.StartPullRequestCheckImmediately(ctx, pr)
 	}
 	return nil
 }

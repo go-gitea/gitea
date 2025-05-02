@@ -522,3 +522,7 @@ func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 
 	return perm.CanRead(unitType)
 }
+
+func PermissionNoAccess() Permission {
+	return Permission{AccessMode: perm_model.AccessModeNone}
+}
