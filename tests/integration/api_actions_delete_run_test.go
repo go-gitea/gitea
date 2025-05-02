@@ -26,18 +26,22 @@ func TestAPIActionsDeleteRun(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	testListArtifacts(t, repo, token, 2)
-	testListTasks(t, repo, token, true)
+	testAPIActionsDeleteRunListArtifacts(t, repo, token, 2)
+	testAPIActionsDeleteRunListTasks(t, repo, token, true)
+	testAPIActionsDeleteRun(t, repo, token, http.StatusNoContent)
 
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795", repo.FullName())).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-
-	testListArtifacts(t, repo, token, 0)
-	testListTasks(t, repo, token, false)
+	testAPIActionsDeleteRunListArtifacts(t, repo, token, 0)
+	testAPIActionsDeleteRunListTasks(t, repo, token, false)
+	testAPIActionsDeleteRun(t, repo, token, http.StatusNotFound)
 }
 
-func testListArtifacts(t *testing.T, repo *repo_model.Repository, token string, artifacts int) {
+func testAPIActionsDeleteRun(t *testing.T, repo *repo_model.Repository, token string, expected int) {
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795", repo.FullName())).
+		AddTokenAuth(token)
+	MakeRequest(t, req, expected)
+}
+
+func testAPIActionsDeleteRunListArtifacts(t *testing.T, repo *repo_model.Repository, token string, artifacts int) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/artifacts", repo.FullName())).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -47,7 +51,7 @@ func testListArtifacts(t *testing.T, repo *repo_model.Repository, token string, 
 	assert.Len(t, listResp.Entries, artifacts)
 }
 
-func testListTasks(t *testing.T, repo *repo_model.Repository, token string, expected bool) {
+func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository, token string, expected bool) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/tasks", repo.FullName())).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
