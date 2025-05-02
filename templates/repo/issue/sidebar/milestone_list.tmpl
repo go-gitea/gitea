@@ -6,8 +6,8 @@
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/milestone?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
 	<input class="combo-value" name="milestone_id" type="hidden" value="{{$data.SelectedMilestoneID}}">
-	<div class="ui dropdown text-flex-grow {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
-		<a class="text muted">
+	<div class="ui dropdown full-width {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
+		<a class="fixed-text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.milestone"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
 		</a>
 		<div class="menu">
@@ -19,7 +19,7 @@
 					<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_milestones"}}">
 				</div>
 				<div class="scrolling menu">
-					<div class="item clear-selection">{{ctx.Locale.Tr "repo.issues.new.clear_milestone"}}</div>
+					<div class="item clear-selection" data-text="">{{ctx.Locale.Tr "repo.issues.new.clear_milestone"}}</div>
 					<div class="divider"></div>
 					{{if $data.OpenMilestones}}
 						<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>

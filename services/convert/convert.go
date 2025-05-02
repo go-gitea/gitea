@@ -197,13 +197,22 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 
 // ToTag convert a git.Tag to an api.Tag
 func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
+	tarballURL := util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz")
+	zipballURL := util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip")
+
+	// Archive URLs are "" if the download feature is disabled
+	if setting.Repository.DisableDownloadSourceArchives {
+		tarballURL = ""
+		zipballURL = ""
+	}
+
 	return &api.Tag{
 		Name:       t.Name,
 		Message:    strings.TrimSpace(t.Message),
 		ID:         t.ID.String(),
 		Commit:     ToCommitMeta(repo, t),
-		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
-		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
+		ZipballURL: zipballURL,
+		TarballURL: tarballURL,
 	}
 }
 
@@ -307,6 +316,7 @@ func ToPublicKey(apiLink string, key *asymkey_model.PublicKey) *api.PublicKey {
 		Title:       key.Name,
 		Fingerprint: key.Fingerprint,
 		Created:     key.CreatedUnix.AsTime(),
+		Updated:     key.UpdatedUnix.AsTime(),
 	}
 }
 
