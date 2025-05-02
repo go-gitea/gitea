@@ -5,6 +5,7 @@
 package convert
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
@@ -34,6 +35,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
+	"github.com/nektos/act/pkg/model"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 )
@@ -423,9 +425,25 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	createdAt := commit.Author.When
 	updatedAt := commit.Author.When
 
+	content, err := actions.GetContentFromEntry(entry)
+	name := entry.Name()
+	if err == nil {
+		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+		if err == nil {
+			// Only use the name when specified in the workflow file
+			if workflow.Name != "" {
+				name = workflow.Name
+			}
+		} else {
+			log.Error("getActionWorkflowEntry: Failed to parse workflow: %v", err)
+		}
+	} else {
+		log.Error("getActionWorkflowEntry: Failed to get content from entry: %v", err)
+	}
+
 	return &api.ActionWorkflow{
 		ID:        entry.Name(),
-		Name:      entry.Name(),
+		Name:      name,
 		Path:      path.Join(folder, entry.Name()),
 		State:     state,
 		CreatedAt: createdAt,
@@ -464,7 +482,7 @@ func GetActionWorkflow(ctx context.Context, gitrepo *git.Repository, repo *repo_
 	}
 
 	for _, entry := range entries {
-		if entry.Name == workflowID {
+		if entry.ID == workflowID {
 			return entry, nil
 		}
 	}

@@ -25,7 +25,9 @@ func TestAPIWorkflowRunRepoApi(t *testing.T) {
 	runnerList := api.ActionWorkflowRunsResponse{}
 	DecodeJSON(t, runnerListResp, &runnerList)
 
-	assert.Len(t, runnerList.Entries, 4)
+	assert.Len(t, runnerList.Entries, 5)
+
+	foundRun := false
 
 	for _, run := range runnerList.Entries {
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", run.URL, "jobs")).AddTokenAuth(token)
@@ -33,40 +35,20 @@ func TestAPIWorkflowRunRepoApi(t *testing.T) {
 		jobList := api.ActionWorkflowJobsResponse{}
 		DecodeJSON(t, jobsResp, &jobList)
 
-		// assert.NotEmpty(t, jobList.Entries)
-		for _, job := range jobList.Entries {
-			req := NewRequest(t, "GET", job.URL).AddTokenAuth(token)
-			jobsResp := MakeRequest(t, req, http.StatusOK)
-			apiJob := api.ActionWorkflowJob{}
-			DecodeJSON(t, jobsResp, &apiJob)
-			assert.Equal(t, job.ID, apiJob.ID)
-			assert.Equal(t, job.RunID, apiJob.RunID)
-			assert.Equal(t, job.Status, apiJob.Status)
-			assert.Equal(t, job.Conclusion, apiJob.Conclusion)
+		if run.ID == 802 {
+			foundRun = true
+			assert.Len(t, jobList.Entries, 1)
+			for _, job := range jobList.Entries {
+				req := NewRequest(t, "GET", job.URL).AddTokenAuth(token)
+				jobsResp := MakeRequest(t, req, http.StatusOK)
+				apiJob := api.ActionWorkflowJob{}
+				DecodeJSON(t, jobsResp, &apiJob)
+				assert.Equal(t, job.ID, apiJob.ID)
+				assert.Equal(t, job.RunID, apiJob.RunID)
+				assert.Equal(t, job.Status, apiJob.Status)
+				assert.Equal(t, job.Conclusion, apiJob.Conclusion)
+			}
 		}
-		// assert.NotEmpty(t, run.ID)
-		// assert.NotEmpty(t, run.Status)
-		// assert.NotEmpty(t, run.Event)
-		// assert.NotEmpty(t, run.WorkflowID)
-		// assert.NotEmpty(t, run.HeadBranch)
-		// assert.NotEmpty(t, run.HeadSHA)
-		// assert.NotEmpty(t, run.CreatedAt)
-		// assert.NotEmpty(t, run.UpdatedAt)
-		// assert.NotEmpty(t, run.URL)
-		// assert.NotEmpty(t, run.HTMLURL)
-		// assert.NotEmpty(t, run.PullRequests)
-		// assert.NotEmpty(t, run.WorkflowURL)
-		// assert.NotEmpty(t, run.HeadCommit)
-		// assert.NotEmpty(t, run.HeadRepository)
-		// assert.NotEmpty(t, run.Repository)
-		// assert.NotEmpty(t, run.HeadRepository)
-		// assert.NotEmpty(t, run.HeadRepository.Owner)
-		// assert.NotEmpty(t, run.HeadRepository.Name)
-		// assert.NotEmpty(t, run.Repository.Owner)
-		// assert.NotEmpty(t, run.Repository.Name)
-		// assert.NotEmpty(t, run.HeadRepository.Owner.Login)
-		// assert.NotEmpty(t, run.HeadRepository.Name)
-		// assert.NotEmpty(t, run.Repository.Owner.Login)
-		// assert.NotEmpty(t, run.Repository.Name)
 	}
+	assert.True(t, foundRun, "Expected to find run with ID 802")
 }
