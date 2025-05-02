@@ -197,7 +197,7 @@ func (c *Command) AddDashesAndList(list ...string) *Command {
 	return c
 }
 
-func (c *Command) AddConfig(key string, value string) *Command {
+func (c *Command) AddConfig(key, value string) *Command {
 	kv := key + "=" + value
 	if !isSafeArgumentValue(kv) {
 		c.brokenArgs = append(c.brokenArgs, key)
