@@ -140,11 +140,6 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
 
-	// Assume file is not editable first.
-	if fInfo.isLFSFile {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-	}
-
 	// read all needed attributes which will be used later
 	// there should be no performance different between reading 2 or 4 here
 	attrsMap, err := attribute.CheckAttributes(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, attribute.CheckAttributeOpts{
@@ -290,7 +285,9 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		}
 	}
 
-	if !fInfo.isLFSFile {
+	if fInfo.isLFSFile {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
+	} else {
 		if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
 			if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 				ctx.Data["CanEditFile"] = false
