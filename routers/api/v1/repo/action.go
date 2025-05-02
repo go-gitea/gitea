@@ -1093,9 +1093,9 @@ func DeleteActionRun(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repoID := ctx.Repo.Repository.ID
-	runIndex := ctx.PathParamInt64("run")
+	runID := ctx.PathParamInt64("run")
 
-	run, err := actions_model.GetRunByIndex(ctx, repoID, runIndex)
+	run, err := actions_model.GetRunByID(ctx, runID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err.Error())
