@@ -134,8 +134,8 @@
   token_last_eight: ffffffff
   log_filename: artifact-test2/2f/47.log
   log_in_storage: 1
-  log_length: 707
-  log_size: 90179
+  log_length: 0
+  log_size: 0
   log_expired: 0
 -
   id: 54
@@ -154,8 +154,8 @@
   token_last_eight: ffffffff
   log_filename: artifact-test2/2f/47.log
   log_in_storage: 1
-  log_length: 707
-  log_size: 90179
+  log_length: 0
+  log_size: 0
   log_expired: 0
 -
   id: 55
@@ -174,8 +174,8 @@
   token_last_eight: ffffffff
   log_filename: artifact-test2/2f/47.log
   log_in_storage: 1
-  log_length: 707
-  log_size: 90179
+  log_length: 0
+  log_size: 0
   log_expired: 0
 -
   id: 56
@@ -194,6 +194,6 @@
   token_last_eight: ffffffff
   log_filename: artifact-test2/2f/47.log
   log_in_storage: 1
-  log_length: 707
-  log_size: 90179
+  log_length: 0
+  log_size: 0
   log_expired: 0
