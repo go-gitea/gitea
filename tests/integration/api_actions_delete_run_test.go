@@ -35,6 +35,19 @@ func TestAPIActionsDeleteRun(t *testing.T) {
 	testAPIActionsDeleteRun(t, repo, token, http.StatusNotFound)
 }
 
+func TestAPIActionsDeleteRunRunning(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793", repo.FullName())).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusBadRequest)
+}
+
 func testAPIActionsDeleteRun(t *testing.T, repo *repo_model.Repository, token string, expected int) {
 	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795", repo.FullName())).
 		AddTokenAuth(token)
