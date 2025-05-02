@@ -100,11 +100,13 @@ var (
 			SigningKey        string
 			SigningName       string
 			SigningEmail      string
+			SigningFormat     string
 			InitialCommit     []string
 			CRUDActions       []string `ini:"CRUD_ACTIONS"`
 			Merges            []string
 			Wiki              []string
 			DefaultTrustModel string
+			TrustedSSHKeys    []string `ini:"TRUSTED_SSH_KEYS"`
 		} `ini:"repository.signing"`
 	}{
 		DetectedCharsetsOrder: []string{
@@ -242,11 +244,13 @@ var (
 			SigningKey        string
 			SigningName       string
 			SigningEmail      string
+			SigningFormat     string
 			InitialCommit     []string
 			CRUDActions       []string `ini:"CRUD_ACTIONS"`
 			Merges            []string
 			Wiki              []string
 			DefaultTrustModel string
+			TrustedSSHKeys    []string `ini:"TRUSTED_SSH_KEYS"`
 		}{
 			SigningKey:        "default",
 			SigningName:       "",
@@ -256,6 +260,7 @@ var (
 			Merges:            []string{"pubkey", "twofa", "basesigned", "commitssigned"},
 			Wiki:              []string{"never"},
 			DefaultTrustModel: "collaborator",
+			TrustedSSHKeys:    []string{},
 		},
 	}
 	RepoRootPath string

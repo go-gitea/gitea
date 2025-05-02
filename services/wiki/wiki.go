@@ -194,7 +194,8 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
 	if sign {
-		commitTreeOpts.KeyID = signingKey
+		commitTreeOpts.KeyID = signingKey.KeyID
+		commitTreeOpts.KeyFormat = signingKey.Format
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
@@ -316,7 +317,8 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
 	if sign {
-		commitTreeOpts.KeyID = signingKey
+		commitTreeOpts.KeyID = signingKey.KeyID
+		commitTreeOpts.KeyFormat = signingKey.Format
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}

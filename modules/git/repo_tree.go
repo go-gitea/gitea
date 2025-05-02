@@ -16,6 +16,7 @@ type CommitTreeOpts struct {
 	Parents    []string
 	Message    string
 	KeyID      string
+	KeyFormat  string
 	NoGPGSign  bool
 	AlwaysSign bool
 }
@@ -44,6 +45,9 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	_, _ = messageBytes.WriteString("\n")
 
 	if opts.KeyID != "" || opts.AlwaysSign {
+		if opts.KeyFormat != "" {
+			cmd.AddConfig("gpg.format", opts.KeyFormat)
+		}
 		cmd.AddOptionFormat("-S%s", opts.KeyID)
 	}
 

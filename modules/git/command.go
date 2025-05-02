@@ -47,6 +47,7 @@ type Command struct {
 	globalArgsLength int
 	brokenArgs       []string
 	cmd              *exec.Cmd // for debug purpose only
+	configArgs       []string
 }
 
 func logArgSanitize(arg string) string {
@@ -196,6 +197,15 @@ func (c *Command) AddDashesAndList(list ...string) *Command {
 	return c
 }
 
+func (c *Command) AddConfig(key string, value string) *Command {
+	kv := key + "=" + value
+	if !isSafeArgumentValue(kv) {
+		c.brokenArgs = append(c.brokenArgs, key)
+	}
+	c.configArgs = append(c.configArgs, "-c", kv)
+	return c
+}
+
 // ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
 // In most cases, it shouldn't be used. Use NewCommand().AddXxx() function instead
 func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
@@ -321,7 +331,7 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 
 	startTime := time.Now()
 
-	cmd := exec.CommandContext(ctx, c.prog, c.args...)
+	cmd := exec.CommandContext(ctx, c.prog, append(append([]string{}, c.configArgs...), c.args...)...)
 	c.cmd = cmd // for debug purpose only
 	if opts.Env == nil {
 		cmd.Env = os.Environ()
