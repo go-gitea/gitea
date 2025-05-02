@@ -1,16 +1,15 @@
-From 0a5d6eeb66cbece3a1df154d126536dfab28b324 Mon Sep 17 00:00:00 2001
+From a4538239196ba18215f569631d4a93e954826c73 Mon Sep 17 00:00:00 2001
 From: Bart van der Braak <bart@blender.org>
-Date: Wed, 30 Apr 2025 18:09:40 +0200
+Date: Fri, 2 May 2025 11:31:25 +0200
 Subject: [PATCH] BLENDER: Add Line Length indicator for cursor
 
 ---
- templates/repo/editor/commit_form.tmpl        | 52 ++++++++++++++++++
- .../js/components/PullRequestMergeForm.vue    | 40 +++++++++++++-
- .../js/features/comp/ComboMarkdownEditor.ts   | 54 +++++++++++++++++--
- 3 files changed, 142 insertions(+), 4 deletions(-)
+ templates/repo/editor/commit_form.tmpl        | 52 +++++++++++++++++++
+ .../js/components/PullRequestMergeForm.vue    | 39 +++++++++++++-
+ 2 files changed, 90 insertions(+), 1 deletion(-)
 
 diff --git a/templates/repo/editor/commit_form.tmpl b/templates/repo/editor/commit_form.tmpl
-index c050324e93..2bb9395645 100644
+index c050324e93..402e270483 100644
 --- a/templates/repo/editor/commit_form.tmpl
 +++ b/templates/repo/editor/commit_form.tmpl
 @@ -13,6 +13,58 @@
@@ -65,7 +64,7 @@ index c050324e93..2bb9395645 100644
 +					textarea.addEventListener('input', updateStatus);
 +					textarea.addEventListener('click', updateStatus);
 +					textarea.addEventListener('keyup', updateStatus);
-+					updateStatus(); // Initial render
++					updateStatus();
 +				})();
 +			</script>
 +
@@ -73,7 +72,7 @@ index c050324e93..2bb9395645 100644
  		<div class="inline field">
  			<div class="ui checkbox">
 diff --git a/web_src/js/components/PullRequestMergeForm.vue b/web_src/js/components/PullRequestMergeForm.vue
-index bafeec6c97..6f8bcaa6cc 100644
+index bafeec6c97..0c51711bc6 100644
 --- a/web_src/js/components/PullRequestMergeForm.vue
 +++ b/web_src/js/components/PullRequestMergeForm.vue
 @@ -26,6 +26,12 @@ const mergeStyleAllowedCount = ref(0);
@@ -89,7 +88,7 @@ index bafeec6c97..6f8bcaa6cc 100644
  const mergeButtonStyleClass = computed(() => {
    if (mergeForm.value.allOverridableChecksOk) return 'primary';
    return autoMergeWhenSucceed.value ? 'primary' : 'red';
-@@ -76,6 +82,23 @@ function switchMergeStyle(name, autoMerge = false) {
+@@ -76,6 +82,22 @@ function switchMergeStyle(name, autoMerge = false) {
  function clearMergeMessage() {
    mergeMessageFieldValue.value = mergeForm.value.defaultMergeMessage;
  }
@@ -105,7 +104,6 @@ index bafeec6c97..6f8bcaa6cc 100644
 +  cursorLine.value = lines.length;
 +  cursorColumn.value = lines[lines.length - 1].length + 1;
 +
-+  // Full content stats
 +  lineCount.value = textarea.value.split('\n').length;
 +  wordCount.value = textarea.value.trim().split(/\s+/).filter(Boolean).length;
 +}
@@ -113,7 +111,7 @@ index bafeec6c97..6f8bcaa6cc 100644
  </script>
  
  <template>
-@@ -105,7 +128,22 @@ function clearMergeMessage() {
+@@ -105,7 +127,22 @@ function clearMergeMessage() {
            <input type="text" name="merge_title_field" v-model="mergeTitleFieldValue">
          </div>
          <div class="field">
@@ -137,93 +135,6 @@ index bafeec6c97..6f8bcaa6cc 100644
            <template v-if="mergeMessageFieldValue !== mergeForm.defaultMergeMessage">
              <button @click.prevent="clearMergeMessage" class="btn tw-mt-1 tw-p-1 interact-fg" :data-tooltip-content="mergeForm.textClearMergeMessageHint">
                {{ mergeForm.textClearMergeMessage }}
-diff --git a/web_src/js/features/comp/ComboMarkdownEditor.ts b/web_src/js/features/comp/ComboMarkdownEditor.ts
-index bba50a1296..3252e68402 100644
---- a/web_src/js/features/comp/ComboMarkdownEditor.ts
-+++ b/web_src/js/features/comp/ComboMarkdownEditor.ts
-@@ -69,6 +69,7 @@ export class ComboMarkdownEditor {
-   easyMDE: any;
-   easyMDEToolbarActions: any;
-   easyMDEToolbarDefault: any;
-+  statusbarEl?: HTMLDivElement;
- 
-   textarea: HTMLTextAreaElement & {_giteaComboMarkdownEditor: any};
-   textareaMarkdownToolbar: HTMLElement;
-@@ -127,10 +128,10 @@ export class ComboMarkdownEditor {
-     this.textareaMarkdownToolbar = this.container.querySelector('markdown-toolbar');
-     this.textareaMarkdownToolbar.setAttribute('for', this.textarea.id);
-     for (const el of this.textareaMarkdownToolbar.querySelectorAll('.markdown-toolbar-button')) {
--      // upstream bug: The role code is never executed in base MarkdownButtonElement https://github.com/github/markdown-toolbar-element/issues/70
-       el.setAttribute('role', 'button');
--      // the editor usually is in a form, so the buttons should have "type=button", avoiding conflicting with the form's submit.
--      if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) el.setAttribute('type', 'button');
-+      if (el.nodeName === 'BUTTON' && !el.getAttribute('type')) {
-+        el.setAttribute('type', 'button');
-+      }
-     }
- 
-     const monospaceButton = this.container.querySelector('.markdown-switch-monospace');
-@@ -153,6 +154,8 @@ export class ComboMarkdownEditor {
-       easymdeButton.addEventListener('click', async (e) => {
-         e.preventDefault();
-         this.userPreferredEditor = 'easymde';
-+        // Clear statusbar if switching to EasyMDE
-+        if (this.statusbarEl) this.statusbarEl.remove();
-         await this.switchToEasyMDE();
-       });
-     }
-@@ -161,6 +164,51 @@ export class ComboMarkdownEditor {
- 
-     initTextareaMarkdown(this.textarea);
-     initTextareaEvents(this.textarea, this.dropzone);
-+
-+    // === Status bar setup ===
-+    const statusbar = document.createElement('div');
-+    statusbar.className = 'editor-statusbar';
-+
-+    const autosave = document.createElement('span');
-+    autosave.className = 'autosave';
-+
-+    const linesEl = document.createElement('span');
-+    linesEl.className = 'lines';
-+
-+    const wordsEl = document.createElement('span');
-+    wordsEl.className = 'words';
-+
-+    const cursorEl = document.createElement('span');
-+    cursorEl.className = 'cursor';
-+
-+    statusbar.appendChild(autosave);
-+    statusbar.appendChild(linesEl);
-+    statusbar.appendChild(wordsEl);
-+    statusbar.appendChild(cursorEl);
-+    this.container.appendChild(statusbar);
-+    this.statusbarEl = statusbar; // So we can remove it when switching to EasyMDE
-+
-+    const updateStatus = () => {
-+      const value = this.textarea.value;
-+      const pos = this.textarea.selectionStart;
-+
-+      const lines = value.substr(0, pos).split('\n');
-+      const line = lines.length;
-+      const column = lines[lines.length - 1].length + 1;
-+
-+      const totalLines = value.split('\n').length;
-+      const totalWords = (value.match(/\b\w+\b/g) || []).length;
-+
-+      linesEl.textContent = totalLines.toString();
-+      wordsEl.textContent = totalWords.toString();
-+      cursorEl.textContent = `${line}:${column}`;
-+    };
-+
-+    this.textarea.addEventListener('input', updateStatus);
-+    this.textarea.addEventListener('click', updateStatus);
-+    this.textarea.addEventListener('keyup', updateStatus);
-+    updateStatus();
-+
-   }
- 
-   async setupDropzone() {
 -- 
 2.49.0
 
