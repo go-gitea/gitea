@@ -4,20 +4,22 @@
 package integration
 
 import (
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	"fmt"
+	"net/http"
+	"net/url"
+	"testing"
+	"time"
+
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/routers/web/repo/actions"
-	"fmt"
+
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"net/http"
-	"net/url"
-	"testing"
-	"time"
 )
 
 func TestActionsDeleteRun(t *testing.T) {
