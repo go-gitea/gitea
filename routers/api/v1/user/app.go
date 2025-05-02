@@ -62,6 +62,8 @@ func ListAccessTokens(ctx *context.APIContext) {
 			Name:           tokens[i].Name,
 			TokenLastEight: tokens[i].TokenLastEight,
 			Scopes:         tokens[i].Scope.StringSlice(),
+			Created:        tokens[i].CreatedUnix.AsTime(),
+			Updated:        tokens[i].UpdatedUnix.AsTime(),
 		}
 	}
 
