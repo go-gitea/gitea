@@ -164,14 +164,18 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		// Only some file types are editable online as text.
 		ctx.Data["IsFileText"] = typesniffer.DetectContentType(buf).IsRepresentableAsText()
 
-		d, _ := io.ReadAll(dataRc)
-
-		buf = append(buf, d...)
-		if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
-			log.Error("ToUTF8: %v", err)
-			ctx.Data["FileContent"] = string(buf)
+		if blob.Size() >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["IsFileTooLarge"] = true
 		} else {
-			ctx.Data["FileContent"] = content
+			d, _ := io.ReadAll(dataRc)
+
+			buf = append(buf, d...)
+			if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
+				log.Error("ToUTF8: %v", err)
+				ctx.Data["FileContent"] = string(buf)
+			} else {
+				ctx.Data["FileContent"] = content
+			}
 		}
 	} else {
 		// Append filename from query, or empty string to allow username the new file.
