@@ -4,6 +4,7 @@
 package misc
 
 import (
+	"errors"
 	"fmt"
 
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -56,7 +57,7 @@ func SigningKey(ctx *context.APIContext) {
 		return
 	}
 	if format == "ssh" {
-		ctx.APIErrorNotFound(fmt.Errorf("SSH keys are used for signing, not GPG"))
+		ctx.APIErrorNotFound(errors.New("SSH keys are used for signing, not GPG"))
 		return
 	}
 	_, err = ctx.Write([]byte(content))
@@ -111,7 +112,7 @@ func SigningKeySSH(ctx *context.APIContext) {
 		return
 	}
 	if format != "ssh" {
-		ctx.APIErrorNotFound(fmt.Errorf("GPG keys are used for signing, not SSH"))
+		ctx.APIErrorNotFound(errors.New("GPG keys are used for signing, not SSH"))
 		return
 	}
 	_, err = ctx.Write([]byte(content))
