@@ -232,10 +232,11 @@ func (shortRelease) TableName() string {
 // repositories like https://github.com/vim/vim (with over 13000 tags).
 func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
-	tags, numTags, err := gitRepo.GetTagInfos(0, 0)
+	tags, _, err := gitRepo.GetTagInfos(0, 0)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
+	var added, deleted, updated int
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		dbReleases, err := db.Find[shortRelease](ctx, repo_model.FindReleasesOptions{
 			RepoID:        repo.ID,
@@ -256,9 +257,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 				TagName:      tag.Name,
 				LowerTagName: strings.ToLower(tag.Name),
 				Sha1:         tag.Object.String(),
-				// NOTE: ignored, since NumCommits are unused
-				// for pull-mirrors (only relevant when
-				// displaying releases, IsTag: false)
+				// NOTE: ignored, The NumCommits value is calculated and cached on demand when the UI requires it.
 				NumCommits:  -1,
 				CreatedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
 				IsTag:       true,
@@ -287,13 +286,14 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 		}
+		added, deleted, updated = len(deletes), len(updates), len(inserts)
 		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("unable to rebuild release table for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
 
-	log.Trace("pullMirrorReleaseSync: done rebuilding %d releases", numTags)
+	log.Trace("SyncReleasesWithTags: %d tags added, %d tags deleted, %d tags updated", added, deleted, updated)
 	return nil
 }
 
