@@ -35,9 +35,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
-	"github.com/nektos/act/pkg/model"
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	"github.com/nektos/act/pkg/model"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
