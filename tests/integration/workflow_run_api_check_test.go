@@ -18,24 +18,25 @@ import (
 
 func TestAPIWorkflowRun(t *testing.T) {
 	t.Run("AdminRunner", func(t *testing.T) {
-		testAPIWorkflowRunBasic(t, "/api/v1/admin/actions/runs", 6, "User1", 802, auth_model.AccessTokenScopeReadAdmin, auth_model.AccessTokenScopeReadRepository)
+		testAPIWorkflowRunBasic(t, "/api/v1/admin/actions", 6, "User1", 802, auth_model.AccessTokenScopeReadAdmin, auth_model.AccessTokenScopeReadRepository)
 	})
 	t.Run("UserRunner", func(t *testing.T) {
-		testAPIWorkflowRunBasic(t, "/api/v1/user/actions/runs", 1, "User2", 803, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+		testAPIWorkflowRunBasic(t, "/api/v1/user/actions", 1, "User2", 803, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
 	})
 	t.Run("OrgRuns", func(t *testing.T) {
-		testAPIWorkflowRunBasic(t, "/api/v1/orgs/org3/actions/runs", 1, "User1", 802, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository)
+		testAPIWorkflowRunBasic(t, "/api/v1/orgs/org3/actions", 1, "User1", 802, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository)
 	})
 	t.Run("RepoRuns", func(t *testing.T) {
-		testAPIWorkflowRunBasic(t, "/api/v1/repos/org3/repo5/actions/runs", 1, "User2", 802, auth_model.AccessTokenScopeReadRepository)
+		testAPIWorkflowRunBasic(t, "/api/v1/repos/org3/repo5/actions", 1, "User2", 802, auth_model.AccessTokenScopeReadRepository)
 	})
 }
 
-func testAPIWorkflowRunBasic(t *testing.T, runAPIURL string, itemCount int, userUsername string, runID int64, scope ...auth_model.AccessTokenScope) {
+func testAPIWorkflowRunBasic(t *testing.T, apiRootURL string, itemCount int, userUsername string, runID int64, scope ...auth_model.AccessTokenScope) {
 	defer tests.PrepareTestEnv(t)()
 	token := getUserToken(t, userUsername, scope...)
 
-	req := NewRequest(t, "GET", runAPIURL).AddTokenAuth(token)
+	apiRunsURL := fmt.Sprintf("%s/%s", apiRootURL, "runs")
+	req := NewRequest(t, "GET", apiRunsURL).AddTokenAuth(token)
 	runnerListResp := MakeRequest(t, req, http.StatusOK)
 	runnerList := api.ActionWorkflowRunsResponse{}
 	DecodeJSON(t, runnerListResp, &runnerList)
@@ -45,10 +46,11 @@ func testAPIWorkflowRunBasic(t *testing.T, runAPIURL string, itemCount int, user
 	foundRun := false
 
 	for _, run := range runnerList.Entries {
-		verifyWorkflowRunCanbeFoundWithStatusFilter(t, runAPIURL, token, run.ID, "", run.Status, "", "")
-		verifyWorkflowRunCanbeFoundWithStatusFilter(t, runAPIURL, token, run.ID, run.Conclusion, "", "", "")
-		verifyWorkflowRunCanbeFoundWithStatusFilter(t, runAPIURL, token, run.ID, "", "", "", run.HeadBranch)
-		verifyWorkflowRunCanbeFoundWithStatusFilter(t, runAPIURL, token, run.ID, "", "", run.Event, "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", run.Status, "", "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, run.Conclusion, "", "", "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", "", run.HeadBranch, "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", run.Event, "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", "", "", run.TriggerActor.UserName)
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", run.URL, "jobs")).AddTokenAuth(token)
 		jobsResp := MakeRequest(t, req, http.StatusOK)
@@ -59,8 +61,12 @@ func testAPIWorkflowRunBasic(t *testing.T, runAPIURL string, itemCount int, user
 			foundRun = true
 			assert.Len(t, jobList.Entries, 1)
 			for _, job := range jobList.Entries {
+				// Check the jobs list of the run
 				verifyWorkflowJobCanbeFoundWithStatusFilter(t, fmt.Sprintf("%s/%s", run.URL, "jobs"), token, job.ID, "", job.Status)
 				verifyWorkflowJobCanbeFoundWithStatusFilter(t, fmt.Sprintf("%s/%s", run.URL, "jobs"), token, job.ID, job.Conclusion, "")
+				// Check the run independent job list
+				verifyWorkflowJobCanbeFoundWithStatusFilter(t, fmt.Sprintf("%s/%s", apiRootURL, "jobs"), token, job.ID, "", job.Status)
+				verifyWorkflowJobCanbeFoundWithStatusFilter(t, fmt.Sprintf("%s/%s", apiRootURL, "jobs"), token, job.ID, job.Conclusion, "")
 
 				req := NewRequest(t, "GET", job.URL).AddTokenAuth(token)
 				jobsResp := MakeRequest(t, req, http.StatusOK)
@@ -76,7 +82,7 @@ func testAPIWorkflowRunBasic(t *testing.T, runAPIURL string, itemCount int, user
 	assert.True(t, foundRun, "Expected to find run with ID %d", runID)
 }
 
-func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token string, id int64, conclusion, status, event, branch string) {
+func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token string, id int64, conclusion, status, event, branch, actor string) {
 	filter := url.Values{}
 	if conclusion != "" {
 		filter.Add("status", conclusion)
@@ -89,6 +95,9 @@ func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token 
 	}
 	if branch != "" {
 		filter.Set("branch", branch)
+	}
+	if actor != "" {
+		filter.Set("actor", actor)
 	}
 	req := NewRequest(t, "GET", runAPIURL+"?"+filter.Encode()).AddTokenAuth(token)
 	runResp := MakeRequest(t, req, http.StatusOK)
@@ -108,6 +117,9 @@ func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token 
 		}
 		if branch != "" {
 			assert.Equal(t, branch, run.HeadBranch)
+		}
+		if actor != "" {
+			assert.Equal(t, actor, run.Actor.UserName)
 		}
 		found = found || run.ID == id
 	}

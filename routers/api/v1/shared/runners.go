@@ -167,7 +167,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 		if isRepoLevel {
 			repository = ctx.Repo.Repository
 		} else {
-			repository, err = repo_model.GetRepositoryByID(ctx, repoID)
+			repository, err = repo_model.GetRepositoryByID(ctx, jobs[i].RepoID)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return

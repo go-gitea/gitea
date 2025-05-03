@@ -98,6 +98,8 @@ type ActionWorkflowRun struct {
 	HeadSha        string      `json:"head_sha"`
 	HeadBranch     string      `json:"head_branch,omitempty"`
 	Status         string      `json:"status"`
+	Actor          *User       `json:"actor,omitempty"`
+	TriggerActor   *User       `json:"trigger_actor,omitempty"`
 	Repository     *Repository `json:"repository,omitempty"`
 	HeadRepository *Repository `json:"head_repository,omitempty"`
 	Conclusion     string      `json:"conclusion,omitempty"`

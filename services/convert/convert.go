@@ -248,7 +248,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 }
 
 func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflowRun, error) {
-	err := run.LoadRepo(ctx)
+	err := run.LoadAttributes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -268,6 +268,9 @@ func ToActionWorkflowRun(ctx context.Context, repo *repo_model.Repository, run *
 		Conclusion:   conclusion,
 		Path:         fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
 		Repository:   ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		TriggerActor: ToUser(ctx, run.TriggerUser, nil),
+		// We do not have a way to get a different User for the actor than the trigger user
+		Actor: ToUser(ctx, run.TriggerUser, nil),
 	}, nil
 }
 
