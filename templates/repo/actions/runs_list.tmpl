@@ -36,6 +36,13 @@
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
 				</div>
+				<button class="ui btn interact-bg link-action tw-p-2"
+					data-url="{{$.Link}}/{{.Index}}/delete"
+					data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"
+					data-tooltip-content="{{ctx.Locale.Tr "actions.runs.delete"}}"
+				>
+					{{svg "octicon-trash"}}
+				</button>
 			</div>
 		</div>
 	{{end}}
