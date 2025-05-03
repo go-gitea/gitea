@@ -107,13 +107,13 @@ type ActionWorkflowRun struct {
 	CompletedAt time.Time `json:"completed_at,omitempty"`
 }
 
-// ActionArtifactsResponse returns ActionArtifacts
+// ActionWorkflowRunsResponse returns ActionWorkflowRuns
 type ActionWorkflowRunsResponse struct {
 	Entries    []*ActionWorkflowRun `json:"workflow_runs"`
 	TotalCount int64                `json:"total_count"`
 }
 
-// ActionArtifactsResponse returns ActionArtifacts
+// ActionWorkflowJobsResponse returns ActionWorkflowJobs
 type ActionWorkflowJobsResponse struct {
 	Entries    []*ActionWorkflowJob `json:"jobs"`
 	TotalCount int64                `json:"total_count"`

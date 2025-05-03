@@ -670,7 +670,7 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/JobList"
+	//     "$ref": "#/responses/WorkflowJobsList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -1094,7 +1094,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Artifact"
+	//     "$ref": "#/responses/WorkflowRun"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -1140,7 +1140,7 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/JobList"
+	//     "$ref": "#/responses/WorkflowJobsList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -1178,7 +1178,7 @@ func GetWorkflowJob(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Job"
+	//     "$ref": "#/responses/WorkflowJob"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":

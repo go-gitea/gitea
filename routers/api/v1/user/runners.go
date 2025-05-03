@@ -125,6 +125,6 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/ActionWorkflowJobsResponse"
+	//     "$ref": "#/responses/WorkflowJobsList"
 	shared.ListJobs(ctx, ctx.Doer.ID, 0, 0)
 }

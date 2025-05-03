@@ -87,7 +87,7 @@
         "operationId": "listAdminWorkflowJobs",
         "responses": {
           "200": {
-            "$ref": "#/responses/JobList"
+            "$ref": "#/responses/WorkflowJobsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -212,7 +212,7 @@
         "operationId": "listAdminWorkflowRuns",
         "responses": {
           "200": {
-            "$ref": "#/responses/RunList"
+            "$ref": "#/responses/WorkflowRunsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4635,7 +4635,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/JobList"
+            "$ref": "#/responses/WorkflowJobsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4681,7 +4681,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Job"
+            "$ref": "#/responses/WorkflowJob"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5023,7 +5023,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Artifact"
+            "$ref": "#/responses/WorkflowRun"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5121,7 +5121,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/JobList"
+            "$ref": "#/responses/WorkflowJobsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -17801,7 +17801,7 @@
         "operationId": "getUserWorkflowJobs",
         "responses": {
           "200": {
-            "$ref": "#/responses/ActionWorkflowJobsResponse"
+            "$ref": "#/responses/WorkflowJobsList"
           }
         }
       }
@@ -20682,6 +20682,117 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActionWorkflowJob": {
+      "description": "ActionWorkflowJob represents a WorkflowJob",
+      "type": "object",
+      "properties": {
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CompletedAt"
+        },
+        "conclusion": {
+          "type": "string",
+          "x-go-name": "Conclusion"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
+        },
+        "head_branch": {
+          "type": "string",
+          "x-go-name": "HeadBranch"
+        },
+        "head_sha": {
+          "type": "string",
+          "x-go-name": "HeadSha"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Labels"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "run_attempt": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunAttempt"
+        },
+        "run_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunID"
+        },
+        "run_url": {
+          "type": "string",
+          "x-go-name": "RunURL"
+        },
+        "runner_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RunnerID"
+        },
+        "runner_name": {
+          "type": "string",
+          "x-go-name": "RunnerName"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionWorkflowStep"
+          },
+          "x-go-name": "Steps"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionWorkflowJobsResponse": {
+      "description": "ActionWorkflowJobsResponse returns ActionWorkflowJobs",
+      "type": "object",
+      "properties": {
+        "jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionWorkflowJob"
+          },
+          "x-go-name": "Entries"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ActionWorkflowRun": {
       "description": "ActionWorkflowRun represents a WorkflowRun",
       "type": "object",
@@ -20757,6 +20868,59 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionWorkflowRunsResponse": {
+      "description": "ActionWorkflowRunsResponse returns ActionWorkflowRuns",
+      "type": "object",
+      "properties": {
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        },
+        "workflow_runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionWorkflowRun"
+          },
+          "x-go-name": "Entries"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionWorkflowStep": {
+      "description": "ActionWorkflowStep represents a step of a WorkflowJob",
+      "type": "object",
+      "properties": {
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CompletedAt"
+        },
+        "conclusion": {
+          "type": "string",
+          "x-go-name": "Conclusion"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "number": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Number"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "StartedAt"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -28871,6 +29035,30 @@
         "items": {
           "$ref": "#/definitions/WikiPageMetaData"
         }
+      }
+    },
+    "WorkflowJob": {
+      "description": "WorkflowJob",
+      "schema": {
+        "$ref": "#/definitions/ActionWorkflowJob"
+      }
+    },
+    "WorkflowJobsList": {
+      "description": "WorkflowJobsList",
+      "schema": {
+        "$ref": "#/definitions/ActionWorkflowJobsResponse"
+      }
+    },
+    "WorkflowRun": {
+      "description": "WorkflowRun",
+      "schema": {
+        "$ref": "#/definitions/ActionWorkflowRun"
+      }
+    },
+    "WorkflowRunsList": {
+      "description": "WorkflowRunsList",
+      "schema": {
+        "$ref": "#/definitions/ActionWorkflowRunsResponse"
       }
     },
     "conflict": {

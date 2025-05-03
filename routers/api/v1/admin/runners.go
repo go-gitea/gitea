@@ -112,7 +112,7 @@ func ListWorkflowJobs(ctx *context.APIContext) {
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/JobList"
+	//     "$ref": "#/responses/WorkflowJobsList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -130,7 +130,7 @@ func ListWorkflowRuns(ctx *context.APIContext) {
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/RunList"
+	//     "$ref": "#/responses/WorkflowRunsList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
