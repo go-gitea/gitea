@@ -112,7 +112,7 @@ func ListWorkflowRuns(ctx *context.APIContext) {
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/ActionWorkflowRunsResponse"
+	//     "$ref": "#/responses/WorkflowRunsList"
 	shared.ListRuns(ctx, ctx.Doer.ID, 0)
 }
 
