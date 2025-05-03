@@ -102,3 +102,39 @@ func DeleteRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
 }
+
+// ListWorkflowJobs Lists all jobs
+func ListWorkflowJobs(ctx *context.APIContext) {
+	// swagger:operation GET /admin/actions/jobs admin listAdminWorkflowJobs
+	// ---
+	// summary: Lists all jobs
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/JobList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	shared.ListJobs(ctx, 0, 0, 0)
+}
+
+// ListWorkflowRuns Lists all runs
+func ListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /admin/actions/runs admin listAdminWorkflowRuns
+	// ---
+	// summary: Lists all runs
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RunList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	shared.ListRuns(ctx, 0, 0)
+}

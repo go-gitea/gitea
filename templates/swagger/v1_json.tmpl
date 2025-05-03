@@ -75,6 +75,29 @@
         }
       }
     },
+    "/admin/actions/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Lists all jobs",
+        "operationId": "listAdminWorkflowJobs",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/JobList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/admin/actions/runners": {
       "get": {
         "produces": [
@@ -167,6 +190,29 @@
         "responses": {
           "204": {
             "description": "runner has been deleted"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/admin/actions/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Lists all runs",
+        "operationId": "listAdminWorkflowRuns",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RunList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -1799,6 +1845,27 @@
         }
       }
     },
+    "/orgs/{org}/actions/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get org-level workflow jobs",
+        "operationId": "getOrgWorkflowJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ]
+      }
+    },
     "/orgs/{org}/actions/runners": {
       "get": {
         "produces": [
@@ -1955,6 +2022,27 @@
             "$ref": "#/responses/notFound"
           }
         }
+      }
+    },
+    "/orgs/{org}/actions/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get org-level workflow runs",
+        "operationId": "getOrgWorkflowRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ]
       }
     },
     "/orgs/{org}/actions/secrets": {
@@ -4519,6 +4607,45 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Lists all jobs for a repository",
+        "operationId": "listWorkflowJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/JobList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/jobs/{job_id}": {
       "get": {
         "produces": [
@@ -4554,7 +4681,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Artifact"
+            "$ref": "#/responses/Job"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -4968,7 +5095,7 @@
           "repository"
         ],
         "summary": "Lists all jobs for a workflow run",
-        "operationId": "getWorkflowJobs",
+        "operationId": "listWorkflowRunJobs",
         "parameters": [
           {
             "type": "string",
@@ -4994,7 +5121,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/ArtifactsList"
+            "$ref": "#/responses/JobList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -17662,6 +17789,23 @@
         }
       }
     },
+    "/user/actions/jobs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get workflow jobs",
+        "operationId": "getUserWorkflowJobs",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActionWorkflowJobsResponse"
+          }
+        }
+      }
+    },
     "/user/actions/runners": {
       "get": {
         "produces": [
@@ -17775,6 +17919,23 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/actions/runs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get workflow runs",
+        "operationId": "getUserWorkflowRuns",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActionWorkflowRunsResponse"
           }
         }
       }

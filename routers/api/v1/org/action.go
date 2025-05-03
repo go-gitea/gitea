@@ -570,6 +570,36 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	shared.DeleteRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
+func (Action) ListWorkflowJobs(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/actions/jobs organization getOrgWorkflowJobs
+	// ---
+	// summary: Get org-level workflow jobs
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	shared.ListJobs(ctx, ctx.Org.Organization.ID, 0, 0)
+}
+
+func (Action) ListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/actions/runs organization getOrgWorkflowRuns
+	// ---
+	// summary: Get org-level workflow runs
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	shared.ListRuns(ctx, ctx.Org.Organization.ID, 0)
+}
+
 var _ actions_service.API = new(Action)
 
 // Action implements actions_service.API

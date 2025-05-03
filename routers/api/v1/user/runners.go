@@ -102,3 +102,29 @@ func DeleteRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, ctx.Doer.ID, 0, ctx.PathParamInt64("runner_id"))
 }
+
+// ListWorkflowRuns lists workflow runs
+func ListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /user/actions/runs user getUserWorkflowRuns
+	// ---
+	// summary: Get workflow runs
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActionWorkflowRunsResponse"
+	shared.ListRuns(ctx, ctx.Doer.ID, 0)
+}
+
+// ListWorkflowJobs lists workflow jobs
+func ListWorkflowJobs(ctx *context.APIContext) {
+	// swagger:operation GET /user/actions/jobs user getUserWorkflowJobs
+	// ---
+	// summary: Get workflow jobs
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActionWorkflowJobsResponse"
+	shared.ListJobs(ctx, ctx.Doer.ID, 0, 0)
+}

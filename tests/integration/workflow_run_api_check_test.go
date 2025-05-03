@@ -15,17 +15,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIWorkflowRunRepoApi(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	userUsername := "user2"
-	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
+func TestAPIWorkflowRun(t *testing.T) {
+	t.Run("AdminRunner", func(t *testing.T) {
+		testAPIWorkflowRunBasic(t, "/api/v1/admin/actions/runs", 6, "User1", 802, auth_model.AccessTokenScopeReadAdmin, auth_model.AccessTokenScopeReadRepository)
+	})
+	t.Run("UserRunner", func(t *testing.T) {
+		testAPIWorkflowRunBasic(t, "/api/v1/user/actions/runs", 1, "User2", 803, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadRepository)
+	})
+	t.Run("OrgRuns", func(t *testing.T) {
+		testAPIWorkflowRunBasic(t, "/api/v1/orgs/org3/actions/runs", 1, "User1", 802, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadRepository)
+	})
+	t.Run("RepoRuns", func(t *testing.T) {
+		testAPIWorkflowRunBasic(t, "/api/v1/repos/org3/repo5/actions/runs", 1, "User2", 802, auth_model.AccessTokenScopeReadRepository)
+	})
+}
 
-	req := NewRequest(t, "GET", "/api/v1/repos/org3/repo5/actions/runs").AddTokenAuth(token)
+func testAPIWorkflowRunBasic(t *testing.T, runAPIURL string, itemCount int, userUsername string, runID int64, scope ...auth_model.AccessTokenScope) {
+	defer tests.PrepareTestEnv(t)()
+	token := getUserToken(t, userUsername, scope...)
+
+	req := NewRequest(t, "GET", runAPIURL).AddTokenAuth(token)
 	runnerListResp := MakeRequest(t, req, http.StatusOK)
 	runnerList := api.ActionWorkflowRunsResponse{}
 	DecodeJSON(t, runnerListResp, &runnerList)
 
-	assert.Len(t, runnerList.Entries, 1)
+	assert.Len(t, runnerList.Entries, itemCount)
 
 	foundRun := false
 
@@ -35,7 +49,7 @@ func TestAPIWorkflowRunRepoApi(t *testing.T) {
 		jobList := api.ActionWorkflowJobsResponse{}
 		DecodeJSON(t, jobsResp, &jobList)
 
-		if run.ID == 802 {
+		if run.ID == runID {
 			foundRun = true
 			assert.Len(t, jobList.Entries, 1)
 			for _, job := range jobList.Entries {

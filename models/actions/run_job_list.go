@@ -85,9 +85,6 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
-	if opts.OwnerID > 0 {
-		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
-	}
 	if opts.CommitSHA != "" {
 		cond = cond.And(builder.Eq{"commit_sha": opts.CommitSHA})
 	}
@@ -98,4 +95,16 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Lt{"updated": opts.UpdatedBefore})
 	}
 	return cond
+}
+
+func (opts FindRunJobOptions) ToJoins() []db.JoinFunc {
+	if opts.OwnerID > 0 {
+		return []db.JoinFunc{
+			func(sess db.Engine) error {
+				sess.Join("INNER", "repository", "repository.id = repo_id AND repository.owner_id = ?", opts.OwnerID)
+				return nil
+			},
+		}
+	}
+	return nil
 }

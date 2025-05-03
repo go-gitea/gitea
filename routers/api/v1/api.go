@@ -942,6 +942,8 @@ func Routes() *web.Router {
 				m.Get("/{runner_id}", reqToken(), reqChecker, act.GetRunner)
 				m.Delete("/{runner_id}", reqToken(), reqChecker, act.DeleteRunner)
 			})
+			m.Get("/runs", reqToken(), reqChecker, act.ListWorkflowRuns)
+			m.Get("/jobs", reqToken(), reqChecker, act.ListWorkflowJobs)
 		})
 	}
 
@@ -1077,6 +1079,9 @@ func Routes() *web.Router {
 					m.Get("/{runner_id}", reqToken(), user.GetRunner)
 					m.Delete("/{runner_id}", reqToken(), user.DeleteRunner)
 				})
+
+				m.Get("/runs", reqToken(), user.ListWorkflowRuns)
+				m.Get("/jobs", reqToken(), user.ListWorkflowJobs)
 			})
 
 			m.Get("/followers", user.ListMyFollowers)
@@ -1281,10 +1286,9 @@ func Routes() *web.Router {
 				m.Group("/actions", func() {
 					m.Get("/tasks", repo.ListActionTasks)
 					m.Group("/runs", func() {
-						m.Get("", repo.GetWorkflowRuns)
 						m.Group("/{run}", func() {
 							m.Get("", repo.GetWorkflowRun)
-							m.Get("/jobs", repo.GetWorkflowJobs)
+							m.Get("/jobs", repo.ListWorkflowRunJobs)
 							m.Get("/artifacts", repo.GetArtifactsOfRun)
 						})
 					})
@@ -1737,11 +1741,15 @@ func Routes() *web.Router {
 					Patch(bind(api.EditHookOption{}), admin.EditHook).
 					Delete(admin.DeleteHook)
 			})
-			m.Group("/actions/runners", func() {
-				m.Get("", admin.ListRunners)
-				m.Post("/registration-token", admin.CreateRegistrationToken)
-				m.Get("/{runner_id}", admin.GetRunner)
-				m.Delete("/{runner_id}", admin.DeleteRunner)
+			m.Group("/actions", func() {
+				m.Group("/runners", func() {
+					m.Get("", admin.ListRunners)
+					m.Post("/registration-token", admin.CreateRegistrationToken)
+					m.Get("/{runner_id}", admin.GetRunner)
+					m.Delete("/{runner_id}", admin.DeleteRunner)
+				})
+				m.Get("/runs", admin.ListWorkflowRuns)
+				m.Get("/jobs", admin.ListWorkflowJobs)
 			})
 			m.Group("/runners", func() {
 				m.Get("/registration-token", admin.GetRegistrationToken)
