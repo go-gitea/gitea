@@ -15,7 +15,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
@@ -57,67 +56,6 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 	defer gitRepo.Close()
 
 	return SyncReleasesWithTags(ctx, repo, gitRepo)
-}
-
-// SyncReleasesWithTags synchronizes release table with repository tags
-func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
-	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
-
-	// optimized procedure for pull-mirrors which saves a lot of time (in
-	// particular for repos with many tags).
-	if repo.IsMirror {
-		return pullMirrorReleaseSync(ctx, repo, gitRepo)
-	}
-
-	existingRelTags := make(container.Set[string])
-	opts := repo_model.FindReleasesOptions{
-		IncludeDrafts: true,
-		IncludeTags:   true,
-		ListOptions:   db.ListOptions{PageSize: 50},
-		RepoID:        repo.ID,
-	}
-	for page := 1; ; page++ {
-		opts.Page = page
-		rels, err := db.Find[repo_model.Release](gitRepo.Ctx, opts)
-		if err != nil {
-			return fmt.Errorf("unable to GetReleasesByRepoID in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
-		}
-		if len(rels) == 0 {
-			break
-		}
-		for _, rel := range rels {
-			if rel.IsDraft {
-				continue
-			}
-			commitID, err := gitRepo.GetTagCommitID(rel.TagName)
-			if err != nil && !git.IsErrNotExist(err) {
-				return fmt.Errorf("unable to GetTagCommitID for %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
-			}
-			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := repo_model.PushUpdateDeleteTag(ctx, repo, rel.TagName); err != nil {
-					return fmt.Errorf("unable to PushUpdateDeleteTag: %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
-				}
-			} else {
-				existingRelTags.Add(strings.ToLower(rel.TagName))
-			}
-		}
-	}
-
-	_, err := gitRepo.WalkReferences(git.ObjectTag, 0, 0, func(sha1, refname string) error {
-		tagName := strings.TrimPrefix(refname, git.TagPrefix)
-		if existingRelTags.Contains(strings.ToLower(tagName)) {
-			return nil
-		}
-
-		if err := PushUpdateAddTag(ctx, repo, gitRepo, tagName, sha1, refname); err != nil {
-			// sometimes, some tags will be sync failed. i.e. https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tag/?h=v2.6.11
-			// this is a tree object, not a tag object which created before git
-			log.Error("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %v", tagName, repo.ID, repo.OwnerName, repo.Name, err)
-		}
-
-		return nil
-	})
-	return err
 }
 
 // PushUpdateAddTag must be called for any push actions to add tag
@@ -286,14 +224,14 @@ func (shortRelease) TableName() string {
 	return "release"
 }
 
-// pullMirrorReleaseSync is a pull-mirror specific tag<->release table
+// SyncReleasesWithTags is a tag<->release table
 // synchronization which overwrites all Releases from the repository tags. This
 // can be relied on since a pull-mirror is always identical to its
-// upstream. Hence, after each sync we want the pull-mirror release set to be
+// upstream. Hence, after each sync we want the release set to be
 // identical to the upstream tag set. This is much more efficient for
 // repositories like https://github.com/vim/vim (with over 13000 tags).
-func pullMirrorReleaseSync(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
-	log.Trace("pullMirrorReleaseSync: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 	tags, numTags, err := gitRepo.GetTagInfos(0, 0)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
