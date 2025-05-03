@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -44,6 +45,11 @@ func testAPIWorkflowRunBasic(t *testing.T, runAPIURL string, itemCount int, user
 	foundRun := false
 
 	for _, run := range runnerList.Entries {
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, runAPIURL, token, run.ID, "", run.Status, "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, runAPIURL, token, run.ID, run.Conclusion, "", "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, runAPIURL, token, run.ID, "", "", "", run.HeadBranch)
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, runAPIURL, token, run.ID, "", "", run.Event, "")
+
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", run.URL, "jobs")).AddTokenAuth(token)
 		jobsResp := MakeRequest(t, req, http.StatusOK)
 		jobList := api.ActionWorkflowJobsResponse{}
@@ -53,6 +59,9 @@ func testAPIWorkflowRunBasic(t *testing.T, runAPIURL string, itemCount int, user
 			foundRun = true
 			assert.Len(t, jobList.Entries, 1)
 			for _, job := range jobList.Entries {
+				verifyWorkflowJobCanbeFoundWithStatusFilter(t, fmt.Sprintf("%s/%s", run.URL, "jobs"), token, job.ID, "", job.Status)
+				verifyWorkflowJobCanbeFoundWithStatusFilter(t, fmt.Sprintf("%s/%s", run.URL, "jobs"), token, job.ID, job.Conclusion, "")
+
 				req := NewRequest(t, "GET", job.URL).AddTokenAuth(token)
 				jobsResp := MakeRequest(t, req, http.StatusOK)
 				apiJob := api.ActionWorkflowJob{}
@@ -64,5 +73,68 @@ func testAPIWorkflowRunBasic(t *testing.T, runAPIURL string, itemCount int, user
 			}
 		}
 	}
-	assert.True(t, foundRun, "Expected to find run with ID 802")
+	assert.True(t, foundRun, "Expected to find run with ID %d", runID)
+}
+
+func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token string, id int64, conclusion, status, event, branch string) {
+	filter := url.Values{}
+	if conclusion != "" {
+		filter.Add("status", conclusion)
+	}
+	if status != "" {
+		filter.Add("status", status)
+	}
+	if event != "" {
+		filter.Set("event", event)
+	}
+	if branch != "" {
+		filter.Set("branch", branch)
+	}
+	req := NewRequest(t, "GET", runAPIURL+"?"+filter.Encode()).AddTokenAuth(token)
+	runResp := MakeRequest(t, req, http.StatusOK)
+	runList := api.ActionWorkflowRunsResponse{}
+	DecodeJSON(t, runResp, &runList)
+
+	found := false
+	for _, run := range runList.Entries {
+		if conclusion != "" {
+			assert.Equal(t, conclusion, run.Conclusion)
+		}
+		if status != "" {
+			assert.Equal(t, status, run.Status)
+		}
+		if event != "" {
+			assert.Equal(t, event, run.Event)
+		}
+		if branch != "" {
+			assert.Equal(t, branch, run.HeadBranch)
+		}
+		found = found || run.ID == id
+	}
+	assert.True(t, found, "Expected to find run with ID %d", id)
+}
+
+func verifyWorkflowJobCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token string, id int64, conclusion, status string) {
+	filter := conclusion
+	if filter == "" {
+		filter = status
+	}
+	if filter == "" {
+		return
+	}
+	req := NewRequest(t, "GET", runAPIURL+"?status="+filter).AddTokenAuth(token)
+	jobListResp := MakeRequest(t, req, http.StatusOK)
+	jobList := api.ActionWorkflowJobsResponse{}
+	DecodeJSON(t, jobListResp, &jobList)
+
+	found := false
+	for _, job := range jobList.Entries {
+		if conclusion != "" {
+			assert.Equal(t, conclusion, job.Conclusion)
+		} else {
+			assert.Equal(t, status, job.Status)
+		}
+		found = found || job.ID == id
+	}
+	assert.True(t, found, "Expected to find job with ID %d", id)
 }

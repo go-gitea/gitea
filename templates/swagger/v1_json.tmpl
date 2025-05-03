@@ -85,6 +85,26 @@
         ],
         "summary": "Lists all jobs",
         "operationId": "listAdminWorkflowJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/WorkflowJobsList"
@@ -210,6 +230,44 @@
         ],
         "summary": "Lists all runs",
         "operationId": "listAdminWorkflowRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workflow event name",
+            "name": "event",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow branch",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggered by user",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/WorkflowRunsList"
@@ -1862,6 +1920,24 @@
             "name": "org",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2052,6 +2128,42 @@
             "name": "org",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow event name",
+            "name": "event",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow branch",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggered by user",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4653,6 +4765,24 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4995,6 +5125,24 @@
             "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggered by user",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5139,6 +5287,24 @@
             "name": "run",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -17821,9 +17987,35 @@
         ],
         "summary": "Get workflow jobs",
         "operationId": "getUserWorkflowJobs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/WorkflowJobsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -17955,9 +18147,53 @@
         ],
         "summary": "Get workflow runs",
         "operationId": "getUserWorkflowRuns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "workflow event name",
+            "name": "event",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow branch",
+            "name": "branch",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggered by user",
+            "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/WorkflowRunsList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }

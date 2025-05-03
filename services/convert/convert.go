@@ -306,6 +306,8 @@ func ToActionsStatus(status actions_model.Status) (string, string) {
 			conclusion = "cancelled"
 		case actions_model.StatusFailure:
 			conclusion = "failure"
+		case actions_model.StatusSkipped:
+			conclusion = "skipped"
 		}
 	}
 	return action, conclusion

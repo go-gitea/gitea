@@ -80,19 +80,19 @@ type FindRunJobOptions struct {
 func (opts FindRunJobOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RunID > 0 {
-		cond = cond.And(builder.Eq{"run_id": opts.RunID})
+		cond = cond.And(builder.Eq{"`action_run_job`.run_id": opts.RunID})
 	}
 	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+		cond = cond.And(builder.Eq{"`action_run_job`.repo_id": opts.RepoID})
 	}
 	if opts.CommitSHA != "" {
-		cond = cond.And(builder.Eq{"commit_sha": opts.CommitSHA})
+		cond = cond.And(builder.Eq{"`action_run_job`.commit_sha": opts.CommitSHA})
 	}
 	if len(opts.Statuses) > 0 {
-		cond = cond.And(builder.In("status", opts.Statuses))
+		cond = cond.And(builder.In("`action_run_job`.status", opts.Statuses))
 	}
 	if opts.UpdatedBefore > 0 {
-		cond = cond.And(builder.Lt{"updated": opts.UpdatedBefore})
+		cond = cond.And(builder.Lt{"`action_run_job`.updated": opts.UpdatedBefore})
 	}
 	return cond
 }

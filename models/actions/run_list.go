@@ -77,25 +77,25 @@ type FindRunOptions struct {
 func (opts FindRunOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+		cond = cond.And(builder.Eq{"`action_run`.repo_id": opts.RepoID})
 	}
 	if opts.WorkflowID != "" {
-		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowID})
+		cond = cond.And(builder.Eq{"`action_run`.workflow_id": opts.WorkflowID})
 	}
 	if opts.TriggerUserID > 0 {
-		cond = cond.And(builder.Eq{"trigger_user_id": opts.TriggerUserID})
+		cond = cond.And(builder.Eq{"`action_run`.trigger_user_id": opts.TriggerUserID})
 	}
 	if opts.Approved {
-		cond = cond.And(builder.Gt{"approved_by": 0})
+		cond = cond.And(builder.Gt{"`action_run`.approved_by": 0})
 	}
 	if len(opts.Status) > 0 {
-		cond = cond.And(builder.In("status", opts.Status))
+		cond = cond.And(builder.In("`action_run`.status", opts.Status))
 	}
 	if opts.Ref != "" {
-		cond = cond.And(builder.Eq{"ref": opts.Ref})
+		cond = cond.And(builder.Eq{"`action_run`.ref": opts.Ref})
 	}
 	if opts.TriggerEvent != "" {
-		cond = cond.And(builder.Eq{"trigger_event": opts.TriggerEvent})
+		cond = cond.And(builder.Eq{"`action_run`.trigger_event": opts.TriggerEvent})
 	}
 	return cond
 }

@@ -5,6 +5,7 @@ package shared
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -132,12 +133,24 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
-	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
+	opts := actions_model.FindRunJobOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
 		RunID:       runID,
 		ListOptions: utils.GetListOptions(ctx),
-	})
+	}
+	if statuses, ok := ctx.Req.URL.Query()["status"]; ok {
+		for _, status := range statuses {
+			values, err := convertToInternal(status)
+			if err != nil {
+				ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+				return
+			}
+			opts.Statuses = append(opts.Statuses, values...)
+		}
+	}
+
+	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -172,22 +185,31 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
-func convertToInternal(s string) actions_model.Status {
+func convertToInternal(s string) ([]actions_model.Status, error) {
 	switch s {
-	case "pending":
-		return actions_model.StatusBlocked
+	case "pending", "waiting", "requested", "action_required":
+		return []actions_model.Status{actions_model.StatusBlocked}, nil
 	case "queued":
-		return actions_model.StatusWaiting
+		return []actions_model.Status{actions_model.StatusWaiting}, nil
 	case "in_progress":
-		return actions_model.StatusRunning
+		return []actions_model.Status{actions_model.StatusRunning}, nil
+	case "completed":
+		return []actions_model.Status{
+			actions_model.StatusSuccess,
+			actions_model.StatusFailure,
+			actions_model.StatusSkipped,
+			actions_model.StatusCancelled,
+		}, nil
 	case "failure":
-		return actions_model.StatusFailure
+		return []actions_model.Status{actions_model.StatusFailure}, nil
 	case "success":
-		return actions_model.StatusSuccess
-	case "skipped":
-		return actions_model.StatusSkipped
+		return []actions_model.Status{actions_model.StatusSuccess}, nil
+	case "skipped", "neutral":
+		return []actions_model.Status{actions_model.StatusSkipped}, nil
+	case "cancelled", "timed_out":
+		return []actions_model.Status{actions_model.StatusCancelled}, nil
 	default:
-		return actions_model.StatusUnknown
+		return nil, fmt.Errorf("invalid status %s", s)
 	}
 }
 
@@ -213,8 +235,15 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	if branch := ctx.Req.URL.Query().Get("branch"); branch != "" {
 		opts.Ref = string(git.RefNameFromBranch(branch))
 	}
-	if status := ctx.Req.URL.Query().Get("status"); status != "" {
-		opts.Status = []actions_model.Status{convertToInternal(status)}
+	if statuses, ok := ctx.Req.URL.Query()["status"]; ok {
+		for _, status := range statuses {
+			values, err := convertToInternal(status)
+			if err != nil {
+				ctx.APIError(http.StatusBadRequest, fmt.Errorf("Invalid status %s", status))
+				return
+			}
+			opts.Status = append(opts.Status, values...)
+		}
 	}
 	if actor := ctx.Req.URL.Query().Get("actor"); actor != "" {
 		user, err := user_model.GetUserByName(ctx, actor)
