@@ -253,6 +253,9 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		}
 		opts.TriggerUserID = user.ID
 	}
+	if headSHA := ctx.Req.URL.Query().Get("head_sha"); headSHA != "" {
+		opts.CommitSHA = headSHA
+	}
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {

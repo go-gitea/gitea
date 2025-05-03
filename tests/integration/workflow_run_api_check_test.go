@@ -46,11 +46,12 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL string, itemCount int, use
 	foundRun := false
 
 	for _, run := range runnerList.Entries {
-		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", run.Status, "", "", "")
-		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, run.Conclusion, "", "", "", "")
-		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", "", run.HeadBranch, "")
-		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", run.Event, "", "")
-		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", "", "", run.TriggerActor.UserName)
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", run.Status, "", "", "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, run.Conclusion, "", "", "", "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", "", run.HeadBranch, "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", run.Event, "", "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", "", "", run.TriggerActor.UserName, "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", "", "", "", run.TriggerActor.UserName, run.HeadSha)
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", run.URL, "jobs")).AddTokenAuth(token)
 		jobsResp := MakeRequest(t, req, http.StatusOK)
@@ -82,7 +83,7 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL string, itemCount int, use
 	assert.True(t, foundRun, "Expected to find run with ID %d", runID)
 }
 
-func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token string, id int64, conclusion, status, event, branch, actor string) {
+func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token string, id int64, conclusion, status, event, branch, actor, headSHA string) {
 	filter := url.Values{}
 	if conclusion != "" {
 		filter.Add("status", conclusion)
@@ -98,6 +99,9 @@ func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token 
 	}
 	if actor != "" {
 		filter.Set("actor", actor)
+	}
+	if headSHA != "" {
+		filter.Set("head_sha", headSHA)
 	}
 	req := NewRequest(t, "GET", runAPIURL+"?"+filter.Encode()).AddTokenAuth(token)
 	runResp := MakeRequest(t, req, http.StatusOK)

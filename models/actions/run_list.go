@@ -72,6 +72,7 @@ type FindRunOptions struct {
 	TriggerEvent  webhook_module.HookEventType
 	Approved      bool // not util.OptionalBool, it works only when it's true
 	Status        []Status
+	CommitSHA     string
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -96,6 +97,9 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.TriggerEvent != "" {
 		cond = cond.And(builder.Eq{"`action_run`.trigger_event": opts.TriggerEvent})
+	}
+	if opts.CommitSHA != "" {
+		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
 	}
 	return cond
 }
