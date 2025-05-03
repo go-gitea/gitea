@@ -582,6 +582,13 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJobsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	shared.ListJobs(ctx, ctx.Org.Organization.ID, 0, 0)
 }
 
@@ -597,6 +604,13 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRunsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	shared.ListRuns(ctx, ctx.Org.Organization.ID, 0)
 }
 
