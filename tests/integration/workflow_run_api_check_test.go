@@ -17,15 +17,15 @@ import (
 
 func TestAPIWorkflowRunRepoApi(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	userUsername := "user5"
+	userUsername := "user2"
 	token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
 
-	req := NewRequest(t, "GET", "/api/v1/repos/user5/repo4/actions/runs").AddTokenAuth(token)
+	req := NewRequest(t, "GET", "/api/v1/repos/org3/repo5/actions/runs").AddTokenAuth(token)
 	runnerListResp := MakeRequest(t, req, http.StatusOK)
 	runnerList := api.ActionWorkflowRunsResponse{}
 	DecodeJSON(t, runnerListResp, &runnerList)
 
-	assert.Len(t, runnerList.Entries, 5)
+	assert.Len(t, runnerList.Entries, 1)
 
 	foundRun := false
 
