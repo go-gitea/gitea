@@ -111,7 +111,7 @@ func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindRunOptions) ToOrders() string {
-	return "`id` DESC"
+	return "`action_run`.`id` DESC"
 }
 
 type StatusInfo struct {
