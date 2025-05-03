@@ -152,12 +152,12 @@ jobs:
 		})
 		session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequestWithValues(t, "DELETE", fmt.Sprintf("/%s/%s/actions/runs/%s/delete", user2.Name, apiRepo.Name, runIndex), map[string]string{
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%s/delete", user2.Name, apiRepo.Name, runIndex), map[string]string{
 			"_csrf": GetUserCSRFToken(t, session),
 		})
 		session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequestWithValues(t, "DELETE", fmt.Sprintf("/%s/%s/actions/runs/%s/delete", user2.Name, apiRepo.Name, runIndex), map[string]string{
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%s/delete", user2.Name, apiRepo.Name, runIndex), map[string]string{
 			"_csrf": GetUserCSRFToken(t, session),
 		})
 		session.MakeRequest(t, req, http.StatusNotFound)
