@@ -9,12 +9,10 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
@@ -56,57 +54,6 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 	defer gitRepo.Close()
 
 	return SyncReleasesWithTags(ctx, repo, gitRepo)
-}
-
-// PushUpdateAddTag must be called for any push actions to add tag
-func PushUpdateAddTag(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
-	tag, err := gitRepo.GetTagWithID(sha1, tagName)
-	if err != nil {
-		return fmt.Errorf("unable to GetTag: %w", err)
-	}
-	commit, err := gitRepo.GetTagCommit(tag.Name)
-	if err != nil {
-		return fmt.Errorf("unable to get tag Commit: %w", err)
-	}
-
-	sig := tag.Tagger
-	if sig == nil {
-		sig = commit.Author
-	}
-	if sig == nil {
-		sig = commit.Committer
-	}
-
-	var author *user_model.User
-	createdAt := time.Unix(1, 0)
-
-	if sig != nil {
-		author, err = user_model.GetUserByEmail(ctx, sig.Email)
-		if err != nil && !user_model.IsErrUserNotExist(err) {
-			return fmt.Errorf("unable to GetUserByEmail for %q: %w", sig.Email, err)
-		}
-		createdAt = sig.When
-	}
-
-	commitsCount, err := commit.CommitsCount()
-	if err != nil {
-		return fmt.Errorf("unable to get CommitsCount: %w", err)
-	}
-
-	rel := repo_model.Release{
-		RepoID:       repo.ID,
-		TagName:      tagName,
-		LowerTagName: strings.ToLower(tagName),
-		Sha1:         commit.ID.String(),
-		NumCommits:   commitsCount,
-		CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
-		IsTag:        true,
-	}
-	if author != nil {
-		rel.PublisherID = author.ID
-	}
-
-	return repo_model.SaveOrUpdateTag(ctx, repo, &rel)
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects

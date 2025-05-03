@@ -453,58 +453,6 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []s
 	return nil
 }
 
-// PushUpdateDeleteTag must be called for any push actions to delete tag
-func PushUpdateDeleteTag(ctx context.Context, repo *Repository, tagName string) error {
-	rel, err := GetRelease(ctx, repo.ID, tagName)
-	if err != nil {
-		if IsErrReleaseNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("GetRelease: %w", err)
-	}
-	if rel.IsTag {
-		if _, err = db.DeleteByID[Release](ctx, rel.ID); err != nil {
-			return fmt.Errorf("Delete: %w", err)
-		}
-	} else {
-		rel.IsDraft = true
-		rel.NumCommits = 0
-		rel.Sha1 = ""
-		if _, err = db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// SaveOrUpdateTag must be called for any push actions to add tag
-func SaveOrUpdateTag(ctx context.Context, repo *Repository, newRel *Release) error {
-	rel, err := GetRelease(ctx, repo.ID, newRel.TagName)
-	if err != nil && !IsErrReleaseNotExist(err) {
-		return fmt.Errorf("GetRelease: %w", err)
-	}
-
-	if rel == nil {
-		rel = newRel
-		if _, err = db.GetEngine(ctx).Insert(rel); err != nil {
-			return fmt.Errorf("InsertOne: %w", err)
-		}
-	} else {
-		rel.Sha1 = newRel.Sha1
-		rel.CreatedUnix = newRel.CreatedUnix
-		rel.NumCommits = newRel.NumCommits
-		rel.IsDraft = false
-		if rel.IsTag && newRel.PublisherID > 0 {
-			rel.PublisherID = newRel.PublisherID
-		}
-		if _, err = db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %w", err)
-		}
-	}
-	return nil
-}
-
 // RemapExternalUser ExternalUserRemappable interface
 func (r *Release) RemapExternalUser(externalName string, externalID, userID int64) error {
 	r.OriginalAuthor = externalName
