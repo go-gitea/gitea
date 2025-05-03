@@ -154,7 +154,6 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		defer dataRc.Close()
 
-		ctx.Data["IsFileTooLarge"] = blob.Size() >= setting.UI.MaxDisplayFileSize
 		ctx.Data["FileSize"] = blob.Size()
 
 		buf := make([]byte, 1024)
