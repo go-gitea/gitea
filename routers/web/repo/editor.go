@@ -161,7 +161,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		buf = buf[:n]
 
 		// Only some file types are editable online as text.
-		ctx.Data["IsFileText"] = typesniffer.DetectContentType(buf).IsRepresentableAsText()
+		ctx.Data["IsFileEditable"] = typesniffer.DetectContentType(buf).IsRepresentableAsText()
 
 		if blob.Size() >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
@@ -179,6 +179,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	} else {
 		// Append filename from query, or empty string to allow username the new file.
 		treeNames = append(treeNames, fileName)
+
+		ctx.Data["IsFileEditable"] = true
 	}
 
 	ctx.Data["TreeNames"] = treeNames
