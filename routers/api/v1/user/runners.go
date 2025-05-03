@@ -129,6 +129,11 @@ func ListWorkflowRuns(ctx *context.APIContext) {
 	//   description: triggered by user
 	//   type: string
 	//   required: false
+	// - name: head_sha
+	//   in: query
+	//   description: triggering sha of the workflow run
+	//   type: string
+	//   required: false
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)

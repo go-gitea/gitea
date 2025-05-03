@@ -256,6 +256,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "triggering sha of the workflow run",
+            "name": "head_sha",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -2151,6 +2157,12 @@
             "type": "string",
             "description": "triggered by user",
             "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggering sha of the workflow run",
+            "name": "head_sha",
             "in": "query"
           },
           {
@@ -5130,6 +5142,12 @@
             "type": "string",
             "description": "triggered by user",
             "name": "actor",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "triggering sha of the workflow run",
+            "name": "head_sha",
             "in": "query"
           },
           {
@@ -18173,6 +18191,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "triggering sha of the workflow run",
+            "name": "head_sha",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -21055,6 +21079,9 @@
       "description": "ActionWorkflowRun represents a WorkflowRun",
       "type": "object",
       "properties": {
+        "actor": {
+          "$ref": "#/definitions/User"
+        },
         "completed_at": {
           "type": "string",
           "format": "date-time",
@@ -21122,6 +21149,9 @@
         "status": {
           "type": "string",
           "x-go-name": "Status"
+        },
+        "trigger_actor": {
+          "$ref": "#/definitions/User"
         },
         "url": {
           "type": "string",
