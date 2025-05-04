@@ -405,7 +405,6 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			ctx.ServerError("OpenRepository", err)
 			return nil
 		}
-		defer ci.HeadGitRepo.Close()
 	} else {
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil
@@ -708,7 +707,7 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 func CompareDiff(ctx *context.Context) {
 	ci := ParseCompareInfo(ctx)
 	defer func() {
-		if ci != nil && ci.HeadGitRepo != nil {
+		if !ctx.Repo.PullRequest.SameRepo && ci != nil && ci.HeadGitRepo != nil {
 			ci.HeadGitRepo.Close()
 		}
 	}()
