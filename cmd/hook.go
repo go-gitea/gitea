@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	hookBatchSize = 30
+	hookBatchSize = 500
 )
 
 var (
