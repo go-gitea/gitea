@@ -76,6 +76,7 @@ func GetGitRefs(ctx *context.APIContext) {
 }
 
 func getGitRefsInternal(ctx *context.APIContext, filter string) {
+	listOptions := utils.GetListOptions(ctx)
 	refs, lastMethodName, err := utils.GetGitRefs(ctx, filter)
 	if err != nil {
 		ctx.APIErrorInternal(fmt.Errorf("%s: %w", lastMethodName, err))
@@ -104,5 +105,7 @@ func getGitRefsInternal(ctx *context.APIContext, filter string) {
 		ctx.JSON(http.StatusOK, &apiRefs[0])
 		return
 	}
+	ctx.SetLinkHeader(len(apiRefs), listOptions.PageSize)
+	ctx.SetTotalCountHeader(int64(len(apiRefs)))
 	ctx.JSON(http.StatusOK, &apiRefs)
 }
