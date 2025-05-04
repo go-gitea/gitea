@@ -4,7 +4,7 @@
 package private
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -34,6 +34,7 @@ import (
 	gitleaks_config "github.com/zricethezav/gitleaks/v8/config"
 	gitleaks "github.com/zricethezav/gitleaks/v8/detect"
 	gitleaks_log "github.com/zricethezav/gitleaks/v8/logging"
+	"github.com/zricethezav/gitleaks/v8/report"
 )
 
 type preReceiveContext struct {
@@ -569,7 +570,6 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 	if newCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
 		return
 	}
-
 	var err error
 	var detector *gitleaks.Detector
 
@@ -592,27 +592,26 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 			oldCommitID = ctx.Repo.GetObjectFormat().EmptyTree().String()
 		}
 	}
+	var findings []report.Finding
 
-	stdout := &bytes.Buffer{}
+	r, w, _ := os.Pipe()
 	err = git.NewCommand("log", "-U0", "-p").AddDynamicArguments(oldCommitID+".."+newCommitID).Run(
 		ctx,
 		&git.RunOpts{
 			Dir:    repo.RepoPath(),
 			Env:    ctx.env,
-			Stdout: stdout,
+			Stdout: w,
+			PipelineFunc: func(_ context.Context, _ context.CancelFunc) error {
+				giteaCmd, err := newPreReceiveDiff(r)
+				if err != nil {
+					return err
+				}
+				w.Close()
+				findings, err = detector.DetectGit(giteaCmd, gitleaks.NewRemoteInfo(scm.GitHubPlatform, repo.Website))
+				return err
+			},
 		},
 	)
-	if err != nil {
-		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
-		return
-	}
-
-	giteaCmd, err := newPreReceiveDiff(stdout)
-	if err != nil {
-		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
-		return
-	}
-	findings, err := detector.DetectGit(giteaCmd, gitleaks.NewRemoteInfo(scm.GitHubPlatform, repo.Website))
 	if err != nil {
 		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
 		return
@@ -633,15 +632,17 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 
 type giteacmd struct {
 	diffCh <-chan *gitdiff.File
+	closer io.Closer
 }
 
-func newPreReceiveDiff(r io.Reader) (*giteacmd, error) {
+func newPreReceiveDiff(r io.ReadCloser) (*giteacmd, error) {
 	diffCh, err := gitdiff.Parse(r)
 	if err != nil {
 		return nil, err
 	}
 	return &giteacmd{
 		diffCh: diffCh,
+		closer: r,
 	}, nil
 }
 
