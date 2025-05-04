@@ -400,9 +400,9 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
 	} else if has {
-		ci.HeadGitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ci.HeadRepo)
+		ci.HeadGitRepo, err = gitrepo.OpenRepository(ctx, ci.HeadRepo)
 		if err != nil {
-			ctx.ServerError("RepositoryFromRequestContextOrOpen", err)
+			ctx.ServerError("OpenRepository", err)
 			return nil
 		}
 	} else {
@@ -706,6 +706,11 @@ func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repositor
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	ci := ParseCompareInfo(ctx)
+	defer func() {
+		if !ctx.Repo.PullRequest.SameRepo && ci != nil && ci.HeadGitRepo != nil {
+			ci.HeadGitRepo.Close()
+		}
+	}()
 	if ctx.Written() {
 		return
 	}

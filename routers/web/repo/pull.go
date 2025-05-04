@@ -1262,6 +1262,11 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	)
 
 	ci := ParseCompareInfo(ctx)
+	defer func() {
+		if !ctx.Repo.PullRequest.SameRepo && ci != nil && ci.HeadGitRepo != nil {
+			ci.HeadGitRepo.Close()
+		}
+	}()
 	if ctx.Written() {
 		return
 	}
