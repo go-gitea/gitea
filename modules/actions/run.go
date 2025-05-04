@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 )
 
-// TODO: When deleting a run, it should at lease delete artifacts, tasks logs, database record.
+// DeleteRun deletes a done workflow run
 func DeleteRun(ctx context.Context, repoID int64, run *actions.ActionRun, jobs []*actions.ActionRunJob) error {
 	tasks := make(actions.TaskList, 0)
 
@@ -79,6 +79,5 @@ func DeleteRun(ctx context.Context, repoID int64, run *actions.ActionRun, jobs [
 		}
 	}
 
-	// TODO: Delete commit status? Looks like it has no direct reference to a run/task/job. Not quite feasible without modifying db models (Dangerous).
 	return nil
 }

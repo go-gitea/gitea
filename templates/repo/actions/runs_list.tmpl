@@ -36,7 +36,6 @@
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
 				</div>
-				<!-- TODO: ? -->
 				{{if and (.Link) (or (eq .Status.String "success") (eq .Status.String "skipped") (eq .Status.String "cancelled"))}}
 					<button class="ui btn interact-bg link-action tw-p-2"
 						data-url="{{.Link}}/delete"
