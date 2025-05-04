@@ -574,7 +574,7 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 	var detector *gitleaks.Detector
 
 	config, _, err := git.NewCommand("show").AddDynamicArguments(repo.DefaultBranch+":.gitleaks.toml").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
-	if err != nil { //File has to exist to be taken into consideration
+	if err != nil { // File has to exist to be taken into consideration
 		detector, err = newDetector(config)
 	} else {
 		detector, err = gitleaks.NewDetectorDefaultConfig()
@@ -592,12 +592,22 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 			oldCommitID = ctx.Repo.GetObjectFormat().EmptyTree().String()
 		}
 	}
-	out, _, err := git.NewCommand("show", "-U0").AddDynamicArguments(oldCommitID+".."+newCommitID).RunStdBytes(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
+
+	stdout := &bytes.Buffer{}
+	err = git.NewCommand("log", "-U0", "-p").AddDynamicArguments(oldCommitID+".."+newCommitID).Run(
+		ctx,
+		&git.RunOpts{
+			Dir:    repo.RepoPath(),
+			Env:    ctx.env,
+			Stdout: stdout,
+		},
+	)
 	if err != nil {
 		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
 		return
 	}
-	giteaCmd, err := newPreReceiveDiff(bytes.NewReader(out))
+
+	giteaCmd, err := newPreReceiveDiff(stdout)
 	if err != nil {
 		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
 		return
@@ -658,7 +668,6 @@ func newDetector(config string) (*gitleaks.Detector, error) {
 	viper.SetConfigType("toml")
 
 	err := viper.ReadConfig(strings.NewReader(config))
-
 	if err != nil {
 		return nil, err
 	}
