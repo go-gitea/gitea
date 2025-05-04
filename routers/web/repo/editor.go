@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -146,9 +145,18 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		blob := entry.Blob()
-		dataRc, err := blob.DataAsync()
-		if err != nil {
+		if blob.Size() >= setting.UI.MaxDisplayFileSize {
 			ctx.NotFound(err)
+			return
+		}
+
+		buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				ctx.NotFound(err)
+			} else {
+				ctx.ServerError("getFileReader", err)
+			}
 			return
 		}
 
@@ -156,12 +164,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		ctx.Data["FileSize"] = blob.Size()
 
-		buf := make([]byte, 1024)
-		n, _ := util.ReadAtMost(dataRc, buf)
-		buf = buf[:n]
-
 		// Only some file types are editable online as text.
-		ctx.Data["IsFileEditable"] = typesniffer.DetectContentType(buf).IsRepresentableAsText()
+		ctx.Data["IsFileEditable"] = fInfo.isTextFile && !fInfo.isLFSFile
 
 		if blob.Size() >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
