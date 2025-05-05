@@ -20,7 +20,6 @@ func DeleteRun(ctx context.Context, repoID int64, run *actions.ActionRun, jobs [
 	jobIDs := container.FilterSlice(jobs, func(j *actions.ActionRunJob) (int64, bool) {
 		return j.ID, j.ID != 0
 	})
-
 	if len(jobIDs) > 0 {
 		if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).In("job_id", jobIDs).Find(&tasks); err != nil {
 			return err
@@ -68,8 +67,7 @@ func DeleteRun(ctx context.Context, repoID int64, run *actions.ActionRun, jobs [
 
 	// Delete files on storage
 	for _, tas := range tasks {
-		err := RemoveLogs(ctx, tas.LogInStorage, tas.LogFilename)
-		if err != nil {
+		if err := RemoveLogs(ctx, tas.LogInStorage, tas.LogFilename); err != nil {
 			log.Error("remove log file %q: %v", tas.LogFilename, err)
 		}
 	}
