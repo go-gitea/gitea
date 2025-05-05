@@ -161,6 +161,11 @@ func UpdateRelease(ctx context.Context, rel *Release) error {
 	return err
 }
 
+func UpdateReleaseNumCommits(ctx context.Context, rel *Release) error {
+	_, err := db.GetEngine(ctx).ID(rel.ID).Cols("num_commits").Update(rel)
+	return err
+}
+
 // AddReleaseAttachments adds a release attachments
 func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
