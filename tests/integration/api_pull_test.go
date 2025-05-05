@@ -493,7 +493,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
 		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
 		assert.NoError(t, err)
-		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
+		pr := convert.ToAPIPullRequest(context.Background(), pullRequest, user1)
 
 		ctx = NewAPITestContext(t, "user2", baseRepo.Name, auth_model.AccessTokenScopeAll)
 		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {
