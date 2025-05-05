@@ -182,11 +182,11 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		if fInfo.isLFSFile {
 			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
 		} else if !fInfo.isTextFile {
-			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.binary_file_not_editable")
+			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_binary_files")
 		}
 
 		if blob.Size() >= setting.UI.MaxDisplayFileSize {
-			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.file_too_large_not_editable")
+			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_too_large_file")
 		} else {
 			d, _ := io.ReadAll(dataRc)
 
