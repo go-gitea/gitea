@@ -173,7 +173,7 @@ func (run *ActionRun) GetWorkflowRunEventPayload() (*api.WorkflowRunPayload, err
 		}
 		return &payload, nil
 	}
-	return nil, fmt.Errorf("event %s is not a pull request event", run.Event)
+	return nil, fmt.Errorf("event %s is not a workflow run event", run.Event)
 }
 
 func (run *ActionRun) IsSchedule() bool {
