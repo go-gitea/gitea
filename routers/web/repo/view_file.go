@@ -285,35 +285,23 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		}
 	}
 
-	if fInfo.isLFSFile {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-	} else {
-		if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
-			if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
-				ctx.Data["CanEditFile"] = false
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-			} else {
-				ctx.Data["CanEditFile"] = true
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-			}
-		} else if !ctx.Repo.RefFullName.IsBranch() {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-		} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
-		}
-	}
-
 	if ctx.Repo.CanEnableEditor(ctx, ctx.Doer) {
 		if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
+			ctx.Data["CanEditFile"] = false
+			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 			ctx.Data["CanDeleteFile"] = false
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 		} else {
+			ctx.Data["CanEditFile"] = true
+			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 			ctx.Data["CanDeleteFile"] = true
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 		}
 	} else if !ctx.Repo.RefFullName.IsBranch() {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 	} else if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 }
