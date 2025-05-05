@@ -461,11 +461,6 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 
 // CreateOrUpdateFile handles creating or updating a file for ChangeRepoFiles
 func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile, contentStore *lfs.ContentStore, repoID int64, hasOldBranch bool) error {
-	// ContentReader is only allowed to be nil if the file is moving
-	if file.ContentReader == nil && file.TreePath == file.FromTreePath {
-		return nil
-	}
-
 	// Get the two paths (might be the same if not moving) from the index if they exist
 	filesInIndex, err := t.LsFiles(ctx, file.TreePath, file.FromTreePath)
 	if err != nil {
@@ -495,21 +490,21 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 
 	var treeObjectContentReader io.Reader = file.ContentReader
 	var oldEntry *git.TreeEntry
-	// If nil, use the existing content
+	// If no new content should be commited, use the file from the last commit as content
 	if file.ContentReader == nil {
-		lastCommit, _ := t.GetLastCommit(ctx)
+		lastCommit, err := t.GetLastCommit(ctx)
+		if err != nil {
+			return err
+		}
 		commit, err := t.GetCommit(lastCommit)
 		if err != nil {
 			return err
 		}
 
-		oldEntry, err = commit.GetTreeEntryByPath(file.Options.fromTreePath)
-		if err != nil {
+		if oldEntry, err = commit.GetTreeEntryByPath(file.Options.fromTreePath); err != nil {
 			return err
 		}
-
-		treeObjectContentReader, err = oldEntry.Blob().DataAsync()
-		if err != nil {
+		if treeObjectContentReader, err = oldEntry.Blob().DataAsync(); err != nil {
 			return err
 		}
 	}
@@ -526,7 +521,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		}
 
 		var pointer *lfs.Pointer
-		// Get existing lfs pointer if the old tree path is in lfs
+		// Get existing lfs pointer if the old path is in lfs
 		if oldEntry != nil && attributesMap[file.Options.fromTreePath] != nil && attributesMap[file.Options.fromTreePath].Get(attribute.Filter).ToString().Value() == "lfs" {
 			pointerReader, err := oldEntry.Blob().DataAsync()
 			if err != nil {
@@ -540,7 +535,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		}
 
 		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath].Get(attribute.Filter).ToString().Value() == "lfs" {
-			// Only generate a new lfs pointer if the old tree path isn't in lfs or the object content is changed
+			// Only generate a new lfs pointer if the old path isn't in lfs or the object content changes
 			if pointer == nil {
 				p, err := lfs.GeneratePointer(treeObjectContentReader)
 				if err != nil {
@@ -589,14 +584,12 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		if !exist {
 			var lfsContentReader io.Reader
 			if file.ContentReader != nil {
-				_, err := file.ContentReader.Seek(0, io.SeekStart)
-				if err != nil {
+				if _, err := file.ContentReader.Seek(0, io.SeekStart); err != nil {
 					return err
 				}
 				lfsContentReader = file.ContentReader
 			} else {
-				lfsContentReader, err = oldEntry.Blob().DataAsync()
-				if err != nil {
+				if lfsContentReader, err = oldEntry.Blob().DataAsync(); err != nil {
 					return err
 				}
 			}
