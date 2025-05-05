@@ -300,7 +300,8 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	}
 
 	var contentReader io.ReadSeeker
-	if isNewFile && form.Content.Has() {
+	// form content only has data if file is representable as text, is not too large and not in lfs
+	if isNewFile || form.Content.Has() {
 		contentReader = strings.NewReader(strings.ReplaceAll(form.Content.Value(), "\r", ""))
 	}
 
