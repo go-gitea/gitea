@@ -162,6 +162,18 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		defer dataRc.Close()
 
+		if fInfo.isLFSFile {
+			lfsLock, err := git_model.GetTreePathLock(ctx, ctx.Repo.Repository.ID, ctx.Repo.TreePath)
+			if err != nil {
+				ctx.ServerError("GetTreePathLock", err)
+				return
+			}
+			if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
+				ctx.NotFound(nil)
+				return
+			}
+		}
+
 		ctx.Data["FileSize"] = blob.Size()
 
 		// Only some file types are editable online as text.
