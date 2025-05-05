@@ -574,11 +574,14 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 	var detector *gitleaks.Detector
 
 	config, _, err := git.NewCommand("show").AddDynamicArguments(repo.DefaultBranch+":.gitleaks.toml").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
-	if err != nil { // File has to exist to be taken into consideration
+	if err != nil && config != "" { // File has to exist to be taken into consideration
+		log.Debug("scanning with user configuration")
 		detector, err = newDetector(config)
 	} else {
+		log.Debug("scanning with default configuration")
 		detector, err = gitleaks.NewDetectorDefaultConfig()
 	}
+
 	if err != nil {
 		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
 		return
@@ -602,11 +605,11 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 			Env:    ctx.env,
 			Stdout: w,
 			PipelineFunc: func(_ context.Context, _ context.CancelFunc) error {
+				w.Close()
 				giteaCmd, err := newPreReceiveDiff(r)
 				if err != nil {
 					return err
 				}
-				w.Close()
 				findings, err = detector.DetectGit(giteaCmd, gitleaks.NewRemoteInfo(scm.GitHubPlatform, repo.Website))
 				return err
 			},
@@ -616,6 +619,7 @@ func preReceiveSecrets(ctx *preReceiveContext, oldCommitID, newCommitID string, 
 		ctx.JSON(http.StatusTeapot, private.Response{Err: err.Error(), UserMsg: err.Error()})
 		return
 	}
+	log.Debug("scan reported %v leaks, scanned: %v bytes", len(findings), detector.TotalBytes.Load())
 
 	if len(findings) != 0 {
 		msg := strings.Builder{}
