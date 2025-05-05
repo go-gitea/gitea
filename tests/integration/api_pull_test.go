@@ -457,12 +457,12 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 			OldBranch: "master",
 			NewBranch: "fork-branch-1",
 			Author: &files_service.IdentityOptions{
-				GitUserName:  user1.Name,
-				GitUserEmail: user1.Email,
+				Name:  user1.Name,
+				Email: user1.Email,
 			},
 			Committer: &files_service.IdentityOptions{
-				GitUserName:  user1.Name,
-				GitUserEmail: user1.Email,
+				Name:  user1.Name,
+				Email: user1.Email,
 			},
 			Dates: &files_service.CommitDateOptions{
 				Author:    time.Now(),
