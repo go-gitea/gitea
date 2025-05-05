@@ -11,7 +11,7 @@
 	{{end}}
 	{{if ne .FileSize nil}}
 		<div class="file-info-entry">
-			{{FileSize .FileSize}}{{if .IsLFSFile}} ({{ctx.Locale.Tr "repo.stored_lfs"}}){{end}}
+			{{FileSize .FileSize}}{{if .IsLFSFile}}<span class="ui label">LFS</span>{{end}}
 		</div>
 	{{end}}
 	{{if .LFSLock}}
