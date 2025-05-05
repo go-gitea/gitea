@@ -1115,12 +1115,6 @@ func DeleteActionRun(ctx *context.APIContext) {
 		return
 	}
 
-	// TODO: ?
-	if len(jobs) == 0 {
-		ctx.Status(http.StatusNoContent)
-		return
-	}
-
 	if err := actions.DeleteRun(ctx, repoID, run, jobs); err != nil {
 		ctx.APIErrorInternal(err)
 		return
