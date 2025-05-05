@@ -145,10 +145,6 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		blob := entry.Blob()
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
-			ctx.NotFound(err)
-			return
-		}
 
 		buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 		if err != nil {
@@ -303,6 +299,11 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		operation = "create"
 	}
 
+	var contentReader io.ReadSeeker
+	if isNewFile && form.Content.Has() {
+		contentReader = strings.NewReader(strings.ReplaceAll(form.Content.Value(), "\r", ""))
+	}
+
 	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
@@ -313,7 +314,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				Operation:     operation,
 				FromTreePath:  ctx.Repo.TreePath,
 				TreePath:      form.TreePath,
-				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content, "\r", "")),
+				ContentReader: contentReader,
 			},
 		},
 		Signoff:   form.Signoff,

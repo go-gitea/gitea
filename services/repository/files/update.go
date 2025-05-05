@@ -43,7 +43,7 @@ type ChangeRepoFile struct {
 	Operation     string
 	TreePath      string
 	FromTreePath  string
-	ContentReader io.ReadSeeker
+	ContentReader io.ReadSeeker // nil if the operation is a pure rename
 	SHA           string
 	Options       *RepoFileOptions
 }
@@ -461,6 +461,11 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 
 // CreateOrUpdateFile handles creating or updating a file for ChangeRepoFiles
 func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile, contentStore *lfs.ContentStore, repoID int64, hasOldBranch bool) error {
+	// ContentReader is only allowed to be nil if the file is moving
+	if file.ContentReader == nil && file.TreePath == file.FromTreePath {
+		return nil
+	}
+
 	// Get the two paths (might be the same if not moving) from the index if they exist
 	filesInIndex, err := t.LsFiles(ctx, file.TreePath, file.FromTreePath)
 	if err != nil {
@@ -488,26 +493,69 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		}
 	}
 
-	treeObjectContentReader := file.ContentReader
+	var treeObjectContentReader io.Reader = file.ContentReader
+	var oldEntry *git.TreeEntry
+	// If nil, use the existing content
+	if file.ContentReader == nil {
+		lastCommit, _ := t.GetLastCommit(ctx)
+		commit, err := t.GetCommit(lastCommit)
+		if err != nil {
+			return err
+		}
+
+		oldEntry, err = commit.GetTreeEntryByPath(file.Options.fromTreePath)
+		if err != nil {
+			return err
+		}
+
+		treeObjectContentReader, err = oldEntry.Blob().DataAsync()
+		if err != nil {
+			return err
+		}
+	}
+
 	var lfsMetaObject *git_model.LFSMetaObject
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
 		attributesMap, err := attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
 			Attributes: []string{attribute.Filter},
-			Filenames:  []string{file.Options.treePath},
+			Filenames:  []string{file.Options.treePath, file.Options.fromTreePath},
 		})
 		if err != nil {
 			return err
 		}
 
-		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath].Get(attribute.Filter).ToString().Value() == "lfs" {
-			// OK so we are supposed to LFS this data!
-			pointer, err := lfs.GeneratePointer(treeObjectContentReader)
+		var pointer *lfs.Pointer
+		// Get existing lfs pointer if the old tree path is in lfs
+		if oldEntry != nil && attributesMap[file.Options.fromTreePath] != nil && attributesMap[file.Options.fromTreePath].Get(attribute.Filter).ToString().Value() == "lfs" {
+			pointerReader, err := oldEntry.Blob().DataAsync()
 			if err != nil {
 				return err
 			}
-			lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: repoID}
+			p, err := lfs.ReadPointer(pointerReader)
+			if err != nil {
+				return err
+			}
+			pointer = &p
+		}
+
+		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath].Get(attribute.Filter).ToString().Value() == "lfs" {
+			// Only generate a new lfs pointer if the old tree path isn't in lfs or the object content is changed
+			if pointer == nil {
+				p, err := lfs.GeneratePointer(treeObjectContentReader)
+				if err != nil {
+					return err
+				}
+				pointer = &p
+			}
+
+			lfsMetaObject = &git_model.LFSMetaObject{Pointer: *pointer, RepositoryID: repoID}
 			treeObjectContentReader = strings.NewReader(pointer.StringContent())
+		} else if pointer != nil { // old tree path was in lfs, new is not
+			treeObjectContentReader, err = lfs.ReadMetaObject(*pointer)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -539,11 +587,21 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 			return err
 		}
 		if !exist {
-			_, err := file.ContentReader.Seek(0, io.SeekStart)
-			if err != nil {
-				return err
+			var lfsContentReader io.Reader
+			if file.ContentReader != nil {
+				_, err := file.ContentReader.Seek(0, io.SeekStart)
+				if err != nil {
+					return err
+				}
+				lfsContentReader = file.ContentReader
+			} else {
+				lfsContentReader, err = oldEntry.Blob().DataAsync()
+				if err != nil {
+					return err
+				}
 			}
-			if err := contentStore.Put(lfsMetaObject.Pointer, file.ContentReader); err != nil {
+
+			if err := contentStore.Put(lfsMetaObject.Pointer, lfsContentReader); err != nil {
 				if _, err2 := git_model.RemoveLFSMetaObjectByOid(ctx, repoID, lfsMetaObject.Oid); err2 != nil {
 					return fmt.Errorf("unable to remove failed inserted LFS object %s: %v (Prev Error: %w)", lfsMetaObject.Oid, err2, err)
 				}
