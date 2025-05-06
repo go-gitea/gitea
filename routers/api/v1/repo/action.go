@@ -1105,7 +1105,7 @@ func DeleteActionRun(ctx *context.APIContext) {
 		return
 	}
 	if !run.Status.IsDone() {
-		ctx.APIError(http.StatusBadRequest, "Run not done yet")
+		ctx.APIError(http.StatusBadRequest, "this workflow run is not done")
 		return
 	}
 

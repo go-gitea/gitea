@@ -591,8 +591,7 @@ func Delete(ctx *context_module.Context) {
 
 	run := job0.Run
 	if !run.Status.IsDone() {
-		// TODO: Locale?
-		ctx.JSONError("run not done yet")
+		ctx.JSONError(ctx.Tr("actions.runs.not_done"))
 		return
 	}
 
