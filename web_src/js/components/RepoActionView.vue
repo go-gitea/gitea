@@ -498,7 +498,7 @@ export default defineComponent({
             <template v-for="artifact in artifacts" :key="artifact.name">
               <li class="job-artifacts-item">
                 <template v-if="artifact.status !== 'expired'">
-                  <a class="flex-text-inline gt-ellipsis" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                  <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
                     <SvgIcon name="octicon-file" class="text black"/>
                     <span class="gt-ellipsis">{{ artifact.name }}</span>
                   </a>
