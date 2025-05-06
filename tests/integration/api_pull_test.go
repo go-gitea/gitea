@@ -8,7 +8,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
+	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -17,11 +20,15 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
+	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -423,4 +430,95 @@ func TestAPICommitPullRequest(t *testing.T) {
 	invalidCommitSHA := "abcd1234abcd1234abcd1234abcd1234abcd1234"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/commits/%s/pull", owner.Name, repo.Name, invalidCommitSHA).AddTokenAuth(ctx.Token)
 	ctx.Session.MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+		ctx := NewAPITestContext(t, "user1", baseRepo.Name, auth_model.AccessTokenScopeAll)
+
+		doAPIForkRepository(ctx, "user2")(t)
+
+		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ForkID: baseRepo.ID, OwnerName: "user1"})
+
+		// add a new file to the forked repo
+		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user1, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "file_1.txt",
+					ContentReader: strings.NewReader("file1"),
+				},
+			},
+			Message:   "add file1",
+			OldBranch: "master",
+			NewBranch: "fork-branch-1",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user1.Name,
+				GitUserEmail: user1.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user1.Name,
+				GitUserEmail: user1.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addFileToForkedResp)
+
+		// create Pull
+		pullIssue := &issues_model.Issue{
+			RepoID:   baseRepo.ID,
+			Title:    "Test pull-request-target-event",
+			PosterID: user1.ID,
+			Poster:   user1,
+			IsPull:   true,
+		}
+		pullRequest := &issues_model.PullRequest{
+			HeadRepoID: forkedRepo.ID,
+			BaseRepoID: baseRepo.ID,
+			HeadBranch: "fork-branch-1",
+			BaseBranch: "master",
+			HeadRepo:   forkedRepo,
+			BaseRepo:   baseRepo,
+			Type:       issues_model.PullRequestGitea,
+		}
+
+		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
+		assert.NoError(t, err)
+		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
+
+		ctx = NewAPITestContext(t, "user2", baseRepo.Name, auth_model.AccessTokenScopeAll)
+		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {
+			if assert.Len(t, files, 1) {
+				assert.Equal(t, "file_1.txt", files[0].Filename)
+				assert.Empty(t, files[0].PreviousFilename)
+				assert.Equal(t, 1, files[0].Additions)
+				assert.Equal(t, 1, files[0].Changes)
+				assert.Equal(t, 0, files[0].Deletions)
+				assert.Equal(t, "added", files[0].Status)
+			}
+		})(t)
+
+		// delete the head repository of the pull request
+		forkCtx := NewAPITestContext(t, "user1", forkedRepo.Name, auth_model.AccessTokenScopeAll)
+		doAPIDeleteRepository(forkCtx)(t)
+
+		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {
+			if assert.Len(t, files, 1) {
+				assert.Equal(t, "file_1.txt", files[0].Filename)
+				assert.Empty(t, files[0].PreviousFilename)
+				assert.Equal(t, 1, files[0].Additions)
+				assert.Equal(t, 1, files[0].Changes)
+				assert.Equal(t, 0, files[0].Deletions)
+				assert.Equal(t, "added", files[0].Status)
+			}
+		})(t)
+	})
 }
