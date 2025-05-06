@@ -36,14 +36,14 @@ func DeleteRun(ctx context.Context, repoID int64, run *actions.ActionRun, jobs [
 
 	var recordsToDelete []any
 
-	for _, task := range tasks {
+	for _, tas := range tasks {
 		recordsToDelete = append(recordsToDelete, &actions.ActionTask{
 			RepoID: repoID,
-			ID:     task.ID,
+			ID:     tas.ID,
 		})
 		recordsToDelete = append(recordsToDelete, &actions.ActionTaskStep{
 			RepoID: repoID,
-			TaskID: task.ID,
+			TaskID: tas.ID,
 		})
 	}
 	recordsToDelete = append(recordsToDelete, &actions.ActionRunJob{
