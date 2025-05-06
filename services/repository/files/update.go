@@ -490,7 +490,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 
 	var treeObjectContentReader io.Reader = file.ContentReader
 	var oldEntry *git.TreeEntry
-	// If no new content should be committed, use the file from the last commit as content
+	// If no new content is committed, use the file from the last commit as content
 	if file.ContentReader == nil {
 		lastCommit, err := t.GetLastCommit(ctx)
 		if err != nil {
@@ -507,6 +507,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		if treeObjectContentReader, err = oldEntry.Blob().DataAsync(); err != nil {
 			return err
 		}
+		defer treeObjectContentReader.(io.ReadCloser).Close()
 	}
 
 	var lfsMetaObject *git_model.LFSMetaObject
@@ -535,7 +536,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		}
 
 		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath].Get(attribute.Filter).ToString().Value() == "lfs" {
-			// Only generate a new lfs pointer if the old path isn't in lfs or the object content changes
+			// Only generate a new lfs pointer if the old path isn't in lfs
 			if pointer == nil {
 				p, err := lfs.GeneratePointer(treeObjectContentReader)
 				if err != nil {
@@ -592,6 +593,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 				if lfsContentReader, err = oldEntry.Blob().DataAsync(); err != nil {
 					return err
 				}
+				defer lfsContentReader.(io.ReadCloser).Close()
 			}
 
 			if err := contentStore.Put(lfsMetaObject.Pointer, lfsContentReader); err != nil {
