@@ -524,11 +524,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		var pointer *lfs.Pointer
 		// Get existing lfs pointer if the old path is in lfs
 		if oldEntry != nil && attributesMap[file.Options.fromTreePath] != nil && attributesMap[file.Options.fromTreePath].Get(attribute.Filter).ToString().Value() == "lfs" {
-			pointerReader, err := oldEntry.Blob().DataAsync()
-			if err != nil {
-				return err
-			}
-			p, err := lfs.ReadPointer(pointerReader)
+			p, err := lfs.ReadPointer(treeObjectContentReader)
 			if err != nil {
 				return err
 			}
