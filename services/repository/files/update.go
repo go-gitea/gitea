@@ -521,30 +521,26 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 			return err
 		}
 
-		var pointer *lfs.Pointer
+		var pointer lfs.Pointer
 		// Get existing lfs pointer if the old path is in lfs
 		if oldEntry != nil && attributesMap[file.Options.fromTreePath] != nil && attributesMap[file.Options.fromTreePath].Get(attribute.Filter).ToString().Value() == "lfs" {
-			p, err := lfs.ReadPointer(treeObjectContentReader)
-			if err != nil {
+			if pointer, err = lfs.ReadPointer(treeObjectContentReader); err != nil {
 				return err
 			}
-			pointer = &p
 		}
 
 		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath].Get(attribute.Filter).ToString().Value() == "lfs" {
 			// Only generate a new lfs pointer if the old path isn't in lfs
-			if pointer == nil {
-				p, err := lfs.GeneratePointer(treeObjectContentReader)
-				if err != nil {
+			if !pointer.IsValid() {
+				if pointer, err = lfs.GeneratePointer(treeObjectContentReader); err != nil {
 					return err
 				}
-				pointer = &p
 			}
 
-			lfsMetaObject = &git_model.LFSMetaObject{Pointer: *pointer, RepositoryID: repoID}
+			lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: repoID}
 			treeObjectContentReader = strings.NewReader(pointer.StringContent())
-		} else if pointer != nil { // old tree path was in lfs, new is not
-			treeObjectContentReader, err = lfs.ReadMetaObject(*pointer)
+		} else if pointer.IsValid() { // old path was in lfs, new is not
+			treeObjectContentReader, err = lfs.ReadMetaObject(pointer)
 			if err != nil {
 				return err
 			}
