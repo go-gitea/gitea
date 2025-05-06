@@ -496,18 +496,20 @@ export default defineComponent({
           </div>
           <ul class="job-artifacts-list">
             <template v-for="artifact in artifacts" :key="artifact.name">
-              <li class="job-artifacts-item" v-if="artifact.status !== 'expired'">
-                <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                  <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
-                </a>
-                <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
-                  <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
-                </a>
-              </li>
-              <li class="job-artifacts-item" v-else>
-                <span class="ui text light grey">
-                  <SvgIcon name="octicon-file" class="ui text light grey job-artifacts-icon"/>{{ artifact.name }}
-                  <span class="ui text label light grey tw-ml-1">{{ locale.artifactExpired }}</span>
+              <li class="job-artifacts-item">
+                <template v-if="artifact.status !== 'expired'">
+                  <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                    <SvgIcon name="octicon-file" class="text black"/>
+                    {{ artifact.name }}
+                  </a>
+                  <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
+                    <SvgIcon name="octicon-trash" class="text black"/>
+                  </a>
+                </template>
+                <span v-else class="flex-text-inline text light grey">
+                  <SvgIcon name="octicon-file"/>
+                  {{ artifact.name }}
+                  <span class="ui label text light grey">{{ locale.artifactExpired }}</span>
                 </span>
               </li>
             </template>
@@ -677,10 +679,6 @@ export default defineComponent({
 .job-artifacts-list {
   padding-left: 12px;
   list-style: none;
-}
-
-.job-artifacts-icon {
-  padding-right: 3px;
 }
 
 .job-brief-list {
