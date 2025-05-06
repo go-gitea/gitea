@@ -498,9 +498,9 @@ export default defineComponent({
             <template v-for="artifact in artifacts" :key="artifact.name">
               <li class="job-artifacts-item">
                 <template v-if="artifact.status !== 'expired'">
-                  <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                  <a class="flex-text-inline gt-ellipsis" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
                     <SvgIcon name="octicon-file" class="text black"/>
-                    {{ artifact.name }}
+                    <span class="gt-ellipsis">{{ artifact.name }}</span>
                   </a>
                   <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
                     <SvgIcon name="octicon-trash" class="text black"/>
@@ -508,8 +508,8 @@ export default defineComponent({
                 </template>
                 <span v-else class="flex-text-inline text light grey">
                   <SvgIcon name="octicon-file"/>
-                  {{ artifact.name }}
-                  <span class="ui label text light grey">{{ locale.artifactExpired }}</span>
+                  <span class="gt-ellipsis">{{ artifact.name }}</span>
+                  <span class="ui label text light grey tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
                 </span>
               </li>
             </template>
@@ -674,6 +674,7 @@ export default defineComponent({
   padding: 6px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .job-artifacts-list {
