@@ -94,6 +94,16 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Size:   1024 * 1024,
 		Status: "completed",
 	})
+	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
+		Name:   "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Size:   100 * 1024,
+		Status: "expired",
+	})
+	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
+		Name:   "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Size:   1024 * 1024,
+		Status: "completed",
+	})
 
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID * 10,
