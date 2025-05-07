@@ -306,7 +306,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectID: optional.Some(int64(1)),
+			ProjectIDs: []int64{1},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
@@ -324,7 +324,7 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectID: optional.Some(int64(0)),
+			ProjectIDs: []int64{0},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)

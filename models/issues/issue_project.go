@@ -62,7 +62,7 @@ func LoadProjectIssueColumnMap(ctx context.Context, projectID, defaultColumnID i
 func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *IssuesOptions) (IssueList, error) {
 	issueList, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
 		o.ProjectColumnID = b.ID
-		o.ProjectID = b.ProjectID
+		o.ProjectIDs = []int64{b.ProjectID}
 		o.SortType = "project-column-sorting"
 	}))
 	if err != nil {
@@ -72,7 +72,7 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 	if b.Default {
 		issues, err := Issues(ctx, opts.Copy(func(o *IssuesOptions) {
 			o.ProjectColumnID = db.NoConditionID
-			o.ProjectID = b.ProjectID
+			o.ProjectIDs = []int64{b.ProjectID}
 			o.SortType = "project-column-sorting"
 		}))
 		if err != nil {
