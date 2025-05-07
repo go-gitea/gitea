@@ -71,7 +71,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	// erase authentication before storing in database
 	u.User = nil
 	m.Repo.OriginalURL = u.String()
-	return repo_model.UpdateRepositoryCols(ctx, m.Repo, "original_url")
+	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
 }
 
 // mirrorSyncResult contains information of a updated reference.

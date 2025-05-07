@@ -25,7 +25,7 @@ func UpdateRepositoryOwnerNames(ctx context.Context, ownerID int64, ownerName st
 	}
 	defer committer.Close()
 
-	if _, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
+	if _, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Cols("owner_name").NoAutoTime().Update(&Repository{
 		OwnerName: ownerName,
 	}); err != nil {
 		return err

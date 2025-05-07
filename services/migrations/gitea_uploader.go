@@ -148,7 +148,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 		return err
 	}
 	g.repo.ObjectFormatName = objectFormat.Name()
-	return repo_model.UpdateRepositoryCols(ctx, g.repo, "object_format_name")
+	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, g.repo, "object_format_name")
 }
 
 // Close closes this uploader
