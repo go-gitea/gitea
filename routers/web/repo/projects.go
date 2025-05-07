@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
@@ -447,12 +448,9 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
-	projectID := ctx.FormInt64("id")
+	projectIDs, _ := base.StringsToInt64s(strings.Split(ctx.FormString("id"), ","))
 	for _, issue := range issues {
-		if issue.Project != nil && issue.Project.ID == projectID {
-			continue
-		}
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs, 0); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
 				continue
 			}
@@ -477,12 +475,12 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	if err := issue.LoadProject(ctx); err != nil {
-		ctx.ServerError("LoadProject", err)
+	if err := issue.LoadProjects(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
 		return
 	}
 
-	issueProjects := []*project_model.Project{issue.Project} // TODO: this is for the multiple project support in the future
+	issueProjects := issue.Projects
 
 	// it must make sure the requested column is in this issue's projects
 	var columnProject *project_model.Project

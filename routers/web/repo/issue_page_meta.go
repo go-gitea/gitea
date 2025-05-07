@@ -33,15 +33,12 @@ type issueSidebarAssigneesData struct {
 	CandidateAssignees  []*user_model.User
 }
 
-type issueSidebarProjectCardData struct {
-	Project        *project_model.Project
-	Columns        []*project_model.Column
-	SelectedColumn *project_model.Column
-}
-
 type issueSidebarProjectsData struct {
-	SelectedProjectIDs []int64 // TODO: support multiple projects in the future
-	ProjectCards       []*issueSidebarProjectCardData
+	SelectedProjectIDs string
+
+	// the "selected" fields are only valid when there's a single project selected
+	SelectedProjectColumns []*project_model.Column
+	SelectedProjectColumn  *project_model.Column
 
 	OpenProjects   []*project_model.Project
 	ClosedProjects []*project_model.Project
@@ -172,40 +169,45 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 }
 
 func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
-	if d.Issue == nil || d.Issue.Project == nil {
+	if d.Issue == nil || len(d.Issue.Projects) == 0 {
 		return
 	}
-	columns, err := d.Issue.Project.GetColumns(ctx)
-	if err != nil {
-		ctx.ServerError("GetProjectColumns", err)
-		return
+	ids := make([]string, 0, len(d.Issue.Projects))
+	for _, p := range d.Issue.Projects {
+		ids = append(ids, strconv.FormatInt(p.ID, 10))
 	}
-	columnID, err := d.Issue.ProjectColumnID(ctx)
-	if err != nil {
-		ctx.ServerError("ProjectColumnID", err)
-		return
-	}
-	var selectedColumn *project_model.Column
-	for _, col := range columns {
-		if col.ID == columnID {
-			selectedColumn = col
-			break
+	d.ProjectsData.SelectedProjectIDs = strings.Join(ids, ",")
+
+	// For column selection, we only support it when there's a single project
+	if len(d.Issue.Projects) == 1 {
+		columns, err := d.Issue.Projects[0].GetColumns(ctx)
+		if err != nil {
+			ctx.ServerError("GetProjectColumns", err)
+			return
 		}
-	}
-	d.ProjectsData.ProjectCards = []*issueSidebarProjectCardData{
-		{
-			Project:        d.Issue.Project,
-			Columns:        columns,
-			SelectedColumn: selectedColumn,
-		},
-	}
-	d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.ProjectsData.ProjectCards))
-	for _, card := range d.ProjectsData.ProjectCards {
-		d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, card.Project.ID)
+		d.ProjectsData.SelectedProjectColumns = columns
+		columnID, err := d.Issue.ProjectColumnID(ctx)
+		if err != nil {
+			ctx.ServerError("ProjectColumnID", err)
+			return
+		}
+		for _, col := range columns {
+			if col.ID == columnID {
+				d.ProjectsData.SelectedProjectColumn = col
+				break
+			}
+		}
 	}
 }
 
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
+	if d.Issue != nil && len(d.Issue.Projects) > 0 {
+		ids := make([]string, 0, len(d.Issue.Projects))
+		for _, a := range d.Issue.Projects {
+			ids = append(ids, strconv.FormatInt(a.ID, 10))
+		}
+		d.ProjectsData.SelectedProjectIDs = strings.Join(ids, ",")
+	}
 	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
 }
 
