@@ -520,7 +520,6 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		RepoIDs:           []int64{repo.ID},
 		LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 		MilestoneIDs:      mileIDs,
-		ProjectIDs:        []int64{projectID},
 		AssigneeID:        assigneeID,
 		MentionedID:       mentionedID,
 		PosterID:          posterUserID,
@@ -529,6 +528,11 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		IsPull:            isPullOption,
 		IssueIDs:          nil,
 	}
+
+	if projectID > 0 {
+		statsOpts.ProjectIDs = []int64{projectID}
+	}
+
 	if keyword != "" {
 		keywordMatchedIssueIDs, _, err = issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, statsOpts))
 		if err != nil {
