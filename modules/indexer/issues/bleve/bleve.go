@@ -241,9 +241,14 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		queries = append(queries, bleve.NewDisjunctionQuery(milestoneQueries...))
 	}
 
-	if options.ProjectID.Has() {
-		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectID.Value(), "project_id"))
+	if len(options.ProjectIDs) > 0 {
+		var projectQueries []query.Query
+		for _, projectID := range options.ProjectIDs {
+			projectQueries = append(projectQueries, inner_bleve.NumericEqualityQuery(projectID, "project_id"))
+		}
+		queries = append(queries, bleve.NewDisjunctionQuery(projectQueries...))
 	}
+
 	if options.ProjectColumnID.Has() {
 		queries = append(queries, inner_bleve.NumericEqualityQuery(options.ProjectColumnID.Value(), "project_board_id"))
 	}

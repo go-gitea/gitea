@@ -117,7 +117,7 @@ func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issu
 // LoadIssuesFromProject load issues assigned to each project column inside the given project
 func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
-		o.ProjectID = project.ID
+		o.ProjectIDs = []int64{project.ID}
 		o.SortType = "project-column-sorting"
 	}))
 	if err != nil {
@@ -211,10 +211,10 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 
 	// for user or org projects, we need to check access permissions
 	opts := issues_model.IssuesOptions{
-		ProjectID: project.ID,
-		Doer:      doer,
-		AllPublic: doer == nil,
-		Owner:     project.Owner,
+		ProjectIDs: []int64{project.ID},
+		Doer:       doer,
+		AllPublic:  doer == nil,
+		Owner:      project.Owner,
 	}
 
 	var err error

@@ -94,7 +94,7 @@ type SearchOptions struct {
 
 	MilestoneIDs []int64 // milestones the issues have
 
-	ProjectID       optional.Option[int64] // project the issues belong to
+	ProjectIDs      []int64                // project the issues belong to
 	ProjectColumnID optional.Option[int64] // project column the issues belong to
 
 	PosterID   string // poster of the issues, "(none)" or "(any)" or a user ID
