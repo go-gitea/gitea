@@ -142,16 +142,6 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			if !newProject.CanBeAccessedByOwnerRepo(issue.Repo.OwnerID, issue.Repo) {
 				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
-			if newColumnID == 0 {
-				newDefaultColumn, err := newProject.MustDefaultColumn(ctx)
-				if err != nil {
-					return err
-				}
-				newColumnID = newDefaultColumn.ID
-				if newColumnID == 0 {
-					panic("newColumnID must not be zero") // shouldn't happen
-				}
-			}
 
 			pi = append(pi, &project_model.ProjectIssue{
 				IssueID:   issue.ID,
