@@ -50,7 +50,7 @@ type NewPullRequestOptions struct {
 	AssigneeIDs     []int64
 	Reviewers       []*user_model.User
 	TeamReviewers   []*organization.Team
-	ProjectID       int64
+	ProjectIDs      []int64
 }
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -110,8 +110,8 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			assigneeCommentMap[assigneeID] = comment
 		}
 
-		if opts.ProjectID > 0 && canAssignProject {
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectID, 0); err != nil {
+		if len(opts.ProjectIDs) > 0 && canAssignProject {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectIDs, 0); err != nil {
 				return err
 			}
 		}
