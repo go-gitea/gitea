@@ -207,7 +207,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 
-// GetEditorConfig returns a editorconfig JSON string for given treePath or "null"
+// GetEditorConfig returns a editorconfig JSON string for given treePath or nil
 func GetEditorConfig(ctx *context.Context, treePath string) *editorconfig.Definition {
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
