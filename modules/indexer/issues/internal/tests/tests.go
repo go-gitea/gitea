@@ -701,10 +701,6 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			for i := range labelIDs {
 				labelIDs[i] = int64(i) + 1 // LabelID should not be 0
 			}
-			projectIDs := make([]int64, id%5)
-			for i := range projectIDs {
-				projectIDs[i] = int64(i) + 1 // projectIDs should not be 0
-			}
 			mentionIDs := make([]int64, id%6)
 			for i := range mentionIDs {
 				mentionIDs[i] = int64(i) + 1 // MentionID should not be 0
@@ -734,7 +730,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				LabelIDs:           labelIDs,
 				NoLabel:            len(labelIDs) == 0,
 				MilestoneID:        issueIndex % 4,
-				ProjectIDs:         projectIDs,
+				ProjectIDs:         []int64{issueIndex % 5},
 				ProjectColumnID:    issueIndex % 6,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,
