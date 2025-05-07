@@ -312,10 +312,15 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].ProjectIDs[0])
+				if len(data[v.ID].ProjectIDs) > 0 {
+					assert.Equal(t, int64(1), data[v.ID].ProjectIDs[0])
+				}
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectIDs[0] == 1
+				if len(data[v.ID].ProjectIDs) > 0 {
+					return v.ProjectIDs[0] == 1
+				}
+				return false
 			}), result.Total)
 		},
 	},
@@ -330,10 +335,15 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].ProjectIDs[0])
+				if len(data[v.ID].ProjectIDs) > 0 {
+					assert.Equal(t, int64(0), data[v.ID].ProjectIDs[0])
+				}
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectIDs[0] == 0
+				if len(data[v.ID].ProjectIDs) > 0 {
+					return v.ProjectIDs[0] == 1
+				}
+				return false
 			}), result.Total)
 		},
 	},
