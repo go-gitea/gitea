@@ -1,11 +1,11 @@
 {{$pageMeta := .}}
 {{$data := .ProjectsData}}
-{{$issueProject := NIL}}{{if and $pageMeta.Issue $pageMeta.Issue.Project}}{{$issueProject = $pageMeta.Issue.Project}}{{end}}
+{{$issueProject := NIL}}{{if and $pageMeta.Issue $pageMeta.Issue.Projects}}{{$issueProject = $pageMeta.Issue.Projects}}{{end}}
 <div class="divider"></div>
-<div class="issue-sidebar-combo" data-selection-mode="single" data-update-algo="all"
+<div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="all"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/projects?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
-	<input class="combo-value" name="project_id" type="hidden" value="{{$data.SelectedProjectID}}">
+	<input class="combo-value" name="project_ids" type="hidden" value="{{$data.SelectedProjectID}}">
 	<div class="ui dropdown full-width {{if not $pageMeta.CanModifyIssueOrPull}}disabled{{end}}">
 		<a class="fixed-text muted">
 			<strong>{{ctx.Locale.Tr "repo.issues.new.projects"}}</strong> {{if $pageMeta.CanModifyIssueOrPull}}{{svg "octicon-gear"}}{{end}}
@@ -24,6 +24,7 @@
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
 					{{range $data.OpenProjects}}
 						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+							<span class="item-check-mark">{{svg "octicon-check"}}</span>
 							{{svg .IconName 18}} {{.Title}}
 						</a>
 					{{end}}
@@ -33,6 +34,7 @@
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}</div>
 					{{range $data.ClosedProjects}}
 						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
+							<span class="item-check-mark">{{svg "octicon-check"}}</span>
 							{{svg .IconName 18}} {{.Title}}
 						</a>
 					{{end}}
@@ -42,9 +44,10 @@
 	</div>
 	<div class="ui list muted-links flex-items-block">
 		<span class="item empty-list {{if $issueProject}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
-		{{if $issueProject}}
-			<a class="item" href="{{$issueProject.Link ctx}}">
-				{{svg $issueProject.IconName 18}} {{$issueProject.Title}}
+		{{range $issueProject}}
+			<a class="item" href="{{.Link ctx}}">
+				<span class="item-check-mark">{{svg "octicon-check"}}</span>
+				{{svg .IconName 18}} {{.Title}}
 			</a>
 		{{end}}
 	</div>

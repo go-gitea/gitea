@@ -120,8 +120,8 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	pageMetaData.MilestonesData.SelectedMilestoneID = ctx.FormInt64("milestone")
-	pageMetaData.ProjectsData.SelectedProjectID = ctx.FormInt64("project")
-	if pageMetaData.ProjectsData.SelectedProjectID > 0 {
+	pageMetaData.ProjectsData.SelectedProjectID = ctx.FormString("project")
+	if len(pageMetaData.ProjectsData.SelectedProjectID) > 0 {
 		if len(ctx.Req.URL.Query().Get("project")) > 0 {
 			ctx.Data["redirect_after_creation"] = "project"
 		}
@@ -240,8 +240,9 @@ func toSet[ItemType any, KeyType comparable](slice []ItemType, keyFunc func(Item
 
 // ValidateRepoMetasForNewIssue check and returns repository's meta information
 func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueForm, isPull bool) (ret struct {
-	LabelIDs, AssigneeIDs  []int64
-	MilestoneID, ProjectID int64
+	LabelIDs, AssigneeIDs []int64
+	MilestoneID           int64
+	ProjectIDs            []int64
 
 	Reviewers     []*user_model.User
 	TeamReviewers []*organization.Team
@@ -270,11 +271,14 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 
 	allProjects := append(slices.Clone(pageMetaData.ProjectsData.OpenProjects), pageMetaData.ProjectsData.ClosedProjects...)
 	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
-	if form.ProjectID > 0 && !candidateProjects.Contains(form.ProjectID) {
-		ctx.NotFound(nil)
-		return ret
+	inputProjectIDs, _ := base.StringsToInt64s(strings.Split(form.ProjectIDs, ","))
+	var projectIDStrings []string
+	for _, inputProjectID := range inputProjectIDs {
+		if candidateProjects.Contains(inputProjectID) {
+			projectIDStrings = append(projectIDStrings, strconv.FormatInt(inputProjectID, 10))
+		}
 	}
-	pageMetaData.ProjectsData.SelectedProjectID = form.ProjectID
+	pageMetaData.ProjectsData.SelectedProjectID = strings.Join(projectIDStrings, ",")
 
 	// prepare assignees
 	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })
@@ -319,7 +323,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 		}
 	}
 
-	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectID = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, form.ProjectID
+	ret.LabelIDs, ret.AssigneeIDs, ret.MilestoneID, ret.ProjectIDs = inputLabelIDs, inputAssigneeIDs, form.MilestoneID, inputProjectIDs
 	ret.Reviewers, ret.TeamReviewers = reviewers, teamReviewers
 	return ret
 }
@@ -344,9 +348,9 @@ func NewIssuePost(ctx *context.Context) {
 		return
 	}
 
-	labelIDs, assigneeIDs, milestoneID, projectID := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectID
+	labelIDs, assigneeIDs, milestoneID, projectIDs := validateRet.LabelIDs, validateRet.AssigneeIDs, validateRet.MilestoneID, validateRet.ProjectIDs
 
-	if projectID > 0 {
+	if len(projectIDs) > 0 {
 		if !ctx.Repo.CanRead(unit.TypeProjects) {
 			// User must also be able to see the project.
 			ctx.HTTPError(http.StatusBadRequest, "user hasn't permissions to read projects")
@@ -386,7 +390,7 @@ func NewIssuePost(ctx *context.Context) {
 		Ref:         form.Ref,
 	}
 
-	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectID); err != nil {
+	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectIDs); err != nil {
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
@@ -398,15 +402,17 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	if ctx.FormString("redirect_after_creation") == "project" && projectID > 0 {
-		project, err := project_model.GetProjectByID(ctx, projectID)
-		if err == nil {
-			if project.Type == project_model.TypeOrganization {
-				ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.Repo.Owner, project.ID))
-			} else {
-				ctx.JSONRedirect(project_model.ProjectLinkForRepo(repo, project.ID))
+	if ctx.FormString("redirect_after_creation") == "project" && len(projectIDs) > 0 {
+		for _, projectID := range projectIDs {
+			project, err := project_model.GetProjectByID(ctx, projectID)
+			if err == nil {
+				if project.Type == project_model.TypeOrganization {
+					ctx.JSONRedirect(project_model.ProjectLinkForOrg(ctx.Repo.Owner, project.ID))
+				} else {
+					ctx.JSONRedirect(project_model.ProjectLinkForRepo(repo, project.ID))
+				}
+				return
 			}
-			return
 		}
 	}
 	ctx.JSONRedirect(issue.Link())
