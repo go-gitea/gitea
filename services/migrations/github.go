@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v71/github"
 	"golang.org/x/oauth2"
 )
 
@@ -448,9 +448,11 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		if !g.SkipReactions {
 			for i := 1; ; i++ {
 				g.waitAndPickClient()
-				res, resp, err := g.getClient().Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListOptions{
-					Page:    i,
-					PerPage: perPage,
+				res, resp, err := g.getClient().Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListReactionOptions{
+					ListOptions: github.ListOptions{
+						Page:    i,
+						PerPage: perPage,
+					},
 				})
 				if err != nil {
 					return nil, false, err
@@ -534,9 +536,11 @@ func (g *GithubDownloaderV3) getComments(commentable base.Commentable) ([]*base.
 			if !g.SkipReactions {
 				for i := 1; ; i++ {
 					g.waitAndPickClient()
-					res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
-						Page:    i,
-						PerPage: g.maxPerPage,
+					res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListReactionOptions{
+						ListOptions: github.ListOptions{
+							Page:    i,
+							PerPage: g.maxPerPage,
+						},
 					})
 					if err != nil {
 						return nil, err
@@ -609,9 +613,11 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 		if !g.SkipReactions {
 			for i := 1; ; i++ {
 				g.waitAndPickClient()
-				res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
-					Page:    i,
-					PerPage: g.maxPerPage,
+				res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListReactionOptions{
+					ListOptions: github.ListOptions{
+						Page:    i,
+						PerPage: g.maxPerPage,
+					},
 				})
 				if err != nil {
 					return nil, false, err
@@ -680,9 +686,11 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 		if !g.SkipReactions {
 			for i := 1; ; i++ {
 				g.waitAndPickClient()
-				res, resp, err := g.getClient().Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListOptions{
-					Page:    i,
-					PerPage: perPage,
+				res, resp, err := g.getClient().Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListReactionOptions{
+					ListOptions: github.ListOptions{
+						Page:    i,
+						PerPage: perPage,
+					},
 				})
 				if err != nil {
 					return nil, false, err
@@ -767,9 +775,11 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 		if !g.SkipReactions {
 			for i := 1; ; i++ {
 				g.waitAndPickClient()
-				res, resp, err := g.getClient().Reactions.ListPullRequestCommentReactions(g.ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListOptions{
-					Page:    i,
-					PerPage: g.maxPerPage,
+				res, resp, err := g.getClient().Reactions.ListPullRequestCommentReactions(g.ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListReactionOptions{
+					ListOptions: github.ListOptions{
+						Page:    i,
+						PerPage: g.maxPerPage,
+					},
 				})
 				if err != nil {
 					return nil, err
