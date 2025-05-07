@@ -154,10 +154,9 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			}
 
 			pi = append(pi, &project_model.ProjectIssue{
-				IssueID:         issue.ID,
-				ProjectID:       pID,
-				ProjectColumnID: newColumnID,
-				Sorting:         newSorting,
+				IssueID:   issue.ID,
+				ProjectID: pID,
+				Sorting:   newSorting,
 			})
 
 			if _, err := CreateComment(ctx, &CreateCommentOptions{
