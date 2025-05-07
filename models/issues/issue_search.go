@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -196,17 +197,10 @@ func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) {
 }
 
 func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
+	opts.ProjectIDs = util.RemoveValue(opts.ProjectIDs, 0)
 	if len(opts.ProjectIDs) > 0 { // specific project
-		var includedProjectIDs []int64
-		for _, projectID := range opts.ProjectIDs {
-			if projectID > 0 {
-				includedProjectIDs = append(includedProjectIDs, projectID)
-			}
-		}
-		if len(includedProjectIDs) > 0 {
-			sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-				In("project_issue.project_id", includedProjectIDs)
-		}
+		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+			In("project_issue.project_id", opts.ProjectIDs)
 	}
 	// opts.ProjectID == 0 means all projects,
 	// do not need to apply any condition

@@ -551,7 +551,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		IssueIDs:          nil,
 	}
 
-	if projectID > 0 {
+	if projectID != 0 {
 		statsOpts.ProjectIDs = []int64{projectID}
 	}
 
