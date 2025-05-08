@@ -198,7 +198,9 @@ func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) {
 
 func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
 	opts.ProjectIDs = util.RemoveValue(opts.ProjectIDs, 0)
-	if len(opts.ProjectIDs) > 0 { // specific project
+	if len(opts.ProjectIDs) == 1 && opts.ProjectIDs[0] == db.NoConditionID { // show those that are in no project
+		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
+	} else if len(opts.ProjectIDs) > 0 { // specific project
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			In("project_issue.project_id", opts.ProjectIDs)
 	}
