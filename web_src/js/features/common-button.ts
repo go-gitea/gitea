@@ -1,5 +1,5 @@
 import {POST} from '../modules/fetch.ts';
-import {addDelegatedEventListener, hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {camelize} from 'vue';
 
@@ -79,10 +79,11 @@ function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   // if it has "toggle" class, it toggles the panel
   e.preventDefault();
   const sel = el.getAttribute('data-panel');
-  if (el.classList.contains('toggle')) {
-    toggleElem(sel);
-  } else {
-    showElem(sel);
+  const elems = el.classList.contains('toggle') ? toggleElem(sel) : showElem(sel);
+  for (const elem of elems) {
+    if (isElemVisible(elem as HTMLElement)) {
+      elem.querySelector<HTMLElement>('[autofocus]')?.focus();
+    }
   }
 }
 
