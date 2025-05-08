@@ -43,7 +43,7 @@ type ChangeRepoFile struct {
 	Operation     string
 	TreePath      string
 	FromTreePath  string
-	ContentReader io.ReadSeeker // nil if the operation is a pure rename
+	ContentReader io.ReadSeeker
 	SHA           string
 	Options       *RepoFileOptions
 }
@@ -246,7 +246,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	contentStore := lfs.NewContentStore()
 	for _, file := range opts.Files {
 		switch file.Operation {
-		case "create", "update":
+		case "create", "update", "rename":
 			if err := CreateOrUpdateFile(ctx, t, file, contentStore, repo.ID, hasOldBranch); err != nil {
 				return nil, err
 			}
@@ -490,9 +490,9 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 
 	var treeObjectContentReader io.Reader = file.ContentReader
 	var oldEntry *git.TreeEntry
-	// If no new content is committed, which is only the case if file is renamed, use the old file from the last commit as
-	// content
-	if file.ContentReader == nil {
+	// Assume that the file.ContentReader of a pure rename operation is invalid. Use the file content how it's present in
+	// git instead
+	if file.Operation == "rename" {
 		lastCommitID, err := t.GetLastCommit(ctx)
 		if err != nil {
 			return err
@@ -523,15 +523,15 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		}
 
 		var pointer lfs.Pointer
-		// Get existing lfs pointer if the old path is in lfs
-		if oldEntry != nil && attributesMap[file.Options.fromTreePath] != nil && attributesMap[file.Options.fromTreePath].Get(attribute.Filter).ToString().Value() == "lfs" {
+		// Get existing lfs pointer if the operation is a pure rename and the old path is in lfs. This prevents the
+		// re-generation/re-hash of a lfs pointer to the same data
+		if file.Operation == "rename" && attributesMap[file.Options.fromTreePath] != nil && attributesMap[file.Options.fromTreePath].Get(attribute.Filter).ToString().Value() == "lfs" {
 			if pointer, err = lfs.ReadPointer(treeObjectContentReader); err != nil {
 				return err
 			}
 		}
 
 		if attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath].Get(attribute.Filter).ToString().Value() == "lfs" {
-			// Only generate a new lfs pointer if the old path isn't in lfs
 			if !pointer.IsValid() {
 				if pointer, err = lfs.GeneratePointer(treeObjectContentReader); err != nil {
 					return err
@@ -577,7 +577,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		}
 		if !exist {
 			var lfsContentReader io.Reader
-			if file.ContentReader != nil {
+			if file.Operation != "rename" {
 				if _, err := file.ContentReader.Seek(0, io.SeekStart); err != nil {
 					return err
 				}

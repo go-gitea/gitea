@@ -297,12 +297,10 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	operation := "update"
 	if isNewFile {
 		operation = "create"
-	}
-
-	var contentReader io.ReadSeeker
-	// form content only has data if file is representable as text, is not too large and not in lfs
-	if isNewFile || form.Content.Has() {
-		contentReader = strings.NewReader(strings.ReplaceAll(form.Content.Value(), "\r", ""))
+	} else if !form.Content.Has() {
+		// The form content only has data if file is representable as text, is not too large and not in lfs. If it doesn't
+		// have data, the only possible operation is a rename
+		operation = "rename"
 	}
 
 	if _, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
@@ -315,7 +313,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				Operation:     operation,
 				FromTreePath:  ctx.Repo.TreePath,
 				TreePath:      form.TreePath,
-				ContentReader: contentReader,
+				ContentReader: strings.NewReader(strings.ReplaceAll(form.Content.Value(), "\r", "")),
 			},
 		},
 		Signoff:   form.Signoff,
