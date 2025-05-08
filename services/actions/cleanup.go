@@ -214,6 +214,10 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	})
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		// TODO: https://github.com/go-gitea/gitea/pull/34337#issuecomment-2862222788
+		if err0 := CleanupEphemeralRunners(ctx); err0 != nil {
+			return err0
+		}
 		return db.DeleteBeans(ctx, recordsToDelete...)
 	}); err != nil {
 		return err
