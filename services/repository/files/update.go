@@ -512,7 +512,10 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	case "create", "update":
 		objectHash, lfsPointer, err = createOrUpdateFile(ctx, t, file, hasOldBranch)
 	case "rename":
-		objectHash, lfsPointer, err = renameFile(ctx, t, oldEntry, file, hasOldBranch)
+		objectHash, lfsPointer, err = renameFile(ctx, t, oldEntry, file)
+	}
+	if err != nil {
+		return err
 	}
 
 	// Add the object to the index
@@ -595,8 +598,8 @@ func createOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	return objectHash, lfsPointer, nil
 }
 
-func renameFile(ctx context.Context, t *TemporaryUploadRepository, oldEntry *git.TreeEntry, file *ChangeRepoFile, hasOldBranch bool) (string, *lfs.Pointer, error) {
-	if setting.LFS.StartServer && hasOldBranch {
+func renameFile(ctx context.Context, t *TemporaryUploadRepository, oldEntry *git.TreeEntry, file *ChangeRepoFile) (string, *lfs.Pointer, error) {
+	if setting.LFS.StartServer {
 		attributesMap, err := attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
 			Attributes: []string{attribute.Filter},
 			Filenames:  []string{file.Options.treePath, file.Options.fromTreePath},
@@ -608,7 +611,7 @@ func renameFile(ctx context.Context, t *TemporaryUploadRepository, oldEntry *git
 		oldIsLfs := attributesMap[file.Options.fromTreePath] != nil && attributesMap[file.Options.fromTreePath].Get(attribute.Filter).ToString().Value() == "lfs"
 		newIsLfs := attributesMap[file.Options.treePath] != nil && attributesMap[file.Options.treePath].Get(attribute.Filter).ToString().Value() == "lfs"
 
-		// If the old and new path are both in lfs or both not in lfs, the object hash of the old file can be used directly
+		// If the old and new paths are both in lfs or both not in lfs, the object hash of the old file can be used directly
 		// as the object doesn't change
 		if oldIsLfs == newIsLfs {
 			return oldEntry.ID.String(), nil, nil
@@ -650,9 +653,9 @@ func renameFile(ctx context.Context, t *TemporaryUploadRepository, oldEntry *git
 			return "", nil, err
 		}
 		return objectID, lfsPointer, nil
-	} else {
-		return oldEntry.ID.String(), nil, nil
 	}
+
+	return oldEntry.ID.String(), nil, nil
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
