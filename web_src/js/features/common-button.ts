@@ -102,7 +102,7 @@ function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
   throw new Error('no panel to hide'); // should never happen, otherwise there is a bug in code
 }
 
-function assignElementProperty(el: any, name: string, val: string) {
+export function assignElementProperty(el: any, name: string, val: string) {
   name = camelize(name);
   const old = el[name];
   if (typeof old === 'boolean') {
