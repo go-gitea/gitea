@@ -490,13 +490,14 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 
 	var treeObjectContentReader io.Reader = file.ContentReader
 	var oldEntry *git.TreeEntry
-	// If no new content is committed, use the file from the last commit as content
+	// If no new content is committed, which is only the case if file is renamed, use the old file from the last commit as
+	// content
 	if file.ContentReader == nil {
-		lastCommit, err := t.GetLastCommit(ctx)
+		lastCommitID, err := t.GetLastCommit(ctx)
 		if err != nil {
 			return err
 		}
-		commit, err := t.GetCommit(lastCommit)
+		commit, err := t.GetCommit(lastCommitID)
 		if err != nil {
 			return err
 		}
