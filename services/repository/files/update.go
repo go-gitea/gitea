@@ -510,9 +510,9 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	var lfsPointer *lfs.Pointer
 	switch file.Operation {
 	case "create", "update":
-		objectHash, lfsPointer, err = createOrUpdateFile(ctx, t, file, hasOldBranch)
+		objectHash, lfsPointer, err = createOrUpdateFileHash(ctx, t, file, hasOldBranch)
 	case "rename":
-		objectHash, lfsPointer, err = renameFile(ctx, t, oldEntry, file)
+		objectHash, lfsPointer, err = renameFileHash(ctx, t, oldEntry, file)
 	}
 	if err != nil {
 		return err
@@ -565,7 +565,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	return nil
 }
 
-func createOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile, hasOldBranch bool) (string, *lfs.Pointer, error) {
+func createOrUpdateFileHash(ctx context.Context, t *TemporaryUploadRepository, file *ChangeRepoFile, hasOldBranch bool) (string, *lfs.Pointer, error) {
 	treeObjectContentReader := file.ContentReader
 	var lfsPointer *lfs.Pointer
 	if setting.LFS.StartServer && hasOldBranch {
@@ -598,7 +598,7 @@ func createOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 	return objectHash, lfsPointer, nil
 }
 
-func renameFile(ctx context.Context, t *TemporaryUploadRepository, oldEntry *git.TreeEntry, file *ChangeRepoFile) (string, *lfs.Pointer, error) {
+func renameFileHash(ctx context.Context, t *TemporaryUploadRepository, oldEntry *git.TreeEntry, file *ChangeRepoFile) (string, *lfs.Pointer, error) {
 	if setting.LFS.StartServer {
 		attributesMap, err := attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
 			Attributes: []string{attribute.Filter},
