@@ -524,7 +524,7 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 
 		var pointer lfs.Pointer
 		// Get existing lfs pointer if the operation is a pure rename and the old path is in lfs. This prevents the
-		// re-generation/re-hash of a lfs pointer to the same data
+		// regeneration/rehash of a lfs pointer to the same data
 		if file.Operation == "rename" && attributesMap[file.Options.fromTreePath] != nil && attributesMap[file.Options.fromTreePath].Get(attribute.Filter).ToString().Value() == "lfs" {
 			if pointer, err = lfs.ReadPointer(treeObjectContentReader); err != nil {
 				return err
