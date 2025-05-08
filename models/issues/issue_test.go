@@ -420,7 +420,7 @@ func TestIssueLoadAttributes(t *testing.T) {
 			assert.NotNil(t, issue.Projects[0])
 			assert.Equal(t, int64(1), issue.Projects[0].ID)
 		} else {
-			assert.Nil(t, issue.Projects[0])
+			assert.Nil(t, issue.Projects)
 		}
 	}
 }
