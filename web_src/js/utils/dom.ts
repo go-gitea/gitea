@@ -268,11 +268,9 @@ export function initSubmitEventPolyfill() {
   document.body.addEventListener('focus', submitEventPolyfillListener);
 }
 
-/**
- * Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
- * Note: This function doesn't account for all possible visibility scenarios.
- */
 export function isElemVisible(el: HTMLElement): boolean {
+  // Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
+  // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
   if (!el) return false;
   // checking el.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
   return !el.classList.contains('tw-hidden') && Boolean((el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
