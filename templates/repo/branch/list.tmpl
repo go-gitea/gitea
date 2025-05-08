@@ -20,7 +20,7 @@
 						<tr>
 							<td>
 								<div class="flex-text-block">
-									<a class="gt-ellipsis" href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}">{{.DefaultBranchBranch.DBBranch.Name}}</a>
+									<a class="gt-ellipsis branch-name" href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranchBranch.DBBranch.Name}}">{{.DefaultBranchBranch.DBBranch.Name}}</a>
 									{{if .DefaultBranchBranch.IsProtected}}
 										<span data-tooltip-content="{{ctx.Locale.Tr "repo.settings.protected_branch"}}">{{svg "octicon-shield-lock"}}</span>
 									{{end}}
@@ -90,13 +90,13 @@
 							<td class="eight wide">
 							{{if .DBBranch.IsDeleted}}
 								<div class="flex-text-block">
-									<span class="gt-ellipsis">{{.DBBranch.Name}}</span>
+									<span class="gt-ellipsis branch-name">{{.DBBranch.Name}}</span>
 									<button class="btn interact-fg tw-px-1" data-clipboard-text="{{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_branch"}}">{{svg "octicon-copy" 14}}</button>
 								</div>
 								<p class="info">{{ctx.Locale.Tr "repo.branch.deleted_by" .DBBranch.DeletedBy.Name}} {{DateUtils.TimeSince .DBBranch.DeletedUnix}}</p>
 							{{else}}
 								<div class="flex-text-block">
-									<a class="gt-ellipsis" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
+									<a class="gt-ellipsis branch-name" href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .DBBranch.Name}}">{{.DBBranch.Name}}</a>
 									{{if .IsProtected}}
 										<span data-tooltip-content="{{ctx.Locale.Tr "repo.settings.protected_branch"}}">{{svg "octicon-shield-lock"}}</span>
 									{{end}}
