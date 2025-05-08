@@ -165,7 +165,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		ctx.Data["FileSize"] = blob.Size()
 
 		// Only some file types are editable online as text.
-		if !fInfo.isTextFile || fInfo.isLFSFile {
+		if !fInfo.st.IsRepresentableAsText() || fInfo.isLFSFile {
 			ctx.NotFound(nil)
 			return
 		}

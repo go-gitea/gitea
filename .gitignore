@@ -22,6 +22,9 @@ _test
 .vscode
 __debug_bin*
 
+# Visual Studio
+/.vs/
+
 *.cgo1.go
 *.cgo2.c
 _cgo_defun.c
