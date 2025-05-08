@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
-func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attributes []string, cached bool) (*git.Command, []string, func(), error) {
+func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attributes []string) (*git.Command, []string, func(), error) {
 	cancel := func() {}
 	envs := []string{"GIT_FLUSH=1"}
 	cmd := git.NewCommand("check-attr", "-z")
@@ -39,11 +39,12 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 			)
 			cancel = deleteTemporaryFile
 		}
-	} else if cached {
-		// read from existing index instead of work tree, in cases where the repo is bare and has an index or the work tree
-		// contains unstaged changes that shouldn't affect the attribute check
+	} else {
+		// Read from existing index, in cases where the repo is bare and has an index,
+		// or the work tree contains unstaged changes that shouldn't affect the attribute check.
+		// It is caller's responsibility to add changed ".gitattributes" into the index if they want to respect the new changes.
 		cmd.AddArguments("--cached")
-	} // else: no treeish, assume it is a not a bare repo, read from working directory
+	}
 
 	cmd.AddDynamicArguments(attributes...)
 	if len(filenames) > 0 {
@@ -55,13 +56,12 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 type CheckAttributeOpts struct {
 	Filenames  []string
 	Attributes []string
-	Cached     bool
 }
 
 // CheckAttributes return the attributes of the given filenames and attributes in the given treeish.
 // If treeish is empty, then it will use current working directory, otherwise it will use the provided treeish on the bare repo
 func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish string, opts CheckAttributeOpts) (map[string]*Attributes, error) {
-	cmd, envs, cancel, err := checkAttrCommand(gitRepo, treeish, opts.Filenames, opts.Attributes, opts.Cached)
+	cmd, envs, cancel, err := checkAttrCommand(gitRepo, treeish, opts.Filenames, opts.Attributes)
 	if err != nil {
 		return nil, err
 	}

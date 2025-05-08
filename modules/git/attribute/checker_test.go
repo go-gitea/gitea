@@ -61,7 +61,6 @@ func Test_Checker(t *testing.T) {
 		attrs, err := CheckAttributes(t.Context(), gitRepo, "", CheckAttributeOpts{
 			Filenames:  []string{"i-am-a-python.p"},
 			Attributes: LinguistAttributes,
-			Cached:     true,
 		})
 		assert.NoError(t, err)
 		assert.Len(t, attrs, 1)

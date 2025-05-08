@@ -36,7 +36,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 		}
 	}()
 
-	cmd, envs, cleanup, err := checkAttrCommand(repo, treeish, nil, attributes, false)
+	cmd, envs, cleanup, err := checkAttrCommand(repo, treeish, nil, attributes)
 	if err != nil {
 		return nil, err
 	}

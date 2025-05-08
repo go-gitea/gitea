@@ -495,8 +495,6 @@ func CreateOrUpdateFile(ctx context.Context, t *TemporaryUploadRepository, file 
 		attributesMap, err := attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
 			Attributes: []string{attribute.Filter},
 			Filenames:  []string{file.Options.treePath},
-			// An index is set, so it's okay to list the attributes from it
-			Cached: true,
 		})
 		if err != nil {
 			return err

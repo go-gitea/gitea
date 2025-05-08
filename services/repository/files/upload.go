@@ -107,12 +107,10 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	var attributesMap map[string]*attribute.Attributes
-	if setting.LFS.StartServer && hasOldBranch {
+	if setting.LFS.StartServer {
 		attributesMap, err = attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
 			Attributes: []string{attribute.Filter},
 			Filenames:  names,
-			// An index is set, so it's okay to list the attributes from it
-			Cached: true,
 		})
 		if err != nil {
 			return err
