@@ -107,6 +107,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	var attributesMap map[string]*attribute.Attributes
+	// when uploading to an empty repo, the old branch doesn't exist, but some "global gitattributes" or "info/attributes" may exist
 	if setting.LFS.StartServer {
 		attributesMap, err = attribute.CheckAttributes(ctx, t.gitRepo, "" /* use temp repo's working dir */, attribute.CheckAttributeOpts{
 			Attributes: []string{attribute.Filter},
