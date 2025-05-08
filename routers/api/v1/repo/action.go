@@ -1092,7 +1092,6 @@ func DeleteActionRun(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repoID := ctx.Repo.Repository.ID
 	runID := ctx.PathParamInt64("run")
 
 	run, err := actions_model.GetRunByID(ctx, runID)
@@ -1109,13 +1108,7 @@ func DeleteActionRun(ctx *context.APIContext) {
 		return
 	}
 
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if err := actions.DeleteRun(ctx, repoID, run, jobs); err != nil {
+	if err := actions_service.DeleteRun(ctx, run); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

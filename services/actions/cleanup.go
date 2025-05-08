@@ -4,7 +4,9 @@
 package actions
 
 import (
+	"code.gitea.io/gitea/modules/container"
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -22,12 +24,12 @@ import (
 // Cleanup removes expired actions logs, data, artifacts and used ephemeral runners
 func Cleanup(ctx context.Context) error {
 	// clean up expired artifacts
-	if err := CleanupArtifacts(ctx); err != nil {
+	if err := CleanupExpiredArtifacts(ctx); err != nil {
 		return fmt.Errorf("cleanup artifacts: %w", err)
 	}
 
 	// clean up old logs
-	if err := CleanupLogs(ctx); err != nil {
+	if err := CleanupExpiredLogs(ctx); err != nil {
 		return fmt.Errorf("cleanup logs: %w", err)
 	}
 
@@ -39,8 +41,8 @@ func Cleanup(ctx context.Context) error {
 	return nil
 }
 
-// CleanupArtifacts removes expired add need-deleted artifacts and set records expired status
-func CleanupArtifacts(taskCtx context.Context) error {
+// CleanupExpiredArtifacts removes expired add need-deleted artifacts and set records expired status
+func CleanupExpiredArtifacts(taskCtx context.Context) error {
 	if err := cleanExpiredArtifacts(taskCtx); err != nil {
 		return err
 	}
@@ -98,8 +100,15 @@ func cleanNeedDeleteArtifacts(taskCtx context.Context) error {
 
 const deleteLogBatchSize = 100
 
-// CleanupLogs removes logs which are older than the configured retention time
-func CleanupLogs(ctx context.Context) error {
+func removeTaskLog(ctx context.Context, task *actions_model.ActionTask) {
+	if err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename); err != nil {
+		log.Error("Failed to remove log %s (in storage %v) of task %v: %v", task.LogFilename, task.LogInStorage, task.ID, err)
+		// do not return error here, go on
+	}
+}
+
+// CleanupExpiredLogs removes logs which are older than the configured retention time
+func CleanupExpiredLogs(ctx context.Context) error {
 	olderThan := timeutil.TimeStampNow().AddDuration(-time.Duration(setting.Actions.LogRetentionDays) * 24 * time.Hour)
 
 	count := 0
@@ -109,10 +118,7 @@ func CleanupLogs(ctx context.Context) error {
 			return fmt.Errorf("find old tasks: %w", err)
 		}
 		for _, task := range tasks {
-			if err := actions_module.RemoveLogs(ctx, task.LogInStorage, task.LogFilename); err != nil {
-				log.Error("Failed to remove log %s (in storage %v) of task %v: %v", task.LogFilename, task.LogInStorage, task.ID, err)
-				// do not return error here, go on
-			}
+			removeTaskLog(ctx, task)
 			task.LogIndexes = nil // clear log indexes since it's a heavy field
 			task.LogExpired = true
 			if err := actions_model.UpdateTask(ctx, task, "log_indexes", "log_expired"); err != nil {
@@ -146,5 +152,84 @@ func CleanupEphemeralRunners(ctx context.Context) error {
 	}
 	affected, _ := res.RowsAffected()
 	log.Info("Removed %d runners", affected)
+	return nil
+}
+
+// DeleteRun deletes workflow run, including all logs and artifacts.
+func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
+	if !run.Status.IsDone() {
+		return errors.New("run is not done")
+	}
+
+	repoID := run.RepoID
+
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	if err != nil {
+		return err
+	}
+	jobIDs := container.FilterSlice(jobs, func(j *actions_model.ActionRunJob) (int64, bool) {
+		return j.ID, j.ID != 0
+	})
+	tasks := make(actions_model.TaskList, 0)
+	if len(jobIDs) > 0 {
+		if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).In("job_id", jobIDs).Find(&tasks); err != nil {
+			return err
+		}
+	}
+
+	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
+		RepoID: repoID,
+		RunID:  run.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	var recordsToDelete []any
+
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionRun{
+		RepoID: repoID,
+		ID:     run.ID,
+	})
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionRunJob{
+		RepoID: repoID,
+		RunID:  run.ID,
+	})
+	for _, tas := range tasks {
+		recordsToDelete = append(recordsToDelete, &actions_model.ActionTask{
+			RepoID: repoID,
+			ID:     tas.ID,
+		})
+		recordsToDelete = append(recordsToDelete, &actions_model.ActionTaskStep{
+			RepoID: repoID,
+			TaskID: tas.ID,
+		})
+		recordsToDelete = append(recordsToDelete, &actions_model.ActionTaskOutput{
+			TaskID: tas.ID,
+		})
+	}
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionArtifact{
+		RepoID: repoID,
+		RunID:  run.ID,
+	})
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		return db.DeleteBeans(ctx, recordsToDelete...)
+	}); err != nil {
+		return err
+	}
+
+	//Delete files on storage
+	for _, tas := range tasks {
+		if err := actions_module.RemoveLogs(ctx, tas.LogInStorage, tas.LogFilename); err != nil {
+			log.Error("remove log file %q: %v", tas.LogFilename, err)
+		}
+	}
+	for _, art := range artifacts {
+		if err := storage.ActionsArtifacts.Delete(art.StoragePath); err != nil {
+			log.Error("remove artifact file %q: %v", art.StoragePath, err)
+		}
+	}
+
 	return nil
 }

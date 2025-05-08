@@ -583,21 +583,20 @@ func Approve(ctx *context_module.Context) {
 
 func Delete(ctx *context_module.Context) {
 	runIndex := getRunIndex(ctx)
+	repoID := ctx.Repo.Repository.ID
 
-	job0, jobs := getRunJobs(ctx, runIndex, -1)
-	if ctx.Written() {
+	run, err := actions_model.GetRunByIndex(ctx, repoID, runIndex)
+	if err != nil {
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	run := job0.Run
 	if !run.Status.IsDone() {
 		ctx.JSONError(ctx.Tr("actions.runs.not_done"))
 		return
 	}
 
-	repoID := ctx.Repo.Repository.ID
-
-	if err := actions.DeleteRun(ctx, repoID, run, jobs); err != nil {
+	if err := actions_service.DeleteRun(ctx, run); err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
