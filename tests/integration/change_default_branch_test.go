@@ -49,7 +49,7 @@ func checkDivergence(t *testing.T, session *TestSession, branchesURL, expectedDe
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	branchNodes := htmlDoc.doc.Find(".gt-ellipsis").Nodes
+	branchNodes := htmlDoc.doc.Find(".branch-name").Nodes
 	branchNames := []string{}
 	for _, node := range branchNodes {
 		branchNames = append(branchNames, node.FirstChild.Data)
