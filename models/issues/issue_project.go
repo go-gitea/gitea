@@ -24,7 +24,7 @@ func (issue *Issue) LoadProject(ctx context.Context) (err error) {
 
 func (issue *Issue) projectIDs(ctx context.Context) []int64 {
 	var ids []int64
-	if err := db.GetEngine(ctx).Table("project_issue").Where("issue_id=?", issue.ID).Cols("project_id").Find(&ids); err != nil {
+	if err := db.GetEngine(ctx).Table("project_issue").Where("issue_id=?", issue.ID).Select("project_id").Find(&ids); err != nil {
 		return nil
 	}
 
