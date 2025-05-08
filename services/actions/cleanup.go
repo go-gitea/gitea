@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"code.gitea.io/gitea/modules/container"
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +12,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -223,7 +223,7 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		return err
 	}
 
-	//Delete files on storage
+	// Delete files on storage
 	for _, tas := range tasks {
 		if err := actions_module.RemoveLogs(ctx, tas.LogInStorage, tas.LogFilename); err != nil {
 			log.Error("remove log file %q: %v", tas.LogFilename, err)
