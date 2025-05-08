@@ -1,11 +1,13 @@
 package files
 
 import (
+	"testing"
+
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/services/contexttest"
+
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestUpdateRename(t *testing.T) {
