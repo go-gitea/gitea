@@ -160,7 +160,7 @@ jobs:
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%s/delete", user2.Name, apiRepo.Name, runIndex), map[string]string{
 			"_csrf": GetUserCSRFToken(t, session),
 		})
-		session.MakeRequest(t, req, http.StatusInternalServerError)
+		session.MakeRequest(t, req, http.StatusNotFound)
 
 		req = NewRequestWithValues(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%s", user2.Name, apiRepo.Name, runIndex), map[string]string{
 			"_csrf": GetUserCSRFToken(t, session),
