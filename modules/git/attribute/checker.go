@@ -39,7 +39,12 @@ func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attrib
 			)
 			cancel = deleteTemporaryFile
 		}
-	} // else: no treeish, assume it is a not a bare repo, read from working directory
+	} else {
+		// Read from existing index, in cases where the repo is bare and has an index,
+		// or the work tree contains unstaged changes that shouldn't affect the attribute check.
+		// It is caller's responsibility to add changed ".gitattributes" into the index if they want to respect the new changes.
+		cmd.AddArguments("--cached")
+	}
 
 	cmd.AddDynamicArguments(attributes...)
 	if len(filenames) > 0 {
