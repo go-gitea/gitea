@@ -119,6 +119,12 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// Copy uploaded files into repository.
+	// TODO: there is a small problem: when uploading LFS files with ".gitattributes", the "check-attr" runs before this loop,
+	// so LFS files are not able to be added as LFS objects. Ideally we need to do in 3 steps in the future:
+	// 1. Add ".gitattributes" to git index
+	// 2. Run "check-attr" (the previous attribute.CheckAttributes call)
+	// 3. Add files to git index (this loop)
+	// This problem is trivial so maybe no need to spend too much time on it at the moment.
 	for i := range infos {
 		if err := copyUploadedLFSFileIntoRepository(ctx, &infos[i], attributesMap, t, opts.TreePath); err != nil {
 			return err
