@@ -297,7 +297,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	operation := "update"
 	if isNewFile {
 		operation = "create"
-	} else if !form.Content.Has() {
+	} else if !form.Content.Has() && ctx.Repo.TreePath != form.TreePath {
 		// The form content only has data if file is representable as text, is not too large and not in lfs. If it doesn't
 		// have data, the only possible operation is a rename
 		operation = "rename"
