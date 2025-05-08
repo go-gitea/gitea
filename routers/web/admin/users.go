@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -262,6 +263,7 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
+	ctx.Data["ShowUserSignupMetadata"] = setting.RecordUserSignupMetadata
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -290,6 +292,25 @@ func ViewUser(ctx *context.Context) {
 	}
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailsTotal"] = len(emails)
+
+	// If record user signup metadata is enabled, get the user's signup IP and user agent
+	if setting.RecordUserSignupMetadata {
+		signupIP, err := user_model.GetUserSetting(ctx, u.ID, user_model.SignupIP)
+		if err == nil && len(signupIP) > 0 {
+			ctx.Data["HasSignupIP"] = true
+			ctx.Data["SignupIP"] = util.TrimPortFromIP(signupIP)
+		} else {
+			ctx.Data["HasSignupIP"] = false
+		}
+
+		signupUserAgent, err := user_model.GetUserSetting(ctx, u.ID, user_model.SignupUserAgent)
+		if err == nil && len(signupUserAgent) > 0 {
+			ctx.Data["HasSignupUserAgent"] = true
+			ctx.Data["SignupUserAgent"] = signupUserAgent
+		} else {
+			ctx.Data["HasSignupUserAgent"] = false
+		}
+	}
 
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
 		ListOptions:    db.ListOptionsAll,
