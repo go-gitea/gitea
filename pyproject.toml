@@ -6,7 +6,7 @@ python = "^3.10"
 
 [tool.poetry.group.dev.dependencies]
 djlint = "1.36.4"
-yamllint = "1.37.0"
+yamllint = "1.37.1"
 
 [tool.djlint]
 profile="golang"
