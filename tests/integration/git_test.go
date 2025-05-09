@@ -11,8 +11,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -33,7 +35,9 @@ import (
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/kballard/go-shellquote"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -106,7 +110,12 @@ func testGit(t *testing.T, u *url.URL) {
 
 		// Setup key the user ssh key
 		withKeyFile(t, keyname, func(keyFile string) {
-			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile))
+			var keyID int64
+			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile, func(t *testing.T, key api.PublicKey) {
+				keyID = key.ID
+			}))
+			assert.NotZero(t, keyID)
+			t.Run("LFSAccessTest", doSSHLFSAccessTest(sshContext, keyID))
 
 			// Setup remote link
 			// TODO: get url from api
@@ -134,6 +143,36 @@ func testGit(t *testing.T, u *url.URL) {
 			t.Run("PushCreate", doPushCreate(sshContext, sshURL))
 		})
 	})
+}
+
+func doSSHLFSAccessTest(_ APITestContext, keyID int64) func(*testing.T) {
+	return func(t *testing.T) {
+		sshCommand := os.Getenv("GIT_SSH_COMMAND")       // it is set in withKeyFile
+		sshCmdParts, err := shellquote.Split(sshCommand) // and parse the ssh command to construct some mocked arguments
+		require.NoError(t, err)
+
+		t.Run("User2AccessOwned", func(t *testing.T) {
+			sshCmdUser2Self := append(slices.Clone(sshCmdParts),
+				"-p", strconv.Itoa(setting.SSH.ListenPort), "git@"+setting.SSH.ListenHost,
+				"git-lfs-authenticate", "user2/repo1.git", "upload", // accessible to own repo
+			)
+			cmd := exec.CommandContext(git.DefaultContext, sshCmdUser2Self[0], sshCmdUser2Self[1:]...)
+			_, err := cmd.Output()
+			assert.NoError(t, err) // accessible, no error
+		})
+
+		t.Run("User2AccessOther", func(t *testing.T) {
+			sshCmdUser2Other := append(slices.Clone(sshCmdParts),
+				"-p", strconv.Itoa(setting.SSH.ListenPort), "git@"+setting.SSH.ListenHost,
+				"git-lfs-authenticate", "user5/repo4.git", "upload", // inaccessible to other's (user5/repo4)
+			)
+			cmd := exec.CommandContext(git.DefaultContext, sshCmdUser2Other[0], sshCmdUser2Other[1:]...)
+			_, err := cmd.Output()
+			var errExit *exec.ExitError
+			require.ErrorAs(t, err, &errExit) // inaccessible, error
+			assert.Contains(t, string(errExit.Stderr), fmt.Sprintf("User: 2:user2 with Key: %d:test-key is not authorized to write to user5/repo4.", keyID))
+		})
+	}
 }
 
 func ensureAnonymousClone(t *testing.T, u *url.URL) {
