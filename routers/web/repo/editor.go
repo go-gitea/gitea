@@ -177,11 +177,9 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		if fInfo.isLFSFile {
 			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-		} else if !fInfo.isTextFile {
+		} else if !fInfo.st.IsRepresentableAsText() {
 			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
-		}
-
-		if blob.Size() >= setting.UI.MaxDisplayFileSize {
+		} else if blob.Size() >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_too_large_file")
 		} else {
 			d, _ := io.ReadAll(dataRc)
