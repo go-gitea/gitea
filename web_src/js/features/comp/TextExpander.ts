@@ -97,6 +97,7 @@ export function initTextExpander(expander: TextExpanderElement) {
         li.append(img);
 
         const nameSpan = document.createElement('span');
+        nameSpan.classList.add('name');
         nameSpan.textContent = name;
         li.append(nameSpan);
 
