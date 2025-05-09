@@ -272,13 +272,12 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 	allProjects := append(slices.Clone(pageMetaData.ProjectsData.OpenProjects), pageMetaData.ProjectsData.ClosedProjects...)
 	candidateProjects := toSet(allProjects, func(project *project_model.Project) int64 { return project.ID })
 	inputProjectIDs, _ := base.StringsToInt64s(strings.Split(form.ProjectIDs, ","))
-	var projectIDStrings []string
-	for _, inputProjectID := range inputProjectIDs {
-		if candidateProjects.Contains(inputProjectID) {
-			projectIDStrings = append(projectIDStrings, strconv.FormatInt(inputProjectID, 10))
+	pageMetaData.ProjectsData.SelectedProjectID = util.JoinSlice(inputProjectIDs, func(v int64) string {
+		if candidateProjects.Contains(v) {
+			return strconv.FormatInt(v, 10)
 		}
-	}
-	pageMetaData.ProjectsData.SelectedProjectID = strings.Join(projectIDStrings, ",")
+		return ""
+	})
 
 	// prepare assignees
 	candidateAssignees := toSet(pageMetaData.AssigneesData.CandidateAssignees, func(user *user_model.User) int64 { return user.ID })
