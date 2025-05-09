@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/util"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -161,11 +162,9 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
 	if d.Issue != nil && len(d.Issue.Projects) > 0 {
-		ids := make([]string, 0, len(d.Issue.Projects))
-		for _, a := range d.Issue.Projects {
-			ids = append(ids, strconv.FormatInt(a.ID, 10))
-		}
-		d.ProjectsData.SelectedProjectID = strings.Join(ids, ",")
+		d.ProjectsData.SelectedProjectID = util.JoinSlice(d.Issue.Projects, func(v *project_model.Project) string {
+			return strconv.FormatInt(v.ID, 10)
+		})
 	}
 	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
 }
