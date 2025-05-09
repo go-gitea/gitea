@@ -1,5 +1,5 @@
 import {POST} from '../modules/fetch.ts';
-import {addDelegatedEventListener, hideElem, showElem, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {camelize} from 'vue';
 
@@ -79,10 +79,11 @@ function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   // if it has "toggle" class, it toggles the panel
   e.preventDefault();
   const sel = el.getAttribute('data-panel');
-  if (el.classList.contains('toggle')) {
-    toggleElem(sel);
-  } else {
-    showElem(sel);
+  const elems = el.classList.contains('toggle') ? toggleElem(sel) : showElem(sel);
+  for (const elem of elems) {
+    if (isElemVisible(elem as HTMLElement)) {
+      elem.querySelector<HTMLElement>('[autofocus]')?.focus();
+    }
   }
 }
 
@@ -102,6 +103,21 @@ function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
   throw new Error('no panel to hide'); // should never happen, otherwise there is a bug in code
 }
 
+export function assignElementProperty(el: any, name: string, val: string) {
+  name = camelize(name);
+  const old = el[name];
+  if (typeof old === 'boolean') {
+    el[name] = val === 'true';
+  } else if (typeof old === 'number') {
+    el[name] = parseFloat(val);
+  } else if (typeof old === 'string') {
+    el[name] = val;
+  } else {
+    // in the future, we could introduce a better typing system like `data-modal-form.action:string="..."`
+    throw new Error(`cannot assign element property ${name} by value ${val}`);
+  }
+}
+
 function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // A ".show-modal" button will show a modal dialog defined by its "data-modal" attribute.
   // Each "data-modal-{target}" attribute will be filled to target element's value or text-content.
@@ -109,7 +125,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // * Then, try to query '[name=target]'
   // * Then, try to query '.target'
   // * Then, try to query 'target' as HTML tag
-  // If there is a ".{attr}" part like "data-modal-form.action", then the form's "action" attribute will be set.
+  // If there is a ".{prop-name}" part like "data-modal-form.action", the "form" element's "action" property will be set, the "prop-name" will be camel-cased to "propName".
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal');
   const elModal = document.querySelector(modalSelector);
@@ -122,7 +138,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     }
 
     const attrTargetCombo = attrib.name.substring(modalAttrPrefix.length);
-    const [attrTargetName, attrTargetAttr] = attrTargetCombo.split('.');
+    const [attrTargetName, attrTargetProp] = attrTargetCombo.split('.');
     // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag"
     const attrTarget = elModal.querySelector(`#${attrTargetName}`) ||
       elModal.querySelector(`[name=${attrTargetName}]`) ||
@@ -133,8 +149,8 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
       continue;
     }
 
-    if (attrTargetAttr) {
-      (attrTarget as any)[camelize(attrTargetAttr)] = attrib.value;
+    if (attrTargetProp) {
+      assignElementProperty(attrTarget, attrTargetProp, attrib.value);
     } else if (attrTarget.matches('input, textarea')) {
       (attrTarget as HTMLInputElement | HTMLTextAreaElement).value = attrib.value; // FIXME: add more supports like checkbox
     } else {
