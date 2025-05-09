@@ -82,7 +82,6 @@ text-expander .suggestions img,
 
 .tribute-container {
   display: block;
-  z-index: 100; /* needs to be > 20 to be on top of dropzone's .dz-details */
 }
 
 .tribute-container ul {
