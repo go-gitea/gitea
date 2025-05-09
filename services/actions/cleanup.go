@@ -225,9 +225,7 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 
 	// Delete files on storage
 	for _, tas := range tasks {
-		if err := actions_module.RemoveLogs(ctx, tas.LogInStorage, tas.LogFilename); err != nil {
-			log.Error("remove log file %q: %v", tas.LogFilename, err)
-		}
+		removeTaskLog(ctx, tas)
 	}
 	for _, art := range artifacts {
 		if err := storage.ActionsArtifacts.Delete(art.StoragePath); err != nil {
