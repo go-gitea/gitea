@@ -17,6 +17,7 @@ import (
 func TestDateTime(t *testing.T) {
 	testTz, _ := time.LoadLocation("America/New_York")
 	defer test.MockVariableValue(&setting.DefaultUILocation, testTz)()
+	defer test.MockVariableValue(&setting.IsProd, true)()
 	defer test.MockVariableValue(&setting.IsInTesting, false)()
 
 	du := NewDateUtils()
@@ -53,6 +54,7 @@ func TestDateTime(t *testing.T) {
 func TestTimeSince(t *testing.T) {
 	testTz, _ := time.LoadLocation("America/New_York")
 	defer test.MockVariableValue(&setting.DefaultUILocation, testTz)()
+	defer test.MockVariableValue(&setting.IsProd, true)()
 	defer test.MockVariableValue(&setting.IsInTesting, false)()
 
 	du := NewDateUtils()
