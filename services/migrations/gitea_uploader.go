@@ -975,7 +975,7 @@ func (g *GiteaLocalUploader) Finish(ctx context.Context) error {
 	}
 
 	g.repo.Status = repo_model.RepositoryReady
-	return repo_model.UpdateRepositoryCols(ctx, g.repo, "status")
+	return repo_model.UpdateRepositoryColsWithAutoTime(ctx, g.repo, "status")
 }
 
 func (g *GiteaLocalUploader) remapUser(ctx context.Context, source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) error {

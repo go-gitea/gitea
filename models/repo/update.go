@@ -34,15 +34,15 @@ func UpdateRepositoryOwnerNames(ctx context.Context, ownerID int64, ownerName st
 	return committer.Commit()
 }
 
-// UpdateRepositoryUpdatedTime updates a repository's updated time
-func UpdateRepositoryUpdatedTime(ctx context.Context, repoID int64, updateTime time.Time) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
+// UpdateRepositoryColsWithAutoTime updates repository's columns
+func UpdateRepositoryColsWithAutoTime(ctx context.Context, repo *Repository, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(cols...).Update(repo)
 	return err
 }
 
-// UpdateRepositoryCols updates repository's columns
-func UpdateRepositoryCols(ctx context.Context, repo *Repository, cols ...string) error {
-	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(cols...).Update(repo)
+// UpdateRepositoryUpdatedTime updates a repository's updated time
+func UpdateRepositoryUpdatedTime(ctx context.Context, repoID int64, updateTime time.Time) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
 	return err
 }
 
