@@ -12,12 +12,10 @@ import (
 
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/reqctx"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -50,10 +48,7 @@ mail@domain.com
 }
 
 func TestMain(m *testing.M) {
-	unittest.InitSettingsForTesting()
-	if err := git.InitSimple(context.Background()); err != nil {
-		log.Fatal("git init failed, err: %v", err)
-	}
+	setting.Markdown.RenderOptionsComment.ShortIssuePattern = true
 	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
 			return username == "mention-user"
