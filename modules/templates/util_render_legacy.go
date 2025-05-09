@@ -32,22 +32,22 @@ func renderMarkdownToHtmlLegacy(ctx context.Context, input string) template.HTML
 	return NewRenderUtils(reqctx.FromContext(ctx)).MarkdownToHtml(input)
 }
 
-func renderCommitMessageLegacy(ctx context.Context, msg string, metas map[string]string) template.HTML {
+func renderCommitMessageLegacy(ctx context.Context, msg string, _ map[string]string) template.HTML {
 	panicIfDevOrTesting()
-	return NewRenderUtils(reqctx.FromContext(ctx)).RenderCommitMessage(msg, metas)
+	return NewRenderUtils(reqctx.FromContext(ctx)).RenderCommitMessage(msg, nil)
 }
 
-func renderCommitMessageLinkSubjectLegacy(ctx context.Context, msg, urlDefault string, metas map[string]string) template.HTML {
+func renderCommitMessageLinkSubjectLegacy(ctx context.Context, msg, urlDefault string, _ map[string]string) template.HTML {
 	panicIfDevOrTesting()
-	return NewRenderUtils(reqctx.FromContext(ctx)).RenderCommitMessageLinkSubject(msg, urlDefault, metas)
+	return NewRenderUtils(reqctx.FromContext(ctx)).RenderCommitMessageLinkSubject(msg, urlDefault, nil)
 }
 
-func renderIssueTitleLegacy(ctx context.Context, text string, metas map[string]string) template.HTML {
+func renderIssueTitleLegacy(ctx context.Context, text string, _ map[string]string) template.HTML {
 	panicIfDevOrTesting()
-	return NewRenderUtils(reqctx.FromContext(ctx)).RenderIssueTitle(text, metas)
+	return NewRenderUtils(reqctx.FromContext(ctx)).RenderIssueTitle(text, nil)
 }
 
-func renderCommitBodyLegacy(ctx context.Context, msg string, metas map[string]string) template.HTML {
+func renderCommitBodyLegacy(ctx context.Context, msg string, _ map[string]string) template.HTML {
 	panicIfDevOrTesting()
-	return NewRenderUtils(reqctx.FromContext(ctx)).RenderCommitBody(msg, metas)
+	return NewRenderUtils(reqctx.FromContext(ctx)).RenderCommitBody(msg, nil)
 }

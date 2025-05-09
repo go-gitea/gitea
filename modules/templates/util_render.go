@@ -14,6 +14,8 @@ import (
 	"unicode"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/renderhelper"
+	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
@@ -34,11 +36,11 @@ func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
-func (ut *RenderUtils) RenderCommitMessage(msg string, metas map[string]string) template.HTML {
+func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	fullMessage, err := markup.PostProcessCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), cleanMsg)
+	fullMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), cleanMsg)
 	if err != nil {
 		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
@@ -52,7 +54,7 @@ func (ut *RenderUtils) RenderCommitMessage(msg string, metas map[string]string) 
 
 // RenderCommitMessageLinkSubject renders commit message as a XSS-safe link to
 // the provided default url, handling for special links without email to links.
-func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, metas map[string]string) template.HTML {
+func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, repo *repo.Repository) template.HTML {
 	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -63,9 +65,8 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, me
 		return ""
 	}
 
-	// we can safely assume that it will not return any error, since there
-	// shouldn't be any special HTML.
-	renderedMessage, err := markup.PostProcessCommitMessageSubject(markup.NewRenderContext(ut.ctx).WithMetas(metas), urlDefault, template.HTMLEscapeString(msgLine))
+	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
+	renderedMessage, err := markup.PostProcessCommitMessageSubject(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), urlDefault, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("PostProcessCommitMessageSubject: %v", err)
 		return ""
@@ -74,7 +75,7 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, me
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
-func (ut *RenderUtils) RenderCommitBody(msg string, metas map[string]string) template.HTML {
+func (ut *RenderUtils) RenderCommitBody(msg string, repo *repo.Repository) template.HTML {
 	msgLine := strings.TrimSpace(msg)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -87,7 +88,7 @@ func (ut *RenderUtils) RenderCommitBody(msg string, metas map[string]string) tem
 		return ""
 	}
 
-	renderedMessage, err := markup.PostProcessCommitMessage(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(msgLine))
+	renderedMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("PostProcessCommitMessage: %v", err)
 		return ""
@@ -105,8 +106,8 @@ func renderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors
-func (ut *RenderUtils) RenderIssueTitle(text string, metas map[string]string) template.HTML {
-	renderedText, err := markup.PostProcessIssueTitle(markup.NewRenderContext(ut.ctx).WithMetas(metas), template.HTMLEscapeString(text))
+func (ut *RenderUtils) RenderIssueTitle(text string, repo *repo.Repository) template.HTML {
+	renderedText, err := markup.PostProcessIssueTitle(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("PostProcessIssueTitle: %v", err)
 		return ""
