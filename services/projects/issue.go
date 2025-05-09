@@ -77,7 +77,12 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 				}
 			}
 
-			_, err = db.Exec(ctx, "UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=? AND project_id=?", column.ID, sorting, issueID, column.ProjectID)
+			_, err = db.GetEngine(ctx).Table("project_issue").
+				Where("issue_id = ? AND project_id = ?", issueID, column.ProjectID).
+				Update(map[string]any{
+					"project_board_id": column.ID,
+					"sorting":          sorting,
+				})
 			if err != nil {
 				return err
 			}
