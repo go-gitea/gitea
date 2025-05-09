@@ -24,7 +24,7 @@ import (
 // Cleanup removes expired actions logs, data, artifacts and used ephemeral runners
 func Cleanup(ctx context.Context) error {
 	// clean up expired artifacts
-	if err := CleanupExpiredArtifacts(ctx); err != nil {
+	if err := CleanupArtifacts(ctx); err != nil {
 		return fmt.Errorf("cleanup artifacts: %w", err)
 	}
 
@@ -41,8 +41,8 @@ func Cleanup(ctx context.Context) error {
 	return nil
 }
 
-// CleanupExpiredArtifacts removes expired add need-deleted artifacts and set records expired status
-func CleanupExpiredArtifacts(taskCtx context.Context) error {
+// CleanupArtifacts removes expired add need-deleted artifacts and set records expired status
+func CleanupArtifacts(taskCtx context.Context) error {
 	if err := cleanExpiredArtifacts(taskCtx); err != nil {
 		return err
 	}
