@@ -44,7 +44,7 @@
 							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | ctx.RenderUtils.RenderEmoji}}</span>
 						{{else}}
 							{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
-							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink ($.Repository.ComposeCommentMetas ctx)}}</span>
+							<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink $.Repository}}</span>
 						{{end}}
 						</span>
 						{{if IsMultilineCommitMessage .Message}}
@@ -52,7 +52,7 @@
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 						{{if IsMultilineCommitMessage .Message}}
-						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message ($.Repository.ComposeCommentMetas ctx)}}</pre>
+						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message $.Repository}}</pre>
 						{{end}}
 						{{if $.CommitsTagsMap}}
 							{{range (index $.CommitsTagsMap .ID.String)}}
