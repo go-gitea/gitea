@@ -29,7 +29,7 @@ text-expander .suggestions li,
   display: flex;
   align-items: center;
   cursor: pointer;
-  gap: 4px;
+  gap: 6px;
   font-weight: var(--font-weight-medium);
 }
 
