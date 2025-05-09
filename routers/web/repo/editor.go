@@ -173,8 +173,6 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		ctx.Data["FileSize"] = fInfo.fileSize
 
 		// Only some file types are editable online as text.
-		ctx.Data["IsFileEditable"] = fInfo.st.IsRepresentableAsText() && !fInfo.isLFSFile && fInfo.fileSize < setting.UI.MaxDisplayFileSize
-
 		if fInfo.isLFSFile {
 			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
 		} else if !fInfo.st.IsRepresentableAsText() {
@@ -195,8 +193,6 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	} else {
 		// Append filename from query, or empty string to allow username the new file.
 		treeNames = append(treeNames, fileName)
-
-		ctx.Data["IsFileEditable"] = true
 	}
 
 	ctx.Data["TreeNames"] = treeNames

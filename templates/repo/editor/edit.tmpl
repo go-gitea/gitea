@@ -28,7 +28,7 @@
 					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 				</div>
 			</div>
-			{{if .IsFileEditable}}
+			{{if not .NotEditableReason}}
 				<div class="field">
 					<div class="ui top attached header">
 						<div class="ui compact small menu small-menu-items repo-editor-menu">
