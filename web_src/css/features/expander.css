@@ -38,7 +38,8 @@ text-expander .suggestions li,
   padding: 3px 6px;
 }
 
-text-expander .suggestions li + li {
+text-expander .suggestions li + li,
+.tribute-container li + li {
   border-top: 1px solid var(--color-secondary);
 }
 
@@ -88,10 +89,6 @@ text-expander .suggestions img,
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.tribute-container li + li {
-  border-top: 1px solid var(--color-secondary);
 }
 
 .tribute-container li span,
