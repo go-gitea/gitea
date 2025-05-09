@@ -5,7 +5,7 @@ text-expander .suggestions,
   max-width: min(500px, 95vw);
   overflow-x: hidden;
   overflow-y: auto;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   background: var(--color-menu);
   box-shadow: 0 6px 18px var(--color-shadow);
   border-radius: var(--border-radius);
@@ -55,15 +55,12 @@ text-expander .suggestions li:only-child {
   border-radius: var(--border-radius);
 }
 
-text-expander .suggestions .name,
-.tribute-container li .name {
-  white-space: nowrap;
-}
-
 text-expander .suggestions .fullname,
 .tribute-container li .fullname {
   font-weight: var(--font-weight-normal);
   color: var(--color-text-light-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 text-expander .suggestions li:hover,
