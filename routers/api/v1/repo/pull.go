@@ -14,6 +14,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	git_model "code.gitea.io/gitea/models/git"
+	issue_model "code.gitea.io/gitea/models/issues"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -706,6 +707,11 @@ func EditPullRequest(ctx *context.APIContext) {
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
+		issue.Milestone, err = issue_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, form.Milestone)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 		if err = issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.APIErrorInternal(err)
 			return

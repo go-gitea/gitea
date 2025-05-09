@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	issue_model "code.gitea.io/gitea/models/issues"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -895,6 +896,15 @@ func EditIssue(ctx *context.APIContext) {
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
+		if issue.MilestoneID > 0 {
+			issue.Milestone, err = issue_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, *form.Milestone)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+		} else {
+			issue.Milestone = nil
+		}
 		if err = issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
