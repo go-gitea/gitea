@@ -46,7 +46,6 @@
 		<span class="item empty-list {{if $issueProject}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 		{{range $issueProject}}
 			<a class="item" href="{{.Link ctx}}">
-				<span class="item-check-mark">{{svg "octicon-check"}}</span>
 				{{svg .IconName 18}} {{.Title}}
 			</a>
 		{{end}}
