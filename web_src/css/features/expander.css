@@ -78,8 +78,10 @@ text-expander .suggestions li[aria-selected="true"] *,
 
 text-expander .suggestions img,
 .tribute-item img {
-  width: 24px;
-  height: 24px;
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+  aspect-ratio: 1;
 }
 
 .tribute-container {
