@@ -117,6 +117,9 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 					return err
 				}
 			}
+		}
+
+		if len(newProjectIDs) == 0 {
 			return nil
 		}
 
