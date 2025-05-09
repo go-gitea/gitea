@@ -138,6 +138,9 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 		pi := make([]*project_model.ProjectIssue, 0, len(newProjectIDs))
 
 		for _, pID := range newProjectIDs {
+			if pID == 0 {
+				continue
+			}
 			newProject, err := project_model.GetProjectByID(ctx, pID)
 			if err != nil {
 				return err
