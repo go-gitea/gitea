@@ -67,6 +67,7 @@ text-expander .suggestions .fullname,
 }
 
 text-expander .suggestions li:hover,
+text-expander .suggestions li:hover *,
 text-expander .suggestions li[aria-selected="true"],
 text-expander .suggestions li[aria-selected="true"] *,
 .tribute-container li.highlight,
@@ -89,11 +90,6 @@ text-expander .suggestions img,
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.tribute-container li span,
-.tribute-container .menu-highlighted {
-  font-weight: var(--font-weight-semibold);
 }
 
 .tribute-container li.no-match {
