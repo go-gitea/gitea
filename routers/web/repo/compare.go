@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -41,6 +42,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/gitdiff"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -875,6 +877,10 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
+	if ctx.FormBool("pull") {
+		ctx.Data["PageIsPullFiles"] = true
+	}
+
 	if ctx.Data["PageIsWiki"] == true {
 		var err error
 		gitRepo, err = gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
@@ -935,7 +941,9 @@ func ExcerptBlob(ctx *context.Context) {
 				RightIdx:      idxRight,
 				LeftHunkSize:  leftHunkSize,
 				RightHunkSize: rightHunkSize,
+				HasComments:   false,
 			},
+			Comments: nil,
 		}
 		switch direction {
 		case "up":
@@ -944,10 +952,69 @@ func ExcerptBlob(ctx *context.Context) {
 			section.Lines = append(section.Lines, lineSection)
 		}
 	}
+	issueIndex := ctx.FormInt64("issue_index")
+	if ctx.FormBool("pull") && issueIndex > 0 {
+		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
+		if err != nil {
+			ctx.ServerError("GetIssueByIndex", err)
+			return
+		}
+		allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, false, &filePath)
+		if err != nil {
+			ctx.ServerError("FetchCodeComments", err)
+			return
+		}
+		lineCommits := allComments[filePath]
+		for index, line := range section.Lines {
+			if line.SectionInfo != nil && line.Type == 4 && !(line.SectionInfo.LastRightIdx == 0 && index+1 == len(section.Lines)) {
+				start := int64(line.SectionInfo.LastRightIdx + 1)
+				end := int64(line.SectionInfo.RightIdx - 1)
+				for start <= end {
+					if _, ok := lineCommits[start]; ok {
+						if !line.SectionInfo.HasComments {
+							line.SectionInfo.HasComments = true
+							break
+						}
+					}
+					start++
+				}
+			}
+			if comments, ok := lineCommits[int64(line.LeftIdx*-1)]; ok {
+				line.Comments = append(line.Comments, comments...)
+			}
+			if comments, ok := lineCommits[int64(line.RightIdx)]; ok {
+				line.Comments = append(line.Comments, comments...)
+			}
+
+			sort.SliceStable(line.Comments, func(i, j int) bool {
+				return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+			})
+		}
+		for _, line := range section.Lines {
+			for _, comment := range line.Comments {
+				if err := comment.LoadAttachments(ctx); err != nil {
+					ctx.ServerError("LoadAttachments", err)
+					return
+				}
+			}
+		}
+		ctx.Data["Issue"] = issue
+		ctx.Data["IssueIndex"] = issue.Index
+	}
 	ctx.Data["section"] = section
 	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
+	if ctx.Data["SignedUserID"] == nil {
+		ctx.Data["SignedUserID"] = ctx.Doer.ID
+	}
+	ctx.Data["SignedUser"] = ctx.Doer
+	ctx.Data["IsSigned"] = ctx.Doer != nil
+	ctx.Data["Repository"] = ctx.Repo.Repository
+	ctx.Data["Permission"] = &ctx.Repo.Permission
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 
@@ -976,6 +1043,7 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 			RightIdx: line + 1,
 			Type:     gitdiff.DiffLinePlain,
 			Content:  " " + lineText,
+			Comments: []*issues_model.Comment{},
 		}
 		diffLines = append(diffLines, diffLine)
 	}
