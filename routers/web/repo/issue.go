@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	issue_model "code.gitea.io/gitea/models/issues"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -421,7 +420,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 		issue.MilestoneID = milestoneID
 		if milestoneID > 0 {
 			var err error
-			issue.Milestone, err = issue_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
+			issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 			if err != nil {
 				ctx.ServerError("GetMileStoneByID", err)
 				return
