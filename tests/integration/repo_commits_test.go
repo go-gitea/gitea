@@ -33,7 +33,7 @@ func TestRepoCommits(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
-	commitURL, exists := doc.doc.Find("#commits-table .commit-id-short").Attr("href")
+	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 }
@@ -50,7 +50,7 @@ func Test_ReposGitCommitListNotMaster(t *testing.T) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	commits := []string{}
-	doc.doc.Find("#commits-table .commit-id-short").Each(func(i int, s *goquery.Selection) {
+	doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Each(func(i int, s *goquery.Selection) {
 		commitURL, exists := s.Attr("href")
 		assert.True(t, exists)
 		assert.NotEmpty(t, commitURL)
@@ -63,7 +63,7 @@ func Test_ReposGitCommitListNotMaster(t *testing.T) {
 	assert.Equal(t, "5099b81332712fe655e34e8dd63574f503f61811", commits[2])
 
 	userNames := []string{}
-	doc.doc.Find("#commits-table .author-wrapper").Each(func(i int, s *goquery.Selection) {
+	doc.doc.Find(".timeline.commits-list-group-by-date .description .author-wrapper").Each(func(i int, s *goquery.Selection) {
 		userPath, exists := s.Attr("href")
 		assert.True(t, exists)
 		assert.NotEmpty(t, userPath)
@@ -87,7 +87,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
-	commitURL, exists := doc.doc.Find("#commits-table .commit-id-short").Attr("href")
+	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
@@ -105,7 +105,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	doc = NewHTMLParser(t, resp.Body)
 	// Check if commit status is displayed in message column (.tippy-target to ignore the tippy trigger)
-	sel := doc.doc.Find("#commits-table .message .tippy-target .commit-status")
+	sel := doc.doc.Find(".timeline.commits-list-group-by-date .description .tippy-target .commit-status")
 	assert.Equal(t, 1, sel.Length())
 	for _, class := range classes {
 		assert.True(t, sel.HasClass(class))
@@ -181,7 +181,7 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
-	commitURL, exists := doc.doc.Find("#commits-table .commit-id-short").Attr("href")
+	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
@@ -216,7 +216,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 
 	doc := NewHTMLParser(t, resp.Body)
 	// Get first commit URL
-	commitURL, exists := doc.doc.Find("#commits-table .commit-id-short").Attr("href")
+	commitURL, exists := doc.doc.Find(".timeline.commits-list-group-by-date .commit-sign-badge .commit-id-short").Attr("href")
 	assert.True(t, exists)
 	assert.NotEmpty(t, commitURL)
 
@@ -241,6 +241,6 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 
 	doc = NewHTMLParser(t, resp.Body)
 	// Check that the data-global-init="initCommitStatuses" (for trigger) and commit-status (svg) are present
-	sel := doc.doc.Find(`#commits-table .message [data-global-init="initCommitStatuses"] .commit-status`)
+	sel := doc.doc.Find(`.timeline.commits-list-group-by-date .description [data-global-init="initCommitStatuses"] .commit-status`)
 	assert.Equal(t, 1, sel.Length())
 }

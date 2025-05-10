@@ -627,7 +627,7 @@ func ViewPullCommits(ctx *context.Context) {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
-	ctx.Data["Commits"] = commits
+	ctx.Data["GroupCommits"] = GroupCommitsByDate(commits)
 	ctx.Data["CommitCount"] = len(commits)
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)

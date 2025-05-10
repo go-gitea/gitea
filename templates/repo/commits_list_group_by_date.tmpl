@@ -1,0 +1,111 @@
+{{range $index, $groupCommit := .GroupCommits}}
+<div class="ui timeline commits-list-group-by-date" data-index="{{$index}}">
+
+	<div class="timeline-badge-wrapper">
+		<div class="timeline-badge">
+			{{svg "octicon-git-commit"}}
+		</div>
+	</div>
+
+	<div class="timeline-body">
+		<h3 class="flex-text-block tw-py-2 timeline-heading">
+			Commits on {{DateUtils.AbsoluteShort $groupCommit.Date}}
+		</h3>
+		<div class="tw-flex tw-mt-2 timeline-list-container">
+			<ul class="commits-list">
+			{{range $groupCommit.Commits}}
+			{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
+				<li class="commits-list-item">
+					<div class="tw-pt-4 tw-pl-4 title">
+						<h4>
+							<span class="message-wrapper">
+							{{if $.PageIsWiki}}
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | ctx.RenderUtils.RenderEmoji}}</span>
+							{{else}}
+								{{$commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .Message $commitLink ($.Repository.ComposeCommentMetas ctx)}}</span>
+							{{end}}
+							</span>
+							{{if IsMultilineCommitMessage .Message}}
+								<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
+							{{end}}
+							{{if IsMultilineCommitMessage .Message}}
+								<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .Message ($.Repository.ComposeCommentMetas ctx)}}</pre>
+							{{end}}
+							{{if $.CommitsTagsMap}}
+								{{range (index $.CommitsTagsMap .ID.String)}}
+									{{- template "repo/tag/name" dict "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
+								{{end}}
+							{{end}}
+						</h4>
+					</div>
+					<div class="tw-flex tw-items-center tw-gap-1 tw-pb-4 tw-pl-4 description">
+						<div class="author">
+							{{$userName := .Author.Name}}
+							{{if .User}}
+								{{if and .User.FullName DefaultShowFullName}}
+									{{$userName = .User.FullName}}
+								{{end}}
+								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
+							{{else}}
+								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
+								<span class="author-wrapper">{{$userName}}</span>
+							{{end}}
+						</div>
+						<span>
+							{{if .Committer}}
+								committed
+							{{else}}
+								authored
+							{{end}}
+						</span>
+						{{if .Committer}}
+							{{DateUtils.TimeSince .Committer.When}}
+						{{else}}
+							{{DateUtils.TimeSince .Author.When}}
+						{{end}}
+						{{if .Statuses}}
+						<span>·</span>
+						{{end}}
+						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
+					</div>
+					<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-pr-4 metadata">
+						{{$commitBaseLink := ""}}
+						{{if $.PageIsWiki}}
+							{{$commitBaseLink = printf "%s/wiki/commit" $commitRepoLink}}
+						{{else if $.PageIsPullCommits}}
+							{{$commitBaseLink = printf "%s/pulls/%d/commits" $commitRepoLink $.Issue.Index}}
+						{{else if $.Reponame}}
+							{{$commitBaseLink = printf "%s/commit" $commitRepoLink}}
+						{{end}}
+						<div class="commit-sign-badge">
+							{{template "repo/commit_sign_badge" dict "Commit" . "CommitBaseLink" $commitBaseLink "CommitSignVerification" .Verification}}
+						</div>
+						<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+							<div>
+								<button class="btn interact-bg tw-p-2 copy-commit-id" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
+							</div>
+							{{/* at the moment, wiki doesn't support these "view" links like "view at history point" */}}
+							{{if not $.PageIsWiki}}
+								{{/* view single file diff */}}
+								{{if $.FileTreePath}}
+								<a class="btn interact-bg tw-p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
+									href="{{$commitRepoLink}}/commit/{{.ID.String}}?files={{$.FileTreePath}}"
+								>{{svg "octicon-file-diff"}}</a>
+								{{end}}
+
+								{{/* view at history point */}}
+								{{$viewCommitLink := printf "%s/src/commit/%s" $commitRepoLink (PathEscape .ID.String)}}
+								{{if $.FileTreePath}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileTreePath)}}{{end}}
+								<a class="btn interact-bg tw-p-2 view-commit-path" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
+							{{end}}
+						</div>
+					</div>
+				</li>
+			{{end}}
+			</ul>
+		</div>
+	</div>
+
+</div>
+{{end}}

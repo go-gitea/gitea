@@ -665,7 +665,7 @@ func PrepareCompareDiff(
 		ctx.ServerError("processGitCommits", err)
 		return false
 	}
-	ctx.Data["Commits"] = commits
+	ctx.Data["GroupCommits"] = GroupCommitsByDate(commits)
 	ctx.Data["CommitCount"] = len(commits)
 
 	title := ci.HeadBranch

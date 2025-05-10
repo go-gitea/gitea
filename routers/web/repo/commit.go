@@ -10,7 +10,9 @@ import (
 	"html/template"
 	"net/http"
 	"path"
+	"sort"
 	"strings"
+	"time"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -28,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
@@ -83,11 +86,12 @@ func Commits(ctx *context.Context) {
 		ctx.ServerError("CommitsByRange", err)
 		return
 	}
-	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	processedCommits, err := processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
+	ctx.Data["GroupCommits"] = GroupCommitsByDate(processedCommits)
 	commitIDs := make([]string, 0, len(commits))
 	for _, c := range commits {
 		commitIDs = append(commitIDs, c.ID.String())
@@ -199,11 +203,12 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CommitCount"] = len(commits)
-	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	processedCommits, err := processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
+	ctx.Data["GroupCommits"] = GroupCommitsByDate(processedCommits)
 
 	ctx.Data["Keyword"] = query
 	if all {
@@ -245,11 +250,12 @@ func FileHistory(ctx *context.Context) {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
-	ctx.Data["Commits"], err = processGitCommits(ctx, commits)
+	processedCommits, err := processGitCommits(ctx, commits)
 	if err != nil {
 		ctx.ServerError("processGitCommits", err)
 		return
 	}
+	ctx.Data["GroupCommits"] = GroupCommitsByDate(processedCommits)
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
@@ -462,4 +468,58 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 		}
 	}
 	return commits, nil
+}
+
+// GroupedCommits defines the structure for grouped commits.
+type GroupedCommits struct {
+	Date    timeutil.TimeStamp
+	Commits []*git_model.SignCommitWithStatuses
+}
+
+// GroupCommitsByDate groups the commits by date (in days) using UTC timezone.
+func GroupCommitsByDate(commits []*git_model.SignCommitWithStatuses) []GroupedCommits {
+	// Use Unix timestamp of date as key (truncated to day)
+	grouped := make(map[int64][]*git_model.SignCommitWithStatuses)
+
+	for _, commit := range commits {
+		var sigTime time.Time
+		if commit.Committer != nil {
+			sigTime = commit.Committer.When
+		} else if commit.Author != nil {
+			sigTime = commit.Author.When
+		}
+
+		// Convert time to UTC timezone first
+		sigTimeUTC := sigTime.UTC()
+
+		// Truncate time to date part (remove hours, minutes, seconds)
+		year, month, day := sigTimeUTC.Date()
+		dateOnly := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+		dateUnix := dateOnly.Unix()
+
+		grouped[dateUnix] = append(grouped[dateUnix], commit)
+	}
+
+	// Create result slice with pre-allocated capacity
+	result := make([]GroupedCommits, 0, len(grouped))
+
+	// Collect all dates and sort them
+	dates := make([]int64, 0, len(grouped))
+	for dateUnix := range grouped {
+		dates = append(dates, dateUnix)
+	}
+	// Sort dates in descending order (most recent first)
+	sort.Slice(dates, func(i, j int) bool {
+		return dates[i] > dates[j]
+	})
+
+	// Build result in sorted order
+	for _, dateUnix := range dates {
+		result = append(result, GroupedCommits{
+			Date:    timeutil.TimeStamp(dateUnix),
+			Commits: grouped[dateUnix],
+		})
+	}
+
+	return result
 }

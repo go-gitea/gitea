@@ -48,9 +48,9 @@ func TestCommitListActions(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		AssertHTMLElement(t, htmlDoc, `.commit-list .copy-commit-id`, true)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-single-diff`, false)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-commit-path`, true)
+		AssertHTMLElement(t, htmlDoc, `.timeline.commits-list-group-by-date .copy-commit-id`, true)
+		AssertHTMLElement(t, htmlDoc, `.timeline.commits-list-group-by-date .view-single-diff`, false)
+		AssertHTMLElement(t, htmlDoc, `.timeline.commits-list-group-by-date .view-commit-path`, true)
 	})
 
 	t.Run("RepoFileHistory", func(t *testing.T) {
@@ -60,8 +60,8 @@ func TestCommitListActions(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		AssertHTMLElement(t, htmlDoc, `.commit-list .copy-commit-id`, true)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-single-diff`, true)
-		AssertHTMLElement(t, htmlDoc, `.commit-list .view-commit-path`, true)
+		AssertHTMLElement(t, htmlDoc, `.timeline.commits-list-group-by-date .copy-commit-id`, true)
+		AssertHTMLElement(t, htmlDoc, `.timeline.commits-list-group-by-date .view-single-diff`, true)
+		AssertHTMLElement(t, htmlDoc, `.timeline.commits-list-group-by-date .view-commit-path`, true)
 	})
 }

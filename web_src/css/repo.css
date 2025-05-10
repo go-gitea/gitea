@@ -2281,3 +2281,110 @@ tbody.commit-list {
 .branch-selector-dropdown .scrolling.menu .loading-indicator {
   height: 4em;
 }
+
+.commits-list-group-by-date.timeline {
+  display: flex;
+  margin-left: 16px;
+  position: relative;
+  padding-bottom: 6px;
+}
+
+.commits-list-group-by-date.timeline[data-index="0"] {
+  margin-top: 6px;
+}
+
+.commits-list-group-by-date.timeline::before {
+  background-color: var(--color-timeline);
+  bottom: 0;
+  content: "";
+  display: block;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 2px;
+}
+
+.commits-list-group-by-date.timeline .timeline-badge-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+.commits-list-group-by-date.timeline .timeline-badge {
+  border-style: solid;
+  border-radius: var(--border-radius-full);
+  color: var(--color-text);
+  background-color: var(--color-box-body);
+  float: left;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: -16px;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+}
+
+.commits-list-group-by-date.timeline .timeline-heading {
+  font-size: 15px;
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-light-2);
+  margin: 0;
+}
+
+.commits-list-group-by-date.timeline .timeline-body {
+  max-width: 100%;
+  flex: auto;
+  padding-left: 5px;
+}
+
+.commits-list-group-by-date.timeline .timeline-list-container {
+  border: 1px solid var(--color-secondary);
+  background: var(--color-box-body);
+  border-radius: var(--border-radius);
+}
+
+.commits-list-group-by-date.timeline .commits-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: auto;
+}
+
+.commits-list-group-by-date.timeline .commits-list-item {
+  list-style: none;
+  display: grid;
+  gap: .5rem;
+  min-height: 2rem;
+  position: relative;
+  --core-grid-template-columns: minmax(30%, 1fr);
+  --last-grid-template-column: minmax(0, max-content);
+  grid-template-columns: var(--core-grid-template-columns) var(--last-grid-template-column);
+  grid-template-areas: "primary metadata" "main-content metadata";
+  grid-template-rows: repeat(2, auto);
+}
+
+.commits-list-group-by-date.timeline .commits-list-item:not(:last-child) {
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.commits-list-group-by-date.timeline .commits-list-item:hover {
+  background-color: var(--color-hover)
+}
+
+.commits-list-group-by-date.timeline .commits-list-item .title {
+  grid-area: primary;
+}
+
+.commits-list-group-by-date.timeline .commits-list-item .description {
+  grid-area: main-content;
+}
+
+.commits-list-group-by-date.timeline .commits-list-item .metadata {
+  grid-area: metadata;
+}
+
+.commits-list-group-by-date.timeline .author img {
+  width: 16px;
+  height: 16px;
+}
