@@ -56,7 +56,7 @@ func TestNewWebHookLink(t *testing.T) {
 	}
 }
 
-func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, repoName, url, event string) {
+func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, repoName, url, event string, branchFilter ...string) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+userName+"/"+repoName+"/hooks", api.CreateHookOption{
 		Type: "gitea",
@@ -316,6 +316,40 @@ func Test_WebhookPush(t *testing.T) {
 		assert.Equal(t, "push", triggeredEvent)
 		assert.Len(t, payloads, 1)
 		assert.Equal(t, "repo1", payloads[0].Repo.Name)
+		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
+		assert.Len(t, payloads[0].Commits, 1)
+		assert.Equal(t, []string{"test_webhook_push.md"}, payloads[0].Commits[0].Added)
+	})
+}
+
+func Test_WebhookPushDevBranch(t *testing.T) {
+	var payloads []api.PushPayload
+	var triggeredEvent string
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
+		var payload api.PushPayload
+		err := json.Unmarshal(content, &payload)
+		assert.NoError(t, err)
+		payloads = append(payloads, payload)
+		triggeredEvent = "push"
+	}, http.StatusOK)
+	defer provider.Close()
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// 1. create a new webhook with special webhook for repo1
+		session := loginUser(t, "user2")
+
+		// only for dev branch
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "develop")
+
+		// 2. trigger the webhook
+		testCreateFile(t, session, "user2", "repo1", "develop", "test_webhook_push.md", "# a test file for webhook push")
+
+		// 3. validate the webhook is triggered
+		assert.Equal(t, "push", triggeredEvent)
+		assert.Len(t, payloads, 1)
+		assert.Equal(t, "repo1", payloads[0].Repo.Name)
+		assert.Equal(t, "develop", payloads[0].Branch())
 		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
 		assert.Len(t, payloads[0].Commits, 1)
 		assert.Equal(t, []string{"test_webhook_push.md"}, payloads[0].Commits[0].Added)
