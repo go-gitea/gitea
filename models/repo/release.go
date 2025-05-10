@@ -161,6 +161,11 @@ func UpdateRelease(ctx context.Context, rel *Release) error {
 	return err
 }
 
+func UpdateReleaseNumCommits(ctx context.Context, rel *Release) error {
+	_, err := db.GetEngine(ctx).ID(rel.ID).Cols("num_commits").Update(rel)
+	return err
+}
+
 // AddReleaseAttachments adds a release attachments
 func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
@@ -418,8 +423,8 @@ func UpdateReleasesMigrationsByType(ctx context.Context, gitServiceType structs.
 	return err
 }
 
-// PushUpdateDeleteTagsContext updates a number of delete tags with context
-func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []string) error {
+// PushUpdateDeleteTags updates a number of delete tags with context
+func PushUpdateDeleteTags(ctx context.Context, repo *Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -445,58 +450,6 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []s
 		return fmt.Errorf("Update: %w", err)
 	}
 
-	return nil
-}
-
-// PushUpdateDeleteTag must be called for any push actions to delete tag
-func PushUpdateDeleteTag(ctx context.Context, repo *Repository, tagName string) error {
-	rel, err := GetRelease(ctx, repo.ID, tagName)
-	if err != nil {
-		if IsErrReleaseNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("GetRelease: %w", err)
-	}
-	if rel.IsTag {
-		if _, err = db.DeleteByID[Release](ctx, rel.ID); err != nil {
-			return fmt.Errorf("Delete: %w", err)
-		}
-	} else {
-		rel.IsDraft = true
-		rel.NumCommits = 0
-		rel.Sha1 = ""
-		if _, err = db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// SaveOrUpdateTag must be called for any push actions to add tag
-func SaveOrUpdateTag(ctx context.Context, repo *Repository, newRel *Release) error {
-	rel, err := GetRelease(ctx, repo.ID, newRel.TagName)
-	if err != nil && !IsErrReleaseNotExist(err) {
-		return fmt.Errorf("GetRelease: %w", err)
-	}
-
-	if rel == nil {
-		rel = newRel
-		if _, err = db.GetEngine(ctx).Insert(rel); err != nil {
-			return fmt.Errorf("InsertOne: %w", err)
-		}
-	} else {
-		rel.Sha1 = newRel.Sha1
-		rel.CreatedUnix = newRel.CreatedUnix
-		rel.NumCommits = newRel.NumCommits
-		rel.IsDraft = false
-		if rel.IsTag && newRel.PublisherID > 0 {
-			rel.PublisherID = newRel.PublisherID
-		}
-		if _, err = db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %w", err)
-		}
-	}
 	return nil
 }
 
