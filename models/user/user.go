@@ -1198,7 +1198,8 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 		for _, email := range emailAddresses {
 			user := users[email.UID]
 			if user != nil {
-				results[user.GetEmail()] = user
+				results[user.Email] = user
+				results[user.GetPlaceholderEmail()] = user
 			}
 		}
 	}
@@ -1208,6 +1209,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 		return nil, err
 	}
 	for _, user := range users {
+		results[user.Email] = user
 		results[user.GetPlaceholderEmail()] = user
 	}
 	return results, nil
