@@ -239,20 +239,31 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	oldContent := comment.Content
 	newContent := ctx.FormString("content")
 	contentVersion := ctx.FormInt("content_version")
-	if newContent == oldContent {
+	if newContent == comment.Content {
+		if contentVersion != comment.ContentVersion {
+			ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
+			return
+		}
+
+		if err := comment.LoadAttachments(ctx); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+
 		ctx.JSON(http.StatusOK, map[string]any{
-			"content":        oldContent,
+			"content":        comment.Content,
 			"contentVersion": comment.ContentVersion,
-			"attachments":    attachmentsHTML(ctx, comment.Attachments, oldContent),
+			"attachments":    attachmentsHTML(ctx, comment.Attachments, comment.Content),
 		})
 		return
 	}
 
 	// allow to save empty content
 	comment.Content = newContent
+	oldContent := comment.Content
+
 	if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
