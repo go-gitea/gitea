@@ -317,6 +317,8 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
+
+	ctx.Data["AllowDeleteWorkflowRuns"] = ctx.Repo.CanWrite(unit.TypeActions)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.

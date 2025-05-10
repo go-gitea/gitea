@@ -117,3 +117,43 @@
   log_length: 707
   log_size: 90179
   log_expired: 0
+-
+  id: 53
+  job_id: 198
+  attempt: 1
+  runner_id: 1
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+  repo_id: 2
+  owner_id: 2
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  is_fork_pull_request: 0
+  token_hash: b8d3962425466b6709b9ac51446f93260c54afe8e7b6d3686e34f991fb8a8953822b0deed86fe41a103f34bc48dbc4784223
+  token_salt: ffffffffff
+  token_last_eight: ffffffff
+  log_filename: artifact-test2/2f/47.log
+  log_in_storage: 1
+  log_length: 0
+  log_size: 0
+  log_expired: 0
+-
+  id: 54
+  job_id: 199
+  attempt: 1
+  runner_id: 1
+  status: 2
+  started: 1683636528
+  stopped: 1683636626
+  repo_id: 2
+  owner_id: 2
+  commit_sha: c2d72f548424103f01ee1dc02889c1e2bff816b0
+  is_fork_pull_request: 0
+  token_hash: b8d3962425466b6709b9ac51446f93260c54afe8e7b6d3686e34f991fb8a8953822b0deed86fe41a103f34bc48dbc4784224
+  token_salt: ffffffffff
+  token_last_eight: ffffffff
+  log_filename: artifact-test2/2f/47.log
+  log_in_storage: 1
+  log_length: 0
+  log_size: 0
+  log_expired: 0
