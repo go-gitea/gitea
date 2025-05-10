@@ -242,6 +242,14 @@ func UpdateCommentContent(ctx *context.Context) {
 	oldContent := comment.Content
 	newContent := ctx.FormString("content")
 	contentVersion := ctx.FormInt("content_version")
+	if newContent == oldContent {
+		ctx.JSON(http.StatusOK, map[string]any{
+			"content":        oldContent,
+			"contentVersion": comment.ContentVersion,
+			"attachments":    attachmentsHTML(ctx, comment.Attachments, oldContent),
+		})
+		return
+	}
 
 	// allow to save empty content
 	comment.Content = newContent
