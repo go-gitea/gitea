@@ -241,38 +241,26 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	newContent := ctx.FormString("content")
 	contentVersion := ctx.FormInt("content_version")
-	if newContent == comment.Content {
-		if contentVersion != comment.ContentVersion {
-			ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
-			return
-		}
-
-		if err := comment.LoadAttachments(ctx); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
-
-		ctx.JSON(http.StatusOK, map[string]any{
-			"content":        comment.Content,
-			"contentVersion": comment.ContentVersion,
-			"attachments":    attachmentsHTML(ctx, comment.Attachments, comment.Content),
-		})
+	if contentVersion != comment.ContentVersion {
+		ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
 		return
 	}
 
-	// allow to save empty content
-	comment.Content = newContent
-	oldContent := comment.Content
+	if newContent != comment.Content {
+		// allow to save empty content
+		oldContent := comment.Content
+		comment.Content = newContent
 
-	if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
-		} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
-			ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
-		} else {
-			ctx.ServerError("UpdateComment", err)
+		if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+			} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
+				ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
+			} else {
+				ctx.ServerError("UpdateComment", err)
+			}
+			return
 		}
-		return
 	}
 
 	if err := comment.LoadAttachments(ctx); err != nil {
