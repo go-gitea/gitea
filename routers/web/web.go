@@ -1321,18 +1321,22 @@ func registerWebRoutes(m *web.Router) {
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewFilePost)
 				m.Combo("/_delete/*").Get(repo.DeleteFile).
 					Post(web.Bind(forms.DeleteRepoFileForm{}), repo.DeleteFilePost)
-				m.Combo("/_upload/*", repo.MustBeAbleToUpload).Get(repo.UploadFile).
+				m.Combo("/_upload/*", context.MustBeAbleToUpload()).Get(repo.UploadFile).
 					Post(web.Bind(forms.UploadRepoFileForm{}), repo.UploadFilePost)
 				m.Combo("/_diffpatch/*").Get(repo.NewDiffPatch).
 					Post(web.Bind(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
+				m.Combo("/_fork_to_edit/*").
+					Post(web.Bind(forms.ForkToEditRepoFileForm{}), repo.ForkToEditFilePost)
+			}, context.MustEnableEditor())
+			m.Group("", func() {
 				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,64})}/*").Get(repo.CherryPick).
 					Post(web.Bind(forms.CherryPickForm{}), repo.CherryPickPost)
-			}, context.RepoRefByType(git.RefTypeBranch), context.CanWriteToBranch(), repo.WebGitOperationCommonData)
-			m.Group("", func() {
-				m.Post("/upload-file", repo.UploadFileToServer)
-				m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
-			}, repo.MustBeAbleToUpload, reqRepoCodeWriter)
-		}, repo.MustBeEditable, context.RepoMustNotBeArchived())
+			}, context.MustBeAbleToCherryPick())
+		}, context.RepoRefByType(git.RefTypeBranch), repo.WebGitOperationCommonData)
+		m.Group("", func() {
+			m.Post("/upload-file", repo.UploadFileToServer)
+			m.Post("/upload-remove", web.Bind(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
+		}, context.MustBeAbleToUpload(), context.MustHaveEditableRepository())
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {

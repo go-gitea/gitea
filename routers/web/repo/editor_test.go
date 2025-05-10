@@ -51,7 +51,7 @@ func TestGetUniquePatchBranchName(t *testing.T) {
 	defer ctx.Repo.GitRepo.Close()
 
 	expectedBranchName := "user2-patch-1"
-	branchName := GetUniquePatchBranchName(ctx)
+	branchName := GetUniquePatchBranchName(ctx, ctx.Repo.Repository)
 	assert.Equal(t, expectedBranchName, branchName)
 }
 

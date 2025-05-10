@@ -77,8 +77,12 @@
 				<button class="ui mini basic button unescape-button tw-mr-1 tw-hidden">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 				<button class="ui mini basic button escape-button tw-mr-1">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			{{end}}
-			{{if and .ReadmeInList .CanEditReadmeFile}}
-				<a class="btn-octicon" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.edit_this_file"}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .FileTreePath}}">{{svg "octicon-pencil"}}</a>
+			{{if and .ReadmeInList .Repository.CanEnableEditor}}
+				{{if .CanEditReadmeFile}}
+					<a class="btn-octicon" data-tooltip-content="{{.EditReadmeFileTooltip}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .FileTreePath}}">{{svg "octicon-pencil"}}</a>
+				{{else}}
+					<span class="btn-octicon disabled" data-tooltip-content="{{.EditReadmeFileTooltip}}">{{svg "octicon-pencil"}}</span>
+				{{end}}
 			{{end}}
 		</div>
 	</h4>

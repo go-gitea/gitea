@@ -1,0 +1,40 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository file editor edit">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<form class="ui edit form" method="post" action="{{.RepoLink}}/_fork_to_edit/{{.BranchName | PathEscapeSegments}}">
+			{{.CsrfTokenHtml}}
+			<div class="repo-editor-header">
+				<div class="ui breadcrumb field{{if .Err_TreePath}} error{{end}}">
+					<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
+					{{$n := len .TreeNames}}
+					{{$l := Eval $n "-" 1}}
+					{{range $i, $v := .TreeNames}}
+						<div class="breadcrumb-divider">/</div>
+						{{if eq $i $l}}
+							<span class="section">{{$v}}</span>
+						{{else}}
+							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
+						{{end}}
+					{{end}}
+					<input type="hidden" name="tree_path" value="{{.TreePath}}" required>
+					<input type="hidden" name="edit_operation" value="{{.EditOperation}}" required>
+				</div>
+			</div>
+			<div class="field center">
+				{{if .CanForkRepo}}
+					<h3>{{ctx.Locale.Tr "repo.editor.fork_create"}}</h3>
+					<p>{{ctx.Locale.Tr "repo.editor.fork_create_description"}}</p>
+					<button class="ui primary button">
+						{{ctx.Locale.Tr "repo.fork_repo"}}
+					</button>
+				{{else}}
+					<h3>{{ctx.Locale.Tr "repo.editor.fork_not_editable"}}</h3>
+					<p>{{.NotEditableMessage}}</p>
+				{{end}}
+			</div>
+		</form>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -5,6 +5,11 @@
 		{{template "base/alert" .}}
 		<form class="ui form" method="post">
 			{{.CsrfTokenHtml}}
+			{{if .ForkRepo}}
+				<div class="ui blue message">
+					<p>{{ctx.Locale.Tr "repo.editor.fork_edit_description" .ForkRepo.FullName}}</p>
+				</div>
+			{{end}}
 			<input type="hidden" name="last_commit" value="{{.last_commit}}">
 			{{template "repo/editor/commit_form" .}}
 		</form>

@@ -67,13 +67,71 @@ type Repository struct {
 }
 
 // CanWriteToBranch checks if the branch is writable by the user
-func (r *Repository) CanWriteToBranch(ctx context.Context, user *user_model.User, branch string) bool {
-	return issues_model.CanMaintainerWriteToBranch(ctx, r.Permission, branch, user)
+func CanWriteToBranch(ctx context.Context, user *user_model.User, repo *repo_model.Repository, branch string) bool {
+	permission, err := access_model.GetUserRepoPermission(ctx, repo, user)
+	if err != nil {
+		return false
+	}
+
+	return issues_model.CanMaintainerWriteToBranch(ctx, permission, branch, user)
 }
 
-// CanEnableEditor returns true if repository is editable and user has proper access level.
-func (r *Repository) CanEnableEditor(ctx context.Context, user *user_model.User) bool {
-	return r.RefFullName.IsBranch() && r.CanWriteToBranch(ctx, user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
+// RepositoryNotEditableMessage explains why a repository can not be edited by the user
+type RepositoryNotEditableMessage struct {
+	Reason     string
+	Repository string
+}
+
+// GetEditRepository returns the repository where the editor will actually write the
+// the edits to. This may be a fork of the repository owned by the user. If no repository
+// can be found for editing, either a reason or error is returned.
+func GetEditableRepository(ctx context.Context, user *user_model.User, repo *repo_model.Repository, branch string) (*repo_model.Repository, RepositoryNotEditableMessage, error) {
+	if CanWriteToBranch(ctx, user, repo, branch) {
+		return repo, RepositoryNotEditableMessage{}, nil
+	}
+
+	// If we can't write to the branch, try find a user fork to create a branch in instead
+	userRepo, err := repo_model.GetUserFork(ctx, repo.ID, user.ID)
+	if err != nil {
+		return nil, RepositoryNotEditableMessage{}, fmt.Errorf("GetUserFork: %v", err)
+	}
+	if userRepo == nil {
+		return nil, RepositoryNotEditableMessage{}, nil
+	}
+
+	// Load repository information
+	if err := userRepo.LoadOwner(ctx); err != nil {
+		return nil, RepositoryNotEditableMessage{}, fmt.Errorf("LoadOwner: %v", err)
+	}
+	if err := userRepo.GetBaseRepo(ctx); err != nil || userRepo.BaseRepo == nil {
+		if err != nil {
+			return nil, RepositoryNotEditableMessage{}, fmt.Errorf("GetBaseRepo: %v", err)
+		}
+		return nil, RepositoryNotEditableMessage{}, errors.New("GetBaseRepo: Expected a base repo for user fork")
+	}
+
+	// Check code unit, archiving and permissions.
+	if !userRepo.UnitEnabled(ctx, unit_model.TypeCode) {
+		return nil, RepositoryNotEditableMessage{Reason: "repo.editor.fork_code_disabled", Repository: userRepo.FullName()}, nil
+	}
+	if userRepo.IsArchived {
+		return nil, RepositoryNotEditableMessage{Reason: "repo.editor.fork_is_archived", Repository: userRepo.FullName()}, nil
+	}
+	permission, err := access_model.GetUserRepoPermission(ctx, userRepo, user)
+	if err != nil {
+		return nil, RepositoryNotEditableMessage{}, fmt.Errorf("access_model.GetUserRepoPermission: %v", err)
+	}
+	if !permission.CanWrite(unit_model.TypeCode) {
+		return nil, RepositoryNotEditableMessage{Reason: "repo.editor.fork_no_permission", Repository: userRepo.FullName()}, nil
+	}
+
+	return userRepo, RepositoryNotEditableMessage{}, nil
+}
+
+// CanEnableEditor returns true if the web editor can be enabled for this repository,
+// either by directly writing to the repository or to a user fork.
+func (r *Repository) CanEnableEditor() bool {
+	return r.RefFullName.IsBranch() && r.Repository.CanEnableEditor()
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
@@ -94,10 +152,38 @@ func RepoMustNotBeArchived() func(ctx *Context) {
 	}
 }
 
+// MustEnableEditor checks if the web editor can be enabled for this repository
+func MustEnableEditor() func(ctx *Context) {
+	return func(ctx *Context) {
+		if !ctx.Repo.CanEnableEditor() {
+			ctx.NotFound(nil)
+		}
+	}
+}
+
+// MustBeAbleToUpload check that upload is enabled on this site and useful for editing
+func MustBeAbleToUpload() func(ctx *Context) {
+	return func(ctx *Context) {
+		if !setting.Repository.Upload.Enabled || !ctx.Repo.Repository.CanEnableEditor() {
+			ctx.NotFound(nil)
+		}
+	}
+}
+
+// MustHaveEditableRepository checks that there exists a repository that can be written
+// to by the user for editing.
+func MustHaveEditableRepository() func(ctx *Context) {
+	return func(ctx *Context) {
+		editRepo, _, _ := GetEditableRepository(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName)
+		if editRepo == nil {
+			ctx.NotFound(nil)
+		}
+	}
+}
+
 // CanCommitToBranchResults represents the results of CanCommitToBranch
 type CanCommitToBranchResults struct {
 	CanCommitToBranch bool
-	EditorEnabled     bool
 	UserCanPush       bool
 	RequireSigned     bool
 	WillSign          bool
@@ -106,24 +192,23 @@ type CanCommitToBranchResults struct {
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
-//
 // and branch is not protected for push
-func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
-	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, r.Repository.ID, r.BranchName)
+func CanCommitToBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branchName string) (CanCommitToBranchResults, error) {
+	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
 	userCanPush := true
 	requireSigned := false
 	if protectedBranch != nil {
-		protectedBranch.Repo = r.Repository
+		protectedBranch.Repo = repo
 		userCanPush = protectedBranch.CanUserPush(ctx, doer)
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), git.BranchPrefix+branchName)
 
-	canCommit := r.CanEnableEditor(ctx, doer) && userCanPush
+	canCommit := repo.CanEnableEditor() && CanWriteToBranch(ctx, doer, repo, branchName) && userCanPush
 	if requireSigned {
 		canCommit = canCommit && sign
 	}
@@ -139,7 +224,6 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 
 	return CanCommitToBranchResults{
 		CanCommitToBranch: canCommit,
-		EditorEnabled:     r.CanEnableEditor(ctx, doer),
 		UserCanPush:       userCanPush,
 		RequireSigned:     requireSigned,
 		WillSign:          sign,

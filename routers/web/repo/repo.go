@@ -49,21 +49,6 @@ func MustBeNotEmpty(ctx *context.Context) {
 	}
 }
 
-// MustBeEditable check that repo can be edited
-func MustBeEditable(ctx *context.Context) {
-	if !ctx.Repo.Repository.CanEnableEditor() {
-		ctx.NotFound(nil)
-		return
-	}
-}
-
-// MustBeAbleToUpload check that repo can be uploaded to
-func MustBeAbleToUpload(ctx *context.Context) {
-	if !setting.Repository.Upload.Enabled {
-		ctx.NotFound(nil)
-	}
-}
-
 func CommitInfoCache(ctx *context.Context) {
 	var err error
 	ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)

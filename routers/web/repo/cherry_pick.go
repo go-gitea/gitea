@@ -47,7 +47,7 @@ func CherryPick(ctx *context.Context) {
 		ctx.Data["commit_message"] = splits[1]
 	}
 
-	canCommit := renderCommitRights(ctx)
+	canCommit := renderCommitRights(ctx, ctx.Repo.Repository)
 	ctx.Data["TreePath"] = ""
 
 	if canCommit {
@@ -55,7 +55,7 @@ func CherryPick(ctx *context.Context) {
 	} else {
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 	}
-	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
+	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx, ctx.Repo.Repository)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
@@ -75,7 +75,7 @@ func CherryPickPost(ctx *context.Context) {
 		ctx.Data["CherryPickType"] = "cherry-pick"
 	}
 
-	canCommit := renderCommitRights(ctx)
+	canCommit := renderCommitRights(ctx, ctx.Repo.Repository)
 	branchName := ctx.Repo.BranchName
 	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName

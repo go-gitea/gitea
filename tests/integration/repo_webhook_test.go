@@ -310,7 +310,7 @@ func Test_WebhookPush(t *testing.T) {
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push")
 
 		// 2. trigger the webhook
-		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, "user2", "user2", "repo1", "master", "master", "direct", "test_webhook_push.md", "# a test file for webhook push", "")
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "push", triggeredEvent)
@@ -602,7 +602,7 @@ func Test_WebhookStatus_NoWrongTrigger(t *testing.T) {
 		testCreateWebhookForRepo(t, session, "gitea", "user2", "repo1", provider.URL(), "push_only")
 
 		// 2. trigger the webhook with a push action
-		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, "user2", "user2", "repo1", "master", "master", "direct", "test_webhook_push.md", "# a test file for webhook push", "")
 
 		// 3. validate the webhook is triggered with right event
 		assert.Equal(t, "push", trigger)

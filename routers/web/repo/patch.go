@@ -24,7 +24,12 @@ const (
 
 // NewDiffPatch render create patch page
 func NewDiffPatch(ctx *context.Context) {
-	canCommit := renderCommitRights(ctx)
+	editRepo := getEditRepositoryOrFork(ctx, "_diffpatch")
+	if editRepo == nil {
+		return
+	}
+
+	canCommit := renderCommitRights(ctx, editRepo)
 
 	ctx.Data["PageIsPatch"] = true
 
@@ -35,7 +40,7 @@ func NewDiffPatch(ctx *context.Context) {
 	} else {
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 	}
-	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
+	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx, editRepo)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
@@ -47,7 +52,6 @@ func NewDiffPatch(ctx *context.Context) {
 func NewDiffPatchPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditRepoFileForm)
 
-	canCommit := renderCommitRights(ctx)
 	branchName := ctx.Repo.BranchName
 	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName
@@ -67,11 +71,15 @@ func NewDiffPatchPost(ctx *context.Context) {
 		return
 	}
 
+	editRepo := getEditRepositoryOrError(ctx, tplPatchFile, &form)
+	if editRepo == nil {
+		return
+	}
+
+	renderCommitRights(ctx, editRepo)
+
 	// Cannot commit to an existing branch if user doesn't have rights
-	if branchName == ctx.Repo.BranchName && !canCommit {
-		ctx.Data["Err_NewBranchName"] = true
-		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
-		ctx.RenderWithErr(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName), tplEditFile, &form)
+	if !canPushToEditRepository(ctx, editRepo, branchName, form.CommitChoice, tplPatchFile, &form) {
 		return
 	}
 
@@ -94,9 +102,14 @@ func NewDiffPatchPost(ctx *context.Context) {
 		return
 	}
 
-	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, &files.ApplyDiffPatchOptions{
+	editBranchName, err := pushToEditRepositoryOrError(ctx, editRepo, branchName, tplPatchFile, &form)
+	if err != nil {
+		return
+	}
+
+	fileResponse, err := files.ApplyDiffPatch(ctx, editRepo, ctx.Doer, &files.ApplyDiffPatchOptions{
 		LastCommitID: form.LastCommit,
-		OldBranch:    ctx.Repo.BranchName,
+		OldBranch:    editBranchName,
 		NewBranch:    branchName,
 		Message:      message,
 		Content:      strings.ReplaceAll(form.Content, "\r", ""),
@@ -119,7 +132,8 @@ func NewDiffPatchPost(ctx *context.Context) {
 	}
 
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(ctx, unit.TypePullRequests) {
-		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
+		editBranch := editRepo.Owner.Name + "/" + editRepo.Name + ":" + branchName
+		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(editBranch))
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commit/" + fileResponse.Commit.SHA)
 	}

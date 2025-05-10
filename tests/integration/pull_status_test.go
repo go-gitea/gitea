@@ -28,7 +28,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
+		testEditFileToNewBranch(t, session, "user1", "user1", "repo1", "master", "status1", "README.md", "status1")
 
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,
@@ -127,8 +127,8 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "status1", "status1", "README.md", "# repo1\n\nDescription for repo1")
+		testEditFileToNewBranch(t, session, "user1", "user1", "repo1", "master", "status1", "README.md", "status1")
+		testEditFile(t, session, "user1", "repo1", "status1", "README.md", "# repo1\n\nDescription for repo1")
 
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,

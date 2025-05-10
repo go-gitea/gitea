@@ -29,10 +29,10 @@ func TestRepoActivity(t *testing.T) {
 		assert.Equal(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
 
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feat/better_readme", "README.md", "Hello, World (Edited Again)\n")
+		testEditFileToNewBranch(t, session, "user1", "user1", "repo1", "master", "feat/better_readme", "README.md", "Hello, World (Edited Again)\n")
 		testPullCreate(t, session, "user1", "repo1", false, "master", "feat/better_readme", "This is a pull title")
 
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feat/much_better_readme", "README.md", "Hello, World (Edited More)\n")
+		testEditFileToNewBranch(t, session, "user1", "user1", "repo1", "master", "feat/much_better_readme", "README.md", "Hello, World (Edited More)\n")
 		testPullCreate(t, session, "user1", "repo1", false, "master", "feat/much_better_readme", "This is a pull title")
 
 		// Create issues (3 new issues)
