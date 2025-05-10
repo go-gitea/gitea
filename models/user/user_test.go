@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsUsableUsername(t *testing.T) {
@@ -48,14 +49,23 @@ func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NotNil(t, user)
 }
 
-func TestGetUserEmailsByNames(t *testing.T) {
+func TestUserEmails(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	// ignore none active user email
-	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
-	assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
-
-	assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "org7"}))
+	t.Run("GetUserEmailsByNames", func(t *testing.T) {
+		// ignore none active user email
+		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
+		assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
+		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "org7"}))
+	})
+	t.Run("GetUsersByEmails", func(t *testing.T) {
+		m, err := user_model.GetUsersByEmails(db.DefaultContext, []string{"user1@example.com", "user2@" + setting.Service.NoReplyAddress})
+		require.NoError(t, err)
+		require.Len(t, m, 4)
+		assert.EqualValues(t, 1, m["user1@example.com"].ID)
+		assert.EqualValues(t, 1, m["user1@"+setting.Service.NoReplyAddress].ID)
+		assert.EqualValues(t, 2, m["user2@example.com"].ID)
+		assert.EqualValues(t, 2, m["user2@"+setting.Service.NoReplyAddress].ID)
+	})
 }
 
 func TestCanCreateOrganization(t *testing.T) {

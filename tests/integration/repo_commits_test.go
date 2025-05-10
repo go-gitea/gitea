@@ -12,8 +12,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -40,40 +38,24 @@ func TestRepoCommits(t *testing.T) {
 
 func Test_ReposGitCommitListNotMaster(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	// Login as User2.
-	session := loginUser(t, user.Name)
-
-	// Test getting commits (Page 1)
-	req := NewRequestf(t, "GET", "/%s/repo16/commits/branch/master", user.Name)
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/repo16/commits/branch/master")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	doc := NewHTMLParser(t, resp.Body)
-	commits := []string{}
+	var commits []string
 	doc.doc.Find("#commits-table .commit-id-short").Each(func(i int, s *goquery.Selection) {
-		commitURL, exists := s.Attr("href")
-		assert.True(t, exists)
-		assert.NotEmpty(t, commitURL)
+		commitURL, _ := s.Attr("href")
 		commits = append(commits, path.Base(commitURL))
 	})
+	assert.Equal(t, []string{"69554a64c1e6030f051e5c3f94bfbd773cd6a324", "27566bd5738fc8b4e3fef3c5e72cce608537bd95", "5099b81332712fe655e34e8dd63574f503f61811"}, commits)
 
-	assert.Len(t, commits, 3)
-	assert.Equal(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", commits[0])
-	assert.Equal(t, "27566bd5738fc8b4e3fef3c5e72cce608537bd95", commits[1])
-	assert.Equal(t, "5099b81332712fe655e34e8dd63574f503f61811", commits[2])
-
-	userNames := []string{}
+	var userHrefs []string
 	doc.doc.Find("#commits-table .author-wrapper").Each(func(i int, s *goquery.Selection) {
-		userPath, exists := s.Attr("href")
-		assert.True(t, exists)
-		assert.NotEmpty(t, userPath)
-		userNames = append(userNames, path.Base(userPath))
+		userHref, _ := s.Attr("href")
+		userHrefs = append(userHrefs, userHref)
 	})
-
-	assert.Len(t, userNames, 3)
-	assert.Equal(t, "User2", userNames[0])
-	assert.Equal(t, "user21", userNames[1])
-	assert.Equal(t, "User2", userNames[2])
+	assert.Equal(t, []string{"/user2", "/user21", "/user2"}, userHrefs)
 }
 
 func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
