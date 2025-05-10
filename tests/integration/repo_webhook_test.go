@@ -352,8 +352,8 @@ func Test_WebhookIssue(t *testing.T) {
 		assert.Equal(t, "user2/repo1", payloads[0].Issue.Repo.FullName)
 		assert.Equal(t, "Title1", payloads[0].Issue.Title)
 		assert.Equal(t, "Description1", payloads[0].Issue.Body)
-		assert.Greater(t, payloads[0].Issue.Created.Unix(), int64(0))
-		assert.Greater(t, payloads[0].Issue.Updated.Unix(), int64(0))
+		assert.Positive(t, payloads[0].Issue.Created.Unix())
+		assert.Positive(t, payloads[0].Issue.Updated.Unix())
 	})
 }
 
