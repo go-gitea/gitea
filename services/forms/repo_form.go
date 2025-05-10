@@ -233,6 +233,7 @@ type WebhookForm struct {
 	Release                  bool
 	Package                  bool
 	Status                   bool
+	WorkflowRun              bool
 	WorkflowJob              bool
 	Active                   bool
 	BranchFilter             string `binding:"GlobPattern"`
