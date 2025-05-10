@@ -422,7 +422,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			var err error
 			issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 			if err != nil {
-				ctx.ServerError("GetMileStoneByID", err)
+				ctx.ServerError("GetMilestoneByRepoID", err)
 				return
 			}
 		} else {
