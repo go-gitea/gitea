@@ -610,6 +610,11 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	}
 
 	oldContent := comment.Content
+	if form.Body == oldContent {
+		ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
+		return
+	}
+
 	comment.Content = form.Body
 	if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
