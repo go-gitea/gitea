@@ -301,7 +301,7 @@ func Test_WebhookIssueComment(t *testing.T) {
 
 			// 3. validate the webhook is not triggered because no content change
 			assert.Empty(t, triggeredEvent)
-			assert.Zero(t, payloads)
+			assert.Empty(t, payloads)
 		})
 	})
 }
