@@ -23,7 +23,7 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64, projectID int64) error {
+func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_model.Issue, labelIDs []int64, uuids []string, assigneeIDs, projectIDs []int64) error {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return err
 	}
@@ -41,12 +41,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 				return err
 			}
 		}
-		if projectID > 0 {
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectID, 0); err != nil {
-				return err
-			}
-		}
-		return nil
+		return issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs, 0)
 	}); err != nil {
 		return err
 	}

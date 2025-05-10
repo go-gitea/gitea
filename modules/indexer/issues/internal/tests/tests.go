@@ -302,20 +302,25 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
-		Name: "ProjectID",
+		Name: "ProjectIDs",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectID: optional.Some(int64(1)),
+			ProjectIDs: []int64{1},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].ProjectID)
+				if len(data[v.ID].ProjectIDs) > 0 {
+					assert.Equal(t, int64(1), data[v.ID].ProjectIDs[0])
+				}
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectID == 1
+				if len(data[v.ID].ProjectIDs) > 0 {
+					return v.ProjectIDs[0] == 1
+				}
+				return false
 			}), result.Total)
 		},
 	},
@@ -325,15 +330,20 @@ var cases = []*testIndexerCase{
 			Paginator: &db.ListOptions{
 				PageSize: 5,
 			},
-			ProjectID: optional.Some(int64(0)),
+			ProjectIDs: []int64{0},
 		},
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].ProjectID)
+				if len(data[v.ID].ProjectIDs) > 0 {
+					assert.Equal(t, int64(0), data[v.ID].ProjectIDs[0])
+				}
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.ProjectID == 0
+				if len(data[v.ID].ProjectIDs) > 0 {
+					return v.ProjectIDs[0] == 1
+				}
+				return false
 			}), result.Total)
 		},
 	},
@@ -720,7 +730,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				LabelIDs:           labelIDs,
 				NoLabel:            len(labelIDs) == 0,
 				MilestoneID:        issueIndex % 4,
-				ProjectID:          issueIndex % 5,
+				ProjectIDs:         []int64{issueIndex % 5},
 				ProjectColumnID:    issueIndex % 6,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,
