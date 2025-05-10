@@ -42,9 +42,12 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	cmd := git.NewCommand("commit", "--message=Initial commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email)
 
-	sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
+	sign, key, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
 	if sign {
-		cmd.AddOptionFormat("-S%s", keyID)
+		if key.Format != "" {
+			cmd.AddConfig("gpg.format", key.Format)
+		}
+		cmd.AddOptionFormat("-S%s", key.KeyID)
 
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			// need to set the committer to the KeyID owner
