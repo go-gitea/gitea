@@ -365,7 +365,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo.DefaultWikiBranch = newBranch
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_wiki_branch"); err != nil {
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "default_wiki_branch"); err != nil {
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 

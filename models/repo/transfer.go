@@ -249,7 +249,7 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 		}
 
 		repo.Status = RepositoryPendingTransfer
-		if err := UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+		if err := UpdateRepositoryColsNoAutoTime(ctx, repo, "status"); err != nil {
 			return err
 		}
 

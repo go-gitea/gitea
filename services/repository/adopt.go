@@ -100,7 +100,7 @@ func AdoptRepository(ctx context.Context, doer, owner *user_model.User, opts Cre
 
 	// 4 - update repository status
 	repo.Status = repo_model.RepositoryReady
-	if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+	if err = repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "status"); err != nil {
 		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 	}
 
