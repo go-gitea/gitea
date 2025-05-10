@@ -151,6 +151,15 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	return issueURL
 }
 
+func testIssueAssign(t *testing.T, session *TestSession, repoLink string, issueID, assigneeID int64) {
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf(repoLink+"/issues/assignee?issue_ids=%d", issueID), map[string]string{
+		"_csrf":  GetUserCSRFToken(t, session),
+		"id":     strconv.FormatInt(assigneeID, 10),
+		"action": "", // empty action means assign
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, status string) int64 {
 	req := NewRequest(t, "GET", issueURL)
 	resp := session.MakeRequest(t, req, http.StatusOK)

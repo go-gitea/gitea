@@ -352,6 +352,45 @@ func Test_WebhookIssue(t *testing.T) {
 		assert.Equal(t, "user2/repo1", payloads[0].Issue.Repo.FullName)
 		assert.Equal(t, "Title1", payloads[0].Issue.Title)
 		assert.Equal(t, "Description1", payloads[0].Issue.Body)
+		assert.Greater(t, payloads[0].Issue.Created.Unix(), int64(0))
+		assert.Greater(t, payloads[0].Issue.Updated.Unix(), int64(0))
+	})
+}
+
+func Test_WebhookIssueAssign(t *testing.T) {
+	var payloads []api.PullRequestPayload
+	var triggeredEvent string
+	provider := newMockWebhookProvider(func(r *http.Request) {
+		content, _ := io.ReadAll(r.Body)
+		var payload api.PullRequestPayload
+		err := json.Unmarshal(content, &payload)
+		assert.NoError(t, err)
+		payloads = append(payloads, payload)
+		triggeredEvent = "pull_request_assign"
+	}, http.StatusOK)
+	defer provider.Close()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		// 1. create a new webhook with special webhook for repo1
+		session := loginUser(t, "user2")
+
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "pull_request_assign")
+
+		// 2. trigger the webhook, issue 2 is a pull request
+		testIssueAssign(t, session, repo1.Link(), 2, user2.ID)
+
+		// 3. validate the webhook is triggered
+		assert.Equal(t, "pull_request_assign", triggeredEvent)
+		assert.Len(t, payloads, 1)
+		assert.EqualValues(t, "assigned", payloads[0].Action)
+		assert.Equal(t, "repo1", payloads[0].PullRequest.Base.Repository.Name)
+		assert.Equal(t, "user2/repo1", payloads[0].PullRequest.Base.Repository.FullName)
+		assert.Equal(t, "issue2", payloads[0].PullRequest.Title)
+		assert.Equal(t, "content for the second issue", payloads[0].PullRequest.Body)
+		assert.Equal(t, user2.ID, payloads[0].PullRequest.Assignee.ID)
 	})
 }
 
