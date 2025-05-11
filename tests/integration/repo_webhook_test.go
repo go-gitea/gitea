@@ -241,19 +241,68 @@ func Test_WebhookIssueComment(t *testing.T) {
 
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "issue_comment")
 
-		// 2. trigger the webhook
-		issueURL := testNewIssue(t, session, "user2", "repo1", "Title2", "Description2")
-		testIssueAddComment(t, session, issueURL, "issue title2 comment1", "")
+		t.Run("create comment", func(t *testing.T) {
+			// 2. trigger the webhook
+			issueURL := testNewIssue(t, session, "user2", "repo1", "Title2", "Description2")
+			testIssueAddComment(t, session, issueURL, "issue title2 comment1", "")
 
-		// 3. validate the webhook is triggered
-		assert.Equal(t, "issue_comment", triggeredEvent)
-		assert.Len(t, payloads, 1)
-		assert.EqualValues(t, "created", payloads[0].Action)
-		assert.Equal(t, "repo1", payloads[0].Issue.Repo.Name)
-		assert.Equal(t, "user2/repo1", payloads[0].Issue.Repo.FullName)
-		assert.Equal(t, "Title2", payloads[0].Issue.Title)
-		assert.Equal(t, "Description2", payloads[0].Issue.Body)
-		assert.Equal(t, "issue title2 comment1", payloads[0].Comment.Body)
+			// 3. validate the webhook is triggered
+			assert.Equal(t, "issue_comment", triggeredEvent)
+			assert.Len(t, payloads, 1)
+			assert.EqualValues(t, "created", payloads[0].Action)
+			assert.Equal(t, "repo1", payloads[0].Issue.Repo.Name)
+			assert.Equal(t, "user2/repo1", payloads[0].Issue.Repo.FullName)
+			assert.Equal(t, "Title2", payloads[0].Issue.Title)
+			assert.Equal(t, "Description2", payloads[0].Issue.Body)
+			assert.Equal(t, "issue title2 comment1", payloads[0].Comment.Body)
+		})
+
+		t.Run("update comment", func(t *testing.T) {
+			payloads = make([]api.IssueCommentPayload, 0, 2)
+			triggeredEvent = ""
+
+			// 2. trigger the webhook
+			issueURL := testNewIssue(t, session, "user2", "repo1", "Title3", "Description3")
+			commentID := testIssueAddComment(t, session, issueURL, "issue title3 comment1", "")
+			modifiedContent := "issue title2 comment1 - modified"
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
+				"_csrf":   GetUserCSRFToken(t, session),
+				"content": modifiedContent,
+			})
+			session.MakeRequest(t, req, http.StatusOK)
+
+			// 3. validate the webhook is triggered
+			assert.Equal(t, "issue_comment", triggeredEvent)
+			assert.Len(t, payloads, 2)
+			assert.EqualValues(t, "edited", payloads[1].Action)
+			assert.Equal(t, "repo1", payloads[1].Issue.Repo.Name)
+			assert.Equal(t, "user2/repo1", payloads[1].Issue.Repo.FullName)
+			assert.Equal(t, "Title3", payloads[1].Issue.Title)
+			assert.Equal(t, "Description3", payloads[1].Issue.Body)
+			assert.Equal(t, modifiedContent, payloads[1].Comment.Body)
+		})
+
+		t.Run("Update comment with no content change", func(t *testing.T) {
+			payloads = make([]api.IssueCommentPayload, 0, 2)
+			triggeredEvent = ""
+			commentContent := "issue title3 comment1"
+
+			// 2. trigger the webhook
+			issueURL := testNewIssue(t, session, "user2", "repo1", "Title3", "Description3")
+			commentID := testIssueAddComment(t, session, issueURL, commentContent, "")
+
+			payloads = make([]api.IssueCommentPayload, 0, 2)
+			triggeredEvent = ""
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
+				"_csrf":   GetUserCSRFToken(t, session),
+				"content": commentContent,
+			})
+			session.MakeRequest(t, req, http.StatusOK)
+
+			// 3. validate the webhook is not triggered because no content change
+			assert.Empty(t, triggeredEvent)
+			assert.Empty(t, payloads)
+		})
 	})
 }
 
