@@ -609,15 +609,17 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	oldContent := comment.Content
-	comment.Content = form.Body
-	if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
-		} else {
-			ctx.APIErrorInternal(err)
+	if form.Body != comment.Content {
+		oldContent := comment.Content
+		comment.Content = form.Body
+		if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.APIError(http.StatusForbidden, err)
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
 		}
-		return
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToAPIComment(ctx, ctx.Repo.Repository, comment))
