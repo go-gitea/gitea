@@ -9,24 +9,24 @@ type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
 export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & { target: Partial<T>; };
 
-function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]) {
+function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
   if (typeof el === 'string' || el instanceof String) {
     el = document.querySelectorAll(el as string);
   }
   if (el instanceof Node) {
     func(el, ...args);
+    return [el];
   } else if (el.length !== undefined) {
     // this works for: NodeList, HTMLCollection, Array, jQuery
-    for (const e of (el as ArrayLikeIterable<Element>)) {
-      func(e, ...args);
-    }
-  } else {
-    throw new Error('invalid argument to be shown/hidden');
+    const elems = el as ArrayLikeIterable<Element>;
+    for (const elem of elems) func(elem, ...args);
+    return elems;
   }
+  throw new Error('invalid argument to be shown/hidden');
 }
 
-export function toggleClass(el: ElementArg, className: string, force?: boolean) {
-  elementsCall(el, (e: Element) => {
+export function toggleClass(el: ElementArg, className: string, force?: boolean): ArrayLikeIterable<Element> {
+  return elementsCall(el, (e: Element) => {
     if (force === true) {
       e.classList.add(className);
     } else if (force === false) {
@@ -43,23 +43,16 @@ export function toggleClass(el: ElementArg, className: string, force?: boolean) 
  * @param el ElementArg
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
-export function toggleElem(el: ElementArg, force?: boolean) {
-  toggleClass(el, 'tw-hidden', force === undefined ? force : !force);
+export function toggleElem(el: ElementArg, force?: boolean): ArrayLikeIterable<Element> {
+  return toggleClass(el, 'tw-hidden', force === undefined ? force : !force);
 }
 
-export function showElem(el: ElementArg) {
-  toggleElem(el, true);
+export function showElem(el: ElementArg): ArrayLikeIterable<Element> {
+  return toggleElem(el, true);
 }
 
-export function hideElem(el: ElementArg) {
-  toggleElem(el, false);
-}
-
-export function isElemHidden(el: ElementArg) {
-  const res: boolean[] = [];
-  elementsCall(el, (e) => res.push(e.classList.contains('tw-hidden')));
-  if (res.length > 1) throw new Error(`isElemHidden doesn't work for multiple elements`);
-  return res[0];
+export function hideElem(el: ElementArg): ArrayLikeIterable<Element> {
+  return toggleElem(el, false);
 }
 
 function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
@@ -275,14 +268,12 @@ export function initSubmitEventPolyfill() {
   document.body.addEventListener('focus', submitEventPolyfillListener);
 }
 
-/**
- * Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
- * Note: This function doesn't account for all possible visibility scenarios.
- */
-export function isElemVisible(element: HTMLElement): boolean {
-  if (!element) return false;
-  // checking element.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
-  return Boolean((element.offsetWidth || element.offsetHeight || element.getClientRects().length) && element.style.display !== 'none');
+export function isElemVisible(el: HTMLElement): boolean {
+  // Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
+  // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
+  if (!el) return false;
+  // checking el.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
+  return !el.classList.contains('tw-hidden') && Boolean((el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
 }
 
 // replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
