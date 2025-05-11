@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/tests"
 
@@ -59,6 +58,10 @@ func TestNewWebHookLink(t *testing.T) {
 
 func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, repoName, url, event string, branchFilter ...string) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
+	var branchFilterString string
+	if len(branchFilter) > 0 {
+		branchFilterString = branchFilter[0]
+	}
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+userName+"/"+repoName+"/hooks", api.CreateHookOption{
 		Type: "gitea",
 		Config: api.CreateHookOptionConfig{
@@ -67,7 +70,7 @@ func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, r
 		},
 		Events:       []string{event},
 		Active:       true,
-		BranchFilter: util.Iif(len(branchFilter) > 0, branchFilter[0], ""),
+		BranchFilter: branchFilterString,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 }
