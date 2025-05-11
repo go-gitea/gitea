@@ -17,7 +17,7 @@
 		{{template "repo/code/recently_pushed_new_branches" .}}
 
 		<div class="repo-view-container">
-			<div class="repo-view-file-tree-container not-mobile {{if not .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" {{if .IsSigned}}data-user-is-signed-in{{end}}>
+			<div class="tw-flex tw-flex-col repo-view-file-tree-container not-mobile {{if not .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" {{if .IsSigned}}data-user-is-signed-in{{end}}>
 				{{template "repo/view_file_tree" .}}
 			</div>
 			<div class="repo-view-content">

@@ -828,6 +828,7 @@ func IsLastAdminUser(ctx context.Context, user *User) bool {
 type CountUserFilter struct {
 	LastLoginSince *int64
 	IsAdmin        optional.Option[bool]
+	IsActive       optional.Option[bool]
 }
 
 // CountUsers returns number of users.
@@ -847,6 +848,10 @@ func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 
 		if opts.IsAdmin.Has() {
 			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.Value()})
+		}
+
+		if opts.IsActive.Has() {
+			cond = cond.And(builder.Eq{"is_active": opts.IsActive.Value()})
 		}
 	}
 
@@ -1198,7 +1203,8 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 		for _, email := range emailAddresses {
 			user := users[email.UID]
 			if user != nil {
-				results[user.GetEmail()] = user
+				results[user.Email] = user
+				results[user.GetPlaceholderEmail()] = user
 			}
 		}
 	}
@@ -1208,6 +1214,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 		return nil, err
 	}
 	for _, user := range users {
+		results[user.Email] = user
 		results[user.GetPlaceholderEmail()] = user
 	}
 	return results, nil

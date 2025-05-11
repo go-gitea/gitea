@@ -58,6 +58,11 @@
   flex: 0 0 15%;
   min-width: 0;
   max-height: 100vh;
+  position: sticky;
+  top: 0;
+  bottom: 0;
+  height: 100%;
+  overflow-y: hidden;
 }
 
 .repo-view-content {
