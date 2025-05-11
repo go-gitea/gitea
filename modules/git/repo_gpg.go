@@ -14,7 +14,7 @@ import (
 
 // LoadPublicKeyContent will load the key from gpg
 func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
-	if gpgSettings.Format == KeyTypeOpenPGP {
+	if gpgSettings.Format == KeyTypeSSH {
 		content, err := os.ReadFile(gpgSettings.KeyID)
 		if err != nil {
 			return fmt.Errorf("unable to read SSH public key file: %s, %w", gpgSettings.KeyID, err)
