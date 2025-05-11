@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/tests"
 
@@ -64,8 +65,9 @@ func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, r
 			"content_type": "json",
 			"url":          url,
 		},
-		Events: []string{event},
-		Active: true,
+		Events:       []string{event},
+		Active:       true,
+		BranchFilter: util.Iif(len(branchFilter) > 0, branchFilter[0], ""),
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 }
@@ -342,10 +344,15 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		// only for dev branch
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "develop")
 
-		// 2. trigger the webhook
+		// 2. this should not trigger the webhook
+		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push")
+		assert.Equal(t, "", triggeredEvent)
+		assert.Len(t, payloads, 0)
+
+		// 3. trigger the webhook
 		testCreateFile(t, session, "user2", "repo1", "develop", "test_webhook_push.md", "# a test file for webhook push")
 
-		// 3. validate the webhook is triggered
+		// 4. validate the webhook is triggered
 		assert.Equal(t, "push", triggeredEvent)
 		assert.Len(t, payloads, 1)
 		assert.Equal(t, "repo1", payloads[0].Repo.Name)
