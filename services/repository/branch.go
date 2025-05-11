@@ -663,6 +663,11 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newB
 		}
 	}
 
+	// clear divergence cache
+	if err := DelRepoDivergenceFromCache(ctx, repo.ID); err != nil {
+		log.Error("DelRepoDivergenceFromCache: %v", err)
+	}
+
 	notify_service.ChangeDefaultBranch(ctx, repo)
 
 	return nil

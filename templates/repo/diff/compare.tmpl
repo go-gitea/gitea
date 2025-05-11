@@ -189,7 +189,7 @@
 				<div class="ui segment flex-text-block tw-gap-4">
 					{{template "shared/issueicon" .}}
 					<div class="issue-title tw-break-anywhere">
-						{{ctx.RenderUtils.RenderIssueTitle .PullRequest.Issue.Title ($.Repository.ComposeCommentMetas ctx)}}
+						{{ctx.RenderUtils.RenderIssueTitle .PullRequest.Issue.Title $.Repository}}
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>
 					</div>
 					<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui compact button primary">

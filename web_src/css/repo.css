@@ -50,21 +50,31 @@
   width: 300px;
 }
 
-.issue-sidebar-combo .ui.dropdown .item:not(.checked) .item-check-mark {
-  visibility: hidden;
+.issue-content-right .ui.dropdown.full-width {
+  width: 100%;
 }
 
-.issue-content-right .dropdown > .menu {
+.issue-content-right .ui.dropdown.full-width > .fixed-text {
+  display: flex;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+
+.issue-content-right .ui.dropdown > .menu {
   max-width: 270px;
   min-width: 0;
   max-height: 500px;
   overflow-x: auto;
 }
 
-.issue-content-right .dropdown > .menu .item-secondary-info small {
+.issue-content-right .ui.dropdown > .menu .item-secondary-info small {
   display: block;
   text-overflow: ellipsis;
   overflow: hidden;
+}
+
+.issue-sidebar-combo > .ui.dropdown .item:not(.checked) .item-check-mark {
+  visibility: hidden;
 }
 
 @media (max-width: 767.98px) {
