@@ -327,7 +327,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if err = issue.LoadProject(ctx); err != nil {
+	if err = issue.LoadProjects(ctx); err != nil {
 		return err
 	}
 
