@@ -331,7 +331,7 @@ func (c *Command) run(ctx context.Context, skip int, opts *RunOpts) error {
 
 	startTime := time.Now()
 
-	cmd := exec.CommandContext(ctx, c.prog, append(append([]string{}, c.configArgs...), c.args...)...)
+	cmd := exec.CommandContext(ctx, c.prog, append(c.configArgs, c.args...)...)
 	c.cmd = cmd // for debug purpose only
 	if opts.Env == nil {
 		cmd.Env = os.Environ()
