@@ -148,7 +148,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 		return err
 	}
 	g.repo.ObjectFormatName = objectFormat.Name()
-	return repo_model.UpdateRepositoryCols(ctx, g.repo, "object_format_name")
+	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, g.repo, "object_format_name")
 }
 
 // Close closes this uploader
@@ -975,7 +975,7 @@ func (g *GiteaLocalUploader) Finish(ctx context.Context) error {
 	}
 
 	g.repo.Status = repo_model.RepositoryReady
-	return repo_model.UpdateRepositoryCols(ctx, g.repo, "status")
+	return repo_model.UpdateRepositoryColsWithAutoTime(ctx, g.repo, "status")
 }
 
 func (g *GiteaLocalUploader) remapUser(ctx context.Context, source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) error {
