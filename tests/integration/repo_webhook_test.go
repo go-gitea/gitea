@@ -395,8 +395,8 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 
 		// 2. this should not trigger the webhook
 		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push")
-		assert.Equal(t, "", triggeredEvent)
-		assert.Len(t, payloads, 0)
+		assert.Empty(t, triggeredEvent)
+		assert.Empty(t, payloads)
 
 		// 3. trigger the webhook
 		testCreateFile(t, session, "user2", "repo1", "develop", "test_webhook_push.md", "# a test file for webhook push")
