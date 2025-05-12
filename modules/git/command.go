@@ -201,8 +201,9 @@ func (c *Command) AddConfig(key, value string) *Command {
 	kv := key + "=" + value
 	if !isSafeArgumentValue(kv) {
 		c.brokenArgs = append(c.brokenArgs, key)
+	} else {
+	  c.configArgs = append(c.configArgs, "-c", kv)
 	}
-	c.configArgs = append(c.configArgs, "-c", kv)
 	return c
 }
 
