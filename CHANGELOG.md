@@ -4,6 +4,32 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.23.8](https://github.com/go-gitea/gitea/releases/tag/1.23.8) - 2025-05-11
+
+* SECURITY
+  * Fix a bug when uploading file via lfs ssh command (#34408) (#34411)
+  * Update net package (#34228) (#34232)
+* BUGFIXES
+  * Fix bug webhook milestone is not right. (#34419) #34429
+  * Fix two missed null value checks on the wiki page. (#34205) (#34215)
+  * Swift files can be passed either as file or as form value (#34068) (#34236)
+  * Fix bug when API get pull changed files for deleted head repository (#34333) (#34368)
+  * Upgrade github v61 -> v71 to fix migrating bug (#34389)
+  * Fix bug when visiting comparation page (#34334) (#34364)
+  * Fix wrong review requests when updating the pull request (#34286) (#34304)
+  * Fix github migration error when using multiple tokens (#34144) (#34302)
+  * Explicitly not update indexes when sync database schemas (#34281) (#34295)
+  * Fix panic when comment is nil (#34257) (#34277)
+  * Fix project board links to related Pull Requests (#34213) (#34222)
+  * Don't assume the default wiki branch is master in the wiki API (#34244) (#34245)
+* DOCUMENTATION
+  * Update token creation API swagger documentation (#34288) (#34296)
+* MISC
+  * Fix CI Build (#34315)
+  * Add riscv64 support (#34199) (#34204)
+  * Bump go version in go.mod (#34160)
+  * remove hardcoded 'code' string in clone_panel.tmpl (#34153) (#34158)
+
 ## [1.23.7](https://github.com/go-gitea/gitea/releases/tag/1.23.7) - 2025-04-07
 
 * Enhancements
