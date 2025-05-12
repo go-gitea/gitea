@@ -36,7 +36,7 @@
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
 				</div>
-				{{if and ($.AllowDeleteWorkflowRuns) (.Link) (or (eq .Status.String "success") (eq .Status.String "skipped") (eq .Status.String "cancelled"))}}
+				{{if and ($.AllowDeleteWorkflowRuns) (.Link) (.Status.IsDone)}}
 					<button class="ui btn interact-bg link-action tw-p-2"
 						data-url="{{.Link}}/delete"
 						data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"
