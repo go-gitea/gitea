@@ -895,6 +895,15 @@ func EditIssue(ctx *context.APIContext) {
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
+		if issue.MilestoneID > 0 {
+			issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, *form.Milestone)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
+				return
+			}
+		} else {
+			issue.Milestone = nil
+		}
 		if err = issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeMilestoneAssign", err)
 			return
