@@ -407,7 +407,6 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			ctx.ServerError("RepositoryFromRequestContextOrOpen", err)
 			return nil
 		}
-		// if it's not the same git repo, the HeadGitRepo should be closed out of the function
 	} else {
 		ctx.NotFound(nil)
 		return nil
