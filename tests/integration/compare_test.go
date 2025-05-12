@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
@@ -155,5 +156,43 @@ func TestCompareCodeExpand(t *testing.T) {
 			link := els.Eq(i).AttrOr("hx-get", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
+	})
+}
+
+func TestCompareRawDiff(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+			Name:          "test_raw_diff",
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "main",
+		}, true)
+		assert.NoError(t, err)
+		session := loginUser(t, user1.Name)
+		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
+		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
+		testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 2))
+		newRef, _ := r.GetBranchCommit(repo.DefaultBranch)
+		fmt.Println("oldRef", oldRef.ID.String())
+		fmt.Println("newRef", newRef.ID.String())
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/user1/test_raw_diff/compare/%s...%s.diff", oldRef.ID.String(), newRef.ID.String()))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		fmt.Println("resp", resp.Body.String())
+
+		expected := fmt.Sprintf(`diff --git a/README.md b/README.md
+index %s..%s 100644
+--- a/README.md
++++ b/README.md
+@@ -1,2 +1,2 @@
+-# test_raw_diff
+-
++a
++a
+`,
+			oldRef.ID.String()[:7], newRef.ID.String()[:7])
+
+		assert.Equal(t, resp.Body.String(), expected)
 	})
 }
