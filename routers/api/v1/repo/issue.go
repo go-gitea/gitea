@@ -898,7 +898,7 @@ func EditIssue(ctx *context.APIContext) {
 		if issue.MilestoneID > 0 {
 			issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, *form.Milestone)
 			if err != nil {
-				ctx.APIErrorInternal(err)
+				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
 				return
 			}
 		} else {
