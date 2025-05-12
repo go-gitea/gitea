@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.23.8](https://github.com/go-gitea/gitea/releases/tag/1.23.8) - 2025-05-11
 
 * SECURITY
-  * Fix a bug when uploading file via lfs ssh command 1.23 (#34408) (#34411)
+  * Fix a bug when uploading file via lfs ssh command (#34408) (#34411)
   * Update net package (#34228) (#34232)
 * BUGFIXES
   * Fix bug webhook milestone is not right. (#34419) #34429
