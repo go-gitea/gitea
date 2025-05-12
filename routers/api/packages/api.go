@@ -532,6 +532,7 @@ func CommonRoutes() *web.Router {
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md
 func ContainerRoutes() *web.Router {
 	r := web.NewRouter()
+
 	r.Use(context.PackageContexter())
 
 	verifyAuth(r, []auth.Method{

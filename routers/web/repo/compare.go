@@ -237,7 +237,6 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	if strings.HasSuffix(infoPath, ".diff") {
 		ci.RawDiffType = git.RawDiffNormal
 		infoPath = strings.TrimSuffix(infoPath, ".diff")
-
 	} else if strings.HasSuffix(infoPath, ".patch") {
 		ci.RawDiffType = git.RawDiffPatch
 		infoPath = strings.TrimSuffix(infoPath, ".patch")
@@ -759,7 +758,11 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	if ci.RawDiffType != "" {
-		git.GetRepoRawDiffForFile(ci.HeadGitRepo, ci.BaseBranch, ci.HeadBranch, ci.RawDiffType, "", ctx.Resp)
+		err := git.GetRepoRawDiffForFile(ci.HeadGitRepo, ci.BaseBranch, ci.HeadBranch, ci.RawDiffType, "", ctx.Resp)
+		if err != nil {
+			ctx.ServerError("GetRepoRawDiffForFile", err)
+			return
+		}
 		ctx.Resp.Flush()
 		return
 	}
