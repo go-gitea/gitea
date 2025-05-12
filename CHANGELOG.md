@@ -10,6 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix a bug when uploading file via lfs ssh command (#34408) (#34411)
   * Update net package (#34228) (#34232)
 * BUGFIXES
+  * Fix releases sidebar navigation link (#34436) #34439
   * Fix bug webhook milestone is not right. (#34419) #34429
   * Fix two missed null value checks on the wiki page. (#34205) (#34215)
   * Swift files can be passed either as file or as form value (#34068) (#34236)
