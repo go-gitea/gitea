@@ -34,9 +34,6 @@ func TestCreateFile(t *testing.T) {
 	})
 }
 
-func testCreateFileOnNewBranch(t *testing.T) {
-}
-
 func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, filePath, content, newBranch string) *httptest.ResponseRecorder {
 	// Request editor page
 	newURL := fmt.Sprintf("/%s/%s/_new/%s/", user, repo, branch)
