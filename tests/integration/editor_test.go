@@ -30,11 +30,14 @@ import (
 func TestCreateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
-		testCreateFile(t, session, "user2", "repo1", "master", "test.txt", "Content")
+		testCreateFile(t, session, "user2", "repo1", "master", "test.txt", "Content", "")
 	})
 }
 
-func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, filePath, content string) *httptest.ResponseRecorder {
+func testCreateFileOnNewBranch(t *testing.T) {
+}
+
+func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, filePath, content, newBranch string) *httptest.ResponseRecorder {
 	// Request editor page
 	newURL := fmt.Sprintf("/%s/%s/_new/%s/", user, repo, branch)
 	req := NewRequest(t, "GET", newURL)
@@ -44,13 +47,19 @@ func testCreateFile(t *testing.T, session *TestSession, user, repo, branch, file
 	lastCommit := doc.GetInputValueByName("last_commit")
 	assert.NotEmpty(t, lastCommit)
 
+	commitChoice := "direct"
+	if newBranch != "" && newBranch != branch {
+		commitChoice = "commit-to-new-branch"
+	}
+
 	// Save new file to master branch
 	req = NewRequestWithValues(t, "POST", newURL, map[string]string{
-		"_csrf":         doc.GetCSRF(),
-		"last_commit":   lastCommit,
-		"tree_path":     filePath,
-		"content":       content,
-		"commit_choice": "direct",
+		"_csrf":           doc.GetCSRF(),
+		"last_commit":     lastCommit,
+		"tree_path":       filePath,
+		"content":         content,
+		"commit_choice":   commitChoice,
+		"new_branch_name": newBranch,
 	})
 	return session.MakeRequest(t, req, http.StatusSeeOther)
 }
