@@ -1,4 +1,4 @@
-import {queryElems, type DOMEvent} from '../utils/dom.ts';
+import {addDelegatedEventListener, queryElems, type DOMEvent} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
@@ -141,6 +141,12 @@ function initClonePanelButton(btn: HTMLButtonElement) {
     interactive: true,
     hideOnClick: true,
     arrow: false,
+    onMount: (instance) => { // focus input on open and on tab click
+      instance.popper.querySelector<HTMLInputElement>('.js-clone-url')?.focus();
+      addDelegatedEventListener(instance.popper, 'click', '.clone-panel-tab .item', () => {
+        instance.popper.querySelector<HTMLInputElement>('.js-clone-url')?.focus();
+      });
+    },
   });
 }
 
