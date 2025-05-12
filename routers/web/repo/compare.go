@@ -230,7 +230,19 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	)
 
 	infoPath = ctx.PathParam("*")
+
 	var infos []string
+
+	// Handle possible suffixes: .diff or .patch
+	if strings.HasSuffix(infoPath, ".diff") {
+		ci.RawDiffType = git.RawDiffNormal
+		infoPath = strings.TrimSuffix(infoPath, ".diff")
+
+	} else if strings.HasSuffix(infoPath, ".patch") {
+		ci.RawDiffType = git.RawDiffPatch
+		infoPath = strings.TrimSuffix(infoPath, ".patch")
+	}
+
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
 	} else {
@@ -743,6 +755,12 @@ func CompareDiff(ctx *context.Context) {
 
 	nothingToCompare := PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if ctx.Written() {
+		return
+	}
+
+	if ci.RawDiffType != "" {
+		git.GetRepoRawDiffForFile(ci.HeadGitRepo, ci.BaseBranch, ci.HeadBranch, ci.RawDiffType, "", ctx.Resp)
+		ctx.Resp.Flush()
 		return
 	}
 
