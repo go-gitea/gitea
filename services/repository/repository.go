@@ -205,7 +205,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 	e := db.GetEngine(ctx)
 
-	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
+	if _, err = e.ID(repo.ID).NoAutoTime().AllCols().Update(repo); err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
 

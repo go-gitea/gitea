@@ -245,7 +245,7 @@ func TestDefaultWikiBranch(t *testing.T) {
 	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(db.DefaultContext, repoWithNoWiki, "main"))
 
 	// repo with wiki
-	assert.NoError(t, repo_model.UpdateRepositoryCols(db.DefaultContext, &repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"}))
+	assert.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(db.DefaultContext, &repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"}))
 
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki")
 	ctx.SetPathParam("*", "Home")
