@@ -225,10 +225,10 @@ func TestRender_email(t *testing.T) {
 	test := func(input, expected string) {
 		res, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res), "input: %s", input)
 	}
-	// Text that should be turned into email link
 
+	// Text that should be turned into email link
 	test(
 		"info@gitea.com",
 		`<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a></p>`)
@@ -260,10 +260,13 @@ func TestRender_email(t *testing.T) {
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>?
 <a href="mailto:j.doe@example.com" rel="nofollow">j.doe@example.com</a>!</p>`)
 
+	// match GitHub behavior
+	test("email@domain@domain.com", `<p>email@<a href="mailto:domain@domain.com" rel="nofollow">domain@domain.com</a></p>`)
+
+	// match GitHub behavior
+	test(`"info@gitea.com"`, `<p>&#34;<a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>&#34;</p>`)
+
 	// Test that should *not* be turned into email links
-	test(
-		"\"info@gitea.com\"",
-		`<p>&#34;info@gitea.com&#34;</p>`)
 	test(
 		"/home/gitea/mailstore/info@gitea/com",
 		`<p>/home/gitea/mailstore/info@gitea/com</p>`)
@@ -271,17 +274,34 @@ func TestRender_email(t *testing.T) {
 		"git@try.gitea.io:go-gitea/gitea.git",
 		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
 	test(
+		"https://foo:bar@gitea.io",
+		`<p><a href="https://foo:bar@gitea.io" rel="nofollow">https://foo:bar@gitea.io</a></p>`)
+	test(
 		"gitea@3",
 		`<p>gitea@3</p>`)
 	test(
 		"gitea@gmail.c",
 		`<p>gitea@gmail.c</p>`)
 	test(
-		"email@domain@domain.com",
-		`<p>email@domain@domain.com</p>`)
-	test(
 		"email@domain..com",
 		`<p>email@domain..com</p>`)
+
+	cases := []struct {
+		input, expected string
+	}{
+		// match GitHub behavior
+		{"?a@d.zz", `<p>?<a href="mailto:a@d.zz" rel="nofollow">a@d.zz</a></p>`},
+		{"*a@d.zz", `<p>*<a href="mailto:a@d.zz" rel="nofollow">a@d.zz</a></p>`},
+		{"~a@d.zz", `<p>~<a href="mailto:a@d.zz" rel="nofollow">a@d.zz</a></p>`},
+
+		// the following cases don't match GitHub behavior, but they are valid email addresses ...
+		// maybe we should reduce the candidate characters for the "name" part in the future
+		{"a*a@d.zz", `<p><a href="mailto:a*a@d.zz" rel="nofollow">a*a@d.zz</a></p>`},
+		{"a~a@d.zz", `<p><a href="mailto:a~a@d.zz" rel="nofollow">a~a@d.zz</a></p>`},
+	}
+	for _, c := range cases {
+		test(c.input, c.expected)
+	}
 }
 
 func TestRender_emoji(t *testing.T) {

@@ -16,16 +16,18 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -375,7 +377,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
 	//   type: string
 	//   required: false
 	// responses:
@@ -408,11 +410,6 @@ func canWriteFiles(ctx *context.APIContext, branch string) bool {
 	return ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, branch) &&
 		!ctx.Repo.Repository.IsMirror &&
 		!ctx.Repo.Repository.IsArchived
-}
-
-// canReadFiles returns true if repository is readable and user has proper access level.
-func canReadFiles(r *context.Repository) bool {
-	return r.Permission.CanRead(unit.TypeCode)
 }
 
 func base64Reader(s string) (io.ReadSeeker, error) {
@@ -894,6 +891,17 @@ func DeleteFile(ctx *context.APIContext) {
 	}
 }
 
+func resolveRefCommit(ctx *context.APIContext, ref string, minCommitIDLen ...int) *utils.RefCommit {
+	ref = util.IfZero(ref, ctx.Repo.Repository.DefaultBranch)
+	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ref, minCommitIDLen...)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.APIErrorNotFound(err)
+	} else if err != nil {
+		ctx.APIErrorInternal(err)
+	}
+	return refCommit
+}
+
 // GetContents Get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 func GetContents(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetContents
@@ -919,7 +927,7 @@ func GetContents(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
 	//   type: string
 	//   required: false
 	// responses:
@@ -928,18 +936,13 @@ func GetContents(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !canReadFiles(ctx.Repo) {
-		ctx.APIErrorInternal(repo_model.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   ctx.Doer.ID,
-			RepoName: ctx.Repo.Repository.LowerName,
-		})
+	treePath := ctx.PathParam("*")
+	refCommit := resolveRefCommit(ctx, ctx.FormTrim("ref"))
+	if ctx.Written() {
 		return
 	}
 
-	treePath := ctx.PathParam("*")
-	ref := ctx.FormTrim("ref")
-
-	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref); err != nil {
+	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, refCommit, treePath); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound("GetContentsOrList", err)
 			return
@@ -970,7 +973,7 @@ func GetContentsList(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
 	//   type: string
 	//   required: false
 	// responses:
@@ -981,4 +984,103 @@ func GetContentsList(ctx *context.APIContext) {
 
 	// same as GetContents(), this function is here because swagger fails if path is empty in GetContents() interface
 	GetContents(ctx)
+}
+
+func GetFileContentsGet(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/file-contents repository repoGetFileContents
+	// ---
+	// summary: Get the metadata and contents of requested files
+	// description: See the POST method. This GET method supports to use JSON encoded request body in query parameter.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
+	//   type: string
+	//   required: false
+	// - name: body
+	//   in: query
+	//   description: "The JSON encoded body (see the POST request): {\"files\": [\"filename1\", \"filename2\"]}"
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ContentsListResponse"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	// POST method requires "write" permission, so we also support this "GET" method
+	handleGetFileContents(ctx)
+}
+
+func GetFileContentsPost(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/file-contents repository repoGetFileContentsPost
+	// ---
+	// summary: Get the metadata and contents of requested files
+	// description: Uses automatic pagination based on default page size and
+	// 							max response size and returns the maximum allowed number of files.
+	//							Files which could not be retrieved are null. Files which are too large
+	//							are being returned with `encoding == null`, `content == null` and `size > 0`,
+	//							they can be requested separately by using the `download_url`.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch."
+	//   type: string
+	//   required: false
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/GetFilesOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ContentsListResponse"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	// This is actually a "read" request, but we need to accept a "files" list, then POST method seems easy to use.
+	// But the permission system requires that the caller must have "write" permission to use POST method.
+	// At the moment there is no other way to get around the permission check, so there is a "GET" workaround method above.
+	handleGetFileContents(ctx)
+}
+
+func handleGetFileContents(ctx *context.APIContext) {
+	opts, ok := web.GetForm(ctx).(*api.GetFilesOptions)
+	if !ok {
+		err := json.Unmarshal(util.UnsafeStringToBytes(ctx.FormString("body")), &opts)
+		if err != nil {
+			ctx.APIError(http.StatusBadRequest, "invalid body parameter")
+			return
+		}
+	}
+	refCommit := resolveRefCommit(ctx, ctx.FormTrim("ref"))
+	if ctx.Written() {
+		return
+	}
+	filesResponse := files_service.GetContentsListFromTreePaths(ctx, ctx.Repo.Repository, refCommit, opts.Files)
+	ctx.JSON(http.StatusOK, util.SliceNilAsEmpty(filesResponse))
 }

@@ -47,7 +47,7 @@ type WebSearchResults struct {
 
 // CreateRepository creates a repository for the user/organization.
 func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts CreateRepoOptions) (*repo_model.Repository, error) {
-	repo, err := CreateRepositoryDirectly(ctx, doer, owner, opts)
+	repo, err := CreateRepositoryDirectly(ctx, doer, owner, opts, true)
 	if err != nil {
 		// No need to rollback here we should do this in CreateRepository...
 		return nil, err
@@ -205,7 +205,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 	e := db.GetEngine(ctx)
 
-	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
+	if _, err = e.ID(repo.ID).NoAutoTime().AllCols().Update(repo); err != nil {
 		return fmt.Errorf("update: %w", err)
 	}
 

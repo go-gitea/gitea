@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -123,8 +124,15 @@ func (r *ActionRunner) IsOnline() bool {
 	return false
 }
 
-// Editable checks if the runner is editable by the user
-func (r *ActionRunner) Editable(ownerID, repoID int64) bool {
+// EditableInContext checks if the runner is editable by the "context" owner/repo
+// ownerID == 0 and repoID == 0 means "admin" context, any runner including global runners could be edited
+// ownerID == 0 and repoID != 0 means "repo" context, any runner belonging to the given repo could be edited
+// ownerID != 0 and repoID == 0 means "owner(org/user)" context, any runner belonging to the given user/org could be edited
+// ownerID != 0 and repoID != 0 means "owner" OR "repo" context, legacy behavior, but we should forbid using it
+func (r *ActionRunner) EditableInContext(ownerID, repoID int64) bool {
+	if ownerID != 0 && repoID != 0 {
+		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
+	}
 	if ownerID == 0 && repoID == 0 {
 		return true
 	}
@@ -168,6 +176,12 @@ func init() {
 	db.RegisterModel(&ActionRunner{})
 }
 
+// FindRunnerOptions
+// ownerID == 0 and repoID == 0 means any runner including global runners
+// repoID != 0 and WithAvailable == false means any runner for the given repo
+// repoID != 0 and WithAvailable == true means any runner for the given repo, parent user/org, and global runners
+// ownerID != 0 and repoID == 0 and WithAvailable == false means any runner for the given user/org
+// ownerID != 0 and repoID == 0 and WithAvailable == true means any runner for the given user/org and global runners
 type FindRunnerOptions struct {
 	db.ListOptions
 	IDs           []int64

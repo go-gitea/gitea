@@ -1,8 +1,8 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
-<div class="ui container tw-max-w-full">
-	<div class="flex-text-block tw-flex-wrap tw-mb-4">
-		<h2 class="tw-mb-0">{{.Project.Title}}</h2>
+<div class="ui container fluid padded projects-view">
+	<div class="ui container flex-text-block project-header">
+		<h2>{{.Project.Title}}</h2>
 		<div class="tw-flex-1"></div>
 		<div class="ui secondary menu tw-m-0">
 			{{$queryLink := QueryBuild "?" "labels" .SelectLabels "assignee" $.AssigneeID "archived_labels" (Iif $.ShowArchivedLabels "true")}}
@@ -19,6 +19,14 @@
 		</div>
 		{{if $canWriteProject}}
 			<div class="ui compact mini menu">
+				<a class="item screen-full">
+					{{svg "octicon-screen-full"}}
+					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
+				</a>
+				<a class="item screen-normal tw-hidden">
+					{{svg "octicon-screen-normal"}}
+					{{ctx.Locale.Tr "projects.exit_fullscreen"}}
+				</a>
 				<a class="item" href="{{.Link}}/edit?redirect=project">
 					{{svg "octicon-pencil"}}
 					{{ctx.Locale.Tr "repo.issues.label_edit"}}
@@ -56,13 +64,12 @@
 		{{end}}
 	</div>
 
-	<div class="content">{{$.Project.RenderedContent}}</div>
+	<div class="ui container project-description">
+		{{$.Project.RenderedContent}}
+		<div class="divider"></div>
+	</div>
 
-	<div class="divider"></div>
-</div>
-
-<div id="project-board" data-project-borad-writable="{{$canWriteProject}}">
-	<div class="board {{if $canWriteProject}}sortable{{end}}" {{if $canWriteProject}}data-url="{{$.Link}}/move"{{end}}>
+	<div id="project-board" class="board {{if $canWriteProject}}sortable{{end}}" data-project-borad-writable="{{$canWriteProject}}" {{if $canWriteProject}}data-url="{{$.Link}}/move"{{end}}>
 		{{range .Columns}}
 			<div class="project-column" {{if .Color}}style="background: {{.Color}} !important; color: {{ContrastColor .Color}} !important"{{end}} data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.Link}}/{{.ID}}">
 				<div class="project-column-header{{if $canWriteProject}} tw-cursor-grab{{end}}">

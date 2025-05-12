@@ -73,25 +73,31 @@
 							<summary>
 								{{ctx.Locale.Tr "repo.release.downloads"}}
 							</summary>
-							<ul class="list">
+							<ul class="ui divided list attachment-list">
 								{{if and (not $.DisableDownloadSourceArchives) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
-									<li>
-										<a class="archive-link" href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong></a>
+									<li class="item">
+										<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.zip" rel="nofollow">
+											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong>
+										</a>
 									</li>
-									<li>
-										<a class="archive-link" href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
+									<li class="item">
+										<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">
+											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (TAR.GZ)</strong>
+										</a>
 									</li>
 								{{end}}
-								{{range $release.Attachments}}
-									<li>
-										<a target="_blank" rel="nofollow" href="{{.DownloadURL}}" download>
-											<strong>{{svg "octicon-package" 16 "download-icon"}}{{.Name}}</strong>
+								{{range $att := $release.Attachments}}
+									<li class="item">
+										<a target="_blank" class="tw-flex-grow-[2] gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL}}">
+											<strong class="flex-text-inline">{{svg "octicon-package" 16 "download-icon"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
 										</a>
-										<div>
-											<span class="text grey">{{.Size | FileSize}}</span>
-											<span data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber .DownloadCount)}}">
+										<div class="attachment-right-info flex-text-inline">
+											<span class="tw-pl-5">{{$att.Size | FileSize}}</span>
+											<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber $att.DownloadCount)}}">
 												{{svg "octicon-info"}}
 											</span>
+											<div class="tw-flex-1"></div>
+											{{DateUtils.TimeSince $att.CreatedUnix}}
 										</div>
 									</li>
 								{{end}}

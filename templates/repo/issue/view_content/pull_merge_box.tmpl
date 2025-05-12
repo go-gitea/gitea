@@ -1,7 +1,13 @@
 {{if and .Issue.PullRequest.HasMerged (not .IsPullBranchDeletable)}}
 {{/* Then the merge box will not be displayed because this page already contains enough information */}}
 {{else}}
-<div class="timeline-item comment merge box">
+<div class="timeline-item comment pull-merge-box"
+	data-global-init="initRepoPullMergeBox"
+	{{if .PullMergeBoxReloadingInterval}}
+		data-pull-merge-box-reloading-interval="{{.PullMergeBoxReloadingInterval}}"
+		data-pull-link="{{.Issue.Link}}"
+	{{end}}
+>
 	<div class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
 	{{- else if .IsPullWorkInProgress}}grey
@@ -97,7 +103,7 @@
 				{{template "repo/issue/view_content/update_branch_by_merge" $}}
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item">
-					{{svg "octicon-sync"}}
+					{{svg "octicon-sync" 16 "circular-spin"}}
 					{{ctx.Locale.Tr "repo.pulls.is_checking"}}
 				</div>
 			{{else if .Issue.PullRequest.IsAncestor}}
@@ -191,10 +197,11 @@
 						</div>
 					{{end}}
 				{{end}}
+
 				{{template "repo/issue/view_content/update_branch_by_merge" $}}
+
 				{{if .Issue.PullRequest.IsEmpty}}
 					<div class="divider"></div>
-
 					<div class="item">
 						{{svg "octicon-alert"}}
 						{{ctx.Locale.Tr "repo.pulls.is_empty"}}
@@ -216,7 +223,7 @@
 							const defaultMergeMessage = {{.DefaultMergeBody}};
 							const defaultSquashMergeMessage = {{.DefaultSquashMergeBody}};
 							const mergeForm = {
-								'baseLink': {{.Link}},
+								'baseLink': {{.Issue.Link}},
 								'textCancel': {{ctx.Locale.Tr "cancel"}},
 								'textDeleteBranch': {{ctx.Locale.Tr "repo.branch.delete" .HeadTarget}},
 								'textAutoMergeButtonWhenSucceed': {{ctx.Locale.Tr "repo.pulls.auto_merge_button_when_succeed"}},
@@ -318,7 +325,7 @@
 				{{if .IsBlockedByApprovals}}
 					<div class="item text red">
 						{{svg "octicon-x"}}
-					{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
+						{{ctx.Locale.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .ProtectedBranch.RequiredApprovals}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item text red">
@@ -377,7 +384,7 @@
 			*/}}
 			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
 				<div class="divider"></div>
-				<form class="ui form form-fetch-action" action="{{.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
+				<form class="ui form form-fetch-action" action="{{.Issue.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
 					{{.CsrfTokenHtml}}
 					<div class="field">
 						<input type="text" name="merge_commit_id" placeholder="{{ctx.Locale.Tr "repo.pulls.merge_commit_id"}}">

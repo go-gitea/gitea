@@ -82,6 +82,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
+			DelayCheckForInactiveDays                int
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -200,6 +201,7 @@ var (
 			AddCoCommitterTrailers                   bool
 			TestConflictingPatchesWithGitApply       bool
 			RetargetChildrenOnMerge                  bool
+			DelayCheckForInactiveDays                int
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -215,6 +217,7 @@ var (
 			PopulateSquashCommentWithCommitMessages:  false,
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
+			DelayCheckForInactiveDays:                7,
 		},
 
 		// Issue settings

@@ -75,7 +75,7 @@ func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.
 	commit, err := ctx.Repo.GitRepo.GetCommit(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(identifier)
+			ctx.APIErrorNotFound("commit doesn't exist: " + identifier)
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -310,7 +310,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 
 	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(sha)
+			ctx.APIErrorNotFound("commit doesn't exist: " + sha)
 			return
 		}
 		ctx.APIErrorInternal(err)

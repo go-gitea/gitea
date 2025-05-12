@@ -43,7 +43,8 @@ const (
 	tplIssueChoose templates.TplName = "repo/issue/choose"
 	tplIssueView   templates.TplName = "repo/issue/view"
 
-	tplReactions templates.TplName = "repo/issue/view_content/reactions"
+	tplPullMergeBox templates.TplName = "repo/issue/view_content/pull_merge_box"
+	tplReactions    templates.TplName = "repo/issue/view_content/reactions"
 
 	issueTemplateKey      = "IssueTemplate"
 	issueTemplateTitleKey = "IssueTemplateTitle"
@@ -417,6 +418,16 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
+		if milestoneID > 0 {
+			var err error
+			issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
+			if err != nil {
+				ctx.ServerError("GetMilestoneByRepoID", err)
+				return
+			}
+		} else {
+			issue.Milestone = nil
+		}
 		if err := issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return

@@ -5,7 +5,6 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -367,7 +366,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 	if time.Deleted {
-		ctx.APIErrorNotFound(fmt.Errorf("tracked time [%d] already deleted", time.ID))
+		ctx.APIErrorNotFound("tracked time was already deleted")
 		return
 	}
 

@@ -35,6 +35,7 @@ func TestAPIExposedSettings(t *testing.T) {
 		DefaultPagingNum:       setting.API.DefaultPagingNum,
 		DefaultGitTreesPerPage: setting.API.DefaultGitTreesPerPage,
 		DefaultMaxBlobSize:     setting.API.DefaultMaxBlobSize,
+		DefaultMaxResponseSize: setting.API.DefaultMaxResponseSize,
 	}, apiSettings)
 
 	repo := new(api.GeneralRepoSettings)

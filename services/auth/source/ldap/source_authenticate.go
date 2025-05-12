@@ -25,7 +25,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	if user != nil {
 		loginName = user.LoginName
 	}
-	sr := source.SearchEntry(loginName, password, source.authSource.Type == auth.DLDAP)
+	sr := source.SearchEntry(loginName, password, source.AuthSource.Type == auth.DLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
 		return nil, user_model.ErrUserNotExist{Name: loginName}
@@ -73,7 +73,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.authSource, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, user, source.AuthSource, sr.SSHPublicKey) {
 			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
@@ -84,8 +84,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			Name:        sr.Username,
 			FullName:    composeFullName(sr.Name, sr.Surname, sr.Username),
 			Email:       sr.Mail,
-			LoginType:   source.authSource.Type,
-			LoginSource: source.authSource.ID,
+			LoginType:   source.AuthSource.Type,
+			LoginSource: source.AuthSource.ID,
 			LoginName:   userName,
 			IsAdmin:     sr.IsAdmin,
 		}
@@ -99,7 +99,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 			return user, err
 		}
 
-		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.authSource, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.AuthSource, sr.SSHPublicKey) {
 			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 				return user, err
 			}
@@ -122,9 +122,4 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	return user, nil
-}
-
-// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
-func (source *Source) IsSkipLocalTwoFA() bool {
-	return source.SkipLocalTwoFA
 }
