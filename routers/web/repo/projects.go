@@ -445,9 +445,9 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
-	projectIDs, _ := base.StringsToInt64s(strings.Split(ctx.FormString("id"), ","))
+	ids, _ := base.StringsToInt64s(strings.Split(ctx.FormString("id"), ","))
 	for _, issue := range issues {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs, 0); err != nil {
+		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, ids, 0); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
 				continue
 			}
