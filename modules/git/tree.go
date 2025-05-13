@@ -78,7 +78,7 @@ func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Comm
 }
 
 // rev-parse parses the output of `git rev-parse` command
-func (repo *Repository) RevParse(ref string, file string) (string, error) {
+func (repo *Repository) RevParse(ref, file string) (string, error) {
 	stdout, _, err := NewCommand("rev-parse").
 		AddDynamicArguments(ref+":"+file).
 		RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
