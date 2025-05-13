@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"xorm.io/builder"
@@ -131,6 +132,18 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	if _, err := db.GetEngine(ctx).In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"webhook.repo_id": repo.ID})).
 		Delete(&webhook.HookTask{}); err != nil {
 		return err
+	}
+
+	// TODO: Deleting task records could break current ephemeral runner implementation. This is a temporary workaround suggested by ChristopherHX.
+	// Since you delete potentially the only task an ephemeral act_runner has ever run, please delete the affected runners first.
+	// one of
+	//    call cleanup ephemeral runners first
+	//    delete affected ephemeral act_runners
+	//    I would make ephemeral runners fully delete directly before formally finishing the task
+	//
+	// See also: https://github.com/go-gitea/gitea/pull/34337#issuecomment-2862222788
+	if err := actions_service.CleanupEphemeralRunnersByRepoID(ctx, repoID); err != nil {
+		return fmt.Errorf("cleanupEphemeralRunners: %w", err)
 	}
 
 	if err := db.DeleteBeans(ctx,
