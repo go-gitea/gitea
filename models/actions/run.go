@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"context"
 	"errors"
 	"fmt"
@@ -420,10 +421,7 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 
 	if run.Status != 0 || slices.Contains(cols, "status") {
 		if run.RepoID == 0 {
-			run, err = GetRunByRepoAndID(ctx, run.RepoID, run.ID)
-			if err != nil {
-				return err
-			}
+			setting.PanicInDevOrTesting("RepoID should not be 0")
 		}
 		if err = run.LoadRepo(ctx); err != nil {
 			return err
