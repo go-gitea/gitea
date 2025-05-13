@@ -1281,7 +1281,7 @@ func Routes() *web.Router {
 					m.Get("/tasks", repo.ListActionTasks)
 					m.Group("/runs/{run}", func() {
 						m.Get("/artifacts", repo.GetArtifactsOfRun)
-						m.Delete("", reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
+						m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
 					})
 					m.Get("/artifacts", repo.GetArtifacts)
 					m.Group("/artifacts/{artifact_id}", func() {
