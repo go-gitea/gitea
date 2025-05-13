@@ -343,13 +343,13 @@ func InsertRun(ctx context.Context, run *ActionRun, jobs []*jobparser.SingleWork
 	return committer.Commit()
 }
 
-func GetRunByID(ctx context.Context, id int64) (*ActionRun, error) {
+func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, error) {
 	var run ActionRun
-	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&run)
+	has, err := db.GetEngine(ctx).Where("id=? AND repo_id=?", runID, repoID).Get(&run)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, fmt.Errorf("run with id %d: %w", id, util.ErrNotExist)
+		return nil, fmt.Errorf("run with id %d: %w", runID, util.ErrNotExist)
 	}
 
 	return &run, nil
@@ -420,17 +420,13 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 
 	if run.Status != 0 || slices.Contains(cols, "status") {
 		if run.RepoID == 0 {
-			run, err = GetRunByID(ctx, run.ID)
+			run, err = GetRunByRepoAndID(ctx, run.RepoID, run.ID)
 			if err != nil {
 				return err
 			}
 		}
-		if run.Repo == nil {
-			repo, err := repo_model.GetRepositoryByID(ctx, run.RepoID)
-			if err != nil {
-				return err
-			}
-			run.Repo = repo
+		if err = run.LoadRepo(ctx); err != nil {
+			return err
 		}
 		if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
 			return err
