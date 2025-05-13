@@ -76,3 +76,14 @@ func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Comm
 	}
 	return repo.GetCommit(strings.TrimSpace(stdout))
 }
+
+// rev-parse parses the output of `git rev-parse` command
+func (repo *Repository) RevParse(ref string, file string) (string, error) {
+	stdout, _, err := NewCommand("rev-parse").
+		AddDynamicArguments(ref+":"+file).
+		RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(stdout), nil
+}
