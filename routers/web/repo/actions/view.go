@@ -588,10 +588,10 @@ func Delete(ctx *context_module.Context) {
 	run, err := actions_model.GetRunByIndex(ctx, repoID, runIndex)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.HTTPError(http.StatusNotFound, err.Error())
+			ctx.NotFound(nil)
 			return
 		}
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("GetRunByIndex", err)
 		return
 	}
 
@@ -601,11 +601,11 @@ func Delete(ctx *context_module.Context) {
 	}
 
 	if err := actions_service.DeleteRun(ctx, run); err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("DeleteRun", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, struct{}{})
+	ctx.JSONOK()
 }
 
 // getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
