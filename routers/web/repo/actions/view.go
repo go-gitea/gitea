@@ -584,7 +584,7 @@ func Delete(ctx *context_module.Context) {
 	run, err := actions_model.GetRunByIndex(ctx, repoID, runIndex)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.NotFound(nil)
+			ctx.JSONError(ctx.Tr("error.not_found"))
 			return
 		}
 		ctx.ServerError("GetRunByIndex", err)
