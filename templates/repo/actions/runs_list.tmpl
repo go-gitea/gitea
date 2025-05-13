@@ -11,7 +11,7 @@
 				{{template "repo/actions/status" (dict "status" .Status.String)}}
 			</div>
 			<div class="flex-item-main">
-				<a class="flex-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+				<a class="flex-item-title" title="{{.Title}}" href="{{.Link}}">
 					{{if .Title}}{{.Title}}{{else}}{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}{{end}}
 				</a>
 				<div class="flex-item-body">
@@ -36,7 +36,7 @@
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
 				</div>
-				{{if and ($.AllowDeleteWorkflowRuns) (.Link) (.Status.IsDone)}}
+				{{if and ($.AllowDeleteWorkflowRuns) (.Status.IsDone)}}
 					<button class="ui btn interact-bg link-action tw-p-2"
 						data-url="{{.Link}}/delete"
 						data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"
