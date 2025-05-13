@@ -83,6 +83,7 @@ func calculateDuration(started, stopped timeutil.TimeStamp, status Status) time.
 	return timeSince(s).Truncate(time.Second)
 }
 
+// best effort function to convert an action schedule to action run, to be used in GenerateGiteaContext
 func (s *ActionSchedule) ToActionRun() *ActionRun {
 	return &ActionRun{
 		Title:         s.Title,
@@ -96,5 +97,7 @@ func (s *ActionSchedule) ToActionRun() *ActionRun {
 		CommitSHA:     s.CommitSHA,
 		Event:         s.Event,
 		EventPayload:  s.EventPayload,
+		Created:       s.Created,
+		Updated:       s.Updated,
 	}
 }
