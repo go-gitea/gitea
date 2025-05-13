@@ -1103,6 +1103,10 @@ func DeleteActionRun(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	if run.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIError(http.StatusNotFound, fmt.Errorf("run with id %d: %w", runID, util.ErrNotExist))
+		return
+	}
 	if !run.Status.IsDone() {
 		ctx.APIError(http.StatusBadRequest, "this workflow run is not done")
 		return

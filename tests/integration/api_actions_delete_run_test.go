@@ -18,6 +18,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestAPIActionsDeleteRunCheckPermission(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	testAPIActionsDeleteRun(t, repo, token, http.StatusNotFound)
+}
+
 func TestAPIActionsDeleteRun(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
