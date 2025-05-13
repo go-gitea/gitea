@@ -567,7 +567,7 @@ func RepoAssignment(ctx *Context) {
 		ctx.Link == ctx.Repo.RepoLink+"/-/migrate/status"
 
 	// Disable everything when the repo is being created
-	if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
+	if ctx.Repo.Repository.IsBeingCreated() {
 		if !isHomeOrSettings {
 			ctx.Redirect(ctx.Repo.RepoLink)
 		}
@@ -593,6 +593,13 @@ func RepoAssignment(ctx *Context) {
 		}
 		ctx.ServerError("RepoAssignment Invalid repo "+repo.FullName(), err)
 		return
+	}
+
+	// The repository can be open but marked as broken
+	if ctx.Repo.Repository.IsBroken() {
+		if err = repo_model.MarkBrokenRepoAsNormal(ctx, ctx.Repo.Repository); err != nil {
+			log.Error("MarkBrokenRepoAsNormal: %v", err)
+		}
 	}
 
 	// Stop at this point when the repo is empty.

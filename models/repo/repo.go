@@ -320,6 +320,19 @@ func (repo *Repository) MarkAsBrokenEmpty() {
 	repo.IsEmpty = true
 }
 
+func (repo *Repository) MarkAsNormal() {
+	repo.IsEmpty = false
+	repo.Status = RepositoryReady
+}
+
+func MarkBrokenRepoAsNormal(ctx context.Context, repo *Repository) error {
+	repo.MarkAsNormal()
+	if _, err := db.GetEngine(ctx).ID(repo.ID).Cols("status", "is_empty").Update(repo); err != nil {
+		return fmt.Errorf("update repository: %w", err)
+	}
+	return nil
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (repo *Repository) AfterLoad() {
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
