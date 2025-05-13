@@ -168,7 +168,7 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		return err
 	}
 	jobIDs := container.FilterSlice(jobs, func(j *actions_model.ActionRunJob) (int64, bool) {
-		return j.ID, j.ID != 0
+		return j.ID, true
 	})
 	tasks := make(actions_model.TaskList, 0)
 	if len(jobIDs) > 0 {
