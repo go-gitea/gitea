@@ -1097,7 +1097,7 @@ func DeleteActionRun(ctx *context.APIContext) {
 	run, err := actions_model.GetRunByID(ctx, runID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
+			ctx.APIError(http.StatusNotFound, err)
 			return
 		}
 		ctx.APIErrorInternal(err)
