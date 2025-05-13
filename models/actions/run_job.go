@@ -51,7 +51,7 @@ func (job *ActionRunJob) Duration() time.Duration {
 
 func (job *ActionRunJob) LoadRun(ctx context.Context) error {
 	if job.Run == nil {
-		run, err := GetRunByID(ctx, job.RunID)
+		run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
 		if err != nil {
 			return err
 		}
@@ -142,7 +142,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 	{
 		// Other goroutines may aggregate the status of the run and update it too.
 		// So we need load the run and its jobs before updating the run.
-		run, err := GetRunByID(ctx, job.RunID)
+		run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
 		if err != nil {
 			return 0, err
 		}

@@ -1061,6 +1061,58 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
+// DeleteActionRun Delete a workflow run
+func DeleteActionRun(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runs/{run} repository deleteActionRun
+	// ---
+	// summary: Delete a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: name of the owner
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: runid of the workflow run
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: "No Content"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	runID := ctx.PathParamInt64("run")
+	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.APIError(http.StatusNotFound, err)
+		return
+	} else if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !run.Status.IsDone() {
+		ctx.APIError(http.StatusBadRequest, "this workflow run is not done")
+		return
+	}
+
+	if err := actions_service.DeleteRun(ctx, run); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
 // GetArtifacts Lists all artifacts for a repository.
 func GetArtifacts(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifacts
