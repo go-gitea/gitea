@@ -168,6 +168,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
   function resizeToFit() {
     if (isUserResized) return;
     if (textarea.offsetWidth <= 0 && textarea.offsetHeight <= 0) return;
+    const previousMargin = textarea.style.marginBottom;
 
     try {
       const {top, bottom} = overflowOffset();
@@ -183,6 +184,9 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       const curHeight = parseFloat(computedStyle.height);
       const maxHeight = curHeight + bottom - adjustedViewportMarginBottom;
 
+      // In Firefox, setting auto height momentarily may cause the page to scroll up
+      // unexpectedly, prevent this by setting a temporary margin.
+      textarea.style.marginBottom = `${textarea.clientHeight}px`;
       textarea.style.height = 'auto';
       let newHeight = textarea.scrollHeight + borderAddOn;
 
@@ -203,6 +207,12 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       textarea.style.height = `${newHeight}px`;
       lastStyleHeight = textarea.style.height;
     } finally {
+      // restore previous margin
+      if (previousMargin) {
+        textarea.style.marginBottom = previousMargin;
+      } else {
+        textarea.style.removeProperty('margin-bottom');
+      }
       // ensure that the textarea is fully scrolled to the end, when the cursor
       // is at the end during an input event
       if (textarea.selectionStart === textarea.selectionEnd &&
