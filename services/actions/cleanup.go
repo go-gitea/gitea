@@ -149,7 +149,7 @@ func CleanupEphemeralRunners(ctx context.Context) error {
 	return nil
 }
 
-// CleanupEphemeralRunners removes used ephemeral runners which are no longer able to process jobs
+// CleanupEphemeralRunnersByRepoID removes all ephemeral runners that have active tasks on the given repository
 func CleanupEphemeralRunnersByRepoID(ctx context.Context, repoID int64) error {
 	subQuery := builder.Select("`action_runner`.id").
 		From(builder.Select("*").From("`action_runner`"), "`action_runner`"). // mysql needs this redundant subquery
