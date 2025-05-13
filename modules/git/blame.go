@@ -132,7 +132,7 @@ func (r *BlameReader) Close() error {
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (*BlameReader, error) {
+func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, err error) {
 	reader, stdout, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -141,9 +141,18 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	cmd := NewCommandNoGlobals("blame", "--porcelain")
 
 	var ignoreRevsFileName string
-	var ignoreRevsFileCleanup func() // TODO: maybe it should check the returned err in a defer func to make sure the cleanup could always be executed correctly
+	var ignoreRevsFileCleanup func()
+	defer func() {
+		if err != nil && ignoreRevsFileCleanup != nil {
+			ignoreRevsFileCleanup()
+		}
+	}()
+
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
-		ignoreRevsFileName, ignoreRevsFileCleanup = tryCreateBlameIgnoreRevsFile(commit)
+		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(commit)
+		if err != nil {
+			return nil, err
+		}
 		if ignoreRevsFileName != "" {
 			// Possible improvement: use --ignore-revs-file /dev/stdin on unix
 			// There is no equivalent on Windows. May be implemented if Gitea uses an external git backend.
@@ -182,33 +191,32 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	}, nil
 }
 
-func tryCreateBlameIgnoreRevsFile(commit *Commit) (string, func()) {
+func tryCreateBlameIgnoreRevsFile(commit *Commit) (string, func(), error) {
 	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
 	if err != nil {
-		log.Error("Unable to get .git-blame-ignore-revs file: GetTreeEntryByPath: %v", err)
-		return "", nil
+		if IsErrNotExist(err) {
+			return "", nil, nil
+		}
+		return "", nil, err
 	}
 
 	r, err := entry.Blob().DataAsync()
 	if err != nil {
-		log.Error("Unable to get .git-blame-ignore-revs file data: DataAsync: %v", err)
-		return "", nil
+		return "", nil, err
 	}
 	defer r.Close()
 
 	f, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("git-blame-ignore-revs")
 	if err != nil {
-		log.Error("Unable to get .git-blame-ignore-revs file data: CreateTempFileRandom: %v", err)
-		return "", nil
+		return "", nil, err
 	}
 	filename := f.Name()
 	_, err = io.Copy(f, r)
 	_ = f.Close()
 	if err != nil {
 		cleanup()
-		log.Error("Unable to get .git-blame-ignore-revs file data: Copy: %v", err)
-		return "", nil
+		return "", nil, err
 	}
 
-	return filename, cleanup
+	return filename, cleanup, nil
 }
