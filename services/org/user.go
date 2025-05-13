@@ -64,10 +64,15 @@ func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *us
 	if err != nil {
 		return fmt.Errorf("AccessibleReposEnv: %w", err)
 	}
-	repoIDs, err := env.RepoIDs(ctx, 1, org.NumRepos)
-	if err != nil {
-		return fmt.Errorf("GetUserRepositories [%d]: %w", user.ID, err)
+	var repoIDs []int64
+	// mssql does not support fetching 0 repositories
+	if org.NumRepos > 0 {
+		repoIDs, err = env.RepoIDs(ctx, 1, org.NumRepos)
+		if err != nil {
+			return fmt.Errorf("GetUserRepositories [%d]: %w", user.ID, err)
+		}
 	}
+
 	for _, repoID := range repoIDs {
 		repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 		if err != nil {
