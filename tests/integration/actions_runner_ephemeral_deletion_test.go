@@ -18,7 +18,6 @@ import (
 )
 
 func TestActionsRunnerEphemeralDeletion(t *testing.T) {
-
 	t.Run("ByTaskCompletion", testEphemeralActionsRunnerDeletionByTaskCompletion)
 	t.Run("ByRepository", testEphemeralActionsRunnerDeletionByRepository)
 	t.Run("ByUser", testEphemeralActionsRunnerDeletionByUser)
