@@ -236,7 +236,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
 	} else {
-		// check if head is a branch or tag on ly infoPath ends with .diff or .patch
+		// check if head is a branch or tag only if infoPath ends with .diff or .patch
 		if strings.HasSuffix(infoPath, ".diff") || strings.HasSuffix(infoPath, ".patch") {
 			infos = strings.SplitN(infoPath, "...", 2)
 			if len(infos) != 2 {
