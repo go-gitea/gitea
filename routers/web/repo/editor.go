@@ -165,7 +165,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		ctx.Data["FileSize"] = blob.Size()
 
 		// Only some file types are editable online as text.
-		if !fInfo.isTextFile || fInfo.isLFSFile {
+		if !fInfo.st.IsRepresentableAsText() || fInfo.isLFSFile {
 			ctx.NotFound(nil)
 			return
 		}
@@ -373,12 +373,6 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				return
 			}
 			ctx.RenderWithErr(flashError, tplEditFile, &form)
-		}
-	}
-
-	if ctx.Repo.Repository.IsEmpty {
-		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
-			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 		}
 	}
 
@@ -790,7 +784,7 @@ func UploadFilePost(ctx *context.Context) {
 
 	if ctx.Repo.Repository.IsEmpty {
 		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
-			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+			_ = repo_model.UpdateRepositoryColsWithAutoTime(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 		}
 	}
 

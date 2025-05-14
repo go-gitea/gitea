@@ -200,13 +200,9 @@ func ViewPost(ctx *context_module.Context) {
 		}
 	}
 
-	// TODO: "ComposeCommentMetas" (usually for comment) is not quite right, but it is still the same as what template "RenderCommitMessage" does.
-	// need to be refactored together in the future
-	metas := ctx.Repo.Repository.ComposeCommentMetas(ctx)
-
 	// the title for the "run" is from the commit message
 	resp.State.Run.Title = run.Title
-	resp.State.Run.TitleHTML = templates.NewRenderUtils(ctx).RenderCommitMessage(run.Title, metas)
+	resp.State.Run.TitleHTML = templates.NewRenderUtils(ctx).RenderCommitMessage(run.Title, ctx.Repo.Repository)
 	resp.State.Run.Link = run.Link()
 	resp.State.Run.CanCancel = !run.Status.IsDone() && ctx.Repo.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = run.NeedApproval && ctx.Repo.CanWrite(unit.TypeActions)
@@ -601,6 +597,33 @@ func Approve(ctx *context_module.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, struct{}{})
+}
+
+func Delete(ctx *context_module.Context) {
+	runIndex := getRunIndex(ctx)
+	repoID := ctx.Repo.Repository.ID
+
+	run, err := actions_model.GetRunByIndex(ctx, repoID, runIndex)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.JSONErrorNotFound()
+			return
+		}
+		ctx.ServerError("GetRunByIndex", err)
+		return
+	}
+
+	if !run.Status.IsDone() {
+		ctx.JSONError(ctx.Tr("actions.runs.not_done"))
+		return
+	}
+
+	if err := actions_service.DeleteRun(ctx, run); err != nil {
+		ctx.ServerError("DeleteRun", err)
+		return
+	}
+
+	ctx.JSONOK()
 }
 
 // getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
