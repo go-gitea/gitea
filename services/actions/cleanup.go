@@ -155,8 +155,8 @@ func CleanupEphemeralRunners(ctx context.Context) error {
 	return nil
 }
 
-// CleanupEphemeralRunnersByRepoID removes all ephemeral runners that have active tasks on the given repository
-func CleanupEphemeralRunnersByRepoID(ctx context.Context, repoID int64) error {
+// CleanupEphemeralRunnersByPickedTaskRepoID removes all ephemeral runners that have active/finished tasks on the given repository
+func CleanupEphemeralRunnersByPickedTaskRepoID(ctx context.Context, repoID int64) error {
 	subQuery := builder.Select("`action_runner`.id").
 		From(builder.Select("*").From("`action_runner`"), "`action_runner`"). // mysql needs this redundant subquery
 		Join("INNER", "`action_task`", "`action_task`.`runner_id` = `action_runner`.`id`").

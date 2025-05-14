@@ -134,15 +134,11 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 		return err
 	}
 
-	// TODO: Deleting task records could break current ephemeral runner implementation. This is a temporary workaround suggested by ChristopherHX.
-	// Since you delete potentially the only task an ephemeral act_runner has ever run, please delete the affected runners first.
-	// one of
-	//    call cleanup ephemeral runners first
-	//    delete affected ephemeral act_runners
-	//    I would make ephemeral runners fully delete directly before formally finishing the task
-	//
-	// See also: https://github.com/go-gitea/gitea/pull/34337#issuecomment-2862222788
-	if err := actions_service.CleanupEphemeralRunnersByRepoID(ctx, repoID); err != nil {
+	// CleanupEphemeralRunnersByPickedTaskRepoID does delete ephemeral global/org/user that have started any task of this repo
+	// The cannot pick a second task hardening for ephemeral runners expect that task objects remain available until runner deletion
+	// This method will delete affected ephemeral global/org/user runners
+	// &actions_model.ActionRunner{RepoID: repoID} does only handle ephemeral repository runners
+	if err := actions_service.CleanupEphemeralRunnersByPickedTaskRepoID(ctx, repoID); err != nil {
 		return fmt.Errorf("cleanupEphemeralRunners: %w", err)
 	}
 
