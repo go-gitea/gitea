@@ -227,7 +227,7 @@ func TestCompareRawDiffPatch(t *testing.T) {
 		respTs = respTs.In(time.Local)
 
 		// Format the timestamp to match the expected format in the patch
-		customFormat := "Mon, 02 Jan 2006 15:04:05"
+		customFormat := "Mon, 02 Jan 2006 15:04:05 -0700"
 		respTsStr := respTs.Format(customFormat)
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/user1/test_raw_diff/compare/%s...%s.patch", oldRef.ID.String(), newRef.ID.String()))
@@ -235,7 +235,7 @@ func TestCompareRawDiffPatch(t *testing.T) {
 
 		expected := fmt.Sprintf(`From %s Mon Sep 17 00:00:00 2001
 From: User One <user1@example.com>
-Date: %s +0300
+Date: %s
 Subject: [PATCH] Update README.md
 
 ---
