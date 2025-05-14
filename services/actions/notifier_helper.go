@@ -269,7 +269,7 @@ func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) 
 			if wrun.WorkflowRun.Event != "workflow_run" {
 				return false
 			}
-			r, _ := actions_model.GetRunByRepoAndID(ctx, wrun.WorkflowRun.ID, wrun.WorkflowRun.Repository.ID)
+			r, _ := actions_model.GetRunByRepoAndID(ctx, wrun.WorkflowRun.ID, input.Repo.ID)
 			var err error
 			wrun, err = r.GetWorkflowRunEventPayload()
 			if err != nil {
