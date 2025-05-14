@@ -133,13 +133,6 @@ func (r *BlameReader) Close() error {
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath string, commit *Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, err error) {
-	reader, stdout, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := NewCommandNoGlobals("blame", "--porcelain")
-
 	var ignoreRevsFileName string
 	var ignoreRevsFileCleanup func()
 	defer func() {
@@ -147,6 +140,8 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 			ignoreRevsFileCleanup()
 		}
 	}()
+
+	cmd := NewCommandNoGlobals("blame", "--porcelain")
 
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
 		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(commit)
@@ -163,6 +158,11 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	cmd.AddDynamicArguments(commit.ID.String()).AddDashesAndList(file)
 
 	done := make(chan error, 1)
+	// use err1 to not override err
+	reader, stdout, err1 := os.Pipe()
+	if err1 != nil {
+		return nil, err1
+	}
 	go func() {
 		stderr := bytes.Buffer{}
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
