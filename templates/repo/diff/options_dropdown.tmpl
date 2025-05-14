@@ -10,6 +10,9 @@
 		{{else if .Commit.ID.String}}
 			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{ctx.Locale.Tr "repo.diff.download_patch"}}</a>
 			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{ctx.Locale.Tr "repo.diff.download_diff"}}</a>
+		{{else if $.PageIsCompareDiff }}
+			<a class="item" href="{{$.Link}}.patch" download="{{$.BaseBranch}}...{{$.HeadBranch}}.patch">{{ctx.Locale.Tr "repo.diff.download_patch"}}</a>
+			<a class="item" href="{{$.Link}}.diff" download="{{$.BaseBranch}}...{{$.HeadBranch}}.diff">{{ctx.Locale.Tr "repo.diff.download_diff"}}</a>
 		{{end}}
 		<a id="expand-files-btn" class="item">{{ctx.Locale.Tr "repo.pulls.expand_files"}}</a>
 		<a id="collapse-files-btn" class="item">{{ctx.Locale.Tr "repo.pulls.collapse_files"}}</a>
