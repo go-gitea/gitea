@@ -233,18 +233,28 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	var infos []string
 
-	// Handle possible suffixes: .diff or .patch
-	if strings.HasSuffix(infoPath, ".diff") {
-		ci.RawDiffType = git.RawDiffNormal
-		infoPath = strings.TrimSuffix(infoPath, ".diff")
-	} else if strings.HasSuffix(infoPath, ".patch") {
-		ci.RawDiffType = git.RawDiffPatch
-		infoPath = strings.TrimSuffix(infoPath, ".patch")
-	}
-
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
 	} else {
+		// check if head is a branch or tag on ly infoPath ends with .diff or .patch
+		if strings.HasSuffix(infoPath, ".diff") || strings.HasSuffix(infoPath, ".patch") {
+			infos = strings.SplitN(infoPath, "...", 2)
+			if len(infos) != 2 {
+				infos = strings.SplitN(infoPath, "..", 2) // match github behavior
+			}
+			ref2IsBranch := gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, infos[1])
+			ref2IsTag := gitrepo.IsTagExist(ctx, ctx.Repo.Repository, infos[1])
+			if !ref2IsBranch && !ref2IsTag {
+				if strings.HasSuffix(infoPath, ".diff") {
+					ci.RawDiffType = git.RawDiffNormal
+					infoPath = strings.TrimSuffix(infoPath, ".diff")
+				} else if strings.HasSuffix(infoPath, ".patch") {
+					ci.RawDiffType = git.RawDiffPatch
+					infoPath = strings.TrimSuffix(infoPath, ".patch")
+				}
+			}
+		}
+
 		infos = strings.SplitN(infoPath, "...", 2)
 		if len(infos) != 2 {
 			if infos = strings.SplitN(infoPath, "..", 2); len(infos) == 2 {
