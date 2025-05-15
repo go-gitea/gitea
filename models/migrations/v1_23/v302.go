@@ -14,5 +14,8 @@ func AddIndexToActionTaskStoppedLogExpired(x *xorm.Engine) error {
 		Stopped    timeutil.TimeStamp `xorm:"index(stopped_log_expired)"`
 		LogExpired bool               `xorm:"index(stopped_log_expired)"`
 	}
-	return x.Sync(new(ActionTask))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionTask))
+	return err
 }
