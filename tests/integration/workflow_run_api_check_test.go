@@ -31,7 +31,7 @@ func TestAPIWorkflowRun(t *testing.T) {
 	})
 }
 
-func testAPIWorkflowRunBasic(t *testing.T, apiRootURL string, userUsername string, runID int64, scope ...auth_model.AccessTokenScope) {
+func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runID int64, scope ...auth_model.AccessTokenScope) {
 	defer tests.PrepareTestEnv(t)()
 	token := getUserToken(t, userUsername, scope...)
 
