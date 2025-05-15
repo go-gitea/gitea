@@ -4758,6 +4758,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a workflow run",
+        "operationId": "deleteActionRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the owner",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "runid of the workflow run",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/artifacts": {
       "get": {
         "produces": [

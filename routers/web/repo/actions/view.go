@@ -577,6 +577,33 @@ func Approve(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, struct{}{})
 }
 
+func Delete(ctx *context_module.Context) {
+	runIndex := getRunIndex(ctx)
+	repoID := ctx.Repo.Repository.ID
+
+	run, err := actions_model.GetRunByIndex(ctx, repoID, runIndex)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.JSONErrorNotFound()
+			return
+		}
+		ctx.ServerError("GetRunByIndex", err)
+		return
+	}
+
+	if !run.Status.IsDone() {
+		ctx.JSONError(ctx.Tr("actions.runs.not_done"))
+		return
+	}
+
+	if err := actions_service.DeleteRun(ctx, run); err != nil {
+		ctx.ServerError("DeleteRun", err)
+		return
+	}
+
+	ctx.JSONOK()
+}
+
 // getRunJobs gets the jobs of runIndex, and returns jobs[jobIndex], jobs.
 // Any error will be written to the ctx.
 // It never returns a nil job of an empty jobs, if the jobIndex is out of range, it will be treated as 0.
@@ -584,20 +611,20 @@ func getRunJobs(ctx *context_module.Context, runIndex, jobIndex int64) (*actions
 	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.HTTPError(http.StatusNotFound, err.Error())
+			ctx.NotFound(nil)
 			return nil, nil
 		}
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("GetRunByIndex", err)
 		return nil, nil
 	}
 	run.Repo = ctx.Repo.Repository
 	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, err.Error())
+		ctx.ServerError("GetRunJobsByRunID", err)
 		return nil, nil
 	}
 	if len(jobs) == 0 {
-		ctx.HTTPError(http.StatusNotFound)
+		ctx.NotFound(nil)
 		return nil, nil
 	}
 
