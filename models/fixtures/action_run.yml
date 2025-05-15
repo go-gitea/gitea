@@ -130,6 +130,7 @@
   ref: "refs/heads/test"
   commit_sha: "c2d72f548424103f01ee1dc02889c1e2bff816b0"
   event: "push"
+  trigger_event: "push"
   is_fork_pull_request: 0
   status: 2
   started: 1683636528
