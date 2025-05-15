@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	uuid "github.com/google/uuid"
 	"github.com/unknwon/com"
 	"golang.org/x/crypto/bcrypt"
@@ -505,7 +505,7 @@ type OAuth2Token struct {
 	GrantID int64           `json:"gnt"`
 	Type    OAuth2TokenType `json:"tt"`
 	Counter int64           `json:"cnt,omitempty"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // ParseOAuth2Token parses a singed jwt string
@@ -529,7 +529,7 @@ func ParseOAuth2Token(jwtToken string) (*OAuth2Token, error) {
 
 // SignToken signs the token with the JWT secret
 func (token *OAuth2Token) SignToken() (string, error) {
-	token.IssuedAt = time.Now().Unix()
+	token.IssuedAt = jwt.NewNumericDate(time.Now())
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, token)
 	return jwtToken.SignedString(setting.OAuth2.JWTSecretBytes)
 }

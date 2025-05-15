@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
@@ -215,9 +215,9 @@ func runServ(c *cli.Context) error {
 
 		now := time.Now()
 		claims := lfs.Claims{
-			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
-				NotBefore: now.Unix(),
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+				NotBefore: jwt.NewNumericDate(now),
 			},
 			RepoID: results.RepoID,
 			Op:     lfsVerb,

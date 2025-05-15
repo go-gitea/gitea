@@ -430,9 +430,9 @@ github.com/gogs/chardet
 # github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 ## explicit
 github.com/gogs/cron
-# github.com/golang-jwt/jwt v3.2.2+incompatible
-## explicit
-github.com/golang-jwt/jwt
+# github.com/golang-jwt/jwt/v5 v5.2.2
+## explicit; go 1.18
+github.com/golang-jwt/jwt/v5
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 ## explicit
 github.com/golang-sql/civil

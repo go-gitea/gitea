@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"gitea.com/macaron/binding"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
@@ -123,8 +123,8 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 	accessToken := &models.OAuth2Token{
 		GrantID: grant.ID,
 		Type:    models.TypeAccessToken,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationDate.AsTime().Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
 		},
 	}
 	signedAccessToken, err := accessToken.SignToken()
@@ -136,13 +136,13 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 	}
 
 	// generate refresh token to request an access token after it expired later
-	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
+	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime()
 	refreshToken := &models.OAuth2Token{
 		GrantID: grant.ID,
 		Counter: grant.Counter,
 		Type:    models.TypeRefreshToken,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: refreshExpirationDate,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
 		},
 	}
 	signedRefreshToken, err := refreshToken.SignToken()

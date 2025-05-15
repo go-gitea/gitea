@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"gitea.com/macaron/macaron"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
@@ -74,7 +74,7 @@ type Claims struct {
 	RepoID int64
 	Op     string
 	UserID int64
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // ObjectLink builds a URL linking to the object.

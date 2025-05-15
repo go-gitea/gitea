@@ -40,7 +40,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	if token.Type != models.TypeAccessToken {
 		return 0
 	}
-	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
+	if (token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now())) || (token.IssuedAt != nil && token.IssuedAt.After(time.Now())) {
 		return 0
 	}
 	return grant.UserID
