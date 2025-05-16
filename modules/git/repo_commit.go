@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -27,12 +27,22 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 
 // GetCommit returns commit object of by ID string.
 func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
+	if commit, ok := repo.commitCache[commitID]; ok {
+		log.Debug("repo commitCache hit: [%s:%s:%s]", repo.Path, commitID)
+		return commit, nil
+	}
+
 	id, err := repo.ConvertToGitID(commitID)
 	if err != nil {
 		return nil, err
 	}
 
-	return repo.getCommit(id)
+	commit, err := repo.getCommit(id)
+	if err != nil {
+		return nil, err
+	}
+	repo.commitCache[commitID] = commit
+	return commit, nil
 }
 
 // GetBranchCommit returns the last commit of given branch.
@@ -500,23 +510,6 @@ func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err e
 		return false, err
 	}
 	return len(stdout) > 0, err
-}
-
-func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error {
-	if repo.LastCommitCache == nil {
-		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
-			commit, err := repo.GetCommit(sha)
-			if err != nil {
-				return 0, err
-			}
-			return commit.CommitsCount()
-		})
-		if err != nil {
-			return err
-		}
-		repo.LastCommitCache = NewLastCommitCache(commitsCount, fullName, repo, cache.GetCache())
-	}
-	return nil
 }
 
 // GetCommitBranchStart returns the commit where the branch diverged
