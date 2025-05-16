@@ -336,6 +336,11 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 		sess.Cols(cols...)
 	}
 	_, err := sess.Update(task)
+
+	// Automatically delete the ephemeral runner if the task is done
+	if err == nil && task.Status.IsDone() && util.SliceContainsString(cols, "status") {
+		return DeleteEphemeralRunner(ctx, task.RunnerID)
+	}
 	return err
 }
 

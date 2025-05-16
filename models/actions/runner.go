@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -295,6 +296,23 @@ func DeleteRunner(ctx context.Context, id int64) error {
 	}
 
 	_, err := db.DeleteByID[ActionRunner](ctx, id)
+	return err
+}
+
+// DeleteEphemeralRunner deletes a ephemeral runner by given ID.
+func DeleteEphemeralRunner(ctx context.Context, id int64) error {
+	runner, err := GetRunnerByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	if !runner.Ephemeral {
+		return nil
+	}
+
+	_, err = db.DeleteByID[ActionRunner](ctx, id)
 	return err
 }
 
