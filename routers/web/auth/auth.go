@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/routers/web/shared"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
@@ -873,4 +874,58 @@ func updateSession(ctx *context.Context, deletes []string, updates map[string]an
 		return fmt.Errorf("store session[%s]: %w", sessID, err)
 	}
 	return nil
+}
+
+// /user/* auth routes
+func ProvideUserAuthRouter(m *web.Router) {
+	// "user/login" doesn't need signOut, then logged-in users can still access this route for redirection purposes by "/user/login?redirec_to=..."
+	m.Get("/login", SignIn)
+
+	m.Group("", provideUserAuthRouterRequestSignOut(m), shared.ReqSignOut)
+}
+
+func provideUserAuthRouterRequestSignOut(m *web.Router) func() {
+	linkAccountEnabled := func(ctx *context.Context) {
+		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enabled {
+			ctx.HTTPError(http.StatusForbidden)
+			return
+		}
+	}
+
+	return func() {
+		m.Post("/login", web.Bind(forms.SignInForm{}), SignInPost)
+		m.Group("", func() {
+			m.Combo("/login/openid").
+				Get(SignInOpenID).
+				Post(web.Bind(forms.SignInOpenIDForm{}), SignInOpenIDPost)
+		}, shared.OpenIDSignInEnabled)
+		m.Group("/openid", func() {
+			m.Combo("/connect").
+				Get(ConnectOpenID).
+				Post(web.Bind(forms.ConnectOpenIDForm{}), ConnectOpenIDPost)
+			m.Group("/register", func() {
+				m.Combo("").
+					Get(RegisterOpenID, shared.OpenIDSignUpEnabled).
+					Post(web.Bind(forms.SignUpOpenIDForm{}), RegisterOpenIDPost)
+			}, shared.OpenIDSignUpEnabled)
+		}, shared.OpenIDSignInEnabled)
+		m.Get("/sign_up", SignUp)
+		m.Post("/sign_up", web.Bind(forms.RegisterForm{}), SignUpPost)
+		m.Get("/link_account", linkAccountEnabled, LinkAccount)
+		m.Post("/link_account_signin", linkAccountEnabled, web.Bind(forms.SignInForm{}), LinkAccountPostSignIn)
+		m.Post("/link_account_signup", linkAccountEnabled, web.Bind(forms.RegisterForm{}), LinkAccountPostRegister)
+		m.Group("/two_factor", func() {
+			m.Get("", TwoFactor)
+			m.Post("", web.Bind(forms.TwoFactorAuthForm{}), TwoFactorPost)
+			m.Get("/scratch", TwoFactorScratch)
+			m.Post("/scratch", web.Bind(forms.TwoFactorScratchAuthForm{}), TwoFactorScratchPost)
+		})
+		m.Group("/webauthn", func() {
+			m.Get("", WebAuthn)
+			m.Get("/passkey/assertion", WebAuthnPasskeyAssertion)
+			m.Post("/passkey/login", WebAuthnPasskeyLogin)
+			m.Get("/assertion", WebAuthnLoginAssertion)
+			m.Post("/assertion", WebAuthnLoginAssertionPost)
+		})
+	}
 }
