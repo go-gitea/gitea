@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/nektos/act/pkg/model"
@@ -167,17 +166,35 @@ func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
 }
 
 func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
-	ghCtx := &model.GithubContext{}
-
-	gitCtxRaw, err := json.Marshal(g)
-	if err != nil {
-		log.Error("ToGitHubContext.json.Marshal: %v", err)
+	return &model.GithubContext{
+		Event:            (*g)["event"].(map[string]interface{}),
+		EventPath:        (*g)["event_path"].(string),
+		Workflow:         (*g)["workflow"].(string),
+		RunID:            (*g)["run_id"].(string),
+		RunNumber:        (*g)["run_number"].(string),
+		Actor:            (*g)["actor"].(string),
+		Repository:       (*g)["repository"].(string),
+		EventName:        (*g)["event_name"].(string),
+		Sha:              (*g)["sha"].(string),
+		Ref:              (*g)["ref"].(string),
+		RefName:          (*g)["ref_name"].(string),
+		RefType:          (*g)["ref_type"].(string),
+		HeadRef:          (*g)["head_ref"].(string),
+		BaseRef:          (*g)["base_ref"].(string),
+		Token:            "", // deliberately omitted for security
+		Workspace:        (*g)["workspace"].(string),
+		Action:           (*g)["action"].(string),
+		ActionPath:       (*g)["action_path"].(string),
+		ActionRef:        (*g)["action_ref"].(string),
+		ActionRepository: (*g)["action_repository"].(string),
+		Job:              (*g)["job"].(string),
+		JobName:          "", // not present in GiteaContext
+		RepositoryOwner:  (*g)["repository_owner"].(string),
+		RetentionDays:    (*g)["retention_days"].(string),
+		RunnerPerflog:    "", // not present in GiteaContext
+		RunnerTrackingID: "", // not present in GiteaContext
+		ServerURL:        (*g)["server_url"].(string),
+		APIURL:           (*g)["api_url"].(string),
+		GraphQLURL:       (*g)["graphql_url"].(string),
 	}
-
-	err = json.Unmarshal(gitCtxRaw, ghCtx)
-	if err != nil {
-		log.Error("ToGitHubContext.json.Unmarshal: %v", err)
-	}
-
-	return ghCtx
 }
