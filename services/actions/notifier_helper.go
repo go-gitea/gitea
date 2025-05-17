@@ -302,9 +302,11 @@ func handleWorkflows(
 		run := &actions_model.ActionRun{
 			Title:             strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:            input.Repo.ID,
+			Repo:              input.Repo,
 			OwnerID:           input.Repo.OwnerID,
 			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
+			TriggerUser:       input.Doer,
 			Ref:               ref,
 			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
@@ -333,10 +335,16 @@ func handleWorkflows(
 			continue
 		}
 
-		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars))
+		giteaCtx := GenerateGiteaContext(run, nil)
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
 		if err != nil {
 			log.Error("jobparser.Parse: %v", err)
 			continue
+		}
+
+		if len(jobs) > 0 && jobs[0].RunName != "" {
+			run.Title = jobs[0].RunName
 		}
 
 		// cancel running jobs if the event is push or pull_request_sync
@@ -508,9 +516,11 @@ func handleSchedules(
 		run := &actions_model.ActionSchedule{
 			Title:         strings.SplitN(commit.CommitMessage, "\n", 2)[0],
 			RepoID:        input.Repo.ID,
+			Repo:          input.Repo,
 			OwnerID:       input.Repo.OwnerID,
 			WorkflowID:    dwf.EntryName,
 			TriggerUserID: user_model.ActionsUserID,
+			TriggerUser:   user_model.NewActionsUser(),
 			Ref:           ref,
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
@@ -518,6 +528,25 @@ func handleSchedules(
 			Specs:         schedules,
 			Content:       dwf.Content,
 		}
+
+		vars, err := actions_model.GetVariablesOfRun(ctx, run.ToActionRun())
+		if err != nil {
+			log.Error("GetVariablesOfRun: %v", err)
+			continue
+		}
+
+		giteaCtx := GenerateGiteaContext(run.ToActionRun(), nil)
+
+		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
+		if err != nil {
+			log.Error("jobparser.Parse: %v", err)
+			continue
+		}
+
+		if len(jobs) > 0 && jobs[0].RunName != "" {
+			run.Title = jobs[0].RunName
+		}
+
 		crons = append(crons, run)
 	}
 

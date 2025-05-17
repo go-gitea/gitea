@@ -1156,6 +1156,7 @@ jobs:
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
 			RepoID:     repo.ID,
+			Repo:       repo,
 			Event:      "workflow_dispatch",
 			Ref:        "refs/heads/dispatch",
 			WorkflowID: "dispatch.yml",
@@ -1446,5 +1447,159 @@ jobs:
 		actionRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
 		assert.Equal(t, actions_module.GithubEventPullRequest, actionRun.TriggerEvent)
 		assert.Equal(t, pullRequest.MergedCommitID, actionRun.CommitSHA)
+	})
+}
+
+func TestActionRunNameWithContextVariables(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		// create the repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "action-run-name-with-variables",
+			Description:   "test action run name",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  ".gitea/workflows/runname.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  [create,delete]
+run-name: ${{ gitea.actor }} is running this workflow
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
+				},
+			},
+			Message:   "add workflow with run-name",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		// Get the commit ID of the default branch
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
+		assert.NoError(t, err)
+
+		// create a branch
+		err = repo_service.CreateNewBranchFromCommit(db.DefaultContext, user2, repo, gitRepo, branch.CommitID, "test-action-run-name-with-variables")
+		assert.NoError(t, err)
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      user2.LoginName + " is running this workflow",
+			RepoID:     repo.ID,
+			Event:      "create",
+			Ref:        "refs/heads/test-action-run-name-with-variables",
+			WorkflowID: "runname.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
+	})
+}
+
+func TestActionRunName(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		// create the repo
+		repo, err := repo_service.CreateRepository(db.DefaultContext, user2, user2, repo_service.CreateRepoOptions{
+			Name:          "action-run-name",
+			Description:   "test action run-name",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// add workflow file to the repo
+		addWorkflowToBaseResp, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  ".gitea/workflows/runname.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  [create,delete]
+run-name: run name without variables
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
+				},
+			},
+			Message:   "add workflow with run name",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflowToBaseResp)
+
+		// Get the commit ID of the default branch
+		gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		branch, err := git_model.GetBranch(db.DefaultContext, repo.ID, repo.DefaultBranch)
+		assert.NoError(t, err)
+
+		// create a branch
+		err = repo_service.CreateNewBranchFromCommit(db.DefaultContext, user2, repo, gitRepo, branch.CommitID, "test-action-run-name")
+		assert.NoError(t, err)
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
+			Title:      "run name without variables",
+			RepoID:     repo.ID,
+			Event:      "create",
+			Ref:        "refs/heads/test-action-run-name",
+			WorkflowID: "runname.yml",
+			CommitSHA:  branch.CommitID,
+		})
+		assert.NotNil(t, run)
 	})
 }

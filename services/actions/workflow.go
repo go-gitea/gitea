@@ -192,20 +192,53 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 
 	// find workflow from commit
 	var workflows []*jobparser.SingleWorkflow
-	for _, entry := range entries {
-		if entry.Name() != workflowID {
+	var entry *git.TreeEntry
+
+	run := &actions_model.ActionRun{
+		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
+		RepoID:            repo.ID,
+		Repo:              repo,
+		OwnerID:           repo.OwnerID,
+		WorkflowID:        workflowID,
+		TriggerUserID:     doer.ID,
+		TriggerUser:       doer,
+		Ref:               string(refName),
+		CommitSHA:         runTargetCommit.ID.String(),
+		IsForkPullRequest: false,
+		Event:             "workflow_dispatch",
+		TriggerEvent:      "workflow_dispatch",
+		Status:            actions_model.StatusWaiting,
+	}
+
+	for _, e := range entries {
+		if e.Name() != workflowID {
 			continue
 		}
-
-		content, err := actions.GetContentFromEntry(entry)
-		if err != nil {
-			return err
-		}
-		workflows, err = jobparser.Parse(content)
-		if err != nil {
-			return err
-		}
+		entry = e
 		break
+	}
+
+	if entry == nil {
+		return util.ErrorWrapLocale(
+			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
+			"actions.workflow.not_found", workflowID,
+		)
+	}
+
+	content, err := actions.GetContentFromEntry(entry)
+	if err != nil {
+		return err
+	}
+
+	giteaCtx := GenerateGiteaContext(run, nil)
+
+	workflows, err = jobparser.Parse(content, jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
+	if err != nil {
+		return err
+	}
+
+	if len(workflows) > 0 && workflows[0].RunName != "" {
+		run.Title = workflows[0].RunName
 	}
 
 	if len(workflows) == 0 {
@@ -236,25 +269,12 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		Inputs:     inputsWithDefaults,
 		Sender:     convert.ToUserWithAccessMode(ctx, doer, perm.AccessModeNone),
 	}
+
 	var eventPayload []byte
 	if eventPayload, err = workflowDispatchPayload.JSONPayload(); err != nil {
 		return fmt.Errorf("JSONPayload: %w", err)
 	}
-
-	run := &actions_model.ActionRun{
-		Title:             strings.SplitN(runTargetCommit.CommitMessage, "\n", 2)[0],
-		RepoID:            repo.ID,
-		OwnerID:           repo.OwnerID,
-		WorkflowID:        workflowID,
-		TriggerUserID:     doer.ID,
-		Ref:               string(refName),
-		CommitSHA:         runTargetCommit.ID.String(),
-		IsForkPullRequest: false,
-		Event:             "workflow_dispatch",
-		TriggerEvent:      "workflow_dispatch",
-		EventPayload:      string(eventPayload),
-		Status:            actions_model.StatusWaiting,
-	}
+	run.EventPayload = string(eventPayload)
 
 	// cancel running jobs of the same workflow
 	if err := CancelPreviousJobs(
@@ -280,6 +300,5 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	for _, job := range allJobs {
 		notify_service.WorkflowJobStatusUpdate(ctx, repo, doer, job, nil)
 	}
-
 	return nil
 }
