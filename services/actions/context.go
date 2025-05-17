@@ -167,7 +167,7 @@ func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
 
 func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
 	return &model.GithubContext{
-		Event:            (*g)["event"].(map[string]interface{}),
+		Event:            (*g)["event"].(map[string]any),
 		EventPath:        (*g)["event_path"].(string),
 		Workflow:         (*g)["workflow"].(string),
 		RunID:            (*g)["run_id"].(string),
