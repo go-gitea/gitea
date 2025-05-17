@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/context"
 	webhook_service "code.gitea.io/gitea/services/webhook"
@@ -90,6 +91,10 @@ func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 	}
 	if !webhook.IsValidHookContentType(form.Config["content_type"]) {
 		ctx.APIError(http.StatusUnprocessableEntity, "Invalid content type")
+		return false
+	}
+	if !validation.IsValidURL(form.Config["url"]) {
+		ctx.APIError(http.StatusUnprocessableEntity, "Invalid url")
 		return false
 	}
 	return true
@@ -324,6 +329,10 @@ func EditRepoHook(ctx *context.APIContext, form *api.EditHookOption, hookID int6
 func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webhook) bool {
 	if form.Config != nil {
 		if url, ok := form.Config["url"]; ok {
+			if !validation.IsValidURL(url) {
+				ctx.APIError(http.StatusUnprocessableEntity, "Invalid url")
+				return false
+			}
 			w.URL = url
 		}
 		if ct, ok := form.Config["content_type"]; ok {
