@@ -104,7 +104,7 @@ function initPreInstall() {
 }
 
 function initPostInstall() {
-  const el = document.querySelector('#goto-user-login');
+  const el = document.querySelector('#goto-signup-or-signin');
   if (!el) return;
 
   const targetUrl = el.getAttribute('href');

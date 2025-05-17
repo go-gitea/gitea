@@ -558,6 +558,8 @@ func SubmitInstall(ctx *context.Context) {
 			}
 			log.Info("Admin account already exist")
 			u, _ = user_model.GetUserByName(ctx, u.Name)
+		} else {
+			ctx.Data["IsAccountCreated"] = true
 		}
 
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
