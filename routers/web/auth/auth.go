@@ -424,7 +424,9 @@ func SignUp(ctx *context.Context) {
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
-	ctx.Data["IsFirstTimeRegistration"] = user_model.CountUsers(ctx, nil) == 0
+	hasUsers, _ := user_model.HasUsers(ctx)
+
+	ctx.Data["IsFirstTimeRegistration"] = !hasUsers
 
 	oauth2Providers, err := oauth2.GetOAuth2Providers(ctx, optional.Some(true))
 	if err != nil {
