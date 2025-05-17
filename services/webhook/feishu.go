@@ -172,6 +172,12 @@ func (fc feishuConvertor) Status(p *api.CommitStatusPayload) (FeishuPayload, err
 	return newFeishuTextPayload(text), nil
 }
 
+func (feishuConvertor) WorkflowRun(p *api.WorkflowRunPayload) (FeishuPayload, error) {
+	text, _ := getWorkflowRunPayloadInfo(p, noneLinkFormatter, true)
+
+	return newFeishuTextPayload(text), nil
+}
+
 func (feishuConvertor) WorkflowJob(p *api.WorkflowJobPayload) (FeishuPayload, error) {
 	text, _ := getWorkflowJobPayloadInfo(p, noneLinkFormatter, true)
 

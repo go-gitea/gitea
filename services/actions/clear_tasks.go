@@ -42,6 +42,10 @@ func notifyWorkflowJobStatusUpdate(ctx context.Context, jobs []*actions_model.Ac
 			_ = job.LoadAttributes(ctx)
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}
+		if len(jobs) > 0 {
+			job := jobs[0]
+			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+		}
 	}
 }
 
@@ -123,8 +127,11 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		}
 		CreateCommitStatus(ctx, job)
 		if updated {
+			// Sync run status with db
+			job.Run = nil
 			_ = job.LoadAttributes(ctx)
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
 		}
 	}
 
