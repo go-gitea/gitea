@@ -218,82 +218,87 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		break
 	}
 
-	if entry != nil {
-		content, err := actions.GetContentFromEntry(entry)
-		if err != nil {
+	if entry == nil {
+		return util.ErrorWrapLocale(
+			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
+			"actions.workflow.not_found", workflowID,
+		)
+	}
+
+	content, err := actions.GetContentFromEntry(entry)
+	if err != nil {
+		return err
+	}
+
+	giteaCtx := GenerateGiteaContext(run, nil)
+
+	workflows, err = jobparser.Parse(content, jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
+	if err != nil {
+		return err
+	}
+
+	if len(workflows) > 0 && workflows[0].RunName != "" {
+		run.Title = workflows[0].RunName
+	}
+
+	if len(workflows) == 0 {
+		return util.ErrorWrapLocale(
+			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
+			"actions.workflow.not_found", workflowID,
+		)
+	}
+
+	// get inputs from post
+	workflow := &model.Workflow{
+		RawOn: workflows[0].RawOn,
+	}
+	inputsWithDefaults := make(map[string]any)
+	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
+		if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
 			return err
 		}
+	}
 
-		giteaCtx := GenerateGiteaContext(run, nil)
+	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
+	// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
+	// https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_dispatch
+	workflowDispatchPayload := &api.WorkflowDispatchPayload{
+		Workflow:   workflowID,
+		Ref:        ref,
+		Repository: convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Inputs:     inputsWithDefaults,
+		Sender:     convert.ToUserWithAccessMode(ctx, doer, perm.AccessModeNone),
+	}
 
-		workflows, err = jobparser.Parse(content, jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
-		if err != nil {
-			return err
-		}
+	var eventPayload []byte
+	if eventPayload, err = workflowDispatchPayload.JSONPayload(); err != nil {
+		return fmt.Errorf("JSONPayload: %w", err)
+	}
+	run.EventPayload = string(eventPayload)
 
-		if len(workflows) > 0 && workflows[0].RunName != "" {
-			run.Title = workflows[0].RunName
-		}
+	// cancel running jobs of the same workflow
+	if err := CancelPreviousJobs(
+		ctx,
+		run.RepoID,
+		run.Ref,
+		run.WorkflowID,
+		run.Event,
+	); err != nil {
+		log.Error("CancelRunningJobs: %v", err)
+	}
 
-		if len(workflows) == 0 {
-			return util.ErrorWrapLocale(
-				util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
-				"actions.workflow.not_found", workflowID,
-			)
-		}
+	// Insert the action run and its associated jobs into the database
+	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+		return fmt.Errorf("InsertRun: %w", err)
+	}
 
-		// get inputs from post
-		workflow := &model.Workflow{
-			RawOn: workflows[0].RawOn,
-		}
-		inputsWithDefaults := make(map[string]any)
-		if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
-			if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
-				return err
-			}
-		}
-
-		// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
-		// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
-		// https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_dispatch
-		workflowDispatchPayload := &api.WorkflowDispatchPayload{
-			Workflow:   workflowID,
-			Ref:        ref,
-			Repository: convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
-			Inputs:     inputsWithDefaults,
-			Sender:     convert.ToUserWithAccessMode(ctx, doer, perm.AccessModeNone),
-		}
-
-		var eventPayload []byte
-		if eventPayload, err = workflowDispatchPayload.JSONPayload(); err != nil {
-			return fmt.Errorf("JSONPayload: %w", err)
-		}
-		run.EventPayload = string(eventPayload)
-
-		// cancel running jobs of the same workflow
-		if err := CancelPreviousJobs(
-			ctx,
-			run.RepoID,
-			run.Ref,
-			run.WorkflowID,
-			run.Event,
-		); err != nil {
-			log.Error("CancelRunningJobs: %v", err)
-		}
-
-		// Insert the action run and its associated jobs into the database
-		if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
-			return fmt.Errorf("InsertRun: %w", err)
-		}
-
-		allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-		if err != nil {
-			log.Error("FindRunJobs: %v", err)
-		}
-		CreateCommitStatus(ctx, allJobs...)
-		for _, job := range allJobs {
-			notify_service.WorkflowJobStatusUpdate(ctx, repo, doer, job, nil)
-		}
+	allJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	if err != nil {
+		log.Error("FindRunJobs: %v", err)
+	}
+	CreateCommitStatus(ctx, allJobs...)
+	for _, job := range allJobs {
+		notify_service.WorkflowJobStatusUpdate(ctx, repo, doer, job, nil)
 	}
 	return nil
 }
