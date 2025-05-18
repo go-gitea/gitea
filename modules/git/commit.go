@@ -166,6 +166,8 @@ type CommitsCountOptions struct {
 	Not      string
 	Revision []string
 	RelPath  []string
+	Since    string
+	Until    string
 }
 
 // CommitsCount returns number of total commits of until given revision.
@@ -199,8 +201,8 @@ func (c *Commit) CommitsCount() (int64, error) {
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page, pageSize int, not string) ([]*Commit, error) {
-	return c.repo.commitsByRange(c.ID, page, pageSize, not)
+func (c *Commit) CommitsByRange(page, pageSize int, not, since, until string) ([]*Commit, error) {
+	return c.repo.commitsByRangeWithTime(c.ID, page, pageSize, not, since, until)
 }
 
 // CommitsBefore returns all the commits before current revision

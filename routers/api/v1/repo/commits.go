@@ -116,6 +116,16 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: filepath of a file/dir
 	//   type: string
+	// - name: since
+	//   in: query
+	//   description: Only commits after this date will be returned (ISO 8601 format)
+	//   type: string
+	//   format: date-time
+	// - name: until
+	//   in: query
+	//   description: Only commits before this date will be returned (ISO 8601 format)
+	//   type: string
+	//   format: date-time
 	// - name: stat
 	//   in: query
 	//   description: include diff stats for every commit (disable for speedup, default 'true')
@@ -147,6 +157,9 @@ func GetAllCommits(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/EmptyRepository"
+
+	since := ctx.FormString("since")
+	until := ctx.FormString("until")
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.JSON(http.StatusConflict, api.APIError{
@@ -198,6 +211,8 @@ func GetAllCommits(ctx *context.APIContext) {
 			RepoPath: ctx.Repo.GitRepo.Path,
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
+			Since:    since,
+			Until:    until,
 		})
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -205,7 +220,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
+		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not, since, until)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -221,6 +236,8 @@ func GetAllCommits(ctx *context.APIContext) {
 				Not:      not,
 				Revision: []string{sha},
 				RelPath:  []string{path},
+				Since:    since,
+				Until:    until,
 			})
 
 		if err != nil {
@@ -237,6 +254,8 @@ func GetAllCommits(ctx *context.APIContext) {
 				File:     path,
 				Not:      not,
 				Page:     listOptions.Page,
+				Since:    since,
+				Until:    until,
 			})
 		if err != nil {
 			ctx.APIErrorInternal(err)
