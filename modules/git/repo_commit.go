@@ -241,10 +241,10 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 			gitCmd.AddOptionValues("--not", opts.Not)
 		}
 		if opts.Since != "" {
-			gitCmd.AddOptionFormat("--since=%s", opts.Since)
+			gitCmd.AddOptionFormat("--since='%s'", opts.Since)
 		}
 		if opts.Until != "" {
-			gitCmd.AddOptionFormat("--until=%s", opts.Until)
+			gitCmd.AddOptionFormat("--until='%s'", opts.Until)
 		}
 
 		gitCmd.AddDashesAndList(opts.File)
