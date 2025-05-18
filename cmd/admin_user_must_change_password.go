@@ -4,12 +4,13 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var microcmdUserMustChangePassword = &cli.Command{
@@ -34,7 +35,7 @@ var microcmdUserMustChangePassword = &cli.Command{
 	},
 }
 
-func runMustChangePassword(c *cli.Context) error {
+func runMustChangePassword(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 

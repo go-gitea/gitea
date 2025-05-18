@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -13,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	user_service "code.gitea.io/gitea/services/user"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var microcmdUserChangePassword = &cli.Command{
@@ -41,7 +42,7 @@ var microcmdUserChangePassword = &cli.Command{
 	},
 }
 
-func runChangePassword(c *cli.Context) error {
+func runChangePassword(_ context.Context, c *cli.Command) error {
 	if err := argsSet(c, "username", "password"); err != nil {
 		return err
 	}

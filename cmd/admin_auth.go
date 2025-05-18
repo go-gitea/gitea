@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,7 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	auth_service "code.gitea.io/gitea/services/auth"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -56,7 +57,7 @@ var (
 	}
 )
 
-func runListAuth(c *cli.Context) error {
+func runListAuth(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -90,7 +91,7 @@ func runListAuth(c *cli.Context) error {
 	return nil
 }
 
-func runDeleteAuth(c *cli.Context) error {
+func runDeleteAuth(_ context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}

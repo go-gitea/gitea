@@ -20,7 +20,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 const (
@@ -34,7 +34,7 @@ var (
 		Usage:       "(internal) Should only be called by Git",
 		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			subcmdHookPreReceive,
 			subcmdHookUpdate,
 			subcmdHookPostReceive,
@@ -161,7 +161,7 @@ func (n *nilWriter) WriteString(s string) (int, error) {
 	return len(s), nil
 }
 
-func runHookPreReceive(c *cli.Context) error {
+func runHookPreReceive(_ context.Context, c *cli.Command) error {
 	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
@@ -292,7 +292,7 @@ Gitea or set your environment appropriately.`, "")
 
 // runHookUpdate avoid to do heavy operations on update hook because it will be
 // invoked for every ref update which does not like pre-receive and post-receive
-func runHookUpdate(c *cli.Context) error {
+func runHookUpdate(_ context.Context, c *cli.Command) error {
 	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
@@ -309,7 +309,7 @@ func runHookUpdate(c *cli.Context) error {
 	return nil
 }
 
-func runHookPostReceive(c *cli.Context) error {
+func runHookPostReceive(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -496,7 +496,7 @@ func pushOptions() map[string]string {
 	return opts
 }
 
-func runHookProcReceive(c *cli.Context) error {
+func runHookProcReceive(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 

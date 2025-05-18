@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/migrations"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdDumpRepository represents the available dump repository sub-command.
@@ -79,7 +79,7 @@ wiki, issues, labels, releases, release_assets, milestones, pull_requests, comme
 	},
 }
 
-func runDumpRepository(ctx *cli.Context) error {
+func runDumpRepository(_ context.Context, cmd *cli.Command) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
 
@@ -100,8 +100,8 @@ func runDumpRepository(ctx *cli.Context) error {
 
 	var (
 		serviceType structs.GitServiceType
-		cloneAddr   = ctx.String("clone_addr")
-		serviceStr  = ctx.String("git_service")
+		cloneAddr   = cmd.String("clone_addr")
+		serviceStr  = cmd.String("git_service")
 	)
 
 	if strings.HasPrefix(strings.ToLower(cloneAddr), "https://github.com/") {
@@ -119,13 +119,13 @@ func runDumpRepository(ctx *cli.Context) error {
 	opts := base.MigrateOptions{
 		GitServiceType: serviceType,
 		CloneAddr:      cloneAddr,
-		AuthUsername:   ctx.String("auth_username"),
-		AuthPassword:   ctx.String("auth_password"),
-		AuthToken:      ctx.String("auth_token"),
-		RepoName:       ctx.String("repo_name"),
+		AuthUsername:   cmd.String("auth_username"),
+		AuthPassword:   cmd.String("auth_password"),
+		AuthToken:      cmd.String("auth_token"),
+		RepoName:       cmd.String("repo_name"),
 	}
 
-	if len(ctx.String("units")) == 0 {
+	if len(cmd.String("units")) == 0 {
 		opts.Wiki = true
 		opts.Issues = true
 		opts.Milestones = true
@@ -135,7 +135,7 @@ func runDumpRepository(ctx *cli.Context) error {
 		opts.PullRequests = true
 		opts.ReleaseAssets = true
 	} else {
-		units := strings.Split(ctx.String("units"), ",")
+		units := strings.Split(cmd.String("units"), ",")
 		for _, unit := range units {
 			switch strings.ToLower(strings.TrimSpace(unit)) {
 			case "":
@@ -164,7 +164,7 @@ func runDumpRepository(ctx *cli.Context) error {
 
 	// the repo_dir will be removed if error occurs in DumpRepository
 	// make sure the directory doesn't exist or is empty, prevent from deleting user files
-	repoDir := ctx.String("repo_dir")
+	repoDir := cmd.String("repo_dir")
 	if exists, err := util.IsExist(repoDir); err != nil {
 		return fmt.Errorf("unable to stat repo_dir %q: %w", repoDir, err)
 	} else if exists {
@@ -179,7 +179,7 @@ func runDumpRepository(ctx *cli.Context) error {
 	if err := migrations.DumpRepository(
 		context.Background(),
 		repoDir,
-		ctx.String("owner_name"),
+		cmd.String("owner_name"),
 		opts,
 	); err != nil {
 		log.Fatal("Failed to dump repository: %v", err)

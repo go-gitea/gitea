@@ -32,7 +32,7 @@ func TestAdminUserCreate(t *testing.T) {
 			MustChangePassword bool
 		}
 		createCheck := func(name, args string) check {
-			require.NoError(t, app.Run(strings.Fields(fmt.Sprintf("./gitea admin user create --username %s --email %s@gitea.local %s --password foobar", name, name, args))))
+			require.NoError(t, app.Run(t.Context(), strings.Fields(fmt.Sprintf("./gitea admin user create --username %s --email %s@gitea.local %s --password foobar", name, name, args))))
 			u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: name})
 			return check{IsAdmin: u.IsAdmin, MustChangePassword: u.MustChangePassword}
 		}
@@ -51,7 +51,7 @@ func TestAdminUserCreate(t *testing.T) {
 	})
 
 	createUser := func(name string, args ...string) error {
-		return app.Run(append([]string{"./gitea", "admin", "user", "create", "--username", name, "--email", name + "@gitea.local"}, args...))
+		return app.Run(t.Context(), append([]string{"./gitea", "admin", "user", "create", "--username", name, "--email", name + "@gitea.local"}, args...))
 	}
 
 	t.Run("UserType", func(t *testing.T) {

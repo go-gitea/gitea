@@ -4,12 +4,13 @@
 package cmd
 
 import (
+	"context"
 	"strings"
 
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdRestoreRepository represents the available restore a repository sub-command.
@@ -48,7 +49,7 @@ wiki, issues, labels, releases, release_assets, milestones, pull_requests, comme
 	},
 }
 
-func runRestoreRepository(c *cli.Context) error {
+func runRestoreRepository(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 

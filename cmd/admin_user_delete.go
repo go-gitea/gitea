@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	user_service "code.gitea.io/gitea/services/user"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var microcmdUserDelete = &cli.Command{
@@ -41,7 +42,7 @@ var microcmdUserDelete = &cli.Command{
 	Action: runDeleteUser,
 }
 
-func runDeleteUser(c *cli.Context) error {
+func runDeleteUser(_ context.Context, c *cli.Command) error {
 	if !c.IsSet("id") && !c.IsSet("username") && !c.IsSet("email") {
 		return errors.New("You must provide the id, username or email of a user to delete")
 	}

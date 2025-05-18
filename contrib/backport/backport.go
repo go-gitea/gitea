@@ -19,14 +19,14 @@ import (
 	"syscall"
 
 	"github.com/google/go-github/v71/github"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 )
 
 const defaultVersion = "v1.18" // to backport to
 
 func main() {
-	app := cli.NewApp()
+	app := &cli.Command{}
 	app.Name = "backport"
 	app.Usage = "Backport provided PR-number on to the current or previous released version"
 	app.Description = `Backport will look-up the PR in Gitea's git log and attempt to cherry-pick it on the current version`
@@ -91,7 +91,7 @@ func main() {
 			Usage: "Set this flag to continue from a git cherry-pick that has broken",
 		},
 	}
-	cli.AppHelpTemplate = `NAME:
+	cli.RootCommandHelpTemplate = `NAME:
 	{{.Name}} - {{.Usage}}
 USAGE:
 	{{.HelpName}} {{if .VisibleFlags}}[options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}
@@ -106,12 +106,12 @@ OPTIONS:
 
 	app.Action = runBackport
 
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to backport: %v\n", err)
 	}
 }
 
-func runBackport(c *cli.Context) error {
+func runBackport(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 

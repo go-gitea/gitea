@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/smtp"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -87,7 +88,7 @@ var (
 	}
 )
 
-func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
+func parseSMTPConfig(c *cli.Command, conf *smtp.Source) error {
 	if c.IsSet("auth-type") {
 		conf.Auth = c.String("auth-type")
 		validAuthTypes := []string{"PLAIN", "LOGIN", "CRAM-MD5"}
@@ -120,7 +121,7 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 	return nil
 }
 
-func runAddSMTP(c *cli.Context) error {
+func runAddSMTP(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -161,7 +162,7 @@ func runAddSMTP(c *cli.Context) error {
 	})
 }
 
-func runUpdateSMTP(c *cli.Context) error {
+func runUpdateSMTP(_ context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}

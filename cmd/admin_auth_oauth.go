@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -12,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -137,7 +138,7 @@ var (
 	}
 )
 
-func parseOAuth2Config(c *cli.Context) *oauth2.Source {
+func parseOAuth2Config(c *cli.Command) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
 	if c.IsSet("use-custom-urls") {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -168,7 +169,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 	}
 }
 
-func runAddOauth(c *cli.Context) error {
+func runAddOauth(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -193,7 +194,7 @@ func runAddOauth(c *cli.Context) error {
 	})
 }
 
-func runUpdateOauth(c *cli.Context) error {
+func runUpdateOauth(_ context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}

@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 type (
@@ -167,8 +167,8 @@ var (
 	microcmdAuthAddLdapBindDn = &cli.Command{
 		Name:  "add-ldap",
 		Usage: "Add new LDAP (via Bind DN) authentication source",
-		Action: func(c *cli.Context) error {
-			return newAuthService().addLdapBindDn(c)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().addLdapBindDn(ctx, cmd)
 		},
 		Flags: ldapBindDnCLIFlags,
 	}
@@ -176,8 +176,8 @@ var (
 	microcmdAuthUpdateLdapBindDn = &cli.Command{
 		Name:  "update-ldap",
 		Usage: "Update existing LDAP (via Bind DN) authentication source",
-		Action: func(c *cli.Context) error {
-			return newAuthService().updateLdapBindDn(c)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().updateLdapBindDn(ctx, cmd)
 		},
 		Flags: append([]cli.Flag{idFlag}, ldapBindDnCLIFlags...),
 	}
@@ -185,8 +185,8 @@ var (
 	microcmdAuthAddLdapSimpleAuth = &cli.Command{
 		Name:  "add-ldap-simple",
 		Usage: "Add new LDAP (simple auth) authentication source",
-		Action: func(c *cli.Context) error {
-			return newAuthService().addLdapSimpleAuth(c)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().addLdapSimpleAuth(ctx, cmd)
 		},
 		Flags: ldapSimpleAuthCLIFlags,
 	}
@@ -194,8 +194,8 @@ var (
 	microcmdAuthUpdateLdapSimpleAuth = &cli.Command{
 		Name:  "update-ldap-simple",
 		Usage: "Update existing LDAP (simple auth) authentication source",
-		Action: func(c *cli.Context) error {
-			return newAuthService().updateLdapSimpleAuth(c)
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().updateLdapSimpleAuth(ctx, cmd)
 		},
 		Flags: append([]cli.Flag{idFlag}, ldapSimpleAuthCLIFlags...),
 	}
@@ -212,7 +212,7 @@ func newAuthService() *authService {
 }
 
 // parseAuthSourceLdap assigns values on authSource according to command line flags.
-func parseAuthSourceLdap(c *cli.Context, authSource *auth.Source) {
+func parseAuthSourceLdap(c *cli.Command, authSource *auth.Source) {
 	if c.IsSet("name") {
 		authSource.Name = c.String("name")
 	}
@@ -232,7 +232,7 @@ func parseAuthSourceLdap(c *cli.Context, authSource *auth.Source) {
 }
 
 // parseLdapConfig assigns values on config according to command line flags.
-func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
+func parseLdapConfig(c *cli.Command, config *ldap.Source) error {
 	if c.IsSet("name") {
 		config.Name = c.String("name")
 	}
@@ -337,7 +337,7 @@ func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
 
 // getAuthSource gets the login source by its id defined in the command line flags.
 // It returns an error if the id is not set, does not match any source or if the source is not of expected type.
-func (a *authService) getAuthSource(ctx context.Context, c *cli.Context, authType auth.Type) (*auth.Source, error) {
+func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authType auth.Type) (*auth.Source, error) {
 	if err := argsSet(c, "id"); err != nil {
 		return nil, err
 	}
@@ -355,7 +355,7 @@ func (a *authService) getAuthSource(ctx context.Context, c *cli.Context, authTyp
 }
 
 // addLdapBindDn adds a new LDAP via Bind DN authentication source.
-func (a *authService) addLdapBindDn(c *cli.Context) error {
+func (a *authService) addLdapBindDn(_ context.Context, c *cli.Command) error {
 	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-search-base", "user-filter", "email-attribute"); err != nil {
 		return err
 	}
@@ -384,7 +384,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 }
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
-func (a *authService) updateLdapBindDn(c *cli.Context) error {
+func (a *authService) updateLdapBindDn(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -406,7 +406,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 }
 
 // addLdapSimpleAuth adds a new LDAP (simple auth) authentication source.
-func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
+func (a *authService) addLdapSimpleAuth(_ context.Context, c *cli.Command) error {
 	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-dn", "user-filter", "email-attribute"); err != nil {
 		return err
 	}
@@ -435,7 +435,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 }
 
 // updateLdapSimpleAuth updates a new LDAP (simple auth) authentication source.
-func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
+func (a *authService) updateLdapSimpleAuth(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 

@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/versioned_migration"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdMigrate represents the available migrate sub-command.
@@ -22,7 +22,7 @@ var CmdMigrate = &cli.Command{
 	Action:      runMigrate,
 }
 
-func runMigrate(ctx *cli.Context) error {
+func runMigrate(_ context.Context, c *cli.Command) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
 

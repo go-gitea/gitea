@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdKeys represents the available keys sub-command
@@ -49,7 +50,7 @@ var CmdKeys = &cli.Command{
 	},
 }
 
-func runKeys(c *cli.Context) error {
+func runKeys(_ context.Context, c *cli.Command) error {
 	if !c.IsSet("username") {
 		return errors.New("No username provided")
 	}
@@ -78,6 +79,6 @@ func runKeys(c *cli.Context) error {
 	if extra.Error != nil {
 		return extra.Error
 	}
-	_, _ = fmt.Fprintln(c.App.Writer, strings.TrimSpace(authorizedString.Text))
+	_, _ = fmt.Fprintln(c.Writer, strings.TrimSpace(authorizedString.Text))
 	return nil
 }

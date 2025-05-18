@@ -4,12 +4,13 @@
 package cmd
 
 import (
+	"context"
 	"os"
 	"time"
 
 	"code.gitea.io/gitea/modules/private"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -18,7 +19,7 @@ var (
 		Name:        "manager",
 		Usage:       "Manage the running gitea process",
 		Description: "This is a command for managing the running gitea process",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			subcmdShutdown,
 			subcmdRestart,
 			subcmdReloadTemplates,
@@ -108,7 +109,7 @@ var (
 	}
 )
 
-func runShutdown(c *cli.Context) error {
+func runShutdown(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -117,7 +118,7 @@ func runShutdown(c *cli.Context) error {
 	return handleCliResponseExtra(extra)
 }
 
-func runRestart(c *cli.Context) error {
+func runRestart(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -126,7 +127,7 @@ func runRestart(c *cli.Context) error {
 	return handleCliResponseExtra(extra)
 }
 
-func runReloadTemplates(c *cli.Context) error {
+func runReloadTemplates(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -135,7 +136,7 @@ func runReloadTemplates(c *cli.Context) error {
 	return handleCliResponseExtra(extra)
 }
 
-func runFlushQueues(c *cli.Context) error {
+func runFlushQueues(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -144,7 +145,7 @@ func runFlushQueues(c *cli.Context) error {
 	return handleCliResponseExtra(extra)
 }
 
-func runProcesses(c *cli.Context) error {
+func runProcesses(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 

@@ -4,13 +4,14 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var microcmdUserGenerateAccessToken = &cli.Command{
@@ -41,7 +42,7 @@ var microcmdUserGenerateAccessToken = &cli.Command{
 	Action: runGenerateAccessToken,
 }
 
-func runGenerateAccessToken(c *cli.Context) error {
+func runGenerateAccessToken(_ context.Context, c *cli.Command) error {
 	if !c.IsSet("username") {
 		return errors.New("you must provide a username to generate a token for")
 	}

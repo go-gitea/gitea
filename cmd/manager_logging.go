@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -60,7 +61,7 @@ var (
 	subcmdLogging = &cli.Command{
 		Name:  "logging",
 		Usage: "Adjust logging commands",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			{
 				Name:  "pause",
 				Usage: "Pause logging (Gitea will buffer logs up to a certain point and will drop them after that point)",
@@ -104,7 +105,7 @@ var (
 			}, {
 				Name:  "add",
 				Usage: "Add a logger",
-				Subcommands: []*cli.Command{
+				Commands: []*cli.Command{
 					{
 						Name:  "file",
 						Usage: "Add a file logger",
@@ -195,7 +196,7 @@ var (
 	}
 )
 
-func runRemoveLogger(c *cli.Context) error {
+func runRemoveLogger(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -210,7 +211,7 @@ func runRemoveLogger(c *cli.Context) error {
 	return handleCliResponseExtra(extra)
 }
 
-func runAddConnLogger(c *cli.Context) error {
+func runAddConnLogger(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -240,7 +241,7 @@ func runAddConnLogger(c *cli.Context) error {
 	return commonAddLogger(c, mode, vals)
 }
 
-func runAddFileLogger(c *cli.Context) error {
+func runAddFileLogger(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -273,7 +274,7 @@ func runAddFileLogger(c *cli.Context) error {
 	return commonAddLogger(c, mode, vals)
 }
 
-func commonAddLogger(c *cli.Context, mode string, vals map[string]any) error {
+func commonAddLogger(c *cli.Command, mode string, vals map[string]any) error {
 	if len(c.String("level")) > 0 {
 		vals["level"] = log.LevelFromString(c.String("level")).String()
 	}
@@ -307,7 +308,7 @@ func commonAddLogger(c *cli.Context, mode string, vals map[string]any) error {
 	return handleCliResponseExtra(extra)
 }
 
-func runPauseLogging(c *cli.Context) error {
+func runPauseLogging(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -317,7 +318,7 @@ func runPauseLogging(c *cli.Context) error {
 	return nil
 }
 
-func runResumeLogging(c *cli.Context) error {
+func runResumeLogging(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -327,7 +328,7 @@ func runResumeLogging(c *cli.Context) error {
 	return nil
 }
 
-func runReleaseReopenLogging(c *cli.Context) error {
+func runReleaseReopenLogging(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
@@ -337,7 +338,7 @@ func runReleaseReopenLogging(c *cli.Context) error {
 	return nil
 }
 
-func runSetLogSQL(c *cli.Context) error {
+func runSetLogSQL(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 	setup(ctx, c.Bool("debug"))

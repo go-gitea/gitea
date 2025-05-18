@@ -4,15 +4,16 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-func runSendMail(c *cli.Context) error {
+func runSendMail(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 

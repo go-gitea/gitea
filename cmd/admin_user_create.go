@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var microcmdUserCreate = &cli.Command{
@@ -54,9 +54,9 @@ var microcmdUserCreate = &cli.Command{
 			Usage: "Generate a random password for the user",
 		},
 		&cli.BoolFlag{
-			Name:               "must-change-password",
-			Usage:              "User must change password after initial login, defaults to true for all users except the first one (can be disabled by --must-change-password=false)",
-			DisableDefaultText: true,
+			Name:        "must-change-password",
+			Usage:       "User must change password after initial login, defaults to true for all users except the first one (can be disabled by --must-change-password=false)",
+			DefaultText: "",
 		},
 		&cli.IntFlag{
 			Name:  "random-password-length",
@@ -88,7 +88,7 @@ var microcmdUserCreate = &cli.Command{
 	},
 }
 
-func runCreateUser(c *cli.Context) error {
+func runCreateUser(ctx context.Context, c *cli.Command) error {
 	// this command highly depends on the many setting options (create org, visibility, etc.), so it must have a full setting load first
 	// duplicate setting loading should be safe at the moment, but it should be refactored & improved in the future.
 	setting.LoadSettings()
@@ -129,10 +129,9 @@ func runCreateUser(c *cli.Context) error {
 		username = c.String("username")
 	} else {
 		username = c.String("name")
-		_, _ = fmt.Fprintf(c.App.ErrWriter, "--name flag is deprecated. Use --username instead.\n")
+		_, _ = fmt.Fprintf(c.ErrWriter, "--name flag is deprecated. Use --username instead.\n")
 	}
 
-	ctx := c.Context
 	if !setting.IsInTesting {
 		// FIXME: need to refactor the "installSignals/initDB" related code later
 		// it doesn't make sense to call it in (almost) every command action function

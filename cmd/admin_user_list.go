@@ -4,13 +4,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
 	user_model "code.gitea.io/gitea/models/user"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var microcmdUserList = &cli.Command{
@@ -25,7 +26,7 @@ var microcmdUserList = &cli.Command{
 	},
 }
 
-func runListUsers(c *cli.Context) error {
+func runListUsers(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
