@@ -148,7 +148,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "name is not set",
+			errMsg: "Required flag \"name\" not set",
 		},
 		// case 4
 		{
@@ -161,7 +161,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "security-protocol is not set",
+			errMsg: "Required flag \"security-protocol\" not set",
 		},
 		// case 5
 		{
@@ -174,7 +174,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "host is not set",
+			errMsg: "Required flag \"host\" not set",
 		},
 		// case 6
 		{
@@ -187,7 +187,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "port is not set",
+			errMsg: "Required flag \"port\" not set",
 		},
 		// case 7
 		{
@@ -200,7 +200,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-search-base", "ou=Users,dc=domain,dc=org",
 				"--email-attribute", "mail",
 			},
-			errMsg: "user-filter is not set",
+			errMsg: "Required flag \"user-filter\" not set",
 		},
 		// case 8
 		{
@@ -213,7 +213,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-search-base", "ou=Users,dc=domain,dc=org",
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 			},
-			errMsg: "email-attribute is not set",
+			errMsg: "Required flag \"email-attribute\" not set",
 		},
 	}
 
@@ -240,7 +240,7 @@ func TestAddLdapBindDn(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.Command{
-			Flags:  microcmdAuthAddLdapBindDn.Flags,
+			Flags:  newMicrocmdAuthAddLdapBindDn().Flags,
 			Action: service.addLdapBindDn,
 		}
 
@@ -367,7 +367,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "name is not set",
+			errMsg: "Required flag \"name\" not set",
 		},
 		// case 4
 		{
@@ -380,7 +380,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "security-protocol is not set",
+			errMsg: "Required flag \"security-protocol\" not set",
 		},
 		// case 5
 		{
@@ -393,7 +393,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "host is not set",
+			errMsg: "Required flag \"host\" not set",
 		},
 		// case 6
 		{
@@ -406,7 +406,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "port is not set",
+			errMsg: "Required flag \"port\" not set",
 		},
 		// case 7
 		{
@@ -419,7 +419,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "user-filter is not set",
+			errMsg: "Required flag \"user-filter\" not set",
 		},
 		// case 8
 		{
@@ -432,7 +432,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "email-attribute is not set",
+			errMsg: "Required flag \"email-attribute\" not set",
 		},
 		// case 9
 		{
@@ -445,7 +445,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
 				"--email-attribute", "mail",
 			},
-			errMsg: "user-dn is not set",
+			errMsg: "Required flag \"user-dn\" not set",
 		},
 	}
 
@@ -472,7 +472,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 
 		// Create a copy of command to test
 		app := &cli.Command{
-			Flags:  microcmdAuthAddLdapSimpleAuth.Flags,
+			Flags:  newMicrocmdAuthAddLdapSimpleAuth().Flags,
 			Action: service.addLdapSimpleAuth,
 		}
 
@@ -873,7 +873,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			args: []string{
 				"ldap-test",
 			},
-			errMsg: "id is not set",
+			errMsg: "Required flag \"id\" not set",
 		},
 		// case 23
 		{
@@ -950,7 +950,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.Command{
-			Flags:  microcmdAuthUpdateLdapBindDn.Flags,
+			Flags:  newMicrocmdAuthUpdateLdapBindDn().Flags,
 			Action: service.updateLdapBindDn,
 		}
 		// Run it
@@ -1266,7 +1266,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			args: []string{
 				"ldap-test",
 			},
-			errMsg: "id is not set",
+			errMsg: "Required flag \"id\" not set",
 		},
 		// case 19
 		{
@@ -1340,7 +1340,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.Command{
-			Flags:  microcmdAuthUpdateLdapSimpleAuth.Flags,
+			Flags:  newMicrocmdAuthUpdateLdapSimpleAuth().Flags,
 			Action: service.updateLdapSimpleAuth,
 		}
 		// Run it
