@@ -101,10 +101,10 @@ func (repo *Repository) commitsByRangeWithTime(id ObjectID, page, pageSize int, 
 		cmd.AddOptionValues("--not", not)
 	}
 	if since != "" {
-		cmd.AddOptionFormat("--since='%s'", since)
+		cmd.AddOptionFormat("--since=%s", since)
 	}
 	if until != "" {
-		cmd.AddOptionFormat("--until='%s'", until)
+		cmd.AddOptionFormat("--until=%s", until)
 	}
 
 	stdout, _, err := cmd.RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
