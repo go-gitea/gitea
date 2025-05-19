@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
@@ -160,6 +161,20 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	since := ctx.FormString("since")
 	until := ctx.FormString("until")
+
+	// Validate since/until as ISO 8601 (RFC3339)
+	if since != "" {
+		if _, err := time.Parse(time.RFC3339, since); err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid 'since' format, expected ISO 8601 (RFC3339)")
+			return
+		}
+	}
+	if until != "" {
+		if _, err := time.Parse(time.RFC3339, until); err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid 'until' format, expected ISO 8601 (RFC3339)")
+			return
+		}
+	}
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.JSON(http.StatusConflict, api.APIError{
