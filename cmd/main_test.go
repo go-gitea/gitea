@@ -28,7 +28,7 @@ func makePathOutput(workPath, customPath, customConf string) string {
 	return fmt.Sprintf("WorkPath=%s\nCustomPath=%s\nCustomConf=%s", workPath, customPath, customConf)
 }
 
-func newTestApp(testCmdAction func(ctx context.Context, cmd *cli.Command) error) *cli.Command {
+func newTestApp(testCmdAction cli.ActionFunc) *cli.Command {
 	app := NewMainApp(AppVersion{})
 	testCmd := &cli.Command{Name: "test-cmd", Action: testCmdAction}
 	prepareSubcommandWithConfig(testCmd, appGlobalFlags())
@@ -110,12 +110,12 @@ func TestCliCmd(t *testing.T) {
 		},
 	}
 
-	app := newTestApp(func(ctx context.Context, cmd *cli.Command) error {
-		_, _ = fmt.Fprint(cmd.Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))
-		return nil
-	})
 	for _, c := range cases {
 		t.Run(c.cmd, func(t *testing.T) {
+			app := newTestApp(func(ctx context.Context, cmd *cli.Command) error {
+				_, _ = fmt.Fprint(cmd.Root().Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))
+				return nil
+			})
 			for k, v := range c.env {
 				t.Setenv(k, v)
 			}
@@ -147,8 +147,8 @@ func TestCliCmdError(t *testing.T) {
 	r, err = runTestApp(app, "./gitea", "test-cmd", "--no-such")
 	assert.Error(t, err)
 	assert.Equal(t, 1, r.ExitCode)
-	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -no-such\n\n", r.Stdout)
-	assert.Empty(t, r.Stderr) // the cli package's strange behavior, the error message is not in stderr ....
+	assert.Empty(t, r.Stdout)
+	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -no-such\n\n", r.Stderr)
 
 	app = newTestApp(func(ctx context.Context, cmd *cli.Command) error { return nil })
 	r, err = runTestApp(app, "./gitea", "test-cmd")

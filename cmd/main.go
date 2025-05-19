@@ -23,18 +23,18 @@ func cmdHelp() *cli.Command {
 		Aliases:   []string{"h"},
 		Usage:     "Shows a list of commands or help for one command",
 		ArgsUsage: "[command]",
-		Action: func(_ context.Context, c *cli.Command) (err error) {
-			lineage := c.Lineage() // The order is from child to parent: help, doctor, Gitea, {Command:nil}
+		Action: func(ctx context.Context, c *cli.Command) (err error) {
+			lineage := c.Lineage() // The order is from child to parent: help, doctor, Gitea
 			targetCmdIdx := 0
 			if c.Name == "help" {
 				targetCmdIdx = 1
 			}
-			if lineage[targetCmdIdx+1] != nil {
-				err = cli.ShowCommandHelp(context.Background(), lineage[targetCmdIdx+1], lineage[targetCmdIdx].Name)
+			if lineage[targetCmdIdx].Name != "Gitea" {
+				err = cli.ShowCommandHelp(ctx, lineage[targetCmdIdx], lineage[targetCmdIdx].Name)
 			} else {
 				err = cli.ShowAppHelp(c)
 			}
-			_, _ = fmt.Fprintf(c.Writer, `
+			_, _ = fmt.Fprintf(c.Root().Writer, `
 DEFAULT CONFIGURATION:
    AppPath:    %s
    WorkPath:   %s

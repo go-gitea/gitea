@@ -9,9 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/urfave/cli/v3"
-
 	cli_docs "github.com/urfave/cli-docs/v3"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdDocs represents the available docs sub-command.

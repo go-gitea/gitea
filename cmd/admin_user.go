@@ -11,7 +11,7 @@ var subcmdUser = &cli.Command{
 	Name:  "user",
 	Usage: "Modify users",
 	Commands: []*cli.Command{
-		microcmdUserCreate,
+		microcmdUserCreate(),
 		microcmdUserList,
 		microcmdUserChangePassword,
 		microcmdUserDelete,

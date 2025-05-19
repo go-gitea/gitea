@@ -19,73 +19,84 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var microcmdUserCreate = &cli.Command{
-	Name:   "create",
-	Usage:  "Create a new user in database",
-	Action: runCreateUser,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "name",
-			Usage: "Username. DEPRECATED: use username instead",
+func microcmdUserCreate() *cli.Command {
+	return &cli.Command{
+		Name:   "create",
+		Usage:  "Create a new user in database",
+		Action: runCreateUser,
+		MutuallyExclusiveFlags: []cli.MutuallyExclusiveFlags{
+			{
+				Flags: [][]cli.Flag{
+					[]cli.Flag{
+						&cli.StringFlag{
+							Name:  "name",
+							Usage: "Username. DEPRECATED: use username instead",
+						},
+						&cli.StringFlag{
+							Name:  "username",
+							Usage: "Username",
+						},
+					},
+				},
+				Required: true,
+			},
 		},
-		&cli.StringFlag{
-			Name:  "username",
-			Usage: "Username",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "user-type",
+				Usage: "Set user's type: individual or bot",
+				Value: "individual",
+			},
+			&cli.StringFlag{
+				Name:  "password",
+				Usage: "User password",
+			},
+			&cli.StringFlag{
+				Name:  "email",
+				Usage: "User email address",
+			},
+			&cli.BoolFlag{
+				Name:  "admin",
+				Usage: "User is an admin",
+			},
+			&cli.BoolFlag{
+				Name:  "random-password",
+				Usage: "Generate a random password for the user",
+			},
+			&cli.BoolFlag{
+				Name:        "must-change-password",
+				Usage:       "User must change password after initial login, defaults to true for all users except the first one (can be disabled by --must-change-password=false)",
+				HideDefault: true,
+			},
+			&cli.IntFlag{
+				Name:  "random-password-length",
+				Usage: "Length of the random password to be generated",
+				Value: 12,
+			},
+			&cli.BoolFlag{
+				Name:  "access-token",
+				Usage: "Generate access token for the user",
+			},
+			&cli.StringFlag{
+				Name:  "access-token-name",
+				Usage: `Name of the generated access token`,
+				Value: "gitea-admin",
+			},
+			&cli.StringFlag{
+				Name:  "access-token-scopes",
+				Usage: `Scopes of the generated access token, comma separated. Examples: "all", "public-only,read:issue", "write:repository,write:user"`,
+				Value: "all",
+			},
+			&cli.BoolFlag{
+				Name:  "restricted",
+				Usage: "Make a restricted user account",
+			},
+			&cli.StringFlag{
+				Name:  "fullname",
+				Usage: `The full, human-readable name of the user`,
+			},
 		},
-		&cli.StringFlag{
-			Name:  "user-type",
-			Usage: "Set user's type: individual or bot",
-			Value: "individual",
-		},
-		&cli.StringFlag{
-			Name:  "password",
-			Usage: "User password",
-		},
-		&cli.StringFlag{
-			Name:  "email",
-			Usage: "User email address",
-		},
-		&cli.BoolFlag{
-			Name:  "admin",
-			Usage: "User is an admin",
-		},
-		&cli.BoolFlag{
-			Name:  "random-password",
-			Usage: "Generate a random password for the user",
-		},
-		&cli.BoolFlag{
-			Name:        "must-change-password",
-			Usage:       "User must change password after initial login, defaults to true for all users except the first one (can be disabled by --must-change-password=false)",
-			DefaultText: "",
-		},
-		&cli.IntFlag{
-			Name:  "random-password-length",
-			Usage: "Length of the random password to be generated",
-			Value: 12,
-		},
-		&cli.BoolFlag{
-			Name:  "access-token",
-			Usage: "Generate access token for the user",
-		},
-		&cli.StringFlag{
-			Name:  "access-token-name",
-			Usage: `Name of the generated access token`,
-			Value: "gitea-admin",
-		},
-		&cli.StringFlag{
-			Name:  "access-token-scopes",
-			Usage: `Scopes of the generated access token, comma separated. Examples: "all", "public-only,read:issue", "write:repository,write:user"`,
-			Value: "all",
-		},
-		&cli.BoolFlag{
-			Name:  "restricted",
-			Usage: "Make a restricted user account",
-		},
-		&cli.StringFlag{
-			Name:  "fullname",
-			Usage: `The full, human-readable name of the user`,
-		},
-	},
+	}
 }
 
 func runCreateUser(ctx context.Context, c *cli.Command) error {
@@ -112,12 +123,6 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		if c.IsSet("password") || c.IsSet("random-password") {
 			return errors.New("password can only be set for individual users")
 		}
-	}
-	if c.IsSet("name") && c.IsSet("username") {
-		return errors.New("cannot set both --name and --username flags")
-	}
-	if !c.IsSet("name") && !c.IsSet("username") {
-		return errors.New("one of --name or --username flags must be set")
 	}
 
 	if c.IsSet("password") && c.IsSet("random-password") {
