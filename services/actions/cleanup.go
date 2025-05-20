@@ -155,6 +155,22 @@ func CleanupEphemeralRunners(ctx context.Context) error {
 	return nil
 }
 
+// CleanupEphemeralRunnersByPickedTaskOfRepo removes all ephemeral runners that have active/finished tasks on the given repository
+func CleanupEphemeralRunnersByPickedTaskOfRepo(ctx context.Context, repoID int64) error {
+	subQuery := builder.Select("`action_runner`.id").
+		From(builder.Select("*").From("`action_runner`"), "`action_runner`"). // mysql needs this redundant subquery
+		Join("INNER", "`action_task`", "`action_task`.`runner_id` = `action_runner`.`id`").
+		Where(builder.And(builder.Eq{"`action_runner`.`ephemeral`": true}, builder.Eq{"`action_task`.`repo_id`": repoID}))
+	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
+	res, err := db.GetEngine(ctx).Exec(b)
+	if err != nil {
+		return fmt.Errorf("find runners: %w", err)
+	}
+	affected, _ := res.RowsAffected()
+	log.Info("Removed %d runners", affected)
+	return nil
+}
+
 // DeleteRun deletes workflow run, including all logs and artifacts.
 func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	if !run.Status.IsDone() {
