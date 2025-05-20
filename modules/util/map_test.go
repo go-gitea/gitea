@@ -10,7 +10,7 @@ import (
 )
 
 func TestGetMapValueOrDefault(t *testing.T) {
-	testMap := map[string]interface{}{
+	testMap := map[string]any{
 		"key1": "value1",
 		"key2": 42,
 		"key3": nil,
