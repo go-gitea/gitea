@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/nektos/act/pkg/model"
 )
@@ -167,34 +168,34 @@ func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
 
 func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
 	return &model.GithubContext{
-		Event:            (*g)["event"].(map[string]any),
-		EventPath:        (*g)["event_path"].(string),
-		Workflow:         (*g)["workflow"].(string),
-		RunID:            (*g)["run_id"].(string),
-		RunNumber:        (*g)["run_number"].(string),
-		Actor:            (*g)["actor"].(string),
-		Repository:       (*g)["repository"].(string),
-		EventName:        (*g)["event_name"].(string),
-		Sha:              (*g)["sha"].(string),
-		Ref:              (*g)["ref"].(string),
-		RefName:          (*g)["ref_name"].(string),
-		RefType:          (*g)["ref_type"].(string),
-		HeadRef:          (*g)["head_ref"].(string),
-		BaseRef:          (*g)["base_ref"].(string),
+		Event:            util.GetMapValueOrDefault(*g, "event", map[string]any(nil)),
+		EventPath:        util.GetMapValueOrDefault(*g, "event_path", ""),
+		Workflow:         util.GetMapValueOrDefault(*g, "workflow", ""),
+		RunID:            util.GetMapValueOrDefault(*g, "run_id", ""),
+		RunNumber:        util.GetMapValueOrDefault(*g, "run_number", ""),
+		Actor:            util.GetMapValueOrDefault(*g, "actor", ""),
+		Repository:       util.GetMapValueOrDefault(*g, "repository", ""),
+		EventName:        util.GetMapValueOrDefault(*g, "event_name", ""),
+		Sha:              util.GetMapValueOrDefault(*g, "sha", ""),
+		Ref:              util.GetMapValueOrDefault(*g, "ref", ""),
+		RefName:          util.GetMapValueOrDefault(*g, "ref_name", ""),
+		RefType:          util.GetMapValueOrDefault(*g, "ref_type", ""),
+		HeadRef:          util.GetMapValueOrDefault(*g, "head_ref", ""),
+		BaseRef:          util.GetMapValueOrDefault(*g, "base_ref", ""),
 		Token:            "", // deliberately omitted for security
-		Workspace:        (*g)["workspace"].(string),
-		Action:           (*g)["action"].(string),
-		ActionPath:       (*g)["action_path"].(string),
-		ActionRef:        (*g)["action_ref"].(string),
-		ActionRepository: (*g)["action_repository"].(string),
-		Job:              (*g)["job"].(string),
+		Workspace:        util.GetMapValueOrDefault(*g, "workspace", ""),
+		Action:           util.GetMapValueOrDefault(*g, "action", ""),
+		ActionPath:       util.GetMapValueOrDefault(*g, "action_path", ""),
+		ActionRef:        util.GetMapValueOrDefault(*g, "action_ref", ""),
+		ActionRepository: util.GetMapValueOrDefault(*g, "action_repository", ""),
+		Job:              util.GetMapValueOrDefault(*g, "job", ""),
 		JobName:          "", // not present in GiteaContext
-		RepositoryOwner:  (*g)["repository_owner"].(string),
-		RetentionDays:    (*g)["retention_days"].(string),
+		RepositoryOwner:  util.GetMapValueOrDefault(*g, "repository_owner", ""),
+		RetentionDays:    util.GetMapValueOrDefault(*g, "retention_days", ""),
 		RunnerPerflog:    "", // not present in GiteaContext
 		RunnerTrackingID: "", // not present in GiteaContext
-		ServerURL:        (*g)["server_url"].(string),
-		APIURL:           (*g)["api_url"].(string),
-		GraphQLURL:       (*g)["graphql_url"].(string),
+		ServerURL:        util.GetMapValueOrDefault(*g, "server_url", ""),
+		APIURL:           util.GetMapValueOrDefault(*g, "api_url", ""),
+		GraphQLURL:       util.GetMapValueOrDefault(*g, "graphql_url", ""),
 	}
 }
