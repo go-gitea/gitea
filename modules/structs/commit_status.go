@@ -18,6 +18,8 @@ const (
 	CommitStatusFailure CommitStatusState = "failure"
 	// CommitStatusWarning is for when the CommitStatus is Warning
 	CommitStatusWarning CommitStatusState = "warning"
+	// CommitStatusSkipped is for when CommitStatus is Skipped
+	CommitStatusSkipped CommitStatusState = "skipped"
 )
 
 var commitStatusPriorities = map[CommitStatusState]int{
