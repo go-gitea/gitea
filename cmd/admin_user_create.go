@@ -27,7 +27,7 @@ func microcmdUserCreate() *cli.Command {
 		MutuallyExclusiveFlags: []cli.MutuallyExclusiveFlags{
 			{
 				Flags: [][]cli.Flag{
-					[]cli.Flag{
+					{
 						&cli.StringFlag{
 							Name:  "name",
 							Usage: "Username. DEPRECATED: use username instead",

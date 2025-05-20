@@ -86,6 +86,7 @@ func microcmdAuthUpdateSMTP() *cli.Command {
 		}}, smtpCLIFlags()[1:]...)...),
 	}
 }
+
 func microcmdAuthAddSMTP() *cli.Command {
 	return &cli.Command{
 		Name:   "add-smtp",

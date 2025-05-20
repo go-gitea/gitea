@@ -140,7 +140,8 @@ func newMicrocmdAuthAddLdapSimpleAuth() *cli.Command {
 			&cli.StringFlag{Name: "public-ssh-key-attribute", Usage: "The attribute of the user’s LDAP record containing the user’s public ssh key."},
 			&cli.BoolFlag{Name: "skip-local-2fa", Usage: "Set to true to skip local 2fa for users authenticated by this source"},
 			&cli.StringFlag{Name: "avatar-attribute", Usage: "The attribute of the user’s LDAP record containing the user’s avatar."},
-			&cli.StringFlag{Name: "user-dn", Usage: "The user's DN.", Required: true}},
+			&cli.StringFlag{Name: "user-dn", Usage: "The user's DN.", Required: true},
+		},
 	}
 }
 
@@ -173,7 +174,8 @@ func newMicrocmdAuthUpdateLdapSimpleAuth() *cli.Command {
 			&cli.BoolFlag{Name: "skip-local-2fa", Usage: "Set to true to skip local 2fa for users authenticated by this source"},
 			&cli.StringFlag{Name: "avatar-attribute", Usage: "The attribute of the user’s LDAP record containing the user’s avatar."},
 			&cli.StringFlag{Name: "user-dn", Usage: "The user's DN."},
-		}}
+		},
+	}
 }
 
 // newAuthService creates a service with default functions.

@@ -18,7 +18,6 @@ import (
 )
 
 func TestAdminUserCreate(t *testing.T) {
-
 	reset := func() {
 		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.User{}))
 		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.EmailAddress{}))

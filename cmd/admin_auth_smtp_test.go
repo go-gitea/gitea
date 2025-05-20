@@ -258,7 +258,6 @@ func TestUpdateSMTP(t *testing.T) {
 						},
 						TwoFactorPolicy: "skip",
 					}, nil
-
 				},
 
 				updateAuthSource: func(ctx context.Context, source *auth_model.Source) error {
