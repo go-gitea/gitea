@@ -6605,6 +6605,20 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only commits after this date will be returned (ISO 8601 format)",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only commits before this date will be returned (ISO 8601 format)",
+            "name": "until",
+            "in": "query"
+          },
+          {
             "type": "boolean",
             "description": "include diff stats for every commit (disable for speedup, default 'true')",
             "name": "stat",
