@@ -101,6 +101,8 @@ type Repository struct {
 	AllowSquash                   bool             `json:"allow_squash_merge"`
 	AllowFastForwardOnly          bool             `json:"allow_fast_forward_only_merge"`
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
+	AllowManualMerge              bool             `json:"allow_manual_merge"`
+	AutodetectManualMerge         bool             `json:"autodetect_manual_merge"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`

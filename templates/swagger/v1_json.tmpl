@@ -6605,6 +6605,20 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only commits after this date will be returned (ISO 8601 format)",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only commits before this date will be returned (ISO 8601 format)",
+            "name": "until",
+            "in": "query"
+          },
+          {
             "type": "boolean",
             "description": "include diff stats for every commit (disable for speedup, default 'true')",
             "name": "stat",
@@ -26184,6 +26198,10 @@
           "type": "boolean",
           "x-go-name": "AllowFastForwardOnly"
         },
+        "allow_manual_merge": {
+          "type": "boolean",
+          "x-go-name": "AllowManualMerge"
+        },
         "allow_merge_commits": {
           "type": "boolean",
           "x-go-name": "AllowMerge"
@@ -26212,6 +26230,10 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "ArchivedAt"
+        },
+        "autodetect_manual_merge": {
+          "type": "boolean",
+          "x-go-name": "AutodetectManualMerge"
         },
         "avatar_url": {
           "type": "string",

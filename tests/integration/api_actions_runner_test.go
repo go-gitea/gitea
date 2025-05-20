@@ -329,4 +329,12 @@ func testActionsRunnerRepo(t *testing.T) {
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 34349)).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
+
+	t.Run("DeleteAdminRunnerNotFoundUnknownID", func(t *testing.T) {
+		userUsername := "user2"
+		token := getUserToken(t, userUsername, auth_model.AccessTokenScopeWriteRepository)
+		// Verify delete a runner by unknown id is not found
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/user2/repo1/actions/runners/%d", 4384797347934)).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
 }
