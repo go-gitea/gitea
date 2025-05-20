@@ -6,7 +6,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
-type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
+type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
 
 type CommitStatusMap = {
   [status in CommitStatus]: {
