@@ -80,7 +80,10 @@ func microcmdAuthUpdateSMTP() *cli.Command {
 		Name:   "update-smtp",
 		Usage:  "Update existing SMTP authentication source",
 		Action: newAuthService().runUpdateSMTP,
-		Flags:  append(smtpCLIFlags()[:1], append([]cli.Flag{idFlag}, smtpCLIFlags()[1:]...)...),
+		Flags: append(smtpCLIFlags()[:1], append([]cli.Flag{&cli.Int64Flag{
+			Name:  "id",
+			Usage: "ID of authentication source",
+		}}, smtpCLIFlags()[1:]...)...),
 	}
 }
 func microcmdAuthAddSMTP() *cli.Command {

@@ -16,8 +16,8 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	oauthCLIFlags = []cli.Flag{
+func oauthCLIFlags() []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:  "name",
 			Value: "",
@@ -122,21 +122,28 @@ var (
 			Usage: "Activate automatic team membership removal depending on groups",
 		},
 	}
+}
 
-	microcmdAuthAddOauth = &cli.Command{
+func microcmdAuthAddOauth() *cli.Command {
+	return &cli.Command{
 		Name:   "add-oauth",
 		Usage:  "Add new Oauth authentication source",
-		Action: runAddOauth,
-		Flags:  oauthCLIFlags,
+		Action: newAuthService().runAddOauth,
+		Flags:  oauthCLIFlags(),
 	}
+}
 
-	microcmdAuthUpdateOauth = &cli.Command{
+func microcmdAuthUpdateOauth() *cli.Command {
+	return &cli.Command{
 		Name:   "update-oauth",
 		Usage:  "Update existing Oauth authentication source",
-		Action: runUpdateOauth,
-		Flags:  append(oauthCLIFlags[:1], append([]cli.Flag{idFlag}, oauthCLIFlags[1:]...)...),
+		Action: newAuthService().runUpdateOauth,
+		Flags: append(oauthCLIFlags()[:1], append([]cli.Flag{&cli.Int64Flag{
+			Name:  "id",
+			Usage: "ID of authentication source",
+		}}, oauthCLIFlags()[1:]...)...),
 	}
-)
+}
 
 func parseOAuth2Config(c *cli.Command) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
@@ -169,11 +176,11 @@ func parseOAuth2Config(c *cli.Command) *oauth2.Source {
 	}
 }
 
-func runAddOauth(_ context.Context, c *cli.Command) error {
+func (a *authService) runAddOauth(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	if err := initDB(ctx); err != nil {
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -185,7 +192,7 @@ func runAddOauth(_ context.Context, c *cli.Command) error {
 		}
 	}
 
-	return auth_model.CreateSource(ctx, &auth_model.Source{
+	return a.createAuthSource(ctx, &auth_model.Source{
 		Type:            auth_model.OAuth2,
 		Name:            c.String("name"),
 		IsActive:        true,
@@ -194,7 +201,7 @@ func runAddOauth(_ context.Context, c *cli.Command) error {
 	})
 }
 
-func runUpdateOauth(_ context.Context, c *cli.Command) error {
+func (a *authService) runUpdateOauth(_ context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}
@@ -202,11 +209,11 @@ func runUpdateOauth(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	if err := initDB(ctx); err != nil {
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
-	source, err := auth_model.GetSourceByID(ctx, c.Int64("id"))
+	source, err := a.getAuthSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -297,5 +304,5 @@ func runUpdateOauth(_ context.Context, c *cli.Command) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 	source.TwoFactorPolicy = util.Iif(c.Bool("skip-local-2fa"), "skip", "")
-	return auth_model.UpdateSource(ctx, source)
+	return a.updateAuthSource(ctx, source)
 }

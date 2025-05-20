@@ -51,8 +51,8 @@ var (
 		Name:  "auth",
 		Usage: "Modify external auth providers",
 		Commands: []*cli.Command{
-			microcmdAuthAddOauth,
-			microcmdAuthUpdateOauth,
+			microcmdAuthAddOauth(),
+			microcmdAuthUpdateOauth(),
 			newMicrocmdAuthAddLdapBindDn(),
 			newMicrocmdAuthUpdateLdapBindDn(),
 			newMicrocmdAuthAddLdapSimpleAuth(),
