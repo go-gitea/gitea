@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -15,8 +16,8 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	smtpCLIFlags = []cli.Flag{
+func smtpCLIFlags() []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:  "name",
 			Value: "",
@@ -72,21 +73,24 @@ var (
 			Value: true,
 		},
 	}
+}
 
-	microcmdAuthAddSMTP = &cli.Command{
-		Name:   "add-smtp",
-		Usage:  "Add new SMTP authentication source",
-		Action: runAddSMTP,
-		Flags:  smtpCLIFlags,
-	}
-
-	microcmdAuthUpdateSMTP = &cli.Command{
+func microcmdAuthUpdateSMTP() *cli.Command {
+	return &cli.Command{
 		Name:   "update-smtp",
 		Usage:  "Update existing SMTP authentication source",
-		Action: runUpdateSMTP,
-		Flags:  append(smtpCLIFlags[:1], append([]cli.Flag{idFlag}, smtpCLIFlags[1:]...)...),
+		Action: newAuthService().runUpdateSMTP,
+		Flags:  append(smtpCLIFlags()[:1], append([]cli.Flag{idFlag}, smtpCLIFlags()[1:]...)...),
 	}
-)
+}
+func microcmdAuthAddSMTP() *cli.Command {
+	return &cli.Command{
+		Name:   "add-smtp",
+		Usage:  "Add new SMTP authentication source",
+		Action: newAuthService().runAddSMTP,
+		Flags:  smtpCLIFlags(),
+	}
+}
 
 func parseSMTPConfig(c *cli.Command, conf *smtp.Source) error {
 	if c.IsSet("auth-type") {
@@ -121,11 +125,11 @@ func parseSMTPConfig(c *cli.Command, conf *smtp.Source) error {
 	return nil
 }
 
-func runAddSMTP(_ context.Context, c *cli.Command) error {
+func (a *authService) runAddSMTP(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	if err := initDB(ctx); err != nil {
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -140,6 +144,7 @@ func runAddSMTP(_ context.Context, c *cli.Command) error {
 	}
 	active := true
 	if c.IsSet("active") {
+		fmt.Println("Active is set!", c.Bool("active"))
 		active = c.Bool("active")
 	}
 
@@ -153,7 +158,7 @@ func runAddSMTP(_ context.Context, c *cli.Command) error {
 		smtpConfig.Auth = "PLAIN"
 	}
 
-	return auth_model.CreateSource(ctx, &auth_model.Source{
+	return a.createAuthSource(ctx, &auth_model.Source{
 		Type:            auth_model.SMTP,
 		Name:            c.String("name"),
 		IsActive:        active,
@@ -162,7 +167,7 @@ func runAddSMTP(_ context.Context, c *cli.Command) error {
 	})
 }
 
-func runUpdateSMTP(_ context.Context, c *cli.Command) error {
+func (a *authService) runUpdateSMTP(_ context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}
@@ -170,11 +175,11 @@ func runUpdateSMTP(_ context.Context, c *cli.Command) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	if err := initDB(ctx); err != nil {
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
-	source, err := auth_model.GetSourceByID(ctx, c.Int64("id"))
+	source, err := a.getAuthSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -195,5 +200,5 @@ func runUpdateSMTP(_ context.Context, c *cli.Command) error {
 
 	source.Cfg = smtpConfig
 	source.TwoFactorPolicy = util.Iif(c.Bool("skip-local-2fa"), "skip", "")
-	return auth_model.UpdateSource(ctx, source)
+	return a.updateAuthSource(ctx, source)
 }
