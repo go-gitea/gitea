@@ -835,10 +835,7 @@ type CountUserFilter struct {
 // It performs a much more efficient check than counting all users.
 func HasUsers(ctx context.Context) (bool, error) {
 	sess := db.GetEngine(ctx)
-	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"type": UserTypeIndividual})
-
-	exists, err := sess.Where(cond).Limit(1).Exist(new(User))
+	exists, err := sess.Exist(new(User))
 	if err != nil {
 		return false, fmt.Errorf("error checking user existence: %w", err)
 	}
