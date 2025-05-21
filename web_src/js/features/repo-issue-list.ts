@@ -1,5 +1,5 @@
 import {updateIssuesMeta} from './repo-common.ts';
-import {toggleElem, isElemHidden, queryElems} from '../utils/dom.ts';
+import {toggleElem, queryElems, isElemVisible} from '../utils/dom.ts';
 import {htmlEscape} from 'escape-goat';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -33,8 +33,8 @@ function initRepoIssueListCheckboxes() {
     toggleElem('#issue-filters', !anyChecked);
     toggleElem('#issue-actions', anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
-    const panels = document.querySelectorAll('#issue-filters, #issue-actions');
-    const visiblePanel = Array.from(panels).find((el) => !isElemHidden(el));
+    const panels = document.querySelectorAll<HTMLElement>('#issue-filters, #issue-actions');
+    const visiblePanel = Array.from(panels).find((el) => isElemVisible(el));
     const toolbarLeft = visiblePanel.querySelector('.issue-list-toolbar-left');
     toolbarLeft.prepend(issueSelectAll);
   };

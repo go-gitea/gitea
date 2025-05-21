@@ -200,5 +200,3 @@ func TestListToPushCommits(t *testing.T) {
 		assert.Equal(t, now, pushCommits.Commits[1].Timestamp)
 	}
 }
-
-// TODO TestPushUpdate

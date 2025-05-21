@@ -162,22 +162,6 @@ func NewFuncMap() template.FuncMap {
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,
-
-		// for backward compatibility only, do not use them anymore
-		"TimeSince":     timeSinceLegacy,
-		"TimeSinceUnix": timeSinceLegacy,
-		"DateTime":      dateTimeLegacy,
-
-		"RenderEmoji":      renderEmojiLegacy,
-		"RenderLabel":      renderLabelLegacy,
-		"RenderLabels":     renderLabelsLegacy,
-		"RenderIssueTitle": renderIssueTitleLegacy,
-
-		"RenderMarkdownToHtml": renderMarkdownToHtmlLegacy,
-
-		"RenderCommitMessage":            renderCommitMessageLegacy,
-		"RenderCommitMessageLinkSubject": renderCommitMessageLinkSubjectLegacy,
-		"RenderCommitBody":               renderCommitBodyLegacy,
 	}
 }
 
@@ -366,8 +350,4 @@ func QueryBuild(a ...any) template.URL {
 		}
 	}
 	return template.URL(s)
-}
-
-func panicIfDevOrTesting() {
-	setting.PanicInDevOrTesting("legacy template functions are for backward compatibility only, do not use them in new code")
 }

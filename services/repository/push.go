@@ -283,7 +283,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 			}
 		}
 		// Update the is empty and default_branch columns
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_branch", "is_empty"); err != nil {
+		if err := repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "default_branch", "is_empty"); err != nil {
 			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 		}
 	}

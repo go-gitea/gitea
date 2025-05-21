@@ -706,6 +706,11 @@ func EditPullRequest(ctx *context.APIContext) {
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
+		issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, form.Milestone)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 		if err = issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -1632,7 +1637,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	apiFiles := make([]*api.ChangedFile, 0, limit)
 	for i := start; i < start+limit; i++ {
-		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
+		// refs/pull/1/head stores the HEAD commit ID, allowing all related commits to be found in the base repository.
+		// The head repository might have been deleted, so we should not rely on it here.
+		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.BaseRepo, endCommitID))
 	}
 
 	ctx.SetLinkHeader(totalNumberOfFiles, listOptions.PageSize)

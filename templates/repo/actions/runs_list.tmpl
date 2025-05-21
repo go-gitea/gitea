@@ -5,37 +5,46 @@
 		<h2>{{if $.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else}}{{ctx.Locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
 	</div>
 	{{end}}
-	{{range .Runs}}
+	{{range $run := .Runs}}
 		<div class="flex-item tw-items-center">
 			<div class="flex-item-leading">
-				{{template "repo/actions/status" (dict "status" .Status.String)}}
+				{{template "repo/actions/status" (dict "status" $run.Status.String)}}
 			</div>
 			<div class="flex-item-main">
-				<a class="flex-item-title" title="{{.Title}}" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-					{{if .Title}}{{.Title}}{{else}}{{ctx.Locale.Tr "actions.runs.empty_commit_message"}}{{end}}
+				<a class="flex-item-title" title="{{$run.Title}}" href="{{$run.Link}}">
+					{{or $run.Title (ctx.Locale.Tr "actions.runs.empty_commit_message")}}
 				</a>
 				<div class="flex-item-body">
-					<span><b>{{if not $.CurWorkflow}}{{.WorkflowID}} {{end}}#{{.Index}}</b>:</span>
-					{{- if .ScheduleID -}}
+					<span><b>{{if not $.CurWorkflow}}{{$run.WorkflowID}} {{end}}#{{$run.Index}}</b>:</span>
+					{{- if $run.ScheduleID -}}
 						{{ctx.Locale.Tr "actions.runs.scheduled"}}
 					{{- else -}}
 						{{ctx.Locale.Tr "actions.runs.commit"}}
-						<a href="{{$.RepoLink}}/commit/{{.CommitSHA}}">{{ShortSha .CommitSHA}}</a>
+						<a href="{{$.RepoLink}}/commit/{{$run.CommitSHA}}">{{ShortSha $run.CommitSHA}}</a>
 						{{ctx.Locale.Tr "actions.runs.pushed_by"}}
-						<a href="{{.TriggerUser.HomeLink}}">{{.TriggerUser.GetDisplayName}}</a>
+						<a href="{{$run.TriggerUser.HomeLink}}">{{$run.TriggerUser.GetDisplayName}}</a>
 					{{- end -}}
 				</div>
 			</div>
 			<div class="flex-item-trailing">
-				{{if .IsRefDeleted}}
-					<span class="ui label run-list-ref gt-ellipsis tw-line-through" data-tooltip-content="{{.PrettyRef}}">{{.PrettyRef}}</span>
+				{{if $run.IsRefDeleted}}
+					<span class="ui label run-list-ref gt-ellipsis tw-line-through" data-tooltip-content="{{$run.PrettyRef}}">{{$run.PrettyRef}}</span>
 				{{else}}
-					<a class="ui label run-list-ref gt-ellipsis" href="{{.RefLink}}" data-tooltip-content="{{.PrettyRef}}">{{.PrettyRef}}</a>
+					<a class="ui label run-list-ref gt-ellipsis" href="{{$run.RefLink}}" data-tooltip-content="{{$run.PrettyRef}}">{{$run.PrettyRef}}</a>
 				{{end}}
 				<div class="run-list-item-right">
-					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince .Updated}}</div>
-					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{.Duration}}</div>
+					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince $run.Updated}}</div>
+					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{$run.Duration}}</div>
 				</div>
+				{{if and ($.AllowDeleteWorkflowRuns) ($run.Status.IsDone)}}
+					<button class="btn interact-bg link-action tw-p-2"
+						data-url="{{$run.Link}}/delete"
+						data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"
+						data-tooltip-content="{{ctx.Locale.Tr "actions.runs.delete"}}"
+					>
+						{{svg "octicon-trash"}}
+					</button>
+				{{end}}
 			</div>
 		</div>
 	{{end}}

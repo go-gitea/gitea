@@ -66,7 +66,7 @@ require (
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/google/go-github/v61 v61.0.0
+	github.com/google/go-github/v71 v71.0.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20250422154841-e1f9c1950416
 	github.com/google/uuid v1.6.0
@@ -317,7 +317,7 @@ replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.261.4
+replace github.com/nektos/act => gitea.com/gitea/act v0.261.6
 
 // TODO: the only difference is in `PutObject`: the fork doesn't use `NewVerifyingReader(r, sha256.New(), oid, expectedSize)`, need to figure out why
 replace github.com/charmbracelet/git-lfs-transfer => gitea.com/gitea/git-lfs-transfer v0.2.0

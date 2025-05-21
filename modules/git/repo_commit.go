@@ -89,7 +89,8 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	return commits[0], nil
 }
 
-func (repo *Repository) commitsByRange(id ObjectID, page, pageSize int, not string) ([]*Commit, error) {
+// commitsByRangeWithTime returns the specific page commits before current revision, with not, since, until support
+func (repo *Repository) commitsByRangeWithTime(id ObjectID, page, pageSize int, not, since, until string) ([]*Commit, error) {
 	cmd := NewCommand("log").
 		AddOptionFormat("--skip=%d", (page-1)*pageSize).
 		AddOptionFormat("--max-count=%d", pageSize).
@@ -98,6 +99,12 @@ func (repo *Repository) commitsByRange(id ObjectID, page, pageSize int, not stri
 
 	if not != "" {
 		cmd.AddOptionValues("--not", not)
+	}
+	if since != "" {
+		cmd.AddOptionFormat("--since=%s", since)
+	}
+	if until != "" {
+		cmd.AddOptionFormat("--until=%s", until)
 	}
 
 	stdout, _, err := cmd.RunStdBytes(repo.Ctx, &RunOpts{Dir: repo.Path})
@@ -212,6 +219,8 @@ type CommitsByFileAndRangeOptions struct {
 	File     string
 	Not      string
 	Page     int
+	Since    string
+	Until    string
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
@@ -230,6 +239,12 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 
 		if opts.Not != "" {
 			gitCmd.AddOptionValues("--not", opts.Not)
+		}
+		if opts.Since != "" {
+			gitCmd.AddOptionFormat("--since=%s", opts.Since)
+		}
+		if opts.Until != "" {
+			gitCmd.AddOptionFormat("--until=%s", opts.Until)
 		}
 
 		gitCmd.AddDashesAndList(opts.File)
