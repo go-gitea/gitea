@@ -8,7 +8,7 @@
 					{{template "repo/commit_sign_badge" dict "Commit" $commit.Commit "CommitBaseLink" (print $.RepoLink "/commit") "CommitSignVerification" $commit.Verification}}
 
 					<span class="message tw-inline-block gt-ellipsis">
-						<span>{{ctx.RenderUtils.RenderCommitMessage $commit.Subject ($.Repository.ComposeCommentMetas ctx)}}</span>
+						<span>{{ctx.RenderUtils.RenderCommitMessage $commit.Subject $.Repository}}</span>
 					</span>
 
 					<span class="commit-refs flex-text-inline">

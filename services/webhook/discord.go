@@ -305,7 +305,7 @@ func parseHookPullRequestEventType(event webhook_module.HookEventType) (string, 
 	case webhook_module.HookEventPullRequestReviewApproved:
 		return "approved", nil
 	case webhook_module.HookEventPullRequestReviewRejected:
-		return "rejected", nil
+		return "requested changes", nil
 	case webhook_module.HookEventPullRequestReviewComment:
 		return "comment", nil
 	default:
