@@ -138,7 +138,7 @@ func TestAPIRepoVariables(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", url, api.CreateVariableOption{
 			Value: "initial_val",
 		}).AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusCreated)
 
 		req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)

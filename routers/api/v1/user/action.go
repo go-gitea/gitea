@@ -162,7 +162,7 @@ func CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // UpdateVariable update a user-level variable which is created by current doer
