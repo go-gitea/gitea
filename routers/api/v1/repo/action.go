@@ -373,7 +373,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // UpdateVariable update a repo-level variable
