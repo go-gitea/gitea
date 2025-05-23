@@ -924,17 +924,40 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
 		ctx.Data["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
 		ctx.Data["TreePath"] = ctx.Repo.TreePath
-
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
-
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
-
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
 
-		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
-		if err != nil {
-			ctx.ServerError("GetCommitsCount", err)
-			return
+		// if it's a tag, we just get the commits count from database
+		if ctx.Repo.RefFullName.IsTag() {
+			rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.TagName())
+			if err != nil {
+				if repo_model.IsErrReleaseNotExist(err) {
+					ctx.NotFound(err)
+					return
+				}
+				ctx.ServerError("GetRelease", err)
+				return
+			}
+			// for mirror tags, the number of commist may not be set
+			if rel.NumCommits <= 0 {
+				rel.NumCommits, err = ctx.Repo.GetCommitsCount()
+				if err != nil {
+					ctx.ServerError("GetCommitsCount", err)
+					return
+				}
+				if err := repo_model.UpdateReleaseNumCommits(ctx, rel); err != nil {
+					ctx.ServerError("UpdateReleaseNumCommits", err)
+					return
+				}
+			}
+			ctx.Repo.CommitsCount = rel.NumCommits
+		} else {
+			ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+			if err != nil {
+				ctx.ServerError("GetCommitsCount", err)
+				return
+			}
 		}
 		if ctx.Repo.RefFullName.IsTag() {
 			rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.TagName())
