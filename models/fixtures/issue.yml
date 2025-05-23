@@ -372,3 +372,57 @@
   created_unix: 1707270422
   updated_unix: 1707270422
   is_locked: false
+
+-
+  id: 23
+  repo_id: 63
+  index: 1
+  poster_id: 40
+  original_author_id: 0
+  name: repo62 pull1
+  content: this pr is created, merged and updated first
+  milestone_id: 0
+  priority: 0
+  is_closed: true
+  is_pull: true
+  num_comments: 0
+  created_unix: 1707270000
+  updated_unix: 1707270001
+  closed_unix: 1707270001
+  is_locked: false
+
+-
+  id: 24
+  repo_id: 63
+  index: 2
+  poster_id: 40
+  original_author_id: 0
+  name: repo62 pull2
+  content: this pr is created and merged second but updated latest
+  milestone_id: 0
+  priority: 0
+  is_closed: true
+  is_pull: true
+  num_comments: 0
+  created_unix: 1707270001
+  updated_unix: 1707279999
+  closed_unix: 1707271000
+  is_locked: false
+
+-
+  id: 25
+  repo_id: 63
+  index: 3
+  poster_id: 40
+  original_author_id: 0
+  name: repo62 pull3
+  content: this pr is created, merged latest but updated before merge
+  milestone_id: 0
+  priority: 0
+  is_closed: true
+  is_pull: true
+  num_comments: 0
+  created_unix: 1707279999
+  updated_unix: 1707275555
+  closed_unix: 1707279999
+  is_locked: false
