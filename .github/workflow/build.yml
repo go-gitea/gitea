@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - feature_branch
-  # Trigger on push to the dev branch just try
+  # Trigger on push to the dev branch just
 
 jobs:
   build:
