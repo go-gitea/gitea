@@ -76,6 +76,52 @@ func TestPullRequestsNewest(t *testing.T) {
 	}
 }
 
+func TestPullRequestsRecentClosed(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	prs, _, err := issues_model.PullRequests(db.DefaultContext, 63, &issues_model.PullRequestsOptions{
+		ListOptions: db.ListOptions{
+			Page: 1,
+		},
+		State:    "closed",
+		SortType: "recentclose",
+	})
+	assert.NoError(t, err)
+
+	// Pull ID | Closed At.  | Updated At
+	//    11   | 1707270001  | 1707270001
+	//    12   | 1707271000  | 1707279999
+	//    13   | 1707279999  | 1707275555
+
+	if assert.Len(t, prs, 3) {
+		assert.EqualValues(t, 13, prs[0].ID)
+		assert.EqualValues(t, 12, prs[1].ID)
+		assert.EqualValues(t, 11, prs[2].ID)
+	}
+}
+
+func TestPullRequestsRecentUpdate(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	prs, _, err := issues_model.PullRequests(db.DefaultContext, 63, &issues_model.PullRequestsOptions{
+		ListOptions: db.ListOptions{
+			Page: 1,
+		},
+		State:    "closed",
+		SortType: "recentupdate",
+	})
+	assert.NoError(t, err)
+
+	// Pull ID | Closed At.  | Updated At
+	//    11   | 1707270001  | 1707270001
+	//    12   | 1707271000  | 1707279999
+	//    13   | 1707279999  | 1707275555
+
+	if assert.Len(t, prs, 3) {
+		assert.EqualValues(t, 12, prs[0].ID)
+		assert.EqualValues(t, 13, prs[1].ID)
+		assert.EqualValues(t, 11, prs[2].ID)
+	}
+}
+
 func TestLoadRequestedReviewers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

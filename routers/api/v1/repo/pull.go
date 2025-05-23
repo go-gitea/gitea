@@ -73,7 +73,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	//   in: query
 	//   description: Type of sort
 	//   type: string
-	//   enum: [oldest, recentupdate, leastupdate, mostcomment, leastcomment, priority]
+	//   enum: [oldest, recentupdate, recentclose, leastupdate, mostcomment, leastcomment, priority]
 	// - name: milestone
 	//   in: query
 	//   description: ID of the milestone

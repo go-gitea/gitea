@@ -117,3 +117,33 @@
   index: 1
   head_repo_id: 61
   base_repo_id: 61
+
+-
+  id: 11
+  issue_id: 23
+  type: 0 # gitea pull request
+  index: 1
+  head_repo_id: 63
+  base_repo_id: 63
+  has_merged: true
+  merged_unix: 1707270001
+
+-
+  id: 12
+  issue_id: 24
+  type: 0 # gitea pull request
+  index: 2
+  head_repo_id: 63
+  base_repo_id: 63
+  has_merged: true
+  merged_unix: 1707271000 # merged before someone commented again
+
+-
+  id: 13
+  issue_id: 25
+  type: 0 # gitea pull request
+  index: 3
+  head_repo_id: 63
+  base_repo_id: 63
+  has_merged: true
+  merged_unix: 1707279999
