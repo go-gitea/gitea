@@ -35,7 +35,9 @@ func getWikiWorkingLockKey(repoID int64) string {
 // InitWiki initializes a wiki for repository,
 // it does nothing when repository already has wiki.
 func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
-	if repo.HasWiki() {
+	if exist, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo()); err != nil {
+		return err
+	} else if exist {
 		return nil
 	}
 
@@ -355,7 +357,14 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return err
 	}
 
-	system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
+	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
+		desc := fmt.Sprintf("Delete wiki repository files [%s]: %v", repo.FullName(), err)
+		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
+		if err = system_model.CreateNotice(db.DefaultContext, system_model.NoticeRepository, desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -369,7 +378,9 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return fmt.Errorf("unable to update database: %w", err)
 		}
 
-		if !repo.HasWiki() {
+		if exist, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo()); err != nil {
+			return err
+		} else if !exist {
 			return nil
 		}
 
