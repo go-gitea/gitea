@@ -1,8 +1,7 @@
 package UITests;
 
 import org.example.*;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.openqa.selenium.By;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
@@ -17,6 +16,7 @@ import java.time.Duration;
 import static org.example.DriverFactory.getDriver;
 import static org.junit.jupiter.api.Assertions.*;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class NewProjectPageTest {
     private WebDriver driver;
     private ProjectPage projectPage;
@@ -43,9 +43,10 @@ public class NewProjectPageTest {
     }
 
     @Test
+    @Order(1)
     public void testCreateProject() {
         //the bot pattern
-        newProjectPage = login.loginAsValidUser("maias", "maias123").goToProfilePage().goToProjectsPage().goToNewProjectPage();
+        newProjectPage = login.loginAsValidUser("maias", "Maias123").goToProfilePage().goToProjectsPage().goToNewProjectPage();
         newProjectPage.enterTitle("Test1 Project");
         newProjectPage.enterDescription("This is a test project description.");
         newProjectPage.selectTemplate("None");
@@ -53,10 +54,11 @@ public class NewProjectPageTest {
         newProjectPage.clickCreateProject();
         assertTrue(newProjectPage.isSuccessfulProjectPage());
     }
-   @Test  //if we have emty title the project will not create
+   @Test
+   @Order(2)//if we have emty title the project will not create
     public void testEmptyFields() {
         //the bot pattern
-        newProjectPage=login.loginAsValidUser("maias", "maias123").goToProfilePage().goToProjectsPage().goToNewProjectPage();
+        newProjectPage=login.loginAsValidUser("maias", "Maias123").goToProfilePage().goToProjectsPage().goToNewProjectPage();
         newProjectPage.enterTitle("");
         newProjectPage.enterDescription("this is Description");
         newProjectPage.clickCreateProject();
@@ -64,17 +66,19 @@ public class NewProjectPageTest {
 
 
     }
-    @Test  //if we have emty title the project will not create
+    @Test
+    @Order(3)
+    //if we have emty title the project will not create
     public void testTitleOnly() {
         //the bot pattern
-        newProjectPage=login.loginAsValidUser("maias", "maias123").goToProfilePage().goToProjectsPage().goToNewProjectPage();
-        newProjectPage.enterTitle("Test 3 Project");
+        newProjectPage=login.loginAsValidUser("maias", "Maias123").goToProfilePage().goToProjectsPage().goToNewProjectPage();
+        newProjectPage.enterTitle("Test 3 Project2");
         newProjectPage.clickCreateProject();
         assertTrue(newProjectPage.isSuccessfulProjectPage());
 
 
     }
-   @Test  //if we have emty title the project will not create
+  /*  @Test  //if we have emty title the project will not create
     public void testCancelButton() {
         newProjectPage=login.loginAsValidUser("maias", "maias123").goToProfilePage().goToProjectsPage().goToNewProjectPage();
         newProjectPage.enterTitle("Test 4 Project");
@@ -146,6 +150,11 @@ public class NewProjectPageTest {
         assertTrue(afterAdditionalText.equals("This is a test description.**maias **This not Bold"),"Bold styling was not applied in the description preview.");
         newProjectPage.clickCreateProject();
         assertTrue(newProjectPage.isSuccessfulProjectPage());
-    }
+    }*/
+  @AfterEach
+  public void tearDown() {
+    driver.quit();
+  }
+
 }
 

@@ -17,12 +17,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 public class APITestGiteaTest {
 
     private static final String owner = "maias";
-    private static final String apiToken = "c8a457697a30f6ddca2e551d061343a898dc0dac";
+    private static final String apiToken = "ba31311e2491c43ab847ad33f1ba7159ae453fdc";
     private static final String projectName = "newRepoAPITest";
 
     @BeforeAll
     public static void setup() {
-        String dbUrl = "http://localhost:3001";
+        String dbUrl = "http://localhost:3000";
         //String baseURL="https://a7bd-2a06-c701-78fb-bc00-e162-b721-5502-6b4b.ngrok-free.app";
         RestAssured.baseURI =dbUrl + "/api/v1";
         //System.out.println(dbUrl);
