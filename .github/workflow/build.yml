@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Step 2: Set up Go (Gitea is written in Go)
+      # Step 2: Set up Go (Gitea is written in Go) yes yesy se
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
