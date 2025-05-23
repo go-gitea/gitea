@@ -719,7 +719,7 @@ func TestWorkflowDispatchPublicApi(t *testing.T) {
 				{
 					Operation: "create",
 					TreePath:  ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader(`name: test
+					ContentReader: strings.NewReader(`
 on:
   workflow_dispatch
 jobs:
@@ -799,7 +799,7 @@ func TestWorkflowDispatchPublicApiWithInputs(t *testing.T) {
 				{
 					Operation: "create",
 					TreePath:  ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader(`name: test
+					ContentReader: strings.NewReader(`
 on:
   workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
 jobs:
@@ -890,7 +890,7 @@ func TestWorkflowDispatchPublicApiJSON(t *testing.T) {
 				{
 					Operation: "create",
 					TreePath:  ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader(`name: test
+					ContentReader: strings.NewReader(`
 on:
   workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
 jobs:
@@ -976,7 +976,7 @@ func TestWorkflowDispatchPublicApiWithInputsJSON(t *testing.T) {
 				{
 					Operation: "create",
 					TreePath:  ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader(`name: test
+					ContentReader: strings.NewReader(`
 on:
   workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
 jobs:
@@ -1070,7 +1070,7 @@ func TestWorkflowDispatchPublicApiWithInputsNonDefaultBranchJSON(t *testing.T) {
 				{
 					Operation: "create",
 					TreePath:  ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader(`name: test
+					ContentReader: strings.NewReader(`
 on:
   workflow_dispatch
 jobs:
@@ -1106,7 +1106,7 @@ jobs:
 				{
 					Operation: "update",
 					TreePath:  ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader(`name: test
+					ContentReader: strings.NewReader(`
 on:
   workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
 jobs:
@@ -1208,7 +1208,7 @@ func TestWorkflowApi(t *testing.T) {
 				{
 					Operation: "create",
 					TreePath:  ".gitea/workflows/dispatch.yml",
-					ContentReader: strings.NewReader(`name: test
+					ContentReader: strings.NewReader(`
 on:
   workflow_dispatch: { inputs: { myinput: { default: def }, myinput2: { default: def2 }, myinput3: { type: boolean, default: false } } }
 jobs:
