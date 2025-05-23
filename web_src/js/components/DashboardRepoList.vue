@@ -6,7 +6,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
-type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning';
+type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
 
 type CommitStatusMap = {
   [status in CommitStatus]: {
@@ -22,6 +22,7 @@ const commitStatus: CommitStatusMap = {
   error: {name: 'gitea-exclamation', color: 'red'},
   failure: {name: 'octicon-x', color: 'red'},
   warning: {name: 'gitea-exclamation', color: 'yellow'},
+  skipped: {name: 'octicon-skip', color: 'grey'},
 };
 
 export default defineComponent({
