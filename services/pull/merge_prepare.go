@@ -27,7 +27,7 @@ type mergeContext struct {
 	doer      *user_model.User
 	sig       *git.Signature
 	committer *git.Signature
-	signKeyID string // empty for no-sign, non-empty to sign
+	signKey   git.SigningKey // empty for no-sign, non-empty to sign
 	env       []string
 }
 
@@ -101,7 +101,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	// Determine if we should sign
 	sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, mergeCtx.pr, mergeCtx.doer, mergeCtx.tmpBasePath, "HEAD", trackingBranch)
 	if sign {
-		mergeCtx.signKeyID = keyID
+		mergeCtx.signKey = keyID
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			mergeCtx.committer = signer
 		}
