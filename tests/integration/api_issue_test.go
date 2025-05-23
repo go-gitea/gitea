@@ -306,7 +306,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 2)
+	assert.Len(t, apiIssues, 5)
 
 	query.Set("state", "all")
 	link.RawQuery = query.Encode()
