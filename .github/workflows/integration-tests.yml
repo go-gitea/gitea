@@ -1,9 +1,9 @@
 name: Gitea Setup and Testing
 
 on:
-  push:
-    branches:
-      - feature_branch
+ # push:
+   # branches:
+    #  - feature_branch
 
   pull_request:
     branches:
