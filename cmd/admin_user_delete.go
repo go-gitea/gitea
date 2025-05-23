@@ -42,13 +42,10 @@ var microcmdUserDelete = &cli.Command{
 	Action: runDeleteUser,
 }
 
-func runDeleteUser(_ context.Context, c *cli.Command) error {
+func runDeleteUser(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("id") && !c.IsSet("username") && !c.IsSet("email") {
 		return errors.New("You must provide the id, username or email of a user to delete")
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	if err := initDB(ctx); err != nil {
 		return err

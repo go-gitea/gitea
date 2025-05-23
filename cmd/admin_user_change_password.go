@@ -42,13 +42,10 @@ var microcmdUserChangePassword = &cli.Command{
 	},
 }
 
-func runChangePassword(_ context.Context, c *cli.Command) error {
+func runChangePassword(ctx context.Context, c *cli.Command) error {
 	if err := argsSet(c, "username", "password"); err != nil {
 		return err
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	if err := initDB(ctx); err != nil {
 		return err

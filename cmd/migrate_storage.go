@@ -213,11 +213,8 @@ func migrateActionsArtifacts(ctx context.Context, dstStorage storage.ObjectStora
 	})
 }
 
-func runMigrateStorage(_ context.Context, cmd *cli.Command) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(stdCtx); err != nil {
+func runMigrateStorage(ctx context.Context, cmd *cli.Command) error {
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -248,13 +245,13 @@ func runMigrateStorage(_ context.Context, cmd *cli.Command) error {
 			return nil
 		}
 		dstStorage, err = storage.NewLocalStorage(
-			stdCtx,
+			ctx,
 			&setting.Storage{
 				Path: p,
 			})
 	case string(setting.MinioStorageType):
 		dstStorage, err = storage.NewMinioStorage(
-			stdCtx,
+			ctx,
 			&setting.Storage{
 				MinioConfig: setting.MinioStorageConfig{
 					Endpoint:           cmd.String("minio-endpoint"),
@@ -271,7 +268,7 @@ func runMigrateStorage(_ context.Context, cmd *cli.Command) error {
 			})
 	case string(setting.AzureBlobStorageType):
 		dstStorage, err = storage.NewAzureBlobStorage(
-			stdCtx,
+			ctx,
 			&setting.Storage{
 				AzureBlobConfig: setting.AzureBlobStorageConfig{
 					Endpoint:    cmd.String("azureblob-endpoint"),
@@ -301,7 +298,7 @@ func runMigrateStorage(_ context.Context, cmd *cli.Command) error {
 
 	tp := strings.ToLower(cmd.String("type"))
 	if m, ok := migratedMethods[tp]; ok {
-		if err := m(stdCtx, dstStorage); err != nil {
+		if err := m(ctx, dstStorage); err != nil {
 			return err
 		}
 		log.Info("%s files have successfully been copied to the new storage.", tp)

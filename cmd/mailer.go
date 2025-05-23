@@ -13,10 +13,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func runSendMail(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runSendMail(ctx context.Context, c *cli.Command) error {
 	setting.MustInstalled()
 
 	if err := argsSet(c, "title"); err != nil {

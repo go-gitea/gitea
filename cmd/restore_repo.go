@@ -49,10 +49,7 @@ wiki, issues, labels, releases, release_assets, milestones, pull_requests, comme
 	},
 }
 
-func runRestoreRepository(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runRestoreRepository(ctx context.Context, c *cli.Command) error {
 	setting.MustInstalled()
 	var units []string
 	if s := c.String("units"); s != "" {

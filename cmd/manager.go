@@ -109,46 +109,31 @@ var (
 	}
 )
 
-func runShutdown(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runShutdown(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	extra := private.Shutdown(ctx)
 	return handleCliResponseExtra(extra)
 }
 
-func runRestart(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runRestart(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	extra := private.Restart(ctx)
 	return handleCliResponseExtra(extra)
 }
 
-func runReloadTemplates(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runReloadTemplates(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	extra := private.ReloadTemplates(ctx)
 	return handleCliResponseExtra(extra)
 }
 
-func runFlushQueues(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runFlushQueues(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	extra := private.FlushQueues(ctx, c.Duration("timeout"), c.Bool("non-blocking"))
 	return handleCliResponseExtra(extra)
 }
 
-func runProcesses(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runProcesses(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	extra := private.Processes(ctx, os.Stdout, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
 	return handleCliResponseExtra(extra)

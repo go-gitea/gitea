@@ -196,10 +196,7 @@ var (
 	}
 )
 
-func runRemoveLogger(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runRemoveLogger(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	logger := c.String("logger")
 	if len(logger) == 0 {
@@ -211,10 +208,7 @@ func runRemoveLogger(_ context.Context, c *cli.Command) error {
 	return handleCliResponseExtra(extra)
 }
 
-func runAddConnLogger(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runAddConnLogger(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	vals := map[string]any{}
 	mode := "conn"
@@ -238,13 +232,10 @@ func runAddConnLogger(_ context.Context, c *cli.Command) error {
 	if c.IsSet("reconnect-on-message") {
 		vals["reconnectOnMsg"] = c.Bool("reconnect-on-message")
 	}
-	return commonAddLogger(c, mode, vals)
+	return commonAddLogger(ctx, c, mode, vals)
 }
 
-func runAddFileLogger(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runAddFileLogger(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	vals := map[string]any{}
 	mode := "file"
@@ -271,10 +262,10 @@ func runAddFileLogger(_ context.Context, c *cli.Command) error {
 	if c.IsSet("compression-level") {
 		vals["compressionLevel"] = c.Int("compression-level")
 	}
-	return commonAddLogger(c, mode, vals)
+	return commonAddLogger(ctx, c, mode, vals)
 }
 
-func commonAddLogger(c *cli.Command, mode string, vals map[string]any) error {
+func commonAddLogger(ctx context.Context, c *cli.Command, mode string, vals map[string]any) error {
 	if len(c.String("level")) > 0 {
 		vals["level"] = log.LevelFromString(c.String("level")).String()
 	}
@@ -301,46 +292,33 @@ func commonAddLogger(c *cli.Command, mode string, vals map[string]any) error {
 	if c.IsSet("writer") {
 		writer = c.String("writer")
 	}
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	extra := private.AddLogger(ctx, logger, writer, mode, vals)
 	return handleCliResponseExtra(extra)
 }
 
-func runPauseLogging(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runPauseLogging(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	userMsg := private.PauseLogging(ctx)
 	_, _ = fmt.Fprintln(os.Stdout, userMsg)
 	return nil
 }
 
-func runResumeLogging(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runResumeLogging(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	userMsg := private.ResumeLogging(ctx)
 	_, _ = fmt.Fprintln(os.Stdout, userMsg)
 	return nil
 }
 
-func runReleaseReopenLogging(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runReleaseReopenLogging(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 	userMsg := private.ReleaseReopenLogging(ctx)
 	_, _ = fmt.Fprintln(os.Stdout, userMsg)
 	return nil
 }
 
-func runSetLogSQL(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
+func runSetLogSQL(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	extra := private.SetLogSQL(ctx, !c.Bool("off"))

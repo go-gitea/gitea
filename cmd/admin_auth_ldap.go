@@ -328,10 +328,7 @@ func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authTyp
 }
 
 // addLdapBindDn adds a new LDAP via Bind DN authentication source.
-func (a *authService) addLdapBindDn(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func (a *authService) addLdapBindDn(ctx context.Context, c *cli.Command) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
@@ -353,10 +350,7 @@ func (a *authService) addLdapBindDn(_ context.Context, c *cli.Command) error {
 }
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
-func (a *authService) updateLdapBindDn(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func (a *authService) updateLdapBindDn(ctx context.Context, c *cli.Command) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
@@ -375,10 +369,7 @@ func (a *authService) updateLdapBindDn(_ context.Context, c *cli.Command) error 
 }
 
 // addLdapSimpleAuth adds a new LDAP (simple auth) authentication source.
-func (a *authService) addLdapSimpleAuth(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func (a *authService) addLdapSimpleAuth(ctx context.Context, c *cli.Command) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
@@ -400,10 +391,7 @@ func (a *authService) addLdapSimpleAuth(_ context.Context, c *cli.Command) error
 }
 
 // updateLdapSimpleAuth updates a new LDAP (simple auth) authentication source.
-func (a *authService) updateLdapSimpleAuth(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func (a *authService) updateLdapSimpleAuth(ctx context.Context, c *cli.Command) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}

@@ -22,11 +22,8 @@ var CmdMigrate = &cli.Command{
 	Action:      runMigrate,
 }
 
-func runMigrate(_ context.Context, c *cli.Command) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(stdCtx); err != nil {
+func runMigrate(ctx context.Context, c *cli.Command) error {
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 

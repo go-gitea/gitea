@@ -39,10 +39,7 @@ var (
 	}
 )
 
-func runGenerateActionsRunnerToken(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runGenerateActionsRunnerToken(ctx context.Context, c *cli.Command) error {
 	setting.MustInstalled()
 
 	scope := c.String("scope")

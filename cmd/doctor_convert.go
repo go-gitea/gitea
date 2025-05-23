@@ -22,11 +22,8 @@ var cmdDoctorConvert = &cli.Command{
 	Action:      runDoctorConvert,
 }
 
-func runDoctorConvert(_ context.Context, cmd *cli.Command) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(stdCtx); err != nil {
+func runDoctorConvert(ctx context.Context, cmd *cli.Command) error {
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 

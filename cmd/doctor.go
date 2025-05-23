@@ -93,10 +93,7 @@ You should back-up your database before doing this and ensure that your database
 	Action: runRecreateTable,
 }
 
-func runRecreateTable(_ context.Context, cmd *cli.Command) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
+func runRecreateTable(ctx context.Context, cmd *cli.Command) error {
 	// Redirect the default golog to here
 	golog.SetFlags(0)
 	golog.SetPrefix("")
@@ -113,7 +110,7 @@ func runRecreateTable(_ context.Context, cmd *cli.Command) error {
 	}
 
 	setting.Database.LogSQL = debug
-	if err := db.InitEngine(stdCtx); err != nil {
+	if err := db.InitEngine(ctx); err != nil {
 		fmt.Println(err)
 		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 		return nil
@@ -131,7 +128,7 @@ func runRecreateTable(_ context.Context, cmd *cli.Command) error {
 	}
 	recreateTables := migrate_base.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(stdCtx, func(ctx context.Context, x *xorm.Engine) error {
+	return db.InitEngineWithMigration(ctx, func(ctx context.Context, x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(ctx, x); err != nil {
 			return err
 		}
@@ -161,10 +158,7 @@ func setupDoctorDefaultLogger(cmd *cli.Command, colorize bool) {
 	}
 }
 
-func runDoctorCheck(_ context.Context, cmd *cli.Command) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
+func runDoctorCheck(ctx context.Context, cmd *cli.Command) error {
 	colorize := log.CanColorStdout
 	if cmd.IsSet("color") {
 		colorize = cmd.Bool("color")
@@ -217,5 +211,5 @@ func runDoctorCheck(_ context.Context, cmd *cli.Command) error {
 			}
 		}
 	}
-	return doctor.RunChecks(stdCtx, colorize, cmd.Bool("fix"), checks)
+	return doctor.RunChecks(ctx, colorize, cmd.Bool("fix"), checks)
 }

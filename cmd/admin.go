@@ -93,10 +93,7 @@ var (
 	}
 )
 
-func runRepoSyncReleases(_ context.Context, _ *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}

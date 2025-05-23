@@ -50,7 +50,7 @@ var CmdKeys = &cli.Command{
 	},
 }
 
-func runKeys(_ context.Context, c *cli.Command) error {
+func runKeys(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("username") {
 		return errors.New("No username provided")
 	}
@@ -68,9 +68,6 @@ func runKeys(_ context.Context, c *cli.Command) error {
 	if content == "" {
 		return errors.New("No key type and content provided")
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
 

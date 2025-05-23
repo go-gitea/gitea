@@ -35,10 +35,7 @@ var microcmdUserMustChangePassword = &cli.Command{
 	},
 }
 
-func runMustChangePassword(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runMustChangePassword(ctx context.Context, c *cli.Command) error {
 	if c.NArg() == 0 && !c.IsSet("all") {
 		return errors.New("either usernames or --all must be provided")
 	}

@@ -26,10 +26,7 @@ var microcmdUserList = &cli.Command{
 	},
 }
 
-func runListUsers(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runListUsers(ctx context.Context, c *cli.Command) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}

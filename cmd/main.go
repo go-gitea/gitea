@@ -173,7 +173,9 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 }
 
 func RunMainApp(app *cli.Command, args ...string) error {
-	err := app.Run(context.Background(), args)
+	ctx, cancel := installSignals()
+	defer cancel()
+	err := app.Run(ctx, args)
 	if err == nil {
 		return nil
 	}

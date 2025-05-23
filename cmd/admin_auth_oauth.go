@@ -176,10 +176,7 @@ func parseOAuth2Config(c *cli.Command) *oauth2.Source {
 	}
 }
 
-func (a *authService) runAddOauth(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func (a *authService) runAddOauth(ctx context.Context, c *cli.Command) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
@@ -201,13 +198,10 @@ func (a *authService) runAddOauth(_ context.Context, c *cli.Command) error {
 	})
 }
 
-func (a *authService) runUpdateOauth(_ context.Context, c *cli.Command) error {
+func (a *authService) runUpdateOauth(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	if err := a.initDB(ctx); err != nil {
 		return err

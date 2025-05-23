@@ -105,16 +105,14 @@ OPTIONS:
 `
 
 	app.Action = runBackport
-
-	if err := app.Run(context.Background(), os.Args); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+	if err := app.Run(ctx, os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to backport: %v\n", err)
 	}
 }
 
-func runBackport(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runBackport(ctx context.Context, c *cli.Command) error {
 	continuing := c.Bool("continue")
 
 	var pr string

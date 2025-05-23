@@ -161,12 +161,10 @@ func (n *nilWriter) WriteString(s string) (int, error) {
 	return len(s), nil
 }
 
-func runHookPreReceive(_ context.Context, c *cli.Command) error {
+func runHookPreReceive(ctx context.Context, c *cli.Command) error {
 	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	setup(ctx, c.Bool("debug"))
 
@@ -309,10 +307,7 @@ func runHookUpdate(_ context.Context, c *cli.Command) error {
 	return nil
 }
 
-func runHookPostReceive(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runHookPostReceive(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	// First of all run update-server-info no matter what
@@ -496,10 +491,7 @@ func pushOptions() map[string]string {
 	return opts
 }
 
-func runHookProcReceive(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runHookProcReceive(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {

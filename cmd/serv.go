@@ -152,10 +152,7 @@ func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServC
 	return "Bearer " + tokenString, nil
 }
 
-func runServ(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runServ(ctx context.Context, c *cli.Command) error {
 	// FIXME: This needs to internationalised
 	setup(ctx, c.Bool("debug"))
 

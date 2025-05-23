@@ -42,13 +42,10 @@ var microcmdUserGenerateAccessToken = &cli.Command{
 	Action: runGenerateAccessToken,
 }
 
-func runGenerateAccessToken(_ context.Context, c *cli.Command) error {
+func runGenerateAccessToken(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("username") {
 		return errors.New("you must provide a username to generate a token for")
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	if err := initDB(ctx); err != nil {
 		return err

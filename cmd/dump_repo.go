@@ -79,11 +79,8 @@ wiki, issues, labels, releases, release_assets, milestones, pull_requests, comme
 	},
 }
 
-func runDumpRepository(_ context.Context, cmd *cli.Command) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(stdCtx); err != nil {
+func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 

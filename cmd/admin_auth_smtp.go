@@ -129,10 +129,7 @@ func parseSMTPConfig(c *cli.Command, conf *smtp.Source) error {
 	return nil
 }
 
-func (a *authService) runAddSMTP(_ context.Context, c *cli.Command) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func (a *authService) runAddSMTP(ctx context.Context, c *cli.Command) error {
 	if err := a.initDB(ctx); err != nil {
 		return err
 	}
@@ -171,13 +168,10 @@ func (a *authService) runAddSMTP(_ context.Context, c *cli.Command) error {
 	})
 }
 
-func (a *authService) runUpdateSMTP(_ context.Context, c *cli.Command) error {
+func (a *authService) runUpdateSMTP(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	if err := a.initDB(ctx); err != nil {
 		return err

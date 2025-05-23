@@ -102,7 +102,7 @@ func fatal(format string, args ...any) {
 	log.Fatal(format, args...)
 }
 
-func runDump(_ context.Context, cmd *cli.Command) error {
+func runDump(ctx context.Context, cmd *cli.Command) error {
 	setting.MustInstalled()
 
 	quite := cmd.Bool("quiet")
@@ -137,10 +137,7 @@ func runDump(_ context.Context, cmd *cli.Command) error {
 	setting.DisableLoggerInit()
 	setting.LoadSettings() // cannot access session settings otherwise
 
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	err := db.InitEngine(stdCtx)
+	err := db.InitEngine(ctx)
 	if err != nil {
 		return err
 	}
