@@ -18,11 +18,11 @@ import (
 type CodeComments map[string]map[int64][]*Comment
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
-func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User, showOutdatedComments bool) (CodeComments, error) {
-	return fetchCodeCommentsByReview(ctx, issue, currentUser, nil, showOutdatedComments)
+func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User, showOutdatedComments bool, filePath *string) (CodeComments, error) {
+	return fetchCodeCommentsByReview(ctx, issue, currentUser, nil, showOutdatedComments, filePath)
 }
 
-func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool) (CodeComments, error) {
+func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *user_model.User, review *Review, showOutdatedComments bool, filePath *string) (CodeComments, error) {
 	pathToLineToComment := make(CodeComments)
 	if review == nil {
 		review = &Review{ID: 0}
@@ -31,6 +31,15 @@ func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *u
 		Type:     CommentTypeCode,
 		IssueID:  issue.ID,
 		ReviewID: review.ID,
+	}
+
+	if filePath != nil {
+		opts = FindCommentsOptions{
+			Type:     CommentTypeCode,
+			IssueID:  issue.ID,
+			ReviewID: review.ID,
+			TreePath: *filePath,
+		}
 	}
 
 	comments, err := findCodeComments(ctx, opts, issue, currentUser, review, showOutdatedComments)

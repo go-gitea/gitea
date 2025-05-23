@@ -128,6 +128,7 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, emoji.ReplaceAliases(issue.Title))
 	ctx.Data["Issue"] = issue
+	ctx.Data["IssueIndex"] = issue.Index
 
 	if !issue.IsPull {
 		ctx.NotFound(nil)

@@ -1,4 +1,6 @@
 {{$file := .file}}
+{{$blobExcerptRepoLink := or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink}}
+{{$issueIndex := or ctx.RootData.IssueIndex $.root.IssueIndex}}
 {{$blobExcerptLink := print (or ctx.RootData.CommitRepoLink ctx.RootData.RepoLink) (Iif $.root.PageIsWiki "/wiki" "") "/blob_excerpt/" (PathEscape $.root.AfterCommitID) "?"}}
 <colgroup>
 	<col width="50">
@@ -18,22 +20,31 @@
 				{{if eq .GetType 4}}
 					{{$expandDirection := $line.GetExpandDirection}}
 					<td class="lines-num lines-num-old">
-						<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
-						{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
-							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=split&direction=down&&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
-								{{svg "octicon-fold-down"}}
-							</button>
-						{{end}}
-						{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
-							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=split&direction=up&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
-								{{svg "octicon-fold-up"}}
-							</button>
-						{{end}}
-						{{if eq $expandDirection 2}}
-							<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptLink}}&{{$line.GetBlobExcerptQuery}}&style=split&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}">
-								{{svg "octicon-fold"}}
-							</button>
-						{{end}}
+						<div class="lines-comment">
+							<div>
+								{{if $line.SectionInfo.HasComments}}
+									<button class="section-comment-icon">
+										{{svg "octicon-comment-discussion"}}
+									</button>
+								{{end}}
+							</div>
+							<div class="code-expander-buttons" data-expand-direction="{{$expandDirection}}">
+								{{if or (eq $expandDirection 3) (eq $expandDirection 5)}}
+									<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&issue_index={{$issueIndex}}">
+										{{svg "octicon-fold-down"}}
+									</button>
+								{{end}}
+								{{if or (eq $expandDirection 3) (eq $expandDirection 4)}}
+									<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&issue_index={{$issueIndex}}">
+										{{svg "octicon-fold-up"}}
+									</button>
+								{{end}}
+								{{if eq $expandDirection 2}}
+									<button class="code-expander-button" hx-target="closest tr" hx-get="{{$blobExcerptRepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}?{{$line.GetBlobExcerptQuery}}&style=split&direction=&wiki={{$.root.PageIsWiki}}&pull={{$.root.PageIsPullFiles}}&anchor=diff-{{$file.NameHash}}K{{$line.SectionInfo.RightIdx}}&issue_index={{$issueIndex}}">
+										{{svg "octicon-fold"}}
+									</button>
+								{{end}}
+							</div>
 						</div>
 					</td>{{$inlineDiff := $section.GetComputedInlineDiffFor $line ctx.Locale}}
 					<td class="lines-escape lines-escape-old">{{if $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
