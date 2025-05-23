@@ -28,6 +28,7 @@ var commitStatusPriorities = map[CommitStatusState]int{
 	CommitStatusWarning: 2,
 	CommitStatusPending: 3,
 	CommitStatusSuccess: 4,
+	CommitStatusSkipped: 5,
 }
 
 func (css CommitStatusState) String() string {
@@ -37,7 +38,7 @@ func (css CommitStatusState) String() string {
 // NoBetterThan returns true if this State is no better than the given State
 // This function only handles the states defined in CommitStatusPriorities
 func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
-	// NoBetterThan only handles the 5 states above
+	// NoBetterThan only handles the 6 states above
 	if _, exist := commitStatusPriorities[css]; !exist {
 		return false
 	}
