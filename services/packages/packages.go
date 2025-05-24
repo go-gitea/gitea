@@ -600,8 +600,8 @@ func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (
 }
 
 // GetPackageBlobStream returns the content of the specific package blob
-// If the storage supports direct serving and it's enabled, only the direct serving url is returned.
-func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, serveDirectReqParams url.Values) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+// If the storage supports direct serving and it's enabled, only the direct serving url is returned; otherwise, forceInternalServe should be set to true.
+func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, pb *packages_model.PackageBlob, serveDirectReqParams url.Values, forceInternalServe ...bool) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
 	key := packages_module.BlobHash256Key(pb.HashSHA256)
 
 	cs := packages_module.NewContentStore()
@@ -610,7 +610,9 @@ func GetPackageBlobStream(ctx context.Context, pf *packages_model.PackageFile, p
 	var u *url.URL
 	var err error
 
-	if cs.ShouldServeDirect() {
+	internalServe := len(forceInternalServe) > 0 && forceInternalServe[0]
+
+	if !internalServe && cs.ShouldServeDirect() {
 		u, err = cs.GetServeDirectURL(key, pf.Name, serveDirectReqParams)
 		if err != nil && !errors.Is(err, storage.ErrURLNotSupported) {
 			log.Error("Error getting serve direct url: %v", err)
