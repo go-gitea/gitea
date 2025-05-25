@@ -58,8 +58,9 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 	}
 
 	for i, commitStatuses := range testCases {
-		if MergeRequiredContextsCommitStatus(commitStatuses, testCasesRequiredContexts[i]) != testCasesExpected[i] {
-			assert.Fail(t, "Test case failed", "Test case %d failed", i+1)
+		status := MergeRequiredContextsCommitStatus(commitStatuses, testCasesRequiredContexts[i])
+		if status != testCasesExpected[i] {
+			assert.Fail(t, "Test case failed", "Test case %d failed: expect %s, got %s", i+1, testCasesExpected[i], status)
 		}
 	}
 }

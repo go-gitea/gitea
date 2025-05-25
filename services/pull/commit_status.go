@@ -40,8 +40,15 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 			}
 		}
 		if len(requiredCommitStatuses) > 0 {
-			return git_model.CalcCombinedStatusState(requiredCommitStatuses)
+			returnedStatus := git_model.CalcCombinedStatusState(requiredCommitStatuses)
+			if len(requiredCommitStatuses) == len(requiredContexts) {
+				return returnedStatus
+			}
+			if returnedStatus == commitstatus.CombinedStatusFailure {
+				return commitstatus.CombinedStatusFailure
+			}
 		}
+		return commitstatus.CombinedStatusPending
 	}
 
 	return git_model.CalcCombinedStatusState(commitStatuses)

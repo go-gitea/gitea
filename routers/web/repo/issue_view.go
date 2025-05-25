@@ -757,7 +757,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 			if !ctx.Repo.CanRead(unit.TypeActions) {
 				for _, commit := range comment.Commits {
-					commit.Status.HideActionsURL(ctx)
+					if commit.Status != nil {
+						commit.Status.HideActionsURL(ctx)
+					}
 					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 				}
 			}
