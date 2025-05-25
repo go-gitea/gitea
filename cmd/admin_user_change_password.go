@@ -24,16 +24,16 @@ func microcmdUserChangePassword() *cli.Command {
 		Action: runChangePassword,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "username",
-				Aliases: []string{"u"},
-				Value:   "",
-				Usage:   "The user to change password for",
+				Name:     "username",
+				Aliases:  []string{"u"},
+				Usage:    "The user to change password for",
+				Required: true,
 			},
 			&cli.StringFlag{
-				Name:    "password",
-				Aliases: []string{"p"},
-				Value:   "",
-				Usage:   "New password to set for user",
+				Name:     "password",
+				Aliases:  []string{"p"},
+				Usage:    "New password to set for user",
+				Required: true,
 			},
 			&cli.BoolFlag{
 				Name:  "must-change-password",
@@ -45,10 +45,6 @@ func microcmdUserChangePassword() *cli.Command {
 }
 
 func runChangePassword(ctx context.Context, c *cli.Command) error {
-	if err := argsSet(c, "username", "password"); err != nil {
-		return err
-	}
-
 	if !setting.IsInTesting {
 		if err := initDB(ctx); err != nil {
 			return err

@@ -16,10 +16,6 @@ import (
 func runSendMail(ctx context.Context, c *cli.Command) error {
 	setting.MustInstalled()
 
-	if err := argsSet(c, "title"); err != nil {
-		return err
-	}
-
 	subject := c.String("title")
 	confirmSkiped := c.Bool("force")
 	body := c.String("content")

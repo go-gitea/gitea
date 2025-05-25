@@ -65,12 +65,12 @@ func TestChangePasswordCommand(t *testing.T) {
 			{
 				name:        "missing username",
 				args:        []string{"change-password", "--password", "newpassword"},
-				expectedErr: "username is not set",
+				expectedErr: `"username" not set`,
 			},
 			{
 				name:        "missing password",
 				args:        []string{"change-password", "--username", "testuser"},
-				expectedErr: "password is not set",
+				expectedErr: `"password" not set`,
 			},
 			{
 				name:        "too short password",

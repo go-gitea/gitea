@@ -70,9 +70,9 @@ var (
 		Action: runSendMail,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:  "title",
-				Usage: `a title of a message`,
-				Value: "",
+				Name:     "title",
+				Usage:    "a title of a message",
+				Required: true,
 			},
 			&cli.StringFlag{
 				Name:  "content",

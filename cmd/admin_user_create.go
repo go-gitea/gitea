@@ -52,8 +52,9 @@ func microcmdUserCreate() *cli.Command {
 				Usage: "User password",
 			},
 			&cli.StringFlag{
-				Name:  "email",
-				Usage: "User email address",
+				Name:     "email",
+				Usage:    "User email address",
+				Required: true,
 			},
 			&cli.BoolFlag{
 				Name:  "admin",
@@ -103,10 +104,6 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	// this command highly depends on the many setting options (create org, visibility, etc.), so it must have a full setting load first
 	// duplicate setting loading should be safe at the moment, but it should be refactored & improved in the future.
 	setting.LoadSettings()
-
-	if err := argsSet(c, "email"); err != nil {
-		return err
-	}
 
 	userTypes := map[string]user_model.UserType{
 		"individual": user_model.UserTypeIndividual,

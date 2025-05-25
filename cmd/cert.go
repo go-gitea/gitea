@@ -35,9 +35,9 @@ Outputs to 'cert.pem' and 'key.pem' and will overwrite existing files.`,
 		Action: runCert,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:  "host",
-				Value: "",
-				Usage: "Comma-separated hostnames and IPs to generate a certificate for",
+				Name:     "host",
+				Usage:    "Comma-separated hostnames and IPs to generate a certificate for",
+				Required: true,
 			},
 			&cli.StringFlag{
 				Name:  "ecdsa-curve",
@@ -104,10 +104,6 @@ func pemBlockForKey(priv any) *pem.Block {
 }
 
 func runCert(_ context.Context, c *cli.Command) error {
-	if err := argsSet(c, "host"); err != nil {
-		return err
-	}
-
 	var priv any
 	var err error
 	switch c.String("ecdsa-curve") {

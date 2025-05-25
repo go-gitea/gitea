@@ -102,7 +102,7 @@ func TestCertCommandFailures(t *testing.T) {
 			args: []string{
 				"cert-test",
 			},
-			errMsg: "host is not set",
+			errMsg: `"host" not set`,
 		},
 	}
 	for _, c := range cases {
