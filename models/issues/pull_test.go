@@ -4,7 +4,6 @@
 package issues_test
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullRequest_LoadAttributes(t *testing.T) {
