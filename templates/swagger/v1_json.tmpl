@@ -21032,7 +21032,7 @@
           "x-go-name": "SHA"
         },
         "state": {
-          "$ref": "#/definitions/CommitStatusState"
+          "$ref": "#/definitions/CombinedStatusState"
         },
         "statuses": {
           "type": "array",
@@ -21052,6 +21052,11 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CombinedStatusState": {
+      "type": "string",
+      "title": "CombinedStatusState represents the combined status of a commit.",
+      "x-go-package": "code.gitea.io/gitea/modules/commitstatus"
     },
     "Comment": {
       "description": "Comment represents a comment on a commit or issue",
@@ -21281,7 +21286,7 @@
     "CommitStatusState": {
       "description": "CommitStatusState holds the state of a CommitStatus\nIt can be \"pending\", \"success\", \"error\" and \"failure\"",
       "type": "string",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
+      "x-go-package": "code.gitea.io/gitea/modules/commitstatus"
     },
     "CommitUser": {
       "type": "object",
