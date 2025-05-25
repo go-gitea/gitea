@@ -377,7 +377,7 @@ func Diff(ctx *context.Context) {
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 	}
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
+	statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}

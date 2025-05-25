@@ -90,7 +90,7 @@ func GetLatestCombinedStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoS
 }
 
 func InsertOrUpdateCombinedStatus(ctx context.Context, repoID int64, sha string) error {
-	commitStatuses, _, err := GetLatestCommitStatus(ctx, repoID, sha, db.ListOptionsAll)
+	commitStatuses, err := GetLatestCommitStatus(ctx, repoID, sha, db.ListOptionsAll)
 	if err != nil {
 		return err
 	}
