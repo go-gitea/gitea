@@ -201,15 +201,10 @@ func getCommitStatuses(ctx *context.APIContext, commitID string) {
 		return
 	}
 
-	apiStatuses := make([]*api.CommitStatus, 0, len(statuses))
-	for _, status := range statuses {
-		apiStatuses = append(apiStatuses, convert.ToCommitStatus(ctx, status))
-	}
-
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
 
-	ctx.JSON(http.StatusOK, apiStatuses)
+	ctx.JSON(http.StatusOK, convert.ToCommitStatuses(ctx, statuses))
 }
 
 // GetCombinedCommitStatusByRef returns the combined status for any given commit hash

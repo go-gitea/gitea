@@ -33,6 +33,14 @@ func ToCommitStatus(ctx context.Context, status *git_model.CommitStatus) *api.Co
 	return apiStatus
 }
 
+func ToCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) []*api.CommitStatus {
+	apiStatuses := make([]*api.CommitStatus, len(statuses))
+	for i, status := range statuses {
+		apiStatuses[i] = ToCommitStatus(ctx, status)
+	}
+	return apiStatuses
+}
+
 // ToCombinedStatus converts List of CommitStatus to a CombinedStatus
 func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, repo *api.Repository) *api.CombinedStatus {
 	if len(statuses) == 0 {
@@ -42,6 +50,7 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 	combinedStatus := git_model.CalcCombinedStatus(statuses)
 	return &api.CombinedStatus{
 		State:      combinedStatus.State,
+		Statuses:   ToCommitStatuses(ctx, statuses),
 		SHA:        combinedStatus.SHA,
 		TotalCount: len(statuses),
 		Repository: repo,
