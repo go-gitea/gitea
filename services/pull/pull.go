@@ -946,13 +946,13 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 }
 
 // GetIssuesLastCommitStatus returns a map of issue ID to the most recent commit's latest status
-func GetIssuesLastCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64]*git_model.CommitStatus, error) {
+func GetIssuesLastCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64]*git_model.CommitStatusSummary, error) {
 	_, lastStatus, err := GetIssuesAllCommitStatus(ctx, issues)
 	return lastStatus, err
 }
 
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
-func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
+func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatusSummary, error) {
 	if err := issues.LoadPullRequests(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -963,7 +963,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 	var (
 		gitRepos = make(map[int64]*git.Repository)
 		res      = make(map[int64][]*git_model.CommitStatus)
-		lastRes  = make(map[int64]*git_model.CommitStatus)
+		lastRes  = make(map[int64]*git_model.CommitStatusSummary)
 		err      error
 	)
 	defer func() {
@@ -986,27 +986,26 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 			gitRepos[issue.RepoID] = gitRepo
 		}
 
-		statuses, lastStatus, err := getAllCommitStatus(ctx, gitRepo, issue.PullRequest)
+		statuses, err := getAllCommitStatus(ctx, gitRepo, issue.PullRequest)
 		if err != nil {
 			log.Error("getAllCommitStatus: cant get commit statuses of pull [%d]: %v", issue.PullRequest.ID, err)
 			continue
 		}
 		res[issue.PullRequest.ID] = statuses
-		lastRes[issue.PullRequest.ID] = lastStatus
+		lastRes[issue.PullRequest.ID] = git_model.CalcCommitStatusSummary(statuses)
 	}
 	return res, lastRes, nil
 }
 
 // getAllCommitStatus get pr's commit statuses.
-func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
+func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, err error) {
 	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitRefName())
 	if shaErr != nil {
-		return nil, nil, shaErr
+		return nil, shaErr
 	}
 
 	statuses, _, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
-	lastStatus = git_model.CalcCommitStatus(statuses)
-	return statuses, lastStatus, err
+	return statuses, err
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head

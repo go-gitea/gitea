@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/commitstatus"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,29 +16,29 @@ import (
 func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 	testCases := [][]*git_model.CommitStatus{
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 3", State: structs.CommitStatusSuccess},
+			{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 3", State: commitstatus.CommitStatusSuccess},
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusPending},
+			{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 2t", State: commitstatus.CommitStatusPending},
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusFailure},
+			{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 2t", State: commitstatus.CommitStatusFailure},
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusSuccess},
+			{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 2t", State: commitstatus.CommitStatusSuccess},
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusSuccess},
+			{Context: "Build 1", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 2", State: commitstatus.CommitStatusSuccess},
+			{Context: "Build 2t", State: commitstatus.CommitStatusSuccess},
 		},
 	}
 	testCasesRequiredContexts := [][]string{
@@ -49,12 +49,12 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 		{"Build*", "Build *", "Build 2t*", "Build 1*"},
 	}
 
-	testCasesExpected := []structs.CommitStatusState{
-		structs.CommitStatusSuccess,
-		structs.CommitStatusPending,
-		structs.CommitStatusFailure,
-		structs.CommitStatusPending,
-		structs.CommitStatusSuccess,
+	testCasesExpected := []commitstatus.CombinedStatus{
+		commitstatus.CombinedStatusSuccess,
+		commitstatus.CombinedStatusPending,
+		commitstatus.CombinedStatusFailure,
+		commitstatus.CombinedStatusPending,
+		commitstatus.CombinedStatusSuccess,
 	}
 
 	for i, commitStatuses := range testCases {

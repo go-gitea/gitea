@@ -560,7 +560,7 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 	if !ctx.Repo.CanRead(unit.TypeActions) {
-		git_model.CommitStatusesHideActionsURL(ctx, latestCommitStatuses)
+		git_model.CommitStatusSummeriesHideActionsURL(ctx, latestCommitStatuses)
 	}
 
 	results := make([]*repo_service.WebSearchRepository, len(repos))

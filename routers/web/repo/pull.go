@@ -302,7 +302,7 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 
 		if len(commitStatuses) != 0 {
 			ctx.Data["LatestCommitStatuses"] = commitStatuses
-			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
+			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatusSummary(commitStatuses)
 		}
 	}
 
@@ -369,7 +369,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 
 		if len(commitStatuses) > 0 {
 			ctx.Data["LatestCommitStatuses"] = commitStatuses
-			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
+			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatusSummary(commitStatuses)
 		}
 
 		compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
@@ -465,7 +465,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 
 	if len(commitStatuses) > 0 {
 		ctx.Data["LatestCommitStatuses"] = commitStatuses
-		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
+		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatusSummary(commitStatuses)
 	}
 
 	if pb != nil && pb.EnableStatusCheck {

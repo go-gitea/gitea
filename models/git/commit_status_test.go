@@ -14,9 +14,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -38,23 +38,23 @@ func TestGetCommitStatuses(t *testing.T) {
 	assert.Len(t, statuses, 5)
 
 	assert.Equal(t, "ci/awesomeness", statuses[0].Context)
-	assert.Equal(t, structs.CommitStatusPending, statuses[0].State)
+	assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(db.DefaultContext))
 
 	assert.Equal(t, "cov/awesomeness", statuses[1].Context)
-	assert.Equal(t, structs.CommitStatusWarning, statuses[1].State)
+	assert.Equal(t, commitstatus.CommitStatusWarning, statuses[1].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[1].APIURL(db.DefaultContext))
 
 	assert.Equal(t, "cov/awesomeness", statuses[2].Context)
-	assert.Equal(t, structs.CommitStatusSuccess, statuses[2].State)
+	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[2].APIURL(db.DefaultContext))
 
 	assert.Equal(t, "ci/awesomeness", statuses[3].Context)
-	assert.Equal(t, structs.CommitStatusFailure, statuses[3].State)
+	assert.Equal(t, commitstatus.CommitStatusFailure, statuses[3].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[3].APIURL(db.DefaultContext))
 
 	assert.Equal(t, "deploy/awesomeness", statuses[4].Context)
-	assert.Equal(t, structs.CommitStatusError, statuses[4].State)
+	assert.Equal(t, commitstatus.CommitStatusError, statuses[4].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[4].APIURL(db.DefaultContext))
 
 	statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](db.DefaultContext, &git_model.CommitStatusOptions{
@@ -70,110 +70,96 @@ func TestGetCommitStatuses(t *testing.T) {
 func Test_CalcCommitStatus(t *testing.T) {
 	kases := []struct {
 		statuses []*git_model.CommitStatus
-		expected *git_model.CommitStatus
+		expected commitstatus.CombinedStatus
 	}{
 		{
 			statuses: []*git_model.CommitStatus{
 				{
-					State: structs.CommitStatusPending,
+					State: commitstatus.CommitStatusPending,
 				},
 			},
-			expected: &git_model.CommitStatus{
-				State: structs.CommitStatusPending,
-			},
+			expected: commitstatus.CombinedStatusPending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
 				{
-					State: structs.CommitStatusSuccess,
+					State: commitstatus.CommitStatusSuccess,
 				},
 				{
-					State: structs.CommitStatusPending,
+					State: commitstatus.CommitStatusPending,
 				},
 			},
-			expected: &git_model.CommitStatus{
-				State: structs.CommitStatusPending,
-			},
+			expected: commitstatus.CombinedStatusPending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
 				{
-					State: structs.CommitStatusSuccess,
+					State: commitstatus.CommitStatusSuccess,
 				},
 				{
-					State: structs.CommitStatusPending,
+					State: commitstatus.CommitStatusPending,
 				},
 				{
-					State: structs.CommitStatusSuccess,
+					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: &git_model.CommitStatus{
-				State: structs.CommitStatusPending,
-			},
+			expected: commitstatus.CombinedStatusPending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
 				{
-					State: structs.CommitStatusError,
+					State: commitstatus.CommitStatusError,
 				},
 				{
-					State: structs.CommitStatusPending,
+					State: commitstatus.CommitStatusPending,
 				},
 				{
-					State: structs.CommitStatusSuccess,
+					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: &git_model.CommitStatus{
-				State: structs.CommitStatusError,
-			},
+			expected: commitstatus.CombinedStatusFailure,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
 				{
-					State: structs.CommitStatusWarning,
+					State: commitstatus.CommitStatusWarning,
 				},
 				{
-					State: structs.CommitStatusPending,
+					State: commitstatus.CommitStatusPending,
 				},
 				{
-					State: structs.CommitStatusSuccess,
+					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: &git_model.CommitStatus{
-				State: structs.CommitStatusWarning,
-			},
+			expected: commitstatus.CombinedStatusPending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
 				{
-					State: structs.CommitStatusSuccess,
+					State: commitstatus.CommitStatusSuccess,
 				},
 				{
-					State: structs.CommitStatusSuccess,
+					State: commitstatus.CommitStatusSuccess,
 				},
 				{
-					State: structs.CommitStatusSuccess,
+					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: &git_model.CommitStatus{
-				State: structs.CommitStatusSuccess,
-			},
+			expected: commitstatus.CombinedStatusSuccess,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
 				{
-					State: structs.CommitStatusFailure,
+					State: commitstatus.CommitStatusFailure,
 				},
 				{
-					State: structs.CommitStatusError,
+					State: commitstatus.CommitStatusError,
 				},
 				{
-					State: structs.CommitStatusWarning,
+					State: commitstatus.CommitStatusWarning,
 				},
 			},
-			expected: &git_model.CommitStatus{
-				State: structs.CommitStatusError,
-			},
+			expected: commitstatus.CombinedStatusFailure,
 		},
 	}
 
@@ -208,7 +194,7 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 		Creator: user2,
 		SHA:     commit.ID,
 		CommitStatus: &git_model.CommitStatus{
-			State:     structs.CommitStatusFailure,
+			State:     commitstatus.CommitStatusFailure,
 			TargetURL: "https://example.com/tests/",
 			Context:   "compliance/lint-backend",
 		},
@@ -220,7 +206,7 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 		Creator: user2,
 		SHA:     commit.ID,
 		CommitStatus: &git_model.CommitStatus{
-			State:     structs.CommitStatusSuccess,
+			State:     commitstatus.CommitStatusSuccess,
 			TargetURL: "https://example.com/tests/",
 			Context:   "compliance/lint-backend",
 		},

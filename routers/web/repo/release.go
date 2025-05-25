@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -71,7 +72,7 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 
 type ReleaseInfo struct {
 	Release        *repo_model.Release
-	CommitStatus   *git_model.CommitStatus
+	CommitStatus   commitstatus.CombinedStatus
 	CommitStatuses []*git_model.CommitStatus
 }
 

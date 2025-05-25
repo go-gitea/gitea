@@ -1,11 +1,11 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package structs
+package commitstatus
 
 // CommitStatusState holds the state of a CommitStatus
 // It can be "pending", "success", "error" and "failure"
-type CommitStatusState string
+type CommitStatusState string //nolint
 
 const (
 	// CommitStatusPending is for when the CommitStatus is Pending
@@ -70,4 +70,29 @@ func (css CommitStatusState) IsFailure() bool {
 // IsWarning represents if commit status state is warning
 func (css CommitStatusState) IsWarning() bool {
 	return css == CommitStatusWarning
+}
+
+type CommitStatusStates []CommitStatusState //nolint
+
+// According to https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
+// > Additionally, a combined state is returned. The state is one of:
+// > failure if any of the contexts report as error or failure
+// > pending if there are no statuses or a context is pending
+// > success if the latest status for all contexts is success
+
+func (css CommitStatusStates) Merge() CombinedStatus {
+	successCnt := 0
+	for _, state := range css {
+		switch {
+		case state.IsError() || state.IsFailure():
+			return CombinedStatusFailure
+		case state.IsPending():
+		case state.IsSuccess() || state.IsWarning():
+			successCnt++
+		}
+	}
+	if successCnt > 0 && successCnt == len(css) {
+		return CombinedStatusSuccess
+	}
+	return CombinedStatusPending
 }

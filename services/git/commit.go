@@ -90,7 +90,7 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		}
 
 		commit.Statuses = statuses
-		commit.Status = git_model.CalcCommitStatus(statuses)
+		commit.Status = git_model.CalcCommitStatusSummary(statuses)
 		newCommits = append(newCommits, commit)
 	}
 	return newCommits, nil

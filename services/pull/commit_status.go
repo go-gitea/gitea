@@ -10,20 +10,16 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 )
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts
-func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) structs.CommitStatusState {
-	// matchedCount is the number of `CommitStatus.Context` that match any context of `requiredContexts`
-	matchedCount := 0
-	returnedStatus := structs.CommitStatusSuccess
-
+func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) commitstatus.CombinedStatus {
 	if len(requiredContexts) > 0 {
 		requiredContextsGlob := make(map[string]glob.Glob, len(requiredContexts))
 		for _, ctx := range requiredContexts {
@@ -34,57 +30,35 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 			}
 		}
 
+		requiredCommitStatuses := make([]*git_model.CommitStatus, 0, len(commitStatuses))
 		for _, gp := range requiredContextsGlob {
-			var targetStatus structs.CommitStatusState
 			for _, commitStatus := range commitStatuses {
 				if gp.Match(commitStatus.Context) {
-					targetStatus = commitStatus.State
-					matchedCount++
+					requiredCommitStatuses = append(requiredCommitStatuses, commitStatus)
 					break
 				}
 			}
-
-			// If required rule not match any action, then it is pending
-			if targetStatus == "" {
-				if structs.CommitStatusPending.NoBetterThan(returnedStatus) {
-					returnedStatus = structs.CommitStatusPending
-				}
-				break
-			}
-
-			if targetStatus.NoBetterThan(returnedStatus) {
-				returnedStatus = targetStatus
-			}
+		}
+		if len(requiredCommitStatuses) > 0 {
+			return git_model.CalcCommitStatus(requiredCommitStatuses)
 		}
 	}
 
-	if matchedCount == 0 && returnedStatus == structs.CommitStatusSuccess {
-		status := git_model.CalcCommitStatus(commitStatuses)
-		if status != nil {
-			return status.State
-		}
-		return structs.CommitStatusSuccess
-	}
-
-	return returnedStatus
+	return git_model.CalcCommitStatus(commitStatuses)
 }
 
 // IsCommitStatusContextSuccess returns true if all required status check contexts succeed.
 func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requiredContexts []string) bool {
 	// If no specific context is required, require that last commit status is a success
 	if len(requiredContexts) == 0 {
-		status := git_model.CalcCommitStatus(commitStatuses)
-		if status == nil || status.State != structs.CommitStatusSuccess {
-			return false
-		}
-		return true
+		return git_model.CalcCommitStatus(commitStatuses) == commitstatus.CombinedStatusSuccess
 	}
 
 	for _, ctx := range requiredContexts {
 		var found bool
 		for _, commitStatus := range commitStatuses {
 			if commitStatus.Context == ctx {
-				if commitStatus.State != structs.CommitStatusSuccess {
+				if commitStatus.State != commitstatus.CommitStatusSuccess {
 					return false
 				}
 
@@ -117,7 +91,7 @@ func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (
 }
 
 // GetPullRequestCommitStatusState returns pull request merged commit status state
-func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullRequest) (structs.CommitStatusState, error) {
+func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullRequest) (commitstatus.CombinedStatus, error) {
 	// Ensure HeadRepo is loaded
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadHeadRepo")
