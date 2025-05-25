@@ -51,7 +51,7 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requiredContexts []string) bool {
 	// If no specific context is required, require that last commit status is a success
 	if len(requiredContexts) == 0 {
-		return git_model.CalcCombinedStatusState(commitStatuses) == commitstatus.CombinedStatusStateSuccess
+		return git_model.CalcCombinedStatusState(commitStatuses) == commitstatus.CombinedStatusSuccess
 	}
 
 	for _, ctx := range requiredContexts {

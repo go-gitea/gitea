@@ -232,7 +232,7 @@ func CalcCombinedStatusState(statuses []*CommitStatus) commitstatus.CombinedStat
 	for _, status := range statuses {
 		states = append(states, status.State)
 	}
-	return states.Merge()
+	return states.CalcAsCombinedStatusState()
 }
 
 // CalcCombinedStatus returns combined status struct, the commit statuses should order by id desc
@@ -252,7 +252,7 @@ func CalcCombinedStatus(statuses []*CommitStatus) *CombinedStatus {
 	return &CombinedStatus{
 		RepoID:    statuses[0].RepoID,
 		SHA:       statuses[0].SHA,
-		State:     states.Merge(),
+		State:     states.CalcAsCombinedStatusState(),
 		TargetURL: targetURL,
 	}
 }

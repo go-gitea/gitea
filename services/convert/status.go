@@ -5,6 +5,7 @@ package convert
 
 import (
 	"context"
+	"net/url"
 
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
@@ -44,6 +45,7 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 		SHA:        combinedStatus.SHA,
 		TotalCount: len(statuses),
 		Repository: repo,
-		URL:        combinedStatus.TargetURL,
+		CommitURL:  repo.URL + "/commits/" + url.PathEscape(combinedStatus.SHA),
+		URL:        repo.URL + "/commits/" + url.PathEscape(combinedStatus.SHA) + "/status",
 	}
 }

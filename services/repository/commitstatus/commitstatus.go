@@ -99,7 +99,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 			return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
 		}
 
-		return git_model.UpdateCommitStatusSummary(ctx, repo.ID, commit.ID.String())
+		return git_model.InsertOrUpdateCombinedStatus(ctx, repo.ID, commit.ID.String())
 	}); err != nil {
 		return err
 	}

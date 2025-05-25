@@ -75,14 +75,14 @@ func Branches(ctx *context.Context) {
 		}
 	}
 
-	commitStatus := make(map[string]*git_model.CombinedStatus, len(commitStatuses))
+	combinedStatuses := make(map[string]*git_model.CombinedStatus, len(commitStatuses))
 	for commitID, cs := range commitStatuses {
-		commitStatus[commitID] = git_model.CalcCombinedStatus(cs)
+		combinedStatuses[commitID] = git_model.CalcCombinedStatus(cs)
 	}
 
 	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches
-	ctx.Data["CommitStatus"] = commitStatus
+	ctx.Data["CommitStatus"] = combinedStatuses
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["DefaultBranchBranch"] = defaultBranch
 	pager := context.NewPagination(int(branchesCount), pageSize, page, 5)

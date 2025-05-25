@@ -57,19 +57,19 @@ type CommitStatusStates []CommitStatusState //nolint
 // > pending if there are no statuses or a context is pending
 // > success if the latest status for all contexts is success
 
-func (css CommitStatusStates) Merge() CombinedStatusState {
+func (css CommitStatusStates) CalcAsCombinedStatusState() CombinedStatusState {
 	successCnt := 0
 	for _, state := range css {
 		switch {
 		case state.IsError() || state.IsFailure():
-			return CombinedStatusStateFailure
+			return CombinedStatusFailure
 		case state.IsPending():
 		case state.IsSuccess() || state.IsWarning():
 			successCnt++
 		}
 	}
 	if successCnt > 0 && successCnt == len(css) {
-		return CombinedStatusStateSuccess
+		return CombinedStatusSuccess
 	}
-	return CombinedStatusStatePending
+	return CombinedStatusPending
 }

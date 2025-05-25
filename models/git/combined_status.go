@@ -89,27 +89,27 @@ func GetLatestCombinedStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoS
 	return summaries, nil
 }
 
-func UpdateCommitStatusSummary(ctx context.Context, repoID int64, sha string) error {
+func InsertOrUpdateCombinedStatus(ctx context.Context, repoID int64, sha string) error {
 	commitStatuses, _, err := GetLatestCommitStatus(ctx, repoID, sha, db.ListOptionsAll)
 	if err != nil {
 		return err
 	}
-	summary := CalcCombinedStatus(commitStatuses)
+	combinedStatus := CalcCombinedStatus(commitStatuses)
 
 	// mysql will return 0 when update a record which state hasn't been changed which behaviour is different from other database,
 	// so we need to use insert in on duplicate
 	if setting.Database.Type.IsMySQL() {
 		_, err := db.GetEngine(ctx).Exec("INSERT INTO commit_status_summary (repo_id,sha,state,target_url) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE state=?",
-			repoID, sha, summary.State, summary.TargetURL, summary.State)
+			repoID, sha, combinedStatus.State, combinedStatus.TargetURL, combinedStatus.State)
 		return err
 	}
 
 	if cnt, err := db.GetEngine(ctx).Where("repo_id=? AND sha=?", repoID, sha).
 		Cols("state, target_url").
-		Update(summary); err != nil {
+		Update(combinedStatus); err != nil {
 		return err
 	} else if cnt == 0 {
-		_, err = db.GetEngine(ctx).Insert(summary)
+		_, err = db.GetEngine(ctx).Insert(combinedStatus)
 		return err
 	}
 	return nil

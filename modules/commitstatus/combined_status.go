@@ -7,12 +7,12 @@ package commitstatus
 type CombinedStatusState string
 
 const (
-	// CombinedStatusStatePending is for when the CombinedStatus is Pending
-	CombinedStatusStatePending CombinedStatusState = "pending"
-	// CombinedStatusStateSuccess is for when the CombinedStatus is Success
-	CombinedStatusStateSuccess CombinedStatusState = "success"
-	// CombinedStatusStateFailure is for when the CombinedStatus is Failure
-	CombinedStatusStateFailure CombinedStatusState = "failure"
+	// CombinedStatusPending is for when the CombinedStatus is Pending
+	CombinedStatusPending CombinedStatusState = "pending"
+	// CombinedStatusSuccess is for when the CombinedStatus is Success
+	CombinedStatusSuccess CombinedStatusState = "success"
+	// CombinedStatusFailure is for when the CombinedStatus is Failure
+	CombinedStatusFailure CombinedStatusState = "failure"
 )
 
 func (cs CombinedStatusState) String() string {
@@ -21,15 +21,15 @@ func (cs CombinedStatusState) String() string {
 
 // IsPending represents if commit status state is pending
 func (cs CombinedStatusState) IsPending() bool {
-	return cs == CombinedStatusStatePending
+	return cs == CombinedStatusPending
 }
 
 // IsSuccess represents if commit status state is success
 func (cs CombinedStatusState) IsSuccess() bool {
-	return cs == CombinedStatusStateSuccess
+	return cs == CombinedStatusSuccess
 }
 
 // IsFailure represents if commit status state is failure
 func (cs CombinedStatusState) IsFailure() bool {
-	return cs == CombinedStatusStateFailure
+	return cs == CombinedStatusFailure
 }

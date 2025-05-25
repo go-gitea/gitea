@@ -78,7 +78,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusPending,
 				},
 			},
-			expected: commitstatus.CombinedStatusStatePending,
+			expected: commitstatus.CombinedStatusPending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -89,7 +89,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusPending,
 				},
 			},
-			expected: commitstatus.CombinedStatusStatePending,
+			expected: commitstatus.CombinedStatusPending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -103,7 +103,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: commitstatus.CombinedStatusStatePending,
+			expected: commitstatus.CombinedStatusPending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -117,7 +117,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: commitstatus.CombinedStatusStateFailure,
+			expected: commitstatus.CombinedStatusFailure,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -131,7 +131,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: commitstatus.CombinedStatusStatePending,
+			expected: commitstatus.CombinedStatusPending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -145,7 +145,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: commitstatus.CombinedStatusStateSuccess,
+			expected: commitstatus.CombinedStatusSuccess,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -159,7 +159,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusWarning,
 				},
 			},
-			expected: commitstatus.CombinedStatusStateFailure,
+			expected: commitstatus.CombinedStatusFailure,
 		},
 	}
 
