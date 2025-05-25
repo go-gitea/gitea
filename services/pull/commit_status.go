@@ -19,7 +19,7 @@ import (
 )
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts
-func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) commitstatus.CombinedStatus {
+func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) commitstatus.CombinedStatusState {
 	if len(requiredContexts) > 0 {
 		requiredContextsGlob := make(map[string]glob.Glob, len(requiredContexts))
 		for _, ctx := range requiredContexts {
@@ -40,18 +40,18 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 			}
 		}
 		if len(requiredCommitStatuses) > 0 {
-			return git_model.CalcCommitStatus(requiredCommitStatuses)
+			return git_model.CalcCombinedStatusState(requiredCommitStatuses)
 		}
 	}
 
-	return git_model.CalcCommitStatus(commitStatuses)
+	return git_model.CalcCombinedStatusState(commitStatuses)
 }
 
 // IsCommitStatusContextSuccess returns true if all required status check contexts succeed.
 func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requiredContexts []string) bool {
 	// If no specific context is required, require that last commit status is a success
 	if len(requiredContexts) == 0 {
-		return git_model.CalcCommitStatus(commitStatuses) == commitstatus.CombinedStatusSuccess
+		return git_model.CalcCombinedStatusState(commitStatuses) == commitstatus.CombinedStatusStateSuccess
 	}
 
 	for _, ctx := range requiredContexts {
@@ -91,7 +91,7 @@ func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (
 }
 
 // GetPullRequestCommitStatusState returns pull request merged commit status state
-func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullRequest) (commitstatus.CombinedStatus, error) {
+func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullRequest) (commitstatus.CombinedStatusState, error) {
 	// Ensure HeadRepo is loaded
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadHeadRepo")

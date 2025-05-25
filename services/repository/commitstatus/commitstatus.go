@@ -47,7 +47,7 @@ func getCombinedStatusCache(repoID int64, branchName string) *combinedStatusCach
 	return nil
 }
 
-func updateCombinedStatusCache(repoID int64, branchName string, state commitstatus.CombinedStatus, targetURL string) error {
+func updateCombinedStatusCache(repoID int64, branchName string, state commitstatus.CombinedStatusState, targetURL string) error {
 	c := cache.GetCache()
 	bs, err := json.Marshal(combinedStatusCacheValue{
 		State:     string(state),
@@ -121,13 +121,13 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 }
 
 // FindReposLastestCombinedStatuses loading repository default branch latest combinded commit status with cache
-func FindReposLastestCombinedStatuses(ctx context.Context, repos []*repo_model.Repository) ([]*git_model.CommitStatusSummary, error) {
-	results := make([]*git_model.CommitStatusSummary, len(repos))
+func FindReposLastestCombinedStatuses(ctx context.Context, repos []*repo_model.Repository) ([]*git_model.CombinedStatus, error) {
+	results := make([]*git_model.CombinedStatus, len(repos))
 	allCached := true
 	for i, repo := range repos {
 		if cv := getCombinedStatusCache(repo.ID, repo.DefaultBranch); cv != nil {
-			results[i] = &git_model.CommitStatusSummary{
-				State:     commitstatus.CombinedStatus(cv.State),
+			results[i] = &git_model.CombinedStatus{
+				State:     commitstatus.CombinedStatusState(cv.State),
 				TargetURL: cv.TargetURL,
 			}
 		} else {
@@ -189,7 +189,7 @@ func FindReposLastestCombinedStatuses(ctx context.Context, repos []*repo_model.R
 
 	for i, repo := range repos {
 		if results[i] == nil {
-			results[i] = git_model.CalcCommitStatusSummary(repoToItsLatestCommitStatuses[repo.ID])
+			results[i] = git_model.CalcCombinedStatus(repoToItsLatestCommitStatuses[repo.ID])
 			if results[i] != nil {
 				if err := updateCombinedStatusCache(repo.ID, repo.DefaultBranch, results[i].State, results[i].TargetURL); err != nil {
 					log.Error("updateCommitStatusCache[%d:%s] failed: %v", repo.ID, repo.DefaultBranch, err)

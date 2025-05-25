@@ -553,14 +553,14 @@ func SearchRepo(ctx *context.Context) {
 
 	ctx.SetTotalCountHeader(count)
 
-	latestCommitStatuses, err := commitstatus_service.FindReposLastestCombinedStatuses(ctx, repos)
+	latestCombinedStatuses, err := commitstatus_service.FindReposLastestCombinedStatuses(ctx, repos)
 	if err != nil {
 		log.Error("FindReposLastestCommitStatuses: %v", err)
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
 	if !ctx.Repo.CanRead(unit.TypeActions) {
-		git_model.CommitStatusSummeriesHideActionsURL(ctx, latestCommitStatuses)
+		git_model.CombinedStatusesHideActionsURL(ctx, latestCombinedStatuses)
 	}
 
 	results := make([]*repo_service.WebSearchRepository, len(repos))
@@ -580,9 +580,9 @@ func SearchRepo(ctx *context.Context) {
 			},
 		}
 
-		if latestCommitStatuses[i] != nil {
-			results[i].LatestCommitStatus = latestCommitStatuses[i]
-			results[i].LocaleLatestCommitStatus = latestCommitStatuses[i].LocaleString(ctx.Locale)
+		if latestCombinedStatuses[i] != nil {
+			results[i].LatestCombinedStatus = latestCombinedStatuses[i]
+			results[i].LocaleLatestCombinedStatus = latestCombinedStatuses[i].LocaleString(ctx.Locale)
 		}
 	}
 

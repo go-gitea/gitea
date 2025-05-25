@@ -226,8 +226,8 @@ func (status *CommitStatus) HideActionsURL(ctx context.Context) {
 	}
 }
 
-// CalcCommitStatus returns a combined status, the commit statuses should order by id desc
-func CalcCommitStatus(statuses []*CommitStatus) commitstatus.CombinedStatus {
+// CalcCombinedStatusState returns a combined status state, the commit statuses should order by id desc
+func CalcCombinedStatusState(statuses []*CommitStatus) commitstatus.CombinedStatusState {
 	states := make(commitstatus.CommitStatusStates, 0, len(statuses))
 	for _, status := range statuses {
 		states = append(states, status.State)
@@ -235,8 +235,8 @@ func CalcCommitStatus(statuses []*CommitStatus) commitstatus.CombinedStatus {
 	return states.Merge()
 }
 
-// CalcCommitStatusSummary returns commit status summary, the commit statuses should order by id desc
-func CalcCommitStatusSummary(statuses []*CommitStatus) *CommitStatusSummary {
+// CalcCombinedStatus returns combined status struct, the commit statuses should order by id desc
+func CalcCombinedStatus(statuses []*CommitStatus) *CombinedStatus {
 	if len(statuses) == 0 {
 		return nil
 	}
@@ -249,7 +249,7 @@ func CalcCommitStatusSummary(statuses []*CommitStatus) *CommitStatusSummary {
 			targetURL = status.TargetURL
 		}
 	}
-	return &CommitStatusSummary{
+	return &CombinedStatus{
 		RepoID:    statuses[0].RepoID,
 		SHA:       statuses[0].SHA,
 		State:     states.Merge(),
@@ -499,7 +499,7 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 
 // SignCommitWithStatuses represents a commit with validation of signature and status state.
 type SignCommitWithStatuses struct {
-	Status   *CommitStatusSummary
+	Status   *CombinedStatus
 	Statuses []*CommitStatus
 	*asymkey_model.SignCommit
 }

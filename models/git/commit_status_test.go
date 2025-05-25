@@ -70,7 +70,7 @@ func TestGetCommitStatuses(t *testing.T) {
 func Test_CalcCommitStatus(t *testing.T) {
 	kases := []struct {
 		statuses []*git_model.CommitStatus
-		expected commitstatus.CombinedStatus
+		expected commitstatus.CombinedStatusState
 	}{
 		{
 			statuses: []*git_model.CommitStatus{
@@ -78,7 +78,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusPending,
 				},
 			},
-			expected: commitstatus.CombinedStatusPending,
+			expected: commitstatus.CombinedStatusStatePending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -89,7 +89,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusPending,
 				},
 			},
-			expected: commitstatus.CombinedStatusPending,
+			expected: commitstatus.CombinedStatusStatePending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -103,7 +103,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: commitstatus.CombinedStatusPending,
+			expected: commitstatus.CombinedStatusStatePending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -117,7 +117,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: commitstatus.CombinedStatusFailure,
+			expected: commitstatus.CombinedStatusStateFailure,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -131,7 +131,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: commitstatus.CombinedStatusPending,
+			expected: commitstatus.CombinedStatusStatePending,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -145,7 +145,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusSuccess,
 				},
 			},
-			expected: commitstatus.CombinedStatusSuccess,
+			expected: commitstatus.CombinedStatusStateSuccess,
 		},
 		{
 			statuses: []*git_model.CommitStatus{
@@ -159,12 +159,12 @@ func Test_CalcCommitStatus(t *testing.T) {
 					State: commitstatus.CommitStatusWarning,
 				},
 			},
-			expected: commitstatus.CombinedStatusFailure,
+			expected: commitstatus.CombinedStatusStateFailure,
 		},
 	}
 
 	for _, kase := range kases {
-		assert.Equal(t, kase.expected, git_model.CalcCommitStatus(kase.statuses))
+		assert.Equal(t, kase.expected, git_model.CalcCombinedStatusState(kase.statuses))
 	}
 }
 

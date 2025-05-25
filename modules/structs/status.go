@@ -26,13 +26,13 @@ type CommitStatus struct {
 
 // CombinedStatus holds the combined state of several statuses for a single commit
 type CombinedStatus struct {
-	State      commitstatus.CombinedStatus `json:"state"`
-	SHA        string                      `json:"sha"`
-	TotalCount int                         `json:"total_count"`
-	Statuses   []*CommitStatus             `json:"statuses"`
-	Repository *Repository                 `json:"repository"`
-	CommitURL  string                      `json:"commit_url"`
-	URL        string                      `json:"url"`
+	State      commitstatus.CombinedStatusState `json:"state"`
+	SHA        string                           `json:"sha"`
+	TotalCount int                              `json:"total_count"`
+	Statuses   []*CommitStatus                  `json:"statuses"`
+	Repository *Repository                      `json:"repository"`
+	CommitURL  string                           `json:"commit_url"`
+	URL        string                           `json:"url"`
 }
 
 // CreateStatusOption holds the information needed to create a new CommitStatus for a Commit

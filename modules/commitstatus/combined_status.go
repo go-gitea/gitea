@@ -3,33 +3,33 @@
 
 package commitstatus
 
-// CombinedStatus represents the combined status of a commit.
-type CombinedStatus string
+// CombinedStatusState represents the combined status of a commit.
+type CombinedStatusState string
 
 const (
-	// CombinedStatusPending is for when the CombinedStatus is Pending
-	CombinedStatusPending CombinedStatus = "pending"
-	// CombinedStatusSuccess is for when the CombinedStatus is Success
-	CombinedStatusSuccess CombinedStatus = "success"
-	// CombinedStatusFailure is for when the CombinedStatus is Failure
-	CombinedStatusFailure CombinedStatus = "failure"
+	// CombinedStatusStatePending is for when the CombinedStatus is Pending
+	CombinedStatusStatePending CombinedStatusState = "pending"
+	// CombinedStatusStateSuccess is for when the CombinedStatus is Success
+	CombinedStatusStateSuccess CombinedStatusState = "success"
+	// CombinedStatusStateFailure is for when the CombinedStatus is Failure
+	CombinedStatusStateFailure CombinedStatusState = "failure"
 )
 
-func (cs CombinedStatus) String() string {
+func (cs CombinedStatusState) String() string {
 	return string(cs)
 }
 
 // IsPending represents if commit status state is pending
-func (cs CombinedStatus) IsPending() bool {
-	return cs == CombinedStatusPending
+func (cs CombinedStatusState) IsPending() bool {
+	return cs == CombinedStatusStatePending
 }
 
 // IsSuccess represents if commit status state is success
-func (cs CombinedStatus) IsSuccess() bool {
-	return cs == CombinedStatusSuccess
+func (cs CombinedStatusState) IsSuccess() bool {
+	return cs == CombinedStatusStateSuccess
 }
 
 // IsFailure represents if commit status state is failure
-func (cs CombinedStatus) IsFailure() bool {
-	return cs == CombinedStatusFailure
+func (cs CombinedStatusState) IsFailure() bool {
+	return cs == CombinedStatusStateFailure
 }

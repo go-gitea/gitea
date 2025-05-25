@@ -49,12 +49,12 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 		{"Build*", "Build *", "Build 2t*", "Build 1*"},
 	}
 
-	testCasesExpected := []commitstatus.CombinedStatus{
-		commitstatus.CombinedStatusSuccess,
-		commitstatus.CombinedStatusPending,
-		commitstatus.CombinedStatusFailure,
-		commitstatus.CombinedStatusPending,
-		commitstatus.CombinedStatusSuccess,
+	testCasesExpected := []commitstatus.CombinedStatusState{
+		commitstatus.CombinedStatusStateSuccess,
+		commitstatus.CombinedStatusStatePending,
+		commitstatus.CombinedStatusStateFailure,
+		commitstatus.CombinedStatusStatePending,
+		commitstatus.CombinedStatusStateSuccess,
 	}
 
 	for i, commitStatuses := range testCases {

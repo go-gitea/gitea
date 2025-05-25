@@ -75,9 +75,9 @@ func Branches(ctx *context.Context) {
 		}
 	}
 
-	commitStatus := make(map[string]*git_model.CommitStatusSummary, len(commitStatuses))
+	commitStatus := make(map[string]*git_model.CombinedStatus, len(commitStatuses))
 	for commitID, cs := range commitStatuses {
-		commitStatus[commitID] = git_model.CalcCommitStatusSummary(cs)
+		commitStatus[commitID] = git_model.CalcCombinedStatus(cs)
 	}
 
 	ctx.Data["Keyword"] = kw

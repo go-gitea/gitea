@@ -72,7 +72,7 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *repo_model
 
 type ReleaseInfo struct {
 	Release        *repo_model.Release
-	CommitStatus   commitstatus.CombinedStatus
+	CommitStatus   commitstatus.CombinedStatusState
 	CommitStatuses []*git_model.CommitStatus
 }
 
@@ -136,7 +136,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 				return nil, err
 			}
 
-			info.CommitStatus = git_model.CalcCommitStatus(statuses)
+			info.CommitStatus = git_model.CalcCombinedStatusState(statuses)
 			info.CommitStatuses = statuses
 		}
 

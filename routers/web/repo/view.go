@@ -139,7 +139,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 			git_model.CommitStatusesHideActionsURL(ctx, statuses)
 		}
 
-		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatusSummary(statuses)
+		ctx.Data["LatestCommitStatus"] = git_model.CalcCombinedStatus(statuses)
 		ctx.Data["LatestCommitStatuses"] = statuses
 	}
 

@@ -17,21 +17,25 @@ import (
 	"xorm.io/builder"
 )
 
-// CommitStatusSummary holds the latest combined Status of a single Commit
-type CommitStatusSummary struct {
-	ID        int64                       `xorm:"pk autoincr"`
-	RepoID    int64                       `xorm:"INDEX UNIQUE(repo_id_sha)"`
-	Repo      *repo_model.Repository      `xorm:"-"`
-	SHA       string                      `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_id_sha)"`
-	State     commitstatus.CombinedStatus `xorm:"VARCHAR(7) NOT NULL"`
-	TargetURL string                      `xorm:"TEXT"`
+// CombinedStatus holds the latest combined Status of a single Commit
+type CombinedStatus struct {
+	ID        int64                            `xorm:"pk autoincr"`
+	RepoID    int64                            `xorm:"INDEX UNIQUE(repo_id_sha)"`
+	Repo      *repo_model.Repository           `xorm:"-"`
+	SHA       string                           `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_id_sha)"`
+	State     commitstatus.CombinedStatusState `xorm:"VARCHAR(7) NOT NULL"`
+	TargetURL string                           `xorm:"TEXT"`
+}
+
+func (CombinedStatus) TableName() string {
+	return "commit_status_summary" // legacy name for compatibility
 }
 
 func init() {
-	db.RegisterModel(new(CommitStatusSummary))
+	db.RegisterModel(new(CombinedStatus))
 }
 
-func (status *CommitStatusSummary) loadRepository(ctx context.Context) error {
+func (status *CombinedStatus) loadRepository(ctx context.Context) error {
 	if status.RepoID == 0 || status.Repo != nil {
 		return nil
 	}
@@ -46,12 +50,12 @@ func (status *CommitStatusSummary) loadRepository(ctx context.Context) error {
 }
 
 // LocaleString returns the locale string name of the Status
-func (status *CommitStatusSummary) LocaleString(lang translation.Locale) string {
+func (status *CombinedStatus) LocaleString(lang translation.Locale) string {
 	return lang.TrString("repo.commitstatus." + status.State.String())
 }
 
 // HideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions
-func (status *CommitStatusSummary) HideActionsURL(ctx context.Context) {
+func (status *CombinedStatus) HideActionsURL(ctx context.Context) {
 	if status.RepoID == 0 {
 		return
 	}
@@ -72,13 +76,13 @@ type RepoSHA struct {
 	SHA    string
 }
 
-func GetLatestCombinedStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoSHA) ([]*CommitStatusSummary, error) {
+func GetLatestCombinedStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoSHA) ([]*CombinedStatus, error) {
 	cond := builder.NewCond()
 	for _, rs := range repoSHAs {
 		cond = cond.Or(builder.Eq{"repo_id": rs.RepoID, "sha": rs.SHA})
 	}
 
-	var summaries []*CommitStatusSummary
+	var summaries []*CombinedStatus
 	if err := db.GetEngine(ctx).Where(cond).Find(&summaries); err != nil {
 		return nil, err
 	}
@@ -90,7 +94,7 @@ func UpdateCommitStatusSummary(ctx context.Context, repoID int64, sha string) er
 	if err != nil {
 		return err
 	}
-	summary := CalcCommitStatusSummary(commitStatuses)
+	summary := CalcCombinedStatus(commitStatuses)
 
 	// mysql will return 0 when update a record which state hasn't been changed which behaviour is different from other database,
 	// so we need to use insert in on duplicate
@@ -111,7 +115,7 @@ func UpdateCommitStatusSummary(ctx context.Context, repoID int64, sha string) er
 	return nil
 }
 
-func CommitStatusSummeriesHideActionsURL(ctx context.Context, statuses []*CommitStatusSummary) {
+func CombinedStatusesHideActionsURL(ctx context.Context, statuses []*CombinedStatus) {
 	idToRepos := make(map[int64]*repo_model.Repository)
 	for _, status := range statuses {
 		if status == nil {

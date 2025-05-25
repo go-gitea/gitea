@@ -38,12 +38,12 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 		return nil
 	}
 
-	summary := git_model.CalcCommitStatusSummary(statuses)
+	combinedStatus := git_model.CalcCombinedStatus(statuses)
 	return &api.CombinedStatus{
-		State:      summary.State,
-		SHA:        summary.SHA,
+		State:      combinedStatus.State,
+		SHA:        combinedStatus.SHA,
 		TotalCount: len(statuses),
 		Repository: repo,
-		URL:        summary.TargetURL,
+		URL:        combinedStatus.TargetURL,
 	}
 }

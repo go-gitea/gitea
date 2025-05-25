@@ -125,7 +125,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
-			c.Status = git_model.CalcCommitStatusSummary(statuses)
+			c.Status = git_model.CalcCombinedStatus(statuses)
 		}
 	}
 	return nil
@@ -249,7 +249,7 @@ type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
 	Verification *asymkey_model.CommitVerification
-	Status       *git_model.CommitStatusSummary
+	Status       *git_model.CombinedStatus
 	Flow         int64
 	Row          int
 	Column       int
