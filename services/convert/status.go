@@ -8,7 +8,6 @@ import (
 
 	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/commitstatus"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -39,18 +38,12 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 		return nil
 	}
 
-	retStatus := &api.CombinedStatus{
-		SHA:        statuses[0].SHA,
+	summary := git_model.CalcCommitStatusSummary(statuses)
+	return &api.CombinedStatus{
+		State:      summary.State,
+		SHA:        summary.SHA,
 		TotalCount: len(statuses),
 		Repository: repo,
-		URL:        "",
+		URL:        summary.TargetURL,
 	}
-
-	states := make(commitstatus.CommitStatusStates, 0, len(statuses))
-	for _, status := range statuses {
-		retStatus.Statuses = append(retStatus.Statuses, ToCommitStatus(ctx, status))
-		states = append(states, status.State)
-	}
-	retStatus.State = states.Merge()
-	return retStatus
 }

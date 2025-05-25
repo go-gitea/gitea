@@ -228,7 +228,7 @@ func (status *CommitStatus) HideActionsURL(ctx context.Context) {
 	}
 }
 
-// CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
+// CalcCommitStatus returns a combined status, the commit statuses should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) commitstatus.CombinedStatus {
 	states := make(commitstatus.CommitStatusStates, 0, len(statuses))
 	for _, status := range statuses {
@@ -237,7 +237,7 @@ func CalcCommitStatus(statuses []*CommitStatus) commitstatus.CombinedStatus {
 	return states.Merge()
 }
 
-// CalcCommitStatusSummary returns commit status state via some status, the commit statues should order by id desc
+// CalcCommitStatusSummary returns commit status summary, the commit statuses should order by id desc
 func CalcCommitStatusSummary(statuses []*CommitStatus) *CommitStatusSummary {
 	if len(statuses) == 0 {
 		return nil
