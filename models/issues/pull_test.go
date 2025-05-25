@@ -84,7 +84,7 @@ func TestPullRequests_Closed_RecentSortType(t *testing.T) {
 	//    11    | 1707279999  | 1707275555
 	tests := []struct {
 		sortType             string
-		expectedIssueIdOrder []int64
+		expectedIssueIDOrder []int64
 	}{
 		{"recentupdate", []int64{3, 11, 2}},
 		{"recentclose", []int64{11, 3, 2}},
@@ -109,9 +109,9 @@ func TestPullRequests_Closed_RecentSortType(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			if assert.Len(t, prs, len(test.expectedIssueIdOrder)) {
-				for i := range test.expectedIssueIdOrder {
-					assert.EqualValues(t, test.expectedIssueIdOrder[i], prs[i].IssueID)
+			if assert.Len(t, prs, len(test.expectedIssueIDOrder)) {
+				for i := range test.expectedIssueIDOrder {
+					assert.Equal(t, test.expectedIssueIDOrder[i], prs[i].IssueID)
 				}
 			}
 		})
