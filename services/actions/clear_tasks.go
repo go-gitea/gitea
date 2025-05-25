@@ -112,17 +112,18 @@ func CancelAbandonedJobs(ctx context.Context) error {
 	for _, job := range jobs {
 		job.Status = actions_model.StatusCancelled
 		job.Stopped = now
-		updated := false
-		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
-			updated = err == nil && n > 0
-			return err
-		}); err != nil {
+		n, run, runJustFinished, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
+		if err != nil {
 			log.Warn("cancel abandoned job %v: %v", job.ID, err)
 			// go on
 		}
+		if runJustFinished && run != nil {
+			if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
+				notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+			}
+		}
 		CreateCommitStatus(ctx, job)
-		if updated {
+		if n > 0 {
 			_ = job.LoadAttributes(ctx)
 			notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
 		}

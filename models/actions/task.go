@@ -315,10 +315,14 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	job.TaskID = task.ID
-	if n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}); err != nil {
+	if n, run, runJustFinished, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}); err != nil {
 		return nil, false, err
 	} else if n != 1 {
 		return nil, false, nil
+	} else if runJustFinished && run != nil {
+		if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
+			notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+		}
 	}
 
 	task.Job = job
@@ -382,12 +386,16 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
 			return nil, err
 		}
-		if _, err := UpdateRunJob(ctx, &ActionRunJob{
+		if _, run, runJustFinished, err := UpdateRunJob(ctx, &ActionRunJob{
 			ID:      task.JobID,
 			Status:  task.Status,
 			Stopped: task.Stopped,
 		}, nil); err != nil {
 			return nil, err
+		} else if runJustFinished && run != nil {
+			if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
+				notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+			}
 		}
 	} else {
 		// Force update ActionTask.Updated to avoid the task being judged as a zombie task
@@ -446,12 +454,16 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	now := timeutil.TimeStampNow()
 	task.Status = status
 	task.Stopped = now
-	if _, err := UpdateRunJob(ctx, &ActionRunJob{
+	if _, run, runJustFinished, err := UpdateRunJob(ctx, &ActionRunJob{
 		ID:      task.JobID,
 		Status:  task.Status,
 		Stopped: task.Stopped,
 	}, nil); err != nil {
 		return err
+	} else if runJustFinished && run != nil {
+		if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
+			notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+		}
 	}
 
 	if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {

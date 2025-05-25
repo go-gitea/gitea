@@ -241,7 +241,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 				job.Stopped = timeutil.TimeStampNow()
 
 				// Update the job's status and stopped time in the database.
-				n, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
+				n, run, runJustFinished, err := UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
 				if err != nil {
 					return cancelledJobs, err
 				}
@@ -249,6 +249,12 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 				// If the update affected 0 rows, it means the job has changed in the meantime, so we need to try again.
 				if n == 0 {
 					return cancelledJobs, errors.New("job has changed, try again")
+				}
+
+				if runJustFinished && run != nil {
+					if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
+						notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+					}
 				}
 
 				cancelledJobs = append(cancelledJobs, job)

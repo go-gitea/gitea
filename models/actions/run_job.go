@@ -13,7 +13,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/notify"
 
 	"xorm.io/builder"
 )
@@ -105,7 +104,8 @@ func GetRunJobsByRunID(ctx context.Context, runID int64) (ActionJobList, error) 
 	return jobs, nil
 }
 
-func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, cols ...string) (int64, error) {
+// UpdateRunJob updates a job and returns (affected, updatedRun, runJustFinished, error)
+func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, cols ...string) (int64, *ActionRun, bool, error) {
 	e := db.GetEngine(ctx)
 
 	sess := e.ID(job.ID)
@@ -119,37 +119,39 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 
 	affected, err := sess.Update(job)
 	if err != nil {
-		return 0, err
+		return 0, nil, false, err
 	}
 
 	if affected == 0 || (!slices.Contains(cols, "status") && job.Status == 0) {
-		return affected, nil
+		return affected, nil, false, nil
 	}
 
 	if affected != 0 && slices.Contains(cols, "status") && job.Status.IsWaiting() {
 		// if the status of job changes to waiting again, increase tasks version.
 		if err := IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
-			return 0, err
+			return 0, nil, false, err
 		}
 	}
 
 	if job.RunID == 0 {
 		var err error
 		if job, err = GetRunJobByID(ctx, job.ID); err != nil {
-			return 0, err
+			return 0, nil, false, err
 		}
 	}
 
+	var runJustFinished bool
+	var updatedRun *ActionRun
 	{
 		// Other goroutines may aggregate the status of the run and update it too.
 		// So we need load the run and its jobs before updating the run.
 		run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
 		if err != nil {
-			return 0, err
+			return 0, nil, false, err
 		}
 		jobs, err := GetRunJobsByRunID(ctx, job.RunID)
 		if err != nil {
-			return 0, err
+			return 0, nil, false, err
 		}
 		run.Status = AggregateJobStatus(jobs)
 		if run.Started.IsZero() && run.Status.IsRunning() {
@@ -157,21 +159,15 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		}
 		if run.Stopped.IsZero() && run.Status.IsDone() {
 			run.Stopped = timeutil.TimeStampNow()
-			// Send workflow run completion notification
-			import_notify_service := false
-			// Add import if not present
-			// import notify_service "code.gitea.io/gitea/services/notify"
-			// Load TriggerUser if not loaded
-			if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
-				notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
-			}
+			runJustFinished = true
 		}
 		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
-			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
+			return 0, nil, false, fmt.Errorf("update run %d: %w", run.ID, err)
 		}
+		updatedRun = run
 	}
 
-	return affected, nil
+	return affected, updatedRun, runJustFinished, nil
 }
 
 func AggregateJobStatus(jobs []*ActionRunJob) Status {

@@ -448,8 +448,16 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	job.Stopped = 0
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
-		return err
+		_, run, runJustFinished, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, "task_id", "status", "started", "stopped")
+		if err != nil {
+			return err
+		}
+		if runJustFinished && run != nil {
+			if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
+				notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+			}
+		}
+		return nil
 	}); err != nil {
 		return err
 	}
@@ -499,12 +507,14 @@ func Cancel(ctx *context_module.Context) {
 			if job.TaskID == 0 {
 				job.Status = actions_model.StatusCancelled
 				job.Stopped = timeutil.TimeStampNow()
-				n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
+				n, run, runJustFinished, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"task_id": 0}, "status", "stopped")
 				if err != nil {
 					return err
 				}
-				if n == 0 {
-					return errors.New("job has changed, try again")
+				if runJustFinished && run != nil {
+					if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
+						notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+					}
 				}
 				if n > 0 {
 					updatedjobs = append(updatedjobs, job)
@@ -552,9 +562,14 @@ func Approve(ctx *context_module.Context) {
 		for _, job := range jobs {
 			if len(job.Needs) == 0 && job.Status.IsBlocked() {
 				job.Status = actions_model.StatusWaiting
-				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+				n, run, runJustFinished, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
 				if err != nil {
 					return err
+				}
+				if runJustFinished && run != nil {
+					if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
+						notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+					}
 				}
 				if n > 0 {
 					updatedjobs = append(updatedjobs, job)
