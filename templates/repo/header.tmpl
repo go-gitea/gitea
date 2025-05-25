@@ -226,11 +226,19 @@
 						</a>
 					{{end}}
 				</div>
-			{{else if .Permission.IsAdmin}}
+			{{else}}
 				<div class="overflow-menu-items">
+					{{if(and .Repository.IsBeingCreated (.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}
+					<a class="{{if not .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}">
+						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.migrating_status"}}
+					</a>
+					{{end}}
+
+					{{if .Permission.IsAdmin}}
 					<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
 						{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 					</a>
+					{{end}}
 				</div>
 			{{end}}
 		</overflow-menu>
