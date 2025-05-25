@@ -2259,13 +2259,16 @@
         ],
         "responses": {
           "201": {
-            "description": "response when creating a repo-level variable"
+            "description": "successfully created the org-level variable"
           },
           "400": {
             "$ref": "#/responses/error"
           },
           "409": {
             "description": "variable name already exists."
+          },
+          "500": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5265,6 +5268,9 @@
           },
           "409": {
             "description": "variable name already exists."
+          },
+          "500": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -17857,7 +17863,7 @@
         ],
         "responses": {
           "201": {
-            "description": "response when creating a repo-level variable"
+            "description": "successfully created the user-level variable"
           },
           "400": {
             "$ref": "#/responses/error"

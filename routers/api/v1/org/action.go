@@ -389,6 +389,8 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "409":
 	//     description: variable name already exists.
+	//   "500":
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
