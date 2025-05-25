@@ -381,3 +381,9 @@ func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, s
 		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)
 	}
 }
+
+func WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	for _, notifier := range notifiers {
+		notifier.WorkflowRunStatusUpdate(ctx, repo, sender, run)
+	}
+}

@@ -216,3 +216,6 @@ func (*NullNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Re
 
 func (*NullNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
 }
+
+func (*NullNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+}

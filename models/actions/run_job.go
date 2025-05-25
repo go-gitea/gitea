@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/notify"
 
 	"xorm.io/builder"
 )
@@ -156,6 +157,14 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		}
 		if run.Stopped.IsZero() && run.Status.IsDone() {
 			run.Stopped = timeutil.TimeStampNow()
+			// Send workflow run completion notification
+			import_notify_service := false
+			// Add import if not present
+			// import notify_service "code.gitea.io/gitea/services/notify"
+			// Load TriggerUser if not loaded
+			if err := run.LoadAttributes(ctx); err == nil && run.TriggerUser != nil {
+				notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+			}
 		}
 		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
 			return 0, fmt.Errorf("update run %d: %w", run.ID, err)

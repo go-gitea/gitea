@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
+	actions_model "code.gitea.io/gitea/models/actions"
 )
 
 type mailNotifier struct {
@@ -203,5 +204,16 @@ func (m *mailNotifier) NewRelease(ctx context.Context, rel *repo_model.Release) 
 func (m *mailNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
 	if err := SendRepoTransferNotifyMail(ctx, doer, newOwner, repo); err != nil {
 		log.Error("SendRepoTransferNotifyMail: %v", err)
+	}
+}
+
+func (m *mailNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	if run == nil || run.TriggerUser == nil || run.TriggerUser.EmailNotificationsPreference == user_model.EmailNotificationsDisabled {
+		return
+	}
+	subject := fmt.Sprintf("[Gitea] Workflow '%s' %s in %s", run.WorkflowID, run.Status.String(), repo.FullName())
+	body := fmt.Sprintf("Workflow '%s' in repository '%s' has %s.\n\nRun details: %s", run.WorkflowID, repo.FullName(), run.Status.String(), run.HTMLURL())
+	if err := SendUserMail(ctx, run.TriggerUser, subject, body); err != nil {
+		log.Error("Failed to send workflow run notification: %v", err)
 	}
 }
