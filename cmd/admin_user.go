@@ -14,7 +14,7 @@ var subcmdUser = &cli.Command{
 		microcmdUserCreate(),
 		microcmdUserList,
 		microcmdUserChangePassword,
-		microcmdUserDelete,
+		microcmdUserDelete(),
 		microcmdUserGenerateAccessToken,
 		microcmdUserMustChangePassword,
 	},
