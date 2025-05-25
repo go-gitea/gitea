@@ -145,7 +145,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 
 	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
 		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(commit)
-		if err != nil {
+		if err != nil && !IsErrNotExist(err) {
 			return nil, err
 		}
 		if ignoreRevsFileName != "" {
@@ -194,9 +194,6 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 func tryCreateBlameIgnoreRevsFile(commit *Commit) (string, func(), error) {
 	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
 	if err != nil {
-		if IsErrNotExist(err) {
-			return "", nil, nil
-		}
 		return "", nil, err
 	}
 
