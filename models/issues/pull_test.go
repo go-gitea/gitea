@@ -4,6 +4,7 @@
 package issues_test
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -76,49 +77,44 @@ func TestPullRequestsNewest(t *testing.T) {
 	}
 }
 
-func TestPullRequestsRecentClosed(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, _, err := issues_model.PullRequests(db.DefaultContext, 63, &issues_model.PullRequestsOptions{
-		ListOptions: db.ListOptions{
-			Page: 1,
-		},
-		State:    "closed",
-		SortType: "recentclose",
-	})
-	assert.NoError(t, err)
-
-	// Pull ID | Closed At.  | Updated At
-	//    11   | 1707270001  | 1707270001
-	//    12   | 1707271000  | 1707279999
-	//    13   | 1707279999  | 1707275555
-
-	if assert.Len(t, prs, 3) {
-		assert.EqualValues(t, 13, prs[0].ID)
-		assert.EqualValues(t, 12, prs[1].ID)
-		assert.EqualValues(t, 11, prs[2].ID)
+func TestPullRequests_Closed_RecentSortType(t *testing.T) {
+	// Issue ID | Closed At.  | Updated At
+	//    2     | 1707270001  | 1707270001
+	//    3     | 1707271000  | 1707279999
+	//    11    | 1707279999  | 1707275555
+	tests := []struct {
+		sortType             string
+		expectedIssueIdOrder []int64
+	}{
+		{"recentupdate", []int64{3, 11, 2}},
+		{"recentclose", []int64{11, 3, 2}},
 	}
-}
 
-func TestPullRequestsRecentUpdate(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	prs, _, err := issues_model.PullRequests(db.DefaultContext, 63, &issues_model.PullRequestsOptions{
-		ListOptions: db.ListOptions{
-			Page: 1,
-		},
-		State:    "closed",
-		SortType: "recentupdate",
-	})
-	assert.NoError(t, err)
+	_, err := db.Exec(db.DefaultContext, "UPDATE issue SET closed_unix = 1707270001, updated_unix = 1707270001, is_closed = true WHERE id = 2")
+	require.NoError(t, err)
+	_, err = db.Exec(db.DefaultContext, "UPDATE issue SET closed_unix = 1707271000, updated_unix = 1707279999, is_closed = true WHERE id = 3")
+	require.NoError(t, err)
+	_, err = db.Exec(db.DefaultContext, "UPDATE issue SET closed_unix = 1707279999, updated_unix = 1707275555, is_closed = true WHERE id = 11")
+	require.NoError(t, err)
 
-	// Pull ID | Closed At.  | Updated At
-	//    11   | 1707270001  | 1707270001
-	//    12   | 1707271000  | 1707279999
-	//    13   | 1707279999  | 1707275555
+	for _, test := range tests {
+		t.Run(test.sortType, func(t *testing.T) {
+			prs, _, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
+				ListOptions: db.ListOptions{
+					Page: 1,
+				},
+				State:    "closed",
+				SortType: test.sortType,
+			})
+			require.NoError(t, err)
 
-	if assert.Len(t, prs, 3) {
-		assert.EqualValues(t, 12, prs[0].ID)
-		assert.EqualValues(t, 13, prs[1].ID)
-		assert.EqualValues(t, 11, prs[2].ID)
+			if assert.Len(t, prs, len(test.expectedIssueIdOrder)) {
+				for i := range test.expectedIssueIdOrder {
+					assert.EqualValues(t, test.expectedIssueIdOrder[i], prs[i].IssueID)
+				}
+			}
+		})
 	}
 }
 

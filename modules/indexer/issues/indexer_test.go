@@ -190,7 +190,7 @@ func searchIssueByID(t *testing.T) {
 		{
 			// NOTE: This tests no assignees filtering and also ToSearchOptions() to ensure it handles the filter correctly
 			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: "(none)"}),
-			expectedIDs: []int64{25, 22, 21, 24, 23, 16, 15, 14, 13, 12, 11, 20, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2},
+			expectedIDs: []int64{22, 21, 16, 15, 14, 13, 12, 11, 20, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2},
 		},
 		{
 			opts: SearchOptions{
@@ -255,7 +255,7 @@ func searchIssueIsPull(t *testing.T) {
 			SearchOptions{
 				IsPull: optional.Some(true),
 			},
-			[]int64{25, 22, 21, 24, 23, 12, 11, 20, 19, 9, 8, 3, 2},
+			[]int64{22, 21, 12, 11, 20, 19, 9, 8, 3, 2},
 		},
 	}
 	for _, test := range tests {
@@ -280,7 +280,7 @@ func searchIssueIsClosed(t *testing.T) {
 			SearchOptions{
 				IsClosed: optional.Some(true),
 			},
-			[]int64{25, 24, 23, 5, 4},
+			[]int64{5, 4},
 		},
 	}
 	for _, test := range tests {
@@ -299,7 +299,7 @@ func searchIssueIsArchived(t *testing.T) {
 			SearchOptions{
 				IsArchived: optional.Some(false),
 			},
-			[]int64{25, 22, 21, 24, 23, 17, 16, 15, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
+			[]int64{22, 21, 17, 16, 15, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
 		},
 		{
 			SearchOptions{
@@ -361,7 +361,7 @@ func searchIssueByLabelID(t *testing.T) {
 			SearchOptions{
 				ExcludedLabelIDs: []int64{1},
 			},
-			[]int64{25, 22, 21, 24, 23, 17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3},
+			[]int64{22, 21, 17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3},
 		},
 	}
 	for _, test := range tests {
@@ -380,7 +380,7 @@ func searchIssueByTime(t *testing.T) {
 			SearchOptions{
 				UpdatedAfterUnix: optional.Some(int64(0)),
 			},
-			[]int64{25, 22, 21, 24, 23, 17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
+			[]int64{22, 21, 17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2, 1},
 		},
 	}
 	for _, test := range tests {
@@ -399,7 +399,7 @@ func searchIssueWithOrder(t *testing.T) {
 			SearchOptions{
 				SortBy: internal.SortByCreatedAsc,
 			},
-			[]int64{1, 2, 3, 8, 9, 4, 7, 10, 18, 19, 5, 6, 20, 11, 12, 13, 14, 15, 16, 17, 23, 24, 21, 22, 25},
+			[]int64{1, 2, 3, 8, 9, 4, 7, 10, 18, 19, 5, 6, 20, 11, 12, 13, 14, 15, 16, 17, 21, 22},
 		},
 	}
 	for _, test := range tests {
@@ -452,8 +452,8 @@ func searchIssueWithPaginator(t *testing.T) {
 					PageSize: 5,
 				},
 			},
-			[]int64{25, 22, 21, 24, 23},
-			25,
+			[]int64{22, 21, 17, 16, 15},
+			22,
 		},
 	}
 	for _, test := range tests {
