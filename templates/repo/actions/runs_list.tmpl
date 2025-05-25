@@ -36,17 +36,17 @@
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince $run.Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{$run.Duration}}</div>
 				</div>
-				<div class="ui jump dropdown tw-p-2">
+				<div class="ui dropdown jump tw-p-2">
 					{{svg "octicon-kebab-horizontal"}}
-					<div class="menu">
+					<div class="menu flex-items-menu">
 						<a class="item" href="{{$run.Link}}">{{svg "octicon-play"}}{{ctx.Locale.Tr "view"}}</a>
-						{{if and ($.AllowDeleteWorkflowRuns) ($run.Status.IsDone)}}
-							<button class="item btn interact-bg link-action"
+						{{if and $.AllowDeleteWorkflowRuns $run.Status.IsDone}}
+							<a class="item link-action"
 								data-url="{{$run.Link}}/delete"
 								data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"
 							>
 								{{svg "octicon-trash"}}{{ctx.Locale.Tr "actions.runs.delete"}}
-							</button>
+							</a>
 						{{end}}
 					</div>
 				</div>
