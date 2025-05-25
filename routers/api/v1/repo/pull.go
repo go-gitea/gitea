@@ -1301,7 +1301,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", pr.BaseBranch, pr.HeadBranch)
 
-	if err = pull_service.Update(ctx, pr, ctx.Doer, message, rebase); err != nil {
+	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), pr, ctx.Doer, message, rebase); err != nil {
 		if pull_service.IsErrMergeConflicts(err) {
 			ctx.APIError(http.StatusConflict, "merge failed because of conflict")
 			return
