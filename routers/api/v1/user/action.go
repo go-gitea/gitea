@@ -127,7 +127,7 @@ func CreateVariable(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/CreateVariableOption"
 	// responses:
 	//   "201":
-	//     description: response when creating a repo-level variable
+	//     description: successfully created the user-level variable
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "409":
