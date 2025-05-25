@@ -553,7 +553,7 @@ func SearchRepo(ctx *context.Context) {
 
 	ctx.SetTotalCountHeader(count)
 
-	latestCommitStatuses, err := commitstatus_service.FindReposLastestCommitStatuses(ctx, repos)
+	latestCommitStatuses, err := commitstatus_service.FindReposLastestCombinedStatuses(ctx, repos)
 	if err != nil {
 		log.Error("FindReposLastestCommitStatuses: %v", err)
 		ctx.JSON(http.StatusInternalServerError, nil)

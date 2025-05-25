@@ -32,7 +32,7 @@ func init() {
 }
 
 func (status *CommitStatusSummary) loadRepository(ctx context.Context) error {
-	if status.RepoID == 0 {
+	if status.RepoID == 0 || status.Repo != nil {
 		return nil
 	}
 
@@ -56,11 +56,9 @@ func (status *CommitStatusSummary) HideActionsURL(ctx context.Context) {
 		return
 	}
 
-	if status.Repo == nil {
-		if err := status.loadRepository(ctx); err != nil {
-			log.Error("loadRepository: %v", err)
-			return
-		}
+	if err := status.loadRepository(ctx); err != nil {
+		log.Error("loadRepository: %v", err)
+		return
 	}
 
 	prefix := status.Repo.Link() + "/actions"
@@ -74,7 +72,7 @@ type RepoSHA struct {
 	SHA    string
 }
 
-func GetLatestCommitStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoSHA) ([]*CommitStatusSummary, error) {
+func GetLatestCombinedStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoSHA) ([]*CommitStatusSummary, error) {
 	cond := builder.NewCond()
 	for _, rs := range repoSHAs {
 		cond = cond.Or(builder.Eq{"repo_id": rs.RepoID, "sha": rs.SHA})

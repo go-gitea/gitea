@@ -215,11 +215,9 @@ func (status *CommitStatus) HideActionsURL(ctx context.Context) {
 		return
 	}
 
-	if status.Repo == nil {
-		if err := status.loadRepository(ctx); err != nil {
-			log.Error("loadRepository: %v", err)
-			return
-		}
+	if err := status.loadRepository(ctx); err != nil {
+		log.Error("loadRepository: %v", err)
+		return
 	}
 
 	prefix := status.Repo.Link() + "/actions"
