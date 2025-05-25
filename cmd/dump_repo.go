@@ -80,6 +80,11 @@ wiki, issues, labels, releases, release_assets, milestones, pull_requests, comme
 }
 
 func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
+	setupConsoleLogger(log.INFO, log.CanColorStderr, os.Stderr)
+
+	setting.DisableLoggerInit()
+	setting.LoadSettings() // cannot access skip_tls_verify settings otherwise
+
 	if err := initDB(ctx); err != nil {
 		return err
 	}
