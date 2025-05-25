@@ -17,29 +17,31 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var microcmdUserChangePassword = &cli.Command{
-	Name:   "change-password",
-	Usage:  "Change a user's password",
-	Action: runChangePassword,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "username",
-			Aliases: []string{"u"},
-			Value:   "",
-			Usage:   "The user to change password for",
+func microcmdUserChangePassword() *cli.Command {
+	return &cli.Command{
+		Name:   "change-password",
+		Usage:  "Change a user's password",
+		Action: runChangePassword,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "username",
+				Aliases: []string{"u"},
+				Value:   "",
+				Usage:   "The user to change password for",
+			},
+			&cli.StringFlag{
+				Name:    "password",
+				Aliases: []string{"p"},
+				Value:   "",
+				Usage:   "New password to set for user",
+			},
+			&cli.BoolFlag{
+				Name:  "must-change-password",
+				Usage: "User must change password (can be disabled by --must-change-password=false)",
+				Value: true,
+			},
 		},
-		&cli.StringFlag{
-			Name:    "password",
-			Aliases: []string{"p"},
-			Value:   "",
-			Usage:   "New password to set for user",
-		},
-		&cli.BoolFlag{
-			Name:  "must-change-password",
-			Usage: "User must change password (can be disabled by --must-change-password=false)",
-			Value: true,
-		},
-	},
+	}
 }
 
 func runChangePassword(ctx context.Context, c *cli.Command) error {
@@ -47,8 +49,10 @@ func runChangePassword(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	if err := initDB(ctx); err != nil {
-		return err
+	if !setting.IsInTesting {
+		if err := initDB(ctx); err != nil {
+			return err
+		}
 	}
 
 	user, err := user_model.GetUserByName(ctx, c.String("username"))

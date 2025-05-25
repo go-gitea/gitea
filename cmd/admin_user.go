@@ -13,7 +13,7 @@ var subcmdUser = &cli.Command{
 	Commands: []*cli.Command{
 		microcmdUserCreate(),
 		microcmdUserList,
-		microcmdUserChangePassword,
+		microcmdUserChangePassword(),
 		microcmdUserDelete(),
 		microcmdUserGenerateAccessToken,
 		microcmdUserMustChangePassword,
