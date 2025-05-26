@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullRequest_LoadAttributes(t *testing.T) {
@@ -73,6 +74,47 @@ func TestPullRequestsNewest(t *testing.T) {
 		assert.EqualValues(t, 5, prs[0].ID)
 		assert.EqualValues(t, 2, prs[1].ID)
 		assert.EqualValues(t, 1, prs[2].ID)
+	}
+}
+
+func TestPullRequests_Closed_RecentSortType(t *testing.T) {
+	// Issue ID | Closed At.  | Updated At
+	//    2     | 1707270001  | 1707270001
+	//    3     | 1707271000  | 1707279999
+	//    11    | 1707279999  | 1707275555
+	tests := []struct {
+		sortType             string
+		expectedIssueIDOrder []int64
+	}{
+		{"recentupdate", []int64{3, 11, 2}},
+		{"recentclose", []int64{11, 3, 2}},
+	}
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	_, err := db.Exec(db.DefaultContext, "UPDATE issue SET closed_unix = 1707270001, updated_unix = 1707270001, is_closed = true WHERE id = 2")
+	require.NoError(t, err)
+	_, err = db.Exec(db.DefaultContext, "UPDATE issue SET closed_unix = 1707271000, updated_unix = 1707279999, is_closed = true WHERE id = 3")
+	require.NoError(t, err)
+	_, err = db.Exec(db.DefaultContext, "UPDATE issue SET closed_unix = 1707279999, updated_unix = 1707275555, is_closed = true WHERE id = 11")
+	require.NoError(t, err)
+
+	for _, test := range tests {
+		t.Run(test.sortType, func(t *testing.T) {
+			prs, _, err := issues_model.PullRequests(db.DefaultContext, 1, &issues_model.PullRequestsOptions{
+				ListOptions: db.ListOptions{
+					Page: 1,
+				},
+				State:    "closed",
+				SortType: test.sortType,
+			})
+			require.NoError(t, err)
+
+			if assert.Len(t, prs, len(test.expectedIssueIDOrder)) {
+				for i := range test.expectedIssueIDOrder {
+					assert.Equal(t, test.expectedIssueIDOrder[i], prs[i].IssueID)
+				}
+			}
+		})
 	}
 }
 
