@@ -261,7 +261,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	count, err := git_model.CountLatestCommitStatus(ctx, repo.ID, refCommit.Commit.ID.String())
 	if err != nil {
-		ctx.APIErrorInternal(fmt.Errorf("GetLatestCommitStatus[%s, %s]: %w", repo.FullName(), refCommit.CommitID, err))
+		ctx.APIErrorInternal(fmt.Errorf("CountLatestCommitStatus[%s, %s]: %w", repo.FullName(), refCommit.CommitID, err))
 		return
 	}
 	ctx.SetTotalCountHeader(count)

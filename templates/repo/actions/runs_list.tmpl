@@ -36,15 +36,23 @@
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince $run.Updated}}</div>
 					<div class="run-list-meta">{{svg "octicon-stopwatch" 16}}{{$run.Duration}}</div>
 				</div>
-				{{if and ($.AllowDeleteWorkflowRuns) ($run.Status.IsDone)}}
-					<button class="btn interact-bg link-action tw-p-2"
-						data-url="{{$run.Link}}/delete"
-						data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"
-						data-tooltip-content="{{ctx.Locale.Tr "actions.runs.delete"}}"
-					>
-						{{svg "octicon-trash"}}
-					</button>
-				{{end}}
+				<div class="ui dropdown jump tw-p-2">
+					{{svg "octicon-kebab-horizontal"}}
+					<div class="menu flex-items-menu">
+						<!-- TODO: This redundant link should be replaced by something else in future,
+						because have not figured out how to add "View Workflow" or anything similar to GitHub.
+						Related: https://github.com/go-gitea/gitea/pull/34530 -->
+						<a class="item" href="{{$run.Link}}">{{svg "octicon-play"}}{{ctx.Locale.Tr "view"}}</a>
+						{{if and $.AllowDeleteWorkflowRuns $run.Status.IsDone}}
+							<a class="item link-action"
+								data-url="{{$run.Link}}/delete"
+								data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"
+							>
+								{{svg "octicon-trash"}}{{ctx.Locale.Tr "actions.runs.delete"}}
+							</a>
+						{{end}}
+					</div>
+				</div>
 			</div>
 		</div>
 	{{end}}
