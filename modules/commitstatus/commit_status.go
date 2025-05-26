@@ -56,8 +56,7 @@ type CommitStatusStates []CommitStatusState //nolint
 // > failure if any of the contexts report as error or failure
 // > pending if there are no statuses or a context is pending
 // > success if the latest status for all contexts is success
-
-func (css CommitStatusStates) CalcAsCombinedStatusState() CombinedStatusState {
+func (css CommitStatusStates) Combine() CombinedStatusState {
 	successCnt := 0
 	for _, state := range css {
 		switch {
