@@ -158,7 +158,6 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 	cmd.AddDynamicArguments(commit.ID.String()).AddDashesAndList(file)
 
 	done := make(chan error, 1)
-	// Use errPipe to preserve the original err and avoid overwriting it.
 	reader, stdout, err := os.Pipe()
 	if err != nil {
 		return nil, err
