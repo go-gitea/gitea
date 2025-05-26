@@ -57,6 +57,17 @@ func (h *HTMLRender) HTML(w io.Writer, status int, tplName TplName, data any, ct
 	return t.Execute(w, data)
 }
 
+func (h *HTMLRender) Gomponents(w io.Writer, status int, data []byte) error { //nolint:revive
+	if respWriter, ok := w.(http.ResponseWriter); ok {
+		if respWriter.Header().Get("Content-Type") == "" {
+			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
+		}
+		respWriter.WriteHeader(status)
+	}
+	_, err := w.Write(data)
+	return err
+}
+
 func (h *HTMLRender) TemplateLookup(name string, ctx context.Context) (TemplateExecutor, error) { //nolint:revive
 	tmpls := h.templates.Load()
 	if tmpls == nil {

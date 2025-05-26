@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"path"
 	"strconv"
@@ -89,6 +90,31 @@ func (ctx *Context) HTML(status int, name templates.TplName) {
 		ctx.PlainText(http.StatusInternalServerError, "Unable to render status/500 page, the template system is broken, or Gitea can't find your template files.")
 		return
 	}
+}
+
+func (ctx *Context) HTMLPartial(status int, name templates.TplName) (string, error) {
+	log.Debug("Partial Template: %s", name)
+
+	rec := httptest.NewRecorder()
+
+	err := ctx.Render.HTML(rec, status, name, ctx.Data, ctx.TemplateContext)
+	if err != nil {
+		return "", err
+	}
+
+	return rec.Body.String(), nil
+}
+
+func (ctx *Context) Gomponents(status int, html string, tplName string) {
+	log.Debug("Component: %s", tplName)
+
+	err := ctx.Render.Gomponents(ctx.Resp, status, []byte(html))
+	if err == nil || errors.Is(err, syscall.EPIPE) {
+		return
+	}
+
+	err = fmt.Errorf("failed to render component: %s, error: %s", tplName, err)
+	ctx.ServerError("Render failed", err) // show the 500 error page
 }
 
 // JSONTemplate renders the template as JSON response
