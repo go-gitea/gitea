@@ -158,15 +158,15 @@ func FindReposLastestCombinedStatuses(ctx context.Context, repos []*repo_model.R
 		repoSHAs = append(repoSHAs, git_model.RepoSHA{RepoID: id, SHA: sha})
 	}
 
-	summaryResults, err := git_model.GetLatestCombinedStatusForRepoAndSHAs(ctx, repoSHAs)
+	combinedStatuses, err := git_model.GetLatestCombinedStatusForRepoAndSHAs(ctx, repoSHAs)
 	if err != nil {
 		return nil, fmt.Errorf("GetLatestCommitStatusForRepoAndSHAs: %v", err)
 	}
 
-	for _, summary := range summaryResults {
+	for _, combinedStatus := range combinedStatuses {
 		for i, repo := range repos {
-			if repo.ID == summary.RepoID {
-				results[i] = summary
+			if repo.ID == combinedStatus.RepoID {
+				results[i] = combinedStatus
 				repoSHAs = slices.DeleteFunc(repoSHAs, func(repoSHA git_model.RepoSHA) bool {
 					return repoSHA.RepoID == repo.ID
 				})

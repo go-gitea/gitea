@@ -82,11 +82,11 @@ func GetLatestCombinedStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoS
 		cond = cond.Or(builder.Eq{"repo_id": rs.RepoID, "sha": rs.SHA})
 	}
 
-	var summaries []*CombinedStatus
-	if err := db.GetEngine(ctx).Where(cond).Find(&summaries); err != nil {
+	combinedStatuses := make([]*CombinedStatus, 0, len(repoSHAs))
+	if err := db.GetEngine(ctx).Where(cond).Find(&combinedStatuses); err != nil {
 		return nil, err
 	}
-	return summaries, nil
+	return combinedStatuses, nil
 }
 
 func InsertOrUpdateCombinedStatus(ctx context.Context, repoID int64, sha string) error {
