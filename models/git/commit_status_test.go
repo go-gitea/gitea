@@ -26,7 +26,7 @@ func TestGetCommitStatuses(t *testing.T) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	sha1 := "1234123412341234123412341234123412341234"
+	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
 
 	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](db.DefaultContext, &git_model.CommitStatusOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 50},
@@ -262,7 +262,7 @@ func TestGetCountLatestCommitStatus(t *testing.T) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	sha1 := "1234123412341234123412341234123412341234"
+	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
 
 	commitStatuses, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo1.ID, sha1, db.ListOptions{
 		Page:     1,

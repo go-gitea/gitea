@@ -298,7 +298,7 @@ type CommitStatusIndex struct {
 	MaxIndex int64  `xorm:"index"`
 }
 
-var getBase = func(ctx context.Context, repoID int64, sha string) *xorm.Session {
+func makeRepoCommitQuery(ctx context.Context, repoID int64, sha string) *xorm.Session {
 	return db.GetEngine(ctx).Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha)
 }
@@ -306,7 +306,7 @@ var getBase = func(ctx context.Context, repoID int64, sha string) *xorm.Session 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
 	indices := make([]int64, 0, 10)
-	sess := getBase(ctx, repoID, sha).
+	sess := makeRepoCommitQuery(ctx, repoID, sha).
 		Select("max( `index` ) as `index`").
 		GroupBy("context_hash").
 		OrderBy("max( `index` ) desc")
@@ -320,11 +320,12 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 	if len(indices) == 0 {
 		return statuses, nil
 	}
-	return statuses, getBase(ctx, repoID, sha).And(builder.In("`index`", indices)).Find(&statuses)
+	err := makeRepoCommitQuery(ctx, repoID, sha).And(builder.In("`index`", indices)).Find(&statuses)
+	return statuses, err
 }
 
 func CountLatestCommitStatus(ctx context.Context, repoID int64, sha string) (int64, error) {
-	return getBase(ctx, repoID, sha).
+	return makeRepoCommitQuery(ctx, repoID, sha).
 		Select("count(context_hash)").
 		GroupBy("context_hash").
 		Count()
