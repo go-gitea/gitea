@@ -159,9 +159,9 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repoPath 
 
 	done := make(chan error, 1)
 	// Use errPipe to preserve the original err and avoid overwriting it.
-	reader, stdout, errPipe := os.Pipe()
-	if errPipe != nil {
-		return nil, errPipe
+	reader, stdout, err := os.Pipe()
+	if err != nil {
+		return nil, err
 	}
 	go func() {
 		stderr := bytes.Buffer{}
