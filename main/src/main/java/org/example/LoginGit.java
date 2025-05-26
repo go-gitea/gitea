@@ -23,7 +23,7 @@ public class LoginGit extends LoadableComponent<LoginGit> {
         PageFactory.initElements(driver,this);
 
     }
-    public  HomePageGit loginAsValidUser(String userName, String password) {
+    public HomePageGit loginAsValidUser(String userName, String password) {
 
         driver.findElement(userNameFieldBy).sendKeys(userName);
         driver.findElement(passwordFieldBy).sendKeys(password);
