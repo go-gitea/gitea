@@ -66,6 +66,9 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 
 	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
 		// add trailer
+		if !strings.HasSuffix(message, "\n") {
+			message += "\n"
+		}
 		if !strings.Contains(message, "Co-authored-by: "+sig.String()) {
 			message += "\nCo-authored-by: " + sig.String()
 		}

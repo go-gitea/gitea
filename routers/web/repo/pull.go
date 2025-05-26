@@ -1109,9 +1109,8 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
-	message += "\n"
 	if len(form.MergeMessageField) > 0 {
-		message += "\n" + form.MergeMessageField
+		message += "\n\n" + form.MergeMessageField
 	}
 
 	if form.MergeWhenChecksSucceed {
