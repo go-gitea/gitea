@@ -1,7 +1,7 @@
 
 ###################################
 #Build stage
-FROM golang:1.23.1-alpine3.19 AS build-env
+FROM golang:1.24.2-alpine3.21 AS build-env
 
 #ARG GOPROXY
 #ENV GOPROXY ${GOPROXY:-direct}
