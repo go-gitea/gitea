@@ -26,5 +26,5 @@ func TestNoBetterThan(t *testing.T) {
 	for _, tt := range tests {
 		assert.Equal(t, tt.higher, tt.s1.HasHigherPriorityThan(tt.s2), "s1=%s, s2=%s, expected=%v", tt.s1, tt.s2, tt.higher)
 	}
-	assert.Equal(t, false, CommitStatusError.HasHigherPriorityThan(CommitStatusError))
+	assert.False(t, CommitStatusError.HasHigherPriorityThan(CommitStatusError))
 }
