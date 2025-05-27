@@ -186,7 +186,7 @@ func AddCommitMessageTailer(message, tailerKey, tailerValue string) string {
 		lastLineKey = message[pos1+1 : pos2]
 	}
 
-	isLikelyTailerLine := lastLineKey != "" && unicode.IsUpper(rune(lastLineKey[0]))
+	isLikelyTailerLine := lastLineKey != "" && unicode.IsUpper(rune(lastLineKey[0])) && strings.Contains(message, "-")
 	for i := 0; isLikelyTailerLine && i < len(lastLineKey); i++ {
 		r := rune(lastLineKey[i])
 		isLikelyTailerLine = unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-'

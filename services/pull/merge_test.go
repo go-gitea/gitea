@@ -72,7 +72,9 @@ func TestAddCommitMessageTailer(t *testing.T) {
 
 	// add tailer for message without newlines
 	assert.Equal(t, "title\n\nTest-tailer: TestValue", AddCommitMessageTailer("title", "Test-tailer", "TestValue"))
-	assert.Equal(t, "title\n\nnot tailer: xxx\n\nTest-tailer: TestValue", AddCommitMessageTailer("title\n\nnot tailer: xxx", "Test-tailer", "TestValue"))
+	assert.Equal(t, "title\n\nNot tailer: xxx\n\nTest-tailer: TestValue", AddCommitMessageTailer("title\n\nNot tailer: xxx", "Test-tailer", "TestValue"))
+	assert.Equal(t, "title\n\nNotTailer: xxx\n\nTest-tailer: TestValue", AddCommitMessageTailer("title\n\nNotTailer: xxx", "Test-tailer", "TestValue"))
+	assert.Equal(t, "title\n\nnot-tailer: xxx\n\nTest-tailer: TestValue", AddCommitMessageTailer("title\n\nnot-tailer: xxx", "Test-tailer", "TestValue"))
 
 	// add tailer for message with one EOL
 	assert.Equal(t, "title\n\nTest-tailer: TestValue", AddCommitMessageTailer("title\n", "Test-tailer", "TestValue"))
