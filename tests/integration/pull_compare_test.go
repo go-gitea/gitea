@@ -79,7 +79,7 @@ func TestPullCompare(t *testing.T) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// delete the head repository and revisit the PR diff view
-		err := repo_service.DeleteRepositoryDirectly(db.DefaultContext, user2, repoForked.ID)
+		err := repo_service.DeleteRepositoryDirectly(db.DefaultContext, repoForked.ID)
 		assert.NoError(t, err)
 
 		req = NewRequest(t, "GET", prFilesURL)

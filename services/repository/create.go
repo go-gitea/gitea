@@ -455,7 +455,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 }
 
 func cleanupRepository(doer *user_model.User, repoID int64) {
-	if errDelete := DeleteRepositoryDirectly(db.DefaultContext, doer, repoID); errDelete != nil {
+	if errDelete := DeleteRepositoryDirectly(db.DefaultContext, repoID); errDelete != nil {
 		log.Error("cleanupRepository failed: %v", errDelete)
 		// add system notice
 		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository: %v", errDelete); err != nil {
