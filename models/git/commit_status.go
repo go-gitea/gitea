@@ -230,6 +230,10 @@ func (status *CommitStatus) HideActionsURL(ctx context.Context) {
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
+	// This function is widely used, but it is not quite right.
+	// The bad case is: if all commits are "skipped", GitHub will return "success" as the combined status.
+	// But here Gitea just returns the first status, which is still "skipped" in this case.
+	// Ideally it should return something like "CommitStatusSummary" with proper aggregated state.
 	var lastStatus *CommitStatus
 	state := api.CommitStatusSuccess
 	for _, status := range statuses {
