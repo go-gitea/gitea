@@ -1,4 +1,4 @@
-name: Gitea Preproduction Performance Test
+name: Gitea Preproduction Performance Testing
 
 on:
   push:
