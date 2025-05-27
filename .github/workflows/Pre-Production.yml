@@ -1,61 +1,37 @@
-name: Gitea Preproduction Performance Testing
+name: Pre-Production Performance Testing
 
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - main  # Runs after PR is merged into main
 
 jobs:
-  preprod-performance-test:
+  preprod-perf-test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:13
-        options: --health-cmd="pg_isready -U gitea_user" --health-timeout=30s --health-retries=3
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_DB: gitea
-          POSTGRES_USER: gitea_user
-          POSTGRES_PASSWORD: gitea_pass
-
-      redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+      - name: Set up Java (required by JMeter)
+        uses: actions/setup-java@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          distribution: 'temurin'
+          java-version: '21'
 
-      - name: Build and push Docker image for preprod
+      - name: Install JMeter
         run: |
-          docker build -t maias816/myapp:preprod .
-          docker push maias816/myapp:preprod
+          sudo apt update
+          sudo apt install -y jmeter
+          jmeter --version
 
-      - name: Start preprod container
+      - name: Run JMeter Test
         run: |
-          docker run -d -p 8080:8080 --name preprod maias816/myapp:preprod
+          mkdir -p reports/jmeter
+          jmeter -n -t tests/perf_test.jmx -l reports/jmeter/results.jtl -e -o reports/jmeter/report
 
-      - name: Run JMeter performance test
-        run: |
-          docker run --rm -v ${{ github.workspace }}/tests:/tests -w /tests justb4/jmeter \
-          -n -t performance_test.jmx -l results.jtl -e -o /tests/jmeter-report
-
-      - name: Upload JMeter report
-        uses: actions/upload-artifact@v2
+      - name: Upload JMeter HTML Report
+        uses: actions/upload-artifact@bcb6a651d2b8c4fdb17bcf0d2581a3ad16f58aa9  # Pin to known good SHA
         with:
           name: jmeter-report
-          path: tests/jmeter-report
-
-      - name: Stop preprod container
-        run: |
-          docker stop preprod && docker rm preprod
+          path: reports/jmeter/report
