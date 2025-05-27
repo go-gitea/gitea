@@ -5,8 +5,6 @@ package pull
 
 import (
 	"fmt"
-	"strings"
-	"unicode"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -50,34 +48,6 @@ func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
 	}
 
 	return ctx.pr.Issue.Poster.NewGitSig(), nil
-}
-
-func AddCommitMessageTailer(message, tailerKey, tailerValue string) string {
-	tailerLine := tailerKey + ": " + tailerValue
-	if strings.Contains(message, "\n"+tailerLine+"\n") || strings.HasSuffix(message, "\n"+tailerLine) {
-		return message
-	}
-
-	if !strings.HasSuffix(message, "\n") {
-		message += "\n"
-	}
-	pos1 := strings.LastIndexByte(message[:len(message)-1], '\n')
-	pos2 := -1
-	if pos1 != -1 {
-		pos2 = strings.IndexByte(message[pos1:], ':')
-		if pos2 != -1 {
-			pos2 += pos1
-		}
-	}
-	var lastLine string
-	if pos1 != -1 && pos2 != -1 {
-		lastLine = message[pos1+1 : pos2+1]
-	}
-	lastLineIsTailerLine := lastLine != "" && unicode.IsUpper(rune(lastLine[0])) && strings.Contains(lastLine, "-")
-	if !strings.HasSuffix(message, "\n\n") && !lastLineIsTailerLine {
-		message += "\n"
-	}
-	return message + tailerLine
 }
 
 // doMergeStyleSquash squashes the tracking branch on the current HEAD (=base)
