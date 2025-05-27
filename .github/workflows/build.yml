@@ -1,4 +1,4 @@
-name: Gitea CI Workflow
+name: Gitea Build Environment Workflow
 
 on:
   push:
