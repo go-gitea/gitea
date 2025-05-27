@@ -33,7 +33,7 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 		},
 		{
 			commitStatuses: []*git_model.CommitStatus{
-				{Context: "Build 1", State: structs.CommitStatusSuccess},
+				{Context: "Build 1", State: structs.CommitStatusSkipped},
 				{Context: "Build 2", State: structs.CommitStatusSuccess},
 				{Context: "Build 3", State: structs.CommitStatusSuccess},
 			},
