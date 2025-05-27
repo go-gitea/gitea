@@ -237,7 +237,7 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	var lastStatus *CommitStatus
 	state := api.CommitStatusSuccess
 	for _, status := range statuses {
-		if status.State.HasHigherPriorityThan(state) {
+		if state == status.State || status.State.HasHigherPriorityThan(state) {
 			state = status.State
 			lastStatus = status
 		}
