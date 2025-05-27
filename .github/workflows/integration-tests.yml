@@ -7,7 +7,7 @@ on:
 
   pull_request:
     branches:
-      - feature_branch
+      -main
   # Trigger the workflow when a PR is opened to the dev branch ok
   workflow_dispatch:  # Allows manual trigger from the GitHub UI
 
