@@ -385,7 +385,7 @@ func Diff(ctx *context.Context) {
 		git_model.CommitStatusesHideActionsURL(ctx, statuses)
 	}
 
-	ctx.Data["CommitStatus"] = git_model.CalcCombinedStatus(statuses)
+	ctx.Data["CombinedStatus"] = git_model.CalcCombinedStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)

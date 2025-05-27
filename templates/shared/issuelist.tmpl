@@ -16,7 +16,7 @@
 						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
-								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
+								{{template "repo/commit_statuses" dict "Status" (index $.CombinedStatuses .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
 							{{end}}
 						{{end}}
 						<span class="labels-list tw-ml-1">

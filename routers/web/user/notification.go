@@ -274,7 +274,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 		return
 	}
 
-	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
+	commitStatuses, combinedStatuses, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
@@ -284,18 +284,10 @@ func NotificationSubscriptions(ctx *context.Context) {
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
 		}
 	}
-	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CombinedStatuses"] = combinedStatuses
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["Issues"] = issues
-
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, "")
-
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
-	if err != nil {
-		ctx.ServerError("GetIssuesLastCommitStatus", err)
-		return
-	}
-	ctx.Data["CommitStatus"] = commitStatus
 
 	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {

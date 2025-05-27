@@ -665,7 +665,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		}
 	}
 
-	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
+	commitStatuses, combinedStatuses, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
@@ -682,7 +682,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	}
 
 	ctx.Data["Issues"] = issues
-	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CombinedStatuses"] = combinedStatuses
 	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.

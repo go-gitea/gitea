@@ -82,7 +82,7 @@ func Branches(ctx *context.Context) {
 
 	ctx.Data["Keyword"] = kw
 	ctx.Data["Branches"] = branches
-	ctx.Data["CommitStatus"] = combinedStatuses
+	ctx.Data["CombinedStatuses"] = combinedStatuses
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["DefaultBranchBranch"] = defaultBranch
 	pager := context.NewPagination(int(branchesCount), pageSize, page, 5)
