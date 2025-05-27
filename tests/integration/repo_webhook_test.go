@@ -369,13 +369,13 @@ func Test_WebhookPush(t *testing.T) {
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
-		beforeCommitID, err := gitRepo.GetRefCommitID("master")
+		beforeCommitID, err := gitRepo.GetBranchCommitID("master")
 		assert.NoError(t, err)
 
 		// 2. trigger the webhook
 		testCreateFile(t, session, "user2", "repo1", "master", "test_webhook_push.md", "# a test file for webhook push", "")
 
-		afterCommitID, err := gitRepo.GetRefCommitID("master")
+		afterCommitID, err := gitRepo.GetBranchCommitID("master")
 		assert.NoError(t, err)
 
 		// 3. validate the webhook is triggered
@@ -425,16 +425,16 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		assert.Empty(t, triggeredEvent)
 		assert.Empty(t, payloads)
 
-		_, err = gitRepo.GetRefCommitID("new_branch")
+		_, err = gitRepo.GetBranchCommitID("new_branch")
 		assert.Error(t, err)
 
-		fromBranchCommitID, err := gitRepo.GetRefCommitID("develop")
+		fromBranchCommitID, err := gitRepo.GetBranchCommitID("develop")
 		assert.NoError(t, err)
 
 		// 3. trigger the webhook
 		testCreateFile(t, session, "user2", "repo1", "develop", "test_webhook_push.md", "# a test file for webhook push", "new_branch")
 
-		afterCommitID, err := gitRepo.GetRefCommitID("new_branch")
+		afterCommitID, err := gitRepo.GetBranchCommitID("new_branch")
 		assert.NoError(t, err)
 
 		beforeCommitID := git.Sha1ObjectFormat.EmptyObjectID().String()
