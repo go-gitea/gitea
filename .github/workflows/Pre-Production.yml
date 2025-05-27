@@ -1,0 +1,61 @@
+name: Gitea Preproduction Performance Test
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  preprod-performance-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        options: --health-cmd="pg_isready -U gitea_user" --health-timeout=30s --health-retries=3
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: gitea
+          POSTGRES_USER: gitea_user
+          POSTGRES_PASSWORD: gitea_pass
+
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image for preprod
+        run: |
+          docker build -t maias816/myapp:preprod .
+          docker push maias816/myapp:preprod
+
+      - name: Start preprod container
+        run: |
+          docker run -d -p 8080:8080 --name preprod maias816/myapp:preprod
+
+      - name: Run JMeter performance test
+        run: |
+          docker run --rm -v ${{ github.workspace }}/tests:/tests -w /tests justb4/jmeter \
+          -n -t performance_test.jmx -l results.jtl -e -o /tests/jmeter-report
+
+      - name: Upload JMeter report
+        uses: actions/upload-artifact@v3
+        with:
+          name: jmeter-report
+          path: tests/jmeter-report
+
+      - name: Stop preprod container
+        run: |
+          docker stop preprod && docker rm preprod
