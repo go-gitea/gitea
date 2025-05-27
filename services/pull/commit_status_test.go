@@ -22,7 +22,7 @@ func TestMergeRequiredContextsCommitStatus(t *testing.T) {
 		{
 			commitStatuses:   []*git_model.CommitStatus{},
 			requiredContexts: []string{},
-			expected:         structs.CommitStatusSuccess,
+			expected:         structs.CommitStatusPending,
 		},
 		{
 			commitStatuses: []*git_model.CommitStatus{

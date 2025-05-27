@@ -247,6 +247,7 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 			lastStatus = statuses[0]
 		} else {
 			// FIXME: another bad case: if the "statuses" slice is empty, the returned value is an invalid CommitStatus, all its fields are empty.
+			// Frontend code (tmpl&vue) sometimes depend on the empty fields to skip rendering commit status elements (need to double check in the future)
 			lastStatus = &CommitStatus{}
 		}
 	}

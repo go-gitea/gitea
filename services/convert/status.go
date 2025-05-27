@@ -42,7 +42,7 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 		SHA:        statuses[0].SHA,
 		TotalCount: len(statuses),
 		Repository: repo,
-		URL:        "",
+		URL:        "", // never set or used?
 		State:      api.CommitStatusSuccess,
 	}
 
@@ -58,9 +58,13 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 	// > failure if any of the contexts report as error or failure
 	// > pending if there are no statuses or a context is pending
 	// > success if the latest status for all contexts is success
-	if retStatus.State.IsError() {
-		retStatus.State = api.CommitStatusFailure
+	switch retStatus.State {
+	case api.CommitStatusSkipped:
+		retStatus.State = api.CommitStatusSuccess // all skipped means success
+	case api.CommitStatusPending, api.CommitStatusSuccess:
+		// use the current state for pending or success
+	default:
+		retStatus.State = api.CommitStatusFailure // otherwise, it is a failure
 	}
-
 	return retStatus
 }

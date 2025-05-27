@@ -59,16 +59,15 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 	}
 
 	if matchedCount == 0 && returnedStatus == structs.CommitStatusSuccess {
-		status := git_model.CalcCommitStatus(commitStatuses)
-		if status != nil {
-			// FIXME: this check is not right, "status" can never be nil, but its fields can be empty if commitStatuses is empty
-			// here is just a quick patch to make it overall right.
-			if status.State == "" || status.State == structs.CommitStatusSkipped {
-				return structs.CommitStatusSuccess
-			}
-			return status.State
+		if len(commitStatuses) == 0 {
+			// "no statuses" should mean "pending"
+			return structs.CommitStatusPending
 		}
-		return structs.CommitStatusSuccess
+		status := git_model.CalcCommitStatus(commitStatuses)
+		if status.State == structs.CommitStatusSkipped {
+			return structs.CommitStatusSuccess // if all statuses are skipped, return success
+		}
+		return status.State
 	}
 
 	return returnedStatus
