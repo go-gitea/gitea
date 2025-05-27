@@ -259,7 +259,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	defer func() {
 		if err != nil {
 			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(doer, repo.ID)
+			cleanupRepository(repo.ID)
 		}
 	}()
 
@@ -454,7 +454,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 	return nil
 }
 
-func cleanupRepository(doer *user_model.User, repoID int64) {
+func cleanupRepository(repoID int64) {
 	if errDelete := DeleteRepositoryDirectly(db.DefaultContext, repoID); errDelete != nil {
 		log.Error("cleanupRepository failed: %v", errDelete)
 		// add system notice
