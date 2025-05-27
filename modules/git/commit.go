@@ -34,7 +34,7 @@ type Commit struct {
 // CommitSignature represents a git commit signature part.
 type CommitSignature struct {
 	Signature string
-	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
+	Payload   string
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
