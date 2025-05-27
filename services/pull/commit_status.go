@@ -46,13 +46,13 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 
 			// If required rule not match any action, then it is pending
 			if targetStatus == "" {
-				if structs.CommitStatusPending.NoBetterThan(returnedStatus) {
+				if structs.CommitStatusPending.HasHigherPriorityThan(returnedStatus) {
 					returnedStatus = structs.CommitStatusPending
 				}
 				break
 			}
 
-			if targetStatus.NoBetterThan(returnedStatus) {
+			if targetStatus.HasHigherPriorityThan(returnedStatus) {
 				returnedStatus = targetStatus
 			}
 		}

@@ -43,12 +43,13 @@ func ToCombinedStatus(ctx context.Context, statuses []*git_model.CommitStatus, r
 		TotalCount: len(statuses),
 		Repository: repo,
 		URL:        "",
+		State:      api.CommitStatusSuccess,
 	}
 
 	retStatus.Statuses = make([]*api.CommitStatus, 0, len(statuses))
 	for _, status := range statuses {
 		retStatus.Statuses = append(retStatus.Statuses, ToCommitStatus(ctx, status))
-		if retStatus.State == "" || status.State.NoBetterThan(retStatus.State) {
+		if status.State.HasHigherPriorityThan(retStatus.State) {
 			retStatus.State = status.State
 		}
 	}
