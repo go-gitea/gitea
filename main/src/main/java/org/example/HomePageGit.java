@@ -57,22 +57,7 @@ public class HomePageGit extends LoadableComponent<HomePageGit> {
     profileImage.click();
     WebElement profilebtn=driver.findElement(By.xpath("//*[@id=\"_aria_auto_id_5\"]"));
     profilebtn.click();
-    // Initialize the elements list here before accessing the elements
-      /*initializeElements();
 
-        // Assuming the first element in the list is the profile image (img.avatar)
-      WebElement profileImage = elements.get(0); // Index 0 is for the image element
-      WebDriverWait wait1 = new WebDriverWait(driver, Duration.ofSeconds(30));
-      WebElement dropdownButton = wait1.until(ExpectedConditions.elementToBeClickable(elements.get(1)));// Index 1 is for the profile button
-
-        // Wait for the profile image to be clickable and then click it
-        Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(500), Duration.ofMillis(500));
-        wait.until(ExpectedConditions.elementToBeClickable(profileImage)).click();
-
-        // Wait for the profile button to be clickable and then click it
-        wait.until(ExpectedConditions.elementToBeClickable(dropdownButton)).click();*/
-
-        // Return a new ProfilePageGit object (you need to create this class to represent the profile page)
         return new ProfilePage(driver);
   }
 }

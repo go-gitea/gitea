@@ -52,7 +52,7 @@ public class LoginGitTest {
 
     @Test
     public void testValidLogin() {
-        HomePageGit home = login.loginAsValidUser("maias", "maias123");
+        HomePageGit home = login.loginAsValidUser("maias", "Maias123");
         assertTrue(home.isLoggedInSuccessfully(), "Login should be successful with valid credentials");
     }
 
