@@ -105,7 +105,7 @@ func (ctx *Context) HTMLPartial(status int, name templates.TplName) (string, err
 	return rec.Body.String(), nil
 }
 
-func (ctx *Context) Gomponents(status int, html string, tplName string) {
+func (ctx *Context) Gomponents(status int, html, tplName string) {
 	log.Debug("Component: %s", tplName)
 
 	err := ctx.Render.Gomponents(ctx.Resp, status, []byte(html))
