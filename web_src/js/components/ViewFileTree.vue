@@ -37,8 +37,12 @@ async function loadViewContent(url: string) {
   document.querySelector('.repo-view-content').innerHTML = await response.text();
 }
 
-async function navigateTreeView(treePath: string) {
+async function navigateTreeView(treePath: string, newTab: boolean) {
   const url = `${props.repoLink}/src/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}`;
+  if (newTab) {
+    window.open(url, '_blank');
+    return;
+  }
   window.history.pushState({treePath, url}, null, url);
   selectedItem.value = treePath;
   await loadViewContent(url);

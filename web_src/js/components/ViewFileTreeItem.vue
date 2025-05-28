@@ -14,7 +14,7 @@ type Item = {
 
 const props = defineProps<{
   item: Item,
-  navigateViewContent:(treePath: string) => void,
+  navigateViewContent:(treePath: string, newTab: boolean) => void,
   loadChildren:(treePath: string, subPath?: string) => Promise<Item[]>,
   selectedItem?: string,
 }>();
@@ -35,13 +35,13 @@ const doLoadChildren = async () => {
   }
 };
 
-const doLoadDirContent = () => {
-  doLoadChildren();
-  props.navigateViewContent(props.item.fullPath);
+const doLoadDirContent = (newTab: boolean) => {
+  if (!newTab) doLoadChildren();
+  props.navigateViewContent(props.item.fullPath, newTab);
 };
 
-const doLoadFileContent = () => {
-  props.navigateViewContent(props.item.fullPath);
+const doLoadFileContent = (newTab: boolean) => {
+  props.navigateViewContent(props.item.fullPath, newTab);
 };
 
 const doGotoSubModule = () => {
@@ -67,7 +67,8 @@ const doGotoSubModule = () => {
     v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
-    @click.stop="doLoadFileContent"
+    @click.stop="doLoadFileContent(false)"
+    @auxclick.stop="doLoadFileContent(true)"
   >
     <!-- symlink -->
     <div class="item-content">
@@ -80,7 +81,8 @@ const doGotoSubModule = () => {
     v-else-if="item.entryMode !== 'tree'" class="tree-item type-file"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
-    @click.stop="doLoadFileContent"
+    @click.stop="doLoadFileContent(false)"
+    @auxclick.stop="doLoadFileContent(true)"
   >
     <!-- file -->
     <div class="item-content">
@@ -93,7 +95,8 @@ const doGotoSubModule = () => {
     v-else class="tree-item type-directory"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
-    @click.stop="doLoadDirContent"
+    @click.stop="doLoadDirContent(false)"
+    @auxclick.stop="doLoadDirContent(true)"
   >
     <!-- directory -->
     <div class="item-toggle">
