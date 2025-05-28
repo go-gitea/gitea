@@ -9,5 +9,8 @@ func AddIndexForReleaseSha1(x *xorm.Engine) error {
 	type Release struct {
 		Sha1 string `xorm:"INDEX VARCHAR(64)"`
 	}
-	return x.Sync(new(Release))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(Release))
+	return err
 }

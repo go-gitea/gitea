@@ -309,10 +309,18 @@
   box-sizing: initial;
 }
 
+.file-view.markup {
+  padding: 1em 2em;
+}
+
+.file-view.markup:has(.file-not-rendered-prompt) {
+  padding: 0; /* let the file-not-rendered-prompt layout itself */
+}
+
 /* this background ensures images can break <hr>. We can only do this on
    cases where the background is known and not transparent. */
-.markup.file-view img,
-.markup.file-view video,
+.file-view.markup img,
+.file-view.markup video,
 .comment-body .markup img, /* regular comment */
 .comment-body .markup video,
 .comment-content .markup img, /* code comment */
