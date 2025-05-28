@@ -84,7 +84,7 @@ func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.Sig
 		commit := &git_model.SignCommitWithStatuses{
 			SignCommit: c,
 		}
-		statuses, _, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptions{})
+		statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptionsAll)
 		if err != nil {
 			return nil, err
 		}
