@@ -87,11 +87,11 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 	}
 	for _, entry := range entries {
 		if entry.Name() == run.WorkflowID {
-			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, run.CommitSHA, rpath, run.WorkflowID))
+			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, url.PathEscape(run.CommitSHA), util.PathEscapeSegments(rpath), url.PathEscape(run.WorkflowID)))
 			return
 		}
 	}
-	ctx.JSONErrorNotFound()
+	ctx.NotFound(nil)
 }
 
 type LogCursor struct {
