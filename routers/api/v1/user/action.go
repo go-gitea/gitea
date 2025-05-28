@@ -127,13 +127,11 @@ func CreateVariable(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/CreateVariableOption"
 	// responses:
 	//   "201":
-	//     description: response when creating a variable
-	//   "204":
-	//     description: response when creating a variable
+	//     description: successfully created the user-level variable
 	//   "400":
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     description: variable name already exists.
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
@@ -162,7 +160,7 @@ func CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // UpdateVariable update a user-level variable which is created by current doer

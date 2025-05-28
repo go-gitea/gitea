@@ -55,7 +55,7 @@ func GetLatestCommitStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoSHA
 }
 
 func UpdateCommitStatusSummary(ctx context.Context, repoID int64, sha string) error {
-	commitStatuses, _, err := GetLatestCommitStatus(ctx, repoID, sha, db.ListOptionsAll)
+	commitStatuses, err := GetLatestCommitStatus(ctx, repoID, sha, db.ListOptionsAll)
 	if err != nil {
 		return err
 	}
