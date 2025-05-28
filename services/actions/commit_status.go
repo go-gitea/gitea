@@ -149,12 +149,14 @@ func createCommitStatus(ctx context.Context, job *actions_model.ActionRunJob) er
 
 func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState {
 	switch status {
-	case actions_model.StatusSuccess, actions_model.StatusSkipped:
+	case actions_model.StatusSuccess:
 		return commitstatus.CommitStatusSuccess
 	case actions_model.StatusFailure, actions_model.StatusCancelled:
 		return commitstatus.CommitStatusFailure
 	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning:
 		return commitstatus.CommitStatusPending
+	case actions_model.StatusSkipped:
+		return commitstatus.CommitStatusSkipped
 	default:
 		return commitstatus.CommitStatusError
 	}

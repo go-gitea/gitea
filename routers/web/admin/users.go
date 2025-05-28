@@ -64,7 +64,7 @@ func Users(ctx *context.Context) {
 		"SortType":        sortType,
 	}
 
-	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
+	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor: ctx.Doer,
 		Type:  user_model.UserTypeIndividual,
 		ListOptions: db.ListOptions{

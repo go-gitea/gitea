@@ -18,6 +18,8 @@ const (
 	CommitStatusFailure CommitStatusState = "failure"
 	// CommitStatusWarning is for when the CommitStatus is Warning
 	CommitStatusWarning CommitStatusState = "warning"
+	// CommitStatusSkipped is for when CommitStatus is Skipped
+	CommitStatusSkipped CommitStatusState = "skipped"
 )
 
 func (css CommitStatusState) String() string {
@@ -49,6 +51,11 @@ func (css CommitStatusState) IsWarning() bool {
 	return css == CommitStatusWarning
 }
 
+// IsSkipped represents if commit status state is skipped
+func (css CommitStatusState) IsSkipped() bool {
+	return css == CommitStatusSkipped
+}
+
 type CommitStatusStates []CommitStatusState //nolint
 
 // According to https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
@@ -63,7 +70,7 @@ func (css CommitStatusStates) Combine() CombinedStatusState {
 		case state.IsError() || state.IsFailure():
 			return CombinedStatusFailure
 		case state.IsPending():
-		case state.IsSuccess() || state.IsWarning():
+		case state.IsSuccess() || state.IsWarning() || state.IsSkipped():
 			successCnt++
 		}
 	}

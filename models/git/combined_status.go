@@ -94,6 +94,10 @@ func InsertOrUpdateCombinedStatus(ctx context.Context, repoID int64, sha string)
 	if err != nil {
 		return err
 	}
+	// it guarantees that commitStatuses is not empty because this function is always called after a commit status is created
+	if len(commitStatuses) == 0 {
+		setting.PanicInDevOrTesting("no commit statuses found for repo %d and sha %s", repoID, sha)
+	}
 	combinedStatus := CalcCombinedStatus(commitStatuses)
 
 	// mysql will return 0 when update a record which state hasn't been changed which behaviour is different from other database,
