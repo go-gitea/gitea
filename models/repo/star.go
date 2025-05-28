@@ -79,6 +79,7 @@ func IsStaring(ctx context.Context, userID, repoID int64) bool {
 func GetStargazers(ctx context.Context, repo *Repository, opts db.ListOptions) ([]*user_model.User, error) {
 	sess := db.GetEngine(ctx).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
+	// Paging bypass used by UI
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 

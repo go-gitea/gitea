@@ -55,6 +55,8 @@ func Search(ctx *context.APIContext) {
 	//             "$ref": "#/definitions/User"
 
 	listOptions := utils.GetListOptions(ctx)
+	// SearchUsers allows pagination bypass
+	listOptions.SetDefaultValues()
 
 	uid := ctx.FormInt64("uid")
 	var users []*user_model.User

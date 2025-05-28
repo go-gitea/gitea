@@ -100,6 +100,8 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	listOptions := utils.GetListOptions(ctx)
+	// SearchUsers allows pagination bypass
+	listOptions.SetDefaultValues()
 
 	users, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,

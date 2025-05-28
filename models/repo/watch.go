@@ -151,14 +151,9 @@ func GetRepoWatchers(ctx context.Context, repoID int64, opts db.ListOptions) ([]
 	sess := db.GetEngine(ctx).Where("watch.repo_id=?", repoID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", WatchModeDont)
-	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
-		users := make([]*user_model.User, 0, opts.PageSize)
+	sess = db.SetSessionPagination(sess, &opts)
+	users := make([]*user_model.User, 0, opts.PageSize)
 
-		return users, sess.Find(&users)
-	}
-
-	users := make([]*user_model.User, 0, 8)
 	return users, sess.Find(&users)
 }
 

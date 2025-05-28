@@ -16,6 +16,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -298,17 +299,9 @@ func ListWikiPages(ctx *context.APIContext) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
-	limit := ctx.FormInt("limit")
-	if limit <= 1 {
-		limit = setting.API.DefaultPagingNum
-	}
-
-	skip := (page - 1) * limit
-	maxNum := page * limit
+	opts := utils.GetListOptions(ctx)
+	skip, limit := opts.GetSkipTake()
+	maxNum := skip + limit
 
 	entries, err := commit.ListEntries()
 	if err != nil {

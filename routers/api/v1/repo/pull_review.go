@@ -85,6 +85,8 @@ func ListPullReviews(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 		IssueID:     pr.IssueID,
 	}
+	// FindReviews allows pagination bypass
+	opts.SetDefaultValues()
 
 	allReviews, err := issues_model.FindReviews(ctx, opts)
 	if err != nil {

@@ -428,6 +428,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	}
 
 	if dismissPriors {
+		// missing db.ListOptionsAll
 		reviews, err := issues_model.FindReviews(ctx, issues_model.FindReviewOptions{
 			IssueID:    review.IssueID,
 			ReviewerID: review.ReviewerID,

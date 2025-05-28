@@ -321,15 +321,9 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And("`user`.type=?", UserTypeIndividual).
 		And(isUserVisibleToViewerCond(viewer))
 
-	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+	sess = db.SetSessionPagination(sess, &listOptions)
 
-		users := make([]*User, 0, listOptions.PageSize)
-		count, err := sess.FindAndCount(&users)
-		return users, count, err
-	}
-
-	users := make([]*User, 0, 8)
+	users := make([]*User, 0, listOptions.PageSize)
 	count, err := sess.FindAndCount(&users)
 	return users, count, err
 }
@@ -343,6 +337,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And("`user`.type IN (?, ?)", UserTypeIndividual, UserTypeOrganization).
 		And(isUserVisibleToViewerCond(viewer))
 
+	// pagination bypass, otherwise 8
 	if listOptions.Page > 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 

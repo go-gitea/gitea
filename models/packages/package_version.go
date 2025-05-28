@@ -187,6 +187,7 @@ type PackageSearchOptions struct {
 	HasFileWithName string                // only results are found which are associated with a file with the specific name
 	HasFiles        optional.Option[bool] // only results are found which have associated files
 	Sort            VersionSort
+	// Only one with interface
 	db.Paginator
 }
 

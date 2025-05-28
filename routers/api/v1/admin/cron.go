@@ -39,6 +39,7 @@ func ListCronTasks(ctx *context.APIContext) {
 	count := len(tasks)
 
 	listOpts := utils.GetListOptions(ctx)
+	listOpts.SetDefaultValues()
 	tasks = util.PaginateSlice(tasks, listOpts.Page, listOpts.PageSize).(cron.TaskTable)
 
 	res := make([]structs.Cron, len(tasks))

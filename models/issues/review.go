@@ -389,6 +389,7 @@ func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Iss
 	if reviewer == nil {
 		return nil, nil
 	}
+	// Missing db.ListOptionsAll
 	reviews, err := FindReviews(ctx, FindReviewOptions{
 		Types:      []ReviewType{ReviewTypePending},
 		IssueID:    issue.ID,

@@ -49,7 +49,11 @@ func ListLabels(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
+	opts := utils.GetListOptions(ctx)
+	// GetLabelsByRepoID allows pagination bypass
+	opts.SetDefaultValues()
+
+	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
