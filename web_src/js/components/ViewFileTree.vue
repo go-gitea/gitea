@@ -11,6 +11,7 @@ const props = defineProps({
   repoLink: {type: String, required: true},
   treePath: {type: String, required: true},
   currentRefNameSubURL: {type: String, required: true},
+  isEdit: {type: Boolean, required: false},
 });
 
 const files = ref([]);
@@ -39,6 +40,11 @@ async function loadViewContent(url: string) {
 
 async function navigateTreeView(treePath: string) {
   const url = `${props.repoLink}/src/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}`;
+  // do full page reload to show confirmation dialog if editor has unsaved changed
+  if (props.isEdit) {
+    window.location.href = url;
+    return;
+  }
   window.history.pushState({treePath, url}, null, url);
   selectedItem.value = treePath;
   await loadViewContent(url);

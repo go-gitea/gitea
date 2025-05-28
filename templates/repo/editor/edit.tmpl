@@ -1,60 +1,72 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file editor edit">
 	{{template "repo/header" .}}
-	<div class="ui container">
-		{{template "base/alert" .}}
-		<form class="ui edit form" method="post"
-					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
-					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
-		>
-			{{.CsrfTokenHtml}}
-			<input type="hidden" name="last_commit" value="{{.last_commit}}">
-			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
-			<div class="repo-editor-header">
-				<div class="ui breadcrumb field{{if .Err_TreePath}} error{{end}}">
-					<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
-					{{$n := len .TreeNames}}
-					{{$l := Eval $n "-" 1}}
-					{{range $i, $v := .TreeNames}}
-						<div class="breadcrumb-divider">/</div>
-						{{if eq $i $l}}
-							<input id="file-name" maxlength="255" value="{{$v}}" placeholder="{{ctx.Locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
-							<span data-tooltip-content="{{ctx.Locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
-						{{else}}
-							<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
+	<div class="ui container fluid padded repo-view-container">
+	  {{template "base/alert" .}}
+		<div class="tw-flex tw-flex-col repo-view-file-tree-container not-mobile" data-edit data-user-is-signed-in>
+			{{template "repo/view_file_tree" .}}
+		</div>
+		<div class="repo-view-content">
+			<form class="ui edit form" method="post"
+						data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
+						data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
+			>
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="last_commit" value="{{.last_commit}}">
+				<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
+				<div class="repo-editor-header">
+					<button class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile tw-hidden"
+						data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show"
+						data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}"
+						type="button"
+					>
+						{{svg "octicon-sidebar-collapse"}}
+					</button>
+					<div class="ui breadcrumb field{{if .Err_TreePath}} error{{end}}">
+						<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
+						{{$n := len .TreeNames}}
+						{{$l := Eval $n "-" 1}}
+						{{range $i, $v := .TreeNames}}
+							<div class="breadcrumb-divider">/</div>
+							{{if eq $i $l}}
+								<input id="file-name" maxlength="255" value="{{$v}}" placeholder="{{ctx.Locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.EditorconfigJson}}" required autofocus>
+								<span data-tooltip-content="{{ctx.Locale.Tr "repo.editor.filename_help"}}">{{svg "octicon-info"}}</span>
+							{{else}}
+								<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
+							{{end}}
 						{{end}}
-					{{end}}
-					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{if .ReturnURI}}{{.ReturnURI}}{{else}}{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
-					<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
-				</div>
-			</div>
-			<div class="field">
-				<div class="ui top attached header">
-					<div class="ui compact small menu small-menu-items repo-editor-menu">
-						<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
-						<a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
-						{{if not .IsNewFile}}
-						<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
-						{{end}}
+						<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{if .ReturnURI}}{{.ReturnURI}}{{else}}{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
+						<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 					</div>
 				</div>
-				<div class="ui bottom attached segment tw-p-0">
-					<div class="ui active tab tw-rounded-b" data-tab="write">
-						<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
-							data-previewable-extensions="{{.PreviewableExtensions}}"
-							data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
-						<div class="editor-loading is-loading"></div>
+				<div class="field">
+					<div class="ui top attached header">
+						<div class="ui compact small menu small-menu-items repo-editor-menu">
+							<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
+							<a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
+							{{if not .IsNewFile}}
+							<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
+							{{end}}
+						</div>
 					</div>
-					<div class="ui tab tw-px-4 tw-py-3" data-tab="preview">
-						{{ctx.Locale.Tr "loading"}}
-					</div>
-					<div class="ui tab" data-tab="diff">
-						<div class="tw-p-16"></div>
+					<div class="ui bottom attached segment tw-p-0">
+						<div class="ui active tab tw-rounded-b" data-tab="write">
+							<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
+								data-previewable-extensions="{{.PreviewableExtensions}}"
+								data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
+							<div class="editor-loading is-loading"></div>
+						</div>
+						<div class="ui tab tw-px-4 tw-py-3" data-tab="preview">
+							{{ctx.Locale.Tr "loading"}}
+						</div>
+						<div class="ui tab" data-tab="diff">
+							<div class="tw-p-16"></div>
+						</div>
 					</div>
 				</div>
-			</div>
-			{{template "repo/editor/commit_form" .}}
-		</form>
+				{{template "repo/editor/commit_form" .}}
+			</form>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}
