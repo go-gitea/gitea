@@ -633,7 +633,7 @@ jobs:
 		assert.NotEmpty(t, addFileResp)
 		sha = addFileResp.Commit.SHA
 		assert.Eventually(t, func() bool {
-			latestCommitStatuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo.ID, sha, db.ListOptionsAll)
+			latestCommitStatuses, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo.ID, sha, db.ListOptionsAll)
 			assert.NoError(t, err)
 			if len(latestCommitStatuses) == 0 {
 				return false
@@ -676,7 +676,7 @@ jobs:
 }
 
 func checkCommitStatusAndInsertFakeStatus(t *testing.T, repo *repo_model.Repository, sha string) {
-	latestCommitStatuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo.ID, sha, db.ListOptionsAll)
+	latestCommitStatuses, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo.ID, sha, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, latestCommitStatuses, 1)
 	assert.Equal(t, api.CommitStatusPending, latestCommitStatuses[0].State)

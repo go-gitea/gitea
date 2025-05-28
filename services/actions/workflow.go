@@ -91,7 +91,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	// get workflow entry from runTargetCommit
-	entries, err := actions.ListWorkflows(runTargetCommit)
+	_, entries, err := actions.ListWorkflows(runTargetCommit)
 	if err != nil {
 		return err
 	}
