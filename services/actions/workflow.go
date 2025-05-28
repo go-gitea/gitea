@@ -31,16 +31,6 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
-func getActionWorkflowPath(commit *git.Commit) string {
-	paths := []string{".gitea/workflows", ".github/workflows"}
-	for _, treePath := range paths {
-		if _, err := commit.SubTree(treePath); err == nil {
-			return treePath
-		}
-	}
-	return ""
-}
-
 func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
@@ -109,13 +99,11 @@ func ListActionWorkflows(ctx *context.APIContext) ([]*api.ActionWorkflow, error)
 		return nil, err
 	}
 
-	entries, err := actions.ListWorkflows(defaultBranchCommit)
+	folder, entries, err := actions.ListWorkflows(defaultBranchCommit)
 	if err != nil {
 		ctx.APIError(http.StatusNotFound, err.Error())
 		return nil, err
 	}
-
-	folder := getActionWorkflowPath(defaultBranchCommit)
 
 	workflows := make([]*api.ActionWorkflow, len(entries))
 	for i, entry := range entries {
@@ -185,7 +173,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	// get workflow entry from runTargetCommit
-	entries, err := actions.ListWorkflows(runTargetCommit)
+	_, entries, err := actions.ListWorkflows(runTargetCommit)
 	if err != nil {
 		return err
 	}
