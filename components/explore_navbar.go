@@ -10,7 +10,7 @@ import (
 type ExploreNavbarProps struct {
 	PageIsExploreRepositories   bool
 	UsersPageIsDisabled         bool
-	AppSubUrl                   string
+	AppSubURL                   string
 	PageIsExploreUsers          bool
 	PageIsExploreCode           bool
 	IsRepoIndexerEnabled        bool
@@ -33,14 +33,14 @@ func ExploreNavbar(data ExploreNavbarProps) g.Node {
 			gh.Class("overflow-menu-items tw-justify-center"),
 			gh.A(
 				gh.Class(classIf(data.PageIsExploreRepositories, "active ")+"item"),
-				gh.Href(data.AppSubUrl+"/explore/repos"),
+				gh.Href(data.AppSubURL+"/explore/repos"),
 				SVG("octicon-repo"),
 				g.Text(" "+tr("explore.repos")),
 			),
 			If(!data.UsersPageIsDisabled,
 				gh.A(
 					gh.Class(classIf(data.PageIsExploreUsers, "active ")+"item"),
-					gh.Href(data.AppSubUrl+"/explore/users"),
+					gh.Href(data.AppSubURL+"/explore/users"),
 					SVG("octicon-person"),
 					g.Text(" "+tr("explore.users")),
 				),
@@ -48,7 +48,7 @@ func ExploreNavbar(data ExploreNavbarProps) g.Node {
 			If(!data.OrganizationsPageIsDisabled,
 				gh.A(
 					gh.Class(classIf(data.PageIsExploreOrganizations, "active ")+"item"),
-					gh.Href(data.AppSubUrl+"/explore/organizations"),
+					gh.Href(data.AppSubURL+"/explore/organizations"),
 					SVG("octicon-organization"),
 					g.Text(" "+tr("explore.organizations")),
 				),
@@ -56,7 +56,7 @@ func ExploreNavbar(data ExploreNavbarProps) g.Node {
 			If(!isCodeGlobalDisabled && data.IsRepoIndexerEnabled && !data.CodePageIsDisabled,
 				gh.A(
 					gh.Class(classIf(data.PageIsExploreCode, "active ")+"item"),
-					gh.Href(data.AppSubUrl+"/explore/code"),
+					gh.Href(data.AppSubURL+"/explore/code"),
 					SVG("octicon-code"),
 					g.Text(" "+tr("explore.code")),
 				),

@@ -199,7 +199,7 @@ func (tr *MockRender) HTML(w io.Writer, status int, _ templates.TplName, _ any, 
 	return nil
 }
 
-func (tr *MockRender) Gomponents(w io.Writer, status int, _ string) error {
+func (tr *MockRender) Gomponents(w io.Writer, status int, _ []byte) error {
 	if resp, ok := w.(http.ResponseWriter); ok {
 		resp.WriteHeader(status)
 	}

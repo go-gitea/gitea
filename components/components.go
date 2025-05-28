@@ -17,7 +17,7 @@ func SVG(icon string, others ...any) g.Node {
 }
 
 // Utility to add "active" class if condition is true
-func classIf(condition bool, class string) string {
+func classIf(condition bool, class string) string { //nolint:unparam
 	if condition {
 		return class
 	}

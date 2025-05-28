@@ -57,7 +57,7 @@ func (h *HTMLRender) HTML(w io.Writer, status int, tplName TplName, data any, ct
 	return t.Execute(w, data)
 }
 
-func (h *HTMLRender) Gomponents(w io.Writer, status int, data []byte) error { //nolint:revive
+func (h *HTMLRender) Gomponents(w io.Writer, status int, data []byte) error {
 	if respWriter, ok := w.(http.ResponseWriter); ok {
 		if respWriter.Header().Get("Content-Type") == "" {
 			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")

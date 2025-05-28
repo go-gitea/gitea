@@ -232,7 +232,11 @@ func RenderUserSearch2(ctx *context.Context, opts user_model.SearchUserOptions, 
 	})
 
 	var bodyBuffer bytes.Buffer
-	data.Render(&bodyBuffer)
+	err = data.Render(&bodyBuffer)
+	if err != nil {
+		ctx.ServerError("RenderUserSearch().data.Render", err)
+		return
+	}
 
 	ctx.Gomponents(http.StatusOK, bodyBuffer.String(), "ExploreUsersPage")
 }

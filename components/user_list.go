@@ -35,7 +35,7 @@ func UserList(data UserListProps) g.Node {
 
 	return gh.Div(
 		gh.Class("flex-list"),
-		g.Group(g.Map(data.Users, func(u *user.User) g.Node {
+		g.Map(data.Users, func(u *user.User) g.Node {
 			utils := templates.NewAvatarUtils(data.Context)
 
 			return gh.Div(
@@ -86,6 +86,6 @@ func UserList(data UserListProps) g.Node {
 					),
 				),
 			)
-		})),
+		}),
 	)
 }
