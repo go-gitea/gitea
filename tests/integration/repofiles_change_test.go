@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"path"
@@ -325,7 +324,7 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 	for _, detail := range details {
 		encoding := "base64"
 		content := detail["content"].(string)
-		selfUrl := setting.AppURL + "api/v1/repos/user2/lfs/contents/" + detail["filename"].(string) + "?ref=master"
+		selfURL := setting.AppURL + "api/v1/repos/user2/lfs/contents/" + detail["filename"].(string) + "?ref=master"
 		htmlURL := setting.AppURL + "user2/lfs/src/branch/master/" + detail["filename"].(string)
 		gitURL := setting.AppURL + "api/v1/repos/user2/lfs/git/blobs/" + detail["sha"].(string)
 		downloadURL := setting.AppURL + "user2/lfs/raw/branch/master/" + detail["filename"].(string)
@@ -341,12 +340,12 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			Size:              int64(detail["size"].(int)),
 			Encoding:          &encoding,
 			Content:           &content,
-			URL:               &selfUrl,
+			URL:               &selfURL,
 			HTMLURL:           &htmlURL,
 			GitURL:            &gitURL,
 			DownloadURL:       &downloadURL,
 			Links: &api.FileLinksResponse{
-				Self:    &selfUrl,
+				Self:    &selfURL,
 				GitURL:  &gitURL,
 				HTMLURL: &htmlURL,
 			},
@@ -533,8 +532,6 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 
 		// test
 		filesResponse, err := files_service.ChangeRepoFiles(git.DefaultContext, repo, doer, opts)
-		a, _ := json.MarshalIndent(filesResponse, "", "  ")
-		fmt.Println(string(a))
 
 		// asserts
 		assert.NoError(t, err)
