@@ -390,16 +390,6 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	}, nil
 }
 
-func getActionWorkflowPath(commit *git.Commit) string {
-	paths := []string{".gitea/workflows", ".github/workflows"}
-	for _, treePath := range paths {
-		if _, err := commit.SubTree(treePath); err == nil {
-			return treePath
-		}
-	}
-	return ""
-}
-
 func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
