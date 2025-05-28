@@ -465,12 +465,10 @@ func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *rep
 		return nil, err
 	}
 
-	entries, err := actions.ListWorkflows(defaultBranchCommit)
+	folder, entries, err := actions.ListWorkflows(defaultBranchCommit)
 	if err != nil {
 		return nil, err
 	}
-
-	folder := getActionWorkflowPath(defaultBranchCommit)
 
 	workflows := make([]*api.ActionWorkflow, len(entries))
 	for i, entry := range entries {
