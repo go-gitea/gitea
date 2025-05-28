@@ -14,7 +14,6 @@ type ExploreUsersPageProps struct {
 	Keyword  string
 	SortType string
 	Users    []*user.User
-	// ContextUser          *user.User
 	Context  *context.Context
 	IsSigned bool
 }
@@ -47,14 +46,13 @@ func ExploreUsersPage(data ExploreUsersPageProps) g.Node {
 				gh.Class("ui container"),
 				ExploreSearchMenu(data, true),
 				UserList(UserListProps{
-					// ContextUser:      data.ContextUser,
 					Context:          data.Context,
 					Users:            data.Users,
 					IsSigned:         data.IsSigned,
 					Locale:           data.Locale,
 					PageIsAdminUsers: false,
 				}),
-				// Pagination(data),
+				// TODO Pagination(data),
 			),
 		),
 		g.Raw(footer),

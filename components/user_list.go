@@ -11,8 +11,7 @@ import (
 )
 
 type UserListProps struct {
-	Users []*user.User
-	// ContextUser      *user.User
+	Users            []*user.User
 	IsSigned         bool
 	PageIsAdminUsers bool
 	Locale           translation.Locale
