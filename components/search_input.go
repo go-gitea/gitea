@@ -4,12 +4,17 @@
 package components
 
 import (
+	"code.gitea.io/gitea/modules/translation"
 	g "maragu.dev/gomponents"
 	gh "maragu.dev/gomponents/html"
 )
 
-func SearchInput(value, placeholder string, disabled bool) g.Node {
+func SearchInput(locale translation.Locale, value, placeholder string, disabled bool) g.Node {
 	// Corresponds to templates/shared/search/input.tmpl
+
+	if placeholder == "" {
+		placeholder = string(locale.Tr("search.search"))
+	}
 
 	return gh.Input(
 		gh.Type("search"),

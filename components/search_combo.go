@@ -15,7 +15,7 @@ func SearchCombo(locale translation.Locale, value, placeholder string) g.Node {
 	disabled := false
 	return gh.Div(
 		gh.Class("ui small fluid action input"),
-		SearchInput(value, placeholder, disabled),
+		SearchInput(locale, value, placeholder, disabled),
 		// TODO SearchModeDropdown
 		SearchButton(disabled, ""),
 	)
