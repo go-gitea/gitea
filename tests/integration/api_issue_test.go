@@ -266,10 +266,10 @@ func TestAPIEditIssue(t *testing.T) {
 func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// as this API was used in the frontend, it uses UI page size
+	// as this API is no longer used in the frontend, it uses API page size
 	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
+	if expectedIssueCount > setting.API.MaxResponseItems {
+		expectedIssueCount = setting.API.MaxResponseItems
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
@@ -314,7 +314,8 @@ func TestAPISearchIssues(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Equal(t, "22", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 20)
+	// 30 is default page size now
+	assert.Len(t, apiIssues, 22)
 
 	query.Add("limit", "10")
 	link.RawQuery = query.Encode()
@@ -370,10 +371,10 @@ func TestAPISearchIssues(t *testing.T) {
 func TestAPISearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// as this API was used in the frontend, it uses UI page size
+	// as this API is no longer used in the frontend, it uses API page size
 	expectedIssueCount := 20 // from the fixtures
-	if expectedIssueCount > setting.UI.IssuePagingNum {
-		expectedIssueCount = setting.UI.IssuePagingNum
+	if expectedIssueCount > setting.API.MaxResponseItems {
+		expectedIssueCount = setting.API.MaxResponseItems
 	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
