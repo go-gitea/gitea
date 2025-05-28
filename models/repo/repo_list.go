@@ -591,12 +591,12 @@ func SearchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 }
 
 func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, cond builder.Cond) (db.Engine, int64, error) {
-	var page int = opts.Page
+	var page = opts.Page
 	if page <= 0 {
 		page = 1
 	}
 
-	var orderBy db.SearchOrderBy = opts.OrderBy
+	var orderBy = opts.OrderBy
 	if len(orderBy) == 0 {
 		orderBy = db.SearchOrderByAlphabetically
 	}
