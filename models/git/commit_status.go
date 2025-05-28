@@ -298,27 +298,37 @@ type CommitStatusIndex struct {
 	MaxIndex int64  `xorm:"index"`
 }
 
+func makeRepoCommitQuery(ctx context.Context, repoID int64, sha string) *xorm.Session {
+	return db.GetEngine(ctx).Table(&CommitStatus{}).
+		Where("repo_id = ?", repoID).And("sha = ?", sha)
+}
+
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
-	getBase := func() *xorm.Session {
-		return db.GetEngine(ctx).Table(&CommitStatus{}).
-			Where("repo_id = ?", repoID).And("sha = ?", sha)
-	}
+func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
 	indices := make([]int64, 0, 10)
-	sess := getBase().Select("max( `index` ) as `index`").
-		GroupBy("context_hash").OrderBy("max( `index` ) desc")
+	sess := makeRepoCommitQuery(ctx, repoID, sha).
+		Select("max( `index` ) as `index`").
+		GroupBy("context_hash").
+		OrderBy("max( `index` ) desc")
 	if !listOptions.IsListAll() {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
-	count, err := sess.FindAndCount(&indices)
-	if err != nil {
-		return nil, count, err
+	if err := sess.Find(&indices); err != nil {
+		return nil, err
 	}
 	statuses := make([]*CommitStatus, 0, len(indices))
 	if len(indices) == 0 {
-		return statuses, count, nil
+		return statuses, nil
 	}
-	return statuses, count, getBase().And(builder.In("`index`", indices)).Find(&statuses)
+	err := makeRepoCommitQuery(ctx, repoID, sha).And(builder.In("`index`", indices)).Find(&statuses)
+	return statuses, err
+}
+
+func CountLatestCommitStatus(ctx context.Context, repoID int64, sha string) (int64, error) {
+	return makeRepoCommitQuery(ctx, repoID, sha).
+		Select("count(context_hash)").
+		GroupBy("context_hash").
+		Count()
 }
 
 // GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
