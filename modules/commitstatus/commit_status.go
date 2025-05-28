@@ -4,6 +4,7 @@
 package commitstatus
 
 // CommitStatusState holds the state of a CommitStatus
+// swagger:enum CommitStatusState
 type CommitStatusState string //nolint
 
 const (
