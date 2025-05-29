@@ -234,7 +234,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix repo broken check (#34444) #34452
   * Fix remove org user failure on mssql (#34449) #34453
   * Fix Workflow run Not Found page (#34459) #34466
-  * When updating comment, if the content is the same, just return and not update the databse (#34422) #34464
+  * When updating comment, if the content is the same, just return and not update the database (#34422) #34464
   * Fix project board view (#34470) #34475
   * Fix get / delete runner to use consistent http 404 and 500 status (#34480) #34488
   * Fix url validation in webhook add/edit API (#34492) #34496
