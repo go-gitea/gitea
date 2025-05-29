@@ -1,6 +1,5 @@
 import {svg} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {clippie} from 'clippie';
 import {toAbsoluteUrl} from '../utils.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 
@@ -43,7 +42,8 @@ function selectRange(range: string): Element {
     if (!copyPermalink) return;
     let link = copyPermalink.getAttribute('data-url');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
-    copyPermalink.setAttribute('data-url', link);
+    copyPermalink.setAttribute('data-clipboard-text', link);
+    copyPermalink.setAttribute('data-clipboard-text-type', 'url');
   };
 
   const rangeFields = range ? range.split('-') : [];
@@ -138,8 +138,4 @@ export function initRepoCodeView() {
   };
   onHashChange();
   window.addEventListener('hashchange', onHashChange);
-
-  addDelegatedEventListener(document, 'click', '.copy-line-permalink', (el) => {
-    clippie(toAbsoluteUrl(el.getAttribute('data-url')));
-  });
 }

@@ -198,7 +198,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	// 8 - update repository status to be ready
 	repo.Status = repo_model.RepositoryReady
-	if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+	if err = repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "status"); err != nil {
 		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 	}
 
@@ -227,7 +227,7 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 		repo.IsFork = false
 		repo.ForkID = 0
 
-		if err := repo_module.UpdateRepository(ctx, repo, false); err != nil {
+		if err := updateRepository(ctx, repo, false); err != nil {
 			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
 			return err
 		}

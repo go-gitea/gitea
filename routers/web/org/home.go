@@ -86,12 +86,6 @@ func home(ctx *context.Context, viewRepositories bool) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
-	err := shared_user.LoadHeaderCount(ctx)
-	if err != nil {
-		ctx.ServerError("LoadHeaderCount", err)
-		return
-	}
-
 	opts := &organization.FindOrgMembersOpts{
 		Doer:         ctx.Doer,
 		OrgID:        org.ID,
@@ -109,9 +103,9 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
-	prepareResult, err := shared_user.PrepareOrgHeader(ctx)
+	prepareResult, err := shared_user.RenderUserOrgHeader(ctx)
 	if err != nil {
-		ctx.ServerError("PrepareOrgHeader", err)
+		ctx.ServerError("RenderUserOrgHeader", err)
 		return
 	}
 
@@ -154,7 +148,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.HTML(http.StatusOK, tplOrgHome)
 }
 
-func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.PrepareOrgHeaderResult) bool {
+func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.PrepareOwnerHeaderResult) bool {
 	viewAs := ctx.FormString("view_as", util.Iif(ctx.Org.IsMember, "member", "public"))
 	viewAsMember := viewAs == "member"
 

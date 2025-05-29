@@ -56,35 +56,16 @@ func ListPackages(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	packageType := ctx.FormTrim("type")
-	query := ctx.FormTrim("q")
-
-	pvs, count, err := packages.SearchVersions(ctx, &packages.PackageSearchOptions{
+	apiPackages, count, err := searchPackages(ctx, &packages.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages.Type(packageType),
-		Name:       packages.SearchValue{Value: query},
+		Type:       packages.Type(ctx.FormTrim("type")),
+		Name:       packages.SearchValue{Value: ctx.FormTrim("q")},
 		IsInternal: optional.Some(false),
 		Paginator:  &listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
-	}
-
-	pds, err := packages.GetPackageDescriptors(ctx, pvs)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	apiPackages := make([]*api.Package, 0, len(pds))
-	for _, pd := range pds {
-		apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		apiPackages = append(apiPackages, apiPackage)
 	}
 
 	ctx.SetLinkHeader(int(count), listOptions.PageSize)
@@ -217,6 +198,121 @@ func ListPackageFiles(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiPackageFiles)
 }
 
+// ListPackageVersions gets all versions of a package
+func ListPackageVersions(ctx *context.APIContext) {
+	// swagger:operation GET /packages/{owner}/{type}/{name} package listPackageVersions
+	// ---
+	// summary: Gets all versions of a package
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the package
+	//   type: string
+	//   required: true
+	// - name: type
+	//   in: path
+	//   description: type of the package
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of the package
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PackageList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	listOptions := utils.GetListOptions(ctx)
+
+	apiPackages, count, err := searchPackages(ctx, &packages.PackageSearchOptions{
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages.Type(ctx.PathParam("type")),
+		Name:       packages.SearchValue{Value: ctx.PathParam("name"), ExactMatch: true},
+		IsInternal: optional.Some(false),
+		Paginator:  &listOptions,
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, apiPackages)
+}
+
+// GetLatestPackageVersion gets the latest version of a package
+func GetLatestPackageVersion(ctx *context.APIContext) {
+	// swagger:operation GET /packages/{owner}/{type}/{name}/-/latest package getLatestPackageVersion
+	// ---
+	// summary: Gets the latest version of a package
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the package
+	//   type: string
+	//   required: true
+	// - name: type
+	//   in: path
+	//   description: type of the package
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of the package
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Package"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	pvs, _, err := packages.SearchLatestVersions(ctx, &packages.PackageSearchOptions{
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages.Type(ctx.PathParam("type")),
+		Name:       packages.SearchValue{Value: ctx.PathParam("name"), ExactMatch: true},
+		IsInternal: optional.Some(false),
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if len(pvs) == 0 {
+		ctx.APIError(http.StatusNotFound, err)
+		return
+	}
+
+	pd, err := packages.GetPackageDescriptor(ctx, pvs[0])
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, apiPackage)
+}
+
 // LinkPackage sets a repository link for a package
 func LinkPackage(ctx *context.APIContext) {
 	// swagger:operation POST /packages/{owner}/{type}/{name}/-/link/{repo_name} package linkPackage
@@ -334,4 +430,27 @@ func UnlinkPackage(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+func searchPackages(ctx *context.APIContext, opts *packages.PackageSearchOptions) ([]*api.Package, int64, error) {
+	pvs, count, err := packages.SearchVersions(ctx, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	pds, err := packages.GetPackageDescriptors(ctx, pvs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	apiPackages := make([]*api.Package, 0, len(pds))
+	for _, pd := range pds {
+		apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer)
+		if err != nil {
+			return nil, 0, err
+		}
+		apiPackages = append(apiPackages, apiPackage)
+	}
+
+	return apiPackages, count, nil
 }

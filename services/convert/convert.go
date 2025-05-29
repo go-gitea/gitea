@@ -30,6 +30,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
+
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -195,13 +197,22 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 
 // ToTag convert a git.Tag to an api.Tag
 func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
+	tarballURL := util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz")
+	zipballURL := util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip")
+
+	// Archive URLs are "" if the download feature is disabled
+	if setting.Repository.DisableDownloadSourceArchives {
+		tarballURL = ""
+		zipballURL = ""
+	}
+
 	return &api.Tag{
 		Name:       t.Name,
 		Message:    strings.TrimSpace(t.Message),
 		ID:         t.ID.String(),
 		Commit:     ToCommitMeta(repo, t),
-		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
-		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
+		ZipballURL: zipballURL,
+		TarballURL: tarballURL,
 	}
 }
 
@@ -252,6 +263,30 @@ func ToActionArtifact(repo *repo_model.Repository, art *actions_model.ActionArti
 	}, nil
 }
 
+func ToActionRunner(ctx context.Context, runner *actions_model.ActionRunner) *api.ActionRunner {
+	status := runner.Status()
+	apiStatus := "offline"
+	if runner.IsOnline() {
+		apiStatus = "online"
+	}
+	labels := make([]*api.ActionRunnerLabel, len(runner.AgentLabels))
+	for i, label := range runner.AgentLabels {
+		labels[i] = &api.ActionRunnerLabel{
+			ID:   int64(i),
+			Name: label,
+			Type: "custom",
+		}
+	}
+	return &api.ActionRunner{
+		ID:        runner.ID,
+		Name:      runner.Name,
+		Status:    apiStatus,
+		Busy:      status == runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE,
+		Ephemeral: runner.Ephemeral,
+		Labels:    labels,
+	}
+}
+
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(ctx context.Context, c *git.Commit) *api.PayloadCommitVerification {
 	verif := asymkey_service.ParseCommitWithSignature(ctx, c)
@@ -281,6 +316,7 @@ func ToPublicKey(apiLink string, key *asymkey_model.PublicKey) *api.PublicKey {
 		Title:       key.Name,
 		Fingerprint: key.Fingerprint,
 		Created:     key.CreatedUnix.AsTime(),
+		Updated:     key.UpdatedUnix.AsTime(),
 	}
 }
 

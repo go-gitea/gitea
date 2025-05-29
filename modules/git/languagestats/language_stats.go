@@ -1,13 +1,15 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package languagestats
 
 import (
+	"context"
 	"strings"
 	"unicode"
 
-	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 )
 
 const (
@@ -49,19 +51,15 @@ func mergeLanguageStats(stats map[string]int64) map[string]int64 {
 	return res
 }
 
-func TryReadLanguageAttribute(attrs map[string]string) optional.Option[string] {
-	language := AttributeToString(attrs, AttributeLinguistLanguage)
-	if language.Value() == "" {
-		language = AttributeToString(attrs, AttributeGitlabLanguage)
-		if language.Has() {
-			raw := language.Value()
-			// gitlab-language may have additional parameters after the language
-			// ignore them and just use the main language
-			// https://docs.gitlab.com/ee/user/project/highlighting.html#override-syntax-highlighting-for-a-file-type
-			if idx := strings.IndexByte(raw, '?'); idx >= 0 {
-				language = optional.Some(raw[:idx])
-			}
-		}
+// GetFileLanguage tries to get the (linguist) language of the file content
+func GetFileLanguage(ctx context.Context, gitRepo *git.Repository, treeish, treePath string) (string, error) {
+	attributesMap, err := attribute.CheckAttributes(ctx, gitRepo, treeish, attribute.CheckAttributeOpts{
+		Attributes: []string{attribute.LinguistLanguage, attribute.GitlabLanguage},
+		Filenames:  []string{treePath},
+	})
+	if err != nil {
+		return "", err
 	}
-	return language
+
+	return attributesMap[treePath].GetLanguage().Value(), nil
 }

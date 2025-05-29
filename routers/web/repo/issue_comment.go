@@ -96,7 +96,7 @@ func NewComment(ctx *context.Context) {
 				// Regenerate patch and test conflict.
 				if pr == nil {
 					issue.PullRequest.HeadCommitID = ""
-					pull_service.AddToTaskQueue(ctx, issue.PullRequest)
+					pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
 				}
 
 				// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
@@ -239,21 +239,28 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	oldContent := comment.Content
 	newContent := ctx.FormString("content")
 	contentVersion := ctx.FormInt("content_version")
-
-	// allow to save empty content
-	comment.Content = newContent
-	if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
-		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
-		} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
-			ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
-		} else {
-			ctx.ServerError("UpdateComment", err)
-		}
+	if contentVersion != comment.ContentVersion {
+		ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
 		return
+	}
+
+	if newContent != comment.Content {
+		// allow to save empty content
+		oldContent := comment.Content
+		comment.Content = newContent
+
+		if err = issue_service.UpdateComment(ctx, comment, contentVersion, ctx.Doer, oldContent); err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
+			} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
+				ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
+			} else {
+				ctx.ServerError("UpdateComment", err)
+			}
+			return
+		}
 	}
 
 	if err := comment.LoadAttachments(ctx); err != nil {

@@ -116,6 +116,7 @@
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-height: 0;
 }
 
 #git-graph-container #graph-raw-list {

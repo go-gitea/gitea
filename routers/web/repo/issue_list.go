@@ -5,8 +5,10 @@ package repo
 
 import (
 	"bytes"
-	"fmt"
+	"maps"
 	"net/http"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -18,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	db_indexer "code.gitea.io/gitea/modules/indexer/issues/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,14 +32,6 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
-
-func issueIDsFromSearch(ctx *context.Context, keyword string, opts *issues_model.IssuesOptions) ([]int64, error) {
-	ids, _, err := issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, opts))
-	if err != nil {
-		return nil, fmt.Errorf("SearchIssues: %w", err)
-	}
-	return ids, nil
-}
 
 func retrieveProjectsForIssueList(ctx *context.Context, repo *repo_model.Repository) {
 	ctx.Data["OpenProjects"], ctx.Data["ClosedProjects"] = retrieveProjectsInternal(ctx, repo)
@@ -459,6 +454,19 @@ func UpdateIssueStatus(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
+func prepareIssueFilterExclusiveOrderScopes(ctx *context.Context, allLabels []*issues_model.Label) {
+	scopeSet := make(map[string]bool)
+	for _, label := range allLabels {
+		scope := label.ExclusiveScope()
+		if len(scope) > 0 && label.ExclusiveOrder > 0 {
+			scopeSet[scope] = true
+		}
+	}
+	scopes := slices.Collect(maps.Keys(scopeSet))
+	sort.Strings(scopes)
+	ctx.Data["ExclusiveLabelScopes"] = scopes
+}
+
 func renderMilestones(ctx *context.Context) {
 	// Get milestones
 	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
@@ -481,7 +489,7 @@ func renderMilestones(ctx *context.Context) {
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
 
-func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption optional.Option[bool]) {
+func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int64, isPullOption optional.Option[bool]) {
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
@@ -521,15 +529,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		mileIDs = []int64{milestoneID}
 	}
 
-	labelIDs := issue.PrepareFilterIssueLabels(ctx, repo.ID, ctx.Repo.Owner)
+	preparedLabelFilter := issue.PrepareFilterIssueLabels(ctx, repo.ID, ctx.Repo.Owner)
 	if ctx.Written() {
 		return
 	}
 
+	prepareIssueFilterExclusiveOrderScopes(ctx, preparedLabelFilter.AllLabels)
+
+	var keywordMatchedIssueIDs []int64
 	var issueStats *issues_model.IssueStats
 	statsOpts := &issues_model.IssuesOptions{
 		RepoIDs:           []int64{repo.ID},
-		LabelIDs:          labelIDs,
+		LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 		MilestoneIDs:      mileIDs,
 		ProjectID:         projectID,
 		AssigneeID:        assigneeID,
@@ -541,7 +552,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		IssueIDs:          nil,
 	}
 	if keyword != "" {
-		allIssueIDs, err := issueIDsFromSearch(ctx, keyword, statsOpts)
+		keywordMatchedIssueIDs, _, err = issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, statsOpts))
 		if err != nil {
 			if issue_indexer.IsAvailable(ctx) {
 				ctx.ServerError("issueIDsFromSearch", err)
@@ -550,14 +561,17 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			ctx.Data["IssueIndexerUnavailable"] = true
 			return
 		}
-		statsOpts.IssueIDs = allIssueIDs
+		if len(keywordMatchedIssueIDs) == 0 {
+			// It did search with the keyword, but no issue found, just set issueStats to empty, then no need to do query again.
+			issueStats = &issues_model.IssueStats{}
+			// set keywordMatchedIssueIDs to empty slice, so we can distinguish it from "nil"
+			keywordMatchedIssueIDs = []int64{}
+		}
+		statsOpts.IssueIDs = keywordMatchedIssueIDs
 	}
-	if keyword != "" && len(statsOpts.IssueIDs) == 0 {
-		// So it did search with the keyword, but no issue found.
-		// Just set issueStats to empty.
-		issueStats = &issues_model.IssueStats{}
-	} else {
-		// So it did search with the keyword, and found some issues. It needs to get issueStats of these issues.
+
+	if issueStats == nil {
+		// Either it did search with the keyword, and found some issues, it needs to get issueStats of these issues.
 		// Or the keyword is empty, so it doesn't need issueIDs as filter, just get issueStats with statsOpts.
 		issueStats, err = issues_model.GetIssueStats(ctx, statsOpts)
 		if err != nil {
@@ -589,25 +603,21 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 		ctx.Data["TotalTrackedTime"] = totalTrackedTime
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
+	// prepare pager
+	total := int(issueStats.OpenCount + issueStats.ClosedCount)
+	if isShowClosed.Has() {
+		total = util.Iif(isShowClosed.Value(), int(issueStats.ClosedCount), int(issueStats.OpenCount))
 	}
-
-	var total int
-	switch {
-	case isShowClosed.Value():
-		total = int(issueStats.ClosedCount)
-	case !isShowClosed.Has():
-		total = int(issueStats.OpenCount + issueStats.ClosedCount)
-	default:
-		total = int(issueStats.OpenCount)
-	}
+	page := max(ctx.FormInt("page"), 1)
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
+	// prepare real issue list:
 	var issues issues_model.IssueList
-	{
-		ids, err := issueIDsFromSearch(ctx, keyword, &issues_model.IssuesOptions{
+	if keywordMatchedIssueIDs == nil || len(keywordMatchedIssueIDs) > 0 {
+		// Either it did search with the keyword, and found some issues, then keywordMatchedIssueIDs is not null, it needs to use db indexer.
+		// Or the keyword is empty, it also needs to usd db indexer.
+		// In either case, no need to use keyword anymore
+		searchResult, err := db_indexer.GetIndexer().FindWithIssueOptions(ctx, &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
@@ -622,18 +632,16 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 			ProjectID:         projectID,
 			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
-			LabelIDs:          labelIDs,
+			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 			SortType:          sortType,
+			IssueIDs:          keywordMatchedIssueIDs,
 		})
 		if err != nil {
-			if issue_indexer.IsAvailable(ctx) {
-				ctx.ServerError("issueIDsFromSearch", err)
-				return
-			}
-			ctx.Data["IssueIndexerUnavailable"] = true
+			ctx.ServerError("DBIndexer.Search", err)
 			return
 		}
-		issues, err = issues_model.GetIssuesByIDs(ctx, ids, true)
+		issueIDs := issue_indexer.SearchResultToIDSlice(searchResult)
+		issues, err = issues_model.GetIssuesByIDs(ctx, issueIDs, true)
 		if err != nil {
 			ctx.ServerError("GetIssuesByIDs", err)
 			return
@@ -728,7 +736,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption opt
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
-	ctx.Data["SelLabelIDs"] = labelIDs
+	ctx.Data["SelLabelIDs"] = preparedLabelFilter.SelectedLabelIDs
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
@@ -769,7 +777,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
-	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), optional.Some(isPullList))
+	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), optional.Some(isPullList))
 	if ctx.Written() {
 		return
 	}

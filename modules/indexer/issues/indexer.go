@@ -103,7 +103,7 @@ func InitIssueIndexer(syncReindex bool) {
 				log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 			}
 		case "db":
-			issueIndexer = db.NewIndexer()
+			issueIndexer = db.GetIndexer()
 		case "meilisearch":
 			issueIndexer = meilisearch.NewIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueConnAuth, setting.Indexer.IssueIndexerName)
 			existed, err = issueIndexer.Init(ctx)
@@ -291,19 +291,22 @@ func SearchIssues(ctx context.Context, opts *SearchOptions) ([]int64, int64, err
 		// So if the user creates an issue and list issues immediately, the issue may not be listed because the indexer needs time to index the issue.
 		// Even worse, the external indexer like elastic search may not be available for a while,
 		// and the user may not be able to list issues completely until it is available again.
-		ix = db.NewIndexer()
+		ix = db.GetIndexer()
 	}
+
 	result, err := ix.Search(ctx, opts)
 	if err != nil {
 		return nil, 0, err
 	}
+	return SearchResultToIDSlice(result), result.Total, nil
+}
 
+func SearchResultToIDSlice(result *internal.SearchResult) []int64 {
 	ret := make([]int64, 0, len(result.Hits))
 	for _, hit := range result.Hits {
 		ret = append(ret, hit.ID)
 	}
-
-	return ret, result.Total, nil
+	return ret
 }
 
 // CountIssues counts issues by options. It is a shortcut of SearchIssues(ctx, opts) but only returns the total count.

@@ -23,8 +23,8 @@ type Package struct {
 
 // PackageFile represents a package file
 type PackageFile struct {
-	ID         int64 `json:"id"`
-	Size       int64
+	ID         int64  `json:"id"`
+	Size       int64  `json:"size"`
 	Name       string `json:"name"`
 	HashMD5    string `json:"md5"`
 	HashSHA1   string `json:"sha1"`

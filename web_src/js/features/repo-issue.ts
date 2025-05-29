@@ -197,54 +197,6 @@ export function initRepoIssueCodeCommentCancel() {
   });
 }
 
-export function initRepoPullRequestUpdate() {
-  const prUpdateButtonContainer = document.querySelector('#update-pr-branch-with-base');
-  if (!prUpdateButtonContainer) return;
-
-  const prUpdateButton = prUpdateButtonContainer.querySelector<HTMLButtonElement>(':scope > button');
-  const prUpdateDropdown = prUpdateButtonContainer.querySelector(':scope > .ui.dropdown');
-  prUpdateButton.addEventListener('click', async function (e) {
-    e.preventDefault();
-    const redirect = this.getAttribute('data-redirect');
-    this.classList.add('is-loading');
-    let response: Response;
-    try {
-      response = await POST(this.getAttribute('data-do'));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      this.classList.remove('is-loading');
-    }
-    let data: Record<string, any>;
-    try {
-      data = await response?.json(); // the response is probably not a JSON
-    } catch (error) {
-      console.error(error);
-    }
-    if (data?.redirect) {
-      window.location.href = data.redirect;
-    } else if (redirect) {
-      window.location.href = redirect;
-    } else {
-      window.location.reload();
-    }
-  });
-
-  fomanticQuery(prUpdateDropdown).dropdown({
-    onChange(_text: string, _value: string, $choice: any) {
-      const choiceEl = $choice[0];
-      const url = choiceEl.getAttribute('data-do');
-      if (url) {
-        const buttonText = prUpdateButton.querySelector('.button-text');
-        if (buttonText) {
-          buttonText.textContent = choiceEl.textContent;
-        }
-        prUpdateButton.setAttribute('data-do', url);
-      }
-    },
-  });
-}
-
 export function initRepoPullRequestAllowMaintainerEdit() {
   const wrapper = document.querySelector('#allow-edits-from-maintainers');
   if (!wrapper) return;

@@ -117,9 +117,6 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 	if c.IsSet("disable-helo") {
 		conf.DisableHelo = c.Bool("disable-helo")
 	}
-	if c.IsSet("skip-local-2fa") {
-		conf.SkipLocalTwoFA = c.Bool("skip-local-2fa")
-	}
 	return nil
 }
 
@@ -156,10 +153,11 @@ func runAddSMTP(c *cli.Context) error {
 	}
 
 	return auth_model.CreateSource(ctx, &auth_model.Source{
-		Type:     auth_model.SMTP,
-		Name:     c.String("name"),
-		IsActive: active,
-		Cfg:      &smtpConfig,
+		Type:            auth_model.SMTP,
+		Name:            c.String("name"),
+		IsActive:        active,
+		Cfg:             &smtpConfig,
+		TwoFactorPolicy: util.Iif(c.Bool("skip-local-2fa"), "skip", ""),
 	})
 }
 
@@ -195,6 +193,6 @@ func runUpdateSMTP(c *cli.Context) error {
 	}
 
 	source.Cfg = smtpConfig
-
+	source.TwoFactorPolicy = util.Iif(c.Bool("skip-local-2fa"), "skip", "")
 	return auth_model.UpdateSource(ctx, source)
 }

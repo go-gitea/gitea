@@ -34,7 +34,7 @@ export async function attachTribute(element: HTMLElement) {
       menuItemTemplate: (item: TributeItem) => {
         return `
           <div class="tribute-item">
-            <img src="${htmlEscape(item.original.avatar)}" width="21" height="21"/>
+            <img alt src="${htmlEscape(item.original.avatar)}" width="21" height="21"/>
             <span class="name">${htmlEscape(item.original.name)}</span>
             ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${htmlEscape(item.original.fullname)}</span>` : ''}
           </div>

@@ -3,13 +3,15 @@
 
 //go:build !gogit
 
-package git
+package languagestats
 
 import (
 	"bytes"
 	"io"
 
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 
@@ -17,7 +19,7 @@ import (
 )
 
 // GetLanguageStats calculates language stats for git repository at specified commit
-func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
+func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
 	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
@@ -34,19 +36,19 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	if err := writeID(commitID); err != nil {
 		return nil, err
 	}
-	shaBytes, typ, size, err := ReadBatchLine(batchReader)
+	shaBytes, typ, size, err := git.ReadBatchLine(batchReader)
 	if typ != "commit" {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
-		return nil, ErrNotExist{commitID, ""}
+		return nil, git.ErrNotExist{ID: commitID}
 	}
 
-	sha, err := NewIDFromString(string(shaBytes))
+	sha, err := git.NewIDFromString(string(shaBytes))
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
-		return nil, ErrNotExist{commitID, ""}
+		return nil, git.ErrNotExist{ID: commitID}
 	}
 
-	commit, err := CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
+	commit, err := git.CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, err
@@ -62,8 +64,11 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
-	checker, deferable := repo.CheckAttributeReader(commitID)
-	defer deferable()
+	checker, err := attribute.NewBatchChecker(repo, commitID, attribute.LinguistAttributes)
+	if err != nil {
+		return nil, err
+	}
+	defer checker.Close()
 
 	contentBuf := bytes.Buffer{}
 	var content []byte
@@ -96,43 +101,36 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		isDocumentation := optional.None[bool]()
 		isDetectable := optional.None[bool]()
 
-		if checker != nil {
-			attrs, err := checker.CheckPath(f.Name())
-			if err == nil {
-				isVendored = AttributeToBool(attrs, AttributeLinguistVendored)
-				if isVendored.ValueOrDefault(false) {
-					continue
+		attrs, err := checker.CheckPath(f.Name())
+		if err == nil {
+			if isVendored = attrs.GetVendored(); isVendored.ValueOrDefault(false) {
+				continue
+			}
+
+			if isGenerated = attrs.GetGenerated(); isGenerated.ValueOrDefault(false) {
+				continue
+			}
+
+			if isDocumentation = attrs.GetDocumentation(); isDocumentation.ValueOrDefault(false) {
+				continue
+			}
+
+			if isDetectable = attrs.GetDetectable(); !isDetectable.ValueOrDefault(true) {
+				continue
+			}
+
+			if hasLanguage := attrs.GetLanguage(); hasLanguage.Value() != "" {
+				language := hasLanguage.Value()
+
+				// group languages, such as Pug -> HTML; SCSS -> CSS
+				group := enry.GetLanguageGroup(language)
+				if len(group) != 0 {
+					language = group
 				}
 
-				isGenerated = AttributeToBool(attrs, AttributeLinguistGenerated)
-				if isGenerated.ValueOrDefault(false) {
-					continue
-				}
-
-				isDocumentation = AttributeToBool(attrs, AttributeLinguistDocumentation)
-				if isDocumentation.ValueOrDefault(false) {
-					continue
-				}
-
-				isDetectable = AttributeToBool(attrs, AttributeLinguistDetectable)
-				if !isDetectable.ValueOrDefault(true) {
-					continue
-				}
-
-				hasLanguage := TryReadLanguageAttribute(attrs)
-				if hasLanguage.Value() != "" {
-					language := hasLanguage.Value()
-
-					// group languages, such as Pug -> HTML; SCSS -> CSS
-					group := enry.GetLanguageGroup(language)
-					if len(group) != 0 {
-						language = group
-					}
-
-					// this language will always be added to the size
-					sizes[language] += f.Size()
-					continue
-				}
+				// this language will always be added to the size
+				sizes[language] += f.Size()
+				continue
 			}
 		}
 
@@ -149,7 +147,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			if err := writeID(f.ID.String()); err != nil {
 				return nil, err
 			}
-			_, _, size, err := ReadBatchLine(batchReader)
+			_, _, size, err := git.ReadBatchLine(batchReader)
 			if err != nil {
 				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
 				return nil, err
@@ -167,7 +165,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 				return nil, err
 			}
 			content = contentBuf.Bytes()
-			if err := DiscardFull(batchReader, discard); err != nil {
+			if err := git.DiscardFull(batchReader, discard); err != nil {
 				return nil, err
 			}
 		}

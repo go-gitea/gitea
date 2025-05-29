@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -1237,24 +1238,21 @@ func GetDiffForRender(ctx context.Context, gitRepo *git.Repository, opts *DiffOp
 		return nil, err
 	}
 
-	checker, deferrable := gitRepo.CheckAttributeReader(opts.AfterCommitID)
-	defer deferrable()
+	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage})
+	if err != nil {
+		return nil, err
+	}
+	defer checker.Close()
 
 	for _, diffFile := range diff.Files {
 		isVendored := optional.None[bool]()
 		isGenerated := optional.None[bool]()
-		if checker != nil {
-			attrs, err := checker.CheckPath(diffFile.Name)
-			if err == nil {
-				isVendored = git.AttributeToBool(attrs, git.AttributeLinguistVendored)
-				isGenerated = git.AttributeToBool(attrs, git.AttributeLinguistGenerated)
-
-				language := git.TryReadLanguageAttribute(attrs)
-				if language.Has() {
-					diffFile.Language = language.Value()
-				}
-			} else {
-				checker = nil // CheckPath fails, it's not impossible to "check" anymore
+		attrs, err := checker.CheckPath(diffFile.Name)
+		if err == nil {
+			isVendored, isGenerated = attrs.GetVendored(), attrs.GetGenerated()
+			language := attrs.GetLanguage()
+			if language.Has() {
+				diffFile.Language = language.Value()
 			}
 		}
 
@@ -1339,10 +1337,13 @@ func GetDiffShortStat(gitRepo *git.Repository, beforeCommitID, afterCommitID str
 
 // SyncUserSpecificDiff inserts user-specific data such as which files the user has already viewed on the given diff
 // Additionally, the database is updated asynchronously if files have changed since the last review
-func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions, files ...string) error {
+func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions) (*pull_model.ReviewState, error) {
 	review, err := pull_model.GetNewestReviewState(ctx, userID, pull.ID)
-	if err != nil || review == nil || review.UpdatedFiles == nil {
-		return err
+	if err != nil {
+		return nil, err
+	}
+	if review == nil || len(review.UpdatedFiles) == 0 {
+		return review, nil
 	}
 
 	latestCommit := opts.AfterCommitID
@@ -1395,11 +1396,11 @@ outer:
 		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
 			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return review, err
 }
 
 // CommentAsDiff returns c.Patch as *Diff

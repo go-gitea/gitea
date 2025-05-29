@@ -58,7 +58,8 @@ const doGotoSubModule = () => {
   >
     <!-- submodule -->
     <div class="item-content">
-      <SvgIcon class="text primary" name="octicon-file-submodule"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span class="tw-contents" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -70,7 +71,8 @@ const doGotoSubModule = () => {
   >
     <!-- symlink -->
     <div class="item-content">
-      <SvgIcon name="octicon-file-symlink-file"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span class="tw-contents" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -83,7 +85,7 @@ const doGotoSubModule = () => {
     <!-- file -->
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span v-html="item.entryIcon"/>
+      <span class="tw-contents" v-html="item.entryIcon"/>
       <span class="gt-ellipsis tw-flex-1">{{ item.entryName }}</span>
     </div>
   </div>
@@ -95,13 +97,12 @@ const doGotoSubModule = () => {
   >
     <!-- directory -->
     <div class="item-toggle">
-      <!-- FIXME: use a general and global class for this animation -->
-      <SvgIcon v-if="isLoading" name="octicon-sync" class="job-status-rotate"/>
+      <SvgIcon v-if="isLoading" name="octicon-sync" class="circular-spin"/>
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop="doLoadChildren"/>
     </div>
     <div class="item-content">
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <span class="text primary" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
+      <span class="tw-contents" v-html="(!collapsed && item.entryIconOpen) ? item.entryIconOpen : item.entryIcon"/>
       <span class="gt-ellipsis">{{ item.entryName }}</span>
     </div>
   </div>
@@ -154,7 +155,7 @@ const doGotoSubModule = () => {
   grid-area: content;
   display: flex;
   align-items: center;
-  gap: 0.25em;
+  gap: 0.5em;
   text-overflow: ellipsis;
   min-width: 0;
 }
