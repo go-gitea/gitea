@@ -14,7 +14,7 @@ type Item = {
 
 const props = defineProps<{
   item: Item,
-  navigateViewContent:(treePath: string, newTab: boolean) => void,
+  navigateViewContent:(treePath: string, newTab?: boolean) => void,
   loadChildren:(treePath: string, subPath?: string) => Promise<Item[]>,
   selectedItem?: string,
 }>();
@@ -35,13 +35,17 @@ const doLoadChildren = async () => {
   }
 };
 
-const doLoadDirContent = (newTab: boolean) => {
-  if (!newTab) doLoadChildren();
-  props.navigateViewContent(props.item.fullPath, newTab);
+const doLoadDirContent = () => {
+  doLoadChildren();
+  props.navigateViewContent(props.item.fullPath);
 };
 
-const doLoadFileContent = (newTab: boolean) => {
-  props.navigateViewContent(props.item.fullPath, newTab);
+const doLoadFileContent = () => {
+  props.navigateViewContent(props.item.fullPath);
+};
+
+const doOpenContentInNewTab = () => {
+  props.navigateViewContent(props.item.fullPath, true);
 };
 
 const doGotoSubModule = () => {
@@ -67,8 +71,8 @@ const doGotoSubModule = () => {
     v-else-if="item.entryMode === 'symlink'" class="tree-item type-symlink"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
-    @click.stop="doLoadFileContent(false)"
-    @auxclick.stop="doLoadFileContent(true)"
+    @click.stop="doLoadFileContent"
+    @auxclick.stop="doOpenContentInNewTab"
   >
     <!-- symlink -->
     <div class="item-content">
@@ -81,8 +85,8 @@ const doGotoSubModule = () => {
     v-else-if="item.entryMode !== 'tree'" class="tree-item type-file"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
-    @click.stop="doLoadFileContent(false)"
-    @auxclick.stop="doLoadFileContent(true)"
+    @click.stop="doLoadFileContent"
+    @auxclick.stop="doOpenContentInNewTab"
   >
     <!-- file -->
     <div class="item-content">
@@ -95,8 +99,8 @@ const doGotoSubModule = () => {
     v-else class="tree-item type-directory"
     :class="{'selected': selectedItem === item.fullPath}"
     :title="item.entryName"
-    @click.stop="doLoadDirContent(false)"
-    @auxclick.stop="doLoadDirContent(true)"
+    @click.stop="doLoadDirContent"
+    @auxclick.stop="doOpenContentInNewTab"
   >
     <!-- directory -->
     <div class="item-toggle">
