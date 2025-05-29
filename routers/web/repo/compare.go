@@ -236,25 +236,6 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
 	} else {
-		// check if head is a branch or tag only if infoPath ends with .diff or .patch
-		if strings.HasSuffix(infoPath, ".diff") || strings.HasSuffix(infoPath, ".patch") {
-			infos = strings.SplitN(infoPath, "...", 2)
-			if len(infos) != 2 {
-				infos = strings.SplitN(infoPath, "..", 2) // match github behavior
-			}
-			ref2IsBranch := gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, infos[1])
-			ref2IsTag := gitrepo.IsTagExist(ctx, ctx.Repo.Repository, infos[1])
-			if !ref2IsBranch && !ref2IsTag {
-				if strings.HasSuffix(infoPath, ".diff") {
-					ci.RawDiffType = git.RawDiffNormal
-					infoPath = strings.TrimSuffix(infoPath, ".diff")
-				} else if strings.HasSuffix(infoPath, ".patch") {
-					ci.RawDiffType = git.RawDiffPatch
-					infoPath = strings.TrimSuffix(infoPath, ".patch")
-				}
-			}
-		}
-
 		infos = strings.SplitN(infoPath, "...", 2)
 		if len(infos) != 2 {
 			if infos = strings.SplitN(infoPath, "..", 2); len(infos) == 2 {
@@ -275,7 +256,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	if len(headInfos) == 1 {
 		isSameRepo = true
 		ci.HeadUser = ctx.Repo.Owner
-		ci.HeadBranch = headInfos[0]
+		ci.HeadBranch = parseRefForRawDiff(ctx, ci, headInfos[0])
 	} else if len(headInfos) == 2 {
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
@@ -288,7 +269,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				}
 				return nil
 			}
-			ci.HeadBranch = headInfos[1]
+			ci.HeadBranch = parseRefForRawDiff(ctx, ci, headInfos[1])
 			isSameRepo = ci.HeadUser.ID == ctx.Repo.Owner.ID
 			if isSameRepo {
 				ci.HeadRepo = baseRepo
@@ -311,7 +292,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				}
 				return nil
 			}
-			ci.HeadBranch = headInfos[1]
+			ci.HeadBranch = parseRefForRawDiff(ctx, ci, headInfos[1])
 			ci.HeadUser = ci.HeadRepo.Owner
 			isSameRepo = ci.HeadRepo.ID == ctx.Repo.Repository.ID
 		}
@@ -319,6 +300,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		ctx.NotFound(nil)
 		return nil
 	}
+
 	ctx.Data["HeadUser"] = ci.HeadUser
 	ctx.Data["HeadBranch"] = ci.HeadBranch
 	ctx.Repo.PullRequest.SameRepo = isSameRepo
@@ -1017,4 +999,27 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 		return nil, fmt.Errorf("getExcerptLines scan: %w", err)
 	}
 	return diffLines, nil
+}
+
+func parseRefForRawDiff(ctx *context.Context, ci *common.CompareInfo, ref string) string {
+	if strings.HasSuffix(ref, ".diff") || strings.HasSuffix(ref, ".patch") {
+		var headRepo *repo_model.Repository
+		if ci.HeadRepo != nil {
+			headRepo = ci.HeadRepo
+		} else {
+			headRepo = ctx.Repo.Repository
+		}
+		ref2IsBranch := gitrepo.IsBranchExist(ctx, headRepo, ref)
+		ref2IsTag := gitrepo.IsTagExist(ctx, headRepo, ref)
+		if !ref2IsBranch && !ref2IsTag {
+			if strings.HasSuffix(ref, ".diff") {
+				ci.RawDiffType = git.RawDiffNormal
+				ref = strings.TrimSuffix(ref, ".diff")
+			} else if strings.HasSuffix(ref, ".patch") {
+				ci.RawDiffType = git.RawDiffPatch
+				ref = strings.TrimSuffix(ref, ".patch")
+			}
+		}
+	}
+	return ref
 }
