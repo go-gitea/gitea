@@ -20,6 +20,10 @@ import (
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts
 func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) commitstatus.CommitStatusState {
+	if len(commitStatuses) == 0 {
+		return commitstatus.CommitStatusPending
+	}
+
 	if len(requiredContexts) == 0 {
 		return git_model.CalcCommitStatus(commitStatuses).State
 	}

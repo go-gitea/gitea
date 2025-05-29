@@ -124,7 +124,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 				},
 			},
 			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusError,
+				State: commitstatus.CommitStatusFailure,
 			},
 		},
 		{
@@ -140,7 +140,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 				},
 			},
 			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusWarning,
+				State: commitstatus.CommitStatusSuccess,
 			},
 		},
 		{
@@ -172,7 +172,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 				},
 			},
 			expected: &git_model.CommitStatus{
-				State: commitstatus.CommitStatusError,
+				State: commitstatus.CommitStatusFailure,
 			},
 		},
 	}
