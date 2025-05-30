@@ -946,7 +946,6 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			}
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 	}
 }
 
