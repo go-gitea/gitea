@@ -196,8 +196,9 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
-	if err = updateRepository(ctx, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %w", err)
+
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_empty", "default_branch"); err != nil {
+		return fmt.Errorf("UpdateRepositoryCols: %w", err)
 	}
 
 	return nil

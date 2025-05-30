@@ -220,7 +220,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		repo.IsMirror = true
-		if err = UpdateRepository(ctx, repo, false); err != nil {
+		if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "num_watches", "is_empty", "default_branch", "default_wiki_branch", "is_mirror"); err != nil {
 			return nil, err
 		}
 

@@ -992,3 +992,11 @@ func UpdateRepositoryOwnerName(ctx context.Context, oldUserName, newUserName str
 	}
 	return nil
 }
+
+func UpdateRepositoryForksNum(ctx context.Context, repoID int64) error {
+	// Update the forks count of the repository
+	if _, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET num_forks = (SELECT COUNT(*) FROM `repository` WHERE fork_id = ?) WHERE id = ?", repoID, repoID); err != nil {
+		return fmt.Errorf("update repository forks num: %w", err)
+	}
+	return nil
+}

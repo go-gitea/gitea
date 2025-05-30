@@ -191,7 +191,7 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 		}
 	}
 
-	if err = UpdateRepository(ctx, repo, false); err != nil {
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_empty", "default_branch", "default_wiki_branch"); err != nil {
 		return fmt.Errorf("updateRepository: %w", err)
 	}
 
