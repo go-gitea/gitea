@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	git_module "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -175,12 +176,12 @@ func TestCompareRawDiffNormal(t *testing.T) {
 		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
 
 		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
-		oldBlobRef, _ := r.RevParse(oldRef.ID.String(), "README.md")
+		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
 
 		testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 2))
 
 		newRef, _ := r.GetBranchCommit(repo.DefaultBranch)
-		newBlobRef, _ := r.RevParse(newRef.ID.String(), "README.md")
+		newBlobRef, _ := revParse(r, newRef.ID.String(), "README.md")
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/user1/test_raw_diff/compare/%s...%s.diff", oldRef.ID.String(), newRef.ID.String()))
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -215,12 +216,12 @@ func TestCompareRawDiffPatch(t *testing.T) {
 
 		// Get the old commit and blob reference
 		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
-		oldBlobRef, _ := r.RevParse(oldRef.ID.String(), "README.md")
+		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
 
 		resp := testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 2))
 
 		newRef, _ := r.GetBranchCommit(repo.DefaultBranch)
-		newBlobRef, _ := r.RevParse(newRef.ID.String(), "README.md")
+		newBlobRef, _ := revParse(r, newRef.ID.String(), "README.md")
 
 		// Get the last modified time from the response header
 		respTs, _ := time.Parse(time.RFC1123, resp.Result().Header.Get("Last-Modified"))
@@ -280,12 +281,12 @@ func TestCompareRawDiffNormalSameOwnerDifferentRepo(t *testing.T) {
 		hr, _ := gitrepo.OpenRepository(db.DefaultContext, headRepo)
 
 		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
-		oldBlobRef, _ := r.RevParse(oldRef.ID.String(), "README.md")
+		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
 
 		testEditFile(t, session, user1.Name, headRepo.Name, "main", "README.md", strings.Repeat("a\n", 2))
 
 		newRef, _ := hr.GetBranchCommit(headRepo.DefaultBranch)
-		newBlobRef, _ := hr.RevParse(newRef.ID.String(), "README.md")
+		newBlobRef, _ := revParse(hr, newRef.ID.String(), "README.md")
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/user1/test_raw_diff/compare/%s...%s/%s:%s.diff", oldRef.ID.String(), user1.LowerName, headRepo.LowerName, newRef.ID.String()))
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -331,13 +332,13 @@ func TestCompareRawDiffNormalAcrossForks(t *testing.T) {
 		hr, _ := gitrepo.OpenRepository(db.DefaultContext, headRepo)
 
 		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
-		oldBlobRef, _ := r.RevParse(oldRef.ID.String(), "README.md")
+		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
 
 		testEditFile(t, session, user2.Name, headRepo.Name, "main", "README.md", strings.Repeat("a\n", 2))
 		session = loginUser(t, user1.Name)
 
 		newRef, _ := hr.GetBranchCommit(headRepo.DefaultBranch)
-		newBlobRef, _ := hr.RevParse(newRef.ID.String(), "README.md")
+		newBlobRef, _ := revParse(hr, newRef.ID.String(), "README.md")
 
 		session = loginUser(t, user1.Name)
 
@@ -356,4 +357,16 @@ index %s..%s 100644
 `, oldBlobRef[:7], newBlobRef[:7])
 		assert.Equal(t, expected, resp.Body.String())
 	})
+}
+
+// helper function to use rev-parse
+// revParse resolves a revision reference to other git-related objects
+func revParse(repo *git_module.Repository, ref, file string) (string, error) {
+	stdout, _, err := git_module.NewCommand("rev-parse").
+		AddDynamicArguments(ref+":"+file).
+		RunStdString(repo.Ctx, &git_module.RunOpts{Dir: repo.Path})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(stdout), nil
 }
