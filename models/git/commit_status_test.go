@@ -178,7 +178,7 @@ func Test_CalcCommitStatus(t *testing.T) {
 	}
 
 	for _, kase := range kases {
-		assert.Equal(t, kase.expected, git_model.CalcCommitStatus(kase.statuses))
+		assert.Equal(t, kase.expected, git_model.CalcCommitStatus(kase.statuses), fmt.Sprintf("statuses: %v", kase.statuses))
 	}
 }
 
