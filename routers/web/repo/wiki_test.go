@@ -247,8 +247,9 @@ func TestDefaultWikiBranch(t *testing.T) {
 	// repo with wiki
 	assert.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(
 		db.DefaultContext,
-		&repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"}),
+		&repo_model.Repository{ID: 1, DefaultWikiBranch: "wrong-branch"},
 		"default_wiki_branch",
+	),
 	)
 
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki")
