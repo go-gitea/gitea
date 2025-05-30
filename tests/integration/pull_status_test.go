@@ -100,7 +100,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
 		css := unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusSummary{RepoID: repo1.ID, SHA: commitID})
-		assert.Equal(t, commitstatus.CommitStatusWarning, css.State)
+		assert.Equal(t, commitstatus.CommitStatusSuccess, css.State)
 	})
 }
 
