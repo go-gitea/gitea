@@ -195,6 +195,10 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 		return fmt.Errorf("updateRepository: %w", err)
 	}
 
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
+	}
+
 	return nil
 }
 

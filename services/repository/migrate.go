@@ -224,6 +224,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			return nil, err
 		}
 
+		if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+			log.Error("Failed to update size for repository: %v", err)
+		}
+
 		// this is necessary for sync local tags from remote
 		configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
 		if stdout, _, err := git.NewCommand("config").

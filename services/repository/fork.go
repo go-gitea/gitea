@@ -224,14 +224,17 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 			return err
 		}
 
-		parentRepoID := repo.ForkID
 		repo.IsFork = false
 		repo.ForkID = 0
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fork", "fork_id"); err != nil {
 			return err
 		}
 
-		return repo_model.UpdateRepositoryForksNum(ctx, parentRepoID)
+		if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+			log.Error("Failed to update size for repository: %v", err)
+		}
+
+		return nil
 	})
 }
 
