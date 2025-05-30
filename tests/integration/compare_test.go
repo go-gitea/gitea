@@ -335,7 +335,6 @@ func TestCompareRawDiffNormalAcrossForks(t *testing.T) {
 		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
 
 		testEditFile(t, session, user2.Name, headRepo.Name, "main", "README.md", strings.Repeat("a\n", 2))
-		session = loginUser(t, user1.Name)
 
 		newRef, _ := hr.GetBranchCommit(headRepo.DefaultBranch)
 		newBlobRef, _ := revParse(hr, newRef.ID.String(), "README.md")
