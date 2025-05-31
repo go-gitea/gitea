@@ -276,18 +276,23 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 	if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %w", err)
 	}
-	if repo.HasWiki() {
+
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo())
+	if err != nil {
+		return repo, fmt.Errorf("IsWikiRepositoryExist: %w", err)
+	}
+	if hasWiki {
 		if err := gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 			return repo, fmt.Errorf("createDelegateHooks.(wiki): %w", err)
 		}
 	}
 
-	_, _, err := git.NewCommand("remote", "rm", "origin").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
+	_, _, err = git.NewCommand("remote", "rm", "origin").RunStdString(ctx, &git.RunOpts{Dir: repo.RepoPath()})
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 
-	if repo.HasWiki() {
+	if hasWiki {
 		if err := cleanUpMigrateGitConfig(ctx, repo.WikiPath()); err != nil {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}
