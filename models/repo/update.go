@@ -42,12 +42,18 @@ func UpdateRepositoryUpdatedTime(ctx context.Context, repoID int64, updateTime t
 
 // UpdateRepositoryColsWithAutoTime updates repository's columns
 func UpdateRepositoryColsWithAutoTime(ctx context.Context, repo *Repository, cols ...string) error {
+	if len(cols) == 0 {
+		return nil
+	}
 	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(cols...).Update(repo)
 	return err
 }
 
 // UpdateRepositoryColsNoAutoTime updates repository's columns and but applies time change automatically
 func UpdateRepositoryColsNoAutoTime(ctx context.Context, repo *Repository, cols ...string) error {
+	if len(cols) == 0 {
+		return nil
+	}
 	_, err := db.GetEngine(ctx).ID(repo.ID).Cols(cols...).NoAutoTime().Update(repo)
 	return err
 }

@@ -248,19 +248,6 @@ func TestGetPullRequestByIssueID(t *testing.T) {
 	assert.True(t, issues_model.IsErrPullRequestNotExist(err))
 }
 
-func TestPullRequest_Update(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
-	pr.BaseBranch = "baseBranch"
-	pr.HeadBranch = "headBranch"
-	pr.Update(db.DefaultContext)
-
-	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
-	assert.Equal(t, "baseBranch", pr.BaseBranch)
-	assert.Equal(t, "headBranch", pr.HeadBranch)
-	unittest.CheckConsistencyFor(t, pr)
-}
-
 func TestPullRequest_UpdateCols(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := &issues_model.PullRequest{
