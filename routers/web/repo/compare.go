@@ -804,6 +804,21 @@ func CompareDiff(ctx *context.Context) {
 			if ctx.Written() {
 				return
 			}
+
+			title := ctx.FormString("title")
+			body := ctx.FormString("body")
+			expandNewPRForm := ctx.FormBool("quick_pull")
+
+			if title != "" {
+				ctx.Data["TitleQuery"] = title
+			}
+			if body != "" {
+				ctx.Data["BodyQuery"] = body
+			}
+			if expandNewPRForm || title != "" || body != "" {
+				ctx.Data["ExpandNewPrForm"] = true
+			}
+
 			_, templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates, pageMetaData)
 			if len(templateErrs) > 0 {
 				ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
