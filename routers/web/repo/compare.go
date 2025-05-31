@@ -228,7 +228,9 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	)
 
 	infoPath = ctx.PathParam("*")
+
 	var infos []string
+
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
 	} else {
@@ -252,7 +254,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	if len(headInfos) == 1 {
 		isSameRepo = true
 		ci.HeadUser = ctx.Repo.Owner
-		ci.HeadBranch = headInfos[0]
+		ci.HeadBranch = parseRefForRawDiff(ctx, ci, headInfos[0])
 	} else if len(headInfos) == 2 {
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
@@ -265,7 +267,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				}
 				return nil
 			}
-			ci.HeadBranch = headInfos[1]
+			ci.HeadBranch = parseRefForRawDiff(ctx, ci, headInfos[1])
 			isSameRepo = ci.HeadUser.ID == ctx.Repo.Owner.ID
 			if isSameRepo {
 				ci.HeadRepo = baseRepo
@@ -288,7 +290,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				}
 				return nil
 			}
-			ci.HeadBranch = headInfos[1]
+			ci.HeadBranch = parseRefForRawDiff(ctx, ci, headInfos[1])
 			ci.HeadUser = ci.HeadRepo.Owner
 			isSameRepo = ci.HeadRepo.ID == ctx.Repo.Repository.ID
 		}
@@ -296,6 +298,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		ctx.NotFound(nil)
 		return nil
 	}
+
 	ctx.Data["HeadUser"] = ci.HeadUser
 	ctx.Data["HeadBranch"] = ci.HeadBranch
 	ctx.Repo.PullRequest.SameRepo = isSameRepo
@@ -729,6 +732,7 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PageIsCompareDiff"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["DirectComparison"] = ci.DirectComparison
 	ctx.Data["OtherCompareSeparator"] = ".."
@@ -740,6 +744,16 @@ func CompareDiff(ctx *context.Context) {
 
 	nothingToCompare := PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if ctx.Written() {
+		return
+	}
+
+	if ci.RawDiffType != "" {
+		err := git.GetRepoRawDiffForFile(ci.HeadGitRepo, ci.BaseBranch, ci.HeadBranch, ci.RawDiffType, "", ctx.Resp)
+		if err != nil {
+			ctx.ServerError("GetRepoRawDiffForFile", err)
+			return
+		}
+		ctx.Resp.Flush()
 		return
 	}
 
@@ -983,4 +997,27 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 		return nil, fmt.Errorf("getExcerptLines scan: %w", err)
 	}
 	return diffLines, nil
+}
+
+func parseRefForRawDiff(ctx *context.Context, ci *common.CompareInfo, ref string) string {
+	if strings.HasSuffix(ref, ".diff") || strings.HasSuffix(ref, ".patch") {
+		var headRepo *repo_model.Repository
+		if ci.HeadRepo != nil {
+			headRepo = ci.HeadRepo
+		} else {
+			headRepo = ctx.Repo.Repository
+		}
+		ref2IsBranch := gitrepo.IsBranchExist(ctx, headRepo, ref)
+		ref2IsTag := gitrepo.IsTagExist(ctx, headRepo, ref)
+		if !ref2IsBranch && !ref2IsTag {
+			if strings.HasSuffix(ref, ".diff") {
+				ci.RawDiffType = git.RawDiffNormal
+				ref = strings.TrimSuffix(ref, ".diff")
+			} else if strings.HasSuffix(ref, ".patch") {
+				ci.RawDiffType = git.RawDiffPatch
+				ref = strings.TrimSuffix(ref, ".patch")
+			}
+		}
+	}
+	return ref
 }

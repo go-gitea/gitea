@@ -9,10 +9,13 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	git_module "code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
@@ -157,4 +160,213 @@ func TestCompareCodeExpand(t *testing.T) {
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
 	})
+}
+
+func TestCompareRawDiffNormal(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+			Name:          "test_raw_diff",
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "main",
+		}, true)
+		assert.NoError(t, err)
+		session := loginUser(t, user1.Name)
+
+		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
+
+		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
+		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
+
+		testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 2))
+
+		newRef, _ := r.GetBranchCommit(repo.DefaultBranch)
+		newBlobRef, _ := revParse(r, newRef.ID.String(), "README.md")
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/user1/test_raw_diff/compare/%s...%s.diff", oldRef.ID.String(), newRef.ID.String()))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		expected := fmt.Sprintf(`diff --git a/README.md b/README.md
+index %s..%s 100644
+--- a/README.md
++++ b/README.md
+@@ -1,2 +1,2 @@
+-# test_raw_diff
+-
++a
++a
+`, oldBlobRef[:7], newBlobRef[:7])
+		assert.Equal(t, expected, resp.Body.String())
+	})
+}
+
+func TestCompareRawDiffPatch(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+			Name:          "test_raw_diff",
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "main",
+		}, true)
+		assert.NoError(t, err)
+		session := loginUser(t, user1.Name)
+
+		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
+
+		// Get the old commit and blob reference
+		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
+		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
+
+		resp := testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 2))
+
+		newRef, _ := r.GetBranchCommit(repo.DefaultBranch)
+		newBlobRef, _ := revParse(r, newRef.ID.String(), "README.md")
+
+		// Get the last modified time from the response header
+		respTs, _ := time.Parse(time.RFC1123, resp.Result().Header.Get("Last-Modified"))
+		respTs = respTs.In(time.Local)
+
+		// Format the timestamp to match the expected format in the patch
+		customFormat := "Mon, 02 Jan 2006 15:04:05 -0700"
+		respTsStr := respTs.Format(customFormat)
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/user1/test_raw_diff/compare/%s...%s.patch", oldRef.ID.String(), newRef.ID.String()))
+		resp = session.MakeRequest(t, req, http.StatusOK)
+
+		expected := fmt.Sprintf(`From %s Mon Sep 17 00:00:00 2001
+From: User One <user1@example.com>
+Date: %s
+Subject: [PATCH] Update README.md
+
+---
+ README.md | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/README.md b/README.md
+index %s..%s 100644
+--- a/README.md
++++ b/README.md
+@@ -1,2 +1,2 @@
+-# test_raw_diff
+-
++a
++a
+`, newRef.ID.String(), respTsStr, oldBlobRef[:7], newBlobRef[:7])
+		assert.Equal(t, expected, resp.Body.String())
+	})
+}
+
+func TestCompareRawDiffNormalSameOwnerDifferentRepo(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+			Name:          "test_raw_diff",
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "main",
+		}, true)
+		assert.NoError(t, err)
+		session := loginUser(t, user1.Name)
+
+		headRepo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+			Name:          "test_raw_diff_head",
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "main",
+		}, true)
+		assert.NoError(t, err)
+
+		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
+		hr, _ := gitrepo.OpenRepository(db.DefaultContext, headRepo)
+
+		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
+		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
+
+		testEditFile(t, session, user1.Name, headRepo.Name, "main", "README.md", strings.Repeat("a\n", 2))
+
+		newRef, _ := hr.GetBranchCommit(headRepo.DefaultBranch)
+		newBlobRef, _ := revParse(hr, newRef.ID.String(), "README.md")
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/user1/test_raw_diff/compare/%s...%s/%s:%s.diff", oldRef.ID.String(), user1.LowerName, headRepo.LowerName, newRef.ID.String()))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		expected := fmt.Sprintf(`diff --git a/README.md b/README.md
+index %s..%s 100644
+--- a/README.md
++++ b/README.md
+@@ -1,2 +1,2 @@
+-# test_raw_diff
+-
++a
++a
+`, oldBlobRef[:7], newBlobRef[:7])
+		assert.Equal(t, expected, resp.Body.String())
+	})
+}
+
+func TestCompareRawDiffNormalAcrossForks(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+			Name:          "test_raw_diff",
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "main",
+		}, true)
+		assert.NoError(t, err)
+
+		headRepo, err := repo_service.ForkRepository(db.DefaultContext, user2, user2, repo_service.ForkRepoOptions{
+			BaseRepo:     repo,
+			Name:         repo.Name,
+			Description:  repo.Description,
+			SingleBranch: "",
+		})
+		assert.NoError(t, err)
+
+		session := loginUser(t, user2.Name)
+
+		r, _ := gitrepo.OpenRepository(db.DefaultContext, repo)
+		hr, _ := gitrepo.OpenRepository(db.DefaultContext, headRepo)
+
+		oldRef, _ := r.GetBranchCommit(repo.DefaultBranch)
+		oldBlobRef, _ := revParse(r, oldRef.ID.String(), "README.md")
+
+		testEditFile(t, session, user2.Name, headRepo.Name, "main", "README.md", strings.Repeat("a\n", 2))
+
+		newRef, _ := hr.GetBranchCommit(headRepo.DefaultBranch)
+		newBlobRef, _ := revParse(hr, newRef.ID.String(), "README.md")
+
+		session = loginUser(t, user1.Name)
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/user1/test_raw_diff/compare/%s...%s:%s.diff", oldRef.ID.String(), user2.LowerName, newRef.ID.String()))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		expected := fmt.Sprintf(`diff --git a/README.md b/README.md
+index %s..%s 100644
+--- a/README.md
++++ b/README.md
+@@ -1,2 +1,2 @@
+-# test_raw_diff
+-
++a
++a
+`, oldBlobRef[:7], newBlobRef[:7])
+		assert.Equal(t, expected, resp.Body.String())
+	})
+}
+
+// helper function to use rev-parse
+// revParse resolves a revision reference to other git-related objects
+func revParse(repo *git_module.Repository, ref, file string) (string, error) {
+	stdout, _, err := git_module.NewCommand("rev-parse").
+		AddDynamicArguments(ref+":"+file).
+		RunStdString(repo.Ctx, &git_module.RunOpts{Dir: repo.Path})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(stdout), nil
 }
