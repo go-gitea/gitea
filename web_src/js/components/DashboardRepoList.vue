@@ -220,6 +220,8 @@ export default defineComponent({
     },
 
     changePage(page: number) {
+      if (this.isLoading) return;
+
       this.page = page;
       if (this.page > this.finalPage) {
         this.page = this.finalPage;
