@@ -39,10 +39,7 @@
 				<div class="ui dropdown jump tw-p-2">
 					{{svg "octicon-kebab-horizontal"}}
 					<div class="menu flex-items-menu">
-						<!-- TODO: This redundant link should be replaced by something else in future,
-						because have not figured out how to add "View Workflow" or anything similar to GitHub.
-						Related: https://github.com/go-gitea/gitea/pull/34530 -->
-						<a class="item" href="{{$run.Link}}">{{svg "octicon-play"}}{{ctx.Locale.Tr "view"}}</a>
+						<a class="item" href="{{$run.Link}}/workflow">{{svg "octicon-play"}}{{ctx.Locale.Tr "actions.runs.view_workflow_file"}}</a>
 						{{if and $.AllowDeleteWorkflowRuns $run.Status.IsDone}}
 							<a class="item link-action"
 								data-url="{{$run.Link}}/delete"

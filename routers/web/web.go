@@ -1445,6 +1445,7 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 				m.Get("/logs", actions.Logs)
 			})
+			m.Get("/workflow", actions.ViewWorkflowFile)
 			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 			m.Post("/delete", reqRepoActionsWriter, actions.Delete)

@@ -1238,21 +1238,6 @@ td .commit-summary {
   white-space: nowrap;
 }
 
-.file-view.markup {
-  padding: 1em 2em;
-}
-
-.file-view.markup:has(.file-not-rendered-prompt) {
-  padding: 0; /* let the file-not-rendered-prompt layout itself */
-}
-
-.file-not-rendered-prompt {
-  padding: 1rem;
-  text-align: center;
-  font-size: 1rem !important; /* use consistent styles for various containers (code, markup, etc) */
-  line-height: var(--line-height-default) !important; /* same as above */
-}
-
 .repository .activity-header {
   display: flex;
   justify-content: space-between;

@@ -14,52 +14,70 @@ import (
 )
 
 func TestMergeRequiredContextsCommitStatus(t *testing.T) {
-	testCases := [][]*git_model.CommitStatus{
+	cases := []struct {
+		commitStatuses   []*git_model.CommitStatus
+		requiredContexts []string
+		expected         structs.CommitStatusState
+	}{
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 3", State: structs.CommitStatusSuccess},
+			commitStatuses:   []*git_model.CommitStatus{},
+			requiredContexts: []string{},
+			expected:         structs.CommitStatusPending,
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusPending},
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build xxx", State: structs.CommitStatusSkipped},
+			},
+			requiredContexts: []string{"Build*"},
+			expected:         structs.CommitStatusSuccess,
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusFailure},
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: structs.CommitStatusSkipped},
+				{Context: "Build 2", State: structs.CommitStatusSuccess},
+				{Context: "Build 3", State: structs.CommitStatusSuccess},
+			},
+			requiredContexts: []string{"Build*"},
+			expected:         structs.CommitStatusSuccess,
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusSuccess},
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: structs.CommitStatusSuccess},
+				{Context: "Build 2", State: structs.CommitStatusSuccess},
+				{Context: "Build 2t", State: structs.CommitStatusPending},
+			},
+			requiredContexts: []string{"Build*", "Build 2t*"},
+			expected:         structs.CommitStatusPending,
 		},
 		{
-			{Context: "Build 1", State: structs.CommitStatusSuccess},
-			{Context: "Build 2", State: structs.CommitStatusSuccess},
-			{Context: "Build 2t", State: structs.CommitStatusSuccess},
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: structs.CommitStatusSuccess},
+				{Context: "Build 2", State: structs.CommitStatusSuccess},
+				{Context: "Build 2t", State: structs.CommitStatusFailure},
+			},
+			requiredContexts: []string{"Build*", "Build 2t*"},
+			expected:         structs.CommitStatusFailure,
+		},
+		{
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: structs.CommitStatusSuccess},
+				{Context: "Build 2", State: structs.CommitStatusSuccess},
+				{Context: "Build 2t", State: structs.CommitStatusSuccess},
+			},
+			requiredContexts: []string{"Build*", "Build 2t*", "Build 3*"},
+			expected:         structs.CommitStatusPending,
+		},
+		{
+			commitStatuses: []*git_model.CommitStatus{
+				{Context: "Build 1", State: structs.CommitStatusSuccess},
+				{Context: "Build 2", State: structs.CommitStatusSuccess},
+				{Context: "Build 2t", State: structs.CommitStatusSuccess},
+			},
+			requiredContexts: []string{"Build*", "Build *", "Build 2t*", "Build 1*"},
+			expected:         structs.CommitStatusSuccess,
 		},
 	}
-	testCasesRequiredContexts := [][]string{
-		{"Build*"},
-		{"Build*", "Build 2t*"},
-		{"Build*", "Build 2t*"},
-		{"Build*", "Build 2t*", "Build 3*"},
-		{"Build*", "Build *", "Build 2t*", "Build 1*"},
-	}
-
-	testCasesExpected := []structs.CommitStatusState{
-		structs.CommitStatusSuccess,
-		structs.CommitStatusPending,
-		structs.CommitStatusFailure,
-		structs.CommitStatusPending,
-		structs.CommitStatusSuccess,
-	}
-
-	for i, commitStatuses := range testCases {
-		if MergeRequiredContextsCommitStatus(commitStatuses, testCasesRequiredContexts[i]) != testCasesExpected[i] {
-			assert.Fail(t, "Test case failed", "Test case %d failed", i+1)
-		}
+	for i, c := range cases {
+		assert.Equal(t, c.expected, MergeRequiredContextsCommitStatus(c.commitStatuses, c.requiredContexts), "case %d", i)
 	}
 }

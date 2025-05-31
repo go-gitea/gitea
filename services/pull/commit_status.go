@@ -46,57 +46,31 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 
 			// If required rule not match any action, then it is pending
 			if targetStatus == "" {
-				if structs.CommitStatusPending.NoBetterThan(returnedStatus) {
+				if structs.CommitStatusPending.HasHigherPriorityThan(returnedStatus) {
 					returnedStatus = structs.CommitStatusPending
 				}
 				break
 			}
 
-			if targetStatus.NoBetterThan(returnedStatus) {
+			if targetStatus.HasHigherPriorityThan(returnedStatus) {
 				returnedStatus = targetStatus
 			}
 		}
 	}
 
 	if matchedCount == 0 && returnedStatus == structs.CommitStatusSuccess {
-		status := git_model.CalcCommitStatus(commitStatuses)
-		if status != nil {
-			return status.State
+		if len(commitStatuses) == 0 {
+			// "no statuses" should mean "pending"
+			return structs.CommitStatusPending
 		}
-		return structs.CommitStatusSuccess
+		status := git_model.CalcCommitStatus(commitStatuses)
+		if status.State == structs.CommitStatusSkipped {
+			return structs.CommitStatusSuccess // if all statuses are skipped, return success
+		}
+		return status.State
 	}
 
 	return returnedStatus
-}
-
-// IsCommitStatusContextSuccess returns true if all required status check contexts succeed.
-func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requiredContexts []string) bool {
-	// If no specific context is required, require that last commit status is a success
-	if len(requiredContexts) == 0 {
-		status := git_model.CalcCommitStatus(commitStatuses)
-		if status == nil || status.State != structs.CommitStatusSuccess {
-			return false
-		}
-		return true
-	}
-
-	for _, ctx := range requiredContexts {
-		var found bool
-		for _, commitStatus := range commitStatuses {
-			if commitStatus.Context == ctx {
-				if commitStatus.State != structs.CommitStatusSuccess {
-					return false
-				}
-
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
 }
 
 // IsPullCommitStatusPass returns if all required status checks PASS
