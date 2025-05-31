@@ -89,9 +89,12 @@ func TestSSHGit(t *testing.T) {
 	_, err = ssh.NewSignerFromKey(priv)
 	require.NoError(t, err, "ssh.NewSignerFromKey")
 
-	os.WriteFile(tmpDir+"/id_ed25519.pub", []byte(ssh.MarshalAuthorizedKey(sshPubKey)), 0o600)
+	err = os.WriteFile(tmpDir+"/id_ed25519.pub", ssh.MarshalAuthorizedKey(sshPubKey), 0o600)
+	require.NoError(t, err, "os.WriteFile id_ed25519.pub")
 	block, err := ssh.MarshalPrivateKey(priv, "")
-	os.WriteFile(tmpDir+"/id_ed25519", []byte(pem.EncodeToMemory(block)), 0o600)
+	require.NoError(t, err, "ssh.MarshalPrivateKey")
+	err = os.WriteFile(tmpDir+"/id_ed25519", pem.EncodeToMemory(block), 0o600)
+	require.NoError(t, err, "os.WriteFile id_ed25519")
 
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, tmpDir+"/id_ed25519.pub")()
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()
@@ -115,9 +118,12 @@ func TestSSHGitDefaults(t *testing.T) {
 	_, err = ssh.NewSignerFromKey(priv)
 	require.NoError(t, err, "ssh.NewSignerFromKey")
 
-	os.WriteFile(tmpDir+"/id_ed25519.pub", []byte(ssh.MarshalAuthorizedKey(sshPubKey)), 0o600)
+	err = os.WriteFile(tmpDir+"/id_ed25519.pub", ssh.MarshalAuthorizedKey(sshPubKey), 0o600)
+	require.NoError(t, err, "os.WriteFile id_ed25519.pub")
 	block, err := ssh.MarshalPrivateKey(priv, "")
-	os.WriteFile(tmpDir+"/id_ed25519", []byte(pem.EncodeToMemory(block)), 0o600)
+	require.NoError(t, err, "ssh.MarshalPrivateKey")
+	err = os.WriteFile(tmpDir+"/id_ed25519", pem.EncodeToMemory(block), 0o600)
+	require.NoError(t, err, "os.WriteFile id_ed25519")
 	os.WriteFile(tmpDir+"/.gitconfig", []byte(`
 [user]
 	name = gitea
