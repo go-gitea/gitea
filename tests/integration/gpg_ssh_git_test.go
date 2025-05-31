@@ -60,7 +60,7 @@ func TestGPGGitDefaults(t *testing.T) {
 	rootKeyPair, err := importTestingKey()
 	require.NoError(t, err, "importTestingKey")
 
-	os.WriteFile(tmpDir+"/.gitconfig", []byte(`
+	err = os.WriteFile(tmpDir+"/.gitconfig", []byte(`
 [user]
 	name = gitea
 	email = gitea@fake.local
@@ -68,6 +68,7 @@ func TestGPGGitDefaults(t *testing.T) {
 [commit]
 	gpgsign = true
 `), 0o600)
+	require.NoError(t, err, "os.WriteFile .gitconfig")
 
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, "")()
 	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
@@ -124,7 +125,7 @@ func TestSSHGitDefaults(t *testing.T) {
 	require.NoError(t, err, "ssh.MarshalPrivateKey")
 	err = os.WriteFile(tmpDir+"/id_ed25519", pem.EncodeToMemory(block), 0o600)
 	require.NoError(t, err, "os.WriteFile id_ed25519")
-	os.WriteFile(tmpDir+"/.gitconfig", []byte(`
+	err = os.WriteFile(tmpDir+"/.gitconfig", []byte(`
 [user]
 	name = gitea
 	email = gitea@fake.local
@@ -134,6 +135,7 @@ func TestSSHGitDefaults(t *testing.T) {
 [commit]
 	gpgsign = true
 `), 0o600)
+	require.NoError(t, err, "os.WriteFile .gitconfig")
 
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, "")()
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningFormat, "ssh")()
