@@ -87,8 +87,6 @@ func TestSSHGit(t *testing.T) {
 	require.NoError(t, err, "ed25519.GenerateKey")
 	sshPubKey, err := ssh.NewPublicKey(pub)
 	require.NoError(t, err, "ssh.NewPublicKey")
-	_, err = ssh.NewSignerFromKey(priv)
-	require.NoError(t, err, "ssh.NewSignerFromKey")
 
 	err = os.WriteFile(tmpDir+"/id_ed25519.pub", ssh.MarshalAuthorizedKey(sshPubKey), 0o600)
 	require.NoError(t, err, "os.WriteFile id_ed25519.pub")
@@ -116,8 +114,6 @@ func TestSSHGitDefaults(t *testing.T) {
 	require.NoError(t, err, "ed25519.GenerateKey")
 	sshPubKey, err := ssh.NewPublicKey(pub)
 	require.NoError(t, err, "ssh.NewPublicKey")
-	_, err = ssh.NewSignerFromKey(priv)
-	require.NoError(t, err, "ssh.NewSignerFromKey")
 
 	err = os.WriteFile(tmpDir+"/id_ed25519.pub", ssh.MarshalAuthorizedKey(sshPubKey), 0o600)
 	require.NoError(t, err, "os.WriteFile id_ed25519.pub")
