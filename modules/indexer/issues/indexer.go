@@ -217,7 +217,7 @@ func PopulateIssueIndexer(ctx context.Context) error {
 			return fmt.Errorf("shutdown before completion: %w", ctx.Err())
 		default:
 		}
-		repos, _, err := repo_model.SearchRepositoryByName(ctx, &repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.SearchRepositoryByName(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db_model.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
 			OrderBy:     db_model.SearchOrderByID,
 			Private:     true,

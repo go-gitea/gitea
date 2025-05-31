@@ -268,7 +268,7 @@ func ViewUser(ctx *context.Context) {
 		return
 	}
 
-	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,

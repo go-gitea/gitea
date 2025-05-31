@@ -165,7 +165,7 @@ func RenderUserOrgHeader(ctx *context.Context) (result *PrepareOwnerHeaderResult
 }
 
 func loadHeaderCount(ctx *context.Context) error {
-	repoCount, err := repo_model.CountRepository(ctx, &repo_model.SearchRepoOptions{
+	repoCount, err := repo_model.CountRepository(ctx, repo_model.SearchRepoOptions{
 		Actor:              ctx.Doer,
 		OwnerID:            ctx.ContextUser.ID,
 		Private:            ctx.IsSigned,

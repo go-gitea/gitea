@@ -461,7 +461,7 @@ func SearchRepo(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	opts := &repo_model.SearchRepoOptions{
+	opts := repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),

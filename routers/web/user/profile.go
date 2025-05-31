@@ -197,7 +197,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		total = int(count)
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
-		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
 				Page:     page,
@@ -224,7 +224,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 
 		total = int(count)
 	case "watching":
-		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
 				Page:     page,
@@ -279,7 +279,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		ctx.Data["Cards"] = orgs
 		total = int(count)
 	default: // default to "repositories"
-		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
 				Page:     page,

@@ -407,7 +407,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
 
-	repos, _, _ := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+	repos, _, _ := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 		Actor:   pd.Owner,
 		Private: true,
 	})

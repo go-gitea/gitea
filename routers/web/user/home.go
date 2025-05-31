@@ -176,7 +176,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var (
-		userRepoCond = repo_model.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
+		userRepoCond = repo_model.SearchRepositoryCondition(repoOpts) // all repo condition user could visit
 		repoCond     = userRepoCond
 		repoIDs      []int64
 
@@ -242,7 +242,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, &repoOpts, userRepoCond, false)
+	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
@@ -461,7 +461,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// As team:
 	// - Team org's owns the repository.
 	// - Team has read permission to repository.
-	repoOpts := &repo_model.SearchRepoOptions{
+	repoOpts := repo_model.SearchRepoOptions{
 		Actor:       ctx.Doer,
 		OwnerID:     ctxUser.ID,
 		Private:     true,

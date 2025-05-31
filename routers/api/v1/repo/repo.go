@@ -134,7 +134,7 @@ func Search(ctx *context.APIContext) {
 		private = false
 	}
 
-	opts := &repo_model.SearchRepoOptions{
+	opts := repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		Keyword:            ctx.FormTrim("q"),

@@ -86,7 +86,7 @@ func HomeSitemap(ctx *context.Context) {
 		}
 	}
 
-	_, cnt, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	_, cnt, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 1,
 		},
