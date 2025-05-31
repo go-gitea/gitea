@@ -4,7 +4,10 @@
 package integration
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"net/url"
 	"os"
@@ -18,6 +21,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -42,6 +46,99 @@ func TestGPGGit(t *testing.T) {
 	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
 	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
 
+	testGitSigning(t)
+}
+
+func TestGPGGitDefaults(t *testing.T) {
+	tmpDir := t.TempDir() // use a temp dir to avoid messing with the user's GPG keyring
+	err := os.Chmod(tmpDir, 0o700)
+	assert.NoError(t, err)
+
+	t.Setenv("GNUPGHOME", tmpDir)
+
+	// Need to create a root key
+	rootKeyPair, err := importTestingKey()
+	require.NoError(t, err, "importTestingKey")
+
+	os.WriteFile(tmpDir+"/.gitconfig", []byte(`
+[user]
+	name = gitea
+	email = gitea@fake.local
+	signingKey = `+rootKeyPair.PrimaryKey.KeyIdShortString()+`
+[commit]
+	gpgsign = true
+`), 0o600)
+
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, "")()
+	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
+	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
+	defer test.MockVariableValue(&setting.Git.HomePath, tmpDir)()
+
+	testGitSigning(t)
+}
+
+func TestSSHGit(t *testing.T) {
+	tmpDir := t.TempDir() // use a temp dir to avoid messing with the user's GPG keyring
+	err := os.Chmod(tmpDir, 0o700)
+	assert.NoError(t, err)
+
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err, "ed25519.GenerateKey")
+	sshPubKey, err := ssh.NewPublicKey(pub)
+	require.NoError(t, err, "ssh.NewPublicKey")
+	_, err = ssh.NewSignerFromKey(priv)
+	require.NoError(t, err, "ssh.NewSignerFromKey")
+
+	os.WriteFile(tmpDir+"/id_ed25519.pub", []byte(ssh.MarshalAuthorizedKey(sshPubKey)), 0o600)
+	block, err := ssh.MarshalPrivateKey(priv, "")
+	os.WriteFile(tmpDir+"/id_ed25519", []byte(pem.EncodeToMemory(block)), 0o600)
+
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, tmpDir+"/id_ed25519.pub")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "gitea@fake.local")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningFormat, "ssh")()
+	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
+	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
+
+	testGitSigning(t)
+}
+
+func TestSSHGitDefaults(t *testing.T) {
+	tmpDir := t.TempDir() // use a temp dir to avoid messing with the user's GPG keyring
+	err := os.Chmod(tmpDir, 0o700)
+	assert.NoError(t, err)
+
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err, "ed25519.GenerateKey")
+	sshPubKey, err := ssh.NewPublicKey(pub)
+	require.NoError(t, err, "ssh.NewPublicKey")
+	_, err = ssh.NewSignerFromKey(priv)
+	require.NoError(t, err, "ssh.NewSignerFromKey")
+
+	os.WriteFile(tmpDir+"/id_ed25519.pub", []byte(ssh.MarshalAuthorizedKey(sshPubKey)), 0o600)
+	block, err := ssh.MarshalPrivateKey(priv, "")
+	os.WriteFile(tmpDir+"/id_ed25519", []byte(pem.EncodeToMemory(block)), 0o600)
+	os.WriteFile(tmpDir+"/.gitconfig", []byte(`
+[user]
+	name = gitea
+	email = gitea@fake.local
+	signingKey = `+tmpDir+`/id_ed25519.pub
+[gpg]
+	format = ssh
+[commit]
+	gpgsign = true
+`), 0o600)
+
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, "")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningFormat, "ssh")()
+	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
+	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
+	defer test.MockVariableValue(&setting.Git.HomePath, tmpDir)()
+
+	testGitSigning(t)
+}
+
+func testGitSigning(t *testing.T) {
 	username := "user2"
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: username})
 	baseAPITestContext := NewAPITestContext(t, username, "repo1")

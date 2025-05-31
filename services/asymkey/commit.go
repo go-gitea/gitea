@@ -432,7 +432,10 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 			Content:     gpgSettings.PublicKeyContent,
 			Fingerprint: fingerprint,
 			HasUsed:     true,
-		}, committer, committer, committer.Email); commitVerification != nil {
+		}, committer, &user_model.User{
+			Name:  gpgSettings.Name,
+			Email: gpgSettings.Email,
+		}, gpgSettings.Email); commitVerification != nil {
 			if commitVerification.Reason == asymkey_model.BadSignature {
 				defaultReason = asymkey_model.BadSignature
 			} else {
@@ -457,7 +460,10 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 				Content:     defaultGPGSettings.PublicKeyContent,
 				Fingerprint: fingerprint,
 				HasUsed:     true,
-			}, committer, committer, committer.Email); commitVerification != nil {
+			}, committer, &user_model.User{
+				Name:  defaultGPGSettings.Name,
+				Email: defaultGPGSettings.Email,
+			}, defaultGPGSettings.Email); commitVerification != nil {
 				if commitVerification.Reason == asymkey_model.BadSignature {
 					defaultReason = asymkey_model.BadSignature
 				} else {
