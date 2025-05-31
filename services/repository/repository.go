@@ -69,7 +69,7 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		notify_service.DeleteRepository(ctx, doer, repo)
 	}
 
-	return DeleteRepositoryDirectly(ctx, doer, repo.ID)
+	return DeleteRepositoryDirectly(ctx, repo.ID)
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
