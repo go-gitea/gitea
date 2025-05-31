@@ -4,12 +4,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -17,7 +18,7 @@ var (
 	CmdActions = &cli.Command{
 		Name:  "actions",
 		Usage: "Manage Gitea Actions",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			subcmdActionsGenRunnerToken,
 		},
 	}
@@ -38,10 +39,7 @@ var (
 	}
 )
 
-func runGenerateActionsRunnerToken(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runGenerateActionsRunnerToken(ctx context.Context, c *cli.Command) error {
 	setting.MustInstalled()
 
 	scope := c.String("scope")
