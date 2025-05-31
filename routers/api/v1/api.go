@@ -1692,6 +1692,16 @@ func Routes() *web.Router {
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(false, true), reqToken(), reqTeamMembership(), checkTokenPublicOnly())
 
 		m.Group("/admin", func() {
+			m.Group("/identity-auth", func() {
+				m.Get("", admin.SearchAuth)
+				m.Group("/oauth", func() {
+					m.Get("", admin.SearchOauthAuth)
+					m.Put("", bind(api.CreateAuthOauth2Option{}), admin.CreateOauthAuth)
+					m.Patch("/{id}", bind(api.EditAuthOauth2Option{}), admin.EditOauthAuth)
+					m.Delete("/{id}", admin.DeleteOauthAuth)
+				})
+			})
+
 			m.Group("/cron", func() {
 				m.Get("", admin.ListCronTasks)
 				m.Post("/{task}", admin.PostCronTask)
