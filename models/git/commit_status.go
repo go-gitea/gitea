@@ -17,10 +17,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -28,19 +28,19 @@ import (
 	"xorm.io/xorm"
 )
 
-// CommitStatus holds a single Status of a single Commit
+// CommitStatus holds a single commit status of a single Commit
 type CommitStatus struct {
-	ID          int64                  `xorm:"pk autoincr"`
-	Index       int64                  `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	RepoID      int64                  `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	Repo        *repo_model.Repository `xorm:"-"`
-	State       api.CommitStatusState  `xorm:"VARCHAR(7) NOT NULL"`
-	SHA         string                 `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
-	TargetURL   string                 `xorm:"TEXT"`
-	Description string                 `xorm:"TEXT"`
-	ContextHash string                 `xorm:"VARCHAR(64) index"`
-	Context     string                 `xorm:"TEXT"`
-	Creator     *user_model.User       `xorm:"-"`
+	ID          int64                          `xorm:"pk autoincr"`
+	Index       int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	RepoID      int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	Repo        *repo_model.Repository         `xorm:"-"`
+	State       commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
+	SHA         string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
+	TargetURL   string                         `xorm:"TEXT"`
+	Description string                         `xorm:"TEXT"`
+	ContextHash string                         `xorm:"VARCHAR(64) index"`
+	Context     string                         `xorm:"TEXT"`
+	Creator     *user_model.User               `xorm:"-"`
 	CreatorID   int64
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -215,11 +215,9 @@ func (status *CommitStatus) HideActionsURL(ctx context.Context) {
 		return
 	}
 
-	if status.Repo == nil {
-		if err := status.loadRepository(ctx); err != nil {
-			log.Error("loadRepository: %v", err)
-			return
-		}
+	if err := status.loadRepository(ctx); err != nil {
+		log.Error("loadRepository: %v", err)
+		return
 	}
 
 	prefix := status.Repo.Link() + "/actions"
@@ -228,30 +226,35 @@ func (status *CommitStatus) HideActionsURL(ctx context.Context) {
 	}
 }
 
-// CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
-func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
-	// This function is widely used, but it is not quite right.
-	// Ideally it should return something like "CommitStatusSummary" with properly aggregated state.
-	// GitHub's behavior: if all statuses are "skipped", GitHub will return "success" as the combined status.
-	var lastStatus *CommitStatus
-	state := api.CommitStatusSuccess
+// CalcCombinedStatusState returns a combined status state, the commit statuses should order by id desc
+func CalcCombinedStatusState(statuses []*CommitStatus) commitstatus.CombinedStatusState {
+	states := make(commitstatus.CommitStatusStates, 0, len(statuses))
 	for _, status := range statuses {
-		if state == status.State || status.State.HasHigherPriorityThan(state) {
-			state = status.State
-			lastStatus = status
+		states = append(states, status.State)
+	}
+	return states.Combine()
+}
+
+// CalcCombinedStatus returns combined status struct, the commit statuses should order by id desc
+func CalcCombinedStatus(statuses []*CommitStatus) *CombinedStatus {
+	if len(statuses) == 0 {
+		return nil
+	}
+
+	states := make(commitstatus.CommitStatusStates, 0, len(statuses))
+	targetURL := ""
+	for _, status := range statuses {
+		states = append(states, status.State)
+		if status.TargetURL != "" {
+			targetURL = status.TargetURL
 		}
 	}
-	if lastStatus == nil {
-		if len(statuses) > 0 {
-			// FIXME: a bad case: Gitea just returns the first commit status, its status is "skipped" in this case.
-			lastStatus = statuses[0]
-		} else {
-			// FIXME: another bad case: if the "statuses" slice is empty, the returned value is an invalid CommitStatus, all its fields are empty.
-			// Frontend code (tmpl&vue) sometimes depend on the empty fields to skip rendering commit status elements (need to double check in the future)
-			lastStatus = &CommitStatus{}
-		}
+	return &CombinedStatus{
+		RepoID:    statuses[0].RepoID,
+		SHA:       statuses[0].SHA,
+		State:     states.Combine(),
+		TargetURL: targetURL,
 	}
-	return lastStatus
 }
 
 // CommitStatusOptions holds the options for query commit statuses
@@ -322,6 +325,7 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 	if err := sess.Find(&indices); err != nil {
 		return nil, err
 	}
+
 	statuses := make([]*CommitStatus, 0, len(indices))
 	if len(indices) == 0 {
 		return statuses, nil
@@ -506,7 +510,7 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 
 // SignCommitWithStatuses represents a commit with validation of signature and status state.
 type SignCommitWithStatuses struct {
-	Status   *CommitStatus
+	Status   *CombinedStatus
 	Statuses []*CommitStatus
 	*asymkey_model.SignCommit
 }

@@ -385,7 +385,7 @@ func Diff(ctx *context.Context) {
 		git_model.CommitStatusesHideActionsURL(ctx, statuses)
 	}
 
-	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
+	ctx.Data["CombinedStatus"] = git_model.CalcCombinedStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
@@ -457,7 +457,9 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	}
 	if !ctx.Repo.CanRead(unit_model.TypeActions) {
 		for _, commit := range commits {
-			commit.Status.HideActionsURL(ctx)
+			if commit.Status != nil {
+				commit.Status.HideActionsURL(ctx)
+			}
 			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 		}
 	}
