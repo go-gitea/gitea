@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	issue_service "code.gitea.io/gitea/services/issue"
 
 	"xorm.io/builder"
 )
@@ -193,7 +194,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 
 	// Delete Issues and related objects
 	var attachmentPaths []string
-	if attachmentPaths, err = issues_model.DeleteIssuesByRepoID(ctx, repoID); err != nil {
+	if attachmentPaths, err = issue_service.DeleteIssuesByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
