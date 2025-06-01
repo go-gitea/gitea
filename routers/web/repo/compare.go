@@ -230,9 +230,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	)
 
 	infoPath = ctx.PathParam("*")
-
 	var infos []string
-
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
 	} else {
@@ -300,7 +298,6 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		ctx.NotFound(nil)
 		return nil
 	}
-
 	ctx.Data["HeadUser"] = ci.HeadUser
 	ctx.Data["HeadBranch"] = ci.HeadBranch
 	ctx.Repo.PullRequest.SameRepo = isSameRepo
