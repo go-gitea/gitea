@@ -2,7 +2,6 @@ import {svg} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
-import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 function changeHash(hash: string) {
   if (window.history.pushState) {
@@ -111,25 +110,26 @@ function showLineButton() {
 }
 
 export function initRepoCodeView() {
-  registerGlobalInitFunc('initRepoCodeView', (el: HTMLElement) => {
-    if (!el.querySelector('.lines-num')) return;
+  if (!document.querySelector('.file-view.code-view')) return;
 
-    let selRangeStart: string;
-    addDelegatedEventListener(el, 'click', '.lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
-      if (!selRangeStart || !e.shiftKey) {
-        selRangeStart = el.getAttribute('id');
-        selectRange(selRangeStart);
-      } else {
-        const selRangeStop = el.getAttribute('id');
-        selectRange(`${selRangeStart}-${selRangeStop}`);
-      }
-      window.getSelection().removeAllRanges();
-      showLineButton();
-    });
+  // "file code view" and "blame" pages need this "line number button" feature
+  let selRangeStart: string;
+  addDelegatedEventListener(document, 'click', '.code-view .lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
+    if (!selRangeStart || !e.shiftKey) {
+      selRangeStart = el.getAttribute('id');
+      selectRange(selRangeStart);
+    } else {
+      const selRangeStop = el.getAttribute('id');
+      selectRange(`${selRangeStart}-${selRangeStop}`);
+    }
+    window.getSelection().removeAllRanges();
+    showLineButton();
   });
 
+  // apply the selected range from the URL hash
   const onHashChange = () => {
     if (!window.location.hash) return;
+    if (!document.querySelector('.code-view .lines-num')) return;
     const range = window.location.hash.substring(1);
     const first = selectRange(range);
     if (first) {

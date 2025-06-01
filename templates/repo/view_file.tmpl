@@ -114,7 +114,7 @@
 					{{end}}
 				</div>
 			{{else if .FileSize}}
-				<table data-global-init="initRepoCodeView">
+				<table>
 					<tbody>
 						{{range $idx, $code := .FileContent}}
 						{{$line := Eval $idx "+" 1}}
