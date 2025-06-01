@@ -201,6 +201,7 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 
 // DeleteIssueLabel deletes issue-label relation.
 func DeleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) error {
+	issue.isLabelsLoaded = false
 	if err := deleteIssueLabel(ctx, issue, label, doer); err != nil {
 		return err
 	}
