@@ -223,13 +223,9 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	// base<-head: master...head:feature
 	// same repo: master...feature
 
-	var (
-		isSameRepo bool
-		infoPath   string
-		err        error
-	)
+	var isSameRepo bool
 
-	infoPath = ctx.PathParam("*")
+	infoPath := ctx.PathParam("*")
 	var infos []string
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
@@ -249,12 +245,14 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	ci.BaseBranch = infos[0]
 	ctx.Data["BaseBranch"] = ci.BaseBranch
 
-	// If there is no head repository, it means compare between same repository.
+	var err error
+
+	// If there is no head repository, it means compare between the same repository.
 	headInfos := strings.Split(infos[1], ":")
 	if len(headInfos) == 1 {
 		isSameRepo = true
 		ci.HeadUser = ctx.Repo.Owner
-		ci.HeadBranch = parseRefForRawDiff(ctx, ci, headInfos[0])
+		ci.HeadBranch, ci.RawDiffType = parseRefForRawDiff(ctx, ctx.Repo.Repository, headInfos[0])
 	} else if len(headInfos) == 2 {
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
@@ -267,7 +265,8 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				}
 				return nil
 			}
-			ci.HeadBranch = parseRefForRawDiff(ctx, ci, headInfos[1])
+			// FIXME: how to correctly choose the head repository? The logic below (3-8) is quite complex, the real head repo is determined there
+			ci.HeadBranch, ci.RawDiffType = parseRefForRawDiff(ctx, ..., headInfos[1])
 			isSameRepo = ci.HeadUser.ID == ctx.Repo.Owner.ID
 			if isSameRepo {
 				ci.HeadRepo = baseRepo
@@ -290,7 +289,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				}
 				return nil
 			}
-			ci.HeadBranch = parseRefForRawDiff(ctx, ci, headInfos[1])
+			ci.HeadBranch, ci.RawDiffType = parseRefForRawDiff(ctx, ci.HeadRepo, headInfos[1])
 			ci.HeadUser = ci.HeadRepo.Owner
 			isSameRepo = ci.HeadRepo.ID == ctx.Repo.Repository.ID
 		}
@@ -752,7 +751,6 @@ func CompareDiff(ctx *context.Context) {
 			ctx.ServerError("GetRepoRawDiffForFile", err)
 			return
 		}
-		ctx.Resp.Flush()
 		return
 	}
 
@@ -998,25 +996,19 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 	return diffLines, nil
 }
 
-func parseRefForRawDiff(ctx *context.Context, ci *common.CompareInfo, ref string) string {
-	if strings.HasSuffix(ref, ".diff") || strings.HasSuffix(ref, ".patch") {
-		var headRepo *repo_model.Repository
-		if ci.HeadRepo != nil {
-			headRepo = ci.HeadRepo
-		} else {
-			headRepo = ctx.Repo.Repository
-		}
-		ref2IsBranch := gitrepo.IsBranchExist(ctx, headRepo, ref)
-		ref2IsTag := gitrepo.IsTagExist(ctx, headRepo, ref)
-		if !ref2IsBranch && !ref2IsTag {
-			if strings.HasSuffix(ref, ".diff") {
-				ci.RawDiffType = git.RawDiffNormal
-				ref = strings.TrimSuffix(ref, ".diff")
-			} else if strings.HasSuffix(ref, ".patch") {
-				ci.RawDiffType = git.RawDiffPatch
-				ref = strings.TrimSuffix(ref, ".patch")
-			}
-		}
+func parseRefForRawDiff(ctx *context.Context, refRepo *repo_model.Repository, refShortName string) (string, git.RawDiffType) {
+	if !strings.HasSuffix(refShortName, ".diff") && !strings.HasSuffix(refShortName, ".patch") {
+		return refShortName, ""
 	}
-	return ref
+
+	if gitrepo.IsBranchExist(ctx, refRepo, refShortName) || gitrepo.IsTagExist(ctx, refRepo, refShortName) {
+		return refShortName, ""
+	}
+
+	if s, ok := strings.CutSuffix(refShortName, ".diff"); ok {
+		return s, git.RawDiffNormal
+	} else if s, ok = strings.CutSuffix(refShortName, ".patch"); ok {
+		return s, git.RawDiffPatch
+	}
+	return refShortName, ""
 }
