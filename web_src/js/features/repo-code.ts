@@ -2,6 +2,7 @@ import {svg} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 function changeHash(hash: string) {
   if (window.history.pushState) {
@@ -110,19 +111,21 @@ function showLineButton() {
 }
 
 export function initRepoCodeView() {
-  if (!document.querySelector('.code-view .lines-num')) return;
+  registerGlobalInitFunc('initRepoCodeView', (el: HTMLElement) => {
+    if (!el.querySelector('.lines-num')) return;
 
-  let selRangeStart: string;
-  addDelegatedEventListener(document, 'click', '.lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
-    if (!selRangeStart || !e.shiftKey) {
-      selRangeStart = el.getAttribute('id');
-      selectRange(selRangeStart);
-    } else {
-      const selRangeStop = el.getAttribute('id');
-      selectRange(`${selRangeStart}-${selRangeStop}`);
-    }
-    window.getSelection().removeAllRanges();
-    showLineButton();
+    let selRangeStart: string;
+    addDelegatedEventListener(el, 'click', '.lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
+      if (!selRangeStart || !e.shiftKey) {
+        selRangeStart = el.getAttribute('id');
+        selectRange(selRangeStart);
+      } else {
+        const selRangeStop = el.getAttribute('id');
+        selectRange(`${selRangeStart}-${selRangeStop}`);
+      }
+      window.getSelection().removeAllRanges();
+      showLineButton();
+    });
   });
 
   const onHashChange = () => {
