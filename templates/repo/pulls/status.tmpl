@@ -6,18 +6,18 @@
 * is_context_required: Used in pull request commit status check table
 */}}
 
-{{if .CommitStatus}}
+{{if .CombinedStatus}}
 <div class="commit-status-panel">
 	<div class="ui top attached header commit-status-header">
-		{{if or (eq .CommitStatus.State "pending") (.MissingRequiredChecks)}}
+		{{if or (eq .CombinedStatus.State "pending") (.MissingRequiredChecks)}}
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
-		{{else if eq .CommitStatus.State "success"}}
+		{{else if eq .CombinedStatus.State "success"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checks_success"}}
-		{{else if eq .CommitStatus.State "warning"}}
+		{{else if eq .CombinedStatus.State "warning"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checks_warning"}}
-		{{else if eq .CommitStatus.State "failure"}}
+		{{else if eq .CombinedStatus.State "failure"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checks_failure"}}
-		{{else if eq .CommitStatus.State "error"}}
+		{{else if eq .CombinedStatus.State "error"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checks_error"}}
 		{{else}}
 			{{ctx.Locale.Tr "repo.pulls.status_checking"}}

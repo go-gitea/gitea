@@ -9,6 +9,6 @@
 		</span>
 	{{end}}
 	<div class="tippy-target">
-		{{template "repo/pulls/status" (dict "CommitStatuses" .Statuses "CommitStatus" .Status)}}
+		{{template "repo/pulls/status" (dict "CommitStatuses" .Statuses "CombinedStatus" .Status)}}
 	</div>
 {{end}}

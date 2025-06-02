@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -76,7 +77,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	// Call API to add status for commit
 	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
-		State:       api.CommitStatusState(state),
+		State:       commitstatus.CommitStatusState(state),
 		TargetURL:   "http://test.ci/",
 		Description: "",
 		Context:     "testci",
@@ -120,7 +121,7 @@ func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRec
 	assert.NotNil(t, status)
 
 	if assert.Len(t, statuses, 1) {
-		assert.Equal(t, api.CommitStatusState(state), statuses[0].State)
+		assert.Equal(t, commitstatus.CommitStatusState(state), statuses[0].State)
 		assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/statuses/65f1bf27bc3bf70f64657658635e66094edbcb4d", statuses[0].URL)
 		assert.Equal(t, "http://test.ci/", statuses[0].TargetURL)
 		assert.Empty(t, statuses[0].Description)
@@ -174,7 +175,7 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
 				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 				runBody := doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
-					State:       api.CommitStatusPending,
+					State:       commitstatus.CommitStatusPending,
 					TargetURL:   "http://test.ci/",
 					Description: "",
 					Context:     "testci",
@@ -205,14 +206,14 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	// Call API to add status for commit
 	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
-		State:       api.CommitStatusSuccess,
+		State:       commitstatus.CommitStatusSuccess,
 		TargetURL:   "http://test.ci/",
 		Description: "",
 		Context:     "testci",
 	}))
 
 	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
-		State:       api.CommitStatusSuccess,
+		State:       commitstatus.CommitStatusSuccess,
 		TargetURL:   "http://test.ci/",
 		Description: "",
 		Context:     "other_context",

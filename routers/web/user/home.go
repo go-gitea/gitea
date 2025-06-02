@@ -564,7 +564,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 	}
 
-	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
+	commitStatuses, combinedStatuses, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
@@ -630,7 +630,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 		return 0
 	}
-	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CombinedStatuses"] = combinedStatuses
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
