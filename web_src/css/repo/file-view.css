@@ -1,7 +1,10 @@
-.file-view tr.active {
+.file-view tr.active .lines-num,
+.file-view tr.active .lines-escape,
+.file-view tr.active .lines-code {
   background: var(--color-highlight-bg);
 }
 
+/* set correct border radius on the last active lines, to avoid border overflow */
 .file-view tr.active:last-of-type .lines-code {
   border-bottom-right-radius: var(--border-radius);
 }
@@ -10,6 +13,7 @@
   position: relative;
 }
 
+/* add a darker "handler" at the beginning of the active line */
 .file-view tr.active .lines-num::before {
   content: "";
   position: absolute;

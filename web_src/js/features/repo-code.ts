@@ -110,10 +110,15 @@ function showLineButton() {
 }
 
 export function initRepoCodeView() {
-  if (!document.querySelector('.code-view .lines-num')) return;
+  // When viewing a file or blame, there is always a ".file-view" element,
+  // but the ".code-view" class is only present when viewing the "code" of a file; it is not present when viewing a PDF file.
+  // Since the ".file-view" will be dynamically reloaded when navigating via the left file tree (eg: view a PDF file, then view a source code file, etc.)
+  // the "code-view" related event listeners should always be added when the current page contains ".file-view" element.
+  if (!document.querySelector('.repo-view-container .file-view')) return;
 
+  // "file code view" and "blame" pages need this "line number button" feature
   let selRangeStart: string;
-  addDelegatedEventListener(document, 'click', '.lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
+  addDelegatedEventListener(document, 'click', '.code-view .lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
     if (!selRangeStart || !e.shiftKey) {
       selRangeStart = el.getAttribute('id');
       selectRange(selRangeStart);
@@ -125,12 +130,14 @@ export function initRepoCodeView() {
     showLineButton();
   });
 
+  // apply the selected range from the URL hash
   const onHashChange = () => {
     if (!window.location.hash) return;
+    if (!document.querySelector('.code-view .lines-num')) return;
     const range = window.location.hash.substring(1);
     const first = selectRange(range);
     if (first) {
-      // set scrollRestoration to 'manual' when there is a hash in url, so that the scroll position will not be remembered after refreshing
+      // set scrollRestoration to 'manual' when there is a hash in the URL, so that the scroll position will not be remembered after refreshing
       if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
       first.scrollIntoView({block: 'start'});
       showLineButton();

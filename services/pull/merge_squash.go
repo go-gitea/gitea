@@ -5,7 +5,6 @@ package pull
 
 import (
 	"fmt"
-	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -66,10 +65,8 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 
 	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
 		// add trailer
-		if !strings.Contains(message, "Co-authored-by: "+sig.String()) {
-			message += "\nCo-authored-by: " + sig.String()
-		}
-		message += fmt.Sprintf("\nCo-committed-by: %s\n", sig.String())
+		message = AddCommitMessageTailer(message, "Co-authored-by", sig.String())
+		message = AddCommitMessageTailer(message, "Co-committed-by", sig.String()) // FIXME: this one should be removed, it is not really used or widely used
 	}
 	cmdCommit := git.NewCommand("commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
