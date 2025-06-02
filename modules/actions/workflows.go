@@ -43,21 +43,23 @@ func IsWorkflow(path string) bool {
 	return strings.HasPrefix(path, ".gitea/workflows") || strings.HasPrefix(path, ".github/workflows")
 }
 
-func ListWorkflows(commit *git.Commit) (git.Entries, error) {
-	tree, err := commit.SubTree(".gitea/workflows")
+func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
+	rpath := ".gitea/workflows"
+	tree, err := commit.SubTree(rpath)
 	if _, ok := err.(git.ErrNotExist); ok {
-		tree, err = commit.SubTree(".github/workflows")
+		rpath = ".github/workflows"
+		tree, err = commit.SubTree(rpath)
 	}
 	if _, ok := err.(git.ErrNotExist); ok {
-		return nil, nil
+		return "", nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	entries, err := tree.ListEntriesRecursiveFast()
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	ret := make(git.Entries, 0, len(entries))
@@ -66,7 +68,7 @@ func ListWorkflows(commit *git.Commit) (git.Entries, error) {
 			ret = append(ret, entry)
 		}
 	}
-	return ret, nil
+	return rpath, ret, nil
 }
 
 func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
@@ -102,7 +104,7 @@ func DetectWorkflows(
 	payload api.Payloader,
 	detectSchedule bool,
 ) ([]*DetectedWorkflow, []*DetectedWorkflow, error) {
-	entries, err := ListWorkflows(commit)
+	_, entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,7 +149,7 @@ func DetectWorkflows(
 }
 
 func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
-	entries, err := ListWorkflows(commit)
+	_, entries, err := ListWorkflows(commit)
 	if err != nil {
 		return nil, err
 	}
