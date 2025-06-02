@@ -97,17 +97,17 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		}
 
 		isVendored := optional.None[bool]()
-		isGenerated := optional.None[bool]()
 		isDocumentation := optional.None[bool]()
 		isDetectable := optional.None[bool]()
 
 		attrs, err := checker.CheckPath(f.Name())
+		attrLinguistGenerated := optional.None[bool]()
 		if err == nil {
 			if isVendored = attrs.GetVendored(); isVendored.ValueOrDefault(false) {
 				continue
 			}
 
-			if isGenerated = attrs.GetGenerated(); isGenerated.ValueOrDefault(false) {
+			if attrLinguistGenerated = attrs.GetGenerated(); attrLinguistGenerated.ValueOrDefault(false) {
 				continue
 			}
 
@@ -169,7 +169,15 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 				return nil, err
 			}
 		}
-		if !isGenerated.Has() && enry.IsGenerated(f.Name(), content) {
+
+		// if "generated" attribute is set, use it, otherwise use enry.IsGenerated to guess
+		var isGenerated bool
+		if attrLinguistGenerated.Has() {
+			isGenerated = attrLinguistGenerated.Value()
+		} else {
+			isGenerated = enry.IsGenerated(f.Name(), content)
+		}
+		if isGenerated {
 			continue
 		}
 
