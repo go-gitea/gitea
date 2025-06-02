@@ -18,6 +18,8 @@ const (
 	CommitStatusFailure CommitStatusState = "failure"
 	// CommitStatusWarning is for when the CommitStatus is Warning
 	CommitStatusWarning CommitStatusState = "warning"
+	// CommitStatusSkipped is for when CommitStatus is Skipped
+	CommitStatusSkipped CommitStatusState = "skipped"
 )
 
 var commitStatusPriorities = map[CommitStatusState]int{
@@ -26,25 +28,17 @@ var commitStatusPriorities = map[CommitStatusState]int{
 	CommitStatusWarning: 2,
 	CommitStatusPending: 3,
 	CommitStatusSuccess: 4,
+	CommitStatusSkipped: 5,
 }
 
 func (css CommitStatusState) String() string {
 	return string(css)
 }
 
-// NoBetterThan returns true if this State is no better than the given State
-// This function only handles the states defined in CommitStatusPriorities
-func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
-	// NoBetterThan only handles the 5 states above
-	if _, exist := commitStatusPriorities[css]; !exist {
-		return false
-	}
-
-	if _, exist := commitStatusPriorities[css2]; !exist {
-		return false
-	}
-
-	return commitStatusPriorities[css] <= commitStatusPriorities[css2]
+// HasHigherPriorityThan returns true if this state has higher priority than the other
+// Undefined states are considered to have the highest priority like CommitStatusError(0)
+func (css CommitStatusState) HasHigherPriorityThan(other CommitStatusState) bool {
+	return commitStatusPriorities[css] < commitStatusPriorities[other]
 }
 
 // IsPending represents if commit status state is pending
