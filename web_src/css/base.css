@@ -867,6 +867,7 @@ overflow-menu .ui.label {
 }
 
 .file-view tr.active .lines-num,
+.file-view tr.active .lines-escape,
 .file-view tr.active .lines-code {
   background: var(--color-highlight-bg) !important;
 }
