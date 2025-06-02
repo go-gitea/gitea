@@ -101,17 +101,22 @@
   }
 }
 
+#navbar .ui.dropdown.active .navbar-profile-admin {
+  background: var(--color-nav-hover-bg);
+  border-color: var(--color-nav-hover-bg);
+}
+
 #navbar .ui.dropdown .navbar-profile-admin {
   display: block;
   position: absolute;
-  font-size: 9px;
-  font-weight: var(--font-weight-bold);
-  color: var(--color-nav-bg);
-  background: var(--color-primary);
-  padding: 2px 3px;
+  color: var(--color-text);
+  background: var(--color-nav-bg);
+  border: 1px solid var(--color-nav-bg);
+  padding: 2px;
   border-radius: 10px;
-  top: -1px;
-  left: 18px;
+  top: -0.75px;
+  left: 28px;
+  line-height: 0;
 }
 
 #navbar a.item:hover .notification_count,
