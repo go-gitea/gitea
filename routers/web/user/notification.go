@@ -390,7 +390,7 @@ func NotificationWatching(ctx *context.Context) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
-	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,

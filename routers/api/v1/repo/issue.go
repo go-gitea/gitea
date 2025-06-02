@@ -152,7 +152,7 @@ func SearchIssues(ctx *context.APIContext) {
 	)
 	{
 		// find repos user can access (for issue search)
-		opts := &repo_model.SearchRepoOptions{
+		opts := repo_model.SearchRepoOptions{
 			Private:     false,
 			AllPublic:   true,
 			TopicOnly:   false,
