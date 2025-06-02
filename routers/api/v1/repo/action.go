@@ -339,12 +339,12 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     description: response when creating a repo-level variable
-	//   "204":
-	//     description: response when creating a repo-level variable
 	//   "400":
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     description: variable name already exists.
+	//   "500":
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
@@ -373,7 +373,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // UpdateVariable update a repo-level variable

@@ -88,6 +88,8 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 		sess.Asc("issue.created_unix").Asc("issue.id")
 	case "recentupdate":
 		sess.Desc("issue.updated_unix").Desc("issue.created_unix").Desc("issue.id")
+	case "recentclose":
+		sess.Desc("issue.closed_unix").Desc("issue.created_unix").Desc("issue.id")
 	case "leastupdate":
 		sess.Asc("issue.updated_unix").Asc("issue.created_unix").Asc("issue.id")
 	case "mostcomment":

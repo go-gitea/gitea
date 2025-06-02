@@ -2259,16 +2259,16 @@
         ],
         "responses": {
           "201": {
-            "description": "response when creating an org-level variable"
-          },
-          "204": {
-            "description": "response when creating an org-level variable"
+            "description": "successfully created the org-level variable"
           },
           "400": {
             "$ref": "#/responses/error"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "409": {
+            "description": "variable name already exists."
+          },
+          "500": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5263,14 +5263,14 @@
           "201": {
             "description": "response when creating a repo-level variable"
           },
-          "204": {
-            "description": "response when creating a repo-level variable"
-          },
           "400": {
             "$ref": "#/responses/error"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "409": {
+            "description": "variable name already exists."
+          },
+          "500": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -12871,6 +12871,7 @@
             "enum": [
               "oldest",
               "recentupdate",
+              "recentclose",
               "leastupdate",
               "mostcomment",
               "leastcomment",
@@ -17863,16 +17864,13 @@
         ],
         "responses": {
           "201": {
-            "description": "response when creating a variable"
-          },
-          "204": {
-            "description": "response when creating a variable"
+            "description": "successfully created the user-level variable"
           },
           "400": {
             "$ref": "#/responses/error"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "409": {
+            "description": "variable name already exists."
           }
         }
       },

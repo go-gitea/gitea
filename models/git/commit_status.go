@@ -230,18 +230,24 @@ func (status *CommitStatus) HideActionsURL(ctx context.Context) {
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
+	// This function is widely used, but it is not quite right.
+	// Ideally it should return something like "CommitStatusSummary" with properly aggregated state.
+	// GitHub's behavior: if all statuses are "skipped", GitHub will return "success" as the combined status.
 	var lastStatus *CommitStatus
 	state := api.CommitStatusSuccess
 	for _, status := range statuses {
-		if status.State.NoBetterThan(state) {
+		if state == status.State || status.State.HasHigherPriorityThan(state) {
 			state = status.State
 			lastStatus = status
 		}
 	}
 	if lastStatus == nil {
 		if len(statuses) > 0 {
+			// FIXME: a bad case: Gitea just returns the first commit status, its status is "skipped" in this case.
 			lastStatus = statuses[0]
 		} else {
+			// FIXME: another bad case: if the "statuses" slice is empty, the returned value is an invalid CommitStatus, all its fields are empty.
+			// Frontend code (tmpl&vue) sometimes depend on the empty fields to skip rendering commit status elements (need to double check in the future)
 			lastStatus = &CommitStatus{}
 		}
 	}
@@ -298,27 +304,37 @@ type CommitStatusIndex struct {
 	MaxIndex int64  `xorm:"index"`
 }
 
+func makeRepoCommitQuery(ctx context.Context, repoID int64, sha string) *xorm.Session {
+	return db.GetEngine(ctx).Table(&CommitStatus{}).
+		Where("repo_id = ?", repoID).And("sha = ?", sha)
+}
+
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
-	getBase := func() *xorm.Session {
-		return db.GetEngine(ctx).Table(&CommitStatus{}).
-			Where("repo_id = ?", repoID).And("sha = ?", sha)
-	}
+func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
 	indices := make([]int64, 0, 10)
-	sess := getBase().Select("max( `index` ) as `index`").
-		GroupBy("context_hash").OrderBy("max( `index` ) desc")
+	sess := makeRepoCommitQuery(ctx, repoID, sha).
+		Select("max( `index` ) as `index`").
+		GroupBy("context_hash").
+		OrderBy("max( `index` ) desc")
 	if !listOptions.IsListAll() {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
-	count, err := sess.FindAndCount(&indices)
-	if err != nil {
-		return nil, count, err
+	if err := sess.Find(&indices); err != nil {
+		return nil, err
 	}
 	statuses := make([]*CommitStatus, 0, len(indices))
 	if len(indices) == 0 {
-		return statuses, count, nil
+		return statuses, nil
 	}
-	return statuses, count, getBase().And(builder.In("`index`", indices)).Find(&statuses)
+	err := makeRepoCommitQuery(ctx, repoID, sha).And(builder.In("`index`", indices)).Find(&statuses)
+	return statuses, err
+}
+
+func CountLatestCommitStatus(ctx context.Context, repoID int64, sha string) (int64, error) {
+	return makeRepoCommitQuery(ctx, repoID, sha).
+		Select("count(context_hash)").
+		GroupBy("context_hash").
+		Count()
 }
 
 // GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
