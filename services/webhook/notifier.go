@@ -305,7 +305,7 @@ func (m *webhookNotifier) DeleteIssue(ctx context.Context, doer *user_model.User
 		return
 	}
 
-	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err := PrepareWebhooks(ctx, EventSource{Repository: issue.Repo}, webhook_module.HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueDeleted,
 		Index:      issue.Index,
