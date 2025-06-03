@@ -375,7 +375,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 // DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner
 func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User) error {
 	for {
-		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     1,

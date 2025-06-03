@@ -13,6 +13,7 @@ import (
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
 
@@ -84,7 +85,8 @@ func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
 
 func TestWebhookUserMail(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	setting.Service.NoReplyAddress = "no-reply.com"
+	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "no-reply.com")()
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.Equal(t, user.GetPlaceholderEmail(), convert.ToUser(db.DefaultContext, user, nil).Email)
 	assert.Equal(t, user.Email, convert.ToUser(db.DefaultContext, user, user).Email)
