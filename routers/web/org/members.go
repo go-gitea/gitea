@@ -67,7 +67,13 @@ func Members(ctx *context.Context) {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
+	teams, err := organization.FindOrgTeams(ctx, org.ID)
+	if err != nil {
+		ctx.ServerError("GetOrgTeams", err)
+		return
+	}
 	ctx.Data["Page"] = pager
+	ctx.Data["Teams"] = teams
 	ctx.Data["Members"] = members
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(ctx, members, org.ID)

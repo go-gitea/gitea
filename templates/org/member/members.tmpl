@@ -4,6 +4,17 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 
+		{{if .IsOrganizationOwner}}
+			<div class="flex-text-block tw-justify-end tw-gap-x-1 tw-gap-y-2 tw-mb-4">
+				<button class="ui primary button show-modal" data-modal="#add-member-to-team-modal"
+				>
+					{{svg "octicon-plus"}}
+					{{ctx.Locale.Tr "org.teams.add_team_member"}}
+				</button>
+			</div>
+			<div class="divider"></div>
+		{{end}}
+
 		<div class="flex-list">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
@@ -85,6 +96,40 @@
 		<p>{{ctx.Locale.Tr "org.members.remove.detail" (`<span class="name"></span>`|SafeHTML) (`<span class="dataOrganizationName"></span>`|SafeHTML)}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
+</div>
+
+<div class="ui small modal" id="add-member-to-team-modal">
+	<div class="header">{{ctx.Locale.Tr "org.teams.add_team_member"}}</div>
+	<div class="content">
+		<form class="ui form ignore-dirty" method="post" data-action-base-link="{{$.OrgLink}}">
+			{{.CsrfTokenHtml}}
+			<div class="required field">
+				<label>{{ctx.Locale.Tr "org.teams"}}</label>
+				<div class="ui dropdown selection search team_add_member_team_search">
+					<input name="team" type="hidden">
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="text"></div>
+					<div class="menu">
+						{{range .Teams}}
+							<div class="item" data-value="{{.LowerName}}">{{.Name}}</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+			<div class="required field">
+				<label>{{ctx.Locale.Tr "org.members"}}</label>
+				<div id="search-user-box" class="ui search">
+					<div class="ui input">
+						<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
+					</div>
+				</div>
+			</div>
+			<div class="actions">
+				<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+			</div>
+		</form>
+	</div>
 </div>
 
 {{template "base/footer" .}}
