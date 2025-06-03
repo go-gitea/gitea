@@ -306,6 +306,8 @@ const (
 	HookIssueReviewRequested HookIssueAction = "review_requested"
 	// HookIssueReviewRequestRemoved is an issue action for removing a review request to someone on a pull request.
 	HookIssueReviewRequestRemoved HookIssueAction = "review_request_removed"
+	// HookIssueDeleted is an issue action for deleting an issue
+	HookIssueDeleted HookIssueAction = "deleted"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.
