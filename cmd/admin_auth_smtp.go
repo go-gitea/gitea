@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -145,7 +144,6 @@ func (a *authService) runAddSMTP(ctx context.Context, c *cli.Command) error {
 	}
 	active := true
 	if c.IsSet("active") {
-		fmt.Println("Active is set!", c.Bool("active"))
 		active = c.Bool("active")
 	}
 

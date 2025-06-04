@@ -31,7 +31,7 @@ func makePathOutput(workPath, customPath, customConf string) string {
 func newTestApp(testCmdAction cli.ActionFunc) *cli.Command {
 	app := NewMainApp(AppVersion{})
 	testCmd := &cli.Command{Name: "test-cmd", Action: testCmdAction}
-	prepareSubcommandWithConfig(testCmd, appGlobalFlags())
+	prepareSubcommandWithGlobalFlags(testCmd, appGlobalFlags())
 	app.Commands = append(app.Commands, testCmd)
 	app.DefaultCommand = testCmd.Name
 	return app

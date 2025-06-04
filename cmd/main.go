@@ -75,15 +75,15 @@ func appGlobalFlags() []cli.Flag {
 	}
 }
 
-func prepareSubcommandWithConfig(command *cli.Command, globalFlags []cli.Flag) {
-	command.Flags = append(append([]cli.Flag{}, globalFlags...), command.Flags...)
+func prepareSubcommandWithGlobalFlags(command *cli.Command) {
+	command.Flags = append(append([]cli.Flag{}, appGlobalFlags()...), command.Flags...)
 	command.Action = prepareWorkPathAndCustomConf(command.Action)
 	command.HideHelp = true
 	if command.Name != "help" {
 		command.Commands = append(command.Commands, cmdHelp())
 	}
 	for i := range command.Commands {
-		prepareSubcommandWithConfig(command.Commands[i], globalFlags)
+		prepareSubcommandWithGlobalFlags(command.Commands[i])
 	}
 }
 
@@ -157,13 +157,12 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 
 	app.DefaultCommand = CmdWeb.Name
 
-	globalFlags := appGlobalFlags()
 	app.Flags = append(app.Flags, cli.VersionFlag)
-	app.Flags = append(app.Flags, globalFlags...)
+	app.Flags = append(app.Flags, appGlobalFlags()...)
 	app.HideHelp = true // use our own help action to show helps (with more information like default config)
 	app.Before = PrepareConsoleLoggerLevel(log.INFO)
 	for i := range subCmdWithConfig {
-		prepareSubcommandWithConfig(subCmdWithConfig[i], globalFlags)
+		prepareSubcommandWithGlobalFlags(subCmdWithConfig[i])
 	}
 	app.Commands = append(app.Commands, subCmdWithConfig...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
