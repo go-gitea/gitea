@@ -26,7 +26,7 @@ func TestGetCommitStatuses(t *testing.T) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	sha1 := "1234123412341234123412341234123412341234"
+	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
 
 	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](db.DefaultContext, &git_model.CommitStatusOptions{
 		ListOptions: db.ListOptions{Page: 1, PageSize: 50},
@@ -255,4 +255,27 @@ func TestCommitStatusesHideActionsURL(t *testing.T) {
 	git_model.CommitStatusesHideActionsURL(db.DefaultContext, statuses)
 	assert.Empty(t, statuses[0].TargetURL)
 	assert.Equal(t, "https://mycicd.org/1", statuses[1].TargetURL)
+}
+
+func TestGetCountLatestCommitStatus(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
+
+	commitStatuses, err := git_model.GetLatestCommitStatus(db.DefaultContext, repo1.ID, sha1, db.ListOptions{
+		Page:     1,
+		PageSize: 2,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, commitStatuses, 2)
+	assert.Equal(t, structs.CommitStatusFailure, commitStatuses[0].State)
+	assert.Equal(t, "ci/awesomeness", commitStatuses[0].Context)
+	assert.Equal(t, structs.CommitStatusError, commitStatuses[1].State)
+	assert.Equal(t, "deploy/awesomeness", commitStatuses[1].Context)
+
+	count, err := git_model.CountLatestCommitStatus(db.DefaultContext, repo1.ID, sha1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, count)
 }
