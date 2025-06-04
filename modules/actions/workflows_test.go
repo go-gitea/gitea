@@ -126,24 +126,23 @@ func TestDetectMatched(t *testing.T) {
 			expected:     true,
 		},
 		{
-	        desc:         "push to tag matches workflow with paths condition (should skip paths check)",
-	        triggedEvent: webhook_module.HookEventPush,
-	        payload: &api.PushPayload{
+			desc:         "push to tag matches workflow with paths condition (should skip paths check)",
+			triggedEvent: webhook_module.HookEventPush,
+			payload: &api.PushPayload{
 				Ref:    "refs/tags/v1.0.0",
 				Before: "0000000",
 				Commits: []*api.PayloadCommit{
 					{
 						ID:      "abcdef123456",
-					    Added:   []string{"src/main.go"},
-					    Message: "Release v1.0.0",
-			        },
-			    },
-		    },
-			commit: nil,
-		    yamlOn: "on:\n  push:\n    paths:\n      - src/**",
-	        expected: true,
-        },
-
+						Added:   []string{"src/main.go"},
+						Message: "Release v1.0.0",
+					},
+				},
+			},
+			commit:   nil,
+			yamlOn:   "on:\n  push:\n    paths:\n      - src/**",
+			expected: true,
+		},
 	}
 
 	for _, tc := range testCases {
