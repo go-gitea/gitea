@@ -468,10 +468,10 @@ func Test_WebhookIssueDelete(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "issues")
-		issueUrl := testNewIssue(t, session, "user2", "repo1", "Title1", "Description1")
+		issueURL := testNewIssue(t, session, "user2", "repo1", "Title1", "Description1")
 
 		// 2. trigger the webhook
-		testIssueDelete(t, session, issueUrl)
+		testIssueDelete(t, session, issueURL)
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "issue", triggeredEvent)
@@ -651,10 +651,10 @@ func Test_WebhookPullRequestDelete(t *testing.T) {
 		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		issueUrl := testCreatePullToDefaultBranch(t, session, repo1, repo1, "master2", "first pull request")
+		issueURL := testCreatePullToDefaultBranch(t, session, repo1, repo1, "master2", "first pull request")
 
 		// 2. trigger the webhook
-		testIssueDelete(t, session, path.Join(repo1.Link(), "pulls", issueUrl))
+		testIssueDelete(t, session, path.Join(repo1.Link(), "pulls", issueURL))
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "pull_request", triggeredEvent)
