@@ -151,6 +151,13 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	return issueURL
 }
 
+func testIssueDelete(t *testing.T, session *TestSession, issueUrl string) {
+	req := NewRequestWithValues(t, "POST", path.Join(issueUrl, "delete"), map[string]string{
+		"_csrf": GetUserCSRFToken(t, session),
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+}
+
 func testIssueAssign(t *testing.T, session *TestSession, repoLink string, issueID, assigneeID int64) {
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf(repoLink+"/issues/assignee?issue_ids=%d", issueID), map[string]string{
 		"_csrf":  GetUserCSRFToken(t, session),
