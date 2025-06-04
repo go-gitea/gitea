@@ -29,8 +29,8 @@ func cmdHelp() *cli.Command {
 			if c.Name == "help" {
 				targetCmdIdx = 1
 			}
-			if lineage[targetCmdIdx].Name != "Gitea" {
-				err = cli.ShowCommandHelp(ctx, lineage[targetCmdIdx], lineage[targetCmdIdx].Name)
+			if lineage[targetCmdIdx] != lineage[targetCmdIdx].Root() {
+				err = cli.ShowCommandHelp(ctx, lineage[targetCmdIdx+1] /* parent cmd */, lineage[targetCmdIdx].Name /* sub cmd */)
 			} else {
 				err = cli.ShowAppHelp(c)
 			}
@@ -119,14 +119,12 @@ type AppVersion struct {
 }
 
 func NewMainApp(appVer AppVersion) *cli.Command {
-	app := &cli.Command{
-		Name: "Gitea",
-		// HelpName: "gitea",
-		Usage:                 "A painless self-hosted Git service",
-		Description:           `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`,
-		Version:               appVer.Version + appVer.Extra,
-		EnableShellCompletion: true,
-	}
+	app := &cli.Command{}
+	app.Name = "gitea" // must be lower-cased because it appears in the "USAGE" section like "gitea doctor [command [command options]]"
+	app.Usage = "A painless self-hosted Git service"
+	app.Description = `Gitea program contains "web" and other subcommands. If no subcommand is given, it starts the web server by default. Use "web" subcommand for more web server arguments, use other subcommands for other purposes.`
+	app.Version = appVer.Version + appVer.Extra
+	app.EnableShellCompletion = true
 
 	// these sub-commands need to use config file
 	subCmdWithConfig := []*cli.Command{
