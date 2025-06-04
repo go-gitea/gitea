@@ -178,8 +178,9 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 			}
 
-			if usr.IsUploadAvatarChanged(su.Avatar) {
-				if err == nil && source.AttributeAvatar != "" {
+			if source.AttributeAvatar != "" {
+				if len(su.Avatar) > 0 && usr.IsUploadAvatarChanged(su.Avatar) {
+					log.Trace("SyncExternalUsers[%s]: Uploading new avatar for %s", source.AuthSource.Name, usr.Name)
 					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}

@@ -721,7 +721,7 @@ func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) 
 	if u != nil {
 		headers.Status = http.StatusTemporaryRedirect
 		headers.Location = u.String()
-
+		headers.ContentLength = 0 // do not set Content-Length for redirect responses
 		setResponseHeaders(ctx.Resp, headers)
 		return
 	}
