@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -226,9 +227,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 		t.Run("FileTooBig", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-
-			oldMaxFileSize := setting.LFS.MaxFileSize
-			setting.LFS.MaxFileSize = 2
+			defer test.MockVariableValue(&setting.LFS.MaxFileSize, 2)()
 
 			req := newRequest(t, &lfs.BatchRequest{
 				Operation: "upload",
@@ -243,8 +242,6 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.NotNil(t, br.Objects[0].Error)
 			assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[0].Error.Code)
 			assert.Equal(t, "Size must be less than or equal to 2", br.Objects[0].Error.Message)
-
-			setting.LFS.MaxFileSize = oldMaxFileSize
 		})
 
 		t.Run("AddMeta", func(t *testing.T) {

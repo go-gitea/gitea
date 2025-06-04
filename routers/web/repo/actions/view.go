@@ -64,6 +64,36 @@ func View(ctx *context_module.Context) {
 	ctx.HTML(http.StatusOK, tplViewActions)
 }
 
+func ViewWorkflowFile(ctx *context_module.Context) {
+	runIndex := getRunIndex(ctx)
+	run, err := actions_model.GetRunByIndex(ctx, ctx.Repo.Repository.ID, runIndex)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetRunByIndex", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
+		return
+	}
+	commit, err := ctx.Repo.GitRepo.GetCommit(run.CommitSHA)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
+			return errors.Is(err, util.ErrNotExist)
+		}, err)
+		return
+	}
+	rpath, entries, err := actions.ListWorkflows(commit)
+	if err != nil {
+		ctx.ServerError("ListWorkflows", err)
+		return
+	}
+	for _, entry := range entries {
+		if entry.Name() == run.WorkflowID {
+			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, url.PathEscape(run.CommitSHA), util.PathEscapeSegments(rpath), util.PathEscapeSegments(run.WorkflowID)))
+			return
+		}
+	}
+	ctx.NotFound(nil)
+}
+
 type LogCursor struct {
 	Step     int   `json:"step"`
 	Cursor   int64 `json:"cursor"`

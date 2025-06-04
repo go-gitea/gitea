@@ -88,7 +88,7 @@ func TestCanCreateOrganization(t *testing.T) {
 
 func TestSearchUsers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	testSuccess := func(opts *user_model.SearchUserOptions, expectedUserOrOrgIDs []int64) {
+	testSuccess := func(opts user_model.SearchUserOptions, expectedUserOrOrgIDs []int64) {
 		users, _, err := user_model.SearchUsers(db.DefaultContext, opts)
 		assert.NoError(t, err)
 		cassText := fmt.Sprintf("ids: %v, opts: %v", expectedUserOrOrgIDs, opts)
@@ -100,61 +100,61 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	// test orgs
-	testOrgSuccess := func(opts *user_model.SearchUserOptions, expectedOrgIDs []int64) {
+	testOrgSuccess := func(opts user_model.SearchUserOptions, expectedOrgIDs []int64) {
 		opts.Type = user_model.UserTypeOrganization
 		testSuccess(opts, expectedOrgIDs)
 	}
 
-	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1, PageSize: 2}},
 		[]int64{3, 6})
 
-	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 2, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 2, PageSize: 2}},
 		[]int64{7, 17})
 
-	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 3, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 3, PageSize: 2}},
 		[]int64{19, 25})
 
-	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 4, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 4, PageSize: 2}},
 		[]int64{26, 41})
 
-	testOrgSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
 		[]int64{42})
 
-	testOrgSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 6, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 6, PageSize: 2}},
 		[]int64{})
 
 	// test users
-	testUserSuccess := func(opts *user_model.SearchUserOptions, expectedUserIDs []int64) {
+	testUserSuccess := func(opts user_model.SearchUserOptions, expectedUserIDs []int64) {
 		opts.Type = user_model.UserTypeIndividual
 		testSuccess(opts, expectedUserIDs)
 	}
 
-	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}},
+	testUserSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}},
 		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(false)},
+	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(false)},
 		[]int64{9})
 
-	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
 		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40})
 
-	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 
 	// order by name asc default
-	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{Keyword: "user1", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsAdmin: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsAdmin: optional.Some(true)},
 		[]int64{1})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsRestricted: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsRestricted: optional.Some(true)},
 		[]int64{29})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsProhibitLogin: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsProhibitLogin: optional.Some(true)},
 		[]int64{37})
 
-	testUserSuccess(&user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: optional.Some(true)},
 		[]int64{24})
 }
 
@@ -513,11 +513,8 @@ func TestIsUserVisibleToViewer(t *testing.T) {
 }
 
 func Test_ValidateUser(t *testing.T) {
-	oldSetting := setting.Service.AllowedUserVisibilityModesSlice
-	defer func() {
-		setting.Service.AllowedUserVisibilityModesSlice = oldSetting
-	}()
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, true}
+	defer test.MockVariableValue(&setting.Service.AllowedUserVisibilityModesSlice, []bool{true, false, true})()
+
 	kases := map[*user_model.User]bool{
 		{ID: 1, Visibility: structs.VisibleTypePublic}:  true,
 		{ID: 2, Visibility: structs.VisibleTypeLimited}: false,
@@ -586,12 +583,7 @@ func TestDisabledUserFeatures(t *testing.T) {
 	testValues := container.SetOf(setting.UserFeatureDeletion,
 		setting.UserFeatureManageSSHKeys,
 		setting.UserFeatureManageGPGKeys)
-
-	oldSetting := setting.Admin.ExternalUserDisableFeatures
-	defer func() {
-		setting.Admin.ExternalUserDisableFeatures = oldSetting
-	}()
-	setting.Admin.ExternalUserDisableFeatures = testValues
+	defer test.MockVariableValue(&setting.Admin.ExternalUserDisableFeatures, testValues)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 

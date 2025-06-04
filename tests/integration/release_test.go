@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -68,9 +67,6 @@ func TestViewReleases(t *testing.T) {
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	session.MakeRequest(t, req, http.StatusOK)
-
-	// if CI is to slow this test fail, so lets wait a bit
-	time.Sleep(time.Millisecond * 100)
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {

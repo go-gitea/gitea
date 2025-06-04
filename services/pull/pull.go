@@ -945,12 +945,6 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	return stringBuilder.String()
 }
 
-// GetIssuesLastCommitStatus returns a map of issue ID to the most recent commit's latest status
-func GetIssuesLastCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64]*git_model.CommitStatus, error) {
-	_, lastStatus, err := GetIssuesAllCommitStatus(ctx, issues)
-	return lastStatus, err
-}
-
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
 func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
 	if err := issues.LoadPullRequests(ctx); err != nil {
@@ -1004,7 +998,7 @@ func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	statuses, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }

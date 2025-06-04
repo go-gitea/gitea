@@ -439,7 +439,8 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div class="ui container action-view-container">
+  <!-- make the view container full width to make users easier to read logs -->
+  <div class="ui fluid container">
     <div class="action-view-header">
       <div class="action-info-summary">
         <div class="action-info-summary-title">
