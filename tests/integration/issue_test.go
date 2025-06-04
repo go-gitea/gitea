@@ -151,8 +151,8 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	return issueURL
 }
 
-func testIssueDelete(t *testing.T, session *TestSession, issueUrl string) {
-	req := NewRequestWithValues(t, "POST", path.Join(issueUrl, "delete"), map[string]string{
+func testIssueDelete(t *testing.T, session *TestSession, issueURL string) {
+	req := NewRequestWithValues(t, "POST", path.Join(issueURL, "delete"), map[string]string{
 		"_csrf": GetUserCSRFToken(t, session),
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
