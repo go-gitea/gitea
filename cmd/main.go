@@ -127,7 +127,6 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 		Version:               appVer.Version + appVer.Extra,
 		EnableShellCompletion: true,
 	}
-	app.FullName()
 
 	// these sub-commands need to use config file
 	subCmdWithConfig := []*cli.Command{
