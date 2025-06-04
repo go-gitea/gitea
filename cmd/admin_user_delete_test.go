@@ -44,7 +44,6 @@ func TestAdminUserDelete(t *testing.T) {
 		err := microcmdUserDelete().Run(ctx, []string{"delete-test", "--username", "testuser"})
 		require.NoError(t, err)
 		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
-
 	})
 	t.Run("delete user by email", func(t *testing.T) {
 		setupTestUser(t)

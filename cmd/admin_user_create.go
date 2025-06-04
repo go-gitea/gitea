@@ -135,7 +135,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	}
 
 	if !setting.IsInTesting {
-		// FIXME: need to refactor the "installSignals/initDB" related code later
+		// FIXME: need to refactor the "initDB" related code later
 		// it doesn't make sense to call it in (almost) every command action function
 		if err := initDB(ctx); err != nil {
 			return err

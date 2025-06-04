@@ -12,11 +12,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/google/go-github/v71/github"
 	"github.com/urfave/cli/v3"
@@ -105,9 +103,7 @@ OPTIONS:
 `
 
 	app.Action = runBackport
-	ctx, cancel := installSignals()
-	defer cancel()
-	if err := app.Run(ctx, os.Args); err != nil {
+	if err := app.Run(context.Background(), os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to backport: %v\n", err)
 	}
 }
@@ -457,26 +453,4 @@ func determineSHAforPR(ctx context.Context, prStr, accessToken string) (string, 
 	}
 
 	return "", nil
-}
-
-func installSignals() (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		// install notify
-		signalChannel := make(chan os.Signal, 1)
-
-		signal.Notify(
-			signalChannel,
-			syscall.SIGINT,
-			syscall.SIGTERM,
-		)
-		select {
-		case <-signalChannel:
-		case <-ctx.Done():
-		}
-		cancel()
-		signal.Reset()
-	}()
-
-	return ctx, cancel
 }

@@ -44,6 +44,7 @@ func microcmdUserDelete() *cli.Command {
 		Action: runDeleteUser,
 	}
 }
+
 func runDeleteUser(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("id") && !c.IsSet("username") && !c.IsSet("email") {
 		return errors.New("You must provide the id, username or email of a user to delete")
