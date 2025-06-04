@@ -24,7 +24,7 @@ type (
 	}
 )
 
-func newMicrocmdAuthAddLdapBindDn() *cli.Command {
+func microcmdAuthAddLdapBindDn() *cli.Command {
 	return &cli.Command{
 		Name:  "add-ldap",
 		Usage: "Add new LDAP (via Bind DN) authentication source",
@@ -68,7 +68,7 @@ func newMicrocmdAuthAddLdapBindDn() *cli.Command {
 	}
 }
 
-func newMicrocmdAuthUpdateLdapBindDn() *cli.Command {
+func microcmdAuthUpdateLdapBindDn() *cli.Command {
 	return &cli.Command{
 		Name:  "update-ldap",
 		Usage: "Update existing LDAP (via Bind DN) authentication source",
@@ -113,7 +113,7 @@ func newMicrocmdAuthUpdateLdapBindDn() *cli.Command {
 	}
 }
 
-func newMicrocmdAuthAddLdapSimpleAuth() *cli.Command {
+func microcmdAuthAddLdapSimpleAuth() *cli.Command {
 	return &cli.Command{
 		Name:  "add-ldap-simple",
 		Usage: "Add new LDAP (simple auth) authentication source",
@@ -145,7 +145,7 @@ func newMicrocmdAuthAddLdapSimpleAuth() *cli.Command {
 	}
 }
 
-func newMicrocmdAuthUpdateLdapSimpleAuth() *cli.Command {
+func microcmdAuthUpdateLdapSimpleAuth() *cli.Command {
 	return &cli.Command{
 		Name:  "update-ldap-simple",
 		Usage: "Update existing LDAP (simple auth) authentication source",

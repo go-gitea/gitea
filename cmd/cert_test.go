@@ -49,14 +49,13 @@ func TestCertCommand(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			app := CmdCert()
+			app := cmdCert()
 			tempDir := t.TempDir()
 
 			certFile := filepath.Join(tempDir, "cert.pem")
 			keyFile := filepath.Join(tempDir, "key.pem")
 
-			args := append(c.args, "--out", certFile, "--keyout", keyFile)
-			err := app.Run(t.Context(), args)
+			err := app.Run(t.Context(), append(c.args, "--out", certFile, "--keyout", keyFile))
 			require.NoError(t, err)
 
 			assert.FileExists(t, certFile)
@@ -107,13 +106,12 @@ func TestCertCommandFailures(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			app := CmdCert()
+			app := cmdCert()
 			tempDir := t.TempDir()
 
 			certFile := filepath.Join(tempDir, "cert.pem")
 			keyFile := filepath.Join(tempDir, "key.pem")
-			args := append(c.args, "--out", certFile, "--keyout", keyFile)
-			err := app.Run(t.Context(), args)
+			err := app.Run(t.Context(), append(c.args, "--out", certFile, "--keyout", keyFile))
 			require.Error(t, err)
 			if c.errMsg != "" {
 				assert.ErrorContains(t, err, c.errMsg)

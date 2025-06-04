@@ -239,7 +239,7 @@ func TestAddLdapBindDn(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.Command{
-			Flags:  newMicrocmdAuthAddLdapBindDn().Flags,
+			Flags:  microcmdAuthAddLdapBindDn().Flags,
 			Action: service.addLdapBindDn,
 		}
 
@@ -469,7 +469,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 
 		// Create a copy of command to test
 		app := &cli.Command{
-			Flags:  newMicrocmdAuthAddLdapSimpleAuth().Flags,
+			Flags:  microcmdAuthAddLdapSimpleAuth().Flags,
 			Action: service.addLdapSimpleAuth,
 		}
 
@@ -945,7 +945,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.Command{
-			Flags:  newMicrocmdAuthUpdateLdapBindDn().Flags,
+			Flags:  microcmdAuthUpdateLdapBindDn().Flags,
 			Action: service.updateLdapBindDn,
 		}
 		// Run it
@@ -1333,7 +1333,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 
 		// Create a copy of command to test
 		app := cli.Command{
-			Flags:  newMicrocmdAuthUpdateLdapSimpleAuth().Flags,
+			Flags:  microcmdAuthUpdateLdapSimpleAuth().Flags,
 			Action: service.updateLdapSimpleAuth,
 		}
 		// Run it

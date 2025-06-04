@@ -4,7 +4,7 @@
 package cmd
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -34,7 +34,7 @@ func TestAdminUserDelete(t *testing.T) {
 		setupTestUser(t)
 
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-		err := microcmdUserDelete().Run(ctx, []string{"delete-test", "--id", fmt.Sprintf("%d", u.ID)})
+		err := microcmdUserDelete().Run(ctx, []string{"delete-test", "--id", strconv.FormatInt(u.ID, 10)})
 		require.NoError(t, err)
 		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
 	})
@@ -56,7 +56,7 @@ func TestAdminUserDelete(t *testing.T) {
 		setupTestUser(t)
 
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "testuser"})
-		err := microcmdUserDelete().Run(ctx, []string{"delete", "--id", fmt.Sprintf("%d", u.ID), "--username", "testuser", "--email", "testuser@gitea.local"})
+		err := microcmdUserDelete().Run(ctx, []string{"delete", "--id", strconv.FormatInt(u.ID, 10), "--username", "testuser", "--email", "testuser@gitea.local"})
 		require.NoError(t, err)
 		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})
 	})
@@ -91,7 +91,6 @@ func TestAdminUserDeleteFailure(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := t.Context()
 			if strings.Contains(tc.name, "user exists") {

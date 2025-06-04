@@ -25,8 +25,8 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// CmdCert represents the available cert sub-command.
-func CmdCert() *cli.Command {
+// cmdCert represents the available cert sub-command.
+func cmdCert() *cli.Command {
 	return &cli.Command{
 		Name:  "cert",
 		Usage: "Generate self-signed certificate",
