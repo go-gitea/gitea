@@ -76,6 +76,6 @@ func runKeys(ctx context.Context, c *cli.Command) error {
 	if extra.Error != nil {
 		return extra.Error
 	}
-	_, _ = fmt.Fprintln(c.Writer, strings.TrimSpace(authorizedString.Text))
+	_, _ = fmt.Fprintln(c.Root().Writer, strings.TrimSpace(authorizedString.Text))
 	return nil
 }
