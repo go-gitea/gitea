@@ -276,8 +276,22 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix dynamic content loading init problem (#33748)
   * Fix git empty check and HEAD request (#33690)
   * Fix Untranslated Text on Actions Page (#33635)
+  * Fix issue label delete incorrect labels webhook payload (#34575)
+  * Fix incorrect page navigation with up and down arrow on last item of dashboard repos (#34570)
+  * Fix/improve avatar sync from LDAP (#34573)
+  * Fix some trivial problems (#34579)
+  * Retain issue sort type when a keyword search is introduced (#34559)
+  * Always use an empty line to separate the commit message and trailer (#34512)
+  * Fix line-button issue after file selection in file tree (#34574)
+  * Fix doctor deleting orphaned issues attachments (#34142)
+  * Add webhook assigning test and fix possible bug (#34420)
+  * Fix possible nil description of pull request when migrating from CodeCommit (#34541)
+  * Refactor commit reader (#34542)
+  * Fix possible pull request broken when leave the page immediately after clicking the update button #34509
 
 * MISC
+
+  * Make pull request and issue history more compact (#34588)
   * Run integration tests against postgres 14 (#34514) #34536
   * Enable addtional linters (#34085)
   * Enable testifylint rules (#34075)
