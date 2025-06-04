@@ -523,7 +523,7 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .timeline-item,
 .repository.view.issue .comment-list .timeline-item-group {
-  padding: 16px 0;
+  padding: 8px 0;
 }
 
 .repository.view.issue .comment-list .timeline-item-group .timeline-item {
@@ -577,6 +577,11 @@ td .commit-summary {
   justify-content: center;
 }
 
+.repository.view.issue .comment-list .timeline-item.commits-list .badge {
+  margin-right: 0;
+  height: 28px;
+}
+
 .repository.view.issue .comment-list .timeline-item .badge .svg {
   width: 22px;
   height: 22px;
@@ -599,10 +604,6 @@ td .commit-summary {
 .repository.view.issue .comment-list .timeline-item.commits-list {
   padding-left: 15px;
   padding-top: 0;
-}
-
-.repository.view.issue .comment-list .timeline-item.commits-list .ui.avatar {
-  margin-right: 0.25em;
 }
 
 .repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
