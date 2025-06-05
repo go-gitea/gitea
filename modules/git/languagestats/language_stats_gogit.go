@@ -59,6 +59,13 @@ func CalcLanguageStats(ctx context.Context, repo *git_module.Repository, commitI
 	firstExcludedLanguageSize := int64(0)
 
 	err = tree.Files().ForEach(func(f *object.File) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			return nil
+		}
+
 		if f.Size == 0 {
 			return nil
 		}
