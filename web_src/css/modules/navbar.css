@@ -129,8 +129,8 @@
   background: var(--color-primary);
   border: 2px solid var(--color-nav-bg);
   position: absolute;
-  left: 6px;
-  top: -9px;
+  left: calc(100% - 9px);
+  bottom: calc(100% - 9px);
   min-width: 17px;
   height: 17px;
   border-radius: 11px; /* (height + 2 * borderThickness) / 2 */
