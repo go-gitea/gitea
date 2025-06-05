@@ -165,8 +165,11 @@ func ListPushMirrors(ctx *context.APIContext) {
 	}
 
 	repo := ctx.Repo.Repository
+	opts := utils.GetListOptions(ctx)
+	// field opts.PageSize is used below
+	opts.SetDefaultValues()
 	// Get all push mirrors for the specified repository.
-	pushMirrors, count, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, utils.GetListOptions(ctx))
+	pushMirrors, count, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, opts)
 	if err != nil {
 		ctx.APIError(http.StatusNotFound, err)
 		return
@@ -179,7 +182,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 			responsePushMirrors = append(responsePushMirrors, m)
 		}
 	}
-	ctx.SetLinkHeader(len(responsePushMirrors), utils.GetListOptions(ctx).PageSize)
+	ctx.SetLinkHeader(len(responsePushMirrors), opts.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, responsePushMirrors)
 }

@@ -11,8 +11,14 @@ import (
 
 // GetListOptions returns list options using the page and limit parameters
 func GetListOptions(ctx *context.APIContext) db.ListOptions {
+	limit := ctx.FormInt("limit")
+	if limit == 0 {
+		// Compatibility with foreign API clients that used "per_page" instead of "limit"
+		limit = ctx.FormInt("per_page")
+	}
+
 	return db.ListOptions{
 		Page:     ctx.FormInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+		PageSize: convert.ToCorrectPageSize(limit),
 	}
 }

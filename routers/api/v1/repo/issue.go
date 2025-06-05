@@ -21,7 +21,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -256,20 +255,12 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 	}
 
-	// this api is also used in UI,
-	// so the default limit is set to fit UI needs
-	limit := ctx.FormInt("limit")
-	if limit == 0 {
-		limit = setting.UI.IssuePagingNum
-	} else if limit > setting.API.MaxResponseItems {
-		limit = setting.API.MaxResponseItems
-	}
+	opts := utils.GetListOptions(ctx)
+	// field opts.PageSize is used below
+	opts.SetDefaultValues()
 
 	searchOpt := &issue_indexer.SearchOptions{
-		Paginator: &db.ListOptions{
-			PageSize: limit,
-			Page:     ctx.FormInt("page"),
-		},
+		Paginator:           &opts,
 		Keyword:             keyword,
 		RepoIDs:             repoIDs,
 		AllPublic:           allPublic,
@@ -321,7 +312,7 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.SetLinkHeader(int(total), limit)
+	ctx.SetLinkHeader(int(total), opts.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }

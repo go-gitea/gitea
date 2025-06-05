@@ -151,6 +151,7 @@ func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ 
 
 	sessQuery := opts.toSearchQueryBase(ctx).OrderBy(opts.OrderBy.String())
 	defer sessQuery.Close()
+	// Pagination bypass used by UI
 	if opts.Page > 0 {
 		sessQuery = db.SetSessionPagination(sessQuery, &opts)
 	}
