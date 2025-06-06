@@ -366,3 +366,23 @@ func importTestingKey() (*openpgp.Entity, error) {
 	// There should only be one entity in this file.
 	return keyring[0], nil
 }
+
+func TestTrustedSSHKeys(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Repository.Signing.TrustedSSHKeys, []string{"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH6Y4idVaW3E+bLw1uqoAfJD7o5Siu+HqS51E9oQLPE9"})()
+
+	username := "user2"
+	testCtx := NewAPITestContext(t, username, "repo-test-trusted-ssh-keys", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	t.Run("CheckMainBranchSignedVerified", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
+		require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
+		require.NotNil(t, branch.Commit.Verification, "no verification provided with branch commit! %v", branch.Commit)
+		require.True(t, branch.Commit.Verification.Verified)
+	}))
+
+	setting.Repository.Signing.TrustedSSHKeys = []string{}
+	t.Run("CheckMainBranchSignedUnverified", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
+		require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
+		require.NotNil(t, branch.Commit.Verification, "no verification provided with branch commit! %v", branch.Commit)
+		require.False(t, branch.Commit.Verification.Verified)
+	}))
+}
