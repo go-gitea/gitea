@@ -138,27 +138,27 @@ func getTestCases() []struct {
 		{
 			name:  "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 15, AllPublic: true, Template: optional.Some(false)},
-			count: 34,
+			count: 35,
 		},
 		{
 			name:  "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 15, Private: true, AllPublic: true, AllLimited: true, Template: optional.Some(false)},
-			count: 39,
+			count: 40,
 		},
 		{
 			name:  "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &repo_model.SearchRepoOptions{Keyword: "test", ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 15, Private: true, AllPublic: true},
-			count: 15,
+			count: 16,
 		},
 		{
 			name:  "AllPublic/PublicAndPrivateRepositoriesOfUser2IncludingCollaborativeByName",
 			opts:  &repo_model.SearchRepoOptions{Keyword: "test", ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 18, Private: true, AllPublic: true},
-			count: 13,
+			count: 14,
 		},
 		{
 			name:  "AllPublic/PublicRepositoriesOfOrganization",
 			opts:  &repo_model.SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, OwnerID: 17, AllPublic: true, Collaborate: optional.Some(false), Template: optional.Some(false)},
-			count: 34,
+			count: 35,
 		},
 		{
 			name:  "AllTemplates",
