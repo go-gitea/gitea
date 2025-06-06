@@ -373,14 +373,14 @@ func TestTrustedSSHKeys(t *testing.T) {
 
 	username := "user2"
 	testCtx := NewAPITestContext(t, username, "repo-test-trusted-ssh-keys", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-	t.Run("CheckMainBranchSignedVerified", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
+	t.Run("CheckMasterBranchSignedVerified", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 		require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
 		require.NotNil(t, branch.Commit.Verification, "no verification provided with branch commit! %v", branch.Commit)
 		require.True(t, branch.Commit.Verification.Verified)
 	}))
 
 	setting.Repository.Signing.TrustedSSHKeys = []string{}
-	t.Run("CheckMainBranchSignedUnverified", doAPIGetBranch(testCtx, "main", func(t *testing.T, branch api.Branch) {
+	t.Run("CheckMasterBranchSignedUnverified", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 		require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
 		require.NotNil(t, branch.Commit.Verification, "no verification provided with branch commit! %v", branch.Commit)
 		require.False(t, branch.Commit.Verification.Verified)
