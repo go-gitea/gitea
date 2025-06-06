@@ -219,7 +219,9 @@ export default defineComponent({
       this.searchRepos();
     },
 
-    changePage(page: number) {
+    async changePage(page: number) {
+      if (this.isLoading) return;
+
       this.page = page;
       if (this.page > this.finalPage) {
         this.page = this.finalPage;
@@ -229,7 +231,7 @@ export default defineComponent({
       }
       this.repos = [];
       this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
-      this.searchRepos();
+      await this.searchRepos();
     },
 
     async searchRepos() {
@@ -299,7 +301,7 @@ export default defineComponent({
       return commitStatus[status].color;
     },
 
-    reposFilterKeyControl(e: KeyboardEvent) {
+    async reposFilterKeyControl(e: KeyboardEvent) {
       switch (e.key) {
         case 'Enter':
           document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
@@ -308,7 +310,7 @@ export default defineComponent({
           if (this.activeIndex > 0) {
             this.activeIndex--;
           } else if (this.page > 1) {
-            this.changePage(this.page - 1);
+            await this.changePage(this.page - 1);
             this.activeIndex = this.searchLimit - 1;
           }
           break;
@@ -317,17 +319,17 @@ export default defineComponent({
             this.activeIndex++;
           } else if (this.page < this.finalPage) {
             this.activeIndex = 0;
-            this.changePage(this.page + 1);
+            await this.changePage(this.page + 1);
           }
           break;
         case 'ArrowRight':
           if (this.page < this.finalPage) {
-            this.changePage(this.page + 1);
+            await this.changePage(this.page + 1);
           }
           break;
         case 'ArrowLeft':
           if (this.page > 1) {
-            this.changePage(this.page - 1);
+            await this.changePage(this.page - 1);
           }
           break;
       }

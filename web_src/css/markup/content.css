@@ -134,6 +134,11 @@
   margin-bottom: 16px;
 }
 
+/* override p:last-child from base.css */
+.markup p:last-child {
+  margin-bottom: 16px;
+}
+
 .markup hr {
   height: 4px;
   padding: 0;
