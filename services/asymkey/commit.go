@@ -400,14 +400,14 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 	}
 	// Trust more than one key for every User
 	for _, k := range setting.Repository.Signing.TrustedSSHKeys {
-		fingerprint, _ := asymkey_model.CalcFingerprint(k)
-		commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, &asymkey_model.PublicKey{
+		if fingerprint, err := asymkey_model.CalcFingerprint(k); err != nil {
+			log.Error("Error calculating the fingerprint public key: %s %v", k, err)
+		} else if commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, &asymkey_model.PublicKey{
 			Verified:    true,
 			Content:     k,
 			Fingerprint: fingerprint,
 			HasUsed:     true,
-		}, committer, committer, c.Committer.Email)
-		if commitVerification != nil {
+		}, committer, committer, c.Committer.Email); commitVerification != nil {
 			return commitVerification
 		}
 	}
