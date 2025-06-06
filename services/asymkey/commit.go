@@ -414,6 +414,7 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 
 	defaultReason := asymkey_model.NoKeyFound
 
+	// Covers ssh verification for the default SSH signing key specifed in gitea config
 	if setting.Repository.Signing.SigningFormat == git.KeyTypeSSH && setting.Repository.Signing.SigningKey != "" && setting.Repository.Signing.SigningKey != "default" && setting.Repository.Signing.SigningKey != "none" {
 		// OK we should try the default key
 		gpgSettings := git.GPGSettings{
@@ -425,9 +426,9 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 		}
 		if err := gpgSettings.LoadPublicKeyContent(); err != nil {
 			log.Error("Error getting default signing key: %s %v", gpgSettings.KeyID, err)
-		}
-		fingerprint, _ := asymkey_model.CalcFingerprint(gpgSettings.PublicKeyContent)
-		if commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, &asymkey_model.PublicKey{
+		} else if fingerprint, err := asymkey_model.CalcFingerprint(gpgSettings.PublicKeyContent); err != nil {
+			log.Error("Error calculating the fingerprint public key: %s %v", gpgSettings.KeyID, err)
+		} else if commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, &asymkey_model.PublicKey{
 			Verified:    true,
 			Content:     gpgSettings.PublicKeyContent,
 			Fingerprint: fingerprint,
@@ -444,18 +445,19 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 		}
 	}
 
+	// Covers ssh verification for the default SSH signing key specifed in the .gitconfig file in Git.HomePath setting
 	defaultGPGSettings, err := c.GetRepositoryDefaultPublicGPGKey(false)
 	if defaultGPGSettings.Format == git.KeyTypeSSH {
 		if err != nil {
-			log.Error("Error getting default public gpg key: %v", err)
+			log.Error("Error getting default public ssh key: %v", err)
 		} else if defaultGPGSettings == nil {
 			log.Warn("Unable to get defaultGPGSettings for unattached commit: %s", c.ID.String())
 		} else if defaultGPGSettings.Sign {
 			if err := defaultGPGSettings.LoadPublicKeyContent(); err != nil {
 				log.Error("Error getting default signing key: %s %v", defaultGPGSettings.KeyID, err)
-			}
-			fingerprint, _ := asymkey_model.CalcFingerprint(defaultGPGSettings.PublicKeyContent)
-			if commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, &asymkey_model.PublicKey{
+			} else if fingerprint, err := asymkey_model.CalcFingerprint(defaultGPGSettings.PublicKeyContent); err != nil {
+				log.Error("Error calculating the fingerprint public key: %s %v", defaultGPGSettings.KeyID, err)
+			} else if commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, &asymkey_model.PublicKey{
 				Verified:    true,
 				Content:     defaultGPGSettings.PublicKeyContent,
 				Fingerprint: fingerprint,
