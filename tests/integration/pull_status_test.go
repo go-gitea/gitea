@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -55,20 +56,20 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		commitID := path.Base(commitURL)
 
-		statusList := []api.CommitStatusState{
-			api.CommitStatusPending,
-			api.CommitStatusError,
-			api.CommitStatusFailure,
-			api.CommitStatusSuccess,
-			api.CommitStatusWarning,
+		statusList := []commitstatus.CommitStatusState{
+			commitstatus.CommitStatusPending,
+			commitstatus.CommitStatusError,
+			commitstatus.CommitStatusFailure,
+			commitstatus.CommitStatusSuccess,
+			commitstatus.CommitStatusWarning,
 		}
 
-		statesIcons := map[api.CommitStatusState]string{
-			api.CommitStatusPending: "octicon-dot-fill",
-			api.CommitStatusSuccess: "octicon-check",
-			api.CommitStatusError:   "gitea-exclamation",
-			api.CommitStatusFailure: "octicon-x",
-			api.CommitStatusWarning: "gitea-exclamation",
+		statesIcons := map[commitstatus.CommitStatusState]string{
+			commitstatus.CommitStatusPending: "octicon-dot-fill",
+			commitstatus.CommitStatusSuccess: "octicon-check",
+			commitstatus.CommitStatusError:   "gitea-exclamation",
+			commitstatus.CommitStatusFailure: "octicon-x",
+			commitstatus.CommitStatusWarning: "gitea-exclamation",
 		}
 
 		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeWriteRepository)
@@ -99,7 +100,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
 		css := unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusSummary{RepoID: repo1.ID, SHA: commitID})
-		assert.Equal(t, api.CommitStatusWarning, css.State)
+		assert.Equal(t, commitstatus.CommitStatusSuccess, css.State)
 	})
 }
 

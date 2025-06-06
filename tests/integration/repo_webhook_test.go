@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
@@ -770,7 +771,7 @@ func Test_WebhookStatus(t *testing.T) {
 
 		// update a status for a commit via API
 		doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
-			State:       api.CommitStatusSuccess,
+			State:       commitstatus.CommitStatusSuccess,
 			TargetURL:   "http://test.ci/",
 			Description: "",
 			Context:     "testci",
