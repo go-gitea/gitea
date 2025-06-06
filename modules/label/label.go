@@ -21,6 +21,19 @@ type Label struct {
 	ExclusiveOrder int    `yaml:"exclusive_order,omitempty"`
 }
 
+type ErrInvalidLabelColor struct {
+	Color string
+}
+
+func (e *ErrInvalidLabelColor) Error() string {
+	return fmt.Sprintf("invalid label color: %s", e.Color)
+}
+
+func IsErrInvalidLabelColor(err error) bool {
+	_, ok := err.(*ErrInvalidLabelColor)
+	return ok
+}
+
 // NormalizeColor normalizes a color string to a 6-character hex code
 func NormalizeColor(color string) (string, error) {
 	// normalize case
@@ -32,7 +45,9 @@ func NormalizeColor(color string) (string, error) {
 	}
 
 	if !colorPattern.MatchString(color) {
-		return "", fmt.Errorf("bad color code: %s", color)
+		return "", &ErrInvalidLabelColor{
+			Color: color,
+		}
 	}
 
 	// convert 3-character shorthand into 6-character version

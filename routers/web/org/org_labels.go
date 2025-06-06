@@ -52,7 +52,12 @@ func NewLabel(ctx *context.Context) {
 		ExclusiveOrder: form.ExclusiveOrder,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
-		ctx.ServerError("NewLabel", err)
+		if label.IsErrInvalidLabelColor(err) {
+			ctx.Flash.Error(err.Error())
+			ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
+		} else {
+			ctx.ServerError("NewLabel", err)
+		}
 		return
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
@@ -79,7 +84,12 @@ func UpdateLabel(ctx *context.Context) {
 	l.Color = form.Color
 	l.SetArchived(form.IsArchived)
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
-		ctx.ServerError("UpdateLabel", err)
+		if label.IsErrInvalidLabelColor(err) {
+			ctx.Flash.Error(err.Error())
+			ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
+		} else {
+			ctx.ServerError("UpdateLabel", err)
+		}
 		return
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
