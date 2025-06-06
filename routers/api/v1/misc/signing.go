@@ -4,8 +4,6 @@
 package misc
 
 import (
-	"errors"
-
 	"code.gitea.io/gitea/modules/git"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
@@ -109,7 +107,7 @@ func SigningKeySSH(ctx *context.APIContext) {
 		return
 	}
 	if format != git.KeyTypeSSH {
-		ctx.APIErrorNotFound(errors.New("GPG keys are used for signing, not SSH"))
+		ctx.APIErrorNotFound("GPG keys are used for signing, not SSH")
 		return
 	}
 	_, _ = ctx.Write([]byte(content))
