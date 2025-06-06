@@ -103,6 +103,7 @@ func TestNewLabelGivenInvalidLabelCode(t *testing.T) {
 	})
 	NewLabel(ctx)
 	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, "/user2/repo1/labels", test.RedirectURL(ctx.Resp))
 	assert.True(t, ctx.Flash.Has("error"))
 	unittest.AssertNotExistsBean(t, &issues_model.Label{
 		Name: "newlabel",
