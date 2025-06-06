@@ -58,7 +58,6 @@ func NewLabel(ctx *context.Context) {
 			ctx.ServerError("NewLabel", err)
 			return
 		}
-
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
 }
@@ -90,7 +89,6 @@ func UpdateLabel(ctx *context.Context) {
 			ctx.ServerError("UpdateLabel", err)
 			return
 		}
-
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
 }
