@@ -54,11 +54,11 @@ func NewLabel(ctx *context.Context) {
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		if label.IsErrInvalidLabelColor(err) {
 			ctx.Flash.Error(err.Error())
-			ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
 		} else {
 			ctx.ServerError("NewLabel", err)
+			return
 		}
-		return
+
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
 }
@@ -86,11 +86,11 @@ func UpdateLabel(ctx *context.Context) {
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		if label.IsErrInvalidLabelColor(err) {
 			ctx.Flash.Error(err.Error())
-			ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
 		} else {
 			ctx.ServerError("UpdateLabel", err)
+			return
 		}
-		return
+
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
 }
