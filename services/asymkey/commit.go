@@ -414,7 +414,7 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 
 	defaultReason := asymkey_model.NoKeyFound
 
-	// Covers ssh verification for the default SSH signing key specifed in gitea config
+	// Covers ssh verification for the default SSH signing key specified in gitea config
 	if setting.Repository.Signing.SigningFormat == git.KeyTypeSSH && setting.Repository.Signing.SigningKey != "" && setting.Repository.Signing.SigningKey != "default" && setting.Repository.Signing.SigningKey != "none" {
 		// OK we should try the default key
 		gpgSettings := git.GPGSettings{
@@ -445,7 +445,7 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 		}
 	}
 
-	// Covers ssh verification for the default SSH signing key specifed in the .gitconfig file in Git.HomePath setting
+	// Covers ssh verification for the default SSH signing key specified in the .gitconfig file in Git.HomePath setting
 	defaultGPGSettings, err := c.GetRepositoryDefaultPublicGPGKey(false)
 	if defaultGPGSettings.Format == git.KeyTypeSSH {
 		if err != nil {
