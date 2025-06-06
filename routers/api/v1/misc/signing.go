@@ -5,7 +5,6 @@ package misc
 
 import (
 	"errors"
-	"fmt"
 
 	"code.gitea.io/gitea/modules/git"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -58,13 +57,10 @@ func SigningKey(ctx *context.APIContext) {
 		return
 	}
 	if format != git.KeyTypeOpenPGP {
-		ctx.APIErrorNotFound(errors.New("SSH keys are used for signing, not GPG"))
+		ctx.APIErrorNotFound("SSH keys are used for signing, not GPG")
 		return
 	}
-	_, err = ctx.Write([]byte(content))
-	if err != nil {
-		ctx.APIErrorInternal(fmt.Errorf("Error writing key content %w", err))
-	}
+	_, _ = ctx.Write([]byte(content))
 }
 
 // SigningKey returns the public key of the default signing key if it exists
@@ -116,8 +112,5 @@ func SigningKeySSH(ctx *context.APIContext) {
 		ctx.APIErrorNotFound(errors.New("GPG keys are used for signing, not SSH"))
 		return
 	}
-	_, err = ctx.Write([]byte(content))
-	if err != nil {
-		ctx.APIErrorInternal(fmt.Errorf("Error writing key content %w", err))
-	}
+	_, _ = ctx.Write([]byte(content))
 }
