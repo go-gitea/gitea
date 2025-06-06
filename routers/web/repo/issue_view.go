@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -625,6 +626,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 
 		if comment.Type == issues_model.CommentTypeComment || comment.Type == issues_model.CommentTypeReview {
 			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
+			rctx.RenderOptions.Metas["issue_comment_id"] = strconv.FormatInt(comment.ID, 10)
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -982,6 +984,8 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 	var err error
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	// the first issue index set to 0
+	rctx.RenderOptions.Metas["issue_comment_id"] = "0"
 	issue.RenderedContent, err = markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
