@@ -41,22 +41,6 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("HeadBranch of PR %d is up to date", pr.Index)
 	}
 
-	if rebase {
-		defer func() {
-			go AddTestPullRequestTask(TestPullRequestOptions{
-				RepoID:      pr.BaseRepo.ID,
-				Doer:        doer,
-				Branch:      pr.BaseBranch,
-				IsSync:      false,
-				IsForcePush: false,
-				OldCommitID: "",
-				NewCommitID: "",
-			})
-		}()
-
-		return updateHeadByRebaseOnToBase(ctx, pr, doer)
-	}
-
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("unable to load BaseRepo for %-v during update-by-merge: %v", pr, err)
 		return fmt.Errorf("unable to load BaseRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
@@ -72,6 +56,22 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		}
 		log.Error("unable to load HeadRepo for PR %-v during update-by-merge: %v", pr, err)
 		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
+	}
+
+	defer func() {
+		go AddTestPullRequestTask(TestPullRequestOptions{
+			RepoID:      pr.BaseRepo.ID,
+			Doer:        doer,
+			Branch:      pr.BaseBranch,
+			IsSync:      false,
+			IsForcePush: false,
+			OldCommitID: "",
+			NewCommitID: "",
+		})
+	}()
+
+	if rebase {
+		return updateHeadByRebaseOnToBase(ctx, pr, doer)
 	}
 
 	// TODO: FakePR: it is somewhat hacky, but it is the only way to "merge" at the moment
@@ -90,19 +90,6 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 	}
 
 	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, repository.PushTriggerPRUpdateWithBase)
-
-	defer func() {
-		go AddTestPullRequestTask(TestPullRequestOptions{
-			RepoID:      reversePR.HeadRepo.ID,
-			Doer:        doer,
-			Branch:      reversePR.HeadBranch,
-			IsSync:      false,
-			IsForcePush: false,
-			OldCommitID: "",
-			NewCommitID: "",
-		})
-	}()
-
 	return err
 }
 

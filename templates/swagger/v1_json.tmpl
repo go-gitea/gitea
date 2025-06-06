@@ -2259,16 +2259,16 @@
         ],
         "responses": {
           "201": {
-            "description": "response when creating an org-level variable"
-          },
-          "204": {
-            "description": "response when creating an org-level variable"
+            "description": "successfully created the org-level variable"
           },
           "400": {
             "$ref": "#/responses/error"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "409": {
+            "description": "variable name already exists."
+          },
+          "500": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5263,14 +5263,14 @@
           "201": {
             "description": "response when creating a repo-level variable"
           },
-          "204": {
-            "description": "response when creating a repo-level variable"
-          },
           "400": {
             "$ref": "#/responses/error"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "409": {
+            "description": "variable name already exists."
+          },
+          "500": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -6602,6 +6602,20 @@
             "type": "string",
             "description": "filepath of a file/dir",
             "name": "path",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only commits after this date will be returned (ISO 8601 format)",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only commits before this date will be returned (ISO 8601 format)",
+            "name": "until",
             "in": "query"
           },
           {
@@ -12857,6 +12871,7 @@
             "enum": [
               "oldest",
               "recentupdate",
+              "recentclose",
               "leastupdate",
               "mostcomment",
               "leastcomment",
@@ -17849,16 +17864,13 @@
         ],
         "responses": {
           "201": {
-            "description": "response when creating a variable"
-          },
-          "204": {
-            "description": "response when creating a variable"
+            "description": "successfully created the user-level variable"
           },
           "400": {
             "$ref": "#/responses/error"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
+          "409": {
+            "description": "variable name already exists."
           }
         }
       },
@@ -26184,6 +26196,10 @@
           "type": "boolean",
           "x-go-name": "AllowFastForwardOnly"
         },
+        "allow_manual_merge": {
+          "type": "boolean",
+          "x-go-name": "AllowManualMerge"
+        },
         "allow_merge_commits": {
           "type": "boolean",
           "x-go-name": "AllowMerge"
@@ -26212,6 +26228,10 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "ArchivedAt"
+        },
+        "autodetect_manual_merge": {
+          "type": "boolean",
+          "x-go-name": "AutodetectManualMerge"
         },
         "avatar_url": {
           "type": "string",

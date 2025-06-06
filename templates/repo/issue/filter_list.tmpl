@@ -106,7 +106,7 @@
 		</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "all"}}">{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}</a>
+			<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "all"}}">{{if .PageIsPullList}}{{ctx.Locale.Tr "repo.issues.filter_type.all_pull_requests"}}{{else}}{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}{{end}}</a>
 			<a class="{{if eq .ViewType "assigned"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "assigned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
 			<a class="{{if eq .ViewType "created_by"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "created_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
 			{{if .PageIsPullList}}
