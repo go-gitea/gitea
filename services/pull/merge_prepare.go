@@ -27,7 +27,7 @@ type mergeContext struct {
 	doer      *user_model.User
 	sig       *git.Signature
 	committer *git.Signature
-	signKey   git.SigningKey // signKey.KeyID empty for no-sign, non-empty to sign
+	signKey   *git.SigningKey
 	env       []string
 }
 

@@ -101,7 +101,7 @@ type CanCommitToBranchResults struct {
 	UserCanPush       bool
 	RequireSigned     bool
 	WillSign          bool
-	SigningKey        git.SigningKey
+	SigningKey        *git.SigningKey
 	WontSignReason    string
 }
 

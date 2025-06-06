@@ -293,7 +293,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	}
 
 	var sign bool
-	var key git.SigningKey
+	var key *git.SigningKey
 	var signer *git.Signature
 	if opts.ParentCommitID != "" {
 		sign, key, signer, _ = asymkey_service.SignCRUDAction(ctx, t.repo.RepoPath(), opts.DoerUser, t.basePath, opts.ParentCommitID)
