@@ -205,7 +205,7 @@
 -
   id: 25
   repo_id: 63
-  name: 'main'
+  name: 'master'
   commit_id: 'b7fca3aa0d80144f9718b0486681944f9c587e33'
   commit_message: "Initial commit with signed file"
   commit_time: 1602935385

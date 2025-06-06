@@ -1793,7 +1793,7 @@
   owner_name: user2
   lower_name: repo-test-trusted-ssh-keys
   name: repo-test-trusted-ssh-keys
-  default_branch: main
+  default_branch: master
   num_watches: 0
   num_stars: 0
   num_forks: 0
