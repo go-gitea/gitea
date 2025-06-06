@@ -26,7 +26,7 @@ type ErrInvalidLabelColor struct {
 }
 
 func (e *ErrInvalidLabelColor) Error() string {
-	return fmt.Sprintf("invalid label color: %s", e.Color)
+	return "invalid label color: " + e.Color
 }
 
 func IsErrInvalidLabelColor(err error) bool {

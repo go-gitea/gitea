@@ -92,6 +92,23 @@ func TestNewLabel(t *testing.T) {
 	assert.Equal(t, "/user2/repo1/labels", test.RedirectURL(ctx.Resp))
 }
 
+func TestNewLabelGivenInvalidLabelCode(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/labels/edit")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	web.SetForm(ctx, &forms.CreateLabelForm{
+		Title: "newlabel",
+		Color: "bad-label-code",
+	})
+	NewLabel(ctx)
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.True(t, ctx.Flash.Has("error"))
+	unittest.AssertNotExistsBean(t, &issues_model.Label{
+		Name: "newlabel",
+	})
+}
+
 func TestUpdateLabel(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/labels/edit")
@@ -111,6 +128,29 @@ func TestUpdateLabel(t *testing.T) {
 		Color: "#abcdef",
 	})
 	assert.Equal(t, "/user2/repo1/labels", test.RedirectURL(ctx.Resp))
+}
+
+func TestUpdateLabelGivenInvalidLabelCode(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/labels/edit")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	web.SetForm(ctx, &forms.CreateLabelForm{
+		ID:    1,
+		Title: "label1",
+		Color: "bad-label-code",
+	})
+
+	UpdateLabel(ctx)
+
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, "/user2/repo1/labels", test.RedirectURL(ctx.Resp))
+	assert.True(t, ctx.Flash.Has("error"))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{
+		ID:    1,
+		Name:  "label1",
+		Color: "#abcdef",
+	})
 }
 
 func TestDeleteLabel(t *testing.T) {

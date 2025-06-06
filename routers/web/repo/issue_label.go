@@ -120,12 +120,11 @@ func NewLabel(ctx *context.Context) {
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
 		if label.IsErrInvalidLabelColor(err) {
-			ctx.Flash.Error(err.Error())
-			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
+			ctx.Flash.Error("NewLabel: " + err.Error())
 		} else {
 			ctx.ServerError("NewLabel", err)
+			return
 		}
-		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 }
@@ -152,12 +151,11 @@ func UpdateLabel(ctx *context.Context) {
 	l.SetArchived(form.IsArchived)
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		if label.IsErrInvalidLabelColor(err) {
-			ctx.Flash.Error(err.Error())
-			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
+			ctx.Flash.Error("UpdateLabel: " + err.Error())
 		} else {
 			ctx.ServerError("UpdateLabel", err)
+			return
 		}
-		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 }
