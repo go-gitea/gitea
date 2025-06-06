@@ -50,7 +50,7 @@ func TestGPGGit(t *testing.T) {
 }
 
 func TestGPGGitDefaults(t *testing.T) {
-	tmpDir := t.TempDir() // use a temp dir to avoid messing with the user's GPG keyring
+	tmpDir := t.TempDir() // use a temp dir to avoid messing with the user's GPG keyring and git config
 	err := os.Chmod(tmpDir, 0o700)
 	assert.NoError(t, err)
 
@@ -79,7 +79,7 @@ func TestGPGGitDefaults(t *testing.T) {
 }
 
 func TestSSHGit(t *testing.T) {
-	tmpDir := t.TempDir() // use a temp dir to avoid messing with the user's GPG keyring
+	tmpDir := t.TempDir() // use a temp dir to store the SSH keys
 	err := os.Chmod(tmpDir, 0o700)
 	assert.NoError(t, err)
 
@@ -106,7 +106,7 @@ func TestSSHGit(t *testing.T) {
 }
 
 func TestSSHGitDefaults(t *testing.T) {
-	tmpDir := t.TempDir() // use a temp dir to avoid messing with the user's GPG keyring
+	tmpDir := t.TempDir() // use a temp dir to store the SSH keys and git config
 	err := os.Chmod(tmpDir, 0o700)
 	assert.NoError(t, err)
 
