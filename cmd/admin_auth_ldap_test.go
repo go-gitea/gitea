@@ -147,7 +147,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "Required flag \"name\" not set",
+			errMsg: "name is not set",
 		},
 		// case 4
 		{
@@ -160,7 +160,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "Required flag \"security-protocol\" not set",
+			errMsg: "security-protocol is not set",
 		},
 		// case 5
 		{
@@ -173,7 +173,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "Required flag \"host\" not set",
+			errMsg: "host is not set",
 		},
 		// case 6
 		{
@@ -186,7 +186,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				"--email-attribute", "mail",
 			},
-			errMsg: "Required flag \"port\" not set",
+			errMsg: "port is not set",
 		},
 		// case 7
 		{
@@ -199,7 +199,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-search-base", "ou=Users,dc=domain,dc=org",
 				"--email-attribute", "mail",
 			},
-			errMsg: "Required flag \"user-filter\" not set",
+			errMsg: "user-filter is not set",
 		},
 		// case 8
 		{
@@ -212,7 +212,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-search-base", "ou=Users,dc=domain,dc=org",
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 			},
-			errMsg: "Required flag \"email-attribute\" not set",
+			errMsg: "email-attribute is not set",
 		},
 	}
 
@@ -346,7 +346,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--name", "ldap (simple auth) source",
 				"--security-protocol", "zzzzz",
 				"--host", "ldap-server",
-				"--port", "123",
+				"--port", "1234",
 				"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
@@ -364,7 +364,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "Required flag \"name\" not set",
+			errMsg: "name is not set",
 		},
 		// case 4
 		{
@@ -377,7 +377,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "Required flag \"security-protocol\" not set",
+			errMsg: "security-protocol is not set",
 		},
 		// case 5
 		{
@@ -390,7 +390,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "Required flag \"host\" not set",
+			errMsg: "host is not set",
 		},
 		// case 6
 		{
@@ -403,7 +403,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "Required flag \"port\" not set",
+			errMsg: "port is not set",
 		},
 		// case 7
 		{
@@ -416,7 +416,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "Required flag \"user-filter\" not set",
+			errMsg: "user-filter is not set",
 		},
 		// case 8
 		{
@@ -429,7 +429,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			errMsg: "Required flag \"email-attribute\" not set",
+			errMsg: "email-attribute is not set",
 		},
 		// case 9
 		{
@@ -442,7 +442,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
 				"--email-attribute", "mail",
 			},
-			errMsg: "Required flag \"user-dn\" not set",
+			errMsg: "user-dn is not set",
 		},
 	}
 
@@ -868,7 +868,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			args: []string{
 				"ldap-test",
 			},
-			errMsg: "Required flag \"id\" not set",
+			errMsg: "id is not set",
 		},
 		// case 23
 		{
@@ -1259,7 +1259,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			args: []string{
 				"ldap-test",
 			},
-			errMsg: "Required flag \"id\" not set",
+			errMsg: "id is not set",
 		},
 		// case 19
 		{

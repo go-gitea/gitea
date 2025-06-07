@@ -22,6 +22,22 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// argsSet checks that all the required arguments are set. args is a list of
+// arguments that must be set in the passed Context.
+func argsSet(c *cli.Command, args ...string) error {
+	for _, a := range args {
+		// fmt.Println("checking:", a, "it's set:", c.IsSet(a), "and it's:", c.String(a), "but value:", c.Value(a))
+		if !c.IsSet(a) {
+			return errors.New(a + " is not set")
+		}
+
+		if c.Value(a) == nil {
+			return errors.New(a + " is required")
+		}
+	}
+	return nil
+}
+
 // confirm waits for user input which confirms an action
 func confirm() (bool, error) {
 	var response string

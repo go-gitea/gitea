@@ -21,7 +21,7 @@ var (
 	microcmdAuthDelete = &cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
-		Flags:  []cli.Flag{idFlag},
+		Flags:  []cli.Flag{idFlag()},
 		Action: runDeleteAuth,
 	}
 	microcmdAuthList = &cli.Command{

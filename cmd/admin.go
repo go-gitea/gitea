@@ -86,12 +86,14 @@ var (
 			},
 		},
 	}
+)
 
-	idFlag = &cli.Int64Flag{
+func idFlag() *cli.Int64Flag {
+	return &cli.Int64Flag{
 		Name:  "id",
 		Usage: "ID of authentication source",
 	}
-)
+}
 
 func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 	if err := initDB(ctx); err != nil {
