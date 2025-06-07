@@ -5,9 +5,6 @@ package actions
 
 import (
 	"fmt"
-	"net/http"
-	"net/url"
-	"path"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -31,51 +28,8 @@ import (
 	"github.com/nektos/act/pkg/model"
 )
 
-func getActionWorkflowEntry(ctx *context.APIContext, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
-	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
-	cfg := cfgUnit.ActionsConfig()
-
-	defaultBranch, _ := commit.GetBranchName()
-
-	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", ctx.Repo.Repository.APIURL(), url.PathEscape(entry.Name()))
-	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", ctx.Repo.Repository.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), url.PathEscape(entry.Name()))
-	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", ctx.Repo.Repository.HTMLURL(ctx), url.PathEscape(entry.Name()), url.QueryEscape(ctx.Repo.Repository.DefaultBranch))
-
-	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
-	// State types:
-	// - active
-	// - deleted
-	// - disabled_fork
-	// - disabled_inactivity
-	// - disabled_manually
-	state := "active"
-	if cfg.IsWorkflowDisabled(entry.Name()) {
-		state = "disabled_manually"
-	}
-
-	// The CreatedAt and UpdatedAt fields currently reflect the timestamp of the latest commit, which can later be refined
-	// by retrieving the first and last commits for the file history. The first commit would indicate the creation date,
-	// while the last commit would represent the modification date. The DeletedAt could be determined by identifying
-	// the last commit where the file existed. However, this implementation has not been done here yet, as it would likely
-	// cause a significant performance degradation.
-	createdAt := commit.Author.When
-	updatedAt := commit.Author.When
-
-	return &api.ActionWorkflow{
-		ID:        entry.Name(),
-		Name:      entry.Name(),
-		Path:      path.Join(folder, entry.Name()),
-		State:     state,
-		CreatedAt: createdAt,
-		UpdatedAt: updatedAt,
-		URL:       workflowURL,
-		HTMLURL:   workflowRepoURL,
-		BadgeURL:  badgeURL,
-	}
-}
-
 func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
-	workflow, err := GetActionWorkflow(ctx, workflowID)
+	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
 	if err != nil {
 		return err
 	}
@@ -90,42 +44,6 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 	}
 
 	return repo_model.UpdateRepoUnit(ctx, cfgUnit)
-}
-
-func ListActionWorkflows(ctx *context.APIContext) ([]*api.ActionWorkflow, error) {
-	defaultBranchCommit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return nil, err
-	}
-
-	folder, entries, err := actions.ListWorkflows(defaultBranchCommit)
-	if err != nil {
-		ctx.APIError(http.StatusNotFound, err.Error())
-		return nil, err
-	}
-
-	workflows := make([]*api.ActionWorkflow, len(entries))
-	for i, entry := range entries {
-		workflows[i] = getActionWorkflowEntry(ctx, defaultBranchCommit, folder, entry)
-	}
-
-	return workflows, nil
-}
-
-func GetActionWorkflow(ctx *context.APIContext, workflowID string) (*api.ActionWorkflow, error) {
-	entries, err := ListActionWorkflows(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, entry := range entries {
-		if entry.Name == workflowID {
-			return entry, nil
-		}
-	}
-
-	return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
 }
 
 func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) error {
@@ -285,6 +203,15 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		log.Error("FindRunJobs: %v", err)
 	}
 	CreateCommitStatus(ctx, allJobs...)
+	if len(allJobs) > 0 {
+		job := allJobs[0]
+		err := job.LoadRun(ctx)
+		if err != nil {
+			log.Error("LoadRun: %v", err)
+		} else {
+			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+		}
+	}
 	for _, job := range allJobs {
 		notify_service.WorkflowJobStatusUpdate(ctx, repo, doer, job, nil)
 	}

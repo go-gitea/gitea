@@ -173,6 +173,7 @@ func updateHookEvents(events []string) webhook_module.HookEvents {
 	hookEvents[webhook_module.HookEventRelease] = util.SliceContainsString(events, string(webhook_module.HookEventRelease), true)
 	hookEvents[webhook_module.HookEventPackage] = util.SliceContainsString(events, string(webhook_module.HookEventPackage), true)
 	hookEvents[webhook_module.HookEventStatus] = util.SliceContainsString(events, string(webhook_module.HookEventStatus), true)
+	hookEvents[webhook_module.HookEventWorkflowRun] = util.SliceContainsString(events, string(webhook_module.HookEventWorkflowRun), true)
 	hookEvents[webhook_module.HookEventWorkflowJob] = util.SliceContainsString(events, string(webhook_module.HookEventWorkflowJob), true)
 
 	// Issues
