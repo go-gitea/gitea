@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -19,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdEmbedded represents the available extract sub-command.
@@ -28,7 +29,7 @@ var (
 		Name:        "embedded",
 		Usage:       "Extract embedded resources",
 		Description: "A command for extracting embedded resources, like templates and images",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			subcmdList,
 			subcmdView,
 			subcmdExtract,
@@ -100,7 +101,7 @@ type assetFile struct {
 	path string
 }
 
-func initEmbeddedExtractor(c *cli.Context) error {
+func initEmbeddedExtractor(c *cli.Command) error {
 	setupConsoleLogger(log.ERROR, log.CanColorStderr, os.Stderr)
 
 	patterns, err := compileCollectPatterns(c.Args().Slice())
@@ -115,7 +116,7 @@ func initEmbeddedExtractor(c *cli.Context) error {
 	return nil
 }
 
-func runList(c *cli.Context) error {
+func runList(_ context.Context, c *cli.Command) error {
 	if err := runListDo(c); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
@@ -123,7 +124,7 @@ func runList(c *cli.Context) error {
 	return nil
 }
 
-func runView(c *cli.Context) error {
+func runView(_ context.Context, c *cli.Command) error {
 	if err := runViewDo(c); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
@@ -131,7 +132,7 @@ func runView(c *cli.Context) error {
 	return nil
 }
 
-func runExtract(c *cli.Context) error {
+func runExtract(_ context.Context, c *cli.Command) error {
 	if err := runExtractDo(c); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
@@ -139,7 +140,7 @@ func runExtract(c *cli.Context) error {
 	return nil
 }
 
-func runListDo(c *cli.Context) error {
+func runListDo(c *cli.Command) error {
 	if err := initEmbeddedExtractor(c); err != nil {
 		return err
 	}
@@ -151,7 +152,7 @@ func runListDo(c *cli.Context) error {
 	return nil
 }
 
-func runViewDo(c *cli.Context) error {
+func runViewDo(c *cli.Command) error {
 	if err := initEmbeddedExtractor(c); err != nil {
 		return err
 	}
@@ -174,7 +175,7 @@ func runViewDo(c *cli.Context) error {
 	return nil
 }
 
-func runExtractDo(c *cli.Context) error {
+func runExtractDo(c *cli.Command) error {
 	if err := initEmbeddedExtractor(c); err != nil {
 		return err
 	}
@@ -271,7 +272,7 @@ func extractAsset(d string, a assetFile, overwrite, rename bool) error {
 	return nil
 }
 
-func collectAssetFilesByPattern(c *cli.Context, globs []glob.Glob, path string, layer *assetfs.Layer) {
+func collectAssetFilesByPattern(c *cli.Command, globs []glob.Glob, path string, layer *assetfs.Layer) {
 	fs := assetfs.Layered(layer)
 	files, err := fs.ListAllFiles(".", true)
 	if err != nil {
