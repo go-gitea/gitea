@@ -68,7 +68,7 @@ func TestUserEmails(t *testing.T) {
 				return
 			}
 			require.NotNil(t, user)
-			assert.EqualValues(t, uid, user.ID)
+			assert.Equal(t, uid, user.ID)
 		}
 		cases := []struct {
 			Email string
