@@ -62,13 +62,13 @@ func TestUserEmails(t *testing.T) {
 		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
 			m, err := user_model.GetUsersByEmails(db.DefaultContext, []string{email})
 			require.NoError(t, err)
-			u := m.GetByEmail(email)
+			user := m.GetByEmail(email)
 			if uid == 0 {
-				require.Nil(t, u)
-			} else {
-				require.NotNil(t, u)
-				assert.EqualValues(t, uid, u.ID)
+				require.Nil(t, user)
+				return
 			}
+			require.NotNil(t, user)
+			assert.EqualValues(t, uid, user.ID)
 		}
 		cases := []struct {
 			Email string
@@ -78,6 +78,7 @@ func TestUserEmails(t *testing.T) {
 			{"user1-2@example.COM", 1},
 			{"USER2@" + setting.Service.NoReplyAddress, 2},
 			{"user4@example.com", 4},
+			{"no-such", 0},
 		}
 		for _, c := range cases {
 			t.Run(c.Email, func(t *testing.T) {

@@ -1151,7 +1151,7 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 	}
 
 	for _, c := range oldCommits {
-		user := emailUserMap.GetByEmail(c.Author.Email)
+		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
 		if user == nil {
 			user = &User{
 				Name:  c.Author.Name,
