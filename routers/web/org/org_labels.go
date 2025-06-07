@@ -4,13 +4,15 @@
 package org
 
 import (
-	"net/http"
+	"errors"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/label"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	shared_label "code.gitea.io/gitea/routers/web/shared/label"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -32,14 +34,8 @@ func RetrieveLabels(ctx *context.Context) {
 
 // NewLabel create new label for organization
 func NewLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	ctx.Data["Title"] = ctx.Tr("repo.labels")
-	ctx.Data["PageIsLabels"] = true
-	ctx.Data["PageIsOrgSettings"] = true
-
-	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
+	form := shared_label.GetLabelEditForm(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -52,27 +48,25 @@ func NewLabel(ctx *context.Context) {
 		ExclusiveOrder: form.ExclusiveOrder,
 	}
 	if err := issues_model.NewLabel(ctx, l); err != nil {
-		if label.IsErrInvalidLabelColor(err) {
-			ctx.Flash.Error("NewLabel: " + err.Error())
-		} else {
-			ctx.ServerError("NewLabel", err)
-			return
-		}
+		ctx.ServerError("NewLabel", err)
+		return
 	}
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/labels")
 }
 
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateLabelForm)
+	form := shared_label.GetLabelEditForm(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, form.ID)
-	if err != nil {
-		switch {
-		case issues_model.IsErrOrgLabelNotExist(err):
-			ctx.HTTPError(http.StatusNotFound)
-		default:
-			ctx.ServerError("UpdateLabel", err)
-		}
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.JSONErrorNotFound()
+		return
+	} else if err != nil {
+		ctx.ServerError("GetLabelInOrgByID", err)
 		return
 	}
 
@@ -83,14 +77,10 @@ func UpdateLabel(ctx *context.Context) {
 	l.Color = form.Color
 	l.SetArchived(form.IsArchived)
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
-		if label.IsErrInvalidLabelColor(err) {
-			ctx.Flash.Error("UpdateLabel: " + err.Error())
-		} else {
-			ctx.ServerError("UpdateLabel", err)
-			return
-		}
+		ctx.ServerError("UpdateLabel", err)
+		return
 	}
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/labels")
 }
 
 // DeleteLabel delete a label

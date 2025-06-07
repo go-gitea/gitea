@@ -5,7 +5,7 @@
 >
 	<div class="header"></div>
 	<div class="content">
-		<form class="ui form ignore-dirty" method="post">
+		<form class="ui form ignore-dirty form-fetch-action" method="post">
 			{{.CsrfTokenHtml}}
 			<input name="id" type="hidden">
 			<div class="required field">
@@ -50,7 +50,7 @@
 			<div class="field">
 				<label for="color">{{ctx.Locale.Tr "repo.issues.label_color"}}</label>
 				<div class="column js-color-picker-input">
-					<input name="color" value="#70c24a" placeholder="#c320f6" required pattern="^#?(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$" maxlength="7">
+					<input name="color" value="#70c24a" placeholder="#c320f6" required pattern="^#?([\dA-Fa-f]{3}|[\dA-Fa-f]{6})$" maxlength="7">
 					{{template "repo/issue/label_precolors"}}
 				</div>
 			</div>

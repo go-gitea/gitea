@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-)
+	"sync"
 
-// colorPattern is a regexp which can validate label color
-var colorPattern = regexp.MustCompile("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
+	"code.gitea.io/gitea/modules/util"
+)
 
 // Label represents label information loaded from template
 type Label struct {
@@ -21,18 +21,9 @@ type Label struct {
 	ExclusiveOrder int    `yaml:"exclusive_order,omitempty"`
 }
 
-type ErrInvalidLabelColor struct {
-	Color string
-}
-
-func (e *ErrInvalidLabelColor) Error() string {
-	return "invalid label color: " + e.Color
-}
-
-func IsErrInvalidLabelColor(err error) bool {
-	_, ok := err.(*ErrInvalidLabelColor)
-	return ok
-}
+var colorPattern = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^#([\da-fA-F]{3}|[\da-fA-F]{6})$`)
+})
 
 // NormalizeColor normalizes a color string to a 6-character hex code
 func NormalizeColor(color string) (string, error) {
@@ -44,10 +35,8 @@ func NormalizeColor(color string) (string, error) {
 		color = "#" + color
 	}
 
-	if !colorPattern.MatchString(color) {
-		return "", &ErrInvalidLabelColor{
-			Color: color,
-		}
+	if !colorPattern().MatchString(color) {
+		return "", util.NewInvalidArgumentErrorf("invalid color: %s", color)
 	}
 
 	// convert 3-character shorthand into 6-character version
