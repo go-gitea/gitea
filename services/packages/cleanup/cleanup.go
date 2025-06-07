@@ -58,64 +58,78 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 		}
 
 		anyVersionDeleted := false
+		limit := 200
 		for _, p := range packages {
-			pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-				PackageID:  p.ID,
-				IsInternal: optional.Some(false),
-				Sort:       packages_model.SortCreatedDesc,
-				Paginator:  db.NewAbsoluteListOptions(pcr.KeepCount, 200),
-			})
-			if err != nil {
-				return fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
-			}
-			versionDeleted := false
-			for _, pv := range pvs {
-				if pcr.Type == packages_model.TypeContainer {
-					if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
-						return fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
-					} else if skip {
-						log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)
+			lastVersionID := int64(0)
+			for {
+				pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+					PackageID:  p.ID,
+					IsInternal: optional.Some(false),
+					Sort:       packages_model.SortCreatedDesc,
+					Paginator: db.NewAbsoluteListOptions(func() int {
+						if lastVersionID > 0 {
+							return 0
+						}
+						return pcr.KeepCount
+					}(), limit),
+					LtVersionID: lastVersionID,
+				})
+				if err != nil {
+					return fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
+				}
+				versionDeleted := false
+				for _, pv := range pvs {
+					lastVersionID = pv.ID
+					if pcr.Type == packages_model.TypeContainer {
+						if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
+							return fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
+						} else if skip {
+							log.Debug("Rule[%d]: keep '%s/%s' (container)", pcr.ID, p.Name, pv.Version)
+							continue
+						}
+					}
+
+					toMatch := pv.LowerVersion
+					if pcr.MatchFullName {
+						toMatch = p.LowerName + "/" + pv.LowerVersion
+					}
+
+					if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
+						log.Debug("Rule[%d]: keep '%s/%s' (keep pattern)", pcr.ID, p.Name, pv.Version)
 						continue
 					}
-				}
-
-				toMatch := pv.LowerVersion
-				if pcr.MatchFullName {
-					toMatch = p.LowerName + "/" + pv.LowerVersion
-				}
-
-				if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
-					log.Debug("Rule[%d]: keep '%s/%s' (keep pattern)", pcr.ID, p.Name, pv.Version)
-					continue
-				}
-				if pv.CreatedUnix.AsLocalTime().After(olderThan) {
-					log.Debug("Rule[%d]: keep '%s/%s' (remove days)", pcr.ID, p.Name, pv.Version)
-					continue
-				}
-				if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
-					log.Debug("Rule[%d]: keep '%s/%s' (remove pattern)", pcr.ID, p.Name, pv.Version)
-					continue
-				}
-
-				log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
-
-				if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-					return fmt.Errorf("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
-				}
-
-				versionDeleted = true
-				anyVersionDeleted = true
-			}
-
-			if versionDeleted {
-				if pcr.Type == packages_model.TypeCargo {
-					owner, err := user_model.GetUserByID(ctx, pcr.OwnerID)
-					if err != nil {
-						return fmt.Errorf("GetUserByID failed: %w", err)
+					if pv.CreatedUnix.AsLocalTime().After(olderThan) {
+						log.Debug("Rule[%d]: keep '%s/%s' (remove days) %v", pcr.ID, p.Name, pv.Version, pv.CreatedUnix.FormatDate())
+						continue
 					}
-					if err := cargo_service.UpdatePackageIndexIfExists(ctx, owner, owner, p.ID); err != nil {
-						return fmt.Errorf("CleanupRule [%d]: cargo.UpdatePackageIndexIfExists failed: %w", pcr.ID, err)
+					if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
+						log.Debug("Rule[%d]: keep '%s/%s' (remove pattern)", pcr.ID, p.Name, pv.Version)
+						continue
 					}
+
+					log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
+
+					if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
+						return fmt.Errorf("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
+					}
+
+					versionDeleted = true
+					anyVersionDeleted = true
+				}
+
+				if versionDeleted {
+					if pcr.Type == packages_model.TypeCargo {
+						owner, err := user_model.GetUserByID(ctx, pcr.OwnerID)
+						if err != nil {
+							return fmt.Errorf("GetUserByID failed: %w", err)
+						}
+						if err := cargo_service.UpdatePackageIndexIfExists(ctx, owner, owner, p.ID); err != nil {
+							return fmt.Errorf("CleanupRule [%d]: cargo.UpdatePackageIndexIfExists failed: %w", pcr.ID, err)
+						}
+					}
+				}
+				if len(pvs) < limit {
+					break
 				}
 			}
 		}
