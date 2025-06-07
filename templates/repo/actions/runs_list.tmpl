@@ -28,9 +28,9 @@
 			</div>
 			<div class="flex-item-trailing">
 				{{if $run.IsRefDeleted}}
-					<span class="ui label run-list-ref gt-ellipsis tw-line-through" data-tooltip-content="{{$run.PrettyRef}}">{{$run.PrettyRef}}</span>
+					<span class="ui label run-list-ref gt-ellipsis tw-line-through tw-max-w-[105px]" data-tooltip-content="{{$run.PrettyRef}}">{{$run.PrettyRef}}</span>
 				{{else}}
-					<a class="ui label run-list-ref gt-ellipsis" href="{{$run.RefLink}}" data-tooltip-content="{{$run.PrettyRef}}">{{$run.PrettyRef}}</a>
+					<a class="ui label run-list-ref gt-ellipsis tw-max-w-[105px]" href="{{$run.RefLink}}" data-tooltip-content="{{$run.PrettyRef}}">{{$run.PrettyRef}}</a>
 				{{end}}
 				<div class="run-list-item-right">
 					<div class="run-list-meta">{{svg "octicon-calendar" 16}}{{DateUtils.TimeSince $run.Updated}}</div>
