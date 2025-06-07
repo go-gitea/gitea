@@ -6,7 +6,8 @@ const hasPrefix = (str: string): boolean => str.startsWith('user-content-');
 
 // scroll to anchor while respecting the `user-content` prefix that exists on the target
 function scrollToAnchor(encodedId: string): void {
-  if (!encodedId) return;
+  // Ignore the footnote case, as the link is rendered by the backend.
+  if (!encodedId || encodedId.startsWith('fn:') || encodedId.startsWith('fnref:')) return;
   const id = decodeURIComponent(encodedId);
   const prefixedId = addPrefix(id);
   let el = document.querySelector(`#${prefixedId}`);
