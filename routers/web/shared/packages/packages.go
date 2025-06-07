@@ -154,46 +154,60 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 
 	versionsToRemove := make([]*packages_model.PackageDescriptor, 0, 10)
 
+	limit := 200
 	for _, p := range packages {
-		pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-			PackageID:  p.ID,
-			IsInternal: optional.Some(false),
-			Sort:       packages_model.SortCreatedDesc,
-			Paginator:  db.NewAbsoluteListOptions(pcr.KeepCount, 200),
-		})
-		if err != nil {
-			ctx.ServerError("SearchVersions", err)
-			return
-		}
-		for _, pv := range pvs {
-			if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
-				ctx.ServerError("ShouldBeSkipped", err)
-				return
-			} else if skip {
-				continue
-			}
-
-			toMatch := pv.LowerVersion
-			if pcr.MatchFullName {
-				toMatch = p.LowerName + "/" + pv.LowerVersion
-			}
-
-			if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
-				continue
-			}
-			if pv.CreatedUnix.AsLocalTime().After(olderThan) {
-				continue
-			}
-			if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
-				continue
-			}
-
-			pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+		lastVersionID := int64(0)
+		for {
+			pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+				PackageID:  p.ID,
+				IsInternal: optional.Some(false),
+				Sort:       packages_model.SortCreatedDesc,
+				Paginator: db.NewAbsoluteListOptions(func() int {
+					if lastVersionID > 0 {
+						return 0
+					}
+					return pcr.KeepCount
+				}(), limit),
+				LtVersionID: lastVersionID,
+			})
 			if err != nil {
-				ctx.ServerError("GetPackageDescriptor", err)
+				ctx.ServerError("SearchVersions", err)
 				return
 			}
-			versionsToRemove = append(versionsToRemove, pd)
+			for _, pv := range pvs {
+				lastVersionID = pv.ID
+				if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
+					ctx.ServerError("ShouldBeSkipped", err)
+					return
+				} else if skip {
+					continue
+				}
+
+				toMatch := pv.LowerVersion
+				if pcr.MatchFullName {
+					toMatch = p.LowerName + "/" + pv.LowerVersion
+				}
+
+				if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
+					continue
+				}
+				if pv.CreatedUnix.AsLocalTime().After(olderThan) {
+					continue
+				}
+				if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
+					continue
+				}
+
+				pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+				if err != nil {
+					ctx.ServerError("GetPackageDescriptor", err)
+					return
+				}
+				versionsToRemove = append(versionsToRemove, pd)
+			}
+			if len(pvs) < limit {
+				break
+			}
 		}
 	}
 
