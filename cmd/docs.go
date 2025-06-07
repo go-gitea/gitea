@@ -33,9 +33,9 @@ var CmdDocs = &cli.Command{
 }
 
 func runDocs(_ context.Context, cmd *cli.Command) error {
-	docs, err := cli_docs.ToMarkdown(cmd)
+	docs, err := cli_docs.ToMarkdown(cmd.Root())
 	if cmd.Bool("man") {
-		docs, err = cli_docs.ToMan(cmd)
+		docs, err = cli_docs.ToMan(cmd.Root())
 	}
 	if err != nil {
 		return err
