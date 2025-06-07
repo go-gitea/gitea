@@ -220,6 +220,7 @@ textarea:focus,
   color: var(--color-secondary-dark-5);
   padding-bottom: 0.6em;
   display: inline-block;
+  text-wrap: balance;
 }
 
 .m-captcha-style {
