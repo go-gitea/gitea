@@ -19,7 +19,7 @@ func GetLabelEditForm(ctx *context.Context) *forms.CreateLabelForm {
 	var err error
 	form.Color, err = label.NormalizeColor(form.Color)
 	if err != nil {
-		ctx.JSONError(".....") // TODO: translate
+		ctx.JSONError(ctx.Tr("repo.issues.label_color_invalid"))
 		return nil
 	}
 	return form
