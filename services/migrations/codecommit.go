@@ -210,6 +210,10 @@ func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPag
 			pr.State = "closed"
 			pr.Closed = orig.LastActivityDate
 		}
+		if pr.Merged {
+			pr.MergeCommitSHA = *target.MergeMetadata.MergeCommitId
+			pr.MergedTime = orig.LastActivityDate
+		}
 
 		_ = CheckAndEnsureSafePR(pr, c.baseURL, c)
 		prs = append(prs, pr)
