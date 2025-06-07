@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/agit"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
@@ -177,8 +178,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 					PageSize: repo_model.RepositoryListDefaultPageSize,
 					Page:     1,
 				},
-				UserID:         u.ID,
-				IncludePrivate: true,
+				UserID:            u.ID,
+				IncludeVisibility: structs.VisibleTypePrivate,
 			})
 			if err != nil {
 				return fmt.Errorf("unable to find org list for %s[%d]. Error: %w", u.Name, u.ID, err)
