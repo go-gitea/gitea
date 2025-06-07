@@ -318,6 +318,16 @@ a.label,
   background: var(--color-hover);
 }
 
+.empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  text-align: center;
+  text-wrap: balance;
+}
+
 .inline-code-block {
   padding: 2px 4px;
   border-radius: .24em;
