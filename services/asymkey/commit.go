@@ -398,11 +398,57 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 			}
 		}
 	}
+	// Trust more than one key for every User
+	for _, k := range setting.Repository.Signing.TrustedSSHKeys {
+		if fingerprint, err := asymkey_model.CalcFingerprint(k); err != nil {
+			log.Error("Error calculating the fingerprint public key: %s %v", k, err)
+		} else if commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, &asymkey_model.PublicKey{
+			Verified:    true,
+			Content:     k,
+			Fingerprint: fingerprint,
+			HasUsed:     true,
+		}, committer, committer, c.Committer.Email); commitVerification != nil {
+			return commitVerification
+		}
+	}
+
+	defaultReason := asymkey_model.NoKeyFound
+
+	// Covers ssh verification for the default SSH signing key specified in gitea config
+	if setting.Repository.Signing.SigningFormat == git.KeyTypeSSH && setting.Repository.Signing.SigningKey != "" && setting.Repository.Signing.SigningKey != "default" && setting.Repository.Signing.SigningKey != "none" {
+		// OK we should try the default key
+		gpgSettings := git.GPGSettings{
+			Sign:   true,
+			KeyID:  setting.Repository.Signing.SigningKey,
+			Name:   setting.Repository.Signing.SigningName,
+			Email:  setting.Repository.Signing.SigningEmail,
+			Format: setting.Repository.Signing.SigningFormat,
+		}
+		if err := gpgSettings.LoadPublicKeyContent(); err != nil {
+			log.Error("Error getting default signing key: %s %v", gpgSettings.KeyID, err)
+		} else if fingerprint, err := asymkey_model.CalcFingerprint(gpgSettings.PublicKeyContent); err != nil {
+			log.Error("Error calculating the fingerprint public key: %s %v", gpgSettings.KeyID, err)
+		} else if commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, &asymkey_model.PublicKey{
+			Verified:    true,
+			Content:     gpgSettings.PublicKeyContent,
+			Fingerprint: fingerprint,
+			HasUsed:     true,
+		}, committer, &user_model.User{
+			Name:  gpgSettings.Name,
+			Email: gpgSettings.Email,
+		}, gpgSettings.Email); commitVerification != nil {
+			if commitVerification.Reason == asymkey_model.BadSignature {
+				defaultReason = asymkey_model.BadSignature
+			} else {
+				return commitVerification
+			}
+		}
+	}
 
 	return &asymkey_model.CommitVerification{
 		CommittingUser: committer,
 		Verified:       false,
-		Reason:         asymkey_model.NoKeyFound,
+		Reason:         defaultReason,
 	}
 }
 

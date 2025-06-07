@@ -293,15 +293,18 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	}
 
 	var sign bool
-	var keyID string
+	var key *git.SigningKey
 	var signer *git.Signature
 	if opts.ParentCommitID != "" {
-		sign, keyID, signer, _ = asymkey_service.SignCRUDAction(ctx, t.repo.RepoPath(), opts.DoerUser, t.basePath, opts.ParentCommitID)
+		sign, key, signer, _ = asymkey_service.SignCRUDAction(ctx, t.repo.RepoPath(), opts.DoerUser, t.basePath, opts.ParentCommitID)
 	} else {
-		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(ctx, t.repo.RepoPath(), opts.DoerUser)
+		sign, key, signer, _ = asymkey_service.SignInitialCommit(ctx, t.repo.RepoPath(), opts.DoerUser)
 	}
 	if sign {
-		cmdCommitTree.AddOptionFormat("-S%s", keyID)
+		if key.Format != "" {
+			cmdCommitTree.AddConfig("gpg.format", key.Format)
+		}
+		cmdCommitTree.AddOptionFormat("-S%s", key.KeyID)
 		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 				// Add trailers

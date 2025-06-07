@@ -4,7 +4,10 @@
 package integration
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"net/url"
 	"os"
@@ -23,6 +26,7 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
 )
 
 func TestGPGGit(t *testing.T) {
@@ -42,6 +46,37 @@ func TestGPGGit(t *testing.T) {
 	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
 	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
 
+	testGitSigning(t)
+}
+
+func TestSSHGit(t *testing.T) {
+	tmpDir := t.TempDir() // use a temp dir to store the SSH keys
+	err := os.Chmod(tmpDir, 0o700)
+	assert.NoError(t, err)
+
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err, "ed25519.GenerateKey")
+	sshPubKey, err := ssh.NewPublicKey(pub)
+	require.NoError(t, err, "ssh.NewPublicKey")
+
+	err = os.WriteFile(tmpDir+"/id_ed25519.pub", ssh.MarshalAuthorizedKey(sshPubKey), 0o600)
+	require.NoError(t, err, "os.WriteFile id_ed25519.pub")
+	block, err := ssh.MarshalPrivateKey(priv, "")
+	require.NoError(t, err, "ssh.MarshalPrivateKey")
+	err = os.WriteFile(tmpDir+"/id_ed25519", pem.EncodeToMemory(block), 0o600)
+	require.NoError(t, err, "os.WriteFile id_ed25519")
+
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, tmpDir+"/id_ed25519.pub")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "gitea@fake.local")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningFormat, "ssh")()
+	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
+	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
+
+	testGitSigning(t)
+}
+
+func testGitSigning(t *testing.T) {
 	username := "user2"
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: username})
 	baseAPITestContext := NewAPITestContext(t, username, "repo1")
@@ -264,4 +299,24 @@ func importTestingKey() (*openpgp.Entity, error) {
 
 	// There should only be one entity in this file.
 	return keyring[0], nil
+}
+
+func TestTrustedSSHKeys(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Repository.Signing.TrustedSSHKeys, []string{"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH6Y4idVaW3E+bLw1uqoAfJD7o5Siu+HqS51E9oQLPE9"})()
+
+	username := "user2"
+	testCtx := NewAPITestContext(t, username, "repo-test-trusted-ssh-keys", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	t.Run("CheckMasterBranchSignedVerified", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+		require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
+		require.NotNil(t, branch.Commit.Verification, "no verification provided with branch commit! %v", branch.Commit)
+		require.True(t, branch.Commit.Verification.Verified)
+	}))
+
+	setting.Repository.Signing.TrustedSSHKeys = []string{}
+	t.Run("CheckMasterBranchSignedUnverified", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+		require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
+		require.NotNil(t, branch.Commit.Verification, "no verification provided with branch commit! %v", branch.Commit)
+		require.False(t, branch.Commit.Verification.Verified)
+	}))
 }
