@@ -58,7 +58,7 @@ func TestUserEmails(t *testing.T) {
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "org7"}))
 	})
 	t.Run("GetUsersByEmails", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.Service.NoReplyAddress, "no-reply.gitea.internal")()
+		defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
 		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
 			m, err := user_model.GetUsersByEmails(db.DefaultContext, []string{email})
 			require.NoError(t, err)

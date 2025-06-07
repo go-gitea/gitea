@@ -1221,7 +1221,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 		return nil, err
 	}
 	for _, user := range users {
-		results[user.GetPlaceholderEmail()] = user
+		results[strings.ToLower(user.GetPlaceholderEmail())] = user
 	}
 	return &EmailUserMap{results}, nil
 }
