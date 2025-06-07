@@ -445,36 +445,6 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committer *
 		}
 	}
 
-	// Covers ssh verification for the default SSH signing key specified in the .gitconfig file in Git.HomePath setting
-	defaultGPGSettings, err := c.GetRepositoryDefaultPublicGPGKey(false)
-	if defaultGPGSettings.Format == git.KeyTypeSSH {
-		if err != nil {
-			log.Error("Error getting default public ssh key: %v", err)
-		} else if defaultGPGSettings == nil {
-			log.Warn("Unable to get defaultGPGSettings for unattached commit: %s", c.ID.String())
-		} else if defaultGPGSettings.Sign {
-			if err := defaultGPGSettings.LoadPublicKeyContent(); err != nil {
-				log.Error("Error getting default signing key: %s %v", defaultGPGSettings.KeyID, err)
-			} else if fingerprint, err := asymkey_model.CalcFingerprint(defaultGPGSettings.PublicKeyContent); err != nil {
-				log.Error("Error calculating the fingerprint public key: %s %v", defaultGPGSettings.KeyID, err)
-			} else if commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, &asymkey_model.PublicKey{
-				Verified:    true,
-				Content:     defaultGPGSettings.PublicKeyContent,
-				Fingerprint: fingerprint,
-				HasUsed:     true,
-			}, committer, &user_model.User{
-				Name:  defaultGPGSettings.Name,
-				Email: defaultGPGSettings.Email,
-			}, defaultGPGSettings.Email); commitVerification != nil {
-				if commitVerification.Reason == asymkey_model.BadSignature {
-					defaultReason = asymkey_model.BadSignature
-				} else {
-					return commitVerification
-				}
-			}
-		}
-	}
-
 	return &asymkey_model.CommitVerification{
 		CommittingUser: committer,
 		Verified:       false,

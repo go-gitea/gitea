@@ -49,35 +49,6 @@ func TestGPGGit(t *testing.T) {
 	testGitSigning(t)
 }
 
-func TestGPGGitDefaults(t *testing.T) {
-	tmpDir := t.TempDir() // use a temp dir to avoid messing with the user's GPG keyring and git config
-	err := os.Chmod(tmpDir, 0o700)
-	assert.NoError(t, err)
-
-	t.Setenv("GNUPGHOME", tmpDir)
-
-	// Need to create a root key
-	rootKeyPair, err := importTestingKey()
-	require.NoError(t, err, "importTestingKey")
-
-	err = os.WriteFile(tmpDir+"/.gitconfig", []byte(`
-[user]
-	name = gitea
-	email = gitea@fake.local
-	signingKey = `+rootKeyPair.PrimaryKey.KeyIdShortString()+`
-[commit]
-	gpgsign = true
-`), 0o600)
-	require.NoError(t, err, "os.WriteFile .gitconfig")
-
-	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, "")()
-	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
-	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
-	defer test.MockVariableValue(&setting.Git.HomePath, tmpDir)()
-
-	testGitSigning(t)
-}
-
 func TestSSHGit(t *testing.T) {
 	tmpDir := t.TempDir() // use a temp dir to store the SSH keys
 	err := os.Chmod(tmpDir, 0o700)
@@ -101,43 +72,6 @@ func TestSSHGit(t *testing.T) {
 	defer test.MockVariableValue(&setting.Repository.Signing.SigningFormat, "ssh")()
 	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
 	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
-
-	testGitSigning(t)
-}
-
-func TestSSHGitDefaults(t *testing.T) {
-	tmpDir := t.TempDir() // use a temp dir to store the SSH keys and git config
-	err := os.Chmod(tmpDir, 0o700)
-	assert.NoError(t, err)
-
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
-	require.NoError(t, err, "ed25519.GenerateKey")
-	sshPubKey, err := ssh.NewPublicKey(pub)
-	require.NoError(t, err, "ssh.NewPublicKey")
-
-	err = os.WriteFile(tmpDir+"/id_ed25519.pub", ssh.MarshalAuthorizedKey(sshPubKey), 0o600)
-	require.NoError(t, err, "os.WriteFile id_ed25519.pub")
-	block, err := ssh.MarshalPrivateKey(priv, "")
-	require.NoError(t, err, "ssh.MarshalPrivateKey")
-	err = os.WriteFile(tmpDir+"/id_ed25519", pem.EncodeToMemory(block), 0o600)
-	require.NoError(t, err, "os.WriteFile id_ed25519")
-	err = os.WriteFile(tmpDir+"/.gitconfig", []byte(`
-[user]
-	name = gitea
-	email = gitea@fake.local
-	signingKey = `+tmpDir+`/id_ed25519.pub
-[gpg]
-	format = ssh
-[commit]
-	gpgsign = true
-`), 0o600)
-	require.NoError(t, err, "os.WriteFile .gitconfig")
-
-	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, "")()
-	defer test.MockVariableValue(&setting.Repository.Signing.SigningFormat, "ssh")()
-	defer test.MockVariableValue(&setting.Repository.Signing.InitialCommit, []string{"never"})()
-	defer test.MockVariableValue(&setting.Repository.Signing.CRUDActions, []string{"never"})()
-	defer test.MockVariableValue(&setting.Git.HomePath, tmpDir)()
 
 	testGitSigning(t)
 }
