@@ -28,8 +28,8 @@ func TestIssueLabel(t *testing.T) {
 	t.Run("NewLabelInvalidColor", testNewLabelInvalidColor)
 	t.Run("UpdateLabel", testUpdateLabel)
 	t.Run("UpdateLabelInvalidColor", testUpdateLabelInvalidColor)
-	t.Run("UpdateIssueLabel_Clear", testUpdateIssueLabel_Clear)
-	t.Run("UpdateIssueLabel_Toggle", testUpdateIssueLabel_Toggle)
+	t.Run("UpdateIssueLabelClear", testUpdateIssueLabelClear)
+	t.Run("UpdateIssueLabelToggle", testUpdateIssueLabelToggle)
 	t.Run("InitializeLabels", testInitializeLabels)
 	t.Run("DeleteLabel", testDeleteLabel)
 }
@@ -162,7 +162,7 @@ func testDeleteLabel(t *testing.T) {
 	assert.EqualValues(t, ctx.Tr("repo.issues.label_deletion_success"), ctx.Flash.SuccessMsg)
 }
 
-func testUpdateIssueLabel_Clear(t *testing.T) {
+func testUpdateIssueLabelClear(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/issues/labels")
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 1)
@@ -175,7 +175,7 @@ func testUpdateIssueLabel_Clear(t *testing.T) {
 	unittest.CheckConsistencyFor(t, &issues_model.Label{})
 }
 
-func testUpdateIssueLabel_Toggle(t *testing.T) {
+func testUpdateIssueLabelToggle(t *testing.T) {
 	for _, testCase := range []struct {
 		Action      string
 		IssueIDs    []int64
