@@ -1211,7 +1211,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 		for _, email := range emailAddresses {
 			user := users[email.UID]
 			if user != nil {
-				results[email.Email] = user
+				results[email.LowerEmail] = user
 			}
 		}
 	}
