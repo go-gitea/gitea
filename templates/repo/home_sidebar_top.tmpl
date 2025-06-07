@@ -11,7 +11,7 @@
 				<div class="flex-item-title">{{ctx.Locale.Tr "repo.repo_desc"}}</div>
 				<div class="flex-item-body tw-text-16">
 					<div class="tw-flex tw-flex-col tw-gap-2 tw-mt-2">
-						<div class="repo-description tw-break-anywhere tw-gap-2 tw-text-balance">
+						<div class="repo-description tw-break-anywhere tw-gap-2">
 							{{- $description := .Repository.DescriptionHTML ctx -}}
 							{{if $description}}{{$description | RenderCodeBlock}}{{else}}{{ctx.Locale.Tr "repo.repo_no_desc"}}{{end}}
 						</div>
