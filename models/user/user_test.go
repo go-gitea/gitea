@@ -58,13 +58,33 @@ func TestUserEmails(t *testing.T) {
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(db.DefaultContext, []string{"user8", "org7"}))
 	})
 	t.Run("GetUsersByEmails", func(t *testing.T) {
-		m, err := user_model.GetUsersByEmails(db.DefaultContext, []string{"user1@example.com", "user2@" + setting.Service.NoReplyAddress})
-		require.NoError(t, err)
-		require.Len(t, m, 4)
-		assert.EqualValues(t, 1, m["user1@example.com"].ID)
-		assert.EqualValues(t, 1, m["user1@"+setting.Service.NoReplyAddress].ID)
-		assert.EqualValues(t, 2, m["user2@example.com"].ID)
-		assert.EqualValues(t, 2, m["user2@"+setting.Service.NoReplyAddress].ID)
+		defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
+		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
+			m, err := user_model.GetUsersByEmails(db.DefaultContext, []string{email})
+			require.NoError(t, err)
+			user := m.GetByEmail(email)
+			if uid == 0 {
+				require.Nil(t, user)
+				return
+			}
+			require.NotNil(t, user)
+			assert.Equal(t, uid, user.ID)
+		}
+		cases := []struct {
+			Email string
+			UID   int64
+		}{
+			{"UseR1@example.com", 1},
+			{"user1-2@example.COM", 1},
+			{"USER2@" + setting.Service.NoReplyAddress, 2},
+			{"user4@example.com", 4},
+			{"no-such", 0},
+		}
+		for _, c := range cases {
+			t.Run(c.Email, func(t *testing.T) {
+				testGetUserByEmail(t, c.Email, c.UID)
+			})
+		}
 	})
 }
 
