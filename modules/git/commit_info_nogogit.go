@@ -124,7 +124,7 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 		return nil, err
 	}
 
-	batchStdinWriter, batchReader, cancel, err := commit.repo.CatFileBatch(ctx)
+	batch, cancel, err := commit.repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +132,7 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 
 	commitsMap := map[string]*Commit{}
 	commitsMap[commit.ID.String()] = commit
+	batchReader := batch.Reader()
 
 	commitCommits := map[string]*Commit{}
 	for path, commitID := range revs {
@@ -145,7 +146,7 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 			continue
 		}
 
-		_, err := batchStdinWriter.Write([]byte(commitID + "\n"))
+		_, err := batch.Write([]byte(commitID + "\n"))
 		if err != nil {
 			return nil, err
 		}
