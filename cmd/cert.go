@@ -187,7 +187,7 @@ func runCert(_ context.Context, c *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to write cert: %w", err)
 	}
-	fmt.Fprintln(c.Writer, "Written cert.pem")
+	fmt.Fprintf(c.Writer, "Written cert to %s\n", c.String("out"))
 
 	keyOut, err := os.OpenFile(c.String("keyout"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
@@ -201,6 +201,6 @@ func runCert(_ context.Context, c *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to write key: %w", err)
 	}
-	fmt.Fprintln(c.Writer, "Written key.pem")
+	fmt.Fprintf(c.Writer, "Written key to %s\n", c.String("keyout"))
 	return nil
 }
