@@ -64,7 +64,7 @@ func userProfile(ctx *context.Context) {
 	ctx.Data["PageIsUserProfile"] = true
 
 	// prepare heatmap data
-	if setting.Service.EnableUserHeatmap {
+	if setting.Service.EnableUserHeatmap && ctx.FormString("tab") == "activity" {
 		data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
