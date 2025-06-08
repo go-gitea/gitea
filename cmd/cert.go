@@ -118,17 +118,17 @@ func runCert(_ context.Context, c *cli.Command) error {
 	case "P521":
 		priv, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	default:
-		err = fmt.Errorf("Unrecognized elliptic curve: %q", c.String("ecdsa-curve"))
+		err = fmt.Errorf("unrecognized elliptic curve: %q", c.String("ecdsa-curve"))
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to generate private key: %w", err)
+		return fmt.Errorf("failed to generate private key: %w", err)
 	}
 
 	var notBefore time.Time
 	if startDate := c.String("start-date"); startDate != "" {
 		notBefore, err = time.Parse("Jan 2 15:04:05 2006", startDate)
 		if err != nil {
-			return fmt.Errorf("Failed to parse creation date %w", err)
+			return fmt.Errorf("failed to parse creation date %w", err)
 		}
 	} else {
 		notBefore = time.Now()
@@ -139,7 +139,7 @@ func runCert(_ context.Context, c *cli.Command) error {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return fmt.Errorf("Failed to generate serial number: %w", err)
+		return fmt.Errorf("failed to generate serial number: %w", err)
 	}
 
 	template := x509.Certificate{
@@ -172,34 +172,34 @@ func runCert(_ context.Context, c *cli.Command) error {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(priv), priv)
 	if err != nil {
-		return fmt.Errorf("Failed to create certificate: %w", err)
+		return fmt.Errorf("failed to create certificate: %w", err)
 	}
 
 	certOut, err := os.Create(c.String("out"))
 	if err != nil {
-		return fmt.Errorf("Failed to open cert.pem for writing: %w", err)
+		return fmt.Errorf("failed to open cert.pem for writing: %w", err)
 	}
 	err = pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	if err != nil {
-		return fmt.Errorf("Failed to encode certificate: %w", err)
+		return fmt.Errorf("failed to encode certificate: %w", err)
 	}
 	err = certOut.Close()
 	if err != nil {
-		return fmt.Errorf("Failed to write cert: %w", err)
+		return fmt.Errorf("failed to write cert: %w", err)
 	}
 	fmt.Fprintln(c.Writer, "Written cert.pem")
 
 	keyOut, err := os.OpenFile(c.String("keyout"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		return fmt.Errorf("Failed to open key.pem for writing: %w", err)
+		return fmt.Errorf("failed to open key.pem for writing: %w", err)
 	}
 	err = pem.Encode(keyOut, pemBlockForKey(priv))
 	if err != nil {
-		return fmt.Errorf("Failed to encode key: %w", err)
+		return fmt.Errorf("failed to encode key: %w", err)
 	}
 	err = keyOut.Close()
 	if err != nil {
-		return fmt.Errorf("Failed to write key: %w", err)
+		return fmt.Errorf("failed to write key: %w", err)
 	}
 	fmt.Fprintln(c.Writer, "Written key.pem")
 	return nil

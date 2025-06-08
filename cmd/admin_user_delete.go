@@ -73,11 +73,11 @@ func runDeleteUser(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 	if c.IsSet("username") && user.LowerName != strings.ToLower(strings.TrimSpace(c.String("username"))) {
-		return fmt.Errorf("The user %s who has email %s does not match the provided username %s", user.Name, c.String("email"), c.String("username"))
+		return fmt.Errorf("the user %s who has email %s does not match the provided username %s", user.Name, c.String("email"), c.String("username"))
 	}
 
 	if c.IsSet("id") && user.ID != c.Int64("id") {
-		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
+		return fmt.Errorf("the user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
 	return user_service.DeleteUser(ctx, user, c.Bool("purge"))

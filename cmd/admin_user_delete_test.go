@@ -76,12 +76,12 @@ func TestAdminUserDeleteFailure(t *testing.T) {
 		{
 			name:        "user exists but provided username does not match",
 			args:        []string{"delete", "--email", "testuser@gitea.local", "--username", "wrongusername"},
-			expectedErr: "The user testuser who has email testuser@gitea.local does not match the provided username wrongusername",
+			expectedErr: "the user testuser who has email testuser@gitea.local does not match the provided username wrongusername",
 		},
 		{
 			name:        "user exists but provided id does not match",
 			args:        []string{"delete", "--username", "testuser", "--id", "999"},
-			expectedErr: "The user testuser does not match the provided id 999",
+			expectedErr: "the user testuser does not match the provided id 999",
 		},
 		{
 			name:        "no required flags are provided",

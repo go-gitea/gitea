@@ -257,7 +257,7 @@ func parseLdapConfig(c *cli.Command, config *ldap.Source) error {
 	if c.IsSet("security-protocol") {
 		p, ok := findLdapSecurityProtocolByName(c.String("security-protocol"))
 		if !ok {
-			return fmt.Errorf("Unknown security protocol name: %s", c.String("security-protocol"))
+			return fmt.Errorf("unknown security protocol name: %s", c.String("security-protocol"))
 		}
 		config.SecurityProtocol = p
 	}
@@ -359,7 +359,7 @@ func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authTyp
 	}
 
 	if authSource.Type != authType {
-		return nil, fmt.Errorf("Invalid authentication type. expected: %s, actual: %s", authType.String(), authSource.Type.String())
+		return nil, fmt.Errorf("invalid authentication type. expected: %s, actual: %s", authType.String(), authSource.Type.String())
 	}
 
 	return authSource, nil

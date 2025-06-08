@@ -312,7 +312,7 @@ func runHookPostReceive(ctx context.Context, c *cli.Command) error {
 
 	// First of all run update-server-info no matter what
 	if _, _, err := git.NewCommand("update-server-info").RunStdString(ctx, nil); err != nil {
-		return fmt.Errorf("Failed to call 'git update-server-info': %w", err)
+		return fmt.Errorf("failed to call 'git update-server-info': %w", err)
 	}
 
 	// Now if we're an internal don't do anything else

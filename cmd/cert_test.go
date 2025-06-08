@@ -86,7 +86,7 @@ func TestCertCommandFailures(t *testing.T) {
 				"--host", "localhost",
 				"--ecdsa-curve", "invalid-curve",
 			},
-			errMsg: "Unrecognized elliptic curve",
+			errMsg: "unrecognized elliptic curve",
 		},
 		{
 			name: "Key generation failure",
