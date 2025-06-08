@@ -23,40 +23,6 @@ func (b *batchCatFile) Close() {
 	}
 }
 
-// NewBatch creates a new batch for the given repository, the Close must be invoked before release the batch
-func newBatch(ctx context.Context, repoPath string) (*batchCatFile, error) {
-	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
-	}
-
-	var batch batchCatFile
-	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repoPath, "--batch")
-	return &batch, nil
-}
-
-func newBatchCheck(ctx context.Context, repoPath string) (*batchCatFile, error) {
-	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
-	}
-
-	var check batchCatFile
-	check.Writer, check.Reader, check.cancel = catFileBatchCheck(ctx, repoPath)
-	return &check, nil
-}
-
-func newBatchCommand(ctx context.Context, repoPath string) (*batchCatFile, error) {
-	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
-	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
-	}
-
-	var check batchCatFile
-	check.Writer, check.Reader, check.cancel = catFileBatch(ctx, repoPath, "--batch-command")
-	return &check, nil
-}
-
 type Batch interface {
 	Write([]byte) (int, error)
 	WriteCheck([]byte) (int, error)
@@ -75,20 +41,22 @@ type batchCatFileWithCheck struct {
 
 var _ Batch = &batchCatFileWithCheck{}
 
+// newBatchCatFileWithCheck creates a new batch and a new batch check for the given repository, the Close must be invoked before release the batch
 func newBatchCatFileWithCheck(ctx context.Context, repoPath string) (*batchCatFileWithCheck, error) {
-	batch, err := newBatch(ctx, repoPath)
-	if err != nil {
+	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
 		return nil, err
 	}
 
-	batchCheck, err := newBatchCheck(ctx, repoPath)
-	if err != nil {
-		return nil, err
-	}
+	var batch batchCatFile
+	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repoPath, "--batch")
+
+	var check batchCatFile
+	check.Writer, check.Reader, check.cancel = catFileBatchCheck(ctx, repoPath)
 
 	return &batchCatFileWithCheck{
-		batch:      batch,
-		batchCheck: batchCheck,
+		batch:      &batch,
+		batchCheck: &check,
 	}, nil
 }
 
@@ -125,14 +93,19 @@ type batchCommandCatFile struct {
 	batch *batchCatFile
 }
 
+var _ Batch = &batchCommandCatFile{}
+
 func newBatchCommandCatFile(ctx context.Context, repoPath string) (*batchCommandCatFile, error) {
-	batch, err := newBatchCommand(ctx, repoPath)
-	if err != nil {
+	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
 		return nil, err
 	}
 
+	var batch batchCatFile
+	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repoPath, "--batch-command")
+
 	return &batchCommandCatFile{
-		batch: batch,
+		batch: &batch,
 	}, nil
 }
 
