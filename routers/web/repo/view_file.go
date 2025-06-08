@@ -300,7 +300,7 @@ func prepareToRenderButtons(ctx *context.Context, isLFSFile, isRepresentableAsTe
 		return
 	} else if !isRepresentableAsText {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
-		// TODO: we should not allow delete LFS files, but we need to check if the file is locked
+		// TODO: delete file tooltip?
 		return
 	}
 
