@@ -613,7 +613,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 	if user_model.CountUsers(ctx, nil) == 1 {
 		opts := &user_service.UpdateOptions{
 			IsActive:     optional.Some(true),
-			IsAdmin:      optional.Some(true),
+			IsAdmin:      user_service.UpdateOptionFieldFromValue(true),
 			SetLastLogin: true,
 		}
 		if err := user_service.UpdateUser(ctx, u, opts); err != nil {

@@ -431,7 +431,7 @@ func EditUserPost(ctx *context.Context) {
 		Website:                 optional.Some(form.Website),
 		Location:                optional.Some(form.Location),
 		IsActive:                optional.Some(form.Active),
-		IsAdmin:                 optional.Some(form.Admin),
+		IsAdmin:                 user_service.UpdateOptionFieldFromValue(form.Admin),
 		AllowGitHook:            optional.Some(form.AllowGitHook),
 		AllowImportLocal:        optional.Some(form.AllowImportLocal),
 		MaxRepoCreation:         optional.Some(form.MaxRepoCreation),
