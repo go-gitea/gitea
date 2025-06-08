@@ -177,7 +177,7 @@ func runCert(_ context.Context, c *cli.Command) error {
 
 	certOut, err := os.Create(c.String("out"))
 	if err != nil {
-		return fmt.Errorf("failed to open cert.pem for writing: %w", err)
+		return fmt.Errorf("failed to open %s for writing: %w", c.String("keyout"), err)
 	}
 	err = pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	if err != nil {
@@ -191,7 +191,7 @@ func runCert(_ context.Context, c *cli.Command) error {
 
 	keyOut, err := os.OpenFile(c.String("keyout"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		return fmt.Errorf("failed to open key.pem for writing: %w", err)
+		return fmt.Errorf("failed to open %s for writing: %w", c.String("keyout"), err)
 	}
 	err = pem.Encode(keyOut, pemBlockForKey(priv))
 	if err != nil {
