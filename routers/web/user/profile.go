@@ -63,17 +63,6 @@ func userProfile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 
-	// prepare heatmap data
-	if setting.Service.EnableUserHeatmap && ctx.FormString("tab") == "activity" {
-		data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("GetUserHeatmapDataByUser", err)
-			return
-		}
-		ctx.Data["HeatmapData"] = data
-		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
-	}
-
 	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
@@ -173,6 +162,17 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		ctx.Data["Cards"] = following
 		total = int(numFollowing)
 	case "activity":
+		// prepare heatmap data
+		if setting.Service.EnableUserHeatmap {
+			data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserHeatmapDataByUser", err)
+				return
+			}
+			ctx.Data["HeatmapData"] = data
+			ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
+		}
+
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		items, count, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
