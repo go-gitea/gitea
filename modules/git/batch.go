@@ -49,7 +49,7 @@ func newBatchCatFileWithCheck(ctx context.Context, repoPath string) (*batchCatFi
 	}
 
 	var batch batchCatFile
-	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repoPath, "--batch")
+	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repoPath, true)
 
 	var check batchCatFile
 	check.Writer, check.Reader, check.cancel = catFileBatchCheck(ctx, repoPath)
@@ -102,7 +102,7 @@ func newBatchCommandCatFile(ctx context.Context, repoPath string) (*batchCommand
 	}
 
 	var batch batchCatFile
-	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repoPath, "--batch-command")
+	batch.Writer, batch.Reader, batch.cancel = catFileBatch(ctx, repoPath, false)
 
 	return &batchCommandCatFile{
 		batch: &batch,
