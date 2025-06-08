@@ -196,6 +196,12 @@ func (c *Command) AddDashesAndList(list ...string) *Command {
 	return c
 }
 
+// toTrustCmdArg converts a string (trusted as argument) to CmdArg
+// In most cases, it shouldn't be used. Use AddXxx function instead
+func toTrustCmdArg(arg string) internal.CmdArg {
+	return internal.CmdArg(arg)
+}
+
 // ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
 // In most cases, it shouldn't be used. Use NewCommand().AddXxx() function instead
 func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
