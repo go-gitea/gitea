@@ -285,56 +285,44 @@ func prepareToRenderFile(ctx *context.Context, entry *git.TreeEntry) {
 		}
 	}
 
-	prepareToRenderEditButton(ctx, fInfo.isLFSFile, isRepresentableAsText, lfsLock)
-	prepareToRenderDeleteButton(ctx, lfsLock)
+	prepareToRenderButtons(ctx, fInfo.isLFSFile, isRepresentableAsText, lfsLock)
 }
 
-func prepareToRenderEditButton(ctx *context.Context, isLFSFile, isRepresentableAsText bool, lfsLock *git_model.LFSLock) {
-	if ctx.Repo.Repository.IsArchived {
+func prepareToRenderButtons(ctx *context.Context, isLFSFile, isRepresentableAsText bool, lfsLock *git_model.LFSLock) {
+	// archived or mirror repository, the buttons should not be shown
+	if ctx.Repo.Repository.IsArchived || !ctx.Repo.Repository.CanEnableEditor() {
 		return
 	}
+
 	if isLFSFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
+		// TODO: we should not allow delete LFS files, but we need to check if the file is locked
 		return
 	} else if !isRepresentableAsText {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
+		// TODO: we should not allow delete LFS files, but we need to check if the file is locked
 		return
 	}
 
+	// for non-LFS representableAsText files
 	if !ctx.Repo.RefFullName.IsBranch() {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else {
-		canWriteToBranch := ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName)
-		if !canWriteToBranch {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
-		} else if ctx.Repo.Repository.CanEnableEditor() {
-			if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
-				ctx.Data["CanEditFile"] = false
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-			} else {
-				ctx.Data["CanEditFile"] = true
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-			}
-		}
-	}
-}
-
-func prepareToRenderDeleteButton(ctx *context.Context, lfsLock *git_model.LFSLock) {
-	if ctx.Repo.Repository.IsArchived {
-		return
-	}
-
-	if !ctx.Repo.RefFullName.IsBranch() {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 	} else {
 		canWriteToBranch := ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName)
 		if !canWriteToBranch {
+			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
-		} else if ctx.Repo.Repository.CanEnableEditor() {
+		} else {
+			// FIXME: since isLFSFile is false, why we still need to check lfsLock? Leave the legacy code here for now.
 			if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
+				ctx.Data["CanEditFile"] = false
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 				ctx.Data["CanDeleteFile"] = false
 				ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 			} else {
+				ctx.Data["CanEditFile"] = true
+				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
 				ctx.Data["CanDeleteFile"] = true
 				ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 			}
