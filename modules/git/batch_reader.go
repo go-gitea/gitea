@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/internal"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/djherbis/buffer"
@@ -111,7 +112,7 @@ func catFileBatch(ctx context.Context, repoPath, batchArg string) (WriteCloserEr
 	go func() {
 		stderr := strings.Builder{}
 		err := NewCommand("cat-file").
-			AddDynamicArguments(batchArg).
+			AddArguments(internal.CmdArg(batchArg)).
 			Run(ctx, &RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
