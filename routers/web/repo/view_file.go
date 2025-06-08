@@ -294,38 +294,40 @@ func prepareToRenderButtons(ctx *context.Context, isLFSFile, isRepresentableAsTe
 		return
 	}
 
-	if isLFSFile {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-		// TODO: we should not allow delete LFS files, but we need to check if the file is locked
-		return
-	} else if !isRepresentableAsText {
-		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
-		// TODO: delete file tooltip?
-		return
-	}
-
-	// for non-LFS representableAsText files
+	// The buttons should not be shown if it's not a branch
 	if !ctx.Repo.RefFullName.IsBranch() {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else {
-		canWriteToBranch := ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName)
-		if !canWriteToBranch {
-			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
-			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
-		} else {
-			// FIXME: since isLFSFile is false, why we still need to check lfsLock? Leave the legacy code here for now.
-			if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
-				ctx.Data["CanEditFile"] = false
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-				ctx.Data["CanDeleteFile"] = false
-				ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-			} else {
-				ctx.Data["CanEditFile"] = true
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
-				ctx.Data["CanDeleteFile"] = true
-				ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
-			}
-		}
+		return
 	}
+
+	if isLFSFile {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
+	} else if !isRepresentableAsText {
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
+	}
+
+	if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, ctx.Repo.BranchName) {
+		if !isLFSFile { // lfs file cannot be edited after fork
+			ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
+		}
+		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
+		return
+	}
+
+	// it's a lfs file and the user is not the owner of the lock
+	if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
+		ctx.Data["CanEditFile"] = false
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+		ctx.Data["CanDeleteFile"] = false
+		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+		return
+	}
+
+	if !isLFSFile { // lfs file cannot be edited
+		ctx.Data["CanEditFile"] = true
+		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+	}
+	ctx.Data["CanDeleteFile"] = true
+	ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
 }
