@@ -59,6 +59,7 @@
 
 .run-list-ref {
   display: inline-block !important;
+  max-width: 105px;
 }
 
 @media (max-width: 767.98px) {

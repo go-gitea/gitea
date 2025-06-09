@@ -403,12 +403,7 @@ func EndUploadBlob(ctx *context.Context) {
 		}
 		return
 	}
-	doClose := true
-	defer func() {
-		if doClose {
-			uploader.Close()
-		}
-	}()
+	defer uploader.Close()
 
 	if ctx.Req.Body != nil {
 		if err := uploader.Append(ctx, ctx.Req.Body); err != nil {
@@ -441,11 +436,10 @@ func EndUploadBlob(ctx *context.Context) {
 		return
 	}
 
-	if err := uploader.Close(); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	doClose = false
+	// There was a strange bug: the "Close" fails with error "close .../tmp/package-upload/....: file already closed"
+	// AFAIK there should be no other "Close" call to the uploader between NewBlobUploader and this line.
+	// At least it's safe to call Close twice, so ignore the error.
+	_ = uploader.Close()
 
 	if err := container_service.RemoveBlobUploadByID(ctx, uploader.ID); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
