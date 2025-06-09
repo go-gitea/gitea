@@ -39,8 +39,8 @@ func processFootnoteNode(ctx *RenderContext, node *html.Node) {
 	for idx, attr := range node.Attr {
 		if (attr.Key == "id" && isAnchorIDFootnote(attr.Val)) ||
 			(attr.Key == "href" && isAnchorHrefFootnote(attr.Val)) {
-			if issueNum, ok := ctx.RenderOptions.Metas["issue_comment_id"]; ok {
-				node.Attr[idx].Val = attr.Val + "-" + issueNum
+			if footnoteContextID, ok := ctx.RenderOptions.Metas["footnoteContextId"]; ok {
+				node.Attr[idx].Val = attr.Val + "-" + footnoteContextID
 			}
 			continue
 		}

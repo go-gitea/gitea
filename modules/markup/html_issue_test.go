@@ -30,7 +30,7 @@ func TestRender_IssueList(t *testing.T) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, map[string]string{
 			"user": "test-user", "repo": "test-repo",
 			"markupAllowShortIssuePattern": "true",
-			"issue_comment_id":             "12345",
+			"footnoteContextId":            "12345",
 		})
 		out, err := markdown.RenderString(rctx, input)
 		require.NoError(t, err)

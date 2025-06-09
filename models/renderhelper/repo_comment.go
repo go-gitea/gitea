@@ -44,6 +44,7 @@ type RepoCommentOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
 	CurrentRefPath      string // eg: "branch/main" or "commit/11223344"
+	FootnoteContextID   string // the extra context ID for footnotes, used to avoid conflicts with other footnotes in the same page
 }
 
 func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repository, opts ...RepoCommentOptions) *markup.RenderContext {
@@ -66,6 +67,8 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 
 			"markdownNewLineHardBreak":     "true",
 			"markupAllowShortIssuePattern": "true",
+
+			"footnoteContextId": helper.opts.FootnoteContextID,
 		})
 	}
 	rctx = rctx.WithHelper(helper)

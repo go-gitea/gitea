@@ -625,8 +625,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		comment.Issue = issue
 
 		if comment.Type == issues_model.CommentTypeComment || comment.Type == issues_model.CommentTypeReview {
-			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
-			rctx.RenderOptions.Metas["issue_comment_id"] = strconv.FormatInt(comment.ID, 10)
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+			})
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -983,9 +984,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 	var err error
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
-	// the first issue index set to 0
-	rctx.RenderOptions.Metas["issue_comment_id"] = "0"
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+		FootnoteContextID: "0", // Set footnote context ID to 0 for the issue content
+	})
 	issue.RenderedContent, err = markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
