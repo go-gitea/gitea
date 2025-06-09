@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/repo"
@@ -890,8 +889,7 @@ jobs:
 		// 4. Execute a single Job
 		task := runner.fetchTask(t)
 		outcome := &mockTaskOutcome{
-			result:   runnerv1.Result_RESULT_SUCCESS,
-			execTime: time.Millisecond,
+			result: runnerv1.Result_RESULT_SUCCESS,
 		}
 		runner.execTask(t, task, outcome)
 
@@ -927,8 +925,7 @@ jobs:
 		// 6. Execute a single Job
 		task = runner.fetchTask(t)
 		outcome = &mockTaskOutcome{
-			result:   runnerv1.Result_RESULT_FAILURE,
-			execTime: time.Millisecond,
+			result: runnerv1.Result_RESULT_FAILURE,
 		}
 		runner.execTask(t, task, outcome)
 
