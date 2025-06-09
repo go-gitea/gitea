@@ -1367,7 +1367,7 @@ select.ui.dropdown {
 }
 .ui.simple.dropdown .menu {
   position: absolute;
-  
+
 /* IE hack to make dropdown icons appear inline */
   display: -ms-inline-flexbox !important;
   display: block;

@@ -97,5 +97,9 @@ func generatePathTokens(input analysis.TokenStream, reversed bool) analysis.Toke
 }
 
 func init() {
-	registry.RegisterTokenFilter(Name, TokenFilterConstructor)
+	// FIXME: move it to the bleve's init function, but do not call it in global init
+	err := registry.RegisterTokenFilter(Name, TokenFilterConstructor)
+	if err != nil {
+		panic(err)
+	}
 }

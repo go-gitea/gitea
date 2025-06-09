@@ -40,6 +40,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
         }
       }
       visibleInstances.add(instance);
+      target.setAttribute('aria-controls', instance.popper.id);
       return onShow?.(instance);
     },
     arrow: arrow ?? (theme === 'bare' ? false : arrowSvg),
@@ -180,13 +181,25 @@ export function initGlobalTooltips(): void {
 }
 
 export function showTemporaryTooltip(target: Element, content: Content): void {
-  // if the target is inside a dropdown, the menu will be hidden soon
-  // so display the tooltip on the dropdown instead
-  target = target.closest('.ui.dropdown') || target;
-  const tippy = target._tippy ?? attachTooltip(target, content);
-  tippy.setContent(content);
-  if (!tippy.state.isShown) tippy.show();
-  tippy.setProps({
+  // if the target is inside a dropdown or tippy popup, the menu will be hidden soon
+  // so display the tooltip on the "aria-controls" element or dropdown instead
+  let refClientRect: DOMRect;
+  const popupTippyId = target.closest(`[data-tippy-root]`)?.id;
+  if (popupTippyId) {
+    // for example, the "Copy Permalink" button in the "File View" page for the selected lines
+    target = document.body;
+    refClientRect = document.querySelector(`[aria-controls="${CSS.escape(popupTippyId)}"]`)?.getBoundingClientRect();
+    refClientRect = refClientRect ?? new DOMRect(0, 0, 0, 0); // fallback to empty rect if not found, tippy doesn't accept null
+  } else {
+    // for example, the "Copy Link" button in the issue header dropdown menu
+    target = target.closest('.ui.dropdown') ?? target;
+    refClientRect = target.getBoundingClientRect();
+  }
+  const tooltipTippy = target._tippy ?? attachTooltip(target, content);
+  tooltipTippy.setContent(content);
+  tooltipTippy.setProps({getReferenceClientRect: () => refClientRect});
+  if (!tooltipTippy.state.isShown) tooltipTippy.show();
+  tooltipTippy.setProps({
     onHidden: (tippy) => {
       // reset the default tooltip content, if no default, then this temporary tooltip could be destroyed
       if (!attachTooltip(target)) {

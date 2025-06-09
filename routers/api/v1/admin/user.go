@@ -239,7 +239,7 @@ func EditUser(ctx *context.APIContext) {
 		Location:                optional.FromPtr(form.Location),
 		Description:             optional.FromPtr(form.Description),
 		IsActive:                optional.FromPtr(form.Active),
-		IsAdmin:                 optional.FromPtr(form.Admin),
+		IsAdmin:                 user_service.UpdateOptionFieldFromPtr(form.Admin),
 		Visibility:              optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
 		AllowGitHook:            optional.FromPtr(form.AllowGitHook),
 		AllowImportLocal:        optional.FromPtr(form.AllowImportLocal),
@@ -423,7 +423,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := user_model.SearchUsers(ctx, &user_model.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeIndividual,
 		LoginName:   ctx.FormTrim("login_name"),

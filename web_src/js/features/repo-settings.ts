@@ -2,7 +2,6 @@ import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.ts';
 import {onInputDebounce, queryElems, toggleClass, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
-import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
@@ -149,6 +148,4 @@ export function initRepoSettings() {
   initRepoSettingsSearchTeamBox();
   initRepoSettingsGitHook();
   initRepoSettingsBranchesDrag();
-
-  queryElems(document, '.avatar-file-with-cropper', initAvatarUploaderWithCropper);
 }

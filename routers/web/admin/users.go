@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
@@ -64,7 +65,7 @@ func Users(ctx *context.Context) {
 		"SortType":        sortType,
 	}
 
-	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
+	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor: ctx.Doer,
 		Type:  user_model.UserTypeIndividual,
 		ListOptions: db.ListOptions{
@@ -268,7 +269,7 @@ func ViewUser(ctx *context.Context) {
 		return
 	}
 
-	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     u.ID,
 		OrderBy:     db.SearchOrderByAlphabetically,
@@ -292,9 +293,9 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["EmailsTotal"] = len(emails)
 
 	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
-		ListOptions:    db.ListOptionsAll,
-		UserID:         u.ID,
-		IncludePrivate: true,
+		ListOptions:       db.ListOptionsAll,
+		UserID:            u.ID,
+		IncludeVisibility: structs.VisibleTypePrivate,
 	})
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
@@ -431,7 +432,7 @@ func EditUserPost(ctx *context.Context) {
 		Website:                 optional.Some(form.Website),
 		Location:                optional.Some(form.Location),
 		IsActive:                optional.Some(form.Active),
-		IsAdmin:                 optional.Some(form.Admin),
+		IsAdmin:                 user_service.UpdateOptionFieldFromValue(form.Admin),
 		AllowGitHook:            optional.Some(form.AllowGitHook),
 		AllowImportLocal:        optional.Some(form.AllowImportLocal),
 		MaxRepoCreation:         optional.Some(form.MaxRepoCreation),

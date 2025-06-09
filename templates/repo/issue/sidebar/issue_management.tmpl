@@ -1,6 +1,7 @@
 {{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 	<div class="divider"></div>
 
+	{{/* Pin issue */}}
 	{{if or .PinEnabled .Issue.IsPinned}}
 		<form class="tw-mt-1 form-fetch-action single-button-form" method="post" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.max_pinned"}}"{{end}}>
 			{{$.CsrfTokenHtml}}
@@ -16,16 +17,15 @@
 		</form>
 	{{end}}
 
-	<button class="tw-mt-1 fluid ui show-modal button{{if .Issue.IsLocked}} red{{end}}" data-modal="#lock">
+	{{/* Lock/unlock conversation */}}
+	<button class="tw-mt-1 fluid ui show-modal button{{if .Issue.IsLocked}} red{{end}}" data-modal="#lock-conversation">
 		{{if .Issue.IsLocked}}
-			{{svg "octicon-key"}}
-			{{ctx.Locale.Tr "repo.issues.unlock"}}
+			{{svg "octicon-key"}} {{ctx.Locale.Tr "repo.issues.unlock"}}
 		{{else}}
-			{{svg "octicon-lock"}}
-			{{ctx.Locale.Tr "repo.issues.lock"}}
+			{{svg "octicon-lock"}} {{ctx.Locale.Tr "repo.issues.lock"}}
 		{{end}}
 	</button>
-	<div class="ui tiny modal" id="lock">
+	<div class="ui tiny modal" id="lock-conversation">
 		<div class="header">
 			{{if .Issue.IsLocked}}
 				{{ctx.Locale.Tr "repo.issues.unlock.title"}}
@@ -45,29 +45,20 @@
 				{{end}}
 			</div>
 
-			<form class="ui form form-fetch-action" action="{{.Issue.Link}}{{if .Issue.IsLocked}}/unlock{{else}}/lock{{end}}"
-				method="post">
+			<form class="ui form form-fetch-action" method="post" action="{{.Issue.Link}}{{if .Issue.IsLocked}}/unlock{{else}}/lock{{end}}">
 				{{.CsrfTokenHtml}}
 
 				{{if not .Issue.IsLocked}}
 					<div class="field">
-						<strong> {{ctx.Locale.Tr "repo.issues.lock.reason"}} </strong>
+						<strong>{{ctx.Locale.Tr "repo.issues.lock.reason"}}</strong>
 					</div>
 
 					<div class="field">
 						<div class="ui fluid dropdown selection">
-
-							<select name="reason">
-								<option value=""> </option>
-								{{range .LockReasons}}
-									<option value="{{.}}">{{.}}</option>
-								{{end}}
-							</select>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-
-							<div class="default text"> </div>
-
+							<input type="hidden" name="reason">
+							<div class="text"></div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
+								<div class="item" data-value=""></div>
 								{{range .LockReasons}}
 									<div class="item" data-value="{{.}}">{{.}}</div>
 								{{end}}
@@ -78,7 +69,8 @@
 
 				<div class="actions">
 					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-					<button class="ui red button">
+					{{/* explicitly focus the submit button, to avoid Fomantic modal focuses and popups the dropdown */}}
+					<button class="ui red button" autofocus>
 						{{if .Issue.IsLocked}}
 							{{ctx.Locale.Tr "repo.issues.unlock_confirm"}}
 						{{else}}

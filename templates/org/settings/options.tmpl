@@ -12,7 +12,7 @@
 									<br>{{ctx.Locale.Tr "org.settings.change_orgname_prompt"}}<br>{{ctx.Locale.Tr "org.settings.change_orgname_redirect_prompt"}}
 								</span>
 							</label>
-							<input id="org_name" name="name" value="{{.Org.Name}}" data-org-name="{{.Org.Name}}" autofocus required maxlength="40">
+							<input id="org_name" name="name" value="{{.Org.Name}}" data-org-name="{{.Org.Name}}" required maxlength="40">
 						</div>
 						<div class="field {{if .Err_FullName}}error{{end}}">
 							<label for="full_name">{{ctx.Locale.Tr "org.org_full_name_holder"}}</label>

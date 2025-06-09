@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
@@ -437,8 +438,8 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 			Name: gitLDAPUser.UserName,
 		})
 		usersOrgs, err := db.Find[organization.Organization](db.DefaultContext, organization.FindOrgOptions{
-			UserID:         user.ID,
-			IncludePrivate: true,
+			UserID:            user.ID,
+			IncludeVisibility: structs.VisibleTypePrivate,
 		})
 		assert.NoError(t, err)
 		allOrgTeams, err := organization.GetUserOrgTeams(db.DefaultContext, org.ID, user.ID)

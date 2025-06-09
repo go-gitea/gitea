@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/urfave/cli/v2"
@@ -210,8 +211,8 @@ func newAuthService() *authService {
 	}
 }
 
-// parseAuthSource assigns values on authSource according to command line flags.
-func parseAuthSource(c *cli.Context, authSource *auth.Source) {
+// parseAuthSourceLdap assigns values on authSource according to command line flags.
+func parseAuthSourceLdap(c *cli.Context, authSource *auth.Source) {
 	if c.IsSet("name") {
 		authSource.Name = c.String("name")
 	}
@@ -227,6 +228,7 @@ func parseAuthSource(c *cli.Context, authSource *auth.Source) {
 	if c.IsSet("disable-synchronize-users") {
 		authSource.IsSyncEnabled = !c.Bool("disable-synchronize-users")
 	}
+	authSource.TwoFactorPolicy = util.Iif(c.Bool("skip-local-2fa"), "skip", "")
 }
 
 // parseLdapConfig assigns values on config according to command line flags.
@@ -297,9 +299,6 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	}
 	if c.IsSet("allow-deactivate-all") {
 		config.AllowDeactivateAll = c.Bool("allow-deactivate-all")
-	}
-	if c.IsSet("skip-local-2fa") {
-		config.SkipLocalTwoFA = c.Bool("skip-local-2fa")
 	}
 	if c.IsSet("enable-groups") {
 		config.GroupsEnabled = c.Bool("enable-groups")
@@ -376,7 +375,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		},
 	}
 
-	parseAuthSource(c, authSource)
+	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
@@ -398,7 +397,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	parseAuthSource(c, authSource)
+	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
@@ -427,7 +426,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		},
 	}
 
-	parseAuthSource(c, authSource)
+	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
@@ -449,7 +448,7 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	parseAuthSource(c, authSource)
+	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}

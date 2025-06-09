@@ -25,9 +25,13 @@ test('createElementFromAttrs', () => {
 });
 
 test('querySingleVisibleElem', () => {
-  let el = createElementFromHTML('<div><span>foo</span></div>');
+  let el = createElementFromHTML('<div></div>');
+  expect(querySingleVisibleElem(el, 'span')).toBeNull();
+  el = createElementFromHTML('<div><span>foo</span></div>');
   expect(querySingleVisibleElem(el, 'span').textContent).toEqual('foo');
   el = createElementFromHTML('<div><span style="display: none;">foo</span><span>bar</span></div>');
+  expect(querySingleVisibleElem(el, 'span').textContent).toEqual('bar');
+  el = createElementFromHTML('<div><span class="some-class tw-hidden">foo</span><span>bar</span></div>');
   expect(querySingleVisibleElem(el, 'span').textContent).toEqual('bar');
   el = createElementFromHTML('<div><span>foo</span><span>bar</span></div>');
   expect(() => querySingleVisibleElem(el, 'span')).toThrowError('Expected exactly one visible element');

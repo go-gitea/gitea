@@ -149,9 +149,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %v", err)
 		}
 
+		// if releases migration are not requested, we will sync all tags here
+		// otherwise, the releases sync will be done out of this function
 		if !opts.Releases {
-			// note: this will greatly improve release (tag) sync
-			// for pull-mirrors with many tags
 			repo.IsMirror = opts.Mirror
 			if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)

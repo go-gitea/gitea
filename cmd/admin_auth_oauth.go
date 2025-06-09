@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
 	"github.com/urfave/cli/v2"
@@ -156,7 +157,6 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
-		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
 		Scopes:                        c.StringSlice("scopes"),
 		RequiredClaimName:             c.String("required-claim-name"),
 		RequiredClaimValue:            c.String("required-claim-value"),
@@ -185,10 +185,11 @@ func runAddOauth(c *cli.Context) error {
 	}
 
 	return auth_model.CreateSource(ctx, &auth_model.Source{
-		Type:     auth_model.OAuth2,
-		Name:     c.String("name"),
-		IsActive: true,
-		Cfg:      config,
+		Type:            auth_model.OAuth2,
+		Name:            c.String("name"),
+		IsActive:        true,
+		Cfg:             config,
+		TwoFactorPolicy: util.Iif(c.Bool("skip-local-2fa"), "skip", ""),
 	})
 }
 
@@ -294,6 +295,6 @@ func runUpdateOauth(c *cli.Context) error {
 
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
-
+	source.TwoFactorPolicy = util.Iif(c.Bool("skip-local-2fa"), "skip", "")
 	return auth_model.UpdateSource(ctx, source)
 }

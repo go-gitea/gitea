@@ -11,6 +11,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/alpine"
 	"code.gitea.io/gitea/modules/packages/arch"
@@ -102,22 +103,26 @@ func (pd *PackageDescriptor) CalculateBlobSize() int64 {
 
 // GetPackageDescriptor gets the package description for a version
 func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDescriptor, error) {
-	p, err := GetPackageByID(ctx, pv.PackageID)
+	return getPackageDescriptor(ctx, pv, cache.NewEphemeralCache())
+}
+
+func getPackageDescriptor(ctx context.Context, pv *PackageVersion, c *cache.EphemeralCache) (*PackageDescriptor, error) {
+	p, err := cache.GetWithEphemeralCache(ctx, c, "package", pv.PackageID, GetPackageByID)
 	if err != nil {
 		return nil, err
 	}
-	o, err := user_model.GetUserByID(ctx, p.OwnerID)
+	o, err := cache.GetWithEphemeralCache(ctx, c, "user", p.OwnerID, user_model.GetUserByID)
 	if err != nil {
 		return nil, err
 	}
 	var repository *repo_model.Repository
 	if p.RepoID > 0 {
-		repository, err = repo_model.GetRepositoryByID(ctx, p.RepoID)
+		repository, err = cache.GetWithEphemeralCache(ctx, c, "repo", p.RepoID, repo_model.GetRepositoryByID)
 		if err != nil && !repo_model.IsErrRepoNotExist(err) {
 			return nil, err
 		}
 	}
-	creator, err := user_model.GetUserByID(ctx, pv.CreatorID)
+	creator, err := cache.GetWithEphemeralCache(ctx, c, "user", pv.CreatorID, user_model.GetUserByID)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			creator = user_model.NewGhostUser()
@@ -145,9 +150,13 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		return nil, err
 	}
 
-	pfds, err := GetPackageFileDescriptors(ctx, pfs)
-	if err != nil {
-		return nil, err
+	pfds := make([]*PackageFileDescriptor, 0, len(pfs))
+	for _, pf := range pfs {
+		pfd, err := getPackageFileDescriptor(ctx, pf, c)
+		if err != nil {
+			return nil, err
+		}
+		pfds = append(pfds, pfd)
 	}
 
 	var metadata any
@@ -221,7 +230,11 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 
 // GetPackageFileDescriptor gets a package file descriptor for a package file
 func GetPackageFileDescriptor(ctx context.Context, pf *PackageFile) (*PackageFileDescriptor, error) {
-	pb, err := GetBlobByID(ctx, pf.BlobID)
+	return getPackageFileDescriptor(ctx, pf, cache.NewEphemeralCache())
+}
+
+func getPackageFileDescriptor(ctx context.Context, pf *PackageFile, c *cache.EphemeralCache) (*PackageFileDescriptor, error) {
+	pb, err := cache.GetWithEphemeralCache(ctx, c, "package_file_blob", pf.BlobID, GetBlobByID)
 	if err != nil {
 		return nil, err
 	}
@@ -251,9 +264,13 @@ func GetPackageFileDescriptors(ctx context.Context, pfs []*PackageFile) ([]*Pack
 
 // GetPackageDescriptors gets the package descriptions for the versions
 func GetPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*PackageDescriptor, error) {
+	return getPackageDescriptors(ctx, pvs, cache.NewEphemeralCache())
+}
+
+func getPackageDescriptors(ctx context.Context, pvs []*PackageVersion, c *cache.EphemeralCache) ([]*PackageDescriptor, error) {
 	pds := make([]*PackageDescriptor, 0, len(pvs))
 	for _, pv := range pvs {
-		pd, err := GetPackageDescriptor(ctx, pv)
+		pd, err := getPackageDescriptor(ctx, pv, c)
 		if err != nil {
 			return nil, err
 		}

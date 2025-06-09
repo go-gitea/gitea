@@ -152,7 +152,8 @@ func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptio
 	applySorts(findSession, opts.SortType, 0)
 	findSession = db.SetSessionPagination(findSession, opts)
 	prs := make([]*PullRequest, 0, opts.PageSize)
-	return prs, maxResults, findSession.Find(&prs)
+	found := findSession.Find(&prs)
+	return prs, maxResults, found
 }
 
 // PullRequestList defines a list of pull requests

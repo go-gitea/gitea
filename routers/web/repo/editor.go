@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -151,23 +150,22 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			return
 		}
 
-		dataRc, err := blob.DataAsync()
+		buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 		if err != nil {
-			ctx.NotFound(err)
+			if git.IsErrNotExist(err) {
+				ctx.NotFound(err)
+			} else {
+				ctx.ServerError("getFileReader", err)
+			}
 			return
 		}
 
 		defer dataRc.Close()
 
 		ctx.Data["FileSize"] = blob.Size()
-		ctx.Data["FileName"] = blob.Name()
-
-		buf := make([]byte, 1024)
-		n, _ := util.ReadAtMost(dataRc, buf)
-		buf = buf[:n]
 
 		// Only some file types are editable online as text.
-		if !typesniffer.DetectContentType(buf).IsRepresentableAsText() {
+		if !fInfo.st.IsRepresentableAsText() || fInfo.isLFSFile {
 			ctx.NotFound(nil)
 			return
 		}
@@ -375,12 +373,6 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				return
 			}
 			ctx.RenderWithErr(flashError, tplEditFile, &form)
-		}
-	}
-
-	if ctx.Repo.Repository.IsEmpty {
-		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
-			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 		}
 	}
 
@@ -792,7 +784,7 @@ func UploadFilePost(ctx *context.Context) {
 
 	if ctx.Repo.Repository.IsEmpty {
 		if isEmpty, err := ctx.Repo.GitRepo.IsEmpty(); err == nil && !isEmpty {
-			_ = repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
+			_ = repo_model.UpdateRepositoryColsWithAutoTime(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, IsEmpty: false}, "is_empty")
 		}
 	}
 

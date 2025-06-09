@@ -21,6 +21,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -261,6 +262,10 @@ func updateContextRepoEmptyAndStatus(ctx *context.Context, empty bool, status re
 
 func handleRepoEmptyOrBroken(ctx *context.Context) {
 	showEmpty := true
+	if ctx.Repo.GitRepo == nil {
+		// in case the repo really exists and works, but the status was incorrectly marked as "broken", we need to open and check it again
+		ctx.Repo.GitRepo, _ = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+	}
 	if ctx.Repo.GitRepo != nil {
 		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
 		if err != nil {
@@ -396,10 +401,8 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	prepareHomeTreeSideBarSwitch(ctx)
-
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
-	if len(ctx.Repo.Repository.Description) > 0 {
+	if ctx.Repo.Repository.Description != "" {
 		title += ": " + ctx.Repo.Repository.Description
 	}
 	ctx.Data["Title"] = title
@@ -411,6 +414,8 @@ func Home(ctx *context.Context) {
 		handleRepoEmptyOrBroken(ctx)
 		return
 	}
+
+	prepareHomeTreeSideBarSwitch(ctx)
 
 	// get the current git entry which doer user is currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
