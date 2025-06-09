@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -20,11 +21,7 @@ import (
 
 func TestWebfinger(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.Federation.Enabled = true
-	defer func() {
-		setting.Federation.Enabled = false
-	}()
+	defer test.MockVariableValue(&setting.Federation.Enabled, true)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
