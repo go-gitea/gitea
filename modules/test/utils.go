@@ -17,6 +17,7 @@ import (
 
 // RedirectURL returns the redirect URL of a http response.
 // It also works for JSONRedirect: `{"redirect": "..."}`
+// FIXME: it should separate the logic of checking from header and JSON body
 func RedirectURL(resp http.ResponseWriter) string {
 	loc := resp.Header().Get("Location")
 	if loc != "" {
@@ -32,6 +33,15 @@ func RedirectURL(resp http.ResponseWriter) string {
 		}
 	}
 	return ""
+}
+
+func ParseJSONError(buf []byte) (ret struct {
+	ErrorMessage string `json:"errorMessage"`
+	RenderFormat string `json:"renderFormat"`
+},
+) {
+	_ = json.Unmarshal(buf, &ret)
+	return ret
 }
 
 func IsNormalPageCompleted(s string) bool {
