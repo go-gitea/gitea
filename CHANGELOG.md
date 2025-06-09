@@ -297,6 +297,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix possible pull request broken when leave the page immediately after clicking the update button (#34509)
   * Fix margin issue in markup paragraph rendering (#34599)
   * Fix migration pull request title too long (#34577)
+  * Fix footnote jump behavior on the issue page. (#34621)
+  * Fix "oras" OCI client compatibility (#34666)
+  * Fix last admin check when syncing users (#34649)
+  * Fix skip paths check on tag push events in workflows (#34602) #34670
 
 * MISC
 
@@ -368,6 +372,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix eslint (#33002)
   * Update JS dependencies (#32914)
   * Bump x/net (#32896) (#32900)
+  * Only activity tab needs heatmap data loading (#34652)
 
 ## [1.23.6](https://github.com/go-gitea/gitea/releases/tag/v1.23.6) - 2025-03-24
 
