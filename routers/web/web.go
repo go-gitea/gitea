@@ -178,7 +178,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			return
 		}
 
-		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" {
+		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == http.MethodPost {
 			ctx.Csrf.Validate(ctx)
 			if ctx.Written() {
 				return
@@ -283,23 +283,23 @@ func Routes() *web.Router {
 	mid = append(mid, goGet)
 	mid = append(mid, common.PageTmplFunctions)
 
-	others := web.NewRouter()
-	others.Use(mid...)
-	registerRoutes(others)
-	routes.Mount("", others)
+	webRoutes := web.NewRouter()
+	webRoutes.Use(mid...)
+	webRoutes.Group("", func() { registerWebRoutes(webRoutes) }, common.BlockExpensive(), common.QoS())
+	routes.Mount("", webRoutes)
 	return routes
 }
 
 var optSignInIgnoreCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
 
-// registerRoutes register routes
-func registerRoutes(m *web.Router) {
+// registerWebRoutes register routes
+func registerWebRoutes(m *web.Router) {
 	// required to be signed in or signed out
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
 	// optional sign in (if signed in, use the user as doer, if not, no doer)
-	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView})
-	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
+	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
+	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
 
 	validation.AddBindingRules()
 
@@ -854,13 +854,13 @@ func registerRoutes(m *web.Router) {
 	individualPermsChecker := func(ctx *context.Context) {
 		// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
 		if ctx.ContextUser.IsIndividual() {
-			switch {
-			case ctx.ContextUser.Visibility == structs.VisibleTypePrivate:
+			switch ctx.ContextUser.Visibility {
+			case structs.VisibleTypePrivate:
 				if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
 					ctx.NotFound(nil)
 					return
 				}
-			case ctx.ContextUser.Visibility == structs.VisibleTypeLimited:
+			case structs.VisibleTypeLimited:
 				if ctx.Doer == nil {
 					ctx.NotFound(nil)
 					return
@@ -1078,6 +1078,8 @@ func registerRoutes(m *web.Router) {
 		m.Post("/avatar", web.Bind(forms.AvatarForm{}), repo_setting.SettingsAvatar)
 		m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
 
+		m.Combo("/public_access").Get(repo_setting.PublicAccess).Post(repo_setting.PublicAccessPost)
+
 		m.Group("/collaboration", func() {
 			m.Combo("").Get(repo_setting.Collaboration).Post(repo_setting.CollaborationPost)
 			m.Post("/access_mode", repo_setting.ChangeCollaborationAccessMode)
@@ -1209,7 +1211,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/comments/{id}/attachments", repo.GetCommentAttachments)
 		m.Get("/labels", repo.RetrieveLabelsForList, repo.Labels)
 		m.Get("/milestones", repo.Milestones)
-		m.Get("/milestone/{id}", context.RepoRef(), repo.MilestoneIssuesAndPulls)
+		m.Get("/milestone/{id}", repo.MilestoneIssuesAndPulls)
 		m.Get("/issues/suggestions", repo.IssueSuggestions)
 	}, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader) // issue/pull attachments, labels, milestones
 	// end "/{username}/{reponame}": view milestone, label, issue, pull, etc
@@ -1223,9 +1225,9 @@ func registerRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}", func() { // edit issues, pulls, labels, milestones, etc
 		m.Group("/issues", func() {
 			m.Group("/new", func() {
-				m.Combo("").Get(context.RepoRef(), repo.NewIssue).
+				m.Combo("").Get(repo.NewIssue).
 					Post(web.Bind(forms.CreateIssueForm{}), repo.NewIssuePost)
-				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
+				m.Get("/choose", repo.NewIssueChooseTemplate)
 			})
 			m.Get("/search", repo.SearchRepoIssuesJSON)
 		}, reqUnitIssuesReader)
@@ -1289,7 +1291,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/edit", web.Bind(forms.CreateLabelForm{}), repo.UpdateLabel)
 			m.Post("/delete", repo.DeleteLabel)
 			m.Post("/initialize", web.Bind(forms.InitializeLabelsForm{}), repo.InitializeLabels)
-		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
+		}, reqRepoIssuesOrPullsWriter)
 
 		m.Group("/milestones", func() {
 			m.Combo("/new").Get(repo.NewMilestone).
@@ -1298,7 +1300,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/{id}/edit", web.Bind(forms.CreateMilestoneForm{}), repo.EditMilestonePost)
 			m.Post("/{id}/{action}", repo.ChangeMilestoneStatus)
 			m.Post("/delete", repo.DeleteMilestone)
-		}, reqRepoIssuesOrPullsWriter, context.RepoRef())
+		}, reqRepoIssuesOrPullsWriter)
 
 		// FIXME: many "pulls" requests are sent to "issues" endpoints incorrectly, need to move these routes to the proper place
 		m.Group("/issues", func() {
@@ -1376,7 +1378,7 @@ func registerRoutes(m *web.Router) {
 			m.Post("/delete", repo.DeleteRelease)
 			m.Post("/attachments", repo.UploadReleaseAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
-		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
+		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter)
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
 			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
@@ -1444,8 +1446,10 @@ func registerRoutes(m *web.Router) {
 				m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 				m.Get("/logs", actions.Logs)
 			})
+			m.Get("/workflow", actions.ViewWorkflowFile)
 			m.Post("/cancel", reqRepoActionsWriter, actions.Cancel)
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
+			m.Post("/delete", reqRepoActionsWriter, actions.Delete)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
 			m.Delete("/artifacts/{artifact_name}", reqRepoActionsWriter, actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
@@ -1489,7 +1493,7 @@ func registerRoutes(m *web.Router) {
 			})
 			m.Group("/recent-commits", func() {
 				m.Get("", repo.RecentCommits)
-				m.Get("/data", repo.RecentCommitsData)
+				m.Get("/data", repo.CodeFrequencyData) // "recent-commits" also uses the same data as "code-frequency"
 			})
 		}, reqUnitCodeReader)
 	},
@@ -1504,20 +1508,21 @@ func registerRoutes(m *web.Router) {
 			m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewIssue)
 			m.Get(".diff", repo.DownloadPullDiff)
 			m.Get(".patch", repo.DownloadPullPatch)
+			m.Get("/merge_box", repo.ViewPullMergeBox)
 			m.Group("/commits", func() {
-				m.Get("", context.RepoRef(), repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
-				m.Get("/list", context.RepoRef(), repo.GetPullCommits)
-				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
+				m.Get("", repo.SetWhitespaceBehavior, repo.GetPullDiffStats, repo.ViewPullCommits)
+				m.Get("/list", repo.GetPullCommits)
+				m.Get("/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
 			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
 			m.Post("/update", repo.UpdatePullRequest)
 			m.Post("/set_allow_maintainer_edit", web.Bind(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
-			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
+			m.Post("/cleanup", context.RepoMustNotBeArchived(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
-				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
-				m.Get("/{sha:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesStartingFromCommit)
-				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
+				m.Get("", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForAllCommitsOfPr)
+				m.Get("/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesStartingFromCommit)
+				m.Get("/{shaFrom:[a-f0-9]{7,40}}..{shaTo:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForRange)
 				m.Group("/reviews", func() {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCodeComment)
@@ -1604,7 +1609,7 @@ func registerRoutes(m *web.Router) {
 		m.Get("/tree/*", repo.RedirectRepoTreeToSrc)    // redirect "/owner/repo/tree/*" requests to "/owner/repo/src/*"
 		m.Get("/blob/*", repo.RedirectRepoBlobToCommit) // redirect "/owner/repo/blob/*" requests to "/owner/repo/src/commit/*"
 
-		m.Get("/forks", context.RepoRef(), repo.Forks)
+		m.Get("/forks", repo.Forks)
 		m.Get("/commit/{sha:([a-f0-9]{7,64})}.{ext:patch|diff}", repo.MustBeNotEmpty, repo.RawDiff)
 		m.Post("/lastcommit/*", context.RepoRefByType(git.RefTypeCommit), repo.LastCommit)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)

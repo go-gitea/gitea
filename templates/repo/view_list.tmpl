@@ -4,9 +4,10 @@
 		{{template "repo/latest_commit" .}}
 		<div>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}</div>
 	</div>
+	{{$.FileIconPoolHTML}}
 	{{if .HasParentPath}}
 	<a class="repo-file-line parent-link silenced" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">
-		{{svg "octicon-file-directory-fill"}} ..
+		{{index $.FileIcons ".."}} ..
 	</a>
 	{{end}}
 	{{range $item := .Files}}
@@ -15,7 +16,7 @@
 			{{$commit := $item.Commit}}
 			{{$submoduleFile := $item.SubmoduleFile}}
 			<div class="repo-file-cell name muted-links {{if not $commit}}notready{{end}}">
-				{{ctx.RenderUtils.RenderFileIcon $entry}}
+				{{index $.FileIcons $entry.Name}}
 				{{if $entry.IsSubModule}}
 					{{$submoduleLink := $submoduleFile.SubmoduleWebLink ctx}}
 					{{if $submoduleLink}}
@@ -46,7 +47,7 @@
 			<div class="repo-file-cell message loading-icon-2px">
 				{{if $commit}}
 					{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
-					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink ($.Repository.ComposeMetas ctx)}}
+					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink $.Repository}}
 				{{else}}
 					… {{/* will be loaded again by LastCommitLoaderURL */}}
 				{{end}}

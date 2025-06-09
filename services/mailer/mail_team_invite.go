@@ -6,6 +6,7 @@ package mailer
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -38,10 +39,10 @@ func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_mod
 	if err != nil && !user_model.IsErrUserNotExist(err) {
 		return err
 	} else if user != nil && user.ProhibitLogin {
-		return fmt.Errorf("login is prohibited for the invited user")
+		return errors.New("login is prohibited for the invited user")
 	}
 
-	inviteRedirect := url.QueryEscape(fmt.Sprintf("/org/invite/%s", invite.Token))
+	inviteRedirect := url.QueryEscape("/org/invite/" + invite.Token)
 	inviteURL := fmt.Sprintf("%suser/sign_up?redirect_to=%s", setting.AppURL, inviteRedirect)
 
 	if (err == nil && user != nil) || setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {

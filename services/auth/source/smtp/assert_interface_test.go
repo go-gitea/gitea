@@ -18,7 +18,6 @@ type sourceInterface interface {
 	auth_model.SkipVerifiable
 	auth_model.HasTLSer
 	auth_model.UseTLSer
-	auth_model.SourceSettable
 }
 
 var _ (sourceInterface) = &smtp.Source{}

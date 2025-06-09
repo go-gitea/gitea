@@ -21,24 +21,24 @@ func TestSettings(t *testing.T) {
 
 	rev, settings, err := system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, rev)
+	assert.Equal(t, 1, rev)
 	assert.Len(t, settings, 1) // there is only one "revision" key
 
 	err = system.SetSettings(db.DefaultContext, map[string]string{keyName: "true"})
 	assert.NoError(t, err)
 	rev, settings, err = system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, rev)
+	assert.Equal(t, 2, rev)
 	assert.Len(t, settings, 2)
-	assert.EqualValues(t, "true", settings[keyName])
+	assert.Equal(t, "true", settings[keyName])
 
 	err = system.SetSettings(db.DefaultContext, map[string]string{keyName: "false"})
 	assert.NoError(t, err)
 	rev, settings, err = system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, rev)
+	assert.Equal(t, 3, rev)
 	assert.Len(t, settings, 2)
-	assert.EqualValues(t, "false", settings[keyName])
+	assert.Equal(t, "false", settings[keyName])
 
 	// setting the same value should not trigger DuplicateKey error, and the "version" should be increased
 	err = system.SetSettings(db.DefaultContext, map[string]string{keyName: "false"})
@@ -47,5 +47,5 @@ func TestSettings(t *testing.T) {
 	rev, settings, err = system.GetAllSettings(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, settings, 2)
-	assert.EqualValues(t, 4, rev)
+	assert.Equal(t, 4, rev)
 }

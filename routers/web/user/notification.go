@@ -287,15 +287,7 @@ func NotificationSubscriptions(ctx *context.Context) {
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["Issues"] = issues
-
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, "")
-
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
-	if err != nil {
-		ctx.ServerError("GetIssuesLastCommitStatus", err)
-		return
-	}
-	ctx.Data["CommitStatus"] = commitStatus
 
 	approvalCounts, err := issues.GetApprovalCounts(ctx)
 	if err != nil {
@@ -308,9 +300,10 @@ func NotificationSubscriptions(ctx *context.Context) {
 			return 0
 		}
 		reviewTyp := issues_model.ReviewTypeApprove
-		if typ == "reject" {
+		switch typ {
+		case "reject":
 			reviewTyp = issues_model.ReviewTypeReject
-		} else if typ == "waiting" {
+		case "waiting":
 			reviewTyp = issues_model.ReviewTypeRequest
 		}
 		for _, count := range counts {
@@ -389,7 +382,7 @@ func NotificationWatching(ctx *context.Context) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
-	repos, count, err := repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,

@@ -32,19 +32,19 @@ func (err ErrNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrBadLink entry.FollowLink error
-type ErrBadLink struct {
+// ErrSymlinkUnresolved entry.FollowLink error
+type ErrSymlinkUnresolved struct {
 	Name    string
 	Message string
 }
 
-func (err ErrBadLink) Error() string {
+func (err ErrSymlinkUnresolved) Error() string {
 	return fmt.Sprintf("%s: %s", err.Name, err.Message)
 }
 
-// IsErrBadLink if some error is ErrBadLink
-func IsErrBadLink(err error) bool {
-	_, ok := err.(ErrBadLink)
+// IsErrSymlinkUnresolved if some error is ErrSymlinkUnresolved
+func IsErrSymlinkUnresolved(err error) bool {
+	_, ok := err.(ErrSymlinkUnresolved)
 	return ok
 }
 

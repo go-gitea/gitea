@@ -132,7 +132,7 @@ async function tryOnQuoteReply(e: Event) {
   const targetMarkupToQuote = targetRawToQuote.parentElement.querySelector<HTMLElement>('.render-content.markup');
   let contentToQuote = extractSelectedMarkdown(targetMarkupToQuote);
   if (!contentToQuote) contentToQuote = targetRawToQuote.textContent;
-  const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n`;
+  const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n\n`;
 
   let editor;
   if (clickTarget.classList.contains('quote-reply-diff')) {

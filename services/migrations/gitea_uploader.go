@@ -107,7 +107,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 			IsPrivate:      opts.Private || setting.Repository.ForcePrivate,
 			IsMirror:       opts.Mirror,
 			Status:         repo_model.RepositoryBeingMigrated,
-		})
+		}, false)
 	} else {
 		r, err = repo_model.GetRepositoryByID(ctx, opts.MigrateToRepoID)
 	}
@@ -148,7 +148,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 		return err
 	}
 	g.repo.ObjectFormatName = objectFormat.Name()
-	return repo_model.UpdateRepositoryCols(ctx, g.repo, "object_format_name")
+	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, g.repo, "object_format_name")
 }
 
 // Close closes this uploader
@@ -556,7 +556,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
-		pull.AddToTaskQueue(ctx, pr)
+		pull.StartPullRequestCheckImmediately(ctx, pr)
 	}
 	return nil
 }
@@ -765,7 +765,7 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 	issue := issues_model.Issue{
 		RepoID:      g.repo.ID,
 		Repo:        g.repo,
-		Title:       prTitle,
+		Title:       util.TruncateRunes(prTitle, 255),
 		Index:       pr.Number,
 		Content:     pr.Content,
 		MilestoneID: milestoneID,
@@ -975,7 +975,7 @@ func (g *GiteaLocalUploader) Finish(ctx context.Context) error {
 	}
 
 	g.repo.Status = repo_model.RepositoryReady
-	return repo_model.UpdateRepositoryCols(ctx, g.repo, "status")
+	return repo_model.UpdateRepositoryColsWithAutoTime(ctx, g.repo, "status")
 }
 
 func (g *GiteaLocalUploader) remapUser(ctx context.Context, source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) error {
@@ -1017,7 +1017,7 @@ func (g *GiteaLocalUploader) remapLocalUser(ctx context.Context, source user_mod
 func (g *GiteaLocalUploader) remapExternalUser(ctx context.Context, source user_model.ExternalUserMigrated) (userid int64, err error) {
 	userid, ok := g.userMap[source.GetExternalID()]
 	if !ok {
-		userid, err = user_model.GetUserIDByExternalUserID(ctx, g.gitServiceType.Name(), fmt.Sprintf("%d", source.GetExternalID()))
+		userid, err = user_model.GetUserIDByExternalUserID(ctx, g.gitServiceType.Name(), strconv.FormatInt(source.GetExternalID(), 10))
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
 			return 0, err

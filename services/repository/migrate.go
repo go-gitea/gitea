@@ -118,14 +118,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.Owner = u
 	}
 
-	if err := repo_module.CheckDaemonExportOK(ctx, repo); err != nil {
-		return repo, fmt.Errorf("checkDaemonExportOK: %w", err)
-	}
-
-	if stdout, _, err := git.NewCommand("update-server-info").
-		RunStdString(ctx, &git.RunOpts{Dir: repoPath}); err != nil {
-		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %w", err)
+	if err := updateGitRepoAfterCreate(ctx, repo); err != nil {
+		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
 	gitRepo, err := git.OpenRepository(ctx, repoPath)
@@ -142,12 +136,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	if !repo.IsEmpty {
 		if len(repo.DefaultBranch) == 0 {
 			// Try to get HEAD branch and set it as default branch.
-			headBranch, err := gitRepo.GetHEADBranch()
+			headBranchName, err := git.GetDefaultBranch(ctx, repoPath)
 			if err != nil {
 				return repo, fmt.Errorf("GetHEADBranch: %w", err)
 			}
-			if headBranch != nil {
-				repo.DefaultBranch = headBranch.Name
+			if headBranchName != "" {
+				repo.DefaultBranch = headBranchName
 			}
 		}
 
@@ -155,9 +149,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %v", err)
 		}
 
+		// if releases migration are not requested, we will sync all tags here
+		// otherwise, the releases sync will be done out of this function
 		if !opts.Releases {
-			// note: this will greatly improve release (tag) sync
-			// for pull-mirrors with many tags
 			repo.IsMirror = opts.Mirror
 			if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)

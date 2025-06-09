@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	web_types "code.gitea.io/gitea/modules/web/types"
@@ -184,7 +185,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			})
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
-			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
+			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
 				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
 					ctx.ServerError("ParseMultipartForm", err)
 					return
@@ -195,6 +196,8 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["SystemConfig"] = setting.Config()
+
+			ctx.Data["ShowTwoFactorRequiredMessage"] = ctx.DoerNeedTwoFactorAuth()
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
@@ -207,6 +210,13 @@ func Contexter() func(next http.Handler) http.Handler {
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
+}
+
+func (ctx *Context) DoerNeedTwoFactorAuth() bool {
+	if !setting.TwoFactorAuthEnforced {
+		return false
+	}
+	return ctx.Session.Get(session.KeyUserHasTwoFactorAuth) == false
 }
 
 // HasError returns true if error occurs in form validation.
@@ -251,4 +261,12 @@ func (ctx *Context) JSONError(msg any) {
 	default:
 		panic(fmt.Sprintf("unsupported type: %T", msg))
 	}
+}
+
+func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
+	msg := util.OptionalArg(optMsg)
+	if msg == "" {
+		msg = ctx.Locale.TrString("error.not_found")
+	}
+	ctx.JSON(http.StatusNotFound, map[string]any{"errorMessage": msg, "renderFormat": "text"})
 }

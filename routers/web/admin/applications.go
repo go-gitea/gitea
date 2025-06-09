@@ -4,7 +4,6 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
@@ -23,8 +22,8 @@ var (
 func newOAuth2CommonHandlers() *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
 		OwnerID:            0,
-		BasePathList:       fmt.Sprintf("%s/-/admin/applications", setting.AppSubURL),
-		BasePathEditPrefix: fmt.Sprintf("%s/-/admin/applications/oauth2", setting.AppSubURL),
+		BasePathList:       setting.AppSubURL + "/-/admin/applications",
+		BasePathEditPrefix: setting.AppSubURL + "/-/admin/applications/oauth2",
 		TplAppEdit:         tplSettingsOauth2ApplicationEdit,
 	}
 }

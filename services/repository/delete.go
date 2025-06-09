@@ -27,10 +27,25 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+	actions_service "code.gitea.io/gitea/services/actions"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	issue_service "code.gitea.io/gitea/services/issue"
 
 	"xorm.io/builder"
 )
+
+func deleteDBRepository(ctx context.Context, repoID int64) error {
+	if cnt, err := db.GetEngine(ctx).ID(repoID).Delete(&repo_model.Repository{}); err != nil {
+		return err
+	} else if cnt != 1 {
+		return repo_model.ErrRepoNotExist{
+			ID:        repoID,
+			OwnerName: "",
+			Name:      "",
+		}
+	}
+	return nil
+}
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
@@ -82,14 +97,8 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	}
 	needRewriteKeysFile := deleted > 0
 
-	if cnt, err := sess.ID(repoID).Delete(&repo_model.Repository{}); err != nil {
+	if err := deleteDBRepository(ctx, repoID); err != nil {
 		return err
-	} else if cnt != 1 {
-		return repo_model.ErrRepoNotExist{
-			ID:        repoID,
-			OwnerName: "",
-			Name:      "",
-		}
 	}
 
 	if org != nil && org.IsOrganization() {
@@ -124,6 +133,14 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 	if _, err := db.GetEngine(ctx).In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"webhook.repo_id": repo.ID})).
 		Delete(&webhook.HookTask{}); err != nil {
 		return err
+	}
+
+	// CleanupEphemeralRunnersByPickedTaskOfRepo deletes ephemeral global/org/user that have started any task of this repo
+	// The cannot pick a second task hardening for ephemeral runners expect that task objects remain available until runner deletion
+	// This method will delete affected ephemeral global/org/user runners
+	// &actions_model.ActionRunner{RepoID: repoID} does only handle ephemeral repository runners
+	if err := actions_service.CleanupEphemeralRunnersByPickedTaskOfRepo(ctx, repoID); err != nil {
+		return fmt.Errorf("cleanupEphemeralRunners: %w", err)
 	}
 
 	if err := db.DeleteBeans(ctx,
@@ -177,7 +194,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 
 	// Delete Issues and related objects
 	var attachmentPaths []string
-	if attachmentPaths, err = issues_model.DeleteIssuesByRepoID(ctx, repoID); err != nil {
+	if attachmentPaths, err = issue_service.DeleteIssuesByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
@@ -358,7 +375,7 @@ func DeleteRepositoryDirectly(ctx context.Context, doer *user_model.User, repoID
 // DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner
 func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User) error {
 	for {
-		repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+		repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     1,

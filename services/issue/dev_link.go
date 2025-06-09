@@ -26,12 +26,7 @@ func FindIssueDevLinksByIssue(ctx context.Context, issue *issues_model.Issue) (i
 	}
 
 	sort.Slice(devLinks, func(i, j int) bool {
-		switch {
-		case devLinks[j].LinkType == issues_model.IssueDevLinkTypePullRequest:
-			return false
-		default:
-			return true
-		}
+		return devLinks[j].LinkType != issues_model.IssueDevLinkTypePullRequest
 	})
 
 	branchPRExists := make(container.Set[string])

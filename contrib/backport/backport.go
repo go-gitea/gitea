@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v71/github"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -158,7 +159,7 @@ func runBackport(c *cli.Context) error {
 
 	args := c.Args().Slice()
 	if len(args) == 0 && pr == "" {
-		return fmt.Errorf("no PR number provided\nProvide a PR number to backport")
+		return errors.New("no PR number provided\nProvide a PR number to backport")
 	} else if len(args) != 1 && pr == "" {
 		return fmt.Errorf("multiple PRs provided %v\nOnly a single PR can be backported at a time", args)
 	}

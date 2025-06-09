@@ -183,7 +183,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "204":
-	//     description: delete one secret of the organization
+	//     description: delete one secret of the repository
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -339,12 +339,12 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     description: response when creating a repo-level variable
-	//   "204":
-	//     description: response when creating a repo-level variable
 	//   "400":
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     description: variable name already exists.
+	//   "500":
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
@@ -373,7 +373,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // UpdateVariable update a repo-level variable
@@ -529,6 +529,125 @@ func (Action) GetRegistrationToken(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RegistrationToken"
 
 	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
+}
+
+// CreateRegistrationToken returns the token to register repo runners
+func (Action) CreateRegistrationToken(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runners/registration-token repository repoCreateRunnerRegistrationToken
+	// ---
+	// summary: Get a repository's actions runner registration token
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RegistrationToken"
+
+	shared.GetRegistrationToken(ctx, 0, ctx.Repo.Repository.ID)
+}
+
+// ListRunners get repo-level runners
+func (Action) ListRunners(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runners repository getRepoRunners
+	// ---
+	// summary: Get repo-level runners
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunnersResponse"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.ListRunners(ctx, 0, ctx.Repo.Repository.ID)
+}
+
+// GetRunner get an repo-level runner
+func (Action) GetRunner(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/actions/runners/{runner_id} repository getRepoRunner
+	// ---
+	// summary: Get an repo-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.GetRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
+}
+
+// DeleteRunner delete an repo-level runner
+func (Action) DeleteRunner(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runners/{runner_id} repository deleteRepoRunner
+	// ---
+	// summary: Delete an repo-level runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: runner has been deleted
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.DeleteRunner(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParamInt64("runner_id"))
 }
 
 var _ actions_service.API = new(Action)
@@ -942,6 +1061,58 @@ func GetArtifactsOfRun(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &res)
 }
 
+// DeleteActionRun Delete a workflow run
+func DeleteActionRun(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/actions/runs/{run} repository deleteActionRun
+	// ---
+	// summary: Delete a workflow run
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: name of the owner
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: runid of the workflow run
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "204":
+	//     description: "No Content"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	runID := ctx.PathParamInt64("run")
+	run, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.APIError(http.StatusNotFound, err)
+		return
+	} else if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !run.Status.IsDone() {
+		ctx.APIError(http.StatusBadRequest, "this workflow run is not done")
+		return
+	}
+
+	if err := actions_service.DeleteRun(ctx, run); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
 // GetArtifacts Lists all artifacts for a repository.
 func GetArtifacts(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/artifacts repository getArtifacts
@@ -1103,8 +1274,8 @@ func DeleteArtifact(ctx *context.APIContext) {
 func buildSignature(endp string, expires, artifactID int64) []byte {
 	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
 	mac.Write([]byte(endp))
-	mac.Write([]byte(fmt.Sprint(expires)))
-	mac.Write([]byte(fmt.Sprint(artifactID)))
+	fmt.Fprint(mac, expires)
+	fmt.Fprint(mac, artifactID)
 	return mac.Sum(nil)
 }
 

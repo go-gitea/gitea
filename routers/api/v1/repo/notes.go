@@ -4,7 +4,7 @@
 package repo
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/git"
@@ -54,7 +54,7 @@ func GetNote(ctx *context.APIContext) {
 
 	sha := ctx.PathParam("sha")
 	if !git.IsValidRefPattern(sha) {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("no valid ref or sha: %s", sha))
+		ctx.APIError(http.StatusUnprocessableEntity, "no valid ref or sha: "+sha)
 		return
 	}
 	getNote(ctx, sha)
@@ -62,7 +62,7 @@ func GetNote(ctx *context.APIContext) {
 
 func getNote(ctx *context.APIContext, identifier string) {
 	if ctx.Repo.GitRepo == nil {
-		ctx.APIErrorInternal(fmt.Errorf("no open git repo"))
+		ctx.APIErrorInternal(errors.New("no open git repo"))
 		return
 	}
 
@@ -79,7 +79,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 	var note git.Note
 	if err := git.GetNote(ctx, ctx.Repo.GitRepo, commitID.String(), &note); err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(identifier)
+			ctx.APIErrorNotFound("commit doesn't exist: " + identifier)
 			return
 		}
 		ctx.APIErrorInternal(err)

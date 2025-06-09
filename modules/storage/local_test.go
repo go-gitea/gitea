@@ -48,7 +48,7 @@ func TestBuildLocalPath(t *testing.T) {
 		t.Run(k.path, func(t *testing.T) {
 			l := LocalStorage{dir: k.localDir}
 
-			assert.EqualValues(t, k.expected, l.buildLocalPath(k.path))
+			assert.Equal(t, k.expected, l.buildLocalPath(k.path))
 		})
 	}
 }

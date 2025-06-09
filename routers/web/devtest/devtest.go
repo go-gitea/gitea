@@ -4,6 +4,7 @@
 package devtest
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"path"
@@ -128,6 +129,7 @@ func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	fontFamilyNames := strings.Split(badge.DefaultFontFamily, ",")
 	selectedFontFamilyName := ctx.FormString("font", fontFamilyNames[0])
+	selectedStyle := ctx.FormString("style", badge.DefaultStyle)
 	var badges []badge.Badge
 	badges = append(badges, badge.GenerateBadge("啊啊啊啊啊啊啊啊啊啊啊啊", "🌞🌞🌞🌞🌞", "green"))
 	for r := rune(0); r < 256; r++ {
@@ -141,7 +143,16 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	for i, b := range badges {
 		b.IDPrefix = "devtest-" + strconv.FormatInt(int64(i), 10) + "-"
 		b.FontFamily = selectedFontFamilyName
-		h, err := ctx.RenderToHTML("shared/actions/runner_badge", map[string]any{"Badge": b})
+		var h template.HTML
+		var err error
+		switch selectedStyle {
+		case badge.StyleFlat:
+			h, err = ctx.RenderToHTML("shared/actions/runner_badge_flat", map[string]any{"Badge": b})
+		case badge.StyleFlatSquare:
+			h, err = ctx.RenderToHTML("shared/actions/runner_badge_flat-square", map[string]any{"Badge": b})
+		default:
+			err = fmt.Errorf("unknown badge style: %s", selectedStyle)
+		}
 		if err != nil {
 			ctx.ServerError("RenderToHTML", err)
 			return
@@ -151,6 +162,8 @@ func prepareMockDataBadgeActionsSvg(ctx *context.Context) {
 	ctx.Data["BadgeSVGs"] = badgeSVGs
 	ctx.Data["BadgeFontFamilyNames"] = fontFamilyNames
 	ctx.Data["SelectedFontFamilyName"] = selectedFontFamilyName
+	ctx.Data["BadgeStyles"] = badge.GlobalVars().AllStyles
+	ctx.Data["SelectedStyle"] = selectedStyle
 }
 
 func prepareMockData(ctx *context.Context) {
@@ -166,7 +179,7 @@ func prepareMockData(ctx *context.Context) {
 
 func TmplCommon(ctx *context.Context) {
 	prepareMockData(ctx)
-	if ctx.Req.Method == "POST" {
+	if ctx.Req.Method == http.MethodPost {
 		_ = ctx.Req.ParseForm()
 		ctx.Flash.Info("form: "+ctx.Req.Method+" "+ctx.Req.RequestURI+"<br>"+
 			"Form: "+ctx.Req.Form.Encode()+"<br>"+

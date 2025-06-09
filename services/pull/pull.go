@@ -97,7 +97,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	}
 	defer cancel()
 
-	if err := testPatch(ctx, prCtx, pr); err != nil {
+	if err := testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr); err != nil {
 		return err
 	}
 
@@ -332,12 +332,12 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	pr.BaseBranch = targetBranch
 
 	// Refresh patch
-	if err := TestPatch(pr); err != nil {
+	if err := testPullRequestBranchMergeable(pr); err != nil {
 		return err
 	}
 
 	// Update target branch, PR diff and status
-	// This is the same as checkAndUpdateStatus in check service, but also updates base_branch
+	// This is the same as markPullRequestAsMergeable in check service, but also updates base_branch
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
@@ -427,7 +427,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 				continue
 			}
 
-			AddToTaskQueue(ctx, pr)
+			StartPullRequestCheckImmediately(ctx, pr)
 			comment, err := CreatePushPullComment(ctx, opts.Doer, pr, opts.OldCommitID, opts.NewCommitID)
 			if err == nil && comment != nil {
 				notify_service.PullRequestPushCommits(ctx, opts.Doer, pr, comment)
@@ -481,12 +481,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 					}
 
 					if !pr.IsWorkInProgress(ctx) {
-						var reviewNotifiers []*issue_service.ReviewRequestNotifier
-						if opts.IsForcePush {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReview(ctx, pr)
-						} else {
-							reviewNotifiers, err = issue_service.PullRequestCodeOwnersReviewSpecialCommits(ctx, pr, opts.OldCommitID, opts.NewCommitID)
-						}
+						reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(ctx, pr)
 						if err != nil {
 							log.Error("PullRequestCodeOwnersReview: %v", err)
 						}
@@ -520,7 +515,7 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
 			}
-			AddToTaskQueue(ctx, pr)
+			StartPullRequestCheckDelayable(ctx, pr)
 		}
 	})
 }
@@ -781,7 +776,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 
 	var errs []error
 	for _, branch := range branches {
-		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch.Name)
+		prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repo.ID, branch)
 		if err != nil {
 			return err
 		}
@@ -968,12 +963,6 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	return stringBuilder.String()
 }
 
-// GetIssuesLastCommitStatus returns a map of issue ID to the most recent commit's latest status
-func GetIssuesLastCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64]*git_model.CommitStatus, error) {
-	_, lastStatus, err := GetIssuesAllCommitStatus(ctx, issues)
-	return lastStatus, err
-}
-
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
 func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
 	if err := issues.LoadPullRequests(ctx); err != nil {
@@ -1027,7 +1016,7 @@ func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	statuses, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }

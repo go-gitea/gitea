@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -50,7 +51,7 @@ func (p *Permission) HasAnyUnitAccess() bool {
 	return p.AccessMode >= perm_model.AccessModeRead
 }
 
-func (p *Permission) HasAnyUnitAccessOrPublicAccess() bool {
+func (p *Permission) HasAnyUnitPublicAccess() bool {
 	for _, v := range p.anonymousAccessMode {
 		if v >= perm_model.AccessModeRead {
 			return true
@@ -61,7 +62,11 @@ func (p *Permission) HasAnyUnitAccessOrPublicAccess() bool {
 			return true
 		}
 	}
-	return p.HasAnyUnitAccess()
+	return false
+}
+
+func (p *Permission) HasAnyUnitAccessOrPublicAccess() bool {
+	return p.HasAnyUnitPublicAccess() || p.HasAnyUnitAccess()
 }
 
 // HasUnits returns true if the permission contains attached units
@@ -188,6 +193,9 @@ func (p *Permission) LogString() string {
 }
 
 func applyPublicAccessPermission(unitType unit.Type, accessMode perm_model.AccessMode, modeMap *map[unit.Type]perm_model.AccessMode) {
+	if setting.Repository.ForcePrivate {
+		return
+	}
 	if accessMode >= perm_model.AccessModeRead && accessMode > (*modeMap)[unitType] {
 		if *modeMap == nil {
 			*modeMap = make(map[unit.Type]perm_model.AccessMode)
@@ -323,7 +331,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 	// if user in an owner team
 	for _, team := range teams {
-		if team.AccessMode >= perm_model.AccessModeAdmin {
+		if team.HasAdminAccess() {
 			perm.AccessMode = perm_model.AccessModeOwner
 			perm.unitsMode = nil
 			return perm, nil
@@ -391,7 +399,7 @@ func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *use
 	}
 
 	for _, team := range teams {
-		if team.AccessMode >= perm_model.AccessModeAdmin {
+		if team.HasAdminAccess() {
 			return true, nil
 		}
 	}
@@ -513,4 +521,8 @@ func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 	}
 
 	return perm.CanRead(unitType)
+}
+
+func PermissionNoAccess() Permission {
+	return Permission{AccessMode: perm_model.AccessModeNone}
 }

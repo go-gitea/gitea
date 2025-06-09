@@ -5,7 +5,6 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -367,7 +366,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	pushMirror := &repo_model.PushMirror{
 		RepoID:        repo.ID,
 		Repo:          repo,
-		RemoteName:    fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+		RemoteName:    "remote_mirror_" + remoteSuffix,
 		Interval:      interval,
 		SyncOnCommit:  mirrorOption.SyncOnCommit,
 		RemoteAddress: remoteAddress,

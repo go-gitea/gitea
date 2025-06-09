@@ -4,19 +4,16 @@
 package v1_24 //nolint
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func CreateTableIssueDevLink(x *xorm.Engine) error {
-	type IssueDevLink struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IssueID      int64 `xorm:"INDEX"`
-		LinkType     int
-		LinkedRepoID int64              `xorm:"INDEX"` // it can link to self repo or other repo
-		LinkIndex    string             // branch name, pull request number or commit sha
-		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+func AddExclusiveOrderColumnToLabelTable(x *xorm.Engine) error {
+	type Label struct {
+		ExclusiveOrder int `xorm:"DEFAULT 0"`
 	}
-	return x.Sync(new(IssueDevLink))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(Label))
+	return err
 }

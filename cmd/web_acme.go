@@ -136,7 +136,7 @@ func runACME(listenAddr string, m http.Handler) error {
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" && r.Method != "HEAD" {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		http.Error(w, "Use HTTPS", http.StatusBadRequest)
 		return
 	}

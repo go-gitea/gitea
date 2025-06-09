@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -110,7 +111,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	var protectBranch *git_model.ProtectedBranch
 	if f.RuleName == "" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_rule_name"))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches/edit", ctx.Repo.RepoLink))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/branches/edit")
 		return
 	}
 
@@ -283,32 +284,32 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 func DeleteProtectedBranchRulePost(ctx *context.Context) {
 	ruleID := ctx.PathParamInt64("id")
 	if ruleID <= 0 {
-		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
-		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", strconv.FormatInt(ruleID, 10)))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	rule, err := git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, ruleID)
 	if err != nil {
-		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
-		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", strconv.FormatInt(ruleID, 10)))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	if rule == nil {
-		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", fmt.Sprintf("%d", ruleID)))
-		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", strconv.FormatInt(ruleID, 10)))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	if err := git_model.DeleteProtectedBranch(ctx, ctx.Repo.Repository, ruleID); err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.settings.remove_protected_branch_failed", rule.RuleName))
-		ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.RuleName))
-	ctx.JSONRedirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 }
 
 func UpdateBranchProtectionPriories(ctx *context.Context) {
@@ -332,7 +333,7 @@ func RenameBranchPost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		return
 	}
 
@@ -341,13 +342,13 @@ func RenameBranchPost(ctx *context.Context) {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.rename_default_or_protected_branch_error"))
-			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+			ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		case git_model.IsErrBranchAlreadyExists(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.To))
-			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+			ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		case errors.Is(err, git_model.ErrBranchIsProtected):
 			ctx.Flash.Error(ctx.Tr("repo.branch.rename_protected_branch_failed"))
-			ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+			ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		default:
 			ctx.ServerError("RenameBranch", err)
 		}
@@ -356,16 +357,16 @@ func RenameBranchPost(ctx *context.Context) {
 
 	if msg == "target_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_exist", form.To))
-		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		return
 	}
 
 	if msg == "from_not_exist" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_not_exist", form.From))
-		ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+		ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.rename_branch_success", form.From, form.To))
-	ctx.Redirect(fmt.Sprintf("%s/branches", ctx.Repo.RepoLink))
+	ctx.Redirect(ctx.Repo.RepoLink + "/branches")
 }

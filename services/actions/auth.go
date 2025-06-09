@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -80,7 +81,7 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 	parts := strings.SplitN(h, " ", 2)
 	if len(parts) != 2 {
 		log.Error("split token failed: %s", h)
-		return 0, fmt.Errorf("split token failed")
+		return 0, errors.New("split token failed")
 	}
 
 	return TokenToTaskID(parts[1])
@@ -100,7 +101,7 @@ func TokenToTaskID(token string) (int64, error) {
 
 	c, ok := parsedToken.Claims.(*actionsClaims)
 	if !parsedToken.Valid || !ok {
-		return 0, fmt.Errorf("invalid token claim")
+		return 0, errors.New("invalid token claim")
 	}
 
 	return c.TaskID, nil

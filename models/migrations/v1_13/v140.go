@@ -46,7 +46,7 @@ func FixLanguageStatsToSaveSize(x *xorm.Engine) error {
 	}
 
 	// Delete language stats
-	if _, err := x.Exec(fmt.Sprintf("%s language_stat", truncExpr)); err != nil {
+	if _, err := x.Exec(truncExpr + " language_stat"); err != nil {
 		return err
 	}
 

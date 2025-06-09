@@ -87,14 +87,15 @@ func Verify(buf []byte, fileName, allowedTypesStr string) error {
 
 // AddUploadContext renders template values for dropzone
 func AddUploadContext(ctx *context.Context, uploadType string) {
-	if uploadType == "release" {
+	switch uploadType {
+	case "release":
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/releases/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/releases/attachments/remove"
 		ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/releases/attachments"
 		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Release.AllowedTypes, "|", ",")
 		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
 		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
-	} else if uploadType == "comment" {
+	case "comment":
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"
 		if len(ctx.PathParam("index")) > 0 {
@@ -105,7 +106,7 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Attachment.AllowedTypes, "|", ",")
 		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
 		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
-	} else if uploadType == "repo" {
+	case "repo":
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/upload-file"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/upload-remove"
 		ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/upload-file"

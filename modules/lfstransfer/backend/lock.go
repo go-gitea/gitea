@@ -5,6 +5,7 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -74,7 +75,7 @@ func (g *giteaLockBackend) Create(path, refname string) (transfer.Lock, error) {
 
 	if respBody.Lock == nil {
 		g.logger.Log("api returned nil lock")
-		return nil, fmt.Errorf("api returned nil lock")
+		return nil, errors.New("api returned nil lock")
 	}
 	respLock := respBody.Lock
 	owner := userUnknown
@@ -263,7 +264,7 @@ func (g *giteaLock) CurrentUser() (string, error) {
 // AsLockSpec implements transfer.Lock
 func (g *giteaLock) AsLockSpec(ownerID bool) ([]string, error) {
 	msgs := []string{
-		fmt.Sprintf("lock %s", g.ID()),
+		"lock " + g.ID(),
 		fmt.Sprintf("path %s %s", g.ID(), g.Path()),
 		fmt.Sprintf("locked-at %s %s", g.ID(), g.FormattedTimestamp()),
 		fmt.Sprintf("ownername %s %s", g.ID(), g.OwnerName()),
@@ -285,9 +286,9 @@ func (g *giteaLock) AsLockSpec(ownerID bool) ([]string, error) {
 // AsArguments implements transfer.Lock
 func (g *giteaLock) AsArguments() []string {
 	return []string{
-		fmt.Sprintf("id=%s", g.ID()),
-		fmt.Sprintf("path=%s", g.Path()),
-		fmt.Sprintf("locked-at=%s", g.FormattedTimestamp()),
-		fmt.Sprintf("ownername=%s", g.OwnerName()),
+		"id=" + g.ID(),
+		"path=" + g.Path(),
+		"locked-at=" + g.FormattedTimestamp(),
+		"ownername=" + g.OwnerName(),
 	}
 }

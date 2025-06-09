@@ -290,7 +290,24 @@ func DownloadManifest(ctx *context.Context) {
 	})
 }
 
-// https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6
+// formFileOptionalReadCloser returns (nil, nil) if the formKey is not present.
+func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCloser, error) {
+	multipartFile, _, err := ctx.Req.FormFile(formKey)
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
+		return nil, err
+	}
+	if multipartFile != nil {
+		return multipartFile, nil
+	}
+
+	content := ctx.Req.FormValue(formKey)
+	if content == "" {
+		return nil, nil
+	}
+	return io.NopCloser(strings.NewReader(content)), nil
+}
+
+// UploadPackageFile refers to https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#endpoint-6
 func UploadPackageFile(ctx *context.Context) {
 	packageScope := ctx.PathParam("scope")
 	packageName := ctx.PathParam("name")
@@ -304,9 +321,9 @@ func UploadPackageFile(ctx *context.Context) {
 
 	packageVersion := v.Core().String()
 
-	file, _, err := ctx.Req.FormFile("source-archive")
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+	file, err := formFileOptionalReadCloser(ctx, "source-archive")
+	if file == nil || err != nil {
+		apiError(ctx, http.StatusBadRequest, "unable to read source-archive file")
 		return
 	}
 	defer file.Close()
@@ -318,10 +335,13 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	var mr io.Reader
-	metadata := ctx.Req.FormValue("metadata")
-	if metadata != "" {
-		mr = strings.NewReader(metadata)
+	mr, err := formFileOptionalReadCloser(ctx, "metadata")
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, "unable to read metadata file")
+		return
+	}
+	if mr != nil {
+		defer mr.Close()
 	}
 
 	pck, err := swift_module.ParsePackage(buf, buf.Size(), mr)

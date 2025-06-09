@@ -38,15 +38,15 @@ func TestDiffWithHighlight(t *testing.T) {
 		hcd.placeholderTokenMap['O'], hcd.placeholderTokenMap['C'] = "<span>", "</span>"
 		assert.Equal(t, "<span></span>", string(hcd.recoverOneDiff("OC")))
 		assert.Equal(t, "<span></span>", string(hcd.recoverOneDiff("O")))
-		assert.Equal(t, "", string(hcd.recoverOneDiff("C")))
+		assert.Empty(t, string(hcd.recoverOneDiff("C")))
 	})
 }
 
 func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	hcd := newHighlightCodeDiff()
 	output := hcd.diffLineWithHighlight(DiffLineDel, "a='\U00100000'", "a='\U0010FFFD''")
-	assert.Equal(t, "", hcd.placeholderTokenMap[0x00100000])
-	assert.Equal(t, "", hcd.placeholderTokenMap[0x0010FFFD])
+	assert.Empty(t, hcd.placeholderTokenMap[0x00100000])
+	assert.Empty(t, hcd.placeholderTokenMap[0x0010FFFD])
 	expected := fmt.Sprintf(`a='<span class="removed-code">%s</span>'`, "\U00100000")
 	assert.Equal(t, expected, string(output))
 

@@ -176,7 +176,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var (
-		userRepoCond = repo_model.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
+		userRepoCond = repo_model.SearchRepositoryCondition(repoOpts) // all repo condition user could visit
 		repoCond     = userRepoCond
 		repoIDs      []int64
 
@@ -242,7 +242,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, &repoOpts, userRepoCond, false)
+	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
@@ -461,7 +461,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// As team:
 	// - Team org's owns the repository.
 	// - Team has read permission to repository.
-	repoOpts := &repo_model.SearchRepoOptions{
+	repoOpts := repo_model.SearchRepoOptions{
 		Actor:       ctx.Doer,
 		OwnerID:     ctxUser.ID,
 		Private:     true,
@@ -617,9 +617,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			return 0
 		}
 		reviewTyp := issues_model.ReviewTypeApprove
-		if typ == "reject" {
+		switch typ {
+		case "reject":
 			reviewTyp = issues_model.ReviewTypeReject
-		} else if typ == "waiting" {
+		case "waiting":
 			reviewTyp = issues_model.ReviewTypeRequest
 		}
 		for _, count := range counts {
@@ -698,7 +699,7 @@ func ShowGPGKeys(ctx *context.Context) {
 
 	headers := make(map[string]string)
 	if len(failedEntitiesID) > 0 { // If some key need re-import to be exported
-		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
+		headers["Note"] = "The keys with the following IDs couldn't be exported and need to be reuploaded " + strings.Join(failedEntitiesID, ", ")
 	} else if len(entities) == 0 {
 		headers["Note"] = "This user hasn't uploaded any GPG keys."
 	}

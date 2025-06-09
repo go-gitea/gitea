@@ -28,11 +28,11 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 
 	for _, scope := range GetAccessTokenCategories() {
 		tests = append(tests,
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%s", scope)), AccessTokenScope(fmt.Sprintf("read:%s", scope)), nil},
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("write:%s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("write:%[1]s,read:%[1]s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
-			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s,write:%[1]s", scope)), AccessTokenScope(fmt.Sprintf("write:%s", scope)), nil},
+			scopeTestNormalize{AccessTokenScope("read:" + scope), AccessTokenScope("read:" + scope), nil},
+			scopeTestNormalize{AccessTokenScope("write:" + scope), AccessTokenScope("write:" + scope), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("write:%[1]s,read:%[1]s", scope)), AccessTokenScope("write:" + scope), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s", scope)), AccessTokenScope("write:" + scope), nil},
+			scopeTestNormalize{AccessTokenScope(fmt.Sprintf("read:%[1]s,write:%[1]s,write:%[1]s", scope)), AccessTokenScope("write:" + scope), nil},
 		)
 	}
 
@@ -63,20 +63,20 @@ func TestAccessTokenScope_HasScope(t *testing.T) {
 	for _, scope := range GetAccessTokenCategories() {
 		tests = append(tests,
 			scopeTestHasScope{
-				AccessTokenScope(fmt.Sprintf("read:%s", scope)),
-				AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil,
+				AccessTokenScope("read:" + scope),
+				AccessTokenScope("read:" + scope), true, nil,
 			},
 			scopeTestHasScope{
-				AccessTokenScope(fmt.Sprintf("write:%s", scope)),
-				AccessTokenScope(fmt.Sprintf("write:%s", scope)), true, nil,
+				AccessTokenScope("write:" + scope),
+				AccessTokenScope("write:" + scope), true, nil,
 			},
 			scopeTestHasScope{
-				AccessTokenScope(fmt.Sprintf("write:%s", scope)),
-				AccessTokenScope(fmt.Sprintf("read:%s", scope)), true, nil,
+				AccessTokenScope("write:" + scope),
+				AccessTokenScope("read:" + scope), true, nil,
 			},
 			scopeTestHasScope{
-				AccessTokenScope(fmt.Sprintf("read:%s", scope)),
-				AccessTokenScope(fmt.Sprintf("write:%s", scope)), false, nil,
+				AccessTokenScope("read:" + scope),
+				AccessTokenScope("write:" + scope), false, nil,
 			},
 		)
 	}

@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
@@ -98,7 +99,7 @@ func InfoOAuth(ctx *context.Context) {
 	}
 
 	response := &userInfoResponse{
-		Sub:               fmt.Sprint(ctx.Doer.ID),
+		Sub:               strconv.FormatInt(ctx.Doer.ID, 10),
 		Name:              ctx.Doer.DisplayName(),
 		PreferredUsername: ctx.Doer.Name,
 		Email:             ctx.Doer.Email,
@@ -171,7 +172,7 @@ func IntrospectOAuth(ctx *context.Context) {
 				response.Scope = grant.Scope
 				response.Issuer = setting.AppURL
 				response.Audience = []string{app.ClientID}
-				response.Subject = fmt.Sprint(grant.UserID)
+				response.Subject = strconv.FormatInt(grant.UserID, 10)
 			}
 			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
 				response.Username = user.Name

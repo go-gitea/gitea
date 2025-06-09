@@ -118,11 +118,12 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 		g.buffull = false
 		g.next, err = g.rd.ReadSlice('\x00')
 		if err != nil {
-			if err == bufio.ErrBufferFull {
+			switch err {
+			case bufio.ErrBufferFull:
 				g.buffull = true
-			} else if err == io.EOF {
+			case io.EOF:
 				return nil, nil
-			} else {
+			default:
 				return nil, err
 			}
 		}
@@ -132,11 +133,12 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 	if bytes.Equal(g.next, []byte("commit\000")) {
 		g.next, err = g.rd.ReadSlice('\x00')
 		if err != nil {
-			if err == bufio.ErrBufferFull {
+			switch err {
+			case bufio.ErrBufferFull:
 				g.buffull = true
-			} else if err == io.EOF {
+			case io.EOF:
 				return nil, nil
-			} else {
+			default:
 				return nil, err
 			}
 		}
@@ -214,11 +216,12 @@ diffloop:
 		}
 		g.next, err = g.rd.ReadSlice('\x00')
 		if err != nil {
-			if err == bufio.ErrBufferFull {
+			switch err {
+			case bufio.ErrBufferFull:
 				g.buffull = true
-			} else if err == io.EOF {
+			case io.EOF:
 				return &ret, nil
-			} else {
+			default:
 				return nil, err
 			}
 		}

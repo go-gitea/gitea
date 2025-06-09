@@ -62,14 +62,14 @@ func (a *authPathDetector) isAPIPath() bool {
 
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func (a *authPathDetector) isAttachmentDownload() bool {
-	return strings.HasPrefix(a.req.URL.Path, "/attachments/") && a.req.Method == "GET"
+	return strings.HasPrefix(a.req.URL.Path, "/attachments/") && a.req.Method == http.MethodGet
 }
 
 func (a *authPathDetector) isFeedRequest(req *http.Request) bool {
 	if !setting.Other.EnableFeed {
 		return false
 	}
-	if req.Method != "GET" {
+	if req.Method != http.MethodGet {
 		return false
 	}
 	return a.vars.feedPathRe.MatchString(req.URL.Path) || a.vars.feedRefPathRe.MatchString(req.URL.Path)

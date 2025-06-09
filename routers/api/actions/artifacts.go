@@ -337,7 +337,10 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{RunID: runID})
+	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
+		RunID:  runID,
+		Status: int(actions.ArtifactStatusUploadConfirmed),
+	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())
@@ -402,6 +405,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
 		RunID:        runID,
 		ArtifactName: itemPath,
+		Status:       int(actions.ArtifactStatusUploadConfirmed),
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
@@ -471,6 +475,11 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 	if artifact.RunID != runID {
 		log.Error("Error mismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
 		ctx.HTTPError(http.StatusBadRequest)
+		return
+	}
+	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
+		log.Error("Error artifact not found: %s", artifact.Status.ToString())
+		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
 

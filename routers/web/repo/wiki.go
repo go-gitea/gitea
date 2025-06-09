@@ -7,7 +7,6 @@ package repo
 import (
 	"bytes"
 	gocontext "context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -110,7 +109,7 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 			return wikiGitRepo, nil, errBranch
 		}
 		// update the default branch in the database
-		errDb := repo_model.UpdateRepositoryCols(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, DefaultWikiBranch: gitRepoDefaultBranch}, "default_wiki_branch")
+		errDb := repo_model.UpdateRepositoryColsNoAutoTime(ctx, &repo_model.Repository{ID: ctx.Repo.Repository.ID, DefaultWikiBranch: gitRepoDefaultBranch}, "default_wiki_branch")
 		if errDb != nil {
 			return wikiGitRepo, nil, errDb
 		}
@@ -581,7 +580,7 @@ func Wiki(ctx *context.Context) {
 	wikiPath := entry.Name()
 	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(wikiPath))
-		ctx.Data["FormatWarning"] = fmt.Sprintf("%s rendering is not supported at the moment. Rendered as Markdown.", ext)
+		ctx.Data["FormatWarning"] = ext + " rendering is not supported at the moment. Rendered as Markdown."
 	}
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)

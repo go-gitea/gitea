@@ -6,6 +6,7 @@ package repo
 import (
 	"bytes"
 	"errors"
+	"net/http"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -59,7 +60,7 @@ func CherryPick(ctx *context.Context) {
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
-	ctx.HTML(200, tplCherryPick)
+	ctx.HTML(http.StatusOK, tplCherryPick)
 }
 
 // CherryPickPost handles cherrypick POSTs
@@ -88,7 +89,7 @@ func CherryPickPost(ctx *context.Context) {
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplCherryPick)
+		ctx.HTML(http.StatusOK, tplCherryPick)
 		return
 	}
 

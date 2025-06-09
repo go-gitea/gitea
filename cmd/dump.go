@@ -5,7 +5,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -93,7 +92,7 @@ var CmdDump = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "type",
-			Usage: fmt.Sprintf(`Dump output format, default to "zip", supported types: %s`, strings.Join(dump.SupportedOutputTypes, ", ")),
+			Usage: `Dump output format, default to "zip", supported types: ` + strings.Join(dump.SupportedOutputTypes, ", "),
 		},
 	},
 }

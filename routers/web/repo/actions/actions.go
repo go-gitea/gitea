@@ -6,6 +6,7 @@ package actions
 import (
 	"bytes"
 	stdCtx "context"
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -67,7 +68,11 @@ func List(ctx *context.Context) {
 	ctx.Data["PageIsActions"] = true
 
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-	if err != nil {
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
+		ctx.NotFound(nil)
+		return
+	} else if err != nil {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}
@@ -121,7 +126,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, commit *git.Commit) (
 
 	var curWorkflow *model.Workflow
 
-	entries, err := actions.ListWorkflows(commit)
+	_, entries, err := actions.ListWorkflows(commit)
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
 		return nil
@@ -312,6 +317,8 @@ func prepareWorkflowList(ctx *context.Context, workflows []Workflow) {
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.Data["HasWorkflowsOrRuns"] = len(workflows) > 0 || len(runs) > 0
+
+	ctx.Data["AllowDeleteWorkflowRuns"] = ctx.Repo.CanWrite(unit.TypeActions)
 }
 
 // loadIsRefDeleted loads the IsRefDeleted field for each run in the list.

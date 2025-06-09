@@ -94,7 +94,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 	}
 
 	root := fmt.Sprintf("%sapi/packages/%s/cargo", setting.AppURL, user.Name)
-	url := fmt.Sprintf("%s/api/v1/crates", root)
+	url := root + "/api/v1/crates"
 
 	t.Run("Index", func(t *testing.T) {
 		t.Run("Git/Config", func(t *testing.T) {

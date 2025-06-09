@@ -28,14 +28,14 @@ func (r *RepoComment) IsCommitIDExisting(commitID string) bool {
 	return r.commitChecker.IsCommitIDExisting(commitID)
 }
 
-func (r *RepoComment) ResolveLink(link string, likeType markup.LinkType) (finalLink string) {
-	switch likeType {
-	case markup.LinkTypeApp:
-		finalLink = r.ctx.ResolveLinkApp(link)
+func (r *RepoComment) ResolveLink(link, preferLinkType string) string {
+	linkType, link := markup.ParseRenderedLink(link, preferLinkType)
+	switch linkType {
+	case markup.LinkTypeRoot:
+		return r.ctx.ResolveLinkRoot(link)
 	default:
-		finalLink = r.ctx.ResolveLinkRelative(r.repoLink, r.opts.CurrentRefPath, link)
+		return r.ctx.ResolveLinkRelative(r.repoLink, r.opts.CurrentRefPath, link)
 	}
-	return finalLink
 }
 
 var _ markup.RenderHelper = (*RepoComment)(nil)
@@ -44,6 +44,7 @@ type RepoCommentOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
 	CurrentRefPath      string // eg: "branch/main" or "commit/11223344"
+	FootnoteContextID   string // the extra context ID for footnotes, used to avoid conflicts with other footnotes in the same page
 }
 
 func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repository, opts ...RepoCommentOptions) *markup.RenderContext {
@@ -53,10 +54,11 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 	}
 	rctx := markup.NewRenderContext(ctx)
 	helper.ctx = rctx
+	var metas map[string]string
 	if repo != nil {
 		helper.repoLink = repo.Link()
 		helper.commitChecker = newCommitChecker(ctx, repo)
-		rctx = rctx.WithMetas(repo.ComposeMetas(ctx))
+		metas = repo.ComposeCommentMetas(ctx)
 	} else {
 		// this is almost dead code, only to pass the incorrect tests
 		helper.repoLink = fmt.Sprintf("%s/%s", helper.opts.DeprecatedOwnerName, helper.opts.DeprecatedRepoName)
@@ -64,10 +66,11 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 			"user": helper.opts.DeprecatedOwnerName,
 			"repo": helper.opts.DeprecatedRepoName,
 
-			"markdownLineBreakStyle":       "comment",
+			"markdownNewLineHardBreak":     "true",
 			"markupAllowShortIssuePattern": "true",
 		})
 	}
-	rctx = rctx.WithHelper(helper)
+	metas["footnoteContextId"] = helper.opts.FootnoteContextID
+	rctx = rctx.WithMetas(metas).WithHelper(helper)
 	return rctx
 }

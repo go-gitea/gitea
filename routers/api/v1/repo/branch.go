@@ -6,7 +6,6 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -60,17 +59,16 @@ func GetBranch(ctx *context.APIContext) {
 
 	branchName := ctx.PathParam("*")
 
-	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
+	exist, err := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, branchName)
 	if err != nil {
-		if git.IsErrBranchNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorInternal(err)
+		return
+	} else if !exist {
+		ctx.APIErrorNotFound(err)
 		return
 	}
 
-	c, err := branch.GetCommit()
+	c, err := ctx.Repo.GitRepo.GetBranchCommit(branchName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -82,7 +80,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch.Name, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branchName, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -157,9 +155,9 @@ func DeleteBranch(ctx *context.APIContext) {
 		case git.IsErrBranchNotExist(err):
 			ctx.APIErrorNotFound(err)
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
-			ctx.APIError(http.StatusForbidden, fmt.Errorf("can not delete default branch"))
+			ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
 		case errors.Is(err, git_model.ErrBranchIsProtected):
-			ctx.APIError(http.StatusForbidden, fmt.Errorf("branch protected"))
+			ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -261,25 +259,19 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branch, err := ctx.Repo.GitRepo.GetBranch(opt.BranchName)
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(opt.BranchName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	commit, err := branch.GetCommit()
+	branchProtection, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, opt.BranchName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	branchProtection, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, branch.Name)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branch.Name, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, opt.BranchName, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

@@ -530,7 +530,7 @@ func ActivityQueryCondition(ctx context.Context, opts GetFeedsOptions) (builder.
 
 	if opts.RequestedTeam != nil {
 		env := repo_model.AccessibleTeamReposEnv(organization.OrgFromUser(opts.RequestedUser), opts.RequestedTeam)
-		teamRepoIDs, err := env.RepoIDs(ctx, 1, opts.RequestedUser.NumRepos)
+		teamRepoIDs, err := env.RepoIDs(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %w", err)
 		}

@@ -395,7 +395,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	}
 
 	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
-		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
+		return nil, errors.New("not need to dismiss this review because it's type is not Approve or change request")
 	}
 
 	// load data for notify
@@ -405,7 +405,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 
 	// Check if the review's repoID is the one we're currently expecting.
 	if review.Issue.RepoID != repoID {
-		return nil, fmt.Errorf("reviews's repository is not the same as the one we expect")
+		return nil, errors.New("reviews's repository is not the same as the one we expect")
 	}
 
 	issue := review.Issue

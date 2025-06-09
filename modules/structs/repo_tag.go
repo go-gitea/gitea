@@ -11,8 +11,8 @@ type Tag struct {
 	Message    string      `json:"message"`
 	ID         string      `json:"id"`
 	Commit     *CommitMeta `json:"commit"`
-	ZipballURL string      `json:"zipball_url"`
-	TarballURL string      `json:"tarball_url"`
+	ZipballURL string      `json:"zipball_url,omitempty"`
+	TarballURL string      `json:"tarball_url,omitempty"`
 }
 
 // AnnotatedTag represents an annotated tag

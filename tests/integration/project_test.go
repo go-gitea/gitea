@@ -79,9 +79,9 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	columnsAfter, err := project1.GetColumns(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, columnsAfter, 3)
-	assert.EqualValues(t, columns[1].ID, columnsAfter[0].ID)
-	assert.EqualValues(t, columns[2].ID, columnsAfter[1].ID)
-	assert.EqualValues(t, columns[0].ID, columnsAfter[2].ID)
+	assert.Equal(t, columns[1].ID, columnsAfter[0].ID)
+	assert.Equal(t, columns[2].ID, columnsAfter[1].ID)
+	assert.Equal(t, columns[0].ID, columnsAfter[2].ID)
 
 	assert.NoError(t, project_model.DeleteProjectByID(db.DefaultContext, project1.ID))
 }

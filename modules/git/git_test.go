@@ -10,18 +10,19 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/tempdir"
 
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 )
 
 func testRun(m *testing.M) error {
-	gitHomePath, err := os.MkdirTemp(os.TempDir(), "git-home")
+	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
 		return fmt.Errorf("unable to create temp dir: %w", err)
 	}
-	defer util.RemoveAll(gitHomePath)
+	defer cleanup()
+
 	setting.Git.HomePath = gitHomePath
 
 	if err = InitFull(context.Background()); err != nil {

@@ -163,7 +163,7 @@ license = MIT`)
 					assert.Condition(t, func() bool {
 						seen := false
 						expectedFilename := fmt.Sprintf("%s-%s-aarch64.pkg.tar.%s", packageName, packageVersion, compression)
-						expectedCompositeKey := fmt.Sprintf("%s|aarch64", repository)
+						expectedCompositeKey := repository + "|aarch64"
 						for _, pf := range pfs {
 							if pf.Name == expectedFilename && pf.CompositeKey == expectedCompositeKey {
 								if seen {
@@ -321,7 +321,7 @@ license = MIT`)
 		_, has = content["gitea-test-1.0.1/desc"]
 		assert.True(t, has)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/gitea-test/1.0.1/aarch64", rootURL)).
+		req = NewRequest(t, "DELETE", rootURL+"/gitea-test/1.0.1/aarch64").
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusNoContent)
 

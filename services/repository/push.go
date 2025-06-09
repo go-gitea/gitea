@@ -66,7 +66,7 @@ func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
 
 	for _, opt := range opts {
 		if opt.IsNewRef() && opt.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both NULL")
+			return errors.New("Old and new revisions are both NULL")
 		}
 	}
 
@@ -283,7 +283,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 			}
 		}
 		// Update the is empty and default_branch columns
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "default_branch", "is_empty"); err != nil {
+		if err := repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "default_branch", "is_empty"); err != nil {
 			return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 		}
 	}
@@ -344,7 +344,7 @@ func pushDeleteBranch(ctx context.Context, repo *repo_model.Repository, pusher *
 // PushUpdateAddDeleteTags updates a number of added and delete tags
 func PushUpdateAddDeleteTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := repo_model.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
+		if err := repo_model.PushUpdateDeleteTags(ctx, repo, delTags); err != nil {
 			return err
 		}
 		return pushUpdateAddTags(ctx, repo, gitRepo, addTags)
@@ -385,7 +385,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		if err != nil {
 			return fmt.Errorf("GetTag: %w", err)
 		}
-		commit, err := tag.Commit(gitRepo)
+		commit, err := gitRepo.GetTagCommit(tag.Name)
 		if err != nil {
 			return fmt.Errorf("Commit: %w", err)
 		}
@@ -415,11 +415,6 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			createdAt = sig.When
 		}
 
-		commitsCount, err := commit.CommitsCount()
-		if err != nil {
-			return fmt.Errorf("CommitsCount: %w", err)
-		}
-
 		rel, has := relMap[lowerTag]
 
 		parts := strings.SplitN(tag.Message, "\n", 2)
@@ -435,7 +430,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				LowerTagName: lowerTag,
 				Target:       "",
 				Sha1:         commit.ID.String(),
-				NumCommits:   commitsCount,
+				NumCommits:   -1, // the commits count will be updated when the UI needs it
 				Note:         note,
 				IsDraft:      false,
 				IsPrerelease: false,
@@ -450,7 +445,6 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		} else {
 			rel.Sha1 = commit.ID.String()
 			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
-			rel.NumCommits = commitsCount
 			if rel.IsTag {
 				rel.Title = parts[0]
 				rel.Note = note

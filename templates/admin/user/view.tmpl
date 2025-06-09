@@ -15,10 +15,7 @@
 		</div>
 		<div class="tw-flex-1">
 			<h4 class="ui top attached header">
-				{{ctx.Locale.Tr "admin.emails"}}
-				<div class="ui right">
-					{{.EmailsTotal}}
-				</div>
+				{{ctx.Locale.Tr "admin.emails"}} ({{ctx.Locale.Tr "admin.total" .EmailsTotal}})
 			</h4>
 			<div class="ui attached segment">
 				{{template "admin/user/view_emails" .}}
@@ -26,19 +23,13 @@
 		</div>
 	</div>
 	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "admin.repositories"}}
-		<div class="ui right">
-			{{.ReposTotal}}
-		</div>
+		{{ctx.Locale.Tr "admin.repositories"}} ({{ctx.Locale.Tr "admin.total" .ReposTotal}})
 	</h4>
 	<div class="ui attached segment">
 		{{template "explore/repo_list" .}}
 	</div>
 	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "settings.organization"}}
-		<div class="ui right">
-			{{.OrgsTotal}}
-		</div>
+		{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" .OrgsTotal}})
 	</h4>
 	<div class="ui attached segment">
 		{{template "explore/user_list" .}}

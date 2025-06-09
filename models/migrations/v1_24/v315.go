@@ -11,6 +11,9 @@ func AddEphemeralToActionRunner(x *xorm.Engine) error {
 	type ActionRunner struct {
 		Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	}
-
-	return x.Sync(new(ActionRunner))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(ActionRunner))
+	return err
 }

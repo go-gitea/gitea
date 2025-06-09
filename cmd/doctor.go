@@ -144,11 +144,12 @@ func setupDoctorDefaultLogger(ctx *cli.Context, colorize bool) {
 	setupConsoleLogger(log.FATAL, log.CanColorStderr, os.Stderr)
 
 	logFile := ctx.String("log-file")
-	if logFile == "" {
+	switch logFile {
+	case "":
 		return // if no doctor log-file is set, do not show any log from default logger
-	} else if logFile == "-" {
+	case "-":
 		setupConsoleLogger(log.TRACE, colorize, os.Stdout)
-	} else {
+	default:
 		logFile, _ = filepath.Abs(logFile)
 		writeMode := log.WriterMode{Level: log.TRACE, WriterOption: log.WriterFileOption{FileName: logFile}}
 		writer, err := log.NewEventWriter("console-to-file", "file", writeMode)

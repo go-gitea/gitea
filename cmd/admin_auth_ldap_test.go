@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/stretchr/testify/assert"
@@ -16,9 +17,7 @@ import (
 
 func TestAddLdapBindDn(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	osExiter := cli.OsExiter
-	defer func() { cli.OsExiter = osExiter }()
-	cli.OsExiter = func(code int) {}
+	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
 	cases := []struct {
@@ -229,11 +228,11 @@ func TestAddLdapBindDn(t *testing.T) {
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call updateAuthSource", n)
+				assert.FailNow(t, "updateAuthSource called", "case %d: should not call updateAuthSource", n)
 				return nil
 			},
 			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
-				assert.FailNow(t, "case %d: should not call getAuthSourceByID", n)
+				assert.FailNow(t, "getAuthSourceByID called", "case %d: should not call getAuthSourceByID", n)
 				return nil, nil
 			},
 		}
@@ -256,9 +255,7 @@ func TestAddLdapBindDn(t *testing.T) {
 
 func TestAddLdapSimpleAuth(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	osExiter := cli.OsExiter
-	defer func() { cli.OsExiter = osExiter }()
-	cli.OsExiter = func(code int) {}
+	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
 	cases := []struct {
@@ -460,11 +457,11 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call updateAuthSource", n)
+				assert.FailNow(t, "updateAuthSource called", "case %d: should not call updateAuthSource", n)
 				return nil
 			},
 			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
-				assert.FailNow(t, "case %d: should not call getAuthSourceByID", n)
+				assert.FailNow(t, "getAuthSourceById called", "case %d: should not call getAuthSourceByID", n)
 				return nil, nil
 			},
 		}
@@ -487,9 +484,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 
 func TestUpdateLdapBindDn(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	osExiter := cli.OsExiter
-	defer func() { cli.OsExiter = osExiter }()
-	cli.OsExiter = func(code int) {}
+	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
 	cases := []struct {
@@ -925,7 +920,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				return nil
 			},
 			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call createAuthSource", n)
+				assert.FailNow(t, "createAuthSource called", "case %d: should not call createAuthSource", n)
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {
@@ -964,9 +959,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 
 func TestUpdateLdapSimpleAuth(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	osExiter := cli.OsExiter
-	defer func() { cli.OsExiter = osExiter }()
-	cli.OsExiter = func(code int) {}
+	defer test.MockVariableValue(&cli.OsExiter, func(code int) {})()
 
 	// Test cases
 	cases := []struct {
@@ -1315,7 +1308,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				return nil
 			},
 			createAuthSource: func(ctx context.Context, authSource *auth.Source) error {
-				assert.FailNow(t, "case %d: should not call createAuthSource", n)
+				assert.FailNow(t, "createAuthSource called", "case %d: should not call createAuthSource", n)
 				return nil
 			},
 			updateAuthSource: func(ctx context.Context, authSource *auth.Source) error {

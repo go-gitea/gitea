@@ -247,19 +247,20 @@ func (u *User) MaxCreationLimit() int {
 	return u.MaxRepoCreation
 }
 
-// CanCreateRepo returns if user login can create a repository
-// NOTE: functions calling this assume a failure due to repository count limit; if new checks are added, those functions should be revised
-func (u *User) CanCreateRepo() bool {
+// CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
+// NOTE: functions calling this assume a failure due to repository count limit; it ONLY checks the repo number LIMIT, if new checks are added, those functions should be revised
+func (u *User) CanCreateRepoIn(owner *User) bool {
 	if u.IsAdmin {
 		return true
 	}
-	if u.MaxRepoCreation <= -1 {
-		if setting.Repository.MaxCreationLimit <= -1 {
+	const noLimit = -1
+	if owner.MaxRepoCreation == noLimit {
+		if setting.Repository.MaxCreationLimit == noLimit {
 			return true
 		}
-		return u.NumRepos < setting.Repository.MaxCreationLimit
+		return owner.NumRepos < setting.Repository.MaxCreationLimit
 	}
-	return u.NumRepos < u.MaxRepoCreation
+	return owner.NumRepos < owner.MaxRepoCreation
 }
 
 // CanCreateOrganization returns true if user can create organisation.
@@ -272,13 +273,12 @@ func (u *User) CanEditGitHook() bool {
 	return !setting.DisableGitHooks && (u.IsAdmin || u.AllowGitHook)
 }
 
-// CanForkRepo returns if user login can fork a repository
-// It checks especially that the user can create repos, and potentially more
-func (u *User) CanForkRepo() bool {
+// CanForkRepoIn ONLY checks repository count limit
+func (u *User) CanForkRepoIn(owner *User) bool {
 	if setting.Repository.AllowForkWithoutMaximumLimit {
 		return true
 	}
-	return u.CanCreateRepo()
+	return u.CanCreateRepoIn(owner)
 }
 
 // CanImportLocal returns true if user can migrate repository by local path.
@@ -828,6 +828,7 @@ func IsLastAdminUser(ctx context.Context, user *User) bool {
 type CountUserFilter struct {
 	LastLoginSince *int64
 	IsAdmin        optional.Option[bool]
+	IsActive       optional.Option[bool]
 }
 
 // CountUsers returns number of users.
@@ -847,6 +848,10 @@ func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 
 		if opts.IsAdmin.Has() {
 			cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.Value()})
+		}
+
+		if opts.IsActive.Has() {
+			cond = cond.And(builder.Eq{"is_active": opts.IsActive.Value()})
 		}
 	}
 
@@ -1146,8 +1151,8 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 	}
 
 	for _, c := range oldCommits {
-		user, ok := emailUserMap[c.Author.Email]
-		if !ok {
+		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
+		if user == nil {
 			user = &User{
 				Name:  c.Author.Name,
 				Email: c.Author.Email,
@@ -1161,7 +1166,15 @@ func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([
 	return newCommits, nil
 }
 
-func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, error) {
+type EmailUserMap struct {
+	m map[string]*User
+}
+
+func (eum *EmailUserMap) GetByEmail(email string) *User {
+	return eum.m[strings.ToLower(email)]
+}
+
+func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
 	if len(emails) == 0 {
 		return nil, nil
 	}
@@ -1169,9 +1182,9 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 	needCheckEmails := make(container.Set[string])
 	needCheckUserNames := make(container.Set[string])
 	for _, email := range emails {
-		if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
-			username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
-			needCheckUserNames.Add(username)
+		if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
+			username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
+			needCheckUserNames.Add(strings.ToLower(username))
 		} else {
 			needCheckEmails.Add(strings.ToLower(email))
 		}
@@ -1187,31 +1200,30 @@ func GetUsersByEmails(ctx context.Context, emails []string) (map[string]*User, e
 	for _, email := range emailAddresses {
 		userIDs.Add(email.UID)
 	}
-	users, err := GetUsersMapByIDs(ctx, userIDs.Values())
-	if err != nil {
-		return nil, err
-	}
-
 	results := make(map[string]*User, len(emails))
-	for _, email := range emailAddresses {
-		user := users[email.UID]
-		if user != nil {
-			if user.KeepEmailPrivate {
-				results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
-			} else {
-				results[email.Email] = user
+
+	if len(userIDs) > 0 {
+		users, err := GetUsersMapByIDs(ctx, userIDs.Values())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, email := range emailAddresses {
+			user := users[email.UID]
+			if user != nil {
+				results[email.LowerEmail] = user
 			}
 		}
 	}
 
-	users = make(map[int64]*User, len(needCheckUserNames))
+	users := make(map[int64]*User, len(needCheckUserNames))
 	if err := db.GetEngine(ctx).In("lower_name", needCheckUserNames.Values()).Find(&users); err != nil {
 		return nil, err
 	}
 	for _, user := range users {
-		results[user.LowerName+"@"+setting.Service.NoReplyAddress] = user
+		results[strings.ToLower(user.GetPlaceholderEmail())] = user
 	}
-	return results, nil
+	return &EmailUserMap{results}, nil
 }
 
 // GetUserByEmail returns the user object by given e-mail if exists.
@@ -1232,8 +1244,8 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
-		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+	if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
+		username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
 		user := &User{}
 		has, err := db.GetEngine(ctx).Where("lower_name=?", username).Get(user)
 		if err != nil {

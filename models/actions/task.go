@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"time"
 
@@ -335,6 +336,11 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 		sess.Cols(cols...)
 	}
 	_, err := sess.Update(task)
+
+	// Automatically delete the ephemeral runner if the task is done
+	if err == nil && task.Status.IsDone() && util.SliceContainsString(cols, "status") {
+		return DeleteEphemeralRunner(ctx, task.RunnerID)
+	}
 	return err
 }
 
@@ -361,7 +367,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 	} else if !has {
 		return nil, util.ErrNotExist
 	} else if runnerID != task.RunnerID {
-		return nil, fmt.Errorf("invalid runner for task")
+		return nil, errors.New("invalid runner for task")
 	}
 
 	if task.Status.IsDone() {

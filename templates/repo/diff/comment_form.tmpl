@@ -27,7 +27,7 @@
 		{{end}}
 
 		<div class="field footer">
-			<div class="tw-text-right">
+			<div class="flex-text-block tw-justify-end">
 				{{if $.reply}}
 					<button class="ui submit primary tiny button btn-reply" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>
 					<input type="hidden" name="reply" value="{{$.reply}}">

@@ -43,7 +43,7 @@ func TestHandlePullRequestMerging(t *testing.T) {
 	pr, err = issues_model.GetPullRequestByID(db.DefaultContext, pr.ID)
 	assert.NoError(t, err)
 	assert.True(t, pr.HasMerged)
-	assert.EqualValues(t, "01234567", pr.MergedCommitID)
+	assert.Equal(t, "01234567", pr.MergedCommitID)
 
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{ID: autoMerge.ID})
 }

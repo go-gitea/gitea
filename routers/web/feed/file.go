@@ -4,7 +4,6 @@
 package feed
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -33,7 +32,7 @@ func ShowFileFeed(ctx *context.Context, repo *repo.Repository, formatType string
 		return
 	}
 
-	title := fmt.Sprintf("Latest commits for file %s", ctx.Repo.TreePath)
+	title := "Latest commits for file " + ctx.Repo.TreePath
 
 	link := &feeds.Link{Href: repo.HTMLURL() + "/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)}
 

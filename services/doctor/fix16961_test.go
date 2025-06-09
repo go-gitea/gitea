@@ -215,7 +215,7 @@ func Test_fixPullRequestsConfig_16961(t *testing.T) {
 			if gotFixed != tt.wantFixed {
 				t.Errorf("fixPullRequestsConfig_16961() = %v, want %v", gotFixed, tt.wantFixed)
 			}
-			assert.EqualValues(t, &tt.expected, cfg)
+			assert.Equal(t, &tt.expected, cfg)
 		})
 	}
 }
@@ -259,7 +259,7 @@ func Test_fixIssuesConfig_16961(t *testing.T) {
 			if gotFixed != tt.wantFixed {
 				t.Errorf("fixIssuesConfig_16961() = %v, want %v", gotFixed, tt.wantFixed)
 			}
-			assert.EqualValues(t, &tt.expected, cfg)
+			assert.Equal(t, &tt.expected, cfg)
 		})
 	}
 }

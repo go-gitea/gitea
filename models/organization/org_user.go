@@ -78,7 +78,7 @@ func IsOrganizationAdmin(ctx context.Context, orgID, uid int64) (bool, error) {
 		return false, err
 	}
 	for _, t := range teams {
-		if t.AccessMode >= perm.AccessModeAdmin {
+		if t.HasAdminAccess() {
 			return true, nil
 		}
 	}

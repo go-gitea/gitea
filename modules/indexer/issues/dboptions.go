@@ -4,12 +4,19 @@
 package issues
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/indexer/issues/internal"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOptions {
+	if opts.IssueIDs != nil {
+		setting.PanicInDevOrTesting("Indexer SearchOptions doesn't support IssueIDs")
+	}
 	searchOpt := &SearchOptions{
 		Keyword:    keyword,
 		RepoIDs:    opts.RepoIDs,
@@ -95,7 +102,11 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		// Unsupported sort type for search
 		fallthrough
 	default:
-		searchOpt.SortBy = SortByUpdatedDesc
+		if strings.HasPrefix(opts.SortType, issues_model.ScopeSortPrefix) {
+			searchOpt.SortBy = internal.SortBy(opts.SortType)
+		} else {
+			searchOpt.SortBy = SortByUpdatedDesc
+		}
 	}
 
 	return searchOpt

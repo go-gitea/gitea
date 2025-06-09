@@ -303,7 +303,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 	// For other batches, it will hit optimization 4.
 
 	if len(branchNames) != len(commitIDs) {
-		return fmt.Errorf("branchNames and commitIDs length not match")
+		return errors.New("branchNames and commitIDs length not match")
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -664,6 +664,11 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newB
 		}); err != nil {
 			log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
 		}
+	}
+
+	// clear divergence cache
+	if err := DelRepoDivergenceFromCache(ctx, repo.ID); err != nil {
+		log.Error("DelRepoDivergenceFromCache: %v", err)
 	}
 
 	notify_service.ChangeDefaultBranch(ctx, repo)

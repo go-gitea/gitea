@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -131,11 +132,7 @@ func TestPackageGeneric(t *testing.T) {
 
 		t.Run("RequireSignInView", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-
-			setting.Service.RequireSignInView = true
-			defer func() {
-				setting.Service.RequireSignInView = false
-			}()
+			defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 
 			req = NewRequest(t, "GET", url+"/dummy.bin")
 			MakeRequest(t, req, http.StatusUnauthorized)

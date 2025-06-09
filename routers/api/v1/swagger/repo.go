@@ -457,6 +457,20 @@ type swaggerRepoArtifact struct {
 	Body api.ActionArtifact `json:"body"`
 }
 
+// RunnerList
+// swagger:response RunnerList
+type swaggerRunnerList struct {
+	// in:body
+	Body api.ActionRunnersResponse `json:"body"`
+}
+
+// Runner
+// swagger:response Runner
+type swaggerRunner struct {
+	// in:body
+	Body api.ActionRunner `json:"body"`
+}
+
 // swagger:response Compare
 type swaggerCompare struct {
 	// in:body

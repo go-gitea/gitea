@@ -4,7 +4,7 @@
 package v1_14 //nolint
 
 import (
-	"fmt"
+	"errors"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/log"
@@ -82,7 +82,7 @@ func UpdateCodeCommentReplies(x *xorm.Engine) error {
 			sqlCmd = "SELECT TOP " + strconv.Itoa(batchSize) + " * FROM #temp_comments WHERE " +
 				"(id NOT IN ( SELECT TOP " + strconv.Itoa(start) + " id FROM #temp_comments ORDER BY id )) ORDER BY id"
 		default:
-			return fmt.Errorf("Unsupported database type")
+			return errors.New("Unsupported database type")
 		}
 
 		if err := sess.SQL(sqlCmd).Find(&comments); err != nil {

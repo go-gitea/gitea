@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/migrations/v1_10"
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_22"
 	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_24"
+	"code.gitea.io/gitea/models/migrations/v1_25"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -379,7 +381,11 @@ func prepareMigrationTasks() []*migration {
 		newMigration(316, "Add description for secrets and variables", v1_24.AddDescriptionForSecretsAndVariables),
 		newMigration(317, "Add new index for action for heatmap", v1_24.AddNewIndexForUserDashboard),
 		newMigration(318, "Add anonymous_access_mode for repo_unit", v1_24.AddRepoUnitAnonymousAccessMode),
-		newMigration(319, "Add table issue_dev_link", v1_24.CreateTableIssueDevLink),
+		newMigration(319, "Add ExclusiveOrder to Label table", v1_24.AddExclusiveOrderColumnToLabelTable),
+		newMigration(320, "Migrate two_factor_policy to login_source table", v1_24.MigrateSkipTwoFactor),
+
+		// Gitea 1.24.0-rc0 ends ta migration ID number 320 (database version 321)
+		newMigration(321, "Add table issue_dev_link", v1_25.CreateTableIssueDevLink),
 	}
 	return preparedMigrations
 }
@@ -425,7 +431,7 @@ func EnsureUpToDate(ctx context.Context, x *xorm.Engine) error {
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("database has not been initialized")
+		return errors.New("database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {

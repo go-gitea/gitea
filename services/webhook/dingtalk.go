@@ -30,7 +30,7 @@ func (dc dingtalkConvertor) Create(p *api.CreatePayload) (DingtalkPayload, error
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
-	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
+	return createDingtalkPayload(title, title, "view ref "+refName, p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
 }
 
 // Delete implements PayloadConvertor Delete method
@@ -39,14 +39,14 @@ func (dc dingtalkConvertor) Delete(p *api.DeletePayload) (DingtalkPayload, error
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
-	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
+	return createDingtalkPayload(title, title, "view ref "+refName, p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
 }
 
 // Fork implements PayloadConvertor Fork method
 func (dc dingtalkConvertor) Fork(p *api.ForkPayload) (DingtalkPayload, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
-	return createDingtalkPayload(title, title, fmt.Sprintf("view forked repo %s", p.Repo.FullName), p.Repo.HTMLURL), nil
+	return createDingtalkPayload(title, title, "view forked repo "+p.Repo.FullName, p.Repo.HTMLURL), nil
 }
 
 // Push implements PayloadConvertor Push method
