@@ -44,6 +44,7 @@ type RepoCommentOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
 	CurrentRefPath      string // eg: "branch/main" or "commit/11223344"
+	FootnoteContextID   string // the extra context ID for footnotes, used to avoid conflicts with other footnotes in the same page
 }
 
 func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repository, opts ...RepoCommentOptions) *markup.RenderContext {
@@ -53,10 +54,11 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 	}
 	rctx := markup.NewRenderContext(ctx)
 	helper.ctx = rctx
+	var metas map[string]string
 	if repo != nil {
 		helper.repoLink = repo.Link()
 		helper.commitChecker = newCommitChecker(ctx, repo)
-		rctx = rctx.WithMetas(repo.ComposeCommentMetas(ctx))
+		metas = repo.ComposeCommentMetas(ctx)
 	} else {
 		// this is almost dead code, only to pass the incorrect tests
 		helper.repoLink = fmt.Sprintf("%s/%s", helper.opts.DeprecatedOwnerName, helper.opts.DeprecatedRepoName)
@@ -68,6 +70,7 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 			"markupAllowShortIssuePattern": "true",
 		})
 	}
-	rctx = rctx.WithHelper(helper)
+	metas["footnoteContextId"] = helper.opts.FootnoteContextID
+	rctx = rctx.WithMetas(metas).WithHelper(helper)
 	return rctx
 }
