@@ -54,10 +54,11 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 	}
 	rctx := markup.NewRenderContext(ctx)
 	helper.ctx = rctx
+	var metas map[string]string
 	if repo != nil {
 		helper.repoLink = repo.Link()
 		helper.commitChecker = newCommitChecker(ctx, repo)
-		rctx = rctx.WithMetas(repo.ComposeCommentMetas(ctx))
+		metas = repo.ComposeCommentMetas(ctx)
 	} else {
 		// this is almost dead code, only to pass the incorrect tests
 		helper.repoLink = fmt.Sprintf("%s/%s", helper.opts.DeprecatedOwnerName, helper.opts.DeprecatedRepoName)
@@ -67,10 +68,9 @@ func NewRenderContextRepoComment(ctx context.Context, repo *repo_model.Repositor
 
 			"markdownNewLineHardBreak":     "true",
 			"markupAllowShortIssuePattern": "true",
-
-			"footnoteContextId": helper.opts.FootnoteContextID,
 		})
 	}
-	rctx = rctx.WithHelper(helper)
+	metas["footnoteContextId"] = helper.opts.FootnoteContextID
+	rctx = rctx.WithMetas(metas).WithHelper(helper)
 	return rctx
 }
