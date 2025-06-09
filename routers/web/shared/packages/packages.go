@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -159,15 +160,10 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 		lastVersionID := int64(0)
 		for {
 			pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-				PackageID:  p.ID,
-				IsInternal: optional.Some(false),
-				Sort:       packages_model.SortCreatedDesc,
-				Paginator: db.NewAbsoluteListOptions(func() int {
-					if lastVersionID > 0 {
-						return 0
-					}
-					return pcr.KeepCount
-				}(), limit),
+				PackageID:   p.ID,
+				IsInternal:  optional.Some(false),
+				Sort:        packages_model.SortCreatedDesc,
+				Paginator:   db.NewAbsoluteListOptions(util.Iif(lastVersionID > 0, 0, pcr.KeepCount), limit),
 				LtVersionID: lastVersionID,
 			})
 			if err != nil {
