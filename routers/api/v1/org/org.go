@@ -26,12 +26,10 @@ import (
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == u.ID)
-
 	opts := organization.FindOrgOptions{
-		ListOptions:    listOptions,
-		UserID:         u.ID,
-		IncludePrivate: showPrivate,
+		ListOptions:       listOptions,
+		UserID:            u.ID,
+		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, u),
 	}
 	orgs, maxResults, err := db.FindAndCount[organization.Organization](ctx, opts)
 	if err != nil {
