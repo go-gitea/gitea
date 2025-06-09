@@ -320,6 +320,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 	}
 
 	processNodeAttrID(node)
+	processFootnoteNode(ctx, node) // FIXME: the footnote processing should be done in the "footnote.go" renderer directly
 
 	if isEmojiNode(node) {
 		// TextNode emoji will be converted to `<span class="emoji">`, then the next iteration will visit the "span"
