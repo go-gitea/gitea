@@ -288,9 +288,19 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix possible nil description of pull request when migrating from CodeCommit (#34541)
   * Refactor commit reader (#34542)
   * Fix possible pull request broken when leave the page immediately after clicking the update button #34509
+  * Ignore "Close" error when uploading container blob (#34620)
+  * Fix missed merge commit sha and time when migrating from codecommit (#34645)
+  * Fix GetUsersByEmails (#34643)
+  * Misc CSS fixes (#34638)
+  * Add codecommit to supported services in api docs (#34626)
+  * Validate hex colors when creating/editing labels (#34623)
+  * Fix possible pull request broken when leave the page immediately after clicking the update button (#34509)
+  * Fix margin issue in markup paragraph rendering (#34599)
+  * Fix migration pull request title too long (#34577)
 
 * MISC
 
+  * Bump to alpine 3.22 (#34613)
   * Make pull request and issue history more compact (#34588)
   * Run integration tests against postgres 14 (#34514) #34536
   * Enable addtional linters (#34085)
