@@ -177,7 +177,7 @@ export default defineComponent({
     },
   },
 
-  async mounted() { // eslint-disable-line @typescript-eslint/no-misused-promises
+  async mounted() {
     // load job data and then auto-reload periodically
     // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
