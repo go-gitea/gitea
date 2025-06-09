@@ -6,7 +6,7 @@ const hasPrefix = (str: string): boolean => str.startsWith('user-content-');
 
 // scroll to anchor while respecting the `user-content` prefix that exists on the target
 function scrollToAnchor(encodedId?: string): void {
-  // FIXME: need to rewrite this function with new a better "footnote.go" logic, too many tricks here
+  // FIXME: need to rewrite this function with new a better markup anchor generation logic, too many tricks here
   let elemId: string;
   try {
     elemId = decodeURIComponent(encodedId ?? '');
