@@ -5,8 +5,14 @@
 package generate
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"time"
@@ -14,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/ssh"
 )
 
 // NewInternalToken generate a new value intended to be used by INTERNAL_TOKEN.
@@ -71,4 +78,60 @@ func NewSecretKey() (string, error) {
 	}
 
 	return secretKey, nil
+}
+
+func NewSSHKey(keytype string, bits int) (ssh.PublicKey, *pem.Block, error) {
+	pub, priv, err := commonKeyGen(keytype, bits)
+	if err != nil {
+		return nil, nil, err
+	}
+	pemPriv, err := ssh.MarshalPrivateKey(priv, "")
+	if err != nil {
+		return nil, nil, err
+	}
+	sshPub, err := ssh.NewPublicKey(pub)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return sshPub, pemPriv, nil
+}
+
+// commonKeyGen is an abstraction over rsa, ecdsa and ed25519 generating functions
+func commonKeyGen(keytype string, bits int) (publicKey, privateKey crypto.PublicKey, err error) {
+	switch keytype {
+	case "rsa":
+		privateKey, err := rsa.GenerateKey(rand.Reader, bits)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &privateKey.PublicKey, privateKey, nil
+	case "ed25519":
+		return ed25519.GenerateKey(rand.Reader)
+	case "ecdsa":
+		curve, err := getElipticCurve(bits)
+		if err != nil {
+			return nil, nil, err
+		}
+		privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &privateKey.PublicKey, privateKey, nil
+	default:
+		return nil, nil, fmt.Errorf("unknown keytype: %s", keytype)
+	}
+}
+
+func getElipticCurve(bits int) (elliptic.Curve, error) {
+	switch bits {
+	case 256:
+		return elliptic.P256(), nil
+	case 384:
+		return elliptic.P384(), nil
+	case 521:
+		return elliptic.P521(), nil
+	default:
+		return nil, fmt.Errorf("unsupported ECDSA curve bit length: %d", bits)
+	}
 }
