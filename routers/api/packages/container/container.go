@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/setting"
@@ -50,7 +51,7 @@ type containerHeaders struct {
 	Range         string
 	Location      string
 	ContentType   string
-	ContentLength int64
+	ContentLength optional.Option[int64]
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#legacy-docker-support-http-headers
@@ -64,8 +65,8 @@ func setResponseHeaders(resp http.ResponseWriter, h *containerHeaders) {
 	if h.ContentType != "" {
 		resp.Header().Set("Content-Type", h.ContentType)
 	}
-	if h.ContentLength != 0 {
-		resp.Header().Set("Content-Length", strconv.FormatInt(h.ContentLength, 10))
+	if h.ContentLength.Has() {
+		resp.Header().Set("Content-Length", strconv.FormatInt(h.ContentLength.Value(), 10))
 	}
 	if h.UploadUUID != "" {
 		resp.Header().Set("Docker-Upload-Uuid", h.UploadUUID)
@@ -403,12 +404,7 @@ func EndUploadBlob(ctx *context.Context) {
 		}
 		return
 	}
-	doClose := true
-	defer func() {
-		if doClose {
-			uploader.Close()
-		}
-	}()
+	defer uploader.Close()
 
 	if ctx.Req.Body != nil {
 		if err := uploader.Append(ctx, ctx.Req.Body); err != nil {
@@ -441,11 +437,10 @@ func EndUploadBlob(ctx *context.Context) {
 		return
 	}
 
-	if err := uploader.Close(); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	doClose = false
+	// There was a strange bug: the "Close" fails with error "close .../tmp/package-upload/....: file already closed"
+	// AFAIK there should be no other "Close" call to the uploader between NewBlobUploader and this line.
+	// At least it's safe to call Close twice, so ignore the error.
+	_ = uploader.Close()
 
 	if err := container_service.RemoveBlobUploadByID(ctx, uploader.ID); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -511,7 +506,7 @@ func HeadBlob(ctx *context.Context) {
 
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		ContentDigest: blob.Properties.GetByName(container_module.PropertyDigest),
-		ContentLength: blob.Blob.Size,
+		ContentLength: optional.Some(blob.Blob.Size),
 		Status:        http.StatusOK,
 	})
 }
@@ -650,7 +645,7 @@ func HeadManifest(ctx *context.Context) {
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		ContentDigest: manifest.Properties.GetByName(container_module.PropertyDigest),
 		ContentType:   manifest.Properties.GetByName(container_module.PropertyMediaType),
-		ContentLength: manifest.Blob.Size,
+		ContentLength: optional.Some(manifest.Blob.Size),
 		Status:        http.StatusOK,
 	})
 }
@@ -714,14 +709,14 @@ func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) 
 	headers := &containerHeaders{
 		ContentDigest: pfd.Properties.GetByName(container_module.PropertyDigest),
 		ContentType:   pfd.Properties.GetByName(container_module.PropertyMediaType),
-		ContentLength: pfd.Blob.Size,
+		ContentLength: optional.Some(pfd.Blob.Size),
 		Status:        http.StatusOK,
 	}
 
 	if u != nil {
 		headers.Status = http.StatusTemporaryRedirect
 		headers.Location = u.String()
-		headers.ContentLength = 0 // do not set Content-Length for redirect responses
+		headers.ContentLength = optional.None[int64]() // do not set Content-Length for redirect responses
 		setResponseHeaders(ctx.Resp, headers)
 		return
 	}

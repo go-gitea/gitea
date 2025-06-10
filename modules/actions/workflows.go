@@ -313,6 +313,10 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				matchTimes++
 			}
 		case "paths":
+			if refName.IsTag() {
+				matchTimes++
+				break
+			}
 			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
@@ -326,6 +330,10 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				}
 			}
 		case "paths-ignore":
+			if refName.IsTag() {
+				matchTimes++
+				break
+			}
 			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)

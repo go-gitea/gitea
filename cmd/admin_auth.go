@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,14 +14,14 @@ import (
 	"code.gitea.io/gitea/models/db"
 	auth_service "code.gitea.io/gitea/services/auth"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
 	microcmdAuthDelete = &cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
-		Flags:  []cli.Flag{idFlag},
+		Flags:  []cli.Flag{idFlag()},
 		Action: runDeleteAuth,
 	}
 	microcmdAuthList = &cli.Command{
@@ -56,10 +57,7 @@ var (
 	}
 )
 
-func runListAuth(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runListAuth(ctx context.Context, c *cli.Command) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
@@ -90,13 +88,10 @@ func runListAuth(c *cli.Context) error {
 	return nil
 }
 
-func runDeleteAuth(c *cli.Context) error {
+func runDeleteAuth(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}
-
-	ctx, cancel := installSignals()
-	defer cancel()
 
 	if err := initDB(ctx); err != nil {
 		return err

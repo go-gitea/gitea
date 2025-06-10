@@ -14,12 +14,12 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/notify"
 )
 
@@ -47,7 +47,7 @@ func getCommitStatusCache(repoID int64, branchName string) *commitStatusCacheVal
 	return nil
 }
 
-func updateCommitStatusCache(repoID int64, branchName string, state api.CommitStatusState, targetURL string) error {
+func updateCommitStatusCache(repoID int64, branchName string, state commitstatus.CommitStatusState, targetURL string) error {
 	c := cache.GetCache()
 	bs, err := json.Marshal(commitStatusCacheValue{
 		State:     state.String(),
@@ -127,7 +127,7 @@ func FindReposLastestCommitStatuses(ctx context.Context, repos []*repo_model.Rep
 	for i, repo := range repos {
 		if cv := getCommitStatusCache(repo.ID, repo.DefaultBranch); cv != nil {
 			results[i] = &git_model.CommitStatus{
-				State:     api.CommitStatusState(cv.State),
+				State:     commitstatus.CommitStatusState(cv.State),
 				TargetURL: cv.TargetURL,
 			}
 		} else {
