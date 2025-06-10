@@ -38,8 +38,8 @@ func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	// we can safely assume that it will not return any error, since there
-	// shouldn't be any special HTML.
+	// we can safely assume that it will not return any error, since there shouldn't be any special HTML.
+	// "repo" can be nil when rendering commit messages for deleted repositories in a user's dashboard feed.
 	fullMessage, err := markup.PostProcessCommitMessage(renderhelper.NewRenderContextRepoComment(ut.ctx, repo), cleanMsg)
 	if err != nil {
 		log.Error("PostProcessCommitMessage: %v", err)
@@ -47,7 +47,7 @@ func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) te
 	}
 	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
 	if len(msgLines) == 0 {
-		return template.HTML("")
+		return ""
 	}
 	return renderCodeBlock(template.HTML(msgLines[0]))
 }
