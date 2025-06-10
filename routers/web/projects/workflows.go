@@ -11,9 +11,14 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-var tmplWorkflows = templates.TplName("projects/workflows")
+var (
+	tmplRepoWorkflows = templates.TplName("repo/projects/workflows")
+	tmplOrgWorkflows  = templates.TplName("org/projects/workflows")
+)
 
 func Workflows(ctx *context.Context) {
+	ctx.Data["WorkflowEvents"] = project_model.GetWorkflowEvents()
+
 	projectID := ctx.PathParamInt64("id")
 	p, err := project_model.GetProjectByID(ctx, projectID)
 	if err != nil {
@@ -24,7 +29,11 @@ func Workflows(ctx *context.Context) {
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
+	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound(nil)
+		return
+	}
+	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound(nil)
 		return
 	}
@@ -33,41 +42,44 @@ func Workflows(ctx *context.Context) {
 	ctx.Data["PageIsWorkflows"] = true
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsProjectsWorkflows"] = true
+	ctx.Data["Project"] = p
 
-	workflows, err := project_model.GetWorkflows(ctx, projectID)
+	workflows, err := project_model.FindWorkflowEvents(ctx, projectID)
 	if err != nil {
 		ctx.ServerError("GetWorkflows", err)
 		return
 	}
+	for _, wf := range workflows {
+		wf.Project = p
+	}
 	ctx.Data["Workflows"] = workflows
 
 	workflowIDStr := ctx.PathParam("workflow_id")
-	var workflow *project_model.ProjectWorkflow
+	ctx.Data["workflowIDStr"] = workflowIDStr
+	var curWorkflow *project_model.ProjectWorkflow
 	if workflowIDStr == "" { // get first value workflow or the first workflow
 		for _, wf := range workflows {
 			if wf.ID > 0 {
-				workflow = wf
+				curWorkflow = wf
 				break
 			}
-		}
-		if workflow.ID == 0 {
-			workflow = workflows[0]
 		}
 	} else {
 		workflowID, _ := strconv.ParseInt(workflowIDStr, 10, 64)
 		if workflowID > 0 {
-			var err error
-			workflow, err = project_model.GetWorkflowByID(ctx, workflowID)
-			if err != nil {
-				ctx.ServerError("GetWorkflowByID", err)
-				return
+			for _, wf := range workflows {
+				if wf.ID == workflowID {
+					curWorkflow = wf
+					break
+				}
 			}
-			ctx.Data["CurWorkflow"] = workflow
-		} else {
-			workflow = project_model.GetWorkflowDefaultValue(workflowIDStr)
 		}
 	}
-	ctx.Data["CurWorkflow"] = workflow
+	ctx.Data["CurWorkflow"] = curWorkflow
 
-	ctx.HTML(200, tmplWorkflows)
+	if p.Type == project_model.TypeRepository {
+		ctx.HTML(200, tmplRepoWorkflows)
+	} else {
+		ctx.HTML(200, tmplOrgWorkflows)
+	}
 }

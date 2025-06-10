@@ -1030,6 +1030,10 @@ func registerWebRoutes(m *web.Router) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+			m.Group("/{id}/workflows", func() {
+				m.Get("", projects.Workflows)
+				m.Get("/{workflow_id}", projects.Workflows)
+			})
 			m.Group("", func() { //nolint:dupl
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)

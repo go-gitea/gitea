@@ -1,11 +1,12 @@
-<div class="ui container">
-	<div class="ui stackable grid">
+<div class="ui container fluid padded projects-view">
+	<div class="ui container flex-text-block project-header">
 		<div class="four wide column">
+			{{range .WorkflowEvents}}
 			<div class="ui fluid vertical menu">
-				{{range .Workflows}}
-					<a class="item active" href="{{.Link}}">{{.Name}}</a>
-				{{end}}
+				{{$workflow := (index $.Workflows .)}}
+				<a class="item{{if or (and $workflow $.CurWorkflow (eq $workflow.ID $.CurWorkflow.ID)) (eq $.workflowIDStr .UUID)}} active{{end}}" href="{{$.Project.Link ctx}}/workflows/{{if $workflow}}{{$workflow.ID}}{{else}}{{.UUID}}{{end}}">{{.ToString}}</a>
 			</div>
+			{{end}}
 		</div>
 	</div>
 </div>
