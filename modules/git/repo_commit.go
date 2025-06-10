@@ -269,8 +269,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 			Stdout: stdoutWriter,
 			Stderr: &stderr,
 		})
-
-		if err != nil && !(opts.FollowRename && err == io.ErrUnexpectedEOF) {
+		if err != nil && err != io.ErrUnexpectedEOF {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = stdoutWriter.Close()
@@ -287,7 +286,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	shaline := make([]byte, length+1)
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline)
-		if (err != nil && !(opts.FollowRename && err == io.ErrUnexpectedEOF)) || n < length {
+		if (err != nil && err != io.ErrUnexpectedEOF) || n < length {
 			if err == io.EOF {
 				err = nil
 			}
