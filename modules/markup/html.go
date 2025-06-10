@@ -86,8 +86,8 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
 	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
 
-	// cleans: "<foo/bar", "<any words/", ("<html", "<head", "<script", "<style")
-	v.tagCleaner = regexp.MustCompile(`(?i)<(/?\w+/\w+|/[\w ]+/|/?(html|head|script|style\b))`)
+	// cleans: "<foo/bar", "<any words/", ("<html", "<head", "<script", "<style", "<?", "<%")
+	v.tagCleaner = regexp.MustCompile(`(?i)<(/?\w+/\w+|/[\w ]+/|/?(html|head|script|style|%|\?)\b)`)
 	v.nulCleaner = strings.NewReplacer("\000", "")
 	return v
 })
@@ -253,7 +253,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	node, err := html.Parse(io.MultiReader(
 		// prepend "<html><body>"
 		strings.NewReader("<html><body>"),
-		// Strip out nuls - they're always invalid
+		// strip out NULLs (they're always invalid), and escape known tags
 		bytes.NewReader(globalVars().tagCleaner.ReplaceAll([]byte(globalVars().nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1"))),
 		// close the tags
 		strings.NewReader("</body></html>"),
