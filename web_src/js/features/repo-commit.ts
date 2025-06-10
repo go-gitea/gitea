@@ -26,25 +26,24 @@ export function initCommitStatuses() {
   });
 }
 
-window.addEventListener("DOMContentLoaded", function () {
-  console.log("hello");
-  $("input[name=history-enable-follow-renames]").prop("checked", location.toString().includes("history_follow_rename=true"))
-})
+window.addEventListener('DOMContentLoaded', () => {
+  ($('input[name=history-enable-follow-renames]')[0] as HTMLInputElement).checked = location.toString().includes('history_follow_rename=true');
+});
 
-$("input[name=history-enable-follow-renames]").on("change", function() {
-  const checked = $(this).is(":checked");
+$('input[name=history-enable-follow-renames]').on('change', function() {
+  const checked = ($(this)[0] as HTMLInputElement).matches(':checked');
   let url = location.toString();
 
-  url = url.replaceAll(/history_follow_rename=(true|false)&*/g, "");
-  if (url.slice(-1) === '?') {
-    url = url.slice(0, url.length - 1);
+  url = url.replaceAll(/history_follow_rename=(true|false)&*/g, '');
+  if (url.endsWith('?')) {
+    url = url.slice(0, -1);
   }
-  if (url.includes("?")) {
-    url += "&";
+  if (url.includes('?')) {
+    url += '&';
   } else {
-    url += "?";
+    url += '?';
   }
 
   url += `history_follow_rename=${checked}`;
   window.location.href = url;
-})
+});
