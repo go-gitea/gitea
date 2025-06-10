@@ -21,7 +21,7 @@
 }
 
 .home .hero .svg {
-  color: var(--color-green);
+  color: var(--color-logo);
   height: 40px;
   width: 50px;
   vertical-align: bottom;
@@ -40,7 +40,7 @@
 }
 
 .home a {
-  color: var(--color-green);
+  color: var(--color-logo);
 }
 
 .page-footer {

@@ -1227,14 +1227,6 @@ td .commit-summary {
   font-weight: var(--font-weight-normal);
 }
 
-.empty-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 40px;
-  padding-bottom: 40px;
-}
-
 .repository.packages .file-size {
   white-space: nowrap;
 }
@@ -2038,10 +2030,6 @@ tbody.commit-list {
 .migrate-entry:hover {
   transform: scale(105%);
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
-}
-
-.migrate-entry .description {
-  text-wrap: balance;
 }
 
 .commits-table .commits-table-right form {
