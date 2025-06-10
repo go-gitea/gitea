@@ -276,7 +276,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	collaboratorUsername := ctx.PathParam("collaborator")
-	if !ctx.Doer.IsAdmin && ctx.Doer.LowerName != strings.ToLower(collaboratorUsername) && !ctx.IsUserRepoAdmin() {
+	if !ctx.Doer.IsAdmin && !strings.EqualFold(ctx.Doer.LowerName, collaboratorUsername) && !ctx.IsUserRepoAdmin() {
 		ctx.APIError(http.StatusForbidden, "Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own")
 		return
 	}

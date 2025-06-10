@@ -165,7 +165,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 
 	newRepoName := form.RepoName
 	// Check if repository name has been changed.
-	if repo.LowerName != strings.ToLower(newRepoName) {
+	if !strings.EqualFold(repo.LowerName, newRepoName) {
 		// Close the GitRepo if open
 		if ctx.Repo.GitRepo != nil {
 			ctx.Repo.GitRepo.Close()
