@@ -126,18 +126,22 @@ func oauthCLIFlags() []cli.Flag {
 
 func microcmdAuthAddOauth() *cli.Command {
 	return &cli.Command{
-		Name:   "add-oauth",
-		Usage:  "Add new Oauth authentication source",
-		Action: newAuthService().runAddOauth,
-		Flags:  oauthCLIFlags(),
+		Name:  "add-oauth",
+		Usage: "Add new Oauth authentication source",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().runAddOauth(ctx, cmd)
+		},
+		Flags: oauthCLIFlags(),
 	}
 }
 
 func microcmdAuthUpdateOauth() *cli.Command {
 	return &cli.Command{
-		Name:   "update-oauth",
-		Usage:  "Update existing Oauth authentication source",
-		Action: newAuthService().runUpdateOauth,
+		Name:  "update-oauth",
+		Usage: "Update existing Oauth authentication source",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().runUpdateOauth(ctx, cmd)
+		},
 		Flags: append(oauthCLIFlags()[:1], append([]cli.Flag{&cli.Int64Flag{
 			Name:  "id",
 			Usage: "ID of authentication source",
