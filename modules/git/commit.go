@@ -162,12 +162,13 @@ func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, file
 
 // CommitsCountOptions the options when counting commits
 type CommitsCountOptions struct {
-	RepoPath string
-	Not      string
-	Revision []string
-	RelPath  []string
-	Since    string
-	Until    string
+	RepoPath     string
+	Not          string
+	Revision     []string
+	RelPath      []string
+	Since        string
+	Until        string
+	FollowRename bool
 }
 
 // CommitsCount returns number of total commits of until given revision.
@@ -181,7 +182,9 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 	}
 
 	if len(opts.RelPath) > 0 {
-		cmd.AddOptionValues("--follow")
+		if opts.FollowRename {
+			cmd.AddOptionValues("--follow")
+		}
 		cmd.AddDashesAndList(opts.RelPath...)
 	}
 
