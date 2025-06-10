@@ -173,7 +173,7 @@ type CommitsCountOptions struct {
 
 // CommitsCount returns number of total commits of until given revision.
 func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) {
-	cmd := NewCommand(ctx, "--no-pager", "log", "--pretty=format:%H")
+	cmd := NewCommand("--no-pager", "log", "--pretty=format:%H")
 
 	cmd.AddDynamicArguments(opts.Revision...)
 

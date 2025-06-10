@@ -239,7 +239,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		gitCmd := NewCommand(repo.Ctx, "--no-pager", "log").
+		gitCmd := NewCommand("--no-pager", "log").
 			AddOptionFormat("--pretty=format:%%H").
 			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
 			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
