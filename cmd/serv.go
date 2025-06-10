@@ -33,7 +33,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/kballard/go-shellquote"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdServ represents the available serv sub-command.
@@ -152,10 +152,7 @@ func getLFSAuthToken(ctx context.Context, lfsVerb string, results *private.ServC
 	return "Bearer " + tokenString, nil
 }
 
-func runServ(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
+func runServ(ctx context.Context, c *cli.Command) error {
 	// FIXME: This needs to internationalised
 	setup(ctx, c.Bool("debug"))
 
