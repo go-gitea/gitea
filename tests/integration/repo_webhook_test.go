@@ -11,13 +11,13 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
@@ -771,7 +771,7 @@ func Test_WebhookStatus(t *testing.T) {
 
 		// update a status for a commit via API
 		doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
-			State:       api.CommitStatusSuccess,
+			State:       commitstatus.CommitStatusSuccess,
 			TargetURL:   "http://test.ci/",
 			Description: "",
 			Context:     "testci",
@@ -889,8 +889,7 @@ jobs:
 		// 4. Execute a single Job
 		task := runner.fetchTask(t)
 		outcome := &mockTaskOutcome{
-			result:   runnerv1.Result_RESULT_SUCCESS,
-			execTime: time.Millisecond,
+			result: runnerv1.Result_RESULT_SUCCESS,
 		}
 		runner.execTask(t, task, outcome)
 
@@ -926,8 +925,7 @@ jobs:
 		// 6. Execute a single Job
 		task = runner.fetchTask(t)
 		outcome = &mockTaskOutcome{
-			result:   runnerv1.Result_RESULT_FAILURE,
-			execTime: time.Millisecond,
+			result: runnerv1.Result_RESULT_FAILURE,
 		}
 		runner.execTask(t, task, outcome)
 

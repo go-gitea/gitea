@@ -70,7 +70,7 @@ export function initCompLabelEdit(pageSelector: string) {
           form.reportValidity();
           return false;
         }
-        form.submit();
+        form.dispatchEvent(new Event('submit', {bubbles: true}));
       },
     }).modal('show');
   };

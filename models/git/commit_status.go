@@ -17,10 +17,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -30,17 +30,17 @@ import (
 
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
-	ID          int64                  `xorm:"pk autoincr"`
-	Index       int64                  `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	RepoID      int64                  `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	Repo        *repo_model.Repository `xorm:"-"`
-	State       api.CommitStatusState  `xorm:"VARCHAR(7) NOT NULL"`
-	SHA         string                 `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
-	TargetURL   string                 `xorm:"TEXT"`
-	Description string                 `xorm:"TEXT"`
-	ContextHash string                 `xorm:"VARCHAR(64) index"`
-	Context     string                 `xorm:"TEXT"`
-	Creator     *user_model.User       `xorm:"-"`
+	ID          int64                          `xorm:"pk autoincr"`
+	Index       int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	RepoID      int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	Repo        *repo_model.Repository         `xorm:"-"`
+	State       commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
+	SHA         string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
+	TargetURL   string                         `xorm:"TEXT"`
+	Description string                         `xorm:"TEXT"`
+	ContextHash string                         `xorm:"VARCHAR(64) index"`
+	Context     string                         `xorm:"TEXT"`
+	Creator     *user_model.User               `xorm:"-"`
 	CreatorID   int64
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -230,22 +230,25 @@ func (status *CommitStatus) HideActionsURL(ctx context.Context) {
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
 func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
-	var lastStatus *CommitStatus
-	state := api.CommitStatusSuccess
+	if len(statuses) == 0 {
+		return nil
+	}
+
+	states := make(commitstatus.CommitStatusStates, 0, len(statuses))
+	targetURL := ""
 	for _, status := range statuses {
-		if status.State.NoBetterThan(state) {
-			state = status.State
-			lastStatus = status
+		states = append(states, status.State)
+		if status.TargetURL != "" {
+			targetURL = status.TargetURL
 		}
 	}
-	if lastStatus == nil {
-		if len(statuses) > 0 {
-			lastStatus = statuses[0]
-		} else {
-			lastStatus = &CommitStatus{}
-		}
+
+	return &CommitStatus{
+		RepoID:    statuses[0].RepoID,
+		SHA:       statuses[0].SHA,
+		State:     states.Combine(),
+		TargetURL: targetURL,
 	}
-	return lastStatus
 }
 
 // CommitStatusOptions holds the options for query commit statuses

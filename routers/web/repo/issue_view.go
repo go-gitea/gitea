@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
@@ -624,7 +625,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		comment.Issue = issue
 
 		if comment.Type == issues_model.CommentTypeComment || comment.Type == issues_model.CommentTypeReview {
-			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+			})
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -700,7 +703,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				}
 			}
 		} else if comment.Type.HasContentSupport() {
-			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+			})
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -757,6 +762,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 			if !ctx.Repo.CanRead(unit.TypeActions) {
 				for _, commit := range comment.Commits {
+					if commit.Status == nil {
+						continue
+					}
 					commit.Status.HideActionsURL(ctx)
 					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 				}
@@ -981,7 +989,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 	var err error
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+		FootnoteContextID: "0", // Set footnote context ID to 0 for the issue content
+	})
 	issue.RenderedContent, err = markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

@@ -94,7 +94,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	private := ctx.FormOptionalBool("private")
 	ctx.Data["IsPrivate"] = private
 
-	repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: opts.PageSize,
