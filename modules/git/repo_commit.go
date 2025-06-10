@@ -6,7 +6,6 @@ package git
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -251,14 +250,11 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		}
 
 		gitCmd.AddDashesAndList(opts.File)
-		fmt.Print(gitCmd)
-		fmt.Fprint(os.Stdout, "")
 		err := gitCmd.Run(repo.Ctx, &RunOpts{
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
 			Stderr: &stderr,
 		})
-		fmt.Print("1 ", err)
 		if err != nil && err != io.ErrUnexpectedEOF {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -267,7 +263,6 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	}()
 
 	objectFormat, err := repo.GetObjectFormat()
-	fmt.Print("object", err)
 	if err != nil {
 		return nil, err
 	}
@@ -277,9 +272,8 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	shaline := make([]byte, length+1)
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline)
-		fmt.Print("io", err)
-		if err != nil || n < length {
-			if err == io.EOF || err == io.ErrUnexpectedEOF {
+		if (err != nil && err != io.ErrUnexpectedEOF) || n < length {
+			if err == io.EOF {
 				err = nil
 			}
 			return commits, err
