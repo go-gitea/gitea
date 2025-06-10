@@ -76,9 +76,11 @@ func smtpCLIFlags() []cli.Flag {
 
 func microcmdAuthUpdateSMTP() *cli.Command {
 	return &cli.Command{
-		Name:   "update-smtp",
-		Usage:  "Update existing SMTP authentication source",
-		Action: newAuthService().runUpdateSMTP,
+		Name:  "update-smtp",
+		Usage: "Update existing SMTP authentication source",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().runUpdateSMTP(ctx, cmd)
+		},
 		Flags: append(smtpCLIFlags()[:1], append([]cli.Flag{&cli.Int64Flag{
 			Name:  "id",
 			Usage: "ID of authentication source",
@@ -88,10 +90,12 @@ func microcmdAuthUpdateSMTP() *cli.Command {
 
 func microcmdAuthAddSMTP() *cli.Command {
 	return &cli.Command{
-		Name:   "add-smtp",
-		Usage:  "Add new SMTP authentication source",
-		Action: newAuthService().runAddSMTP,
-		Flags:  smtpCLIFlags(),
+		Name:  "add-smtp",
+		Usage: "Add new SMTP authentication source",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().runAddSMTP(ctx, cmd)
+		},
+		Flags: smtpCLIFlags(),
 	}
 }
 
