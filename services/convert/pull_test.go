@@ -50,6 +50,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	apiPullRequests, err := ToAPIPullRequests(git.DefaultContext, pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
 	assert.NoError(t, err)
 	assert.Len(t, apiPullRequests, 1)
+	assert.NotNil(t, apiPullRequests[0])
 	assert.Nil(t, apiPullRequests[0].Head.Repository)
 	assert.EqualValues(t, -1, apiPullRequests[0].Head.RepoID)
 }
