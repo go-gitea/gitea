@@ -1,6 +1,7 @@
 import {createTippy} from '../modules/tippy.ts';
 import {toggleElem} from '../utils/dom.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
+import $ from 'jquery';
 
 export function initRepoEllipsisButton() {
   registerGlobalEventFunc('click', 'onRepoEllipsisButtonClick', async (el: HTMLInputElement, e: Event) => {
@@ -25,19 +26,25 @@ export function initCommitStatuses() {
   });
 }
 
-export function initCommitFileHistoryFollowRename() {
-  const checkbox : HTMLInputElement | null = document.querySelector('input[name=history-enable-follow-renames]');
+window.addEventListener("DOMContentLoaded", function () {
+  console.log("hello");
+  $("input[name=history-enable-follow-renames]").prop("checked", location.toString().includes("history_follow_rename=true"))
+})
 
-  if (!checkbox) {
-    return;
+$("input[name=history-enable-follow-renames]").on("change", function() {
+  const checked = $(this).is(":checked");
+  let url = location.toString();
+
+  url = url.replaceAll(/history_follow_rename=(true|false)&*/g, "");
+  if (url.slice(-1) === '?') {
+    url = url.slice(0, url.length - 1);
   }
-  const url = new URL(window.location.toString());
-  checkbox.checked = url.searchParams.has('history_follow_rename', 'true');
+  if (url.includes("?")) {
+    url += "&";
+  } else {
+    url += "?";
+  }
 
-  checkbox.addEventListener('change', () => {
-    const url = new URL(window.location);
-
-    url.searchParams.set('history_follow_rename', `${checkbox.checked}`);
-    window.location.replace(url);
-  });
-}
+  url += `history_follow_rename=${checked}`;
+  window.location.href = url;
+})

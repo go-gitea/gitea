@@ -182,7 +182,9 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 	}
 
 	if len(opts.RelPath) > 0 {
-		cmd.AddOptionValues("--follow")
+		if opts.FollowRename {
+			cmd.AddOptionValues("--follow")
+		}
 		cmd.AddDashesAndList(opts.RelPath...)
 	}
 
