@@ -374,6 +374,59 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Bump x/net (#32896) (#32900)
   * Only activity tab needs heatmap data loading (#34652)
 
+## [1.23.8](https://github.com/go-gitea/gitea/releases/tag/1.23.8) - 2025-05-11
+
+* SECURITY
+  * Fix a bug when uploading file via lfs ssh command (#34408) (#34411)
+  * Update net package (#34228) (#34232)
+* BUGFIXES
+  * Fix releases sidebar navigation link (#34436) #34439
+  * Fix bug webhook milestone is not right. (#34419) #34429
+  * Fix two missed null value checks on the wiki page. (#34205) (#34215)
+  * Swift files can be passed either as file or as form value (#34068) (#34236)
+  * Fix bug when API get pull changed files for deleted head repository (#34333) (#34368)
+  * Upgrade github v61 -> v71 to fix migrating bug (#34389)
+  * Fix bug when visiting comparation page (#34334) (#34364)
+  * Fix wrong review requests when updating the pull request (#34286) (#34304)
+  * Fix github migration error when using multiple tokens (#34144) (#34302)
+  * Explicitly not update indexes when sync database schemas (#34281) (#34295)
+  * Fix panic when comment is nil (#34257) (#34277)
+  * Fix project board links to related Pull Requests (#34213) (#34222)
+  * Don't assume the default wiki branch is master in the wiki API (#34244) (#34245)
+* DOCUMENTATION
+  * Update token creation API swagger documentation (#34288) (#34296)
+* MISC
+  * Fix CI Build (#34315)
+  * Add riscv64 support (#34199) (#34204)
+  * Bump go version in go.mod (#34160)
+  * remove hardcoded 'code' string in clone_panel.tmpl (#34153) (#34158)
+
+## [1.23.7](https://github.com/go-gitea/gitea/releases/tag/1.23.7) - 2025-04-07
+
+* Enhancements
+  * Add a config option to block "expensive" pages for anonymous users (#34024) (#34071)
+  * Also check default ssh-cert location for host (#34099) (#34100) (#34116)
+* BUGFIXES
+  * Fix discord webhook 400 status code when description limit is exceeded (#34084) (#34124)
+  * Get changed files based on merge base when checking `pull_request` actions trigger (#34106) (#34120)
+  * Fix invalid version in RPM package path (#34112) (#34115)
+  * Return default avatar url when user id is zero rather than updating database (#34094) (#34095)
+  * Add additional ReplaceAll in pathsep to cater for different pathsep (#34061) (#34070)
+  * Try to fix check-attr bug (#34029) (#34033)
+  * Git client will follow 301 but 307 (#34005) (#34010)
+  * Fix block expensive for 1.23 (#34127)
+  * Fix markdown frontmatter rendering (#34102) (#34107)
+  * Add new CLI flags to set name and scopes when creating a user with access token (#34080) (#34103)
+  * Do not show 500 error when default branch doesn't exist (#34096) (#34097)
+  * Hide activity contributors, recent commits and code frequrency left tabs if there is no code permission (#34053) (#34065)
+  * Simplify emoji rendering (#34048) (#34049)
+  * Adjust the layout of the toolbar on the Issues/Projects page (#33667) (#34047)
+  * Pull request updates will also trigger code owners review requests (#33744) (#34045)
+  * Fix org repo creation being limited by user limits (#34030) (#34044)
+  * Fix git client accessing renamed repo (#34034) (#34043)
+  * Fix the issue with error message logging for the `check-attr` command on Windows OS. (#34035) (#34036)
+  * Polyfill WeakRef (#34025) (#34028)
+
 ## [1.23.6](https://github.com/go-gitea/gitea/releases/tag/v1.23.6) - 2025-03-24
 
 * SECURITY
