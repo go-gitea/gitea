@@ -416,6 +416,8 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 	}
 
 	// Try the pre-set trusted keys (for key-rotation purpose)
+	// At the moment, we still use the SigningName&SigningEmail for the rotated keys.
+	// Maybe in the future we can extend the key format to "ssh-xxx .... old-user@example.com" to support different signer emails.
 	for _, k := range setting.Repository.Signing.TrustedSSHKeys {
 		signerUser := &user_model.User{
 			Name:  setting.Repository.Signing.SigningName,
