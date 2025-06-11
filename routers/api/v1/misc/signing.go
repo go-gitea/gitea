@@ -9,8 +9,30 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
-// SigningKey returns the public key of the default signing key if it exists
-func SigningKey(ctx *context.APIContext) {
+func getSigningKey(ctx *context.APIContext, expectedFormat string) {
+	// if the handler is in the repo's route group, get the repo's signing key
+	// otherwise, get the global signing key
+	path := ""
+	if ctx.Repo != nil && ctx.Repo.Repository != nil {
+		path = ctx.Repo.Repository.RepoPath()
+	}
+	content, format, err := asymkey_service.PublicSigningKey(ctx, path)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if format == "" {
+		ctx.APIErrorNotFound("no signing key")
+		return
+	} else if format != expectedFormat {
+		ctx.APIErrorNotFound("signing key format is " + format)
+		return
+	}
+	_, _ = ctx.Write([]byte(content))
+}
+
+// SigningKeyGPG returns the public key of the default signing key if it exists
+func SigningKeyGPG(ctx *context.APIContext) {
 	// swagger:operation GET /signing-key.gpg miscellaneous getSigningKey
 	// ---
 	// summary: Get default signing-key.gpg
@@ -43,25 +65,10 @@ func SigningKey(ctx *context.APIContext) {
 	//     description: "GPG armored public key"
 	//     schema:
 	//       type: string
-
-	path := ""
-	if ctx.Repo != nil && ctx.Repo.Repository != nil {
-		path = ctx.Repo.Repository.RepoPath()
-	}
-
-	content, format, err := asymkey_service.PublicSigningKey(ctx, path)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if format != git.KeyTypeOpenPGP {
-		ctx.APIErrorNotFound("SSH keys are used for signing, not GPG")
-		return
-	}
-	_, _ = ctx.Write([]byte(content))
+	getSigningKey(ctx, git.KeyTypeOpenPGP)
 }
 
-// SigningKey returns the public key of the default signing key if it exists
+// SigningKeySSH returns the public key of the default signing key if it exists
 func SigningKeySSH(ctx *context.APIContext) {
 	// swagger:operation GET /signing-key.pub miscellaneous getSigningKeySSH
 	// ---
@@ -95,20 +102,5 @@ func SigningKeySSH(ctx *context.APIContext) {
 	//     description: "ssh public key"
 	//     schema:
 	//       type: string
-
-	path := ""
-	if ctx.Repo != nil && ctx.Repo.Repository != nil {
-		path = ctx.Repo.Repository.RepoPath()
-	}
-
-	content, format, err := asymkey_service.PublicSigningKey(ctx, path)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if format != git.KeyTypeSSH {
-		ctx.APIErrorNotFound("GPG keys are used for signing, not SSH")
-		return
-	}
-	_, _ = ctx.Write([]byte(content))
+	getSigningKey(ctx, git.KeyTypeSSH)
 }
