@@ -131,7 +131,7 @@ func SigningKey(ctx context.Context, repoPath string) (*git.SigningKey, *git.Sig
 }
 
 // PublicSigningKey gets the public signing key within a provided repository directory
-func PublicSigningKey(ctx context.Context, repoPath string) (content string, format string, err error) {
+func PublicSigningKey(ctx context.Context, repoPath string) (content, format string, err error) {
 	signingKey, _ := SigningKey(ctx, repoPath)
 	if signingKey == nil {
 		return "", "", nil
