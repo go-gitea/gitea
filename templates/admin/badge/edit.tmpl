@@ -1,0 +1,48 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin edit user")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.badges.edit_badge"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="./edit" method="post">
+				{{template "base/disable_form_autofill"}}
+				{{.CsrfTokenHtml}}
+
+				<div class="non-local field {{if .Err_Slug}}error{{end}}" disabled=disabled>
+					<label for="slug">{{ctx.Locale.Tr "admin.badges.slug"}}</label>
+					<input disabled=disabled id="slug" name="slug" value="{{.Badge.Slug}}">
+				</div>
+				<div class="field {{if .Err_Description}}error{{end}}">
+					<label for="description">{{ctx.Locale.Tr "admin.badges.description"}}</label>
+					<textarea id="description" type="text" name="description" rows="2">{{.Badge.Description}}</textarea>
+				</div>
+				<div class="field {{if .Err_ImageURL}}error{{end}}">
+					<label for="image_url">{{ctx.Locale.Tr "admin.badges.image_url"}}</label>
+					<input id="image_url" type="url" name="image_url" value="{{.Badge.ImageURL}}">
+				</div>
+
+				<div class="divider"></div>
+
+				<div class="field">
+					<button class="ui primary button">{{ctx.Locale.Tr "admin.badges.update_badge"}}</button>
+					<button class="ui red button show-modal" data-modal="#delete-badge-modal">{{ctx.Locale.Tr "admin.badges.delete_badge"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+<div class="ui g-modal-confirm delete modal" id="delete-badge-modal">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{ctx.Locale.Tr "admin.badges.delete_badge"}}
+	</div>
+	<form class="ui form" method="post" action="./delete">
+		<div class="content">
+			<p>{{ctx.Locale.Tr "admin.badges.delete_badge_desc"}}</p>
+			{{$.CsrfTokenHtml}}
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</form>
+</div>
+
+{{template "admin/layout_footer" .}}
