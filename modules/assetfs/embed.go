@@ -97,8 +97,7 @@ type embeddedFS struct {
 }
 
 type EmbeddedMeta struct {
-	MaxModTime time.Time
-	Root       *embeddedFileInfo
+	Root *embeddedFileInfo
 }
 
 func NewEmbeddedFS(data []byte) fs.ReadDirFS {
@@ -254,7 +253,7 @@ func (fi *embeddedFileInfo) Mode() fs.FileMode {
 }
 
 func (fi *embeddedFileInfo) ModTime() time.Time {
-	return fi.fs.meta().MaxModTime
+	return getExecutableModTime()
 }
 
 func (fi *embeddedFileInfo) IsDir() bool {
@@ -273,6 +272,28 @@ func (fi *embeddedFileInfo) Info() (fs.FileInfo, error) {
 	return fi, nil
 }
 
+// getExecutableModTime returns the modification time of the executable file.
+// In bindata, we can't use the ModTime of the files because we need to make the build reproducible
+var getExecutableModTime = sync.OnceValue(func() (modTime time.Time) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return modTime
+	}
+	exePath, err = filepath.Abs(exePath)
+	if err != nil {
+		return modTime
+	}
+	exePath, err = filepath.EvalSymlinks(exePath)
+	if err != nil {
+		return modTime
+	}
+	st, err := os.Stat(exePath)
+	if err != nil {
+		return modTime
+	}
+	return st.ModTime()
+})
+
 func GenerateEmbedBindata(fsRootPath, outputFile string) error {
 	output, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
@@ -290,7 +311,6 @@ func GenerateEmbedBindata(fsRootPath, outputFile string) error {
 			return err
 		}
 		for _, dirEntry := range dirEntries {
-			fi, err := dirEntry.Info()
 			if err != nil {
 				return err
 			}
@@ -331,10 +351,6 @@ func GenerateEmbedBindata(fsRootPath, outputFile string) error {
 				outputOffset += child.DataLen
 
 				parent.Children = append(parent.Children, child)
-				modTime := fi.ModTime()
-				if meta.MaxModTime.Before(modTime) {
-					meta.MaxModTime = modTime
-				}
 			}
 		}
 		return nil
