@@ -27,6 +27,9 @@ func TestEmbed(t *testing.T) {
 	require.NoError(t, err)
 	efs := NewEmbeddedFS(data)
 
+	_, err = fs.ReadFile(efs, "not exist")
+	assert.ErrorIs(t, err, fs.ErrNotExist)
+
 	content, err := fs.ReadFile(efs, "a.txt")
 	require.NoError(t, err)
 	assert.Equal(t, "a", string(content))
@@ -35,7 +38,11 @@ func TestEmbed(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, bytes.Repeat([]byte("a"), 1000), content)
 
-	entries, err := fs.ReadDir(efs, "foo")
+	entries, err := fs.ReadDir(efs, ".")
+	require.NoError(t, err)
+	assert.Len(t, entries, 2)
+
+	entries, err = fs.ReadDir(efs, "foo")
 	require.NoError(t, err)
 	require.Len(t, entries, 2)
 	assert.Equal(t, "bar", entries[0].Name())

@@ -27,6 +27,7 @@ type EmbeddedFile interface {
 
 type EmbeddedFileInfo interface {
 	fs.FileInfo
+	fs.DirEntry
 	GetGzipContent() ([]byte, bool)
 }
 
@@ -143,11 +144,17 @@ func (e *embeddedFS) getFileInfo(fullName string) (*embeddedFileInfo, error) {
 
 	fields := strings.Split(fullName, "/")
 	fi = e.meta().Root
-	for _, field := range fields {
-		for _, child := range fi.Children {
-			if child.BaseName == field {
-				fi = child
-				break
+	if fullName != "." {
+		found := true
+		for _, field := range fields {
+			for _, child := range fi.Children {
+				if found = child.BaseName == field; found {
+					fi = child
+					break
+				}
+			}
+			if !found {
+				return nil, fs.ErrNotExist
 			}
 		}
 	}
@@ -213,7 +220,7 @@ func (f *EmbeddedCompressedFile) Read(p []byte) (n int, err error) {
 func (f *EmbeddedFileBase) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
-		f.seekPos = 0 + offset
+		f.seekPos = offset
 	case io.SeekCurrent:
 		f.seekPos += offset
 	case io.SeekEnd:
@@ -234,8 +241,6 @@ func (f *EmbeddedCompressedFile) Close() error {
 	return f.decompressor.Close()
 }
 
-var _ fs.FileInfo = (*embeddedFileInfo)(nil)
-
 func (fi *embeddedFileInfo) Name() string {
 	return fi.BaseName
 }
@@ -252,8 +257,6 @@ func (fi *embeddedFileInfo) ModTime() time.Time {
 	return fi.fs.meta().MaxModTime
 }
 
-var _ fs.DirEntry = (*embeddedFileInfo)(nil)
-
 func (fi *embeddedFileInfo) IsDir() bool {
 	return fi.Children != nil
 }
@@ -263,7 +266,7 @@ func (fi *embeddedFileInfo) Sys() any {
 }
 
 func (fi *embeddedFileInfo) Type() fs.FileMode {
-	return util.Iif[fs.FileMode](fi.IsDir(), fs.ModeDir, 0)
+	return util.Iif(fi.IsDir(), fs.ModeDir, 0)
 }
 
 func (fi *embeddedFileInfo) Info() (fs.FileInfo, error) {
@@ -294,7 +297,7 @@ func GenerateEmbedBindata(fsRootPath, outputFile string) error {
 			if dirEntry.IsDir() {
 				child := &embeddedFileInfo{
 					BaseName: dirEntry.Name(),
-					Children: []*embeddedFileInfo{},
+					Children: []*embeddedFileInfo{}, // non-nil means it's a directory
 				}
 				parent.Children = append(parent.Children, child)
 				if err = embedFiles(child, filepath.Join(fsPath, dirEntry.Name()), path.Join(embedPath, dirEntry.Name())); err != nil {
