@@ -120,8 +120,7 @@ WEBPACK_CONFIGS := webpack.config.js tailwind.config.js
 WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
 WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
 
-BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
-BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
+BINDATA_DEST := modules/public/bindata.dat modules/options/bindata.dat modules/templates/bindata.dat
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
@@ -226,7 +225,7 @@ clean-all: clean ## delete backend, frontend and integration files
 
 .PHONY: clean
 clean: ## delete backend and integration files
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) \
 		integrations*.test \
 		e2e*.test \
 		tests/integration/gitea-integration-* \
