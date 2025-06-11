@@ -15164,6 +15164,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/signing-key.pub": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get signing-key.pub for given repository",
+        "operationId": "repoSigningKeySSH",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ssh public key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/stargazers": {
       "get": {
         "produces": [
@@ -16990,6 +17026,26 @@
         "responses": {
           "200": {
             "description": "GPG armored public key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "/signing-key.pub": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Get default signing-key.pub",
+        "operationId": "getSigningKeySSH",
+        "responses": {
+          "200": {
+            "description": "ssh public key",
             "schema": {
               "type": "string"
             }
