@@ -174,7 +174,6 @@ type CommitsCountOptions struct {
 // CommitsCount returns number of total commits of until given revision.
 func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) {
 	var cmd *Command
-	cmd = nil
 	followRename := len(opts.RelPath) > 0 && opts.FollowRename
 
 	if followRename {
@@ -202,9 +201,8 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 	}
 	if followRename {
 		return int64(len(strings.Split(stdout, "\n"))), nil
-	} else {
-		return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 	}
+	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
 // CommitsCount returns number of total commits of until current revision.
