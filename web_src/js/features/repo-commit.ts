@@ -31,22 +31,13 @@ export function initCommitFileHistoryFollowRename() {
   if (!checkbox) {
     return;
   }
-  checkbox.checked = location.toString().includes('history_follow_rename=true');
+  const url = new URL(window.location.toString());
+  checkbox.checked = url.searchParams.has('history_follow_rename', 'true');
 
   checkbox.addEventListener('change', () => {
-    let url = location.toString();
+    const url = new URL(location.toString());
 
-    url = url.replaceAll(/history_follow_rename=(true|false)&*/g, '');
-    if (url.endsWith('?')) {
-      url = url.slice(0, -1);
-    }
-    if (url.includes('?')) {
-      url += '&';
-    } else {
-      url += '?';
-    }
-
-    url += `history_follow_rename=${checkbox.checked}`;
-    window.location.href = url;
+    url.searchParams.set('history_follow_rename', `${checkbox.checked}`);
+    window.location.replace(url);
   });
 }
