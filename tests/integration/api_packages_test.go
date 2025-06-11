@@ -690,7 +690,7 @@ func TestPackageCleanup(t *testing.T) {
 						err = packages_service.DeletePackageVersionAndReferences(db.DefaultContext, pv)
 						assert.NoError(t, err)
 					} else {
-						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
+						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist, fmt.Sprintf("ver:%v", v.Version))
 					}
 				}
 
