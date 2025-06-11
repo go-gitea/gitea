@@ -62,7 +62,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
-	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
+	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
@@ -105,7 +105,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
-	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
+	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
