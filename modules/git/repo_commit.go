@@ -239,13 +239,18 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		gitCmd := NewCommand("--no-pager", "log").
-			AddOptionFormat("--pretty=format:%%H").
-			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
-			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
-		if opts.FollowRename {
-			gitCmd.AddOptionValues("--follow")
+		var gitCmd *Command
+
+		if !opts.FollowRename {
+			gitCmd = NewCommand("rev-list")
+		} else {
+			gitCmd = NewCommand("--no-pager", "log").
+				AddOptionFormat("--pretty=format:%%H").
+				AddOptionFormat("--follow")
 		}
+		gitCmd.AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
+
 		gitCmd.AddDynamicArguments(opts.Revision)
 
 		if opts.Not != "" {
@@ -264,7 +269,8 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 			Stdout: stdoutWriter,
 			Stderr: &stderr,
 		})
-		if err != nil && err != io.ErrUnexpectedEOF {
+
+		if err != nil && !(opts.FollowRename && err == io.ErrUnexpectedEOF) {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = stdoutWriter.Close()
@@ -281,7 +287,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	shaline := make([]byte, length+1)
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline)
-		if (err != nil && err != io.ErrUnexpectedEOF) || n < length {
+		if (err != nil && !(opts.FollowRename && err == io.ErrUnexpectedEOF)) || n < length {
 			if err == io.EOF {
 				err = nil
 			}
