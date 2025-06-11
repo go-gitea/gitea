@@ -14,7 +14,7 @@ import (
 
 // LoadPublicKeyContent will load the key from gpg
 func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
-	if gpgSettings.Format == KeyTypeSSH {
+	if gpgSettings.Format == SigningKeyFormatSSH {
 		content, err := os.ReadFile(gpgSettings.KeyID)
 		if err != nil {
 			return fmt.Errorf("unable to read SSH public key file: %s, %w", gpgSettings.KeyID, err)
@@ -53,7 +53,7 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 	signingKey, _, _ := NewCommand("config", "--get", "user.signingkey").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	gpgSettings.KeyID = strings.TrimSpace(signingKey)
 
-	format, _, _ := NewCommand("config", "--default", KeyTypeOpenPGP, "--get", "gpg.format").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
+	format, _, _ := NewCommand("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})
 	gpgSettings.Format = strings.TrimSpace(format)
 
 	defaultEmail, _, _ := NewCommand("config", "--get", "user.email").RunStdString(repo.Ctx, &RunOpts{Dir: repo.Path})

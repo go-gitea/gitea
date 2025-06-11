@@ -99,7 +99,7 @@ func SigningKey(ctx context.Context, repoPath string) (*git.SigningKey, *git.Sig
 			return nil, nil
 		}
 
-		format, _, _ := git.NewCommand("config", "--default", git.KeyTypeOpenPGP, "--get", "gpg.format").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
+		format, _, _ := git.NewCommand("config", "--default", git.SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 		signingKey, _, _ := git.NewCommand("config", "--get", "user.signingkey").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 		signingName, _, _ := git.NewCommand("config", "--get", "user.name").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
 		signingEmail, _, _ := git.NewCommand("config", "--get", "user.email").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
@@ -136,7 +136,7 @@ func PublicSigningKey(ctx context.Context, repoPath string) (content string, for
 	if signingKey == nil {
 		return "", "", nil
 	}
-	if signingKey.Format == git.KeyTypeSSH {
+	if signingKey.Format == git.SigningKeyFormatSSH {
 		content, err := os.ReadFile(signingKey.KeyID)
 		if err != nil {
 			log.Error("Unable to read SSH public key file in %s: %s, %v", repoPath, signingKey, err)

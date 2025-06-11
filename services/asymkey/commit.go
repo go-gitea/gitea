@@ -428,7 +428,7 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 	}
 
 	// Try the configured instance-wide SSH public key
-	if setting.Repository.Signing.SigningFormat == git.KeyTypeSSH && !slices.Contains([]string{"", "default", "none"}, setting.Repository.Signing.SigningKey) {
+	if setting.Repository.Signing.SigningFormat == git.SigningKeyFormatSSH && !slices.Contains([]string{"", "default", "none"}, setting.Repository.Signing.SigningKey) {
 		gpgSettings := git.GPGSettings{
 			Sign:   true,
 			KeyID:  setting.Repository.Signing.SigningKey,

@@ -65,7 +65,7 @@ func SigningKeyGPG(ctx *context.APIContext) {
 	//     description: "GPG armored public key"
 	//     schema:
 	//       type: string
-	getSigningKey(ctx, git.KeyTypeOpenPGP)
+	getSigningKey(ctx, git.SigningKeyFormatOpenPGP)
 }
 
 // SigningKeySSH returns the public key of the default signing key if it exists
@@ -102,5 +102,5 @@ func SigningKeySSH(ctx *context.APIContext) {
 	//     description: "ssh public key"
 	//     schema:
 	//       type: string
-	getSigningKey(ctx, git.KeyTypeSSH)
+	getSigningKey(ctx, git.SigningKeyFormatSSH)
 }
