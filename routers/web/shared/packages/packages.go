@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -155,23 +154,24 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 
 	versionsToRemove := make([]*packages_model.PackageDescriptor, 0, 10)
 
-	limit := 200
 	for _, p := range packages {
-		lastVersionID := int64(0)
+		skip := pcr.KeepCount
 		for {
 			pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-				PackageID:   p.ID,
-				IsInternal:  optional.Some(false),
-				Sort:        packages_model.SortCreatedDesc,
-				Paginator:   db.NewAbsoluteListOptions(util.Iif(lastVersionID > 0, 0, pcr.KeepCount), limit),
-				LtVersionID: lastVersionID,
+				PackageID:  p.ID,
+				IsInternal: optional.Some(false),
+				Sort:       packages_model.SortCreatedDesc,
+				Paginator:  db.NewAbsoluteListOptions(skip, 200),
 			})
 			if err != nil {
 				ctx.ServerError("SearchVersions", err)
 				return
 			}
+			if len(pvs) == 0 {
+				break
+			}
 			for _, pv := range pvs {
-				lastVersionID = pv.ID
+				skip += 1
 				if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
 					ctx.ServerError("ShouldBeSkipped", err)
 					return
@@ -201,9 +201,7 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 				}
 				versionsToRemove = append(versionsToRemove, pd)
 			}
-			if len(pvs) < limit {
-				break
-			}
+
 		}
 	}
 

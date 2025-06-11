@@ -180,7 +180,6 @@ type PackageSearchOptions struct {
 	RepoID          int64
 	Type            Type
 	PackageID       int64
-	LtVersionID     int64
 	Name            SearchValue       // only results with the specific name are found
 	Version         SearchValue       // only results with the specific version are found
 	Properties      map[string]string // only results are found which contain all listed version properties with the specific value
@@ -210,9 +209,6 @@ func (opts *PackageSearchOptions) ToConds() builder.Cond {
 	}
 	if opts.PackageID != 0 {
 		cond = cond.And(builder.Eq{"package.id": opts.PackageID})
-	}
-	if opts.LtVersionID != 0 {
-		cond = cond.And(builder.Lt{"package_version.id": opts.LtVersionID})
 	}
 	if opts.Name.Value != "" {
 		if opts.Name.ExactMatch {

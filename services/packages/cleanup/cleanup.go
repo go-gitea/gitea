@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
-	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 	alpine_service "code.gitea.io/gitea/services/packages/alpine"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
@@ -59,23 +58,25 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 		}
 
 		anyVersionDeleted := false
-		limit := 200
 		for _, p := range packages {
-			lastVersionID := int64(0)
+			skip := pcr.KeepCount
 			for {
 				pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-					PackageID:   p.ID,
-					IsInternal:  optional.Some(false),
-					Sort:        packages_model.SortCreatedDesc,
-					Paginator:   db.NewAbsoluteListOptions(util.Iif(lastVersionID > 0, 0, pcr.KeepCount), limit),
-					LtVersionID: lastVersionID,
+					PackageID:  p.ID,
+					IsInternal: optional.Some(false),
+					Sort:       packages_model.SortCreatedDesc,
+					Paginator:  db.NewAbsoluteListOptions(skip, 200),
 				})
 				if err != nil {
 					return fmt.Errorf("CleanupRule [%d]: SearchVersions failed: %w", pcr.ID, err)
 				}
+				if len(pvs) == 0 {
+					break
+				}
+				log.Debug("%v pvs %v", skip, len(pvs))
 				versionDeleted := false
+				skip += len(pvs)
 				for _, pv := range pvs {
-					lastVersionID = pv.ID
 					if pcr.Type == packages_model.TypeContainer {
 						if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
 							return fmt.Errorf("CleanupRule [%d]: container.ShouldBeSkipped failed: %w", pcr.ID, err)
@@ -108,7 +109,7 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 					if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 						return fmt.Errorf("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
 					}
-
+					skip -= 1
 					versionDeleted = true
 					anyVersionDeleted = true
 				}
@@ -124,9 +125,7 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 						}
 					}
 				}
-				if len(pvs) < limit {
-					break
-				}
+
 			}
 		}
 
