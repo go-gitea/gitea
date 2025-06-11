@@ -46,8 +46,9 @@ Initial commit with signed file
 		assert.True(t, ret.Verified)
 		assert.False(t, ret.Warning)
 		assert.Equal(t, committingUser, ret.CommittingUser)
-		assert.NotNil(t, ret.SigningUser)
-		assert.Equal(t, "gitea", ret.SigningUser.Name)
-		assert.Equal(t, "gitea@fake.local", ret.SigningUser.Email)
+		if assert.NotNil(t, ret.SigningUser) {
+			assert.Equal(t, "gitea", ret.SigningUser.Name)
+			assert.Equal(t, "gitea@fake.local", ret.SigningUser.Email)
+		}
 	})
 }
