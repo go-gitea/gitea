@@ -19,6 +19,8 @@ import (
 func TestParseCommitWithSSHSignature(t *testing.T) {
 	// Here we only test the TrustedSSHKeys. The complete signing test is in tests/integration/gpg_ssh_git_test.go
 	t.Run("TrustedSSHKey", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()
+		defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "gitea@fake.local")()
 		defer test.MockVariableValue(&setting.Repository.Signing.TrustedSSHKeys, []string{"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH6Y4idVaW3E+bLw1uqoAfJD7o5Siu+HqS51E9oQLPE9"})()
 
 		commit, err := git.CommitFromReader(nil, git.Sha1ObjectFormat.EmptyObjectID(), strings.NewReader(`tree 9a93ffa76e8b72bdb6431910b3a506fa2b39f42e
@@ -34,11 +36,18 @@ gpgsig -----BEGIN SSH SIGNATURE-----
 Initial commit with signed file
 `))
 		require.NoError(t, err)
-		ret := ParseCommitWithSSHSignature(t.Context(), commit, &user_model.User{Name: "foo", Email: "foo@bar.com"})
+		committingUser := &user_model.User{
+			ID:    2,
+			Name:  "User Two",
+			Email: "user2@example.com",
+		}
+		ret := ParseCommitWithSSHSignature(t.Context(), commit, committingUser)
 		require.NotNil(t, ret)
 		assert.True(t, ret.Verified)
 		assert.False(t, ret.Warning)
-		assert.NotNil(t, ret.CommittingUser) // FIXME: test the CommittingUser and SigningUser correctly
-		assert.NotNil(t, ret.SigningUser)    // FIXME: test the CommittingUser and SigningUser correctly
+		assert.Equal(t, ret.CommittingUser, committingUser)
+		assert.NotNil(t, ret.SigningUser)
+		assert.Equal(t, ret.SigningUser.Name, "gitea")
+		assert.Equal(t, ret.SigningUser.Email, "gitea@fake.local")
 	})
 }

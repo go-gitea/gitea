@@ -417,8 +417,10 @@ func ParseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 
 	// Try the pre-set trusted keys (for key-rotation purpose)
 	for _, k := range setting.Repository.Signing.TrustedSSHKeys {
-		// FIXME: why here uses "commiterUser" as "signerUser" but below don't? why here uses "c.Committer.Email" but below uses "gpgSettings.Email"?
-		signerUser := committerUser
+		signerUser := &user_model.User{
+			Name:  setting.Repository.Signing.SigningName,
+			Email: setting.Repository.Signing.SigningEmail,
+		}
 		commitVerification := verifySSHCommitVerificationByInstanceKey(c, committerUser, signerUser, c.Committer.Email, k)
 		if commitVerification != nil && commitVerification.Verified {
 			return commitVerification
