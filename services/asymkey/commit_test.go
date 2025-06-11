@@ -45,9 +45,9 @@ Initial commit with signed file
 		require.NotNil(t, ret)
 		assert.True(t, ret.Verified)
 		assert.False(t, ret.Warning)
-		assert.Equal(t, ret.CommittingUser, committingUser)
+		assert.Equal(t, committingUser, ret.CommittingUser)
 		assert.NotNil(t, ret.SigningUser)
-		assert.Equal(t, ret.SigningUser.Name, "gitea")
-		assert.Equal(t, ret.SigningUser.Email, "gitea@fake.local")
+		assert.Equal(t, "gitea", ret.SigningUser.Name)
+		assert.Equal(t, "gitea@fake.local", ret.SigningUser.Email)
 	})
 }
