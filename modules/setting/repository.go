@@ -255,7 +255,7 @@ var (
 			SigningKey:        "default",
 			SigningName:       "",
 			SigningEmail:      "",
-			SigningFormat:     "openpgp", // git.KeyTypeOpenPGP
+			SigningFormat:     "openpgp", // git.SigningKeyFormatOpenPGP
 			InitialCommit:     []string{"always"},
 			CRUDActions:       []string{"pubkey", "twofa", "parentsigned"},
 			Merges:            []string{"pubkey", "twofa", "basesigned", "commitssigned"},
