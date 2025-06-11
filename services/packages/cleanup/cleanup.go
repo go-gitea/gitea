@@ -73,7 +73,6 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 				if len(pvs) == 0 {
 					break
 				}
-				log.Debug("%v pvs %v", skip, len(pvs))
 				versionDeleted := false
 				skip += len(pvs)
 				for _, pv := range pvs {
@@ -85,12 +84,10 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 							continue
 						}
 					}
-
 					toMatch := pv.LowerVersion
 					if pcr.MatchFullName {
 						toMatch = p.LowerName + "/" + pv.LowerVersion
 					}
-
 					if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
 						log.Debug("Rule[%d]: keep '%s/%s' (keep pattern)", pcr.ID, p.Name, pv.Version)
 						continue
@@ -103,17 +100,14 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 						log.Debug("Rule[%d]: keep '%s/%s' (remove pattern)", pcr.ID, p.Name, pv.Version)
 						continue
 					}
-
 					log.Debug("Rule[%d]: remove '%s/%s'", pcr.ID, p.Name, pv.Version)
-
 					if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
 						return fmt.Errorf("CleanupRule [%d]: DeletePackageVersionAndReferences failed: %w", pcr.ID, err)
 					}
-					skip -= 1
+					skip--
 					versionDeleted = true
 					anyVersionDeleted = true
 				}
-
 				if versionDeleted {
 					if pcr.Type == packages_model.TypeCargo {
 						owner, err := user_model.GetUserByID(ctx, pcr.OwnerID)
@@ -125,7 +119,6 @@ func ExecuteCleanupRules(outerCtx context.Context) error {
 						}
 					}
 				}
-
 			}
 		}
 

@@ -171,19 +171,17 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 				break
 			}
 			for _, pv := range pvs {
-				skip += 1
+				skip++
 				if skip, err := container_service.ShouldBeSkipped(ctx, pcr, p, pv); err != nil {
 					ctx.ServerError("ShouldBeSkipped", err)
 					return
 				} else if skip {
 					continue
 				}
-
 				toMatch := pv.LowerVersion
 				if pcr.MatchFullName {
 					toMatch = p.LowerName + "/" + pv.LowerVersion
 				}
-
 				if pcr.KeepPatternMatcher != nil && pcr.KeepPatternMatcher.MatchString(toMatch) {
 					continue
 				}
@@ -193,7 +191,6 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 				if pcr.RemovePatternMatcher != nil && !pcr.RemovePatternMatcher.MatchString(toMatch) {
 					continue
 				}
-
 				pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 				if err != nil {
 					ctx.ServerError("GetPackageDescriptor", err)
@@ -201,7 +198,6 @@ func SetRulePreviewContext(ctx *context.Context, owner *user_model.User) {
 				}
 				versionsToRemove = append(versionsToRemove, pd)
 			}
-
 		}
 	}
 
