@@ -51,7 +51,7 @@
 							{{else if $release.Publisher}}
 								{{ctx.AvatarUtils.Avatar $release.Publisher 20 "tw-mr-1"}}
 								{{if gt $release.PublisherID 0}}
-								 <a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
+									<a href="{{$release.Publisher.HomeLink}}">{{$release.Publisher.GetDisplayName}}</a>
 								{{else}}
 									{{$release.Publisher.GetDisplayName}}
 								{{end}}
