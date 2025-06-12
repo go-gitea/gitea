@@ -21,7 +21,7 @@ import (
 
 type EmbeddedFile interface {
 	io.ReadSeeker
-	fs.File
+	fs.ReadDirFile
 	ReadDir(n int) ([]fs.DirEntry, error)
 }
 
@@ -50,6 +50,7 @@ type embeddedFileInfo struct {
 }
 
 func (fi *embeddedFileInfo) GetGzipContent() ([]byte, bool) {
+	// when generating the bindata, if the compressed data equals or is larger than the original data, we store the original data
 	if fi.DataLen == fi.OriginSize {
 		return nil, false
 	}
@@ -63,6 +64,7 @@ type EmbeddedFileBase struct {
 }
 
 func (f *EmbeddedFileBase) ReadDir(n int) ([]fs.DirEntry, error) {
+	// this method is used to satisfy the "func (f ioFile) ReadDir(...)" in httpfs
 	l, err := f.info.fs.ReadDir(f.info.fullName)
 	if err != nil {
 		return nil, err
@@ -81,10 +83,6 @@ type EmbeddedCompressedFile struct {
 	EmbeddedFileBase
 	decompressor    decompressor
 	decompressorPos int64
-}
-
-func (f *EmbeddedCompressedFile) GzipBytes() []byte {
-	return f.info.data
 }
 
 type embeddedFS struct {
@@ -336,20 +334,19 @@ func GenerateEmbedBindata(fsRootPath, outputFile string) error {
 				if err = gz.Close(); err != nil {
 					return err
 				}
-				outputBytes := util.Iif(len(compressed.Bytes()) < len(data), compressed.Bytes(), data)
 
+				// only use the compressed data if it is smaller than the original data
+				outputBytes := util.Iif(len(compressed.Bytes()) < len(data), compressed.Bytes(), data)
 				child := &embeddedFileInfo{
 					BaseName:   dirEntry.Name(),
 					OriginSize: int64(len(data)),
 					DataBegin:  outputOffset,
 					DataLen:    int64(len(outputBytes)),
 				}
-
 				if _, err = output.Write(outputBytes); err != nil {
 					return err
 				}
 				outputOffset += child.DataLen
-
 				parent.Children = append(parent.Children, child)
 			}
 		}
