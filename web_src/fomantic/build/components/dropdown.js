@@ -525,6 +525,7 @@ $.fn.dropdown = function(parameters) {
               return true;
             }
             if(settings.onShow.call(element) !== false) {
+              settings.onAfterFiltered.call(element); // GITEA-PATCH: callback to correctly handle the filtered items
               module.animate.show(function() {
                 if( module.can.click() ) {
                   module.bind.intent();
