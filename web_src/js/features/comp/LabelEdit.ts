@@ -1,6 +1,6 @@
 import {toggleElem} from '../../utils/dom.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
-import {submitFormFetchAction} from "../common-fetch-action.ts";
+import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 function nameHasScope(name: string): boolean {
   return /.*[^/]\/[^/].*/.test(name);
