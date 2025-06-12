@@ -28,6 +28,7 @@ type GPGSettings struct {
 	Email            string
 	Name             string
 	PublicKeyContent string
+	Format           string
 }
 
 const prettyLogFormat = `--pretty=format:%H`

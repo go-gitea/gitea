@@ -193,8 +193,8 @@ func SignInOAuthCallback(ctx *context.Context) {
 			source := authSource.Cfg.(*oauth2.Source)
 
 			isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &gothUser)
-			u.IsAdmin = isAdmin.ValueOrDefault(false)
-			u.IsRestricted = isRestricted.ValueOrDefault(false)
+			u.IsAdmin = isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue
+			u.IsRestricted = isRestricted.ValueOrDefault(setting.Service.DefaultUserIsRestricted)
 
 			if !createAndHandleCreatedUser(ctx, templates.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
@@ -258,11 +258,11 @@ func getClaimedGroups(source *oauth2.Source, gothUser *goth.User) container.Set[
 	return claimValueToStringSet(groupClaims)
 }
 
-func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *goth.User) (isAdmin, isRestricted optional.Option[bool]) {
+func getUserAdminAndRestrictedFromGroupClaims(source *oauth2.Source, gothUser *goth.User) (isAdmin optional.Option[user_service.UpdateOptionField[bool]], isRestricted optional.Option[bool]) {
 	groups := getClaimedGroups(source, gothUser)
 
 	if source.AdminGroup != "" {
-		isAdmin = optional.Some(groups.Contains(source.AdminGroup))
+		isAdmin = user_service.UpdateOptionFieldFromSync(groups.Contains(source.AdminGroup))
 	}
 	if source.RestrictedGroup != "" {
 		isRestricted = optional.Some(groups.Contains(source.RestrictedGroup))
