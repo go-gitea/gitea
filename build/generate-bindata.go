@@ -14,7 +14,7 @@ import (
 
 func main() {
 	if len(os.Args) != 3 {
-		fmt.Println("usage: generate-bindata local-directory embed-filename")
+		fmt.Println("usage: ./generate-bindata {local-directory} {bindata-filename}")
 		os.Exit(1)
 	}
 
