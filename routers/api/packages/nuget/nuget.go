@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -688,7 +689,7 @@ func DeletePackage(ctx *context.Context) {
 	packageName := ctx.PathParam("id")
 	packageVersion := ctx.PathParam("version")
 
-	err := packages_service.RemovePackageVersionByNameAndVersion(
+	err := common.RemovePackageVersionByNameAndVersion(
 		ctx,
 		ctx.Doer,
 		&packages_service.PackageInfo{
